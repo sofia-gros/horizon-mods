@@ -1,6 +1,6 @@
 # M3b: サーバーからの個体読み取りと性能hook
 
-M3bは作業中です。最初の区切りM3b1では、実際の採掘・戦闘・耐久hookより先に、サーバーが手持ちのどの個体を読んでいるかを固定します。ユーザーからM3b1の手動テストは未実施との申告を受けたため、手動確認済みにはせず、許可された次の実装を進めます。
+M3bは作業中です。最初の区切りM3b1では、実際の採掘・戦闘・耐久hookより先に、サーバーが手持ちのどの個体を読んでいるかを固定します。2026-10-27、ユーザーから本体 `235cac33` / Mod `0272914` の実機確認済み・問題なしとの報告を受領しました。添付画像でも3個体の素材・damage・broken・基礎statsが期待値と一致しています。M3b2以降の手動確認とは区別します。
 作業ブランチは引き続き本体・Modとも `codex/tconstruct-item-hooks`。
 
 本体とserver SDKの固定コミットは `235cac33f056efaeb316e5e309b767e14498ab79`。本流 `800b9156` を含みます。client SDKは従来の `88b7bfaf` 固定を維持します。検証用本体はfast profile / client opt-level=0 / jobs=1で作成し、一時ファイルをAドライブへ分離します。ゲームの性能比較は行いません。
@@ -108,4 +108,4 @@ Modは親フォルダと `server-tools/` でそれぞれ `cargo test --locked`�
 - 旧SDKのM2 probe: `.local/server-mods-tests/integrated-5_vbt26h/report.json` の14項目成功。join/tick、chat、破壊・設置、Nether移動、pause/resumeを確認。
 - 本体成果物SHA-256: `661c0bd28736e39064b3cc00e056d5d8dc96185639a97131504c5f51d43f57b4`。Windows PEのメインstack reserveは16 MiB、補助threadもRUST_MIN_STACK=16 MiBで検証。最初のopt-level=0 / 標準stack版は起動時stack overflowで失敗し、上記のリンク設定で再試験して解消した。
 - client成果物SHA-256: `04daaa12b0476598e27401ec48dfd7d386f7e594f23e081fcea7de390fde890d`（88,551 bytes）。server成果物: `2f5cd970c6cd5de7d788524b37f734b43b8d7f54247d0dfe76237d651d0cb6a6`（92,741 bytes）。
-- 手動起動scriptのPowerShell構文・`-Inspect -ValidateOnly`、Python構文検査成功。ユーザー自身によるM3b1のGUI操作は未実施。LAN / dedicatedの読み取りと、実際のゲーム性能・耐久hookは今回未検証・未実装。
+- 手動起動scriptのPowerShell構文・`-Inspect -ValidateOnly`、Python構文検査成功。ユーザー自身によるM3b1のGUI操作もその後確認済み・問題なしと報告受領。LAN / dedicatedの読み取りと、実際のゲーム性能・耐久hookは今回未検証・未実装。
