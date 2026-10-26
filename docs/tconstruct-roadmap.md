@@ -9,7 +9,7 @@
 | --- | --- | --- | --- |
 | M0 再現可能な入力 | 開発中 | 原作コミット固定、MIT・出典・SHA-256、選択データ、依存・対応範囲一覧 | 再取り込み・ハッシュ検証が可能。未対応が診断される |
 | M1 Modコアと診断Mod | 開発中 | 素材・部品・stats・traitの小集合、ToolState、耐久・修理、Wasm診断コマンド | Rust試験、Java数値oracle、Wasm build、sandbox test/checkが通る。診断Modと実ツールを区別 |
-| M2 サーバー基盤 | 未着手 | role別ABI・runtime・lifecycle probe、dev packageのserver引き渡し | 旧client互換、in-frame / integrated / dedicated、dimensionとpauseを確認 |
+| M2 サーバー基盤 | 上流基盤取り込み・接続未着手 | 上流API 0.3のABI・SDK・runtimeを使用。ゲーム側lifecycle接続、dev packageのserver引き渡し、probeを追加 | 旧client互換、in-frame / integrated / dedicated、dimensionとpauseを確認 |
 | M3 アイテム接続 | 未着手 | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
 | M4 制作・修理UI | 未着手 | generic Block Entity / menu / transaction、Part Builder・Station | 部品作成・組み立て・交換・修理。複数人・shift-click・保存で複製も消失もない |
 | M5 動的な外観 | 未着手 | 素材別sprite / tint / tooltip、broken / modifier表示 | 手持ち・inventory・dropで表示が一致。固定視点の画像試験 |
@@ -23,9 +23,12 @@ M0とM1を先に実装します。本体の汎用API開発に原作固有コー�
 診断Modは既存APIで数値を観測するための足場で、採掘可能なTConstructツールの完成ではありません。
 M2以降ではフォーク本体に変更を追加し、各段階を小さい差分へ分割します。
 
+2026-10-26: 上流 `c9f554d1` を含むマージ `88b7bfaf` で、実験的なserver Mod API 0.3のWIT・SDK・runtime・sandbox試験が追加されました。新規にrole別ABIを設計する作業は不要です。ただしゲームは依然 `Runs::Client` を指定し、server lifecycle呼び出しは未接続です。M2完了を意味しません。詳細は [追従記録](horizon-upstream-sync.md) を参照してください。
+
 ## 検証の扱い
 
 - 原作データ・選択したJava計算メソッドとの比較、Forge全体での比較、Horizon実機を区別して記録する。
 - Modコアは `cargo test`、Wasmは `cargo horizon-mod test / check`、本体は該当crateと影響するparity試験を使う。
 - 既存ワールドを使わず、runごとのhome・cwd・endpoint・ログへ分離する。
 - 未実行の試験と未対応のhookはREADME・進捗に残し、機能があるように表示しない。
+- 各段階の完了時に、ユーザー自身が再現できる本体/Modの版、起動コマンド、ゲーム内操作、期待結果を案内する。ゲーム接続前の段階は、非ゲームの確認手順と限界を明示する。

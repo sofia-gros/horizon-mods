@@ -14,6 +14,8 @@
 | [Tinkers’ Construct移植調査](porting-tinkers-construct.md) | MIT・Mantle依存、素材とツール、溶融炉、不足API、段階的な移植案 |
 | [TConstructの詳細実装調査](tconstruct-implementation-plan.md) | ローカルフォークの関数・保存・サーバー経路、API契約案、作業順序、検証条件 |
 | [検証自動化の調査・実機確認](verification-automation.md) | Prism・launcherの配置、Windows CLI実行、保存復帰の実証、再実行スクリプト |
+| [移植ロードマップ](tconstruct-roadmap.md) | 実装段階・完了条件・手動試験の扱い |
+| [Horizon上流の追従記録](horizon-upstream-sync.md) | API 0.3の追加範囲、ゲーム側の未接続部分、継続確認手順 |
 
 ## Horizonの前提
 
@@ -22,6 +24,7 @@ HorizonはMinecraft: Java EditionをRustで再実装したプロジェクトで�
 Fabric / NeoForge向けJavaの `.jar` をそのまま実行する仕組みではありません。
 
 調査時点の実装では、コードModはAPI `0.1`、コンテンツはAPI `0.2` に対応します。
+後続の `88b7bfaf` では実験的なserver API `0.3` の契約・SDK・runtimeが追加されました。ゲームからの呼び出しは未接続です（[追従記録](horizon-upstream-sync.md)）。
 サーバー用コードフックなどの将来計画と、現状で使える機能は分けて扱います。
 
 確認日: **2026-10-26（日本時間）**。対象コミット: `9e447a7e9203eefdf5204eaa3079be0a2ea6f4df`。
