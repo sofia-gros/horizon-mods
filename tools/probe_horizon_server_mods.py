@@ -40,6 +40,14 @@ class Game:
         if mods and args.server_mod and (dedicated or not server):
             # Package-relative storage must also stay inside this test run.
             shutil.copy2(args.server_mod, probe)
+        extra_mods = []
+        if mods and (dedicated or not server):
+            for package in getattr(args, 'extra_server_mods', []):
+                target = self.root / package.name
+                if target == probe or target in extra_mods:
+                    raise ValueError('duplicate server package filename')
+                shutil.copy2(package, target)
+                extra_mods.append(target)
         if dedicated:
             self.port = free_port()
             (self.root / "eula.txt").write_text("eula=true\n", encoding="ascii")
@@ -63,6 +71,8 @@ class Game:
                     command += ["--dev-mod", str(probe)]
             if in_frame:
                 command += ["--in-frame"]
+        for package in extra_mods:
+            command += ["--dev-mod", str(package)]
         self.log = (self.root / "game.log").open("a" if resume else "w", encoding="utf-8")
         self.proc = subprocess.Popen(command, cwd=self.root, env=self.env, stdin=subprocess.PIPE,
                                      stdout=self.log, stderr=subprocess.STDOUT,

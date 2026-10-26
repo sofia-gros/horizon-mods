@@ -2,6 +2,44 @@
 use serde::Serialize;
 use tconstruct_horizon::{Catalog, ToolState};
 
+/// A core-derived subset to project onto Horizon's generic Tool profile.
+#[derive(Debug, PartialEq)]
+pub struct MiningProjection {
+    pub speed: f32,
+    pub incorrect_tag: &'static str,
+    pub broken: bool,
+}
+
+pub fn mining_projection(
+    catalog: &Catalog,
+    item: &str,
+    count: u32,
+    source: &str,
+) -> Result<MiningProjection, String> {
+    if item != "minecraft:wooden_pickaxe" || count != 1 {
+        return Err("not a TConstruct state specimen carrier".into());
+    }
+    let state = ToolState::from_json(catalog, source)?;
+    let stats = catalog.evaluate(&state)?.stats;
+    let incorrect_tag = match stats.harvest_tier.as_str() {
+        "minecraft:wood" => "minecraft:incorrect_for_wooden_tool",
+        "minecraft:stone" => "minecraft:incorrect_for_stone_tool",
+        "minecraft:iron" => "minecraft:incorrect_for_iron_tool",
+        "minecraft:diamond" => "minecraft:incorrect_for_diamond_tool",
+        "minecraft:netherite" => "minecraft:incorrect_for_netherite_tool",
+        _ => return Err("unsupported mining tier".into()),
+    };
+    Ok(MiningProjection {
+        speed: if state.broken {
+            0.3
+        } else {
+            stats.mining_speed.max(1.0)
+        },
+        incorrect_tag,
+        broken: state.broken,
+    })
+}
+
 #[derive(Serialize)]
 struct Report<'a> {
     request: &'a str,
@@ -13,7 +51,7 @@ struct Report<'a> {
     attack: f32,
     speed: f32,
     vanilla_damage: u32,
-    hooks: bool,
+    hooks: serde_json::Value,
 }
 
 pub fn inspect(
@@ -23,6 +61,18 @@ pub fn inspect(
     source: &str,
     vanilla_damage: u32,
     request: &str,
+) -> Result<String, String> {
+    inspect_with_profile(catalog, item, count, source, vanilla_damage, request, false)
+}
+
+fn inspect_with_profile(
+    catalog: &Catalog,
+    item: &str,
+    count: u32,
+    source: &str,
+    vanilla_damage: u32,
+    request: &str,
+    active: bool,
 ) -> Result<String, String> {
     if item != "minecraft:wooden_pickaxe" || count != 1 {
         return Err("not a TConstruct state specimen carrier".into());
@@ -45,7 +95,11 @@ pub fn inspect(
         attack: stats.attack_damage,
         speed: stats.attack_speed,
         vanilla_damage,
-        hooks: false,
+        hooks: if active {
+            "mining".into()
+        } else {
+            false.into()
+        },
     };
     let reply = serde_json::to_string(&report).map_err(|error| error.to_string())?;
     if reply.chars().count() > 256 {
@@ -58,8 +112,48 @@ pub fn inspect(
 mod adapter {
     use super::*;
     use horizon_mod_sdk::server::{
-        GameMode, Player, Registration, ServerMod, items_edit, items_read,
+        GameMode, Player, Registration, ServerMod, items_edit, items_read, items_tools,
     };
+
+    fn active(player: &Player) -> Result<bool, String> {
+        Ok(
+            items_read::main_hand(&player.id, &["horizon:tool_control".into(), "owner".into()])?
+                .and_then(|item| item.custom_text)
+                .as_deref()
+                == Some("tconstruct_tools"),
+        )
+    }
+
+    fn profile(projection: MiningProjection) -> items_tools::Profile {
+        let rules = if projection.broken {
+            vec![]
+        } else {
+            vec![
+                items_tools::Rule {
+                    blocks: vec![format!("#{}", projection.incorrect_tag)],
+                    speed: None,
+                    correct_for_drops: Some(false),
+                },
+                items_tools::Rule {
+                    blocks: vec!["#minecraft:mineable/pickaxe".into()],
+                    speed: Some(projection.speed),
+                    correct_for_drops: Some(true),
+                },
+            ]
+        };
+        items_tools::Profile {
+            rules,
+            default_speed: if projection.broken {
+                projection.speed
+            } else {
+                1.0
+            },
+            damage_per_block: 0,
+            can_destroy_in_creative: true,
+            mining_enabled: true,
+            unbreakable: true,
+        }
+    }
 
     struct Inspector(Catalog);
     impl ServerMod for Inspector {
@@ -76,6 +170,26 @@ mod adapter {
             args: &str,
         ) -> Result<Option<String>, String> {
             let words: Vec<_> = args.split_whitespace().collect();
+            if let ["activate"] = words.as_slice() {
+                if !matches!(&player.game_mode, GameMode::Creative) {
+                    return Err("activation requires creative mode".into());
+                }
+                let path = ["tconstruct".into(), "state_json".into()];
+                let item = items_read::main_hand(&player.id, &path)?.ok_or("empty main hand")?;
+                let source = item
+                    .custom_text
+                    .as_deref()
+                    .ok_or("no TConstruct state in main hand")?;
+                let projection = mining_projection(&self.0, &item.item, item.count, source)?;
+                items_tools::replace_main_hand_profile(
+                    &player.id,
+                    &path,
+                    source,
+                    source,
+                    &profile(projection),
+                )?;
+                return Ok(None);
+            }
             if let [operation @ ("test-damage" | "test-repair"), points] = words.as_slice() {
                 if !matches!(&player.game_mode, GameMode::Creative) {
                     return Err("test edits require creative mode".into());
@@ -91,7 +205,19 @@ mod adapter {
                     .ok_or("no TConstruct state in main hand")?;
                 let replacement =
                     edit_state(&self.0, &item.item, item.count, source, operation, points)?;
-                items_edit::replace_main_hand_text(&player.id, &path, source, &replacement)?;
+                if active(player)? {
+                    let projection =
+                        mining_projection(&self.0, &item.item, item.count, &replacement)?;
+                    items_tools::replace_main_hand_profile(
+                        &player.id,
+                        &path,
+                        source,
+                        &replacement,
+                        &profile(projection),
+                    )?;
+                } else {
+                    items_edit::replace_main_hand_text(&player.id, &path, source, &replacement)?;
+                }
                 return Ok(None); // Only the host reports whether the queued edit applied.
             }
             let request = match words.as_slice() {
@@ -106,13 +232,14 @@ mod adapter {
                 .custom_text
                 .as_deref()
                 .ok_or("no TConstruct state in main hand")?;
-            inspect(
+            inspect_with_profile(
                 &self.0,
                 &item.item,
                 item.count,
                 source,
                 item.damage,
                 request,
+                active(player)?,
             )
             .map(Some)
         }

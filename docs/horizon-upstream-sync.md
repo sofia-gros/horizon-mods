@@ -1,5 +1,13 @@
 # Horizon上流の追従記録
 
+## 2026-10-27: world・recipes・browserの取り込み
+
+上流 `a727f617f045c6d14b96dcaef84c40a6ee51e93a` まで確認。サーバーの `world` がPR #1895でAPI level 4、レシピ読み取りがPR #2284でlevel 5、item panel・レシピ表示と操作がPR #2300・#2305・#2318でlevel 6に入りました。WIT / SDK / runtimeだけでなく、サーバーのworld貸出・block更新とclientのレシピ画面経路も本流に含まれます。
+
+フォーク独自の `items-read` / `items-edit` は上流と重複しないようlevel 7 / 8に移し、新しい `items-tools` はlevel 9です。本体 `50c7c14650c8f05a245f93f81463da095ef9882c` に統合してpush済み。以前のfork成果物がどの本体と動いたかはM3b1・M3b2の記録を保持します。
+
+統合後、Mod library 37件・API reference 4件・sandbox 32件成功（負荷測定1件ignored）。clientの関連試験、ClippyとMod無効時のcheckも成功。汎用Tool profileの保存、採掘、耐久処理と、上流のworld APIと旧SDKの道具Modの共存を、統合サーバーとin-frameの実ゲームで確認しました。ランチャーの全体テストは初回ビルドを中断しており未完了です。上流の最終確認では `a727f617` 以降に追加のMod・SDK・launcher変更はありませんでした。
+
 ## M3b1: 読み取りAPIとquiet commandの統合
 
 `3edb037e` で本流 `8027cb41` のMod index（download count / rating）とlauncher更新を統合。続いて `93b17ebd` で本流 `800b9156` を取り込み、`command.run-quiet`（level 3）、proxy設定・credentialのメッセージ抑制等を反映しました。作業中の変更はstashへ退避してから戻し、既存の退避内容も保持しました。

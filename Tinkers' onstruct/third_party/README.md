@@ -17,6 +17,12 @@ bodies verbatim into a minimal Java host; it does not run Forge or the full
 ToolStack implementation. Other Rust code provides the Horizon adapter and
 explicit validation for this port's supported subset.
 
+The selected mining-speed and effectiveness methods also feed the separate
+`server-tools/tools/generate_mining_oracle.py` oracle. Its identity-modifier
+host checks eight speed cases, including a broken tool; it does not simulate
+the complete Forge block-breaking and loot pipeline. The pinned harvest and
+tool-damage helpers are retained as references for later gameplay integration.
+
 Import from a local clone using `tools/import_upstream.py --source PATH`.
 Validate the committed snapshot with `tools/import_upstream.py --check`.
 The importer reads pinned Git objects, not the clone's working files.

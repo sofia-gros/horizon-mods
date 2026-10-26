@@ -44,7 +44,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "horizon-mod-sdk"
 version = "0.1.0"
-source = "git+https://github.com/sofia-gros/horizon.git?rev=c0993fa55d0e6d81e384fb35d8a4eda2fb18dbd9#c0993fa55d0e6d81e384fb35d8a4eda2fb18dbd9"
+source = "git+https://github.com/sofia-gros/horizon.git?rev=50c7c14650c8f05a245f93f81463da095ef9882c#50c7c14650c8f05a245f93f81463da095ef9882c"
 dependencies = [
  "wit-bindgen",
 ]
@@ -200,7 +200,7 @@ dependencies = [
 
 [[package]]
 name = "tconstruct-server-tools"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "horizon-mod-sdk",
  "serde",

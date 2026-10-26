@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "scope": "verbatim mining speed and effectiveness methods with identity modifiers; not full Forge gameplay",
+  "source_sha256": {
+    "MiningSpeedToolHook.java": "62b14658c4cb37725082c2dd1ba9140429b6dc8bcdea7cf93ab88b1328d1263a",
+    "IsEffectiveToolHook.java": "8a82a13ee8378c7c277dd7aefe336008131461682438b0dd4d15f866dc5bf607"
+  },
+  "extracted_methods_sha256": "e1a87794cd3559a1a27333d6c2cc0d9d54632dc53234d84fc54afafde509f269",
+  "cases": [
+    {
+      "head": "wood",
+      "damage": 0,
+      "effective": false,
+      "speed": 2.0,
+      "expected_bits": 1065353216
+    },
+    {
+      "head": "wood",
+      "damage": 0,
+      "effective": true,
+      "speed": 2.0,
+      "expected_bits": 1073741824
+    },
+    {
+      "head": "wood",
+      "damage": 60,
+      "effective": false,
+      "speed": 2.0,
+      "expected_bits": 1050253722
+    },
+    {
+      "head": "wood",
+      "damage": 60,
+      "effective": true,
+      "speed": 2.0,
+      "expected_bits": 1050253722
+    },
+    {
+      "head": "flint",
+      "damage": 17,
+      "effective": false,
+      "speed": 3.5,
+      "expected_bits": 1065353216
+    },
+    {
+      "head": "flint",
+      "damage": 17,
+      "effective": true,
+      "speed": 3.5,
+      "expected_bits": 1080033280
+    },
+    {
+      "head": "flint",
+      "damage": 85,
+      "effective": false,
+      "speed": 3.5,
+      "expected_bits": 1050253722
+    },
+    {
+      "head": "flint",
+      "damage": 85,
+      "effective": true,
+      "speed": 3.5,
+      "expected_bits": 1050253722
+    }
+  ]
+}

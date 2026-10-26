@@ -29,6 +29,10 @@ FILES += [JAVA + path for path in (
     "library/tools/definition/module/build/SetStatsModule.java",
     "tools/stats/HeadMaterialStats.java", "tools/stats/HandleMaterialStats.java",
     "library/modifiers/modules/behavior/RepairModule.java",
+    "library/tools/definition/module/mining/MiningSpeedToolHook.java",
+    "library/tools/definition/module/mining/IsEffectiveToolHook.java",
+    "library/tools/helper/ToolHarvestLogic.java",
+    "library/tools/helper/ToolDamageUtil.java",
 )]
 
 

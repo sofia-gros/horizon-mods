@@ -1,6 +1,6 @@
 # M3b3: 個体ごとの採掘性能
 
-M3b3は作業中です。最初の区切りはHorizonの汎用 `minecraft:tool` componentの保存・通信・採掘計算です。まだTConstructコアからこのcomponentを適用していないため、従来の `/tconstruct specimen` の挙動は変わりません。攻撃・コア耐久消費・broken時の制限も次の区切りです。
+M3b3の最初の区切りはHorizonの汎用 `minecraft:tool` componentの保存・通信・採掘計算です。この節は本体 `2e7ec5b6` 時点の記録です。後続のTConstruct個体への適用は末尾を参照してください。
 
 この土台の本体コミットは `2e7ec5b6`、ブランチは `codex/tconstruct-item-hooks`。Mod側のRustコード・成果物はM3b2から変更せず、検証driverと手順を追加しています。
 
@@ -54,8 +54,34 @@ $artifact = 'A:\Project\horizon-mods\.local\artifacts\m3b3a-2e7ec5b6'
 
 これは汎用Toolの動作確認です。コアのdamage/brokenから性能を変更する機能、独自の耐久方針、修理レシピ、Tool componentの削除patchはこの区切りでは扱っていません。人によるM3b3の確認は未実施です。
 
-## 次の実装（未実装の契約案）
+## 後続の設計と原作の確認
 
-次は、サーバーModが解決済みのToolルールと状態文字列を同じ比較付き更新で適用するAPIです。素材・trait・harvest tierの変換はMod側、本体は有限な速度・ルール数・selector数・文字列サイズと権限を検証します。型の名前やAPI levelは上流を再確認して実装時に確定します。
+サーバーModが解決済みのToolルールと状態文字列を同じ比較付き更新で適用するAPIを追加しました。素材・trait・harvest tierの変換はMod側、本体は有限な速度・ルール数・selector数・文字列サイズと権限を検証します。
 
-brokenから速度0をToolの永続codecへ書く方法は使えません。実際のTool.CODECがrule speed=0を拒否することをJava試験の準備中に確認したため、採掘を許すかどうかの汎用設定を別に同期する予定です。これも個体の状態更新と一緒に適用し、server判定とclient予測を合わせます。修理後の復帰・別個体の保持・trap時の取消を確認してから、実際の採掘によるコア耐久消費へ進みます。
+原作の固定コミット `f4e77d43` の `MiningSpeedToolHook.getDestroySpeed` と `ToolHarvestLogic` を確認すると、broken時の速度は0.3で、破壊時のドロップ判定は手を空にして行います。採掘不能にするのではなく、まず速度0.3と採掘可否falseを個体設定へ反映し、クライアントとサーバーを揃えます。Toolを実際に空の手へ一時的に置き換える処理まではまだ実装されておらず、アイテム条件を使う特殊なlootでは原作と差が残ります。修理後の復帰・別個体の保持・trap時の取消を確認してから、実際の採掘によるコア耐久消費へ進みます。
+
+## TConstructの採掘性能を試す
+
+本体 `50c7c14650c8f05a245f93f81463da095ef9882c`、server package `tconstruct_tools` 0.2.0、client packageを使用します。以下の保存済み成果物は自動試験に使用したものです。
+
+統合サーバー `integrated-n5ecjarg` とin-frame `in-frame-1hhsznhz` で各13項目、計26項目成功。石の採掘は木製23 tick、火打石製18 tick、破損時の土は56 tick、修理後の石は18 tickでした。原作Javaの採掘速度8ケースとRust側の値も一致しました。これらは分離テストワールドでの自動検証で、ユーザーによる実機確認はまだです。
+
+```powershell
+Set-Location -LiteralPath "A:\Project\horizon-mods\Tinkers' onstruct"
+$artifact = 'A:\Project\horizon-mods\.local\artifacts\m3b3c-50c7c146'
+& .\tools\play-item-state.ps1 -Inspect -Client "$artifact\horizon-client.exe" -ClientMod "$artifact\tconstruct.hmod" -ServerMod "$artifact\tconstruct_tools.hmod"
+```
+
+新規ワールドで `/gamemode creative` とし、次を入力します。
+
+```text
+/tconstruct specimen wood wood wood 0
+/tconstruct specimen flint wood wood 17
+/tconstruct specimen flint wood wood 85
+```
+
+各つるはしを手に持って `/tconstruct_tool activate` を実行し、`item state updated` を確認します。`/tconstruct_tool inspect` は各個体の状態と `"hooks":"mining"` を表示します。Survivalに変更して石を掘ると火打石製は木製より速く、鉄鉱石は火打石製だけが適正採掘できます。damage 85の破損個体は遅く掘り、消えません。
+
+Creativeに戻し破損個体を持って `/tconstruct_tool test-repair 20` とするとdamage 65になり、採掘性能が回復します。`/tconstruct_tool test-damage 20` で再び破損します。保存して終了後、起動コマンドに `-ResumeLatest` を追加すれば同じワールドを再開できます。別の実行方式は `-InFrame` を追加します。
+
+この段階では採掘によってコア耐久が減らず、攻撃性能・通常の素材消費による修理も未実装です。破損時の特殊なloot条件にも原作との差があります。上記のtest-repairは検証用の数値操作です。

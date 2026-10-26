@@ -70,7 +70,7 @@ CLIをPATHにインストールしている場合は `cargo horizon-mod build / 
 
 ## M0の入力検証・数値oracle
 
-原作TConstruct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` の27ファイルを選択して取り込みました。MIT本文・著作権表示は `LICENSE` と `third_party/README.md`、出典・SHA-256は `upstream-lock.json` にあります。
+原作TConstruct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` の31ファイルを選択して取り込みました。MIT本文・著作権表示は `LICENSE` と `third_party/README.md`、出典・SHA-256は `upstream-lock.json` にあります。
 
 ```powershell
 & 'A:\miniconda3\python.exe' -B tools/import_upstream.py --check
@@ -110,10 +110,10 @@ M2のserver接続は本体・Modとも `codex/server-mod-game-integration` ブ�
 
 ## M3b1: サーバーからの診断
 
-補助server packageは [server-tools](server-tools/README.md)。現在のM3b2は実験API 0.3 / このforkのlevel 5の `items-read` / `items-edit` を使い、SDKを `c0993fa55d0e6d81e384fb35d8a4eda2fb18dbd9` に固定します。clientのSDK固定先は従来の `88b7bfaf` です。2つのcomponentは別々にビルドします。共通コアだけ使う場合はCargoの `default-features = false` でclient adapterのexportを除外できます。
+補助server packageは [server-tools](server-tools/README.md)。API 0.3 / このforkのlevel 9の `items-read` / `items-edit` / `items-tools` を使い、SDKを `50c7c14650c8f05a245f93f81463da095ef9882c` に固定します。clientのSDK固定先は従来の `88b7bfaf` です。2つのcomponentは別々にビルドします。共通コアだけ使う場合はCargoの `default-features = false` でclient adapterのexportを除外できます。
 
 `& .\tools\play-item-state.ps1 -Inspect` で両packageを読み込みます。3本を作って持ち替え、その都度 `/tconstruct_tool inspect` を入力すると、サーバーから読んだparts・damage・broken・コア基礎statsを表示します。`hooks=false` の診断段階で、ゲーム性能・耐久処理はvanillaのままです。保存後の再開は `-Inspect -ResumeLatest`。[M3bの期待値と検証範囲](../docs/tconstruct-m3b-verification.md) を参照してください。
 
 M3b2ではCreative限定の `/tconstruct_tool test-damage 100` / `test-repair 20` で、選択個体のコアdamage・brokenを変更できます。Survivalでの実際の耐久消費・修理レシピは次の段階です。
 
-M3b3の土台として、本体 `2e7ec5b6` で個体のTool componentをclient予測とserver採掘へ反映しました。このModのコアstatsの適用はまだ行っていません。汎用設定の実機手順・自動比較・未対応範囲は [M3b3検証記録](../docs/tconstruct-m3b3-verification.md) にあります。
+M3b3では本体のTool componentをclient予測とserver採掘へ反映し、Creativeの `/tconstruct_tool activate` でコアstatsを個体に適用します。採掘によるコア耐久消費と攻撃性能は未実装です。実機手順・自動比較・未対応範囲は [M3b3検証記録](../docs/tconstruct-m3b3-verification.md) にあります。

@@ -9,3 +9,7 @@ expect.error = "empty main hand"
 [[step]]
 command = "tconstruct_tool test-damage 1"
 expect.error = "test edits require creative mode"
+
+[[step]]
+command = "tconstruct_tool activate"
+expect.error = "activation requires creative mode"
