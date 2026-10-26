@@ -1,6 +1,57 @@
 use serde_json::Value;
 use tconstruct_horizon::{Catalog, ToolState};
-use tconstruct_server_tools::inspect;
+use tconstruct_server_tools::{edit_state, inspect};
+
+#[test]
+fn test_edits_keep_materials_and_roundtrip_broken_and_repair_boundaries() {
+    let catalog = Catalog::embedded().unwrap();
+    let original = ToolState::pickaxe(["flint", "wood", "wood"]);
+    let broken = edit_state(
+        &catalog,
+        "minecraft:wooden_pickaxe",
+        1,
+        &original.to_json().unwrap(),
+        "test-damage",
+        u32::MAX,
+    )
+    .unwrap();
+    let state = ToolState::from_json(&catalog, &broken).unwrap();
+    assert_eq!(state.materials, original.materials);
+    assert_eq!((state.damage, state.broken), (85, true));
+    let repaired = edit_state(
+        &catalog,
+        "minecraft:wooden_pickaxe",
+        1,
+        &broken,
+        "test-repair",
+        20,
+    )
+    .unwrap();
+    let state = ToolState::from_json(&catalog, &repaired).unwrap();
+    assert_eq!((state.damage, state.broken), (65, false));
+    let restored = edit_state(
+        &catalog,
+        "minecraft:wooden_pickaxe",
+        1,
+        &repaired,
+        "test-repair",
+        u32::MAX,
+    )
+    .unwrap();
+    assert_eq!(ToolState::from_json(&catalog, &restored).unwrap(), original);
+    assert!(edit_state(&catalog, "minecraft:diamond", 1, &broken, "test-repair", 1).is_err());
+    assert!(
+        edit_state(
+            &catalog,
+            "minecraft:wooden_pickaxe",
+            1,
+            "{}",
+            "test-repair",
+            1
+        )
+        .is_err()
+    );
+}
 
 #[test]
 fn server_inspection_keeps_each_specimens_state_and_vanilla_damage_distinct() {

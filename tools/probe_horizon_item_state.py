@@ -50,7 +50,10 @@ def main():
     parser.add_argument("--client-mod", type=Path, default=ROOT / "Tinkers' onstruct/target/horizon-mod/tconstruct.hmod")
     parser.add_argument("--in-frame", action="store_true")
     parser.add_argument("--server-mod", type=Path, help="Optional tconstruct_tools inspector package")
+    parser.add_argument("--state-edits", action="store_true", help="Test Creative-only core state damage/repair commands")
     args = parser.parse_args()
+    if args.state_edits and not args.server_mod:
+        parser.error("--state-edits requires --server-mod")
     for key in ("game", "ctl", "client_mod", "resources"):
         setattr(args, key, getattr(args, key).resolve())
     if args.server_mod:
@@ -59,7 +62,7 @@ def main():
     parent.mkdir(parents=True, exist_ok=True)
     prefix = ("server-" if args.server_mod else "") + ("in-frame-" if args.in_frame else "integrated-")
     run = Path(tempfile.mkdtemp(prefix=prefix, dir=parent))
-    report = {"ok": False, "checks": [], "mode": "in-frame" if args.in_frame else "integrated"}
+    report = {"ok": False, "checks": [], "mode": "in-frame" if args.in_frame else "integrated", "state_edits": args.state_edits}
     for key in ("game", "client_mod"):
         report[key + "_sha256"] = hashlib.sha256(getattr(args, key).read_bytes()).hexdigest()
     if args.server_mod:
@@ -80,7 +83,7 @@ def main():
     def inspect_server(phase):
         if not args.server_mod:
             return
-        for slot, (head, damage, broken) in enumerate((("wood", 0, False), ("flint", 17, False), ("flint", 85, True)), 1):
+        for slot, (head, damage, broken) in enumerate(fixtures, 1):
             game.call("select", slot)
             game.call("wait", "3")
             request = uuid.uuid4().hex
@@ -107,10 +110,11 @@ def main():
                                    attack=1.0 if head == "wood" else 2.25, speed=1.2, vanilla_damage=0, hooks=False)
             check(f"{phase}: server reads slot {slot} state and base stats", value == expected_report)
 
-    expected = []
-    for head, damage, broken in (("wood", 0, False), ("flint", 17, False), ("flint", 85, True)):
-        expected.append({"schema": 1, "tool": "tconstruct:pickaxe", "materials": ["tconstruct:" + head, "tconstruct:wood", "tconstruct:wood"], "damage": damage, "broken": broken})
-    expected.sort(key=lambda state: (state["materials"], state["damage"]))
+    fixtures = [["wood", 0, False], ["flint", 17, False], ["flint", 85, True]]
+    def expected_states():
+        result = [dict(schema=1, tool="tconstruct:pickaxe", materials=["tconstruct:" + head, "tconstruct:wood", "tconstruct:wood"], damage=damage, broken=broken) for head, damage, broken in fixtures]
+        return sorted(result, key=lambda state: (state["materials"], state["damage"]))
+    expected = expected_states()
     try:
         game = Game(args, run, "StateTester", in_frame=args.in_frame)
         game.ready()
@@ -131,6 +135,27 @@ def main():
         inventory = snapshot("with-vanilla")
         check("vanilla inventory unaffected", inventory["counts"].get("minecraft:diamond") == 3)
         inspect_server("before-save")
+        if args.state_edits:
+            for operation, points, damage, broken in (("test-damage", 4294967295, 85, True), ("test-repair", 20, 65, False), ("test-repair", 4294967295, 0, False), ("test-damage", 20, 20, False)):
+                game.call("select", "2")
+                game.call("wait", "3")
+                game.call("chat", f"/tconstruct_tool {operation} {points}")
+                fixtures[1] = ["flint", damage, broken]
+                expected = expected_states()
+                phase = f"{operation}-{points}-{damage}"
+                inspect_server(phase)
+                check(phase + ": changed only the selected core state", states(snapshot(phase)) == expected)
+            game.call("command", "gamemode survival @s")
+            game.call("wait", "3")
+            game.call("chat", "/tconstruct_tool test-repair 5")
+            deadline = time.monotonic() + 5
+            while "test edits require creative mode" not in json.dumps(game.messages()):
+                if time.monotonic() > deadline:
+                    raise AssertionError("survival test edit was not rejected")
+                time.sleep(0.15)
+            check("survival cannot invoke Creative test repairs", states(snapshot("survival-rejected")) == expected)
+            game.call("command", "gamemode creative @s")
+            game.call("wait", "3")
         if args.server_mod:
             game.call("select", "4")
             game.call("wait", "3")

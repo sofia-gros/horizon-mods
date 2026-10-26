@@ -1,4 +1,4 @@
-//! Server-side inspection of the authoritative main hand. Gameplay is vanilla.
+//! Server-side inspection and controlled core-state edits. Gameplay is vanilla.
 use serde::Serialize;
 use tconstruct_horizon::{Catalog, ToolState};
 
@@ -57,7 +57,9 @@ pub fn inspect(
 #[cfg(target_arch = "wasm32")]
 mod adapter {
     use super::*;
-    use horizon_mod_sdk::server::{Player, Registration, ServerMod, items_read};
+    use horizon_mod_sdk::server::{
+        GameMode, Player, Registration, ServerMod, items_edit, items_read,
+    };
 
     struct Inspector(Catalog);
     impl ServerMod for Inspector {
@@ -74,6 +76,24 @@ mod adapter {
             args: &str,
         ) -> Result<Option<String>, String> {
             let words: Vec<_> = args.split_whitespace().collect();
+            if let [operation @ ("test-damage" | "test-repair"), points] = words.as_slice() {
+                if !matches!(&player.game_mode, GameMode::Creative) {
+                    return Err("test edits require creative mode".into());
+                }
+                let points = points
+                    .parse::<u32>()
+                    .map_err(|_| "points must be an unsigned integer")?;
+                let path = ["tconstruct".into(), "state_json".into()];
+                let item = items_read::main_hand(&player.id, &path)?.ok_or("empty main hand")?;
+                let source = item
+                    .custom_text
+                    .as_deref()
+                    .ok_or("no TConstruct state in main hand")?;
+                let replacement =
+                    edit_state(&self.0, &item.item, item.count, source, operation, points)?;
+                items_edit::replace_main_hand_text(&player.id, &path, source, &replacement)?;
+                return Ok(None); // Only the host reports whether the queued edit applied.
+            }
             let request = match words.as_slice() {
                 [] | ["inspect"] => "manual",
                 ["inspect", request] => request,
@@ -98,4 +118,27 @@ mod adapter {
         }
     }
     horizon_mod_sdk::export_server_mod!(Inspector);
+}
+
+/// Raw core points for Creative test commands, not recipe costs or game wear.
+pub fn edit_state(
+    catalog: &Catalog,
+    item: &str,
+    count: u32,
+    source: &str,
+    operation: &str,
+    points: u32,
+) -> Result<String, String> {
+    if item != "minecraft:wooden_pickaxe" || count != 1 {
+        return Err("not a TConstruct state specimen carrier".into());
+    }
+    let mut state = ToolState::from_json(catalog, source)?;
+    match operation {
+        "test-damage" => state.damage_points(catalog, points)?,
+        "test-repair" => {
+            state.repair_points(catalog, points)?;
+        }
+        _ => return Err("unsupported test edit".into()),
+    }
+    state.to_json()
 }

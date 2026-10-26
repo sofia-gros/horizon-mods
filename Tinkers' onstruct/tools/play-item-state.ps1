@@ -61,7 +61,10 @@ try {
     Write-Output '/tconstruct specimen flint wood wood 17'
     Write-Output '/tconstruct specimen flint wood wood 85'
     Write-Output 'Expected: three vanilla pickaxes named TConstruct state specimen. Gameplay remains vanilla.'
-    if ($Inspect) { Write-Output 'Select each specimen, then /tconstruct_tool inspect. Server report: damage=0 / 17 / 85, broken=false / false / true, hooks=false.' }
+    if ($Inspect) {
+        Write-Output 'Select each specimen, then /tconstruct_tool inspect. Server report: damage=0 / 17 / 85, broken=false / false / true, hooks=false.'
+        Write-Output 'Creative core-state tests: /tconstruct_tool test-damage 100; /tconstruct_tool test-repair 20. These do not enable gameplay durability hooks.'
+    }
     if ($Inspect) { Write-Output 'Quit, then run this script with -Inspect -ResumeLatest to reopen this test world.' }
     else { Write-Output 'Quit, then run this script with -ResumeLatest to reopen this test world.' }
     $quotedArgs = $gameArgs | ForEach-Object { '"' + $_ + '"' }

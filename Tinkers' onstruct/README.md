@@ -110,6 +110,8 @@ M2のserver接続は本体・Modとも `codex/server-mod-game-integration` ブ�
 
 ## M3b1: サーバーからの診断
 
-補助server packageは [server-tools](server-tools/README.md)。実験API 0.3 / このforkのlevel 4の `items-read` を使い、SDKを `235cac33f056efaeb316e5e309b767e14498ab79` に固定します。clientのSDK固定先は従来の `88b7bfaf` です。2つのcomponentは別々にビルドします。共通コアだけ使う場合はCargoの `default-features = false` でclient adapterのexportを除外できます。
+補助server packageは [server-tools](server-tools/README.md)。現在のM3b2は実験API 0.3 / このforkのlevel 5の `items-read` / `items-edit` を使い、SDKを `c0993fa55d0e6d81e384fb35d8a4eda2fb18dbd9` に固定します。clientのSDK固定先は従来の `88b7bfaf` です。2つのcomponentは別々にビルドします。共通コアだけ使う場合はCargoの `default-features = false` でclient adapterのexportを除外できます。
 
 `& .\tools\play-item-state.ps1 -Inspect` で両packageを読み込みます。3本を作って持ち替え、その都度 `/tconstruct_tool inspect` を入力すると、サーバーから読んだparts・damage・broken・コア基礎statsを表示します。`hooks=false` の診断段階で、ゲーム性能・耐久処理はvanillaのままです。保存後の再開は `-Inspect -ResumeLatest`。[M3bの期待値と検証範囲](../docs/tconstruct-m3b-verification.md) を参照してください。
+
+M3b2ではCreative限定の `/tconstruct_tool test-damage 100` / `test-repair 20` で、選択個体のコアdamage・brokenを変更できます。Survivalでの実際の耐久消費・修理レシピは次の段階です。

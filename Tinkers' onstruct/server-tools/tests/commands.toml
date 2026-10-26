@@ -5,3 +5,7 @@ expect.commands = ["tconstruct_tool"]
 join = "Alex"
 command = "tconstruct_tool inspect"
 expect.error = "empty main hand"
+
+[[step]]
+command = "tconstruct_tool test-damage 1"
+expect.error = "test edits require creative mode"

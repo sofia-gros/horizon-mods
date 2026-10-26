@@ -1,6 +1,6 @@
 # M3b: サーバーからの個体読み取りと性能hook
 
-M3bは作業中です。最初の区切りM3b1では、実際の採掘・戦闘・耐久hookより先に、サーバーが手持ちのどの個体を読んでいるかを固定します。
+M3bは作業中です。最初の区切りM3b1では、実際の採掘・戦闘・耐久hookより先に、サーバーが手持ちのどの個体を読んでいるかを固定します。ユーザーからM3b1の手動テストは未実施との申告を受けたため、手動確認済みにはせず、許可された次の実装を進めます。
 作業ブランチは引き続き本体・Modとも `codex/tconstruct-item-hooks`。
 
 本体とserver SDKの固定コミットは `235cac33f056efaeb316e5e309b767e14498ab79`。本流 `800b9156` を含みます。client SDKは従来の `88b7bfaf` 固定を維持します。検証用本体はfast profile / client opt-level=0 / jobs=1で作成し、一時ファイルをAドライブへ分離します。ゲームの性能比較は行いません。
@@ -9,7 +9,7 @@ M3bは作業中です。最初の区切りM3b1では、実際の採掘・戦闘�
 
 本体に汎用・読み取り専用の実験capability `items-read` を追加しました。WITの `main-hand(player, custom-path)` は、サーバー側の手持ちitem ID・count・vanilla damageと、指定したcustom-data内の文字列を返します。オフライン / 空手はnone、キー欠落 / 文字列以外はcustom textなしです。
 pathは8キー・各128 UTF-8 bytes、文字列は4096 bytes、各hookは16回まで。巨大文字列や不正Unicodeは切り詰めず拒否します。アイテム改変・コマンド実行は公開しません。
-データはコール用の読み取り時点に固定し、ItemStackの共有データを使います。このimportを持つModが動く場合だけ手持ち一覧を用意し、全員のNBTを毎tickシリアライズする処理は追加しません。
+データはsnapshot時にコピーして固定します。以前の「共有データ」という説明は訂正します。StackDataはBoxなのでコピーが発生します。M3b2ではコマンド専用Modのtickごとのstackコピーを省き、コマンド実行時に新しいviewを作ります。NBTの全体シリアライズは行いません。
 
 本流の `command.run-quiet` がlevel 3になったため、読み取りAPIは**このforkのlevel 4**です。upstreamでlevel 4が同じ機能を保証するという意味ではありません。SDKはこのAPIを検証したforkのGitコミットへ固定します。
 
@@ -72,6 +72,31 @@ Modは親フォルダと `server-tools/` でそれぞれ `cargo test --locked`�
 ## 次の区切り
 
 次は個体の取得・変更の所有権とrevision、採掘のserver判定とclient予測、攻撃、耐久消費、broken時の非消失を汎用契約として追加します。read-only APIだけでM3全体を完了とは扱いません。LAN / dedicatedや複数人の読み取り・改変も、実施した範囲だけを別途記録します。
+
+## M3b2: 比較付き状態更新（2026-10-27）
+
+本体 `c0993fa55d0e6d81e384fb35d8a4eda2fb18dbd9` とserver package 0.1.1を使用します。本体・Modともブランチは `codex/tconstruct-item-hooks`。実験API `items-edit`（fork level 5）は既存custom-data文字列だけを置換し、適用直前に選択slotとstack全体を取得時の値と比較します。数量・item ID・vanilla damage・別タグを変更しません。同じ値のstackを識別する永続UIDや、全inventoryのrevisionではありません。hookのtrapやcommandエラー時には未確定の変更を破棄します。
+
+起動は上記と同じ `& .\tools\play-item-state.ps1 -Inspect`。3本を生成後、2本目（flint / wood / wood、damage=17）を選択して以下を順に実行し、毎回 `inspect` で確認します。
+
+| 操作 | 期待damage | 期待broken |
+| --- | --- | --- |
+| `/tconstruct_tool test-damage 4294967295` | 85 | true |
+| `/tconstruct_tool test-repair 20` | 65 | false |
+| `/tconstruct_tool test-repair 4294967295` | 0 | false |
+| `/tconstruct_tool test-damage 20` | 20 | false |
+
+1本目・3本目の状態は変わらず、vanilla_damage=0、hooks=falseです。`/gamemode survival` 後の `test-repair 5` は `test edits require creative mode` で拒否します。`/gamemode creative` へ戻して保存終了し、`-Inspect -ResumeLatest` で2本目がdamage=20のまま残ることを確認できます。実際に採掘・攻撃したときの性能や耐久消費、素材を消費する修理はまだ接続していません。人によるGUI確認は未実施です。
+
+自動検証は `tools/probe_horizon_item_state.py --state-edits --server-mod "Tinkers' onstruct/server-tools/target/horizon-mod/tconstruct_tools.hmod"`。`--in-frame` も同様です。
+
+- 統合サーバー `.local/item-state-tests/server-integrated-tmm993q0/report.json` 30項目、in-frame `.local/item-state-tests/server-in-frame-y55bnrz4/report.json` 30項目、旧SDKのM2 `.local/server-mods-tests/integrated-aws6z50c/report.json` 14項目が成功。
+- 本体Mod library 35件、API reference 4件、sandbox 29件成功（負荷測定1件ignored）。client libraryの取得・比較更新試験2件、client lib/bins・Mod全targetのClippy、Mod無効client check、SDK/welcomeのWasm Clippy、rustfmt、公開ツリーと履歴検査成功。
+- server Mod native 3件、sandbox 3ステップ、成果物check成功。client成果物はM3b1から変更なし。
+- 本体SHA-256 `171c622295a11f5f63c1d3fb2fb13b9d5f5072606e99bccf0e2e473cc3f2a0fe`。server成果物SHA-256 `c8625f3989c24f6286f05be713b0954ffb2cf15452e0dfe7e2decee45b85dbbf`。組み合わせは `.local/artifacts/m3b2-c0993fa5/` に保存。
+- 上流は `72e678be` まで確認。前回確認済み `97ddd2c6` 以降に関連Mod・SDK・runtime・launcher変更はなし。コマンド専用のitem読み書きModについて、通常tickのBox入りstack全コピーを省く処理も含む。
+
+次はM3b3で採掘のclient予測・server判定を接続します。就寝中も進行する指示により、手動テストを待たず着手します。
 
 ## M3b1検証結果（2026-10-27）
 
