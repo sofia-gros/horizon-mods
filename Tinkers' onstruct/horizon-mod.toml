@@ -1,8 +1,8 @@
 id = "tconstruct"
 name = "Tinkers' Construct — Development Diagnostics"
 version = "0.1.0"
-description = "Material and tool calculation diagnostics. Does not yet add playable tools or machines."
+description = "Material diagnostics and vanilla state specimens. Does not yet add playable TConstruct tools or machines."
 authors = ["SlimeKnights (upstream)", "Horizon port contributors"]
 api = "0.1"
 side = "client"
-capabilities = []
+capabilities = ["command"]

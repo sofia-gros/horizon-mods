@@ -1,13 +1,13 @@
 # Tinkers’ Construct for Horizon
 
-M0（原作入力の固定）とM1（コア・診断Mod）を実装しました。現在は性能を表示する開発用client Modです。実際のツール・作業台・溶融炉はまだ追加しません。
+M0〜M2を検証済み。M3aでは性能を表示する開発用client Modに、状態の保存・通信を試すvanillaアイテム生成を追加しています。TConstructの性能を持つツール・作業台・溶融炉はまだ追加しません。
 
 - 本体: `A:\Project\horizon`（`sofia-gros/horizon` フォーク）
 - Mod ID / namespace: `tconstruct`、version 0.1.0
 - Cargo package: `tconstruct-horizon`
-- SDK / CLI: `sofia-gros/horizon` の `88b7bfafc01c7c475548d4379845ff4a9f944dc0`。SDKをGitコミットに固定し、Cargo.lockを管理
-- ゲーム: インストール済みv0.2.66と26.3準備済みresource、`--in-frame` で検証
-- manifest: API 0.1、client、capabilityなし、実験APIなし
+- SDK: `sofia-gros/horizon` の `88b7bfafc01c7c475548d4379845ff4a9f944dc0` に固定し、Cargo.lockを管理。CLIはローカルの本体ブランチからビルド
+- ゲーム: M1はインストール済みv0.2.66のin-frame。M2以降は各開発ブランチの本体と26.3準備済みresourceを使用
+- manifest: API 0.1、client、`command` capability（既存API、プレイヤーの権限でvanillaコマンドを実行）。実験APIなし
 - 対象原作: Minecraft 1.20.1系列のTinkers’ Construct 3
 - 初期目標: 少数素材から部品・つるはしを作り、採掘・破損・修理する
 
@@ -91,3 +91,19 @@ Python・JDKはこの端末で確認済みの実行ファイルです。別環�
 段階ごとの状態は [ロードマップ](../docs/tconstruct-roadmap.md)、M1の結果は [M0・M1検証記録](../docs/tconstruct-m1-verification.md)、本体の更新は [上流追従記録](../docs/horizon-upstream-sync.md) を参照してください。
 
 M2のserver接続は本体・Modとも `codex/server-mod-game-integration` ブランチで実装し、5構成53項目を検証しました。ゲーム起動は `& .\tools\play-server-probe.ps1`。実験API 0.3 / API level 1のprobeを使い、通常の統合サーバーとM1 client診断を同時に動かします。必要な本体・成果物・操作・期待結果・in-frameのNether制限は [M2検証記録](../docs/tconstruct-m2-verification.md) に記載しています。
+
+## M3a: 状態付き試験アイテム
+
+開発ブランチは本体・Modとも `codex/tconstruct-item-hooks`。`& .\tools\play-item-state.ps1` で分離したテストワールドを開き、次を入力します。終了後、`& .\tools\play-item-state.ps1 -ResumeLatest` で同じワールドを再開できます。
+
+```text
+/tconstruct specimen wood wood wood
+/tconstruct specimen flint wood wood 17
+/tconstruct specimen flint wood wood 85
+```
+
+`TConstruct state specimen` という名前の木のつるはしが合計3本入ります。内部の `minecraft:custom_data.tconstruct.state_json` にschema・tool・3素材・damage・brokenを格納します。最後の個体はコアの計算上damage=85 / broken=trueです。**ゲーム内性能・耐久・破損時の挙動はすべてvanillaの木のつるはしのまま**です。この段階のbrokenフラグは保存用fixtureであり、採掘を禁止するhookではありません。
+
+`/give` を実行できる権限が必要です。通知は処理のキュー登録を示し、権限不足などでvanillaコマンドが失敗した場合はチャットのエラーも確認してください。未知素材は生成前に拒否します。`/tconstruct specimen stone wood wood` はエラーになりアイテムを増やしません。
+
+自動試験はリポジトリルートの `tools/probe_horizon_item_state.py`。保存・再起動前後のinventoryを記録し、vanillaアイテムと3個体の素材・damage・brokenを比較します。ゲームを一つずつ起動します。詳細は [M3a検証記録](../docs/tconstruct-m3a-verification.md) を参照してください。

@@ -1,5 +1,12 @@
 # Horizon上流の追従記録
 
+## M3a開始時
+
+`codex/tconstruct-item-hooks` でM2 `efeb2118` から分岐し、upstream `749a8a2a` をmerge commit `0dd64e68` で統合。API level 2とraycast snapshotを含みます。`game/mods.rs` の競合はM2のplayer snapshotと上流のview-hitを両方保持して解消しました。library 32件、API reference 4件、sandbox 27件（別途負荷測定1件ignored）が成功。
+
+再開時は `034c0f02` までfetch。後続差分にWIT・SDK・runtime・package・server Mod契約の追加はなく、M3aの基準は検証済みの `749a8a2a` 取り込み版とします。itemの操作・性能hookが追加されたとは扱いません。
+ビルド中・commit前にも再確認し、最終確認は `c65338b3`。追加のMod契約・SDK・runtime・server接続・launcher更新や、今回のstack送受信処理の更新はありませんでした。
+
 ## M2ブランチでの後続統合
 
 `codex/server-mod-game-integration` では、upstream `b8027d4b`（API level対応を含む）を基準に、未マージのserverゲーム接続PR #1894をmerge commit `20e2faf9` で取り込みました。下記の「ゲーム未接続」はmainの初回調査の記録です。M2の進捗・版・試験範囲は [M2検証記録](tconstruct-m2-verification.md) を参照してください。

@@ -21,20 +21,23 @@ def free_port():
 
 
 class Game:
-    def __init__(self, args, root, label, server=None, dedicated=False, in_frame=False, mods=True):
+    def __init__(self, args, root, label, server=None, dedicated=False, in_frame=False, mods=True, resume=False):
         self.args, self.root, self.label = args, root / label, label
-        self.root.mkdir()
+        self.root.mkdir(exist_ok=resume)
         self.endpoint = self.root / "control.json"
         self.env = dict(os.environ, HORIZON_NO_AUDIO="1", HORIZON_LAUNCHER_NO_SELF_UPDATE="1",
                         HORIZON_NO_DISCORD="1", HORIZON_TELEMETRY_URL="off")
+        temporary = self.root / "tmp"
+        temporary.mkdir(exist_ok=resume)
+        self.env.update(TEMP=str(temporary), TMP=str(temporary))
         for key in ("HORIZON_HOME", "HORIZON_LAUNCHER_HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME"):
             folder = self.root / key.lower()
-            folder.mkdir()
+            folder.mkdir(exist_ok=resume)
             self.env[key] = str(folder)
         command = [str(args.game), "--resources", str(args.resources), "--control-socket", str(self.endpoint),
                    "--test-terrain", "--render-distance", "2"]
         probe = self.root / "tconstruct_probe.hmod"
-        if mods and (dedicated or not server):
+        if mods and args.server_mod and (dedicated or not server):
             # Package-relative storage must also stay inside this test run.
             shutil.copy2(args.server_mod, probe)
         if dedicated:
@@ -45,7 +48,7 @@ class Game:
                 "gamemode=creative\nlevel-name=Probe\nview-distance=2\nsimulation-distance=2\nspawn-protection=0\n"
                 "white-list=false\nenforce-whitelist=false\npause-when-empty-seconds=0\n",
                 encoding="ascii")
-            if mods:
+            if mods and args.server_mod:
                 command += ["--dev-mod", str(probe)]
             command += ["--dedicated", "--nogui"]
         else:
@@ -56,11 +59,11 @@ class Game:
                 command += ["--server", server]
             else:
                 command += ["--world", "Probe", "--seed", "42", "--creative"]
-                if mods:
+                if mods and args.server_mod:
                     command += ["--dev-mod", str(probe)]
             if in_frame:
                 command += ["--in-frame"]
-        self.log = (self.root / "game.log").open("w", encoding="utf-8")
+        self.log = (self.root / "game.log").open("a" if resume else "w", encoding="utf-8")
         self.proc = subprocess.Popen(command, cwd=self.root, env=self.env, stdin=subprocess.PIPE,
                                      stdout=self.log, stderr=subprocess.STDOUT,
                                      creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))

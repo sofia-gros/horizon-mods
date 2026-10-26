@@ -10,7 +10,7 @@
 | M0 再現可能な入力 | 完了 | 原作コミット固定、MIT・出典・SHA-256、選択データ、依存・対応範囲一覧 | 27ファイルと依存一覧の検証成功。未知素材・moduleを拒否 |
 | M1 Modコアと診断Mod | 完了 | 素材・部品・stats・traitの小集合、ToolState、耐久・修理、Wasm診断コマンド | Rust・Java oracle・Wasm・sandbox test/check成功。v0.2.66 in-frameの診断と保存復帰確認 |
 | M2 サーバー基盤 | 完了（検証範囲・制限は記録参照） | 上流API 0.3と未マージPR #1894を統合。ゲーム側lifecycle接続、dev packageのserver引き渡し、probeを追加 | 5構成53項目成功。旧client・dimension・pause・複数人の出力分離確認。in-frameのNetherは既存制限として除外 |
-| M3 アイテム接続 | 未着手 | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
+| M3 アイテム接続 | 作業中（M3a完了、M3b未着手） | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
 | M4 制作・修理UI | 未着手 | generic Block Entity / menu / transaction、Part Builder・Station | 部品作成・組み立て・交換・修理。複数人・shift-click・保存で複製も消失もない |
 | M5 動的な外観 | 未着手 | 素材別sprite / tint / tooltip、broken / modifier表示 | 手持ち・inventory・dropで表示が一致。固定視点の画像試験 |
 | M6 最小溶融・鋳造 | 未着手 | fluid / tank、Melter・Faucet・Casting Table | 燃料・温度・液量・型・冷却・出力、保存復帰と描画を検証 |
@@ -24,6 +24,9 @@ M0とM1を実装・検証しました。本体の汎用API開発に原作固有�
 診断Modは既存APIで数値を観測するための足場で、採掘可能なTConstructツールの完成ではありません。
 M2以降ではフォーク本体に変更を追加し、各段階を小さい差分へ分割します。
 M2は本体・Modとも `codex/server-mod-game-integration` で実装。[起動・操作・期待結果と検証制限](tconstruct-m2-verification.md) を確認してください。通常の統合サーバーを手動検証の基準にします。
+
+M2はユーザーによる実機検証でも期待どおりと確認済み。M3は本体・Modとも `codex/tconstruct-item-hooks` に分離しました。最初のM3aでは汎用custom-data送信修正と状態付きvanilla試験アイテムを扱います。M3bで必要になる個体性能・採掘・戦闘・耐久hookは現行WITに存在せず、試験アイテムでは動作しません。名前の変更や状態保存だけでM3全体を完了とは扱いません。
+M3aはコア13件・sandbox 7ステップ・成果物check、統合サーバー / in-frameの実ゲーム12項目に成功。修正前の状態欠落も再現しました。[M3aの起動・操作・期待値と制限](tconstruct-m3a-verification.md) を参照してください。
 
 2026-10-26: 上流 `c9f554d1` を含むマージ `88b7bfaf` で実験的server Mod API 0.3のWIT・SDK・runtimeが追加され、M2で既存PR #1894のゲーム接続を専用ブランチへ統合しました。未マージPRの機能をupstream/mainの実装済み機能とは扱いません。[追従記録](horizon-upstream-sync.md) も参照してください。
 
