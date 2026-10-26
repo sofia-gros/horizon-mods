@@ -1,5 +1,7 @@
 param(
     [string]$Client = 'A:\Project\horizon\target\fast\horizon-client.exe',
+    [string]$ClientMod,
+    [string]$ServerMod,
     [string]$Resources = "$env:APPDATA\horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3",
     [switch]$InFrame,
     [switch]$Inspect,
@@ -8,8 +10,8 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $project = Split-Path -Parent $PSScriptRoot
-$clientMod = Join-Path $project 'target\horizon-mod\tconstruct.hmod'
-$serverMod = Join-Path $project 'server-tools\target\horizon-mod\tconstruct_tools.hmod'
+if (-not $ClientMod) { $ClientMod = Join-Path $project 'target\horizon-mod\tconstruct.hmod' }
+if (-not $ServerMod) { $ServerMod = Join-Path $project 'server-tools\target\horizon-mod\tconstruct_tools.hmod' }
 $required = @($Client, (Join-Path $Resources 'horizon-resources.json'), $clientMod)
 if ($Inspect) { $required += $serverMod }
 foreach ($path in $required) {

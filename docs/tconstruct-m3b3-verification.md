@@ -36,7 +36,8 @@ Minecraft 26.3の `Tool.getMiningSpeed` / `isCorrectForDrops` のバイトコー
 
 ```powershell
 Set-Location -LiteralPath "A:\Project\horizon-mods\Tinkers' onstruct"
-& .\tools\play-item-state.ps1 -Inspect
+$artifact = 'A:\Project\horizon-mods\.local\artifacts\m3b3a-2e7ec5b6'
+& .\tools\play-item-state.ps1 -Inspect -Client "$artifact\horizon-client.exe" -ClientMod "$artifact\tconstruct.hmod" -ServerMod "$artifact\tconstruct_tools.hmod"
 ```
 
 新規テストワールドで以下を入力します。専用ワールドでも手持ちを置換するので、試験用slotを選んで使います。
@@ -49,7 +50,7 @@ Set-Location -LiteralPath "A:\Project\horizon-mods\Tinkers' onstruct"
 /gamemode survival
 ```
 
-設置した石を掘ると通常の木のつるはしより速く破壊し、丸石が出ます。Creativeへ戻し、`speed:90f` を `speed:2f` にして同じ位置へ石を設置すると遅くなります。保存して `-Inspect -ResumeLatest` で再開してもTool設定が残ります。`-InFrame` でも同じ操作ができます。
+設置した石を掘ると通常の木のつるはしより速く破壊し、丸石が出ます。Creativeへ戻し、`speed:90f` を `speed:2f` にして同じ位置へ石を設置すると遅くなります。保存後、上記コマンドに `-ResumeLatest` を加えて再開してもTool設定が残ります。`-InFrame` でも同じ操作ができます。
 
 これは汎用Toolの動作確認です。コアのdamage/brokenから性能を変更する機能、独自の耐久方針、修理レシピ、Tool componentの削除patchはこの区切りでは扱っていません。人によるM3b3の確認は未実施です。
 
