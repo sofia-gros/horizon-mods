@@ -27,6 +27,7 @@ M2は本体・Modとも `codex/server-mod-game-integration` で実装。[起動�
 
 M2はユーザーによる実機検証でも期待どおりと確認済み。M3は本体・Modとも `codex/tconstruct-item-hooks` に分離しました。最初のM3aでは汎用custom-data送信修正と状態付きvanilla試験アイテムを扱います。M3bで必要になる個体性能・採掘・戦闘・耐久hookは現行WITに存在せず、試験アイテムでは動作しません。名前の変更や状態保存だけでM3全体を完了とは扱いません。
 M3aはコア13件・sandbox 7ステップ・成果物check、統合サーバー / in-frameの実ゲーム12項目に成功。修正前の状態欠落も再現しました。[M3aの起動・操作・期待値と制限](tconstruct-m3a-verification.md) を参照してください。
+2026-10-26、ユーザーによるM3a実機検証でも、保存・再起動後に試験アイテム3本が残ることを確認済み。
 
 2026-10-26: 上流 `c9f554d1` を含むマージ `88b7bfaf` で実験的server Mod API 0.3のWIT・SDK・runtimeが追加され、M2で既存PR #1894のゲーム接続を専用ブランチへ統合しました。未マージPRの機能をupstream/mainの実装済み機能とは扱いません。[追従記録](horizon-upstream-sync.md) も参照してください。
 

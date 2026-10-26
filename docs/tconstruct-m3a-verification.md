@@ -90,6 +90,6 @@ M3aの実ゲーム試験は統合サーバーとin-frameを対象とします。
 - Mod成果物: SHA-256 `c801f92f04ae88da0d76b0db44af8e69e96059d90a5fd27b3bca11dd74ed270f`、88,544 bytes。
 - 修正後の本体成果物: SHA-256 `362f8d0c19954635446aee480e7645cbba17ffa94d7a2036b3aba8119ad4ba46`。上記のfast profile / client opt-level=1 / jobs=1でビルド。メモリ不足の再発なし。
 - 実ゲーム: 統合サーバー `.local/item-state-tests/integrated-fqcibo60/report.json` 6項目、in-frame `.local/item-state-tests/in-frame-0e94tami/report.json` 6項目、計12項目すべて成功。3個体は生成直後と保存・再起動後に完全一致。通常のdiamondも保持。
-- 手動起動スクリプトはPowerShell構文検査と `-ValidateOnly` に成功。GUIの人による操作は今回まだ未実施。
+- 手動起動スクリプトはPowerShell構文検査と `-ValidateOnly` に成功。2026-10-26、ユーザーから保存・再起動後も試験アイテム3本が残ったとの確認を受領。添付画像でも3本と `TConstruct state specimen` の表示を確認。内部JSON各値の一致は上記自動試験の結果であり、今回の手動報告で個別確認されたとは扱わない。
 - M2回帰: 新しい本体で統合サーバーprobeの14項目が成功。起動回数・tick重複なし・旧client診断・chat・破壊/設置・Nether移動・pause/resumeを確認。`.local/server-mods-tests/integrated-3nh7jptz/report.json`。
 - 静的チェック: 本体clientのlib / bins（mods有効）とMod全targetのClippyをwarnings deniedで実行して成功。両リポジトリのrustfmt、本体の公開ツリー・履歴検査にも成功。
