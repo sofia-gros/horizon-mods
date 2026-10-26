@@ -1,5 +1,7 @@
 # M2 サーバーMod接続・検証
 
+2026-10-26、ユーザーから実機で案内した期待結果すべてに一致したとの報告を受領。対象はM2の本体 `efeb2118` / Mod `3626730` と直前に案内した手動起動・診断手順。未試験の組み合わせまで確認済みとは扱わない。
+
 本体とMod開発場はともに `codex/server-mod-game-integration` ブランチ。上流への新規PRは作成していない。
 
 基準本体はupstream `b8027d4b`（API level対応を含む）。既存の [PR #1894](https://github.com/ludovic111/horizon/pull/1894) と、その依存の [#1837](https://github.com/ludovic111/horizon/pull/1837) を統合した検証ブランチで、upstream/mainの公開済み機能とは区別する。初期の重複実装とM3用custom-data変更は別々のstashで保持。
