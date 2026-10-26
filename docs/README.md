@@ -18,6 +18,7 @@
 | [TConstruct M0・M1検証記録](tconstruct-m1-verification.md) | コア・Wasm・sandbox・ゲーム内診断の結果と制限 |
 | [TConstruct M2検証](tconstruct-m2-verification.md) | 専用ブランチ、上流PR統合、server lifecycle probeと起動手順 |
 | [TConstruct M3a検証](tconstruct-m3a-verification.md) | 個体状態の保存・通信、vanilla試験アイテム、再開できる手動テスト |
+| [TConstruct M3b検証](tconstruct-m3b-verification.md) | サーバーの手持ち読み取り、SDK固定、個体ごとの状態・基礎statsの診断 |
 | [Horizon上流の追従記録](horizon-upstream-sync.md) | API 0.3の追加範囲、ゲーム側の未接続部分、継続確認手順 |
 
 ## Horizonの前提

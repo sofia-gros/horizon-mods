@@ -1,0 +1,25 @@
+[package]
+name = "tconstruct-server-tools"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Server-side state inspection for the Horizon TConstruct port"
+
+[lib]
+crate-type = ["rlib", "cdylib"]
+
+[dependencies]
+tconstruct-horizon = { path = "..", default-features = false }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+# Verified items-read fork preview; experimental API level 4.
+horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "235cac33f056efaeb316e5e309b767e14498ab79" }
+
+[profile.release]
+opt-level = "s"
+lto = true
+
+[lints.clippy]
+all = "warn"

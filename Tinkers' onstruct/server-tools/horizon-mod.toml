@@ -1,0 +1,9 @@
+id = "tconstruct_tools"
+name = "TConstruct Server Tool Inspector"
+version = "0.1.0"
+description = "Reads authoritative specimen state and base core stats. Gameplay hooks are not connected. Requires the fork items-read preview."
+authors = ["Horizon port contributors"]
+api = "0.3"
+side = "server"
+capabilities = ["players", "items-read"]
+experimental = ["items-read"]

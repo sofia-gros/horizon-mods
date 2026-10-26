@@ -26,7 +26,7 @@ class Game:
         self.root.mkdir(exist_ok=resume)
         self.endpoint = self.root / "control.json"
         self.env = dict(os.environ, HORIZON_NO_AUDIO="1", HORIZON_LAUNCHER_NO_SELF_UPDATE="1",
-                        HORIZON_NO_DISCORD="1", HORIZON_TELEMETRY_URL="off")
+                        HORIZON_NO_DISCORD="1", HORIZON_TELEMETRY_URL="off", RUST_MIN_STACK="16777216")
         temporary = self.root / "tmp"
         temporary.mkdir(exist_ok=resume)
         self.env.update(TEMP=str(temporary), TMP=str(temporary))
@@ -36,7 +36,7 @@ class Game:
             self.env[key] = str(folder)
         command = [str(args.game), "--resources", str(args.resources), "--control-socket", str(self.endpoint),
                    "--test-terrain", "--render-distance", "2"]
-        probe = self.root / "tconstruct_probe.hmod"
+        probe = self.root / (args.server_mod.name if args.server_mod else "server.hmod")
         if mods and args.server_mod and (dedicated or not server):
             # Package-relative storage must also stay inside this test run.
             shutil.copy2(args.server_mod, probe)

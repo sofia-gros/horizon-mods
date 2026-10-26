@@ -107,3 +107,9 @@ M2のserver接続は本体・Modとも `codex/server-mod-game-integration` ブ�
 `/give` を実行できる権限が必要です。通知は処理のキュー登録を示し、権限不足などでvanillaコマンドが失敗した場合はチャットのエラーも確認してください。未知素材は生成前に拒否します。`/tconstruct specimen stone wood wood` はエラーになりアイテムを増やしません。
 
 自動試験はリポジトリルートの `tools/probe_horizon_item_state.py`。保存・再起動前後のinventoryを記録し、vanillaアイテムと3個体の素材・damage・brokenを比較します。ゲームを一つずつ起動します。詳細は [M3a検証記録](../docs/tconstruct-m3a-verification.md) を参照してください。
+
+## M3b1: サーバーからの診断
+
+補助server packageは [server-tools](server-tools/README.md)。実験API 0.3 / このforkのlevel 4の `items-read` を使い、SDKを `235cac33f056efaeb316e5e309b767e14498ab79` に固定します。clientのSDK固定先は従来の `88b7bfaf` です。2つのcomponentは別々にビルドします。共通コアだけ使う場合はCargoの `default-features = false` でclient adapterのexportを除外できます。
+
+`& .\tools\play-item-state.ps1 -Inspect` で両packageを読み込みます。3本を作って持ち替え、その都度 `/tconstruct_tool inspect` を入力すると、サーバーから読んだparts・damage・broken・コア基礎statsを表示します。`hooks=false` の診断段階で、ゲーム性能・耐久処理はvanillaのままです。保存後の再開は `-Inspect -ResumeLatest`。[M3bの期待値と検証範囲](../docs/tconstruct-m3b-verification.md) を参照してください。

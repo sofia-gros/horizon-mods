@@ -1,0 +1,7 @@
+[[step]]
+expect.commands = ["tconstruct_tool"]
+
+[[step]]
+join = "Alex"
+command = "tconstruct_tool inspect"
+expect.error = "empty main hand"

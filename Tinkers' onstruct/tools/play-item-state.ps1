@@ -2,13 +2,17 @@ param(
     [string]$Client = 'A:\Project\horizon\target\fast\horizon-client.exe',
     [string]$Resources = "$env:APPDATA\horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3",
     [switch]$InFrame,
+    [switch]$Inspect,
     [switch]$ResumeLatest,
     [switch]$ValidateOnly
 )
 $ErrorActionPreference = 'Stop'
 $project = Split-Path -Parent $PSScriptRoot
 $clientMod = Join-Path $project 'target\horizon-mod\tconstruct.hmod'
-foreach ($path in @($Client, (Join-Path $Resources 'horizon-resources.json'), $clientMod)) {
+$serverMod = Join-Path $project 'server-tools\target\horizon-mod\tconstruct_tools.hmod'
+$required = @($Client, (Join-Path $Resources 'horizon-resources.json'), $clientMod)
+if ($Inspect) { $required += $serverMod }
+foreach ($path in $required) {
     if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing: $path. See M3a instructions." }
 }
 $Client = (Resolve-Path -LiteralPath $Client).Path
@@ -17,13 +21,14 @@ Write-Output "Game: $Client"
 Write-Output "Mod SHA256: $((Get-FileHash -LiteralPath $clientMod -Algorithm SHA256).Hash)"
 if ($ValidateOnly) { return }
 $parent = Join-Path (Split-Path -Parent $project) '.local'
+$stage = if ($Inspect) { 'M3b1' } else { 'M3a' }
 if ($ResumeLatest) {
-    $latest = Get-ChildItem -LiteralPath $parent -Directory -Filter 'manual-M3a-*' |
+    $latest = Get-ChildItem -LiteralPath $parent -Directory -Filter ("manual-$stage-*") |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $latest) { throw 'No M3a manual test exists. Run without -ResumeLatest first.' }
+    if (-not $latest) { throw "No $stage manual test exists. Run without -ResumeLatest first." }
     $run = $latest.FullName
 } else {
-    $run = Join-Path $parent ('manual-M3a-' + [guid]::NewGuid().ToString('N'))
+    $run = Join-Path $parent ("manual-$stage-" + [guid]::NewGuid().ToString('N'))
     New-Item -ItemType Directory -Path $run | Out-Null
 }
 $settings = @{
@@ -35,6 +40,7 @@ $settings = @{
     HORIZON_NO_AUDIO = '1'
     HORIZON_NO_DISCORD = '1'
     HORIZON_TELEMETRY_URL = 'off'
+    RUST_MIN_STACK = '16777216'
     TEMP = (Join-Path $run 'tmp')
     TMP = (Join-Path $run 'tmp')
 }
@@ -46,15 +52,18 @@ try {
         New-Item -ItemType Directory -Path $settings[$key] -Force | Out-Null
     }
     $gameArgs = @('--resources', $Resources, '--dev-mod', $clientMod, '--control-socket', (Join-Path $run 'control.json'),
-        '--world', 'TConstruct-M3a', '--name', 'M3Tester', '--creative', '--seed', '42', '--test-terrain',
+        '--world', "TConstruct-$stage", '--name', 'M3Tester', '--creative', '--seed', '42', '--test-terrain',
         '--render-distance', '4', '--width', '1280', '--height', '720')
     if ($InFrame) { $gameArgs += '--in-frame' }
+    if ($Inspect) { $gameArgs += @('--dev-mod', $serverMod) }
     Write-Output "Test data and logs: $run"
     Write-Output '/tconstruct specimen wood wood wood'
     Write-Output '/tconstruct specimen flint wood wood 17'
     Write-Output '/tconstruct specimen flint wood wood 85'
     Write-Output 'Expected: three vanilla pickaxes named TConstruct state specimen. Gameplay remains vanilla.'
-    Write-Output 'Quit, then run this script with -ResumeLatest to reopen this test world.'
+    if ($Inspect) { Write-Output 'Select each specimen, then /tconstruct_tool inspect. Server report: damage=0 / 17 / 85, broken=false / false / true, hooks=false.' }
+    if ($Inspect) { Write-Output 'Quit, then run this script with -Inspect -ResumeLatest to reopen this test world.' }
+    else { Write-Output 'Quit, then run this script with -ResumeLatest to reopen this test world.' }
     $quotedArgs = $gameArgs | ForEach-Object { '"' + $_ + '"' }
     $game = Start-Process -FilePath $Client -ArgumentList $quotedArgs -WorkingDirectory $run `
         -WindowStyle Normal -Wait -PassThru -RedirectStandardOutput (Join-Path $run 'game.log') `

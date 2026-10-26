@@ -4,7 +4,7 @@ pub mod specimen;
 pub mod stats;
 pub mod tool;
 
-#[cfg(target_arch = "wasm32")]
+#[cfg(all(target_arch = "wasm32", feature = "client-adapter"))]
 mod adapter;
 
 pub use catalog::Catalog;

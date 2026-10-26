@@ -1,5 +1,14 @@
 # Horizon上流の追従記録
 
+## M3b1: 読み取りAPIとquiet commandの統合
+
+`3edb037e` で本流 `8027cb41` のMod index（download count / rating）とlauncher更新を統合。続いて `93b17ebd` で本流 `800b9156` を取り込み、`command.run-quiet`（level 3）、proxy設定・credentialのメッセージ抑制等を反映しました。作業中の変更はstashへ退避してから戻し、既存の退避内容も保持しました。
+
+追加した読み取り専用 `items-read.main-hand` は、quiet commandと衝突しない**forkのlevel 4**です。汎用コードのみを本体 `235cac33f056efaeb316e5e309b767e14498ab79` へcommit・push。TConstructの素材・schema・計算はMod側です。commit前の最終fetchは `9422f698`、その後に追加のMod関連更新はありませんでした。
+Mod側のcommit前にも `1f88194b` までfetchして再確認。追加のSDK・runtime・server接続・registry・launcher更新はありませんでした。
+
+統合後のMod library 34件、API参照4件、sandbox 29件（負荷測定1件ignored）、mods有効のclient lib/binsとSDK/exampleのClippy、Mod無効のclient checkが成功。launcherの新UIやproxy設定の実操作、registry web service自体の試験は今回のゲームMod検証には含めていません。ゲームでの個体読み取り結果は [M3b検証](tconstruct-m3b-verification.md) に記録します。
+
 ## M3a開始時
 
 `codex/tconstruct-item-hooks` でM2 `efeb2118` から分岐し、upstream `749a8a2a` をmerge commit `0dd64e68` で統合。API level 2とraycast snapshotを含みます。`game/mods.rs` の競合はM2のplayer snapshotと上流のview-hitを両方保持して解消しました。library 32件、API reference 4件、sandbox 27件（別途負荷測定1件ignored）が成功。
