@@ -31,7 +31,13 @@ Set-Location -LiteralPath 'A:\Project\horizon-mods'
 & 'A:\miniconda3\python.exe' -B tools/probe_horizon_automation.py --in-frame --dev-mod "A:\Project\horizon-mods\Tinkers' onstruct\target\horizon-mod\tconstruct.hmod" --mod-command 'tconstruct stats wood wood wood' --expect-feedback 'Pickaxe: durability=60, mining=2.000, damage=1.000, speed=1.200; diagnostics only'
 ```
 
-## 失敗・制限
+## ユーザーによる実機確認
+
+2026-10-26、ユーザーから「実機検証しました。すべて期待値と同じことを確認しました」と報告を受領。対象は直前に案内したM1診断Mod（Modソース `dc5c994`、手順のゲームはv0.2.66 / in-frame）。案内した診断表示の手動確認結果として記録する。ツール作成・採掘・修理やserver実行の確認には拡張しない。
+
+後述の可視起動スクリプトの記述は開発側で実施した検証範囲であり、このユーザー報告を別途追加した。
+
+## 失敗・制限の詳細
 
 - v0.2.66 / v0.2.68のintegratedモード: 自動試験のclient診断がunknown command。`command` はserver consoleへ直送、`chat` 経路でもこの組み合わせでは診断できなかった。成功として数えない。失敗報告はそれぞれ `.local/automation/smoke-hqdrgk8j/report.json` と `smoke-3kdbq4wh/report.json`。v0.2.68もresourceはv0.2.66のものを指定した。
 - save/reopenは診断Modの再読み込みとvanillaのblock/itemを確認したもの。TConstruct個体のゲーム内保存ではない。
