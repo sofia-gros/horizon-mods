@@ -19,6 +19,7 @@
 | [TConstruct M2検証](tconstruct-m2-verification.md) | 専用ブランチ、上流PR統合、server lifecycle probeと起動手順 |
 | [TConstruct M3a検証](tconstruct-m3a-verification.md) | 個体状態の保存・通信、vanilla試験アイテム、再開できる手動テスト |
 | [TConstruct M3b検証](tconstruct-m3b-verification.md) | サーバーの手持ち読み取り、SDK固定、個体ごとの状態・基礎statsの診断 |
+| [TConstruct M3b3採掘の検証](tconstruct-m3b3-verification.md) | 個体別Tool component、client予測・server判定、原作比較とゲーム内手順 |
 | [Horizon上流の追従記録](horizon-upstream-sync.md) | API 0.3の追加範囲、ゲーム側の未接続部分、継続確認手順 |
 
 ## Horizonの前提
@@ -28,7 +29,7 @@ HorizonはMinecraft: Java EditionをRustで再実装したプロジェクトで�
 Fabric / NeoForge向けJavaの `.jar` をそのまま実行する仕組みではありません。
 
 調査時点の実装では、コードModはAPI `0.1`、コンテンツはAPI `0.2` に対応します。
-後続の `88b7bfaf` では実験的なserver API `0.3` の契約・SDK・runtimeが追加されました。ゲームからの呼び出しは未接続です（[追従記録](horizon-upstream-sync.md)）。
+後続の `88b7bfaf` では実験的なserver API `0.3` の契約・SDK・runtimeが追加されました。現在のforkではM2でゲームからの呼び出しを接続し、M3で個体状態の読み書きと採掘経路を開発しています（[ロードマップ](tconstruct-roadmap.md)）。
 サーバー用コードフックなどの将来計画と、現状で使える機能は分けて扱います。
 
 確認日: **2026-10-26（日本時間）**。対象コミット: `9e447a7e9203eefdf5204eaa3079be0a2ea6f4df`。

@@ -115,3 +115,5 @@ M2のserver接続は本体・Modとも `codex/server-mod-game-integration` ブ�
 `& .\tools\play-item-state.ps1 -Inspect` で両packageを読み込みます。3本を作って持ち替え、その都度 `/tconstruct_tool inspect` を入力すると、サーバーから読んだparts・damage・broken・コア基礎statsを表示します。`hooks=false` の診断段階で、ゲーム性能・耐久処理はvanillaのままです。保存後の再開は `-Inspect -ResumeLatest`。[M3bの期待値と検証範囲](../docs/tconstruct-m3b-verification.md) を参照してください。
 
 M3b2ではCreative限定の `/tconstruct_tool test-damage 100` / `test-repair 20` で、選択個体のコアdamage・brokenを変更できます。Survivalでの実際の耐久消費・修理レシピは次の段階です。
+
+M3b3の土台として、本体 `2e7ec5b6` で個体のTool componentをclient予測とserver採掘へ反映しました。このModのコアstatsの適用はまだ行っていません。汎用設定の実機手順・自動比較・未対応範囲は [M3b3検証記録](../docs/tconstruct-m3b3-verification.md) にあります。

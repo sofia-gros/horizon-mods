@@ -32,6 +32,8 @@ M3b1ではfork独自の実験capability `items-read` と補助server package `tc
 2026-10-27、M3b1の統合サーバー / in-frameで持ち替え・保存復帰・非対象品の拒否を計26項目、旧SDKのM2 server probeを14項目確認。いずれも成功。`hooks=false` の段階で、実機の人による確認は次の手動手順で行います。
 2026-10-27、ユーザーからM3b1（本体 `235cac33` / Mod `0272914`）の実機確認済み・問題なしとの報告を受領。M3b2の比較付き状態更新・Creative限定テストdamage/repairは統合サーバー / in-frameの計60項目、旧SDKのM2回帰14項目を自動確認済みです。実際の採掘・戦闘による性能・耐久処理は引き続き未実装です。ユーザーの就寝中も自動検証して次の段階へ進める指示に従い、M3b2の手動確認を待たずM3b3に着手しています。
 
+M3b3の汎用採掘経路は本体 `2e7ec5b6` で実装。本体Tool componentを双方の採掘計算へ反映し、Java比較144ケース、通信374個体・122種類、ゲーム内32項目を確認しました。TConstructコアの計算結果を自動適用するAPI、broken制限、コア耐久hookは次の区切りです。[採掘の検証手順](tconstruct-m3b3-verification.md)。
+
 2026-10-26: 上流 `c9f554d1` を含むマージ `88b7bfaf` で実験的server Mod API 0.3のWIT・SDK・runtimeが追加され、M2で既存PR #1894のゲーム接続を専用ブランチへ統合しました。未マージPRの機能をupstream/mainの実装済み機能とは扱いません。[追従記録](horizon-upstream-sync.md) も参照してください。
 
 ## 検証の扱い
