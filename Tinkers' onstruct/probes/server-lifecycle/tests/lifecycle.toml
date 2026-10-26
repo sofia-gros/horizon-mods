@@ -1,0 +1,48 @@
+[[step]]
+join = "Alex"
+expect.commands = ["tprobe"]
+expect.told = ["Alex: M2 server probe joined"]
+
+[[step]]
+as = "Alex"
+command = "tprobe tell"
+expect.told = ["Alex: M2 targeted reply"]
+expect.feedback = "tell sent"
+
+[[step]]
+as = "Alex"
+command = "tprobe broadcast"
+expect.broadcast = ["M2 broadcast reply"]
+expect.feedback = "broadcast sent"
+
+[[step]]
+as = "Alex"
+command = "tprobe error"
+expect.error = "M2 expected diagnostic error"
+
+[[step]]
+as = "Alex"
+break = { x = 1, y = 63, z = 0, state = "minecraft:stone" }
+
+[[step]]
+as = "Alex"
+place = { x = 1, y = 63, z = 0, state = "minecraft:cobblestone" }
+
+[[step]]
+as = "Alex"
+ticks = 3
+command = "tprobe status"
+expect.feedback = '{"actor":"Alex","boots":1,"broken":1,"chats":0,"dimension":"minecraft:overworld","duplicate_ticks":0,"joins":1,"last":"place:Alex:minecraft:overworld:1,63,0:minecraft:cobblestone","last_tick":3,"leaves":0,"online":["Alex"],"placed":1,"probe":"M2","request":"","ticks":3}'
+
+[[step]]
+leave = "Alex"
+
+[[step]]
+reload = true
+join = "Alex"
+expect.told = ["Alex: M2 server probe joined"]
+
+[[step]]
+as = "Alex"
+command = "tprobe status"
+expect.feedback = '{"actor":"Alex","boots":2,"broken":0,"chats":0,"dimension":"minecraft:overworld","duplicate_ticks":0,"joins":1,"last":"join:Alex:minecraft:overworld","last_tick":null,"leaves":0,"online":["Alex"],"placed":0,"probe":"M2","request":"","ticks":0}'

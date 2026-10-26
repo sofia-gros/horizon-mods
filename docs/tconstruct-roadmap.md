@@ -9,7 +9,7 @@
 | --- | --- | --- | --- |
 | M0 再現可能な入力 | 完了 | 原作コミット固定、MIT・出典・SHA-256、選択データ、依存・対応範囲一覧 | 27ファイルと依存一覧の検証成功。未知素材・moduleを拒否 |
 | M1 Modコアと診断Mod | 完了 | 素材・部品・stats・traitの小集合、ToolState、耐久・修理、Wasm診断コマンド | Rust・Java oracle・Wasm・sandbox test/check成功。v0.2.66 in-frameの診断と保存復帰確認 |
-| M2 サーバー基盤 | 上流基盤取り込み・接続未着手 | 上流API 0.3のABI・SDK・runtimeを使用。ゲーム側lifecycle接続、dev packageのserver引き渡し、probeを追加 | 旧client互換、in-frame / integrated / dedicated、dimensionとpauseを確認 |
+| M2 サーバー基盤 | 完了（検証範囲・制限は記録参照） | 上流API 0.3と未マージPR #1894を統合。ゲーム側lifecycle接続、dev packageのserver引き渡し、probeを追加 | 5構成53項目成功。旧client・dimension・pause・複数人の出力分離確認。in-frameのNetherは既存制限として除外 |
 | M3 アイテム接続 | 未着手 | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
 | M4 制作・修理UI | 未着手 | generic Block Entity / menu / transaction、Part Builder・Station | 部品作成・組み立て・交換・修理。複数人・shift-click・保存で複製も消失もない |
 | M5 動的な外観 | 未着手 | 素材別sprite / tint / tooltip、broken / modifier表示 | 手持ち・inventory・dropで表示が一致。固定視点の画像試験 |
@@ -23,8 +23,9 @@ M0とM1を実装・検証しました。本体の汎用API開発に原作固有�
 2026-10-26、ユーザーによるM1実機検証でも、案内した期待値との一致が確認されました。
 診断Modは既存APIで数値を観測するための足場で、採掘可能なTConstructツールの完成ではありません。
 M2以降ではフォーク本体に変更を追加し、各段階を小さい差分へ分割します。
+M2は本体・Modとも `codex/server-mod-game-integration` で実装。[起動・操作・期待結果と検証制限](tconstruct-m2-verification.md) を確認してください。通常の統合サーバーを手動検証の基準にします。
 
-2026-10-26: 上流 `c9f554d1` を含むマージ `88b7bfaf` で、実験的なserver Mod API 0.3のWIT・SDK・runtime・sandbox試験が追加されました。新規にrole別ABIを設計する作業は不要です。ただしゲームは依然 `Runs::Client` を指定し、server lifecycle呼び出しは未接続です。M2完了を意味しません。詳細は [追従記録](horizon-upstream-sync.md) を参照してください。
+2026-10-26: 上流 `c9f554d1` を含むマージ `88b7bfaf` で実験的server Mod API 0.3のWIT・SDK・runtimeが追加され、M2で既存PR #1894のゲーム接続を専用ブランチへ統合しました。未マージPRの機能をupstream/mainの実装済み機能とは扱いません。[追従記録](horizon-upstream-sync.md) も参照してください。
 
 ## 検証の扱い
 

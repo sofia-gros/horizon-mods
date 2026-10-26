@@ -46,7 +46,7 @@ GUIのゲームを起動します。v0.2.66とそのresourceを使い、`.local/
 
 パス検証だけなら `-ValidateOnly`、別のゲーム・resourceを指定するなら `-Client PATH -Resources PATH`。別版との互換性は未保証です。PowerShellの実行ポリシーを自動変更する処理は入れていません。
 
-**制限:** v0.2.66 / v0.2.68の統合サーバーモードでは、自動試験の `chat /tconstruct ...` で診断コマンドが認識されませんでした。手動スクリプトは成功を確認したv0.2.66の `--in-frame` を明示します。server Mod接続はM2で対応します。`horizon-ctl command` は統合サーバーconsole経路であり、client Modの操作経路とは区別します。
+**制限:** v0.2.66 / v0.2.68の自動試験では、統合サーバーモードの `chat /tconstruct ...` がclient Mod判定を迂回し、診断コマンドが認識されませんでした。手動スクリプトは成功を確認したv0.2.66の `--in-frame` を明示します。M2ブランチでは操作経路の修正を検証中です（[M2検証](../docs/tconstruct-m2-verification.md)）。`horizon-ctl command` は統合サーバーconsole経路であり、client Modの操作経路とは区別します。
 
 ## ビルド・試験
 
@@ -88,4 +88,6 @@ Python・JDKはこの端末で確認済みの実行ファイルです。別環�
 
 `port-support.json` に対応範囲・依存・未対応一覧を記録します。固定した未対応moduleは検証して保持しますが、実行済みとは扱いません。未知のmodule・素材・状態schemaはエラーにします。
 
-次は [ロードマップ](../docs/tconstruct-roadmap.md) のM2です。[M0・M1検証記録](../docs/tconstruct-m1-verification.md) と [上流追従記録](../docs/horizon-upstream-sync.md) を参照してください。
+段階ごとの状態は [ロードマップ](../docs/tconstruct-roadmap.md)、M1の結果は [M0・M1検証記録](../docs/tconstruct-m1-verification.md)、本体の更新は [上流追従記録](../docs/horizon-upstream-sync.md) を参照してください。
+
+M2のserver接続は本体・Modとも `codex/server-mod-game-integration` ブランチで実装し、5構成53項目を検証しました。ゲーム起動は `& .\tools\play-server-probe.ps1`。実験API 0.3 / API level 1のprobeを使い、通常の統合サーバーとM1 client診断を同時に動かします。必要な本体・成果物・操作・期待結果・in-frameのNether制限は [M2検証記録](../docs/tconstruct-m2-verification.md) に記載しています。

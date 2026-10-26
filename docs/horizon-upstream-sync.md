@@ -1,5 +1,11 @@
 # Horizon上流の追従記録
 
+## M2ブランチでの後続統合
+
+`codex/server-mod-game-integration` では、upstream `b8027d4b`（API level対応を含む）を基準に、未マージのserverゲーム接続PR #1894をmerge commit `20e2faf9` で取り込みました。下記の「ゲーム未接続」はmainの初回調査の記録です。M2の進捗・版・試験範囲は [M2検証記録](tconstruct-m2-verification.md) を参照してください。
+
+作業中の再fetchで本流にPR #1837のマージ `4fbb0cde` を確認。M2へ取り込んだPR #1894は同じserver test-scriptコミットを既に含み、追加の契約差分はありません。上流の型付きコマンド・world capabilityの未マージPRは取り込んでいません。
+
 ## 確認のタイミング
 
 開発開始時、API設計・実装の直前、ロードマップの区切り、commit・push前に `upstream/main` をfetchする。
