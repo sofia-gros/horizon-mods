@@ -7,8 +7,8 @@
 
 | 段階 | 状態 | 実装するもの | 完了条件 |
 | --- | --- | --- | --- |
-| M0 再現可能な入力 | 開発中 | 原作コミット固定、MIT・出典・SHA-256、選択データ、依存・対応範囲一覧 | 再取り込み・ハッシュ検証が可能。未対応が診断される |
-| M1 Modコアと診断Mod | 開発中 | 素材・部品・stats・traitの小集合、ToolState、耐久・修理、Wasm診断コマンド | Rust試験、Java数値oracle、Wasm build、sandbox test/checkが通る。診断Modと実ツールを区別 |
+| M0 再現可能な入力 | 完了 | 原作コミット固定、MIT・出典・SHA-256、選択データ、依存・対応範囲一覧 | 27ファイルと依存一覧の検証成功。未知素材・moduleを拒否 |
+| M1 Modコアと診断Mod | 完了 | 素材・部品・stats・traitの小集合、ToolState、耐久・修理、Wasm診断コマンド | Rust・Java oracle・Wasm・sandbox test/check成功。v0.2.66 in-frameの診断と保存復帰確認 |
 | M2 サーバー基盤 | 上流基盤取り込み・接続未着手 | 上流API 0.3のABI・SDK・runtimeを使用。ゲーム側lifecycle接続、dev packageのserver引き渡し、probeを追加 | 旧client互換、in-frame / integrated / dedicated、dimensionとpauseを確認 |
 | M3 アイテム接続 | 未着手 | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
 | M4 制作・修理UI | 未着手 | generic Block Entity / menu / transaction、Part Builder・Station | 部品作成・組み立て・交換・修理。複数人・shift-click・保存で複製も消失もない |
@@ -19,7 +19,7 @@
 
 ## 現在の作業
 
-M0とM1を先に実装します。本体の汎用API開発に原作固有コードを混ぜず、`Tinkers' onstruct/` にコアと診断Modを置きます。
+M0とM1を実装・検証しました。本体の汎用API開発に原作固有コードを混ぜず、`Tinkers' onstruct/` にコアと診断Modを置いています。[検証記録](tconstruct-m1-verification.md) とMod READMEに直接検証手順と限界を記録しました。
 診断Modは既存APIで数値を観測するための足場で、採掘可能なTConstructツールの完成ではありません。
 M2以降ではフォーク本体に変更を追加し、各段階を小さい差分へ分割します。
 

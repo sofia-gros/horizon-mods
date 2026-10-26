@@ -1,0 +1,397 @@
+{
+  "schema": 1,
+  "scope": "verbatim FloatToolStat aggregation methods; not full Forge gameplay",
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "upstream_source_sha256": "9d2ec3ab7047137e376f45f86729806175e8e72d8ce36ab901a9bd4ffcfc12ea",
+  "extracted_methods_sha256": "1cb7c2a713c6deab2da1e656422eb49d39f319648b5a3e7601739ae1b4503375",
+  "cases": [
+    {
+      "name": "default",
+      "default": 9,
+      "operations": [],
+      "expected_bits": 1091567616
+    },
+    {
+      "name": "update_cancels_default",
+      "default": 9,
+      "operations": [
+        [
+          "update",
+          2
+        ]
+      ],
+      "expected_bits": 1073741824
+    },
+    {
+      "name": "updates_add",
+      "default": 9,
+      "operations": [
+        [
+          "update",
+          2
+        ],
+        [
+          "update",
+          3
+        ]
+      ],
+      "expected_bits": 1084227584
+    },
+    {
+      "name": "double_narrowing",
+      "default": 9,
+      "operations": [
+        [
+          "add",
+          0.1
+        ],
+        [
+          "update",
+          10
+        ],
+        [
+          "percent",
+          -0.15
+        ],
+        [
+          "multiply",
+          1.1
+        ]
+      ],
+      "expected_bits": 1092032661
+    },
+    {
+      "name": "percent_after_modifier_add",
+      "default": 0,
+      "operations": [
+        [
+          "update",
+          1.25
+        ],
+        [
+          "percent",
+          0.1
+        ],
+        [
+          "update",
+          0.5
+        ],
+        [
+          "add",
+          0.5
+        ]
+      ],
+      "expected_bits": 1075734119
+    },
+    {
+      "name": "fractional_durability",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          85
+        ],
+        [
+          "percent",
+          -0.15
+        ]
+      ],
+      "expected_bits": 1116766208
+    },
+    {
+      "name": "separate_percent_and_multiply",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          99.1
+        ],
+        [
+          "percent",
+          0.123456789012
+        ],
+        [
+          "percent",
+          0.2
+        ],
+        [
+          "multiply",
+          1.23456789012
+        ]
+      ],
+      "expected_bits": 1126296401
+    },
+    {
+      "name": "wood_wood_durability",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          60
+        ],
+        [
+          "percent_float",
+          0.0
+        ]
+      ],
+      "expected_bits": 1114636288
+    },
+    {
+      "name": "wood_wood_mining_speed",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          2.0
+        ],
+        [
+          "percent_float",
+          0.0
+        ]
+      ],
+      "expected_bits": 1073741824
+    },
+    {
+      "name": "wood_wood_attack_damage",
+      "default": 0,
+      "operations": [
+        [
+          "update",
+          0.0
+        ],
+        [
+          "percent_float",
+          0.0
+        ],
+        [
+          "update",
+          0.5
+        ],
+        [
+          "add_float",
+          0.5
+        ]
+      ],
+      "expected_bits": 1065353216
+    },
+    {
+      "name": "wood_wood_attack_speed",
+      "default": 1,
+      "operations": [
+        [
+          "percent_float",
+          0.0
+        ],
+        [
+          "update",
+          1.2
+        ]
+      ],
+      "expected_bits": 1067030938
+    },
+    {
+      "name": "wood_flint_durability",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          60
+        ],
+        [
+          "percent_float",
+          -0.15
+        ]
+      ],
+      "expected_bits": 1112276992
+    },
+    {
+      "name": "wood_flint_mining_speed",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          2.0
+        ],
+        [
+          "percent_float",
+          0.0
+        ]
+      ],
+      "expected_bits": 1073741824
+    },
+    {
+      "name": "wood_flint_attack_damage",
+      "default": 0,
+      "operations": [
+        [
+          "update",
+          0.0
+        ],
+        [
+          "percent_float",
+          0.1
+        ],
+        [
+          "update",
+          0.5
+        ],
+        [
+          "add_float",
+          0.5
+        ]
+      ],
+      "expected_bits": 1066192077
+    },
+    {
+      "name": "wood_flint_attack_speed",
+      "default": 1,
+      "operations": [
+        [
+          "percent_float",
+          0.0
+        ],
+        [
+          "update",
+          1.2
+        ]
+      ],
+      "expected_bits": 1067030938
+    },
+    {
+      "name": "flint_wood_durability",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          85
+        ],
+        [
+          "percent_float",
+          0.0
+        ]
+      ],
+      "expected_bits": 1118437376
+    },
+    {
+      "name": "flint_wood_mining_speed",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          3.5
+        ],
+        [
+          "percent_float",
+          0.0
+        ]
+      ],
+      "expected_bits": 1080033280
+    },
+    {
+      "name": "flint_wood_attack_damage",
+      "default": 0,
+      "operations": [
+        [
+          "update",
+          1.25
+        ],
+        [
+          "percent_float",
+          0.0
+        ],
+        [
+          "update",
+          0.5
+        ],
+        [
+          "add_float",
+          0.5
+        ]
+      ],
+      "expected_bits": 1074790400
+    },
+    {
+      "name": "flint_wood_attack_speed",
+      "default": 1,
+      "operations": [
+        [
+          "percent_float",
+          0.0
+        ],
+        [
+          "update",
+          1.2
+        ]
+      ],
+      "expected_bits": 1067030938
+    },
+    {
+      "name": "flint_flint_durability",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          85
+        ],
+        [
+          "percent_float",
+          -0.15
+        ]
+      ],
+      "expected_bits": 1116766208
+    },
+    {
+      "name": "flint_flint_mining_speed",
+      "default": 1,
+      "operations": [
+        [
+          "update",
+          3.5
+        ],
+        [
+          "percent_float",
+          0.0
+        ]
+      ],
+      "expected_bits": 1080033280
+    },
+    {
+      "name": "flint_flint_attack_damage",
+      "default": 0,
+      "operations": [
+        [
+          "update",
+          1.25
+        ],
+        [
+          "percent_float",
+          0.1
+        ],
+        [
+          "update",
+          0.5
+        ],
+        [
+          "add_float",
+          0.5
+        ]
+      ],
+      "expected_bits": 1075734119
+    },
+    {
+      "name": "flint_flint_attack_speed",
+      "default": 1,
+      "operations": [
+        [
+          "percent_float",
+          0.0
+        ],
+        [
+          "update",
+          1.2
+        ]
+      ],
+      "expected_bits": 1067030938
+    }
+  ]
+}

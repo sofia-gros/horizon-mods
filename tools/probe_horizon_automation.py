@@ -23,10 +23,17 @@ def main():
     parser.add_argument("--resources", type=Path, default=base / ".local/horizon-client/26.3")
     parser.add_argument("--output-parent", type=Path, default=Path(__file__).resolve().parents[1] / ".local/automation")
     parser.add_argument("--in-frame", action="store_true")
+    parser.add_argument("--dev-mod", type=Path, help="An optional built .hmod to load in the isolated client")
+    parser.add_argument("--mod-command", help="An optional diagnostic command to execute after startup")
+    parser.add_argument("--expect-feedback", help="Exact text that must occur in the command's JSON response")
     args = parser.parse_args()
+    if bool(args.mod_command) != bool(args.expect_feedback):
+        parser.error("--mod-command and --expect-feedback must be provided together")
     for path in (args.client, args.ctl, args.resources / "horizon-resources.json"):
         if not path.is_file():
             parser.error(f"Missing required file: {path}")
+    if args.dev_mod and not args.dev_mod.is_file():
+        parser.error(f"Missing development mod: {args.dev_mod}")
     args.output_parent.mkdir(parents=True, exist_ok=True)
     run = Path(tempfile.mkdtemp(prefix="smoke-", dir=args.output_parent.resolve()))
     env = dict(os.environ)
@@ -43,6 +50,7 @@ def main():
         "mode": "in-frame" if args.in_frame else "integrated", "run": str(run),
         "client": str(args.client.resolve()), "ctl": str(args.ctl.resolve()),
         "resources": str(args.resources.resolve()), "steps": [], "ok": False,
+        "dev_mod": str(args.dev_mod.resolve()) if args.dev_mod else None,
     }
     for name, path in (("client", args.client), ("ctl", args.ctl)):
         digest = hashlib.sha256()
@@ -77,6 +85,8 @@ def main():
                    "--width", "640", "--height", "360"]
         if args.in_frame:
             command.append("--in-frame")
+        if args.dev_mod:
+            command.extend(["--dev-mod", str(args.dev_mod.resolve())])
         proc = subprocess.Popen(command, env=env, cwd=run, stdin=subprocess.DEVNULL,
                                 stdout=log_file, stderr=subprocess.STDOUT,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
@@ -101,10 +111,25 @@ def main():
         log_file.close()
         log_file = None
 
+    def diagnostic(label):
+        # `command` is the integrated server console. A client Mod command
+        # must take the same route as a player's typed /command instead.
+        ctl(label, "chat", "/" + args.mod_command.lstrip("/"))
+        deadline = time.monotonic() + 5
+        while True:
+            feedback = ctl(label + "-messages", "messages", "20")
+            if args.expect_feedback in json.dumps(feedback, ensure_ascii=False):
+                return
+            if time.monotonic() >= deadline:
+                raise AssertionError("Client Mod feedback was not observed in chat messages")
+            time.sleep(0.2)
+
     try:
         print(f"RUN={run}", flush=True)
         start("first")
         ctl("state", "state")
+        if args.mod_command:
+            diagnostic("mod-command")
         ctl("set-block", "command", "setblock 0 80 0 minecraft:gold_block")
         block = ctl("block-before-save", "block", "0", "80", "0")
         if block.get("block") != "minecraft:gold_block" or not block.get("loaded"):
@@ -126,6 +151,8 @@ def main():
         # A clean shutdown removes it; remove only this run's stale endpoint if needed.
         endpoint.unlink(missing_ok=True)
         start("reopen")
+        if args.mod_command:
+            diagnostic("mod-command-after-reopen")
         block = ctl("block-after-reopen", "block", "0", "80", "0")
         if block.get("block") != "minecraft:gold_block" or not block.get("loaded"):
             raise AssertionError("Block did not survive save and reopen")
@@ -136,6 +163,12 @@ def main():
         report["ok"] = True
     except Exception as error:
         report["error"] = f"{type(error).__name__}: {error}"
+        if args.dev_mod and proc is not None and proc.poll() is None:
+            try:
+                ctl("failure-mods-options", "options", "mods")
+                ctl("failure-mods-ui", "ui")
+            except Exception as diagnostic_error:
+                report["diagnostic_error"] = str(diagnostic_error)
     finally:
         if proc is not None and proc.poll() is None:
             # Only the child created above is stopped, never an existing game.
