@@ -2,7 +2,7 @@
 param(
     [string]$Horizon,
     [switch]$Prepare,
-    [string]$MinecraftDir = (Join-Path $env:APPDATA '.minecraft'),
+    [string]$MinecraftDir,
     [string]$ServerJar,
     [int]$Jobs = 2
 )
@@ -10,6 +10,19 @@ $ErrorActionPreference = 'Stop'
 $mods = Split-Path -Parent $PSScriptRoot
 if (-not $Horizon) { $Horizon = Join-Path (Split-Path -Parent $mods) 'horizon' }
 $project = Join-Path $mods "Tinkers' onstruct"
+# Horizon's launcher links the user's Prism files in this official layout.
+if (-not $MinecraftDir) {
+    $linked = Join-Path $env:APPDATA 'horizon-launcher\linked-minecraft'
+    if (Test-Path -LiteralPath (Join-Path $linked 'versions\26.3\26.3.json') -PathType Leaf) {
+        $MinecraftDir = $linked
+    } else {
+        $MinecraftDir = Join-Path $env:APPDATA '.minecraft'
+    }
+}
+if (-not $ServerJar) {
+    $existingServer = Join-Path $env:APPDATA 'horizon-launcher\server-jars\26.3.jar'
+    if (Test-Path -LiteralPath $existingServer -PathType Leaf) { $ServerJar = $existingServer }
+}
 if (-not (Test-Path -LiteralPath (Join-Path $Horizon 'research-lock.json') -PathType Leaf)) { throw "Horizon checkout not found: $Horizon. Clone it beside horizon-mods or pass -Horizon." }
 if ($Jobs -lt 1) { throw 'Jobs must be at least 1.' }
 foreach ($name in @('cargo', 'rustup')) { if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "$name not found. Install Rust stable with the MSVC toolchain first." } }

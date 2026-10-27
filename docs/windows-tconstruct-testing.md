@@ -3,7 +3,7 @@
 Linux の Codex Cloud と別に、Windows 11 のログイン中のデスクトップでテストします。ゲーム・抽出リソース・ワールド・ログは各 PC の `.local` に置き、Git に追加しません。以下は PowerShell 7 を想定し、二つの checkout を隣接させます。既存 checkout がある場合はクローンせず、未コミットの変更を確認してからブランチを更新してください。
 
 ```powershell
-$work = Join-Path $HOME 'horizon-work'
+$work = 'A:\Project'
 New-Item -ItemType Directory -Force -Path $work | Out-Null
 Set-Location -LiteralPath $work
 git clone --branch codex/tconstruct-item-hooks https://github.com/sofia-gros/horizon.git
@@ -12,14 +12,22 @@ git clone --branch codex/tconstruct-item-hooks https://github.com/sofia-gros/hor
 
 ## 初回準備
 
+想定する既存配置は `A:\Project\horizon`、`A:\Project\horizon-mods`、`C:\Users\metal\AppData\Roaming\PrismLauncher` です。これらが既に存在する場合は上の clone を実行せず、各 checkout の `git status` で変更を確認してから、指定ブランチを更新してください。
+
 Git、Rust stable の MSVC toolchain、Visual Studio Build Tools の「C++ によるデスクトップ開発」、Python 3（`py -3`）、JDK 25（`java` / `javac`）をインストールし、新しい PowerShell を開いてください。Rust は `rustup` からインストールできます。ビルドには数 GB 以上の空き容量と時間が必要です。`-Jobs 1` で並列数を抑えられます。
 
-Minecraft Java Edition 26.3 は正規の Minecraft Launcher でインストールし、少なくとも一度起動して assets と libraries を揃えてください。別ディレクトリの正規インストールを使う場合は `-MinecraftDir` で指定します。Horizon の既存 `horizon-prepare` が `research-lock.json` と入力を照合します。Minecraft の所有・認証は公式 Launcher 側で行います。
+Prism Launcher に正規の Minecraft Java Edition 26.3 と assets / libraries を用意してください。既存環境では `C:\Users\metal\AppData\Roaming\horizon-launcher\linked-minecraft` が Prism のファイルを Horizon が読む形式にリンクした入力元です。スクリプトはこのリンクを優先します。Prism のルートをそのまま `-MinecraftDir` に渡すと、Horizon が要求する version manifest の配置と異なる場合があります。リンクがない場合は Horizon Launcher で Minecraft を関連付けるか、互換形式のインストールを `-MinecraftDir` で指定してください。Horizon の既存 `horizon-prepare` が `research-lock.json` と入力を照合します。Minecraft の所有・認証は公式 Launcher 側で行います。
 
-公式 manifest から 26.3 の server jar を取得する例です。ダウンロードする前に Horizon checkout の `research-lock.json` に一致する jar の SHA-1 を確認し、保存後も検証します。
+以前の確認では `C:\Users\metal\AppData\Roaming\horizon-launcher\server-jars\26.3.jar` も存在しました。現存すれば、次のコマンドで利用できます。Horizon がハッシュを検証します。
 
 ```powershell
-$work = Join-Path $HOME 'horizon-work'
+& 'A:\Project\horizon-mods\tools\setup-windows-tconstruct.ps1' -Prepare
+```
+
+サーバー jar がない場合、公式 manifest から 26.3 の server jar を取得する例です。ダウンロードする前に Horizon checkout の `research-lock.json` に一致する jar の SHA-1 を確認し、保存後も検証します。
+
+```powershell
+$work = 'A:\Project'
 $horizon = Join-Path $work 'horizon'
 $lock = Get-Content -Raw -LiteralPath (Join-Path $horizon 'research-lock.json') | ConvertFrom-Json
 $versions = Invoke-RestMethod 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
@@ -40,7 +48,7 @@ if ((Get-FileHash -LiteralPath $serverJar -Algorithm SHA1).Hash -ne $lock.minecr
 ## 手動で鉄鉱石と耐久を確認
 
 ```powershell
-$work = Join-Path $HOME 'horizon-work'
+$work = 'A:\Project'
 $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps1"
 & $play -Inspect
 ```
@@ -62,7 +70,7 @@ $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps
 デスクトップのログイン中に実行します。専用ワールドとログを作り、統合サーバー・in-frame の採掘と保存復帰、二人接続、専用サーバー、別の server Mod との共存を順に試します。複数のゲームが起動する場合があります。
 
 ```powershell
-$test = Join-Path $HOME 'horizon-work\horizon-mods\tools\test-windows-tconstruct.ps1'
+$test = 'A:\Project\horizon-mods\tools\test-windows-tconstruct.ps1'
 & $test -Mode all
 # 個別実行: integrated / in-frame / players / dedicated / coexist / coexist-in-frame
 & $test -Mode integrated
