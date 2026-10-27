@@ -4,6 +4,8 @@
 
 Cloud移行時に、Modコアへ採掘後のpickaxe基本耐久計算を追加した。固定済みJavaの `getDamage` を抽出した4ケースと比較し、連続消費・破損境界・状態の保存往復も単体検証している。これはゲームへの接続ではない。Creative判定、破壊成功、正しい個体への同期適用、modifier処理は呼び出し側の契約が必要で、M3b4は未完了。
 
+Linux Cloudでは本体 `50c7c146` とserver package `52a666a21628fe9a0d1d24bfcade52222dc5e2963fe43f96d9a78e1b85f4d4f6` を使い、統合サーバーとin-frameでM3b3の採掘プローブ各13項目を再確認した。実際の採掘ではまだコア耐久が変化しないことも確認している。上流 `43f53880` の型付きserver commandは既存 `server-events` のABIを変え、旧server packageの読み込みが `commands` の型不一致で失敗したため、未統合。互換性を保つ移行方法と旧package回帰の検証が必要。
+
 ## 観察
 
 - 本体の `Game::player_destroy_block` は破壊に成功すると `mod_block_event` を記録し、その後に `mine_block_with_held` とドロップ処理を行います。現行のMod通知は `tick_server_mods` で後からまとめて配送されます。破壊の直後に持ち替えた場合、その時点で再取得した手持ちは破壊に使った個体とは限りません。

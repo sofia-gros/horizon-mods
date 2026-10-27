@@ -78,6 +78,8 @@ def main():
 
     def mine(block):
         game.call('command', f'setblock 0 71 2 minecraft:{block}')
+        wait_until('block update did not reach the client',
+                   lambda: game.call('block', '0', '71', '2').get('block') == f'minecraft:{block}')
         return game.call('break', '0', '71', '2', '--timeout', '30', timeout=35)
 
     try:

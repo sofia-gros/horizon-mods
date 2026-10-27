@@ -124,6 +124,16 @@ def main():
                 raise AssertionError("Client Mod feedback was not observed in chat messages")
             time.sleep(0.2)
 
+    def await_value(label, words, predicate):
+        deadline = time.monotonic() + 10
+        while True:
+            value = ctl(label, *words)
+            if predicate(value):
+                return value
+            if time.monotonic() >= deadline:
+                raise AssertionError(f"{label}: expected state not observed: {value}")
+            time.sleep(0.2)
+
     try:
         print(f"RUN={run}", flush=True)
         start("first")
@@ -131,13 +141,10 @@ def main():
         if args.mod_command:
             diagnostic("mod-command")
         ctl("set-block", "command", "setblock 0 80 0 minecraft:gold_block")
-        block = ctl("block-before-save", "block", "0", "80", "0")
-        if block.get("block") != "minecraft:gold_block" or not block.get("loaded"):
-            raise AssertionError("Placed block was not observed")
+        await_value("block-before-save", ("block", "0", "80", "0"),
+                    lambda block: block.get("block") == "minecraft:gold_block" and block.get("loaded"))
         ctl("give-item", "command", "give @s minecraft:diamond 3")
-        inventory = ctl("inventory", "inventory")
-        if inventory.get("counts", {}).get("minecraft:diamond") != 3:
-            raise AssertionError("Given item was not observed")
+        await_value("inventory", ("inventory",), lambda inventory: inventory.get("counts", {}).get("minecraft:diamond") == 3)
         ctl("screen", "screen")
         picture = run / "smoke.png"
         ctl("screenshot", "screenshot", str(picture), timeout=20)
