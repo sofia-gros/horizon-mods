@@ -14,9 +14,17 @@ from probe_horizon_server_mods import Game, ROOT
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--game', type=Path, default=Path('A:/Project/horizon/target/fast/horizon-client.exe'))
-    parser.add_argument('--ctl', type=Path, default=Path('A:/Project/horizon/target/fast/horizon-ctl.exe'))
-    parser.add_argument('--resources', type=Path, default=Path(os.environ['APPDATA']) / 'horizon-launcher/versions/v0.2.66/.local/horizon-client/26.3')
+    if os.name == 'nt':
+        game_dir = Path('A:/Project/horizon/target/fast')
+        resource_dir = Path(os.environ.get('APPDATA', '')) / 'horizon-launcher/versions/v0.2.66/.local/horizon-client/26.3'
+        suffix = '.exe'
+    else:
+        game_dir = ROOT.parent / 'horizon/target/fast'
+        resource_dir = ROOT.parent / 'horizon/.local/horizon-client/26.3'
+        suffix = ''
+    parser.add_argument('--game', type=Path, default=game_dir / ('horizon-client' + suffix))
+    parser.add_argument('--ctl', type=Path, default=game_dir / ('horizon-ctl' + suffix))
+    parser.add_argument('--resources', type=Path, default=resource_dir)
     parser.add_argument('--client-mod', type=Path, default=ROOT / "Tinkers' onstruct/target/horizon-mod/tconstruct.hmod")
     parser.add_argument('--server-mod', type=Path, default=ROOT / "Tinkers' onstruct/server-tools/target/horizon-mod/tconstruct_tools.hmod")
     parser.add_argument('--in-frame', action='store_true')
