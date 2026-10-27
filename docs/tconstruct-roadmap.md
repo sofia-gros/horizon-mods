@@ -10,7 +10,7 @@
 | M0 再現可能な入力 | 完了 | 原作コミット固定、MIT・出典・SHA-256、選択データ、依存・対応範囲一覧 | 27ファイルと依存一覧の検証成功。未知素材・moduleを拒否 |
 | M1 Modコアと診断Mod | 完了 | 素材・部品・stats・traitの小集合、ToolState、耐久・修理、Wasm診断コマンド | Rust・Java oracle・Wasm・sandbox test/check成功。v0.2.66 in-frameの診断と保存復帰確認 |
 | M2 サーバー基盤 | 完了（検証範囲・制限は記録参照） | 上流API 0.3と未マージPR #1894を統合。ゲーム側lifecycle接続、dev packageのserver引き渡し、probeを追加 | 5構成53項目成功。旧client・dimension・pause・複数人の出力分離確認。in-frameのNetherは既存制限として除外 |
-| M3 アイテム接続 | 作業中（M3a・M3b1・M3b2完了、性能hookは未実装） | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
+| M3 アイテム接続 | 作業中（採掘性能と基本採掘耐久を検証、戦闘・修理は未完了） | custom data往復、個体性能、採掘・戦闘・耐久hook、broken状態 | toolが消失せず、他個体・vanillaを壊さず保存・同期できる |
 | M4 制作・修理UI | 未着手 | generic Block Entity / menu / transaction、Part Builder・Station | 部品作成・組み立て・交換・修理。複数人・shift-click・保存で複製も消失もない |
 | M5 動的な外観 | 未着手 | 素材別sprite / tint / tooltip、broken / modifier表示 | 手持ち・inventory・dropで表示が一致。固定視点の画像試験 |
 | M6 最小溶融・鋳造 | 未着手 | fluid / tank、Melter・Faucet・Casting Table | 燃料・温度・液量・型・冷却・出力、保存復帰と描画を検証 |
@@ -49,3 +49,5 @@ M3b3の汎用採掘経路は本体 `2e7ec5b6` で実装。本体Tool component�
 - 各段階の完了時に、ユーザー自身が再現できる本体/Modの版、起動コマンド、ゲーム内操作、期待結果を案内する。ゲーム接続前の段階は、非ゲームの確認手順と限界を明示する。
 
 2026-10-27: M3b4 の基本 pickaxe 採掘耐久を同期 hook で実装し、両ゲーム方式、二人のプレイヤー、保存復帰と鉄鉱石採掘を確認しました。同一 tick の競合・専用サーバーは未検証で、modifier 等の原作全体への対応は今後の作業です。[検証記録](tconstruct-m3b4-verification.md)。
+
+2026-10-27: 上流 `12e0094f` を本体 `2e0f58be` に取り込み、本体 `9928cbea` で二つの Mod の採掘 callback と trap の分離を sandbox 検証しました。上流と fork の API level 7 が衝突するため、取り込み後の本体は遠景 API を level 11 とします。古い本体間では level のみで互換性を判定できません。
