@@ -1,8 +1,8 @@
 param(
-    [string]$Client = 'A:\Project\horizon\target\fast\horizon-client.exe',
+    [string]$Client,
     [string]$ClientMod,
     [string]$ServerMod,
-    [string]$Resources = "$env:APPDATA\horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3",
+    [string]$Resources,
     [switch]$InFrame,
     [switch]$Inspect,
     [switch]$ResumeLatest,
@@ -10,15 +10,20 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 $project = Split-Path -Parent $PSScriptRoot
+$repos = Split-Path -Parent (Split-Path -Parent $project)
+if (-not $Client) { $Client = Join-Path $repos 'horizon\target\fast\horizon-client.exe' }
+if (-not $Resources) { $Resources = Join-Path $repos 'horizon\.local\horizon-client\26.3' }
 if (-not $ClientMod) { $ClientMod = Join-Path $project 'target\horizon-mod\tconstruct.hmod' }
 if (-not $ServerMod) { $ServerMod = Join-Path $project 'server-tools\target\horizon-mod\tconstruct_tools.hmod' }
 $required = @($Client, (Join-Path $Resources 'horizon-resources.json'), $clientMod)
 if ($Inspect) { $required += $serverMod }
 foreach ($path in $required) {
-    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing: $path. See M3a instructions." }
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Missing: $path. See docs/windows-tconstruct-testing.md." }
 }
 $Client = (Resolve-Path -LiteralPath $Client).Path
 $Resources = (Resolve-Path -LiteralPath $Resources).Path
+$clientMod = (Resolve-Path -LiteralPath $clientMod).Path
+if ($Inspect) { $serverMod = (Resolve-Path -LiteralPath $serverMod).Path }
 Write-Output "Game: $Client"
 Write-Output "Mod SHA256: $((Get-FileHash -LiteralPath $clientMod -Algorithm SHA256).Hash)"
 if ($ValidateOnly) { return }
@@ -62,10 +67,11 @@ try {
     Write-Output '/tconstruct specimen wood wood wood'
     Write-Output '/tconstruct specimen flint wood wood 17'
     Write-Output '/tconstruct specimen flint wood wood 85'
-    Write-Output 'Expected: three vanilla pickaxes named TConstruct state specimen. Gameplay remains vanilla.'
+    Write-Output 'Specimens use a wooden-pickaxe appearance and retain separate TConstruct states.'
     if ($Inspect) {
         Write-Output 'Select each specimen, then /tconstruct_tool inspect. Server report: damage=0 / 17 / 85, broken=false / false / true, hooks=false.'
-        Write-Output 'Creative core-state tests: /tconstruct_tool test-damage 100; /tconstruct_tool test-repair 20. These do not enable gameplay durability hooks.'
+        Write-Output 'Creative: select a specimen and use /tconstruct_tool activate. Inspect should show hooks=mining.'
+        Write-Output 'In Survival, break a nonzero-hardness block: inspect damage increases by 1. Creative and zero-hardness blocks do not consume core durability.'
     }
     if ($Inspect) { Write-Output 'Quit, then run this script with -Inspect -ResumeLatest to reopen this test world.' }
     else { Write-Output 'Quit, then run this script with -ResumeLatest to reopen this test world.' }

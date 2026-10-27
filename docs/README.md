@@ -14,6 +14,7 @@
 | [Tinkers’ Construct移植調査](porting-tinkers-construct.md) | MIT・Mantle依存、素材とツール、溶融炉、不足API、段階的な移植案 |
 | [TConstructの詳細実装調査](tconstruct-implementation-plan.md) | ローカルフォークの関数・保存・サーバー経路、API契約案、作業順序、検証条件 |
 | [検証自動化の調査・実機確認](verification-automation.md) | Prism・launcherの配置、Windows CLI実行、保存復帰の実証、再実行スクリプト |
+| [Windows 11 手動・自動テスト](windows-tconstruct-testing.md) | クローン、準備、採掘耐久の操作、自動回帰 |
 | [移植ロードマップ](tconstruct-roadmap.md) | 実装段階・完了条件・手動試験の扱い |
 | [TConstruct M0・M1検証記録](tconstruct-m1-verification.md) | コア・Wasm・sandbox・ゲーム内診断の結果と制限 |
 | [TConstruct M2検証](tconstruct-m2-verification.md) | 専用ブランチ、上流PR統合、server lifecycle probeと起動手順 |
