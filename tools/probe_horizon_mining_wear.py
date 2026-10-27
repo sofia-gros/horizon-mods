@@ -2,6 +2,8 @@
 import argparse
 import hashlib
 import json
+import math
+import re
 from pathlib import Path
 import tempfile
 import time
@@ -48,6 +50,13 @@ def main():
         return wait(f'expected specimen damage {expected}',
                     lambda: (found if (found := sorted(s['damage'] for s in states(game.call('inventory')))) == expected else None))
 
+    def projected_speed(expected):
+        def read():
+            components = game.call('inventory')['held'].get('components', '')
+            match = re.search(r'(?<![a-z_])speed:([0-9.]+)f', components)
+            return match and abs(float(match.group(1)) - expected) < 0.00001
+        return wait(f'expected projected speed {expected}', read)
+
     def mine(block):
         game.call('command', f'setblock 0 71 2 minecraft:{block}')
         wait('block was not delivered', lambda: game.call('block', '0', '71', '2').get('block') == 'minecraft:' + block)
@@ -74,6 +83,8 @@ def main():
             select(slot)
             game.call('chat', '/tconstruct_tool activate')
             wait('profile not activated', lambda: 'horizon:tool_control' in game.call('inventory')['held'].get('components', ''))
+        select(2)
+        check('undamaged flint uses base speed', projected_speed(3.5))
         select(1)
         mine('stone')
         check('creative mining does not wear the tool', damage([0, 58]) == [0, 58])
@@ -90,6 +101,7 @@ def main():
         mine('stone')
         mine('stone')
         check('switching tools isolates consecutive wear', damage([2, 60]) == [2, 60])
+        check('jagged updates speed after wear', projected_speed(3.5 * (1 - 0.01 * math.sqrt(2))))
         game.call('command', 'gamemode creative @s')
         game.call('command', 'item replace entity @s hotbar.3 with minecraft:diamond_pickaxe')
         select(4)
@@ -113,8 +125,12 @@ def main():
               damage([2, 60]) == [2, 60] and inventory['counts'].get('minecraft:wooden_pickaxe') == 2
               and inventory['counts'].get('minecraft:diamond_pickaxe') == 1)
         select(2)
+        check('jagged speed survives restart', projected_speed(3.5 * (1 - 0.01 * math.sqrt(2))))
         mine('stone')
         check('wear continues after restart on the selected item', damage([3, 60]) == [3, 60])
+        game.call('command', 'gamemode creative @s')
+        game.call('chat', '/tconstruct_tool test-repair 3')
+        check('repair restores base speed', damage([0, 60]) == [0, 60] and projected_speed(3.5))
         game.stop()
         report['ok'] = True
     except Exception as error:

@@ -16,7 +16,7 @@ cargo test --locked -j 1
 
 Creative限定の `/tconstruct_tool test-damage 100` と `/tconstruct_tool test-repair 20` で、選択中の個体のコア状態を更新できます。数量は解決済みの耐久ポイントで、素材やレシピを消費する修理ではありません。更新成功時は `item state updated`、`inspect` でコアのdamageとbrokenを確認します。Survivalからのテスト操作は拒否します。
 
-Creativeで `/tconstruct_tool activate` を実行すると、手持ち個体の素材と破損状態を採掘速度・適正採掘へ反映します。`inspect` の `hooks` は有効化後 `"mining"`、未有効化時 `false` です。破損時は速度0.3・適正採掘なしです。テストdamage/repair後も有効化済みの性能を更新します。成功した採掘では、硬度が0以外のブロックでコア耐久を1消費します（Creative・brokenは除く）。攻撃性能は未実装で、vanilla耐久は消費しません。原作は破損時のドロップ判定で手を空にするため、アイテム条件付きlootには差が残ります。
+Creativeで `/tconstruct_tool activate` を実行すると、手持ち個体の素材と破損状態を採掘速度・適正採掘へ反映します。`inspect` の `hooks` は有効化後 `"mining"`、未有効化時 `false` です。火打石の jagged は適正採掘の速度を消耗に応じて変え、採掘とテスト修理のたびに反映します。inspect の mining は条件付き計算前の基礎値です。破損時は速度0.3・適正採掘なしです。テストdamage/repair後も有効化済みの性能を更新します。成功した採掘では、硬度が0以外のブロックでコア耐久を1消費します（Creative・brokenは除く）。攻撃性能は未実装で、vanilla耐久は消費しません。原作は破損時のドロップ判定で手を空にするため、アイテム条件付きlootには差が残ります。
 
 更新時に選択slotとstack全体を取得時の値と比較します。永続的な個体UIDではありません。vanilla品、状態のない品、不正schemaや別carrierは拒否します。clientとserverを同一IDで二重ロードする構成を避けるため、この補助packageは `tconstruct_tools` という別IDです。
 

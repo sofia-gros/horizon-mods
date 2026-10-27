@@ -1,4 +1,4 @@
-//! Server-side inspection and controlled core-state edits. Gameplay is vanilla.
+//! Server-side inspection and projection of TConstruct state into generic item hooks.
 use serde::Serialize;
 use tconstruct_horizon::{Catalog, ToolState};
 
@@ -20,8 +20,8 @@ pub fn mining_projection(
         return Err("not a TConstruct state specimen carrier".into());
     }
     let state = ToolState::from_json(catalog, source)?;
-    let stats = catalog.evaluate(&state)?.stats;
-    let incorrect_tag = match stats.harvest_tier.as_str() {
+    let evaluation = catalog.evaluate(&state)?;
+    let incorrect_tag = match evaluation.stats.harvest_tier.as_str() {
         "minecraft:wood" => "minecraft:incorrect_for_wooden_tool",
         "minecraft:stone" => "minecraft:incorrect_for_stone_tool",
         "minecraft:iron" => "minecraft:incorrect_for_iron_tool",
@@ -33,7 +33,7 @@ pub fn mining_projection(
         speed: if state.broken {
             0.3
         } else {
-            stats.mining_speed.max(1.0)
+            evaluation.mining_speed(catalog, &state, true)?.max(1.0)
         },
         incorrect_tag,
         broken: state.broken,
