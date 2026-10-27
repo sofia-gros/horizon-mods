@@ -29,7 +29,7 @@ try {
     }
 } finally { Pop-Location }
 $builder = Join-Path $Horizon 'target\debug\cargo-horizon-mod.exe'
-foreach ($dir in @($project, (Join-Path $project 'server-tools'))) {
+foreach ($dir in @($project, (Join-Path $project 'server-tools'), (Join-Path $project 'probes\server-lifecycle'))) {
     Push-Location $dir
     try { Invoke-Checked $builder @('horizon-mod', 'build') } finally { Pop-Location }
 }

@@ -35,7 +35,7 @@ if ((Get-FileHash -LiteralPath $serverJar -Algorithm SHA1).Hash -ne $lock.minecr
 & (Join-Path $work 'horizon-mods\tools\setup-windows-tconstruct.ps1') -Prepare -ServerJar $serverJar
 ```
 
-標準以外の Launcher ディレクトリを使う場合は `-MinecraftDir 'C:\path\to\minecraft'` を追加します。準備スクリプトは Horizon、`horizon-ctl`、Mod ビルダー、両 Mod をビルドし、リソースを `horizon\.local\horizon-client\26.3` に生成します。リソースが準備済みなら `-Prepare -ServerJar` を省いて再ビルドできます。checkout が隣接していなければ `-Horizon 'C:\path\to\horizon'` を指定し、手動起動にも同じ本体とリソースを指定してください。
+標準以外の Launcher ディレクトリを使う場合は `-MinecraftDir 'C:\path\to\minecraft'` を追加します。準備スクリプトは Horizon、`horizon-ctl`、Mod ビルダー、両 Mod と共存試験用 probe をビルドし、リソースを `horizon\.local\horizon-client\26.3` に生成します。リソースが準備済みなら `-Prepare -ServerJar` を省いて再ビルドできます。checkout が隣接していなければ `-Horizon 'C:\path\to\horizon'` を指定し、手動起動にも同じ本体とリソースを指定してください。
 
 ## 手動で鉄鉱石と耐久を確認
 
@@ -59,12 +59,12 @@ $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps
 
 ## 自動回帰
 
-デスクトップのログイン中に実行します。専用ワールドとログを作り、統合サーバー・in-frame の採掘と保存復帰、二人接続、専用サーバーを順に試します。複数のゲームが起動する場合があります。
+デスクトップのログイン中に実行します。専用ワールドとログを作り、統合サーバー・in-frame の採掘と保存復帰、二人接続、専用サーバー、別の server Mod との共存を順に試します。複数のゲームが起動する場合があります。
 
 ```powershell
 $test = Join-Path $HOME 'horizon-work\horizon-mods\tools\test-windows-tconstruct.ps1'
 & $test -Mode all
-# 個別実行: integrated / in-frame / players / dedicated
+# 個別実行: integrated / in-frame / players / dedicated / coexist / coexist-in-frame
 & $test -Mode integrated
 ```
 

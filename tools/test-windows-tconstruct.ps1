@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$Horizon,
-    [ValidateSet('integrated', 'in-frame', 'players', 'dedicated', 'all')]
+    [ValidateSet('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame', 'all')]
     [string]$Mode = 'all'
 )
 $ErrorActionPreference = 'Stop'
@@ -13,10 +13,15 @@ $game = Join-Path $Horizon 'target\fast\horizon-client.exe'
 $ctl = Join-Path $Horizon 'target\fast\horizon-ctl.exe'
 $resources = Join-Path $Horizon '.local\horizon-client\26.3'
 $common = @('--game', $game, '--ctl', $ctl, '--resources', $resources)
-$checks = if ($Mode -eq 'all') { @('integrated', 'in-frame', 'players', 'dedicated') } else { @($Mode) }
+$checks = if ($Mode -eq 'all') { @('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame') } else { @($Mode) }
 foreach ($check in $checks) {
     $script = if ($check -in @('players', 'dedicated')) { 'probe_horizon_mining_players.py' } else { 'probe_horizon_mining_wear.py' }
-    $extra = if ($check -eq 'in-frame') { @('--in-frame') } elseif ($check -eq 'dedicated') { @('--dedicated') } else { @() }
+    $extra = if ($check -eq 'in-frame') { @('--in-frame') } elseif ($check -eq 'dedicated') { @('--dedicated') } elseif ($check -in @('coexist', 'coexist-in-frame')) {
+        $probe = Join-Path $mods "Tinkers' onstruct\probes\server-lifecycle\target\horizon-mod\tconstruct_probe.hmod"
+        $arguments = @('--lifecycle-probe', $probe)
+        if ($check -eq 'coexist-in-frame') { $arguments += '--in-frame' }
+        $arguments
+    } else { @() }
     Write-Output "Running $check"
     & $python.Source -3 (Join-Path $PSScriptRoot $script) @common @extra
     if ($LASTEXITCODE -ne 0) { throw "$check failed with exit code $LASTEXITCODE. See the printed report and game.log." }

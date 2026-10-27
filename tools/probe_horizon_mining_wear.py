@@ -18,9 +18,11 @@ def main():
     parser.add_argument('--client-mod', type=Path, default=ROOT / "Tinkers' onstruct/target/horizon-mod/tconstruct.hmod")
     parser.add_argument('--server-mod', type=Path, default=ROOT / "Tinkers' onstruct/server-tools/target/horizon-mod/tconstruct_tools.hmod")
     parser.add_argument('--in-frame', action='store_true')
+    parser.add_argument('--lifecycle-probe', type=Path, help='Also load the server lifecycle probe and verify it responds')
     args = parser.parse_args()
     for key in ('game', 'ctl', 'resources', 'client_mod', 'server_mod'):
         setattr(args, key, getattr(args, key).resolve())
+    args.extra_server_mods = [args.lifecycle_probe.resolve()] if args.lifecycle_probe else []
     parent = ROOT / '.local/tconstruct-wear-tests'
     parent.mkdir(parents=True, exist_ok=True)
     mode = 'in-frame' if args.in_frame else 'integrated'
@@ -61,6 +63,8 @@ def main():
         print(f'RUN={run}', flush=True)
         game = Game(args, run, 'Miner', in_frame=args.in_frame)
         game.ready()
+        if args.lifecycle_probe:
+            check('independent server mod responds', game.status().get('probe') == 'M2')
         for command in ('clear @s', 'fill -2 70 -2 2 70 3 minecraft:stone', 'tp @s 0.5 71 0.5'):
             game.call('command', command)
         game.call('chat', '/tconstruct specimen wood wood wood 58')
@@ -96,10 +100,14 @@ def main():
         check('vanilla tool remains and does not alter TConstruct states',
               damage([2, 60]) == [2, 60] and inventory['held'].get('item') == 'minecraft:diamond_pickaxe'
               and inventory['held'].get('count') == 1 and inventory['counts'].get('minecraft:wooden_pickaxe') == 2)
+        if args.lifecycle_probe:
+            check('independent server mod receives mining events', game.status().get('broken', 0) >= 5)
         game.call('save')
         game.stop()
         game = Game(args, run, 'Miner', in_frame=args.in_frame, resume=True)
         game.ready()
+        if args.lifecycle_probe:
+            check('independent server mod responds after restart', game.status().get('probe') == 'M2')
         inventory = game.call('inventory')
         check('both tool states survive restart without loss or duplication',
               damage([2, 60]) == [2, 60] and inventory['counts'].get('minecraft:wooden_pickaxe') == 2
