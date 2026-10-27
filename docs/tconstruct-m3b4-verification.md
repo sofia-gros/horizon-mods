@@ -10,3 +10,12 @@
 - 同一 server tick に複数採掘が重なる場合と専用サーバーでの新 hook は未検証。modifier や特殊採掘を含む原作全体の互換性は未完了。
 
 試験用の分離ワールド、ログと詳細 report は `.local/` に生成され、Git には含めません。再実行用スクリプトは `tools/probe_horizon_mining_wear.py`、`tools/probe_horizon_mining_players.py`、`tools/capture_tconstruct_mining.py` です。実行には準備済み Minecraft 26.3 リソース、Horizon / horizon-ctl、ビルド済み Mod package と仮想ディスプレイまたは Vulkan 対応画面が必要です。各スクリプトの `--help` を参照してください。
+
+## 上流取り込み後の再検証
+
+本体 `9928cbea2be1ccfdcd899f73399eefc12a2398d5`（上流 `12e0094f` を含む）と同じ SDK に固定した server-tools package で再実行。ゲーム実行ファイル SHA-256 `a74ea49ff87bba4680a8e71a99fefd6521afe2a768f1866cf4f7b559a1bd2769`、server package SHA-256 `a041839a041e437a2e3665dbe32d540623a959c344a9915a0a663f1ccbef8e4b`。
+
+- integrated server と `--in-frame` でそれぞれ 9 項目成功（Creative、硬度 0、通常採掘、broken、持ち替え、vanilla、保存・再起動）。
+- integrated server の二人接続で、各プレイヤーの採掘と連続採掘における個体分離 3 項目成功。
+- 本体 sandbox で二つの異なる Mod を同時ロードし、所有者ごとの callback と、一方の trap による他方への影響がないことを確認。実ゲームでの複数 Mod 共存は未検証。
+- 同一 tick の競合と専用サーバーの新 hook は引き続き未検証。
