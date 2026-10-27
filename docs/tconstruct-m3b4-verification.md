@@ -18,4 +18,4 @@
 - integrated server と `--in-frame` でそれぞれ 9 項目成功（Creative、硬度 0、通常採掘、broken、持ち替え、vanilla、保存・再起動）。
 - integrated server の二人接続で、各プレイヤーの採掘と連続採掘における個体分離 3 項目成功。
 - 本体 sandbox で二つの異なる Mod を同時ロードし、所有者ごとの callback と、一方の trap による他方への影響がないことを確認。実ゲームでの複数 Mod 共存は未検証。
-- 同一 tick の競合と専用サーバーの新 hook は引き続き未検証。
+- 専用サーバーに二人を接続し、それぞれの採掘と連続採掘で他方の耐久が変わらないことを確認（3 項目）。`python3 tools/probe_horizon_mining_players.py --dedicated` で再実行できます。保存・再起動を含む専用サーバーの試験と同一 tick の競合は未検証。
