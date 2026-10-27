@@ -49,7 +49,7 @@ $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps
 /tconstruct_tool inspect
 ```
 
-生成された木のピッケルに見える個体を手に持って `activate` し、`inspect` の `damage=0`、`durability=85`、`hooks=mining` を確認します。Creative のまま `/setblock ~ ~ ~2 minecraft:iron_ore`、続いて `/gamemode survival` と入力し、鉄鉱石を採掘します。鉄の原石がドロップし、再度 `/tconstruct_tool inspect` すると `damage=1` です。vanilla の耐久バーはこのコア耐久を表しません。二本目の個体を作り、持ち替えて採掘するとそれぞれの damage が別に増えます。Creative で採掘した場合と硬度 0 のブロックは消費しません。damage 85 で broken となり、さらに採掘してもツールは消えません。
+生成された木のピッケルに見える個体を手に持って `activate` し、`inspect` の `damage=0`、`durability=85`、`hooks=mining` を確認します。Creative のまま `/setblock ~ ~ ~2 minecraft:iron_ore`、続いて `/gamemode survival` と入力し、鉄鉱石を採掘します。鉄の原石がドロップし、再度 `/tconstruct_tool inspect` すると `damage=1` です。通常の耐久バーにもコア耐久が反映されます。耐久値を見やすく変えるテストとして、Creative で `/tconstruct_tool test-damage 41` を使うと、damage 42 / 85 の黄色いバーを確認できます。二本目の個体を作り、持ち替えて採掘するとそれぞれの damage が別に増えます。Creative で採掘した場合と硬度 0 のブロックは消費しません。damage 85 で broken となり、さらに採掘してもツールは消えません。
 
 終了後に同じワールドを再開するには `& $play -Inspect -Resources $resources -ResumeLatest`、in-frame 方式は `& $play -Inspect -Resources $resources -InFrame`。リソースや本体が別の場所なら `-Client 'C:\...\horizon-client.exe' -Resources 'C:\...\26.3'` を追加します。`-ValidateOnly` は起動前に入力ファイルを確認します。ログとワールドの場所はスクリプトが表示します。[Linux 実ゲームの前後画像](images/tconstruct-m3b4/README.md) も参照できます。
 

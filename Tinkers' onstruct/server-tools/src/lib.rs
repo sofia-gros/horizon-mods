@@ -8,6 +8,8 @@ pub struct MiningProjection {
     pub speed: f32,
     pub incorrect_tag: &'static str,
     pub broken: bool,
+    pub damage: u32,
+    pub max_damage: u32,
 }
 
 pub fn mining_projection(
@@ -37,6 +39,8 @@ pub fn mining_projection(
         },
         incorrect_tag,
         broken: state.broken,
+        damage: state.damage,
+        max_damage: evaluation.stats.durability()?,
     })
 }
 
@@ -128,7 +132,7 @@ mod adapter {
         )
     }
 
-    fn profile(projection: MiningProjection) -> items_tools::Profile {
+    fn profile(projection: &MiningProjection) -> items_tools::Profile {
         let rules = if projection.broken {
             vec![]
         } else {
@@ -196,12 +200,14 @@ mod adapter {
             }
             let replacement = state.to_json()?;
             let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
-            items_tools::replace_main_hand_profile(
+            items_tools::replace_main_hand_profile_durability(
                 player,
                 &path,
                 source,
                 &replacement,
-                &profile(projection),
+                &profile(&projection),
+                projection.damage,
+                projection.max_damage,
             )
         }
         fn command(
@@ -222,12 +228,14 @@ mod adapter {
                     .as_deref()
                     .ok_or("no TConstruct state in main hand")?;
                 let projection = mining_projection(&self.0, &item.item, item.count, source)?;
-                items_tools::replace_main_hand_profile(
+                items_tools::replace_main_hand_profile_durability(
                     &player.id,
                     &path,
                     source,
                     source,
-                    &profile(projection),
+                    &profile(&projection),
+                    projection.damage,
+                    projection.max_damage,
                 )?;
                 return Ok(None);
             }
@@ -249,12 +257,14 @@ mod adapter {
                 if active(player)? {
                     let projection =
                         mining_projection(&self.0, &item.item, item.count, &replacement)?;
-                    items_tools::replace_main_hand_profile(
+                    items_tools::replace_main_hand_profile_durability(
                         &player.id,
                         &path,
                         source,
                         &replacement,
-                        &profile(projection),
+                        &profile(&projection),
+                        projection.damage,
+                        projection.max_damage,
                     )?;
                 } else {
                     items_edit::replace_main_hand_text(&player.id, &path, source, &replacement)?;

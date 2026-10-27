@@ -50,6 +50,14 @@ def main():
         return wait(f'expected specimen damage {expected}',
                     lambda: (found if (found := sorted(s['damage'] for s in states(game.call('inventory')))) == expected else None))
 
+    def visible_durability(expected_damage, expected_max):
+        def read():
+            held = game.call('inventory')['held']
+            components = held.get('components', '')
+            return (held.get('damage', 0) == expected_damage
+                    and f'"minecraft:max_damage":{expected_max}' in components)
+        return wait(f'expected vanilla durability {expected_damage}/{expected_max}', read)
+
     def projected_speed(expected):
         def read():
             components = game.call('inventory')['held'].get('components', '')
@@ -84,6 +92,7 @@ def main():
             game.call('chat', '/tconstruct_tool activate')
             wait('profile not activated', lambda: 'horizon:tool_control' in game.call('inventory')['held'].get('components', ''))
         select(2)
+        check('vanilla durability reflects the flint tool', visible_durability(0, 85))
         check('undamaged flint uses base speed', projected_speed(3.5))
         select(1)
         mine('stone')
@@ -95,12 +104,14 @@ def main():
         check('ordinary mining costs one', damage([0, 59]) == [0, 59])
         mine('stone')
         check('durability limit enters broken state', damage([0, 60]) == [0, 60] and any(s['damage'] == 60 and s['broken'] for s in states(game.call('inventory'))))
+        check('broken tool keeps vanilla durability at its own limit', visible_durability(60, 60))
         mine('dirt')
         check('broken tool remains and takes no further wear', damage([0, 60]) == [0, 60])
         select(2)
         mine('stone')
         mine('stone')
         check('switching tools isolates consecutive wear', damage([2, 60]) == [2, 60])
+        check('vanilla damage follows mining wear', visible_durability(2, 85))
         check('jagged updates speed after wear', projected_speed(3.5 * (1 - 0.01 * math.sqrt(2))))
         game.call('command', 'gamemode creative @s')
         game.call('command', 'item replace entity @s hotbar.3 with minecraft:diamond_pickaxe')
@@ -125,12 +136,13 @@ def main():
               damage([2, 60]) == [2, 60] and inventory['counts'].get('minecraft:wooden_pickaxe') == 2
               and inventory['counts'].get('minecraft:diamond_pickaxe') == 1)
         select(2)
+        check('vanilla durability survives restart', visible_durability(2, 85))
         check('jagged speed survives restart', projected_speed(3.5 * (1 - 0.01 * math.sqrt(2))))
         mine('stone')
         check('wear continues after restart on the selected item', damage([3, 60]) == [3, 60])
         game.call('command', 'gamemode creative @s')
         game.call('chat', '/tconstruct_tool test-repair 3')
-        check('repair restores base speed', damage([0, 60]) == [0, 60] and projected_speed(3.5))
+        check('repair restores base speed and vanilla durability', damage([0, 60]) == [0, 60] and projected_speed(3.5) and visible_durability(0, 85))
         game.stop()
         report['ok'] = True
     except Exception as error:
