@@ -34,3 +34,8 @@
 同じ server package SHA-256 `6593382c8476e242e0f223bcd9066d92cf931b5a3e61c5e4d41af335b35b8af9` で、統合サーバー / in-frame の実ゲームにおいて標準耐久の初期値、採掘消費、破損限界、保存復帰、修理を確認。別 server Mod の共存、専用サーバーの二人接続でも回帰が成功しました。[0 / 85、42 / 85、85 / 85 の画面](images/tconstruct-durability/README.md) は検証用 damage コマンドを使った実画面です。
 
 Windows 11 での新しい本体と表示は未確認です。通常の素材消費による修理と攻撃時の挙動は未実装です。
+
+
+## 専用サーバーの再起動
+
+本体 `1ab61541`、server-tools を使用し、二人が別々に採掘した後に専用サーバーと両クライアントを終了・再起動。両方の ToolState と標準耐久値が保持され、各プレイヤーのツールが 1 本ずつ残ること、その後の採掘が本人だけに反映されることを確認しました。`python3 tools/probe_horizon_mining_players.py --dedicated` で再実行できます。同一 tick の重複採掘は未検証です。

@@ -25,6 +25,8 @@ class Game:
         self.args, self.root, self.label = args, root / label, label
         self.root.mkdir(exist_ok=resume)
         self.endpoint = self.root / "control.json"
+        if resume:
+            self.endpoint.unlink(missing_ok=True)
         self.env = dict(os.environ, HORIZON_NO_AUDIO="1", HORIZON_LAUNCHER_NO_SELF_UPDATE="1",
                         HORIZON_NO_DISCORD="1", HORIZON_TELEMETRY_URL="off", RUST_MIN_STACK="16777216")
         temporary = self.root / "tmp"

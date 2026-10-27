@@ -103,6 +103,31 @@ def main():
         damage(guest, 2)
         check('consecutive guest breaks affect only guest', damage(host, 1)[0]['damage'] == 1)
         for game in reversed(games): game.stop()
+        if args.dedicated:
+            for game in reversed(games): game.cleanup()
+            games.clear()
+            server = Game(args, run, 'Server', dedicated=True, resume=True)
+            games.append(server)
+            server.ready()
+            host = Game(args, run, 'Host', server=f'127.0.0.1:{server.port}', resume=True)
+            games.append(host)
+            host.ready()
+            guest = Game(args, run, 'Guest', server=f'127.0.0.1:{server.port}', resume=True)
+            games.append(guest)
+            guest.ready()
+            command_source = server
+            check('host tool survives dedicated restart without loss or duplication',
+                  damage(host, 1)[0]['damage'] == 1 and host.call('inventory')['counts'].get('minecraft:wooden_pickaxe') == 1)
+            check('guest tool survives dedicated restart without loss or duplication',
+                  damage(guest, 2)[0]['damage'] == 2 and guest.call('inventory')['counts'].get('minecraft:wooden_pickaxe') == 1)
+            for player, expected in ((host, 1), (guest, 2)):
+                held = player.call('inventory')['held']
+                check(f'{player.label} vanilla durability survives dedicated restart',
+                      held.get('damage', 0) == expected and '"minecraft:max_damage":60' in held.get('components', ''))
+            mine(guest, 5)
+            check('dedicated wear continues after restart without affecting the host',
+                  damage(guest, 3)[0]['damage'] == 3 and damage(host, 1)[0]['damage'] == 1)
+            for game in reversed(games): game.stop()
         report['ok'] = True
     except Exception as error:
         report['error'] = f'{type(error).__name__}: {error}'
