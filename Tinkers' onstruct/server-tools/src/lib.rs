@@ -112,7 +112,7 @@ fn inspect_with_profile(
 mod adapter {
     use super::*;
     use horizon_mod_sdk::server::{
-        GameMode, Player, Registration, ServerMod, items_edit, items_read, items_tools,
+        Args, GameMode, Player, Registration, ServerMod, items_edit, items_read, items_tools,
     };
 
     fn active(player: &Player) -> Result<bool, String> {
@@ -167,9 +167,9 @@ mod adapter {
             &mut self,
             player: &Player,
             _: &str,
-            args: &str,
+            args: &Args,
         ) -> Result<Option<String>, String> {
-            let words: Vec<_> = args.split_whitespace().collect();
+            let words: Vec<_> = args.text().split_whitespace().collect();
             if let ["activate"] = words.as_slice() {
                 if !matches!(&player.game_mode, GameMode::Creative) {
                     return Err("activation requires creative mode".into());

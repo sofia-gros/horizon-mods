@@ -14,8 +14,8 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-# Verified server item/profile fork preview; experimental API level 9.
-horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "50c7c14650c8f05a245f93f81463da095ef9882c" }
+# Typed server commands and the experimental item/profile API.
+horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "1e1864bdb6787cef9d118a9982059f9ec611c160" }
 
 [profile.release]
 opt-level = "s"

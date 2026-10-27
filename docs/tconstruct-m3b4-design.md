@@ -6,6 +6,8 @@ Cloud移行時に、Modコアへ採掘後のpickaxe基本耐久計算を追加�
 
 Linux Cloudでは本体 `50c7c146` とserver package `52a666a21628fe9a0d1d24bfcade52222dc5e2963fe43f96d9a78e1b85f4d4f6` を使い、統合サーバーとin-frameでM3b3の採掘プローブ各13項目を再確認した。実際の採掘ではまだコア耐久が変化しないことも確認している。上流 `43f53880` の型付きserver commandは既存 `server-events` のABIを変え、旧server packageの読み込みが `commands` の型不一致で失敗したため、未統合。互換性を保つ移行方法と旧package回帰の検証が必要。
 
+その後、ユーザーの「上流に従い、こちらの実装を更新する」方針により旧ABIの維持は行わず、本体 `1e1864bd` で上流の型付きcommandを統合した。サーバーModとlifecycle probeは同コミットのSDKで再ビルドする。旧server packageは新本体では使えないため、新成果物との組み合わせで検証する。
+
 ## 観察
 
 - 本体の `Game::player_destroy_block` は破壊に成功すると `mod_block_event` を記録し、その後に `mine_block_with_held` とドロップ処理を行います。現行のMod通知は `tick_server_mods` で後からまとめて配送されます。破壊の直後に持ち替えた場合、その時点で再取得した手持ちは破壊に使った個体とは限りません。

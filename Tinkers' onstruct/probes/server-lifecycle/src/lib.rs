@@ -1,7 +1,7 @@
 //! Experimental API 0.3 probe. This has no world or inventory mutations.
 #![cfg(target_arch = "wasm32")]
 use horizon_mod_sdk::{
-    server::{BlockPos, Player, Registration, ServerMod, players},
+    server::{Args, BlockPos, Player, Registration, ServerMod, players},
     storage,
 };
 
@@ -83,7 +83,8 @@ impl ServerMod for Probe {
             p.name, p.dimension, pos.x, pos.y, pos.z, state
         );
     }
-    fn command(&mut self, p: &Player, _: &str, args: &str) -> Result<Option<String>, String> {
+    fn command(&mut self, p: &Player, _: &str, args: &Args) -> Result<Option<String>, String> {
+        let args = args.text();
         let (verb, request) = args.trim().split_once(' ').unwrap_or((args.trim(), ""));
         match verb {
             "" | "status" => Ok(Some(serde_json::json!({"probe": "M2", "request": request, "ticks": self.ticks,
