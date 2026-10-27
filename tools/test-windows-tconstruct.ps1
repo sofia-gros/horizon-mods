@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$Horizon,
+    [string]$Resources,
     [ValidateSet('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame', 'all')]
     [string]$Mode = 'all'
 )
@@ -11,7 +12,7 @@ $python = Get-Command py -ErrorAction SilentlyContinue
 if (-not $python) { throw 'Python launcher py not found. Install Python 3 for Windows.' }
 $game = Join-Path $Horizon 'target\fast\horizon-client.exe'
 $ctl = Join-Path $Horizon 'target\fast\horizon-ctl.exe'
-$resources = Join-Path $Horizon '.local\horizon-client\26.3'
+if (-not $Resources) { $Resources = Join-Path $Horizon '.local\horizon-client\26.3' }
 $common = @('--game', $game, '--ctl', $ctl, '--resources', $resources)
 $checks = if ($Mode -eq 'all') { @('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame') } else { @($Mode) }
 foreach ($check in $checks) {

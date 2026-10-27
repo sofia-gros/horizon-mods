@@ -14,43 +14,31 @@ git clone --branch codex/tconstruct-item-hooks https://github.com/sofia-gros/hor
 
 想定する既存配置は `A:\Project\horizon`、`A:\Project\horizon-mods`、`C:\Users\metal\AppData\Roaming\PrismLauncher` です。これらが既に存在する場合は上の clone を実行せず、各 checkout の `git status` で変更を確認してから、指定ブランチを更新してください。
 
-Git、Rust stable の MSVC toolchain、Visual Studio Build Tools の「C++ によるデスクトップ開発」、Python 3（`py -3`）、JDK 25（`java` / `javac`）をインストールし、新しい PowerShell を開いてください。Rust は `rustup` からインストールできます。ビルドには数 GB 以上の空き容量と時間が必要です。`-Jobs 1` で並列数を抑えられます。
+Git、Rust stable の MSVC toolchain、Visual Studio Build Tools の「C++ によるデスクトップ開発」、Python 3（`py -3`）をインストールし、新しい PowerShell を開いてください。ビルドには空き容量と時間が必要です。`-Jobs 1` で並列数を抑えられます。
 
-Prism Launcher に正規の Minecraft Java Edition 26.3 と assets / libraries を用意してください。既存環境では `C:\Users\metal\AppData\Roaming\horizon-launcher\linked-minecraft` が Prism のファイルを Horizon が読む形式にリンクした入力元です。スクリプトはこのリンクを優先します。Prism のルートをそのまま `-MinecraftDir` に渡すと、Horizon が要求する version manifest の配置と異なる場合があります。リンクがない場合は Horizon Launcher で Minecraft を関連付けるか、互換形式のインストールを `-MinecraftDir` で指定してください。Horizon の既存 `horizon-prepare` が `research-lock.json` と入力を照合します。Minecraft の所有・認証は公式 Launcher 側で行います。
-
-以前の確認では `C:\Users\metal\AppData\Roaming\horizon-launcher\server-jars\26.3.jar` も存在しました。現存すれば、次のコマンドで利用できます。Horizon がハッシュを検証します。
+Horizon Launcher は以下です。Prism Launcher は別のアプリとして扱います。
 
 ```powershell
-& 'A:\Project\horizon-mods\tools\setup-windows-tconstruct.ps1' -Prepare
+& 'A:\Download\ABD\Compressed\horizon-launcher-windows-x64\horizon-launcher.exe'
 ```
 
-サーバー jar がない場合、公式 manifest から 26.3 の server jar を取得する例です。ダウンロードする前に Horizon checkout の `research-lock.json` に一致する jar の SHA-1 を確認し、保存後も検証します。
+Horizon Launcher の画面で対象バージョンを準備・起動してください。開発版の本体が読める準備済みリソースの場所を、後述の `$resources` に設定します。スクリプトは Prism のファイルや既存 server jar を自動選択しません。準備済みリソースは Launcher のバージョン配下の `.local\horizon-client\26.3` にあり、バージョンと開発版の互換性は実行して確認する必要があります。
 
 ```powershell
-$work = 'A:\Project'
-$horizon = Join-Path $work 'horizon'
-$lock = Get-Content -Raw -LiteralPath (Join-Path $horizon 'research-lock.json') | ConvertFrom-Json
-$versions = Invoke-RestMethod 'https://piston-meta.mojang.com/mc/game/version_manifest_v2.json'
-$entry = $versions.versions | Where-Object { $_.id -eq $lock.minecraft.version } | Select-Object -First 1
-if (-not $entry) { throw "Minecraft $($lock.minecraft.version) is absent from official manifest" }
-$version = Invoke-RestMethod $entry.url
-if ($version.downloads.server.sha1 -ne $lock.minecraft.server_sha1) { throw 'Official server hash does not match research-lock.json' }
-$downloadDir = Join-Path $horizon '.local\downloads'
-New-Item -ItemType Directory -Force -Path $downloadDir | Out-Null
-$serverJar = Join-Path $downloadDir 'server-26.3.jar'
-Invoke-WebRequest -Uri $version.downloads.server.url -OutFile $serverJar
-if ((Get-FileHash -LiteralPath $serverJar -Algorithm SHA1).Hash -ne $lock.minecraft.server_sha1) { throw 'Downloaded server jar hash mismatch' }
-& (Join-Path $work 'horizon-mods\tools\setup-windows-tconstruct.ps1') -Prepare -ServerJar $serverJar
+& 'A:\Project\horizon-mods\tools\setup-windows-tconstruct.ps1'
+# 例。使用する Horizon Launcher のバージョンに合わせて変更してください。
+$resources = Join-Path $env:APPDATA 'horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3'
+Test-Path -LiteralPath (Join-Path $resources 'horizon-resources.json')
 ```
 
-標準以外の Launcher ディレクトリを使う場合は `-MinecraftDir 'C:\path\to\minecraft'` を追加します。準備スクリプトは Horizon、`horizon-ctl`、Mod ビルダー、両 Mod と共存試験用 probe をビルドし、リソースを `horizon\.local\horizon-client\26.3` に生成します。リソースが準備済みなら `-Prepare -ServerJar` を省いて再ビルドできます。checkout が隣接していなければ `-Horizon 'C:\path\to\horizon'` を指定し、手動起動にも同じ本体とリソースを指定してください。
+準備スクリプトは Rust の Horizon、`horizon-ctl`、Mod ビルダー、両 Mod と共存試験用 probe をビルドします。`False` の場合は Launcher で準備したバージョンを確認し、`$resources` を変更してください。
 
 ## 手動で鉄鉱石と耐久を確認
 
 ```powershell
 $work = 'A:\Project'
 $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps1"
-& $play -Inspect
+& $play -Inspect -Resources $resources
 ```
 
 新しい専用 Creative ワールドが開きます。T キーでチャットを開き、次を入力します。
@@ -63,7 +51,7 @@ $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps
 
 生成された木のピッケルに見える個体を手に持って `activate` し、`inspect` の `damage=0`、`durability=85`、`hooks=mining` を確認します。Creative のまま `/setblock ~ ~ ~2 minecraft:iron_ore`、続いて `/gamemode survival` と入力し、鉄鉱石を採掘します。鉄の原石がドロップし、再度 `/tconstruct_tool inspect` すると `damage=1` です。vanilla の耐久バーはこのコア耐久を表しません。二本目の個体を作り、持ち替えて採掘するとそれぞれの damage が別に増えます。Creative で採掘した場合と硬度 0 のブロックは消費しません。damage 85 で broken となり、さらに採掘してもツールは消えません。
 
-終了後に同じワールドを再開するには `& $play -Inspect -ResumeLatest`、in-frame 方式は `& $play -Inspect -InFrame`。リソースや本体が別の場所なら `-Client 'C:\...\horizon-client.exe' -Resources 'C:\...\26.3'` を追加します。`-ValidateOnly` は起動前に入力ファイルを確認します。ログとワールドの場所はスクリプトが表示します。[Linux 実ゲームの前後画像](images/tconstruct-m3b4/README.md) も参照できます。
+終了後に同じワールドを再開するには `& $play -Inspect -Resources $resources -ResumeLatest`、in-frame 方式は `& $play -Inspect -Resources $resources -InFrame`。リソースや本体が別の場所なら `-Client 'C:\...\horizon-client.exe' -Resources 'C:\...\26.3'` を追加します。`-ValidateOnly` は起動前に入力ファイルを確認します。ログとワールドの場所はスクリプトが表示します。[Linux 実ゲームの前後画像](images/tconstruct-m3b4/README.md) も参照できます。
 
 ## 自動回帰
 
@@ -71,9 +59,9 @@ $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps
 
 ```powershell
 $test = 'A:\Project\horizon-mods\tools\test-windows-tconstruct.ps1'
-& $test -Mode all
+& $test -Mode all -Resources $resources
 # 個別実行: integrated / in-frame / players / dedicated / coexist / coexist-in-frame
-& $test -Mode integrated
+& $test -Mode integrated -Resources $resources
 ```
 
 各試験の `RUN=...` に `report.json` と `game.log` が残ります。失敗時はその内容を確認してください。Windows 実機での新しい手順・自動試験の実行結果は未確認です。Cloud Linux での成功を Windows の成功とは扱いません。
