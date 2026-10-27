@@ -1,8 +1,7 @@
 //! State transport fixture. This does not attach tool stats or durability hooks.
 use crate::{Catalog, ToolState};
 
-pub const FEEDBACK: &str =
-    "Queued a state specimen. Gameplay remains vanilla; item hooks are not connected.";
+pub const FEEDBACK: &str = "Queued a state specimen. Use /tconstruct_tool activate to enable mining when the server mod is installed.";
 
 pub fn command(catalog: &Catalog, args: &str) -> Result<String, String> {
     let words: Vec<_> = args.split_whitespace().collect();

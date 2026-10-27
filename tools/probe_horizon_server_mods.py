@@ -60,7 +60,8 @@ class Game:
                 command += ["--dev-mod", str(probe)]
             command += ["--dedicated", "--nogui"]
         else:
-            command += ["--offscreen", "--width", "640", "--height", "360", "--name", label]
+            command += ["--offscreen", "--width", str(getattr(args, 'width', 640)),
+                        "--height", str(getattr(args, 'height', 360)), "--name", label]
             if mods:
                 command += ["--dev-mod", str(args.client_mod)]
             if server:

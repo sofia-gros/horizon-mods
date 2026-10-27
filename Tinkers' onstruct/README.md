@@ -1,5 +1,7 @@
 # Tinkers’ Construct for Horizon
 
+現在の開発ブランチでは、server-tools の同期 hook により基本 pickaxe の採掘性能とコア耐久を反映します。見た目は木のピッケルで、通常の耐久バーはコア状態を表示しません。[実ゲーム検証と画像](../docs/tconstruct-m3b4-verification.md) を参照してください。以下には過去の各段階の手順も残しています。
+
 M0〜M2を検証済み。M3aでは性能を表示する開発用client Modに、状態の保存・通信を試すvanillaアイテム生成を追加しています。TConstructの性能を持つツール・作業台・溶融炉はまだ追加しません。
 
 - 本体: `A:\Project\horizon`（`sofia-gros/horizon` フォーク）

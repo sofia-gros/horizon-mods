@@ -116,8 +116,12 @@ mod adapter {
     };
 
     fn active(player: &Player) -> Result<bool, String> {
+        active_id(&player.id)
+    }
+
+    fn active_id(player: &str) -> Result<bool, String> {
         Ok(
-            items_read::main_hand(&player.id, &["horizon:tool_control".into(), "owner".into()])?
+            items_read::main_hand(player, &["horizon:tool_control".into(), "owner".into()])?
                 .and_then(|item| item.custom_text)
                 .as_deref()
                 == Some("tconstruct_tools"),
@@ -158,10 +162,47 @@ mod adapter {
     struct Inspector(Catalog);
     impl ServerMod for Inspector {
         fn init() -> Result<(Self, Registration), String> {
+            items_tools::enable_mining_events();
             Ok((
                 Self(Catalog::embedded()?),
                 Registration::new().command("tconstruct_tool"),
             ))
+        }
+        fn mined(
+            &mut self,
+            player: &str,
+            _dimension: &str,
+            _pos: [i32; 3],
+            _block: &str,
+            hardness: f32,
+        ) -> Result<(), String> {
+            if !active_id(player)? {
+                return Ok(());
+            }
+            let path = ["tconstruct".into(), "state_json".into()];
+            let item = items_read::main_hand(player, &path)?.ok_or("empty main hand")?;
+            if item.item != "minecraft:wooden_pickaxe" || item.count != 1 {
+                return Ok(());
+            }
+            let source = item
+                .custom_text
+                .as_deref()
+                .ok_or("no TConstruct state in main hand")?;
+            let mut state = ToolState::from_json(&self.0, source)?;
+            let before = state.clone();
+            state.damage_after_mining(&self.0, hardness)?;
+            if state == before {
+                return Ok(());
+            }
+            let replacement = state.to_json()?;
+            let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
+            items_tools::replace_main_hand_profile(
+                player,
+                &path,
+                source,
+                &replacement,
+                &profile(projection),
+            )
         }
         fn command(
             &mut self,

@@ -25,7 +25,7 @@ fn specimen_keeps_core_state_separate_from_vanilla_damage() {
     assert!(command.starts_with("give @s wooden_pickaxe["));
     assert!(command.chars().count() <= 256, "host command limit");
     assert!(!command.contains("minecraft:damage="));
-    assert!(specimen::FEEDBACK.contains("Gameplay remains vanilla"));
+    assert!(specimen::FEEDBACK.contains("/tconstruct_tool activate"));
 }
 
 #[test]

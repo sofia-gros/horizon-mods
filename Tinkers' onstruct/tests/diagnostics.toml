@@ -20,7 +20,7 @@ expect.feedback = "Pickaxe: durability=72, mining=3.500, damage=2.475, speed=1.2
 
 [[step]]
 command = "tconstruct specimen flint wood wood 85"
-expect.feedback = "Queued a state specimen. Gameplay remains vanilla; item hooks are not connected."
+expect.feedback = "Queued a state specimen. Use /tconstruct_tool activate to enable mining when the server mod is installed."
 
 [[step]]
 command = "tconstruct specimen stone wood wood"
