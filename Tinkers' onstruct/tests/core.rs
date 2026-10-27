@@ -109,6 +109,30 @@ fn mining_base_wear_matches_pinned_java_get_damage() {
 }
 
 #[test]
+fn melee_base_wear_matches_pinned_java_and_preserves_broken_tool() {
+    let c = Catalog::embedded().unwrap();
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/melee-wear-oracle.json")).unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut state = ToolState::pickaxe(["wood"; 3]);
+        state
+            .damage_after_melee(&c, case["living_target"].as_bool().unwrap())
+            .unwrap();
+        assert_eq!(u64::from(state.damage), case["damage"].as_u64().unwrap());
+    }
+    let mut state = ToolState::pickaxe(["wood"; 3]);
+    state.damage_points(&c, 59).unwrap();
+    state.damage_after_melee(&c, true).unwrap();
+    assert_eq!((state.damage, state.broken), (60, true));
+    state.damage_after_melee(&c, true).unwrap();
+    assert_eq!((state.damage, state.broken), (60, true));
+    assert_eq!(
+        ToolState::from_json(&c, &state.to_json().unwrap()).unwrap(),
+        state
+    );
+}
+
+#[test]
 fn jagged_uses_stat_multiplier_not_maximum_durability() {
     let c = Catalog::embedded().unwrap();
     let mut state = ToolState::pickaxe(["flint", "wood", "wood"]);

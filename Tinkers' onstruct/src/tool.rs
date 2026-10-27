@@ -72,6 +72,17 @@ impl ToolState {
         }
         Ok(())
     }
+    /// Base wear after a successful, non-Creative pickaxe melee attack.
+    /// The caller identifies whether the hit target was living and only calls
+    /// this for a successful hit; modifiers and host permissions are separate.
+    pub fn damage_after_melee(&mut self, catalog: &Catalog, living_target: bool) -> Result<()> {
+        catalog.evaluate(self)?;
+        if !self.broken && living_target {
+            // Pickaxe is melee-capable but not a primary melee weapon upstream.
+            self.damage_points(catalog, 2)?;
+        }
+        Ok(())
+    }
     /// Raw, already-resolved repair points; recipe costs/fractions remain future work.
     pub fn repair_points(&mut self, catalog: &Catalog, points: u32) -> Result<u32> {
         let max = catalog.evaluate(self)?.stats.durability()?;

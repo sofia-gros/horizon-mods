@@ -38,6 +38,14 @@
       "sha256": "4aebd49ef1cad49ab208f71650d6dcc3010931769ba4d913ff879d93c08776bf"
     },
     {
+      "path": "src/generated/resources/data/tconstruct/tags/items/modifiable/melee/primary.json",
+      "sha256": "69a10195b5738131770607d9a243b2c81c2ced20d55d355de32d056e0f3dad08"
+    },
+    {
+      "path": "src/generated/resources/data/tconstruct/tags/items/modifiable/melee/weapon.json",
+      "sha256": "bdbe7cb6a1762791c8997546e6aa537eeb5f2163581c579edc8af26a99640ec6"
+    },
+    {
       "path": "src/generated/resources/data/tconstruct/tinkering/materials/definition/flint.json",
       "sha256": "46b54135136b2e6b197b6294c143bb7cf8650b6a8f27690a69214889d3cc4407"
     },
@@ -96,6 +104,10 @@
     {
       "path": "src/main/java/slimeknights/tconstruct/library/tools/definition/module/mining/MiningSpeedToolHook.java",
       "sha256": "62b14658c4cb37725082c2dd1ba9140429b6dc8bcdea7cf93ab88b1328d1263a"
+    },
+    {
+      "path": "src/main/java/slimeknights/tconstruct/library/tools/helper/ToolAttackUtil.java",
+      "sha256": "60f614be481e75b66541af2aee3986d77814013f4ba4fefa3a69bad4da20984c"
     },
     {
       "path": "src/main/java/slimeknights/tconstruct/library/tools/helper/ToolDamageUtil.java",

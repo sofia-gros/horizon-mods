@@ -16,6 +16,8 @@ FILES = ["LICENSE", "gradle.properties"]
 FILES += [PREFIX + f"tinkering/materials/{kind}/{material}.json"
           for material in ("wood", "flint") for kind in ("definition", "stats", "traits")]
 FILES += [PREFIX + "tinkering/tool_definitions/pickaxe.json"]
+FILES += [PREFIX + "tags/items/modifiable/melee/weapon.json",
+          PREFIX + "tags/items/modifiable/melee/primary.json"]
 FILES += [PREFIX + f"tinkering/modifiers/{name}.json" for name in ("cultivated", "jagged", "pierce")]
 FILES += [PREFIX + f"recipes/tools/parts/builder/{name}.json"
           for name in ("pick_head", "tool_handle", "tool_binding")]
@@ -32,6 +34,7 @@ FILES += [JAVA + path for path in (
     "library/tools/definition/module/mining/MiningSpeedToolHook.java",
     "library/tools/definition/module/mining/IsEffectiveToolHook.java",
     "library/tools/helper/ToolHarvestLogic.java",
+    "library/tools/helper/ToolAttackUtil.java",
     "library/tools/helper/ToolDamageUtil.java",
 )]
 
