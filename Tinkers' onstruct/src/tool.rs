@@ -58,6 +58,20 @@ impl ToolState {
         self.broken = self.damage == max;
         Ok(())
     }
+    /// Apply the base wear for the currently supported pickaxe after a
+    /// successful survival block break. Modifier hooks are not yet modeled.
+    pub fn damage_after_mining(&mut self, catalog: &Catalog, hardness: f32) -> Result<()> {
+        if !hardness.is_finite() {
+            return Err("block hardness must be finite".into());
+        }
+        // Validate even when there is no wear; malformed states must not pass
+        // through the transaction merely because the block breaks instantly.
+        catalog.evaluate(self)?;
+        if !self.broken && hardness != 0.0 {
+            self.damage_points(catalog, 1)?;
+        }
+        Ok(())
+    }
     /// Raw, already-resolved repair points; recipe costs/fractions remain future work.
     pub fn repair_points(&mut self, catalog: &Catalog, points: u32) -> Result<u32> {
         let max = catalog.evaluate(self)?.stats.durability()?;

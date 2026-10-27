@@ -1,0 +1,23 @@
+{
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "source_sha256": "305620d6bddf05eee9a8272b992e76e1d70a289fe41452526a5f7708e420b0ef",
+  "scope": "verbatim getDamage for primary harvest pickaxe; no modifier or game runtime",
+  "cases": [
+    {
+      "hardness": 0.0,
+      "damage": 0
+    },
+    {
+      "hardness": -0.0,
+      "damage": 0
+    },
+    {
+      "hardness": 1.5,
+      "damage": 1
+    },
+    {
+      "hardness": -1.0,
+      "damage": 1
+    }
+  ]
+}

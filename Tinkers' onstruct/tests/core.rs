@@ -67,6 +67,48 @@ fn damage_repair_and_state_roundtrip_keep_the_tool() {
 }
 
 #[test]
+fn mining_base_wear_preserves_broken_and_independent_states() {
+    let c = Catalog::embedded().unwrap();
+    let mut first = ToolState::pickaxe(["wood"; 3]);
+    let second = first.clone();
+    first.damage_after_mining(&c, 0.0).unwrap();
+    first.damage_after_mining(&c, -0.0).unwrap();
+    assert_eq!(first.damage, 0);
+    for _ in 0..59 {
+        first.damage_after_mining(&c, 1.5).unwrap();
+    }
+    assert_eq!(first.damage, 59);
+    assert!(!first.broken);
+    first.damage_after_mining(&c, 1.5).unwrap();
+    assert_eq!(first.damage, 60);
+    assert!(first.broken);
+    first.damage_after_mining(&c, 1.5).unwrap();
+    assert_eq!(first.damage, 60);
+    assert_eq!(second.damage, 0);
+    assert_eq!(
+        ToolState::from_json(&c, &first.to_json().unwrap()).unwrap(),
+        first
+    );
+    let before = first.clone();
+    assert!(first.damage_after_mining(&c, f32::NAN).is_err());
+    assert_eq!(first, before);
+}
+
+#[test]
+fn mining_base_wear_matches_pinned_java_get_damage() {
+    let c = Catalog::embedded().unwrap();
+    let fixture: Value =
+        serde_json::from_str(include_str!("fixtures/mining-wear-oracle.json")).unwrap();
+    for case in fixture["cases"].as_array().unwrap() {
+        let mut state = ToolState::pickaxe(["wood"; 3]);
+        state
+            .damage_after_mining(&c, case["hardness"].as_f64().unwrap() as f32)
+            .unwrap();
+        assert_eq!(u64::from(state.damage), case["damage"].as_u64().unwrap());
+    }
+}
+
+#[test]
 fn jagged_uses_stat_multiplier_not_maximum_durability() {
     let c = Catalog::embedded().unwrap();
     let mut state = ToolState::pickaxe(["flint", "wood", "wood"]);
