@@ -167,6 +167,7 @@ mod adapter {
     impl ServerMod for Inspector {
         fn init() -> Result<(Self, Registration), String> {
             items_tools::enable_mining_events();
+            items_tools::enable_melee_events();
             Ok((
                 Self(Catalog::embedded()?),
                 Registration::new().command("tconstruct_tool"),
@@ -195,6 +196,44 @@ mod adapter {
             let mut state = ToolState::from_json(&self.0, source)?;
             let before = state.clone();
             state.damage_after_mining(&self.0, hardness)?;
+            if state == before {
+                return Ok(());
+            }
+            let replacement = state.to_json()?;
+            let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
+            items_tools::replace_main_hand_profile_durability(
+                player,
+                &path,
+                source,
+                &replacement,
+                &profile(&projection),
+                projection.damage,
+                projection.max_damage,
+            )
+        }
+        fn melee_hit(
+            &mut self,
+            player: &str,
+            _dimension: &str,
+            _target_id: u64,
+            _target_kind: &str,
+            _dealt: f32,
+        ) -> Result<(), String> {
+            if !active_id(player)? {
+                return Ok(());
+            }
+            let path = ["tconstruct".into(), "state_json".into()];
+            let item = items_read::main_hand(player, &path)?.ok_or("empty main hand")?;
+            if item.item != "minecraft:wooden_pickaxe" || item.count != 1 {
+                return Ok(());
+            }
+            let source = item
+                .custom_text
+                .as_deref()
+                .ok_or("no TConstruct state in main hand")?;
+            let mut state = ToolState::from_json(&self.0, source)?;
+            let before = state.clone();
+            state.damage_after_melee(&self.0, true)?;
             if state == before {
                 return Ok(());
             }

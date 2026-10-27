@@ -1,6 +1,6 @@
 # TConstruct server tool state adapter
 
-独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 12、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` が必要です。SDKは検証済み本体 `1ab61541b2068c93331c1fea7ccb3b566328266c` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
+独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 13、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` が必要です。SDKは検証済み本体 `dad7279efbcf2f34eb97c41afdce91a5a6138fff` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
 
 MITライセンスと原作の著作権表示は [LICENSE](LICENSE)。共通コアが使う原作入力・出典・固定コミットは [親のthird_party記録](../third_party/README.md) を参照してください。
 
@@ -23,3 +23,5 @@ Creativeで `/tconstruct_tool activate` を実行すると、手持ち個体の�
 詳細は [M3b検証手順](../../docs/tconstruct-m3b-verification.md)。成果物・ワールド・Minecraft由来リソースはGit管理しません。
 
 基本採掘耐久の実ゲーム試験・残る制限は [M3b4検証記録](../../docs/tconstruct-m3b4-verification.md) を参照してください。
+
+直接 Mob 攻撃成功時の基本耐久消費 2 は接続済みです。攻撃力・攻撃速度、broken の攻撃禁止、PvP は未対応です。[近接攻撃の記録](../../docs/tconstruct-melee-design.md)。

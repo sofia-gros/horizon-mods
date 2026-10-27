@@ -44,7 +44,7 @@ checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 [[package]]
 name = "horizon-mod-sdk"
 version = "0.1.0"
-source = "git+https://github.com/sofia-gros/horizon.git?rev=1ab61541b2068c93331c1fea7ccb3b566328266c#1ab61541b2068c93331c1fea7ccb3b566328266c"
+source = "git+https://github.com/sofia-gros/horizon.git?rev=dad7279efbcf2f34eb97c41afdce91a5a6138fff#dad7279efbcf2f34eb97c41afdce91a5a6138fff"
 dependencies = [
  "wit-bindgen",
 ]
