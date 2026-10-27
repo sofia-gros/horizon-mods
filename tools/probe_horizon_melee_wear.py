@@ -52,7 +52,7 @@ def main():
         game.call('wait', '3')
 
     def attack():
-        game.call('wait', '16')
+        game.call('wait', '24')
         entities = game.call('entities', '8', 'iron_golem').get('entities', [])
         if not entities:
             raise AssertionError('test golem missing')
@@ -83,15 +83,39 @@ def main():
         game.call('command', 'gamemode survival @s')
         attack()
         check('survival mob hit costs two', damage([2, 58]) == [2, 58])
+        check('wood attack uses core damage', abs(report['attacks'][-1]['health_before'] - report['attacks'][-1]['health'] - 2.0) < 0.01)
         select(2)
         attack()
         check('hit reaches broken threshold on the selected tool', damage([2, 60]) == [2, 60])
         check('broken tool remains', any(s['broken'] and s['damage'] == 60 for s in states(game.call('inventory'))))
+        game.call('wait', '20')
+        target = game.call('entities', '8', 'iron_golem')['entities'][0]
+        blocked = game.call('attack', str(target['id']), timeout=30)
+        game.call('wait', '4')
+        check('broken tool cannot damage the mob', blocked.get('health') == blocked.get('health_before'))
+        check('blocked attack does not consume durability', damage([2, 60]) == [2, 60])
         game.call('save')
         game.stop()
         game = Game(args, run, 'Fighter', in_frame=args.in_frame, resume=True)
         game.ready()
         check('both tool states survive restart', damage([2, 60]) == [2, 60])
+        game.call('command', 'gamemode creative @s')
+        game.call('chat', '/tconstruct specimen flint wood wood 25')
+        damage([2, 25, 60])
+        select(3)
+        game.call('chat', '/tconstruct_tool activate')
+        wait('flint profile not activated', lambda: 'horizon:tool_control' in game.call('inventory')['held'].get('components', ''))
+        game.call('command', 'gamemode survival @s')
+        flint = attack()
+        check('flint jagged attack damage is reflected', abs(flint['health_before'] - flint['health'] - 3.33125) < 0.02)
+        check('flint melee wear only affects the selected tool', damage([2, 27, 60]) == [2, 27, 60])
+        game.call('command', 'gamemode creative @s')
+        game.call('command', 'item replace entity @s hotbar.3 with minecraft:diamond_pickaxe')
+        select(4)
+        game.call('command', 'gamemode survival @s')
+        attack()
+        check('vanilla weapon still hits without changing TConstruct tools',
+              damage([2, 27, 60]) == [2, 27, 60] and game.call('inventory')['held'].get('item') == 'minecraft:diamond_pickaxe')
         game.stop()
         report['ok'] = True
     except Exception as error:

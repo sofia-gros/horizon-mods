@@ -1,6 +1,6 @@
 use serde_json::Value;
 use tconstruct_horizon::{Catalog, ToolState};
-use tconstruct_server_tools::{edit_state, inspect, mining_projection};
+use tconstruct_server_tools::{edit_state, inspect, melee_projection, mining_projection};
 
 #[test]
 fn mining_projection_matches_original_java_speed_bits() {
@@ -173,4 +173,31 @@ fn server_inspection_rejects_invalid_carriers_and_states() {
         )
         .is_err()
     );
+}
+
+#[test]
+fn melee_projection_tracks_material_jagged_and_breakage() {
+    let catalog = Catalog::embedded().unwrap();
+    let mut state = ToolState::pickaxe(["flint", "wood", "wood"]);
+    let project = |state: &ToolState| {
+        melee_projection(
+            &catalog,
+            "minecraft:wooden_pickaxe",
+            1,
+            &state.to_json().unwrap(),
+        )
+        .unwrap()
+    };
+    let fresh = project(&state);
+    assert_eq!(
+        (fresh.damage_bonus, fresh.attack_speed, fresh.enabled),
+        (2.25, 1.2, true)
+    );
+    assert!((fresh.damage_multiplier - 1.0).abs() < 0.000001);
+    state.damage_points(&catalog, 25).unwrap();
+    assert!((project(&state).damage_multiplier - 1.025).abs() < 0.000001);
+    state.damage_points(&catalog, 60).unwrap();
+    assert!(!project(&state).enabled);
+    state.repair_points(&catalog, 85).unwrap();
+    assert_eq!(project(&state), fresh);
 }

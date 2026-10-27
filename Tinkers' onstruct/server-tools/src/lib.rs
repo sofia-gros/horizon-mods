@@ -44,6 +44,40 @@ pub fn mining_projection(
     })
 }
 
+/// Core-derived melee settings. The host supplies the player base/effects.
+#[derive(Debug, PartialEq)]
+pub struct MeleeProjection {
+    pub damage_bonus: f32,
+    pub damage_multiplier: f32,
+    pub attack_speed: f32,
+    pub enabled: bool,
+}
+
+pub fn melee_projection(
+    catalog: &Catalog,
+    item: &str,
+    count: u32,
+    source: &str,
+) -> Result<MeleeProjection, String> {
+    if item != "minecraft:wooden_pickaxe" || count != 1 {
+        return Err("not a TConstruct state specimen carrier".into());
+    }
+    let state = ToolState::from_json(catalog, source)?;
+    let evaluation = catalog.evaluate(&state)?;
+    let bonus = evaluation.stats.attack_damage;
+    let multiplier = if state.broken || bonus == 0.0 {
+        1.0
+    } else {
+        evaluation.melee_damage(catalog, &state)? / bonus
+    };
+    Ok(MeleeProjection {
+        damage_bonus: bonus,
+        damage_multiplier: multiplier,
+        attack_speed: evaluation.stats.attack_speed,
+        enabled: !state.broken,
+    })
+}
+
 #[derive(Serialize)]
 struct Report<'a> {
     request: &'a str,
@@ -163,6 +197,15 @@ mod adapter {
         }
     }
 
+    fn melee(projection: MeleeProjection) -> items_tools::MeleeProfile {
+        items_tools::MeleeProfile {
+            damage_bonus: projection.damage_bonus,
+            damage_multiplier: projection.damage_multiplier,
+            attack_speed: projection.attack_speed,
+            enabled: projection.enabled,
+        }
+    }
+
     struct Inspector(Catalog);
     impl ServerMod for Inspector {
         fn init() -> Result<(Self, Registration), String> {
@@ -201,7 +244,7 @@ mod adapter {
             }
             let replacement = state.to_json()?;
             let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
-            items_tools::replace_main_hand_profile_durability(
+            items_tools::replace_main_hand_combat_profile(
                 player,
                 &path,
                 source,
@@ -209,6 +252,12 @@ mod adapter {
                 &profile(&projection),
                 projection.damage,
                 projection.max_damage,
+                melee(melee_projection(
+                    &self.0,
+                    &item.item,
+                    item.count,
+                    &replacement,
+                )?),
             )
         }
         fn melee_hit(
@@ -239,7 +288,7 @@ mod adapter {
             }
             let replacement = state.to_json()?;
             let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
-            items_tools::replace_main_hand_profile_durability(
+            items_tools::replace_main_hand_combat_profile(
                 player,
                 &path,
                 source,
@@ -247,6 +296,12 @@ mod adapter {
                 &profile(&projection),
                 projection.damage,
                 projection.max_damage,
+                melee(melee_projection(
+                    &self.0,
+                    &item.item,
+                    item.count,
+                    &replacement,
+                )?),
             )
         }
         fn command(
@@ -267,7 +322,7 @@ mod adapter {
                     .as_deref()
                     .ok_or("no TConstruct state in main hand")?;
                 let projection = mining_projection(&self.0, &item.item, item.count, source)?;
-                items_tools::replace_main_hand_profile_durability(
+                items_tools::replace_main_hand_combat_profile(
                     &player.id,
                     &path,
                     source,
@@ -275,6 +330,7 @@ mod adapter {
                     &profile(&projection),
                     projection.damage,
                     projection.max_damage,
+                    melee(melee_projection(&self.0, &item.item, item.count, source)?),
                 )?;
                 return Ok(None);
             }
@@ -296,7 +352,7 @@ mod adapter {
                 if active(player)? {
                     let projection =
                         mining_projection(&self.0, &item.item, item.count, &replacement)?;
-                    items_tools::replace_main_hand_profile_durability(
+                    items_tools::replace_main_hand_combat_profile(
                         &player.id,
                         &path,
                         source,
@@ -304,6 +360,12 @@ mod adapter {
                         &profile(&projection),
                         projection.damage,
                         projection.max_damage,
+                        melee(melee_projection(
+                            &self.0,
+                            &item.item,
+                            item.count,
+                            &replacement,
+                        )?),
                     )?;
                 } else {
                     items_edit::replace_main_hand_text(&player.id, &path, source, &replacement)?;
