@@ -105,6 +105,18 @@ modifier behavior and the Part Builder are not connected. The current raw
 helpers fail closed for unsupported values and do not yet match the original
 loader's full error behavior.
 
+`source_part_choices` is an unconnected prototype of the original selection
+list for `PartRecipe` and `ItemPartRecipe`: given complete tag, material and
+output-support contexts, it filters partial matches, orders recipe IDs by the
+source ResourceLocation comparator, keeps the first recipe per pattern, then
+sorts buttons by cost and pattern. Tests parse the 28 pinned recipes and cover
+empty material, uncraftable allowances, item-recipe variants and duplicates.
+An independent fixture tested a controlled server-side context in both game
+modes: all 28 empty-material choices, three wood-supported choices, and
+world-pack cost overrides, ordering, reload, disabling and world isolation.
+Other recipe types, registry validation, real world contexts, screen rendering,
+preview and taking outputs remain unimplemented.
+
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
 recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
 metadata. `RecipeManager.getRecipeFor` uses the first match in that map's

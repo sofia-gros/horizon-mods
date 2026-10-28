@@ -7,6 +7,7 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         // registry, tags or config and is not connected to transactions.
         let mut item_tags = std::collections::HashMap::new();
         item_tags.insert("minecraft:oak_logs".to_owned(), ["minecraft:oak_log".to_owned()].into_iter().collect());
+        item_tags.insert("tconstruct:patterns/default".to_owned(), ["tconstruct:pattern".to_owned()].into_iter().collect());
         let instruments = Default::default();
         let instrument_tags = Default::default();
         let registries = Default::default();
@@ -20,6 +21,18 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
                 },
                 other => eprintln!("TCONSTRUCT_LOOKUP_{name} {other:?}"),
             }
+        }
+        let empty = crate::game::tconstruct_tx::source_part_choices(recipes, "tconstruct:pattern", &crate::game::tconstruct_tx::SourcePartInput::Empty, &item_tags, &instruments, &instrument_tags, &registries, &config, true);
+        match empty {
+            Ok(choices) => eprintln!("TCONSTRUCT_CHOICES_EMPTY {} {}", choices.len(), choices.first().map_or("none", |choice| choice.pattern.as_str())),
+            Err(error) => eprintln!("TCONSTRUCT_CHOICES_EMPTY {error:?}"),
+        }
+        let supported = ["tconstruct:pick_head", "tconstruct:tool_handle", "tconstruct:tool_binding"].into_iter().map(str::to_owned).collect();
+        let input = crate::game::tconstruct_tx::SourcePartInput::Material { input_item:"minecraft:oak_planks", material:"tconstruct:wood", craftable:true, supported_outputs:&supported };
+        let wood = crate::game::tconstruct_tx::source_part_choices(recipes, "tconstruct:pattern", &input, &item_tags, &instruments, &instrument_tags, &registries, &config, true);
+        match wood {
+            Ok(choices) => eprintln!("TCONSTRUCT_CHOICES_WOOD {}", choices.iter().map(|choice| format!("{}:{}", choice.pattern, choice.cost)).collect::<Vec<_>>().join(",")),
+            Err(error) => eprintln!("TCONSTRUCT_CHOICES_WOOD {error:?}"),
         }
         for (marker, id) in [("STICK", "minecraft:stick"), ("BOAT", "minecraft:acacia_chest_boat")] {
             use sha2::{Digest, Sha256};

@@ -1,5 +1,6 @@
 """Exercise world-scoped datapack priority and reload using the test-only probe."""
 import argparse
+import json
 import tempfile
 import time
 from pathlib import Path
@@ -16,6 +17,7 @@ p.add_argument('--forge-pack-test', action='store_true')
 p.add_argument('--full-recipe-test', action='store_true')
 p.add_argument('--lookup-test', action='store_true')
 p.add_argument('--material-pack-test', action='store_true')
+p.add_argument('--choices-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 if a.source_pack_test:
@@ -40,8 +42,15 @@ def pack(g, name, marker):
     for kind in ('tinkering/materials/definition', 'tinkering/tags/materials'):
         (base / 'data/test' / kind).mkdir(parents=True, exist_ok=True)
         (base / 'data/test' / kind / 'probe.json').write_text(marker)
+    if a.choices_test:
+        original = Path(__file__).resolve().parents[2] / 'content/data/tconstruct/recipes/tools/parts/builder/pick_head.json'
+        recipe = json.loads(original.read_text())
+        recipe['cost'] = 3 if name == 'a' else 1
+        path = base / 'data/tconstruct/recipes/tools/parts/builder/pick_head.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(recipe))
 
-def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True):
+def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True, choice_layer="base"):
     # The fixture is the inner RETURN modifier, so it observes the previous
     # snapshot. The first reload refreshes it; the second observes that state.
     g.call('command', 'reload')
@@ -71,6 +80,16 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 assert int(material_last('TCONSTRUCT_MATERIAL_COUNT_PROBE ')) == 302
                 assert int(material_last('TCONSTRUCT_MATERIAL_TAG_COUNT_PROBE ')) == 18
                 assert material_last('TCONSTRUCT_MATERIAL_WOOD_PROBE ') == '89e9d6af86e89ee4fb6079aa540323104c4afbe11784f5dca9c935ea7381b453'
+            if a.choices_test:
+                empty = [line.split('TCONSTRUCT_CHOICES_EMPTY ', 1)[1] for line in lines if 'TCONSTRUCT_CHOICES_EMPTY ' in line]
+                wood = [line.split('TCONSTRUCT_CHOICES_WOOD ', 1)[1] for line in lines if 'TCONSTRUCT_CHOICES_WOOD ' in line]
+                assert empty and empty[-1] == '28 tconstruct:arrow_head', empty
+                if choice_layer == 'b':
+                    expected_choices = 'tconstruct:pick_head:1,tconstruct:tool_binding:1,tconstruct:tool_handle:1'
+                else:
+                    cost = 3 if choice_layer == 'a' else 2
+                    expected_choices = f'tconstruct:tool_binding:1,tconstruct:tool_handle:1,tconstruct:pick_head:{cost}'
+                assert wood and wood[-1] == expected_choices, (wood, expected_choices)
             if a.lookup_test:
                 flint = [line.split('TCONSTRUCT_LOOKUP_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_FLINT ' in line]
                 oak = [line.split('TCONSTRUCT_LOOKUP_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_OAK_LOG ' in line]
@@ -97,15 +116,15 @@ try:
         first.call('command', 'datapack disable vanilla')
         probe(first, 'source-layer', planks_expected=1 if a.vanilla_pack_test else None, forge_expected=1 if a.forge_pack_test else None, vanilla_enabled=False)
     pack(first, 'a', 'world-one-a')
-    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test)
+    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test, choice_layer='a')
     pack(first, 'b', 'world-one-b')
-    probe(first, 'world-one-b', 'source-layer|world-one-a|world-one-b' if a.source_pack_test else 'world-one-a|world-one-b', vanilla_enabled=not a.source_pack_test)
+    probe(first, 'world-one-b', 'source-layer|world-one-a|world-one-b' if a.source_pack_test else 'world-one-a|world-one-b', vanilla_enabled=not a.source_pack_test, choice_layer='b')
     first.call('command', 'datapack disable "file/b"')
-    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test)
+    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test, choice_layer='a')
     second = Game(a, run, 'Second', in_frame=a.in_frame); games.append(second); second.ready()
     pack(second, 'a', 'world-two-a')
-    probe(second, 'world-two-a', 'source-layer|world-two-a' if a.source_pack_test else None)
-    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test)
+    probe(second, 'world-two-a', 'source-layer|world-two-a' if a.source_pack_test else None, choice_layer='a')
+    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test, choice_layer='a')
     for game in games: game.stop()
     print('PASS world separation, reload, priority, disable', flush=True)
 finally:

@@ -453,6 +453,125 @@ pub(super) fn source_material_lookup(
     Ok(None)
 }
 
+/// Parsed source PartRecipe and ItemPartRecipe. Item registry validation,
+/// material stat support and result resolution are supplied by the caller.
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(super) enum SourcePartKind {
+    MaterialItem { item: String, count: i32, allow_uncraftable: bool },
+    Item { material: String, output: SourceItemOutput },
+}
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(super) struct SourcePartRecipe {
+    pub id: String,
+    pub pattern: String,
+    pattern_item: SourceIngredient,
+    pub cost: i32,
+    pub kind: SourcePartKind,
+    conditions: Vec<SourceCondition>,
+}
+#[allow(dead_code)]
+impl SourcePartRecipe {
+    fn parse(id: String, value: &serde_json::Value) -> Option<Self> {
+        let object = value.as_object()?;
+        let typ = object.get("type")?.as_str()?;
+        let pattern = object.get("pattern")?.as_str()?.to_owned();
+        let pattern_item = match object.get("pattern_item") {
+            Some(value) => SourceIngredient::parse(value)?,
+            None => SourceIngredient::Tag("tconstruct:patterns/default".into()),
+        };
+        let cost = match object.get("cost") { Some(value) => i32::try_from(value.as_i64()?).ok()?, None if typ == "tconstruct:item_part_builder" => 0, None => return None };
+        let conditions = match object.get("conditions") {
+            Some(value) => value.as_array()?.iter().map(SourceCondition::parse).collect::<Option<_>>()?,
+            None => Vec::new(),
+        };
+        let kind = match typ {
+            "tconstruct:part_builder" => {
+                if cost < 1 { return None; }
+                let output = object.get("result")?.as_object()?;
+                let item = output.get("item")?.as_str()?.to_owned();
+                let count = match output.get("count") { Some(value) => i32::try_from(value.as_i64()?).ok()?, None => 1 };
+                if count < 1 { return None; }
+                let allow_uncraftable = match object.get("allow_uncraftable") { Some(value) => value.as_bool()?, None => false };
+                SourcePartKind::MaterialItem { item, count, allow_uncraftable }
+            },
+            "tconstruct:item_part_builder" => {
+                if cost < 0 { return None; }
+                let material = match object.get("material") { Some(value) => value.as_str()?.to_owned(), None => "tconstruct:unknown".into() };
+                if cost == 0 && material != "tconstruct:unknown" { return None; }
+                SourcePartKind::Item { material, output: SourceItemOutput::parse(object.get("result")?)? }
+            },
+            _ => return None,
+        };
+        Some(Self { id, pattern, pattern_item, cost, kind, conditions })
+    }
+}
+
+#[allow(dead_code)]
+pub(super) enum SourcePartInput<'a> {
+    Empty,
+    Invalid,
+    Material { input_item: &'a str, material: &'a str, craftable: bool, supported_outputs: &'a std::collections::HashSet<String> },
+}
+fn source_variant_matches(expected: &str, actual: &str) -> bool {
+    let (base, variant) = expected.split_once('#').unwrap_or((expected, ""));
+    let (actual_base, actual_variant) = actual.split_once('#').unwrap_or((actual, ""));
+    base == actual_base && (variant.is_empty() || variant == actual_variant || variant == "default" && actual_variant.is_empty())
+}
+fn source_id_order(id: &str) -> (&str, &str) {
+    let (namespace, path) = id.split_once(':').unwrap_or(("minecraft", id));
+    (path, namespace)
+}
+
+/// Source `PartBuilderBlockEntity.getCurrentRecipes`: partial-match, sort by
+/// recipe ID, retain the first recipe for each pattern, then sort by cost and
+/// pattern. World tag/config/stat contexts must be complete before use.
+#[allow(dead_code)]
+pub(super) fn source_part_choices(
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+    pattern_item: &str,
+    input: &SourcePartInput<'_>,
+    item_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    instruments: &std::collections::HashSet<String>,
+    instrument_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    complete: bool,
+) -> Result<Vec<SourcePartRecipe>, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    if pattern_item.is_empty() { return Ok(Vec::new()); }
+    let mut candidates = Vec::new();
+    for (id, bytes) in recipes {
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+        if id.split_once(':').is_some_and(|(_, path)| path.starts_with('_')) { continue; }
+        if !matches!(value.get("type").and_then(serde_json::Value::as_str), Some("tconstruct:part_builder" | "tconstruct:item_part_builder")) { continue; }
+        let recipe = SourcePartRecipe::parse(id.clone(), &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if !recipe.pattern_item.matches(pattern_item, None, item_tags, instruments, instrument_tags) { continue; }
+        let matches = match (&recipe.kind, input) {
+            (_, SourcePartInput::Empty) => true,
+            (_, SourcePartInput::Invalid) => false,
+            (SourcePartKind::MaterialItem { item, allow_uncraftable, .. }, SourcePartInput::Material { input_item, craftable, supported_outputs, .. }) => item != input_item && (*allow_uncraftable || *craftable) && supported_outputs.contains(item),
+            (SourcePartKind::Item { material, .. }, SourcePartInput::Material { material: actual, .. }) => material != "tconstruct:unknown" && source_variant_matches(material, actual),
+        };
+        if !matches { continue; }
+        let mut enabled = true;
+        for condition in &recipe.conditions {
+            match condition.matches(registries, config) {
+                Some(false) => { enabled = false; break; },
+                Some(true) => {},
+                None => return Err(SourceLookupError::UnknownCondition),
+            }
+        }
+        if enabled { candidates.push(recipe); }
+    }
+    candidates.sort_by(|a, b| source_id_order(&a.id).cmp(&source_id_order(&b.id)));
+    let mut patterns = std::collections::HashSet::new();
+    candidates.retain(|recipe| patterns.insert(recipe.pattern.clone()));
+    candidates.sort_by(|a, b| a.cost.cmp(&b.cost).then_with(|| source_id_order(&a.pattern).cmp(&source_id_order(&b.pattern))));
+    Ok(candidates)
+}
+
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
@@ -958,6 +1077,69 @@ mod tests {
         assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Disabled));
         config.insert("force_integration_materials".into(), true);
         assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Material { craftable:false, hidden:false, tier:5, sort_order:100, rarity:"epic".into() }));
+    }
+
+    #[test]
+    fn source_part_choices_follow_pinned_patterns_and_partial_matches() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors().map(|dir| dir.join("docs/upstream-recipes.json.gz"))
+            .find(|path| path.is_file()).expect("pinned reference catalog");
+        let mut json = String::new();
+        flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()).read_to_string(&mut json).unwrap();
+        let catalog: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let mut recipes = std::collections::BTreeMap::new();
+        for entry in catalog["groups"]["part_builder"].as_array().unwrap() {
+            let path = entry["source"].as_str().unwrap().split_once("/recipes/").unwrap().1.strip_suffix(".json").unwrap();
+            recipes.insert(format!("tconstruct:{path}"), serde_json::to_vec(&entry["data"]).unwrap());
+        }
+        assert_eq!(recipes.len(), 28);
+        let mut tags = std::collections::HashMap::new();
+        tags.insert("tconstruct:patterns/default".to_owned(), ["tconstruct:pattern".to_owned()].into_iter().collect());
+        let set = Default::default(); let regs = Default::default(); let config = Default::default();
+        let choices = source_part_choices(&recipes, "tconstruct:pattern", &SourcePartInput::Empty, &tags, &set, &Default::default(), &regs, &config, true).unwrap();
+        assert_eq!(choices.len(), 28);
+        assert!(choices.windows(2).all(|pair| (pair[0].cost, source_id_order(&pair[0].pattern)) <= (pair[1].cost, source_id_order(&pair[1].pattern))));
+        assert_eq!(choices[0].pattern, "tconstruct:arrow_head");
+        let supported = ["tconstruct:pick_head", "tconstruct:tool_handle", "tconstruct:tool_binding"].into_iter().map(str::to_owned).collect();
+        let input = SourcePartInput::Material { input_item:"minecraft:oak_planks", material:"tconstruct:wood", craftable:true, supported_outputs:&supported };
+        let choices = source_part_choices(&recipes, "tconstruct:pattern", &input, &tags, &set, &Default::default(), &regs, &config, true).unwrap();
+        assert_eq!(choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), ["tconstruct:tool_binding", "tconstruct:tool_handle", "tconstruct:pick_head"]);
+        assert_eq!(choices[2].cost, 2); // partial match does not require enough input yet
+        assert!(source_part_choices(&recipes, "", &input, &tags, &set, &Default::default(), &regs, &config, true).unwrap().is_empty());
+        assert_eq!(source_part_choices(&recipes, "tconstruct:pattern", &input, &tags, &set, &Default::default(), &regs, &config, false).unwrap_err(), SourceLookupError::IncompleteContext);
+        assert!(source_variant_matches("tconstruct:wood", "tconstruct:wood#warped"));
+        assert!(source_variant_matches("tconstruct:wood#default", "tconstruct:wood"));
+        assert!(!source_variant_matches("tconstruct:wood#warped", "tconstruct:wood"));
+    }
+
+    #[test]
+    fn source_part_choices_deduplicate_by_original_resource_order() {
+        let mut recipes = std::collections::BTreeMap::new();
+        recipes.insert("z:a".into(), br#"{"type":"tconstruct:part_builder","pattern":"test:part","cost":3,"result":{"item":"test:first"}}"#.to_vec());
+        recipes.insert("a:z".into(), br#"{"type":"tconstruct:part_builder","pattern":"test:part","cost":1,"result":{"item":"test:second"}}"#.to_vec());
+        let mut tags = std::collections::HashMap::new();
+        tags.insert("tconstruct:patterns/default".to_owned(), ["tconstruct:pattern".to_owned()].into_iter().collect());
+        let choices = source_part_choices(&recipes, "tconstruct:pattern", &SourcePartInput::Empty, &tags, &Default::default(), &Default::default(), &Default::default(), &Default::default(), true).unwrap();
+        assert_eq!(choices.len(), 1);
+        assert_eq!((choices[0].id.as_str(), choices[0].cost), ("z:a", 3));
+    }
+
+    #[test]
+    fn source_part_choices_handle_uncraftable_materials_and_item_recipe_variants() {
+        let mut recipes = std::collections::BTreeMap::new();
+        recipes.insert("tconstruct:normal".into(), br#"{"type":"tconstruct:part_builder","pattern":"tconstruct:normal","cost":2,"result":{"item":"tconstruct:pick_head"}}"#.to_vec());
+        recipes.insert("tconstruct:allowed".into(), br#"{"type":"tconstruct:part_builder","pattern":"tconstruct:allowed","cost":1,"allow_uncraftable":true,"result":{"item":"tconstruct:arrow_head"}}"#.to_vec());
+        recipes.insert("tconstruct:fixed".into(), br#"{"type":"tconstruct:item_part_builder","material":"tconstruct:rock","pattern":"tconstruct:fixed","cost":2,"result":"tconstruct:helmet_plating_dummy"}"#.to_vec());
+        let mut tags = std::collections::HashMap::new();
+        tags.insert("tconstruct:patterns/default".to_owned(), ["tconstruct:pattern".to_owned()].into_iter().collect());
+        let supported = ["tconstruct:pick_head", "tconstruct:arrow_head"].into_iter().map(str::to_owned).collect();
+        let input = SourcePartInput::Material { input_item:"minecraft:stone", material:"tconstruct:rock#granite", craftable:false, supported_outputs:&supported };
+        let choices = source_part_choices(&recipes, "tconstruct:pattern", &input, &tags, &Default::default(), &Default::default(), &Default::default(), &Default::default(), true).unwrap();
+        assert_eq!(choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), ["tconstruct:allowed", "tconstruct:fixed"]);
+        let input = SourcePartInput::Material { input_item:"tconstruct:arrow_head", material:"tconstruct:rock#granite", craftable:false, supported_outputs:&supported };
+        let choices = source_part_choices(&recipes, "tconstruct:pattern", &input, &tags, &Default::default(), &Default::default(), &Default::default(), &Default::default(), true).unwrap();
+        assert_eq!(choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), ["tconstruct:fixed"]);
     }
 
     #[test]
