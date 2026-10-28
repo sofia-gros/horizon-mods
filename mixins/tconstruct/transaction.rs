@@ -19,6 +19,28 @@ fn material_output_count(output_count: i32, value: i32, cost: i32, has_leftover:
     Some(if !has_leftover && value > cost { output_count.wrapping_mul(value) / cost } else { output_count })
 }
 
+/// Numeric portion of `FloatToolStat`: updates accumulate additive values,
+/// percent is accumulated separately, then the built value is multiplied.
+/// This is not yet wired into the prototype's fixed tool statistics.
+#[allow(dead_code)]
+struct SourceFloatStat {
+    base: f32,
+    add: f32,
+    percent: f32,
+    multiply: f32,
+}
+#[allow(dead_code)]
+impl SourceFloatStat {
+    fn new(base: f32) -> Self { Self { base, add: 0.0, percent: 0.0, multiply: 1.0 } }
+    fn update(&mut self, value: f32) { self.add += value; self.base = 0.0; }
+    fn add(&mut self, value: f64) { self.add = (self.add as f64 + value) as f32; }
+    // Java's `float += double` and `float *= double` evaluate in double and
+    // narrow after each operation. Its final build expression is float-only.
+    fn percent(&mut self, value: f64) { self.percent = (self.percent as f64 + value) as f32; }
+    fn multiply(&mut self, value: f64) { self.multiply = (self.multiply as f64 * value) as f32; }
+    fn build(&self) -> f32 { (self.base + self.add) * (1.0 + self.percent) * self.multiply }
+}
+
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
@@ -170,6 +192,21 @@ mod tests {
         assert_eq!(material_output_count(2, 5, 2, false), Some(5));
         assert_eq!(material_output_count(1, 3, 2, true), Some(1));
         assert_eq!(material_output_count(1, 3, 0, false), None);
+    }
+    #[test]
+    fn original_head_and_handle_durability_uses_float_then_integer() {
+        for (head, handle, expected) in [(85.0, 0.0, 85), (85.0, -0.15_f32, 72), (60.0, 0.0, 60), (60.0, -0.15_f32, 51)] {
+            let mut stat = SourceFloatStat::new(1.0);
+            stat.update(head);
+            stat.percent(handle as f64);
+            assert_eq!(stat.build() as i32, expected);
+        }
+        let mut stat = SourceFloatStat::new(1.0);
+        stat.update(85.0);
+        stat.percent(-0.15_f32 as f64);
+        stat.add(5.0);
+        stat.multiply(1.5);
+        assert_eq!(stat.build(), 114.75);
     }
     #[test]
     fn original_repair_rounds_count_before_truncating_total() {
