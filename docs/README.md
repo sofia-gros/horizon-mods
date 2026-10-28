@@ -10,7 +10,7 @@ This index describes the `main` snapshots of [Horizon Mods](https://github.com/s
 
 ## Mod authors
 
-- [Fork mod-authoring guide](https://github.com/sofia-gros/horizon/blob/29e9ff5f91ccfa448d604f109984e08839390176/docs/mod-authoring/README.md): getting started, architecture, workstations, items and hooks, and compatibility.
+- [Fork mod-authoring guide](https://github.com/sofia-gros/horizon/blob/ec9d6fa16eb1bf6ac25bd82580ef8678ccdb22ed/docs/mod-authoring/README.md): getting started, architecture, workstations, items and hooks, and compatibility.
 - [Full Horizon mod guide](https://github.com/sofia-gros/horizon/blob/fc4848f4d7920390ea3aa8e6a5f804111f93a45d/docs/mods.md) and [generated WIT reference](https://github.com/sofia-gros/horizon/blob/fc4848f4d7920390ea3aa8e6a5f804111f93a45d/docs/api/mods-reference.md).
 - [Repository layout and maintenance](development.md): where the two components live and how to keep dependencies and historical records.
 
