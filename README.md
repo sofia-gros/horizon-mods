@@ -1,3 +1,5 @@
+> **Wasm Mod API / hook:** このリポジトリは、Horizon の WebAssembly Mod API と汎用 hook を使った Mod の開発・移植を進めています。上流 Horizon の変更に追従し、素材やゲーム固有の処理は各 Mod に置きます。対応範囲と制限は [API ガイド](docs/mod-api.md) と各 Mod の記録を参照してください。
+
 # Horizon Mods
 
 [Horizon](https://github.com/ludovic111/horizon) 用のModを複数開発する場所です。
