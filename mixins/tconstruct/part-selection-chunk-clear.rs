@@ -1,0 +1,3 @@
+fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
+    chunks.__horizon_mixins_tconstruct_part_selections_mut().clear();
+}

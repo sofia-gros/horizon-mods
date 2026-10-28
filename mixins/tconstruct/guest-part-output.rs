@@ -10,14 +10,23 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let builder = block.and_then(|r| r.id("tconstruct:part_builder"));
     let station = block.and_then(|r| r.id("tconstruct:tinker_station"));
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
-    if packet.input != 0 || ((2..=23).contains(&packet.slot) && (!is_station || packet.slot != 2)) {
+    if packet.input != 0 || (!is_station && (24..=26).contains(&packet.slot)) || ((2..=23).contains(&packet.slot) && (!is_station && packet.slot != 22 || is_station && packet.slot != 2)) {
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(Vec::new());
     }
-    if !(24..=26).contains(&packet.slot) { return Continue(()); }
+    let action = if !is_station && packet.slot == 22 {
+        world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).copied().map(|s| s + 24)
+    } else if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
+    let Some(action) = action else {
+        if !is_station && packet.slot == 22 {
+            if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+            return Break(Vec::new());
+        }
+        return Continue(());
+    };
     if packet.button == 0 {
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
-            if crate::tconstruct_tx::take(stacks, &mut hub.guests[gi].carried, is_station, packet.slot) {
+            if crate::tconstruct_tx::take(stacks, &mut hub.guests[gi].carried, is_station, action) {
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
             }
         }

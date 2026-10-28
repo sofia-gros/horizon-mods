@@ -9,8 +9,12 @@ def click(i):g.call('click-slot',str(i));g.call('wait','3')
 try:
  g.ready()
  for command in ('clear @s','tp @s 0.5 71 0.5','setblock 0 71 2 tconstruct:part_builder','give @s tconstruct:pattern 1','give @s minecraft:flint 2'):g.call('command',command)
- time.sleep(1);g.call('interact','0','71','2');click(0);click(300);click(1);click(301);g.call('close');g.call('command','gamemode survival @s')
+ time.sleep(1);g.call('interact','0','71','2');click(0);click(300);click(1);click(301);click(324);g.call('wait','10');g.call('close');g.call('command','gamemode survival @s')
  result=g.call('break','0','71','2','--timeout','30',timeout=35);print(result,flush=True)
- drops=result.get('drops',{});assert drops.get('tconstruct:pattern')==1 and drops.get('minecraft:flint')==2,drops
- g.stop();print('PASS block removal spills stored inputs',flush=True)
+ drops=result.get('drops',{});assert drops.get('tconstruct:pattern')==1 and drops.get('minecraft:flint')==2 and not drops.get('tconstruct:flint_pick_head'),drops
+ g.call('command','gamemode creative @s')
+ for command in ('setblock 0 71 2 tconstruct:part_builder','clear @s','give @s tconstruct:pattern 1','give @s minecraft:flint 2'):g.call('command',command)
+ g.call('wait','20');g.call('interact','0','71','2');click(0);click(300);click(1);click(301);click(322)
+ assert not (g.call('menu').get('carried') or {}), 'selection must not survive block replacement'
+ g.stop();print('PASS block removal spills inputs and clears selection',flush=True)
 finally:g.cleanup()

@@ -202,3 +202,83 @@ kind = "HEAD"
 cancellable = true
 helper = "station-height.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[state]]
+id = "part-selections"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),i16>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "part-select-server"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_button"
+kind = "HEAD"
+cancellable = true
+helper = "part-select-server.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "i32", value = "window" },
+  { name = "id", ty = "i32", value = "id" },
+]
+
+[[injection]]
+id = "part-selection-view"
+target = "horizon_client::lan::containers::Hub::view_slot"
+kind = "HEAD"
+cancellable = true
+helper = "part-selection-view.rs"
+bindings = [
+  { name = "hub", ty = "&crate::lan::hub::Hub", value = "&*self" },
+  { name = "index", ty = "usize", value = "i" },
+  { name = "world", ty = "&World", value = "world" },
+  { name = "slot", ty = "usize", value = "slot" },
+]
+
+[[injection]]
+id = "part-selection-receive"
+target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
+kind = "HEAD"
+cancellable = true
+helper = "part-selection-receive.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "window", ty = "i32", value = "container" },
+  { name = "slot", ty = "i32", value = "slot" },
+  { name = "item", ty = "&Option<ItemStack>", value = "&item" },
+]
+
+[[injection]]
+id = "part-selection-block-change"
+target = "horizon_client::world::World::set"
+kind = "HEAD"
+helper = "part-selection-block-change.rs"
+bindings = [
+  { name = "world", ty = "&mut crate::world::World", value = "&mut *self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "y", ty = "i32", value = "y" },
+  { name = "z", ty = "i32", value = "z" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+]
+
+[[injection]]
+id = "part-selection-chunk-remove"
+target = "horizon_client::chunk_map::ChunkMap::remove"
+kind = "HEAD"
+helper = "part-selection-chunk-remove.rs"
+bindings = [
+  { name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" },
+  { name = "chunk", ty = "&(i32,i32)", value = "key" },
+]
+
+[[injection]]
+id = "part-selection-chunk-clear"
+target = "horizon_client::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "part-selection-chunk-clear.rs"
+bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]

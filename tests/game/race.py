@@ -25,8 +25,15 @@ try:
   print(g.label,'interact',g.call('interact','0','71','2'),flush=True)
  click(h,0);click(h,300);click(h,1);click(h,301)
  wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:pattern' and slots(g).get(301,{}).get('count')==2 for g in games))
+ click(h,324);assert not (h.call('menu').get('carried') or {})
+ click(q,325);q.call('wait','20');h.call('wait','20');click(h,322)
+ assert not (h.call('menu').get('carried') or {}), 'guest selection must replace host selection'
+ click(q,324)
+ h.call('wait','20');q.call('wait','20');time.sleep(2)
+ h.call('wait','20');q.call('wait','20');time.sleep(2)
+ h.call('screenshot',str(run/'host-selected.png'));q.call('screenshot',str(run/'guest-selected.png'))
  with ThreadPoolExecutor(max_workers=2) as pool:
-  futures=[pool.submit(click,g,324) for g in games]
+  futures=[pool.submit(click,g,322) for g in games]
   for f in futures:f.result()
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
  print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:flint_pick_head'),flush=True)

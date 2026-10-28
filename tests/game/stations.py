@@ -27,11 +27,14 @@ try:
  click(hotbar('tconstruct:pattern'));click(300);click(hotbar('minecraft:flint'));click(301)
  g.call('screenshot',str(run/'part-builder.png'))
  hover(301,'part-builder-hover.png')
- click(324);assert carried().get('item')=='tconstruct:flint_pick_head'
- click(324);assert carried().get('count')==1
+ click(322);assert not carried()  # no selection means no output
+ click(324);assert not carried()  # selecting is not result pickup
+ g.call('scroll-at','0','0','0');g.call('wait','5');g.call('screenshot',str(run/'part-builder-selected.png'))
+ click(322);assert carried().get('item')=='tconstruct:flint_pick_head'
+ click(322);assert carried().get('count')==1
  click(3);click(hotbar('minecraft:oak_planks'));click(301)
- click(325);assert carried().get('item')=='tconstruct:wood_handle';click(4)
- click(326);assert carried().get('item')=='tconstruct:wood_binding';click(5)
+ click(325);assert not carried();click(322);assert carried().get('item')=='tconstruct:wood_handle';click(4)
+ click(326);assert not carried();click(322);assert carried().get('item')=='tconstruct:wood_binding';click(5)
  g.call('close');cmd('setblock 1 71 2 tconstruct:tinker_station');time.sleep(1);g.call('interact','1','71','2')
  g.call('screenshot',str(run/'tinker-station-empty.png'))
  for target,item in [(300,'tconstruct:flint_pick_head'),(301,'tconstruct:wood_handle'),(302,'tconstruct:wood_binding')]:click(hotbar(item));click(target)

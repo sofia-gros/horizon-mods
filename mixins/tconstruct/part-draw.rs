@@ -31,9 +31,18 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             }
         }
     } else {
-        for x in [51.0, 69.0, 87.0] { part(batch, 176.0, 15.0, x, 15.0, u32::MAX); }
-        for (x, id) in [(52.0, "tconstruct:flint_pick_head"), (70.0, "tconstruct:wood_handle"), (88.0, "tconstruct:wood_binding")] {
-            game.draw_item(batch, &horizon_client::items::ItemStack::new(id, 1), ox + x, oy + 16.0);
+        if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
+            if slots.first().and_then(Option::as_ref).is_some_and(|s| &*s.item == "tconstruct:pattern") {
+                let selected = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).copied());
+                for (index, (x, id)) in [(52.0, "tconstruct:flint_pick_head"), (70.0, "tconstruct:wood_handle"), (88.0, "tconstruct:wood_binding")].into_iter().enumerate() {
+                    let v = if selected == Some(index as i16) { 33.0 } else { 15.0 };
+                    part(batch, 176.0, v, x - 1.0, 15.0, u32::MAX);
+                    game.draw_item(batch, &horizon_client::items::ItemStack::new(id, 1), ox + x, oy + 16.0);
+                }
+                if let Some(item) = selected.and_then(|s| crate::game::tconstruct_tx::part_preview(slots, s)) {
+                    game.draw_item(batch, &item, ox + 148.0, oy + 42.0);
+                }
+            }
         }
     }
     std::ops::ControlFlow::Break(())

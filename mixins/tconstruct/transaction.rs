@@ -74,6 +74,18 @@ mod tests {
         assert!(cursor.is_none());
     }
     #[test]
+    fn preview_does_not_consume_and_rechecks_material() {
+        let mut slots = vec![None; 27];
+        slots[0] = Some(ItemStack::new("tconstruct:pattern", 1));
+        slots[1] = Some(ItemStack::new("minecraft:flint", 2));
+        let before = slots.clone();
+        assert_eq!(part_preview(&slots, 0).unwrap().item.as_ref(), "tconstruct:flint_pick_head");
+        assert_eq!(slots, before);
+        assert!(part_preview(&slots, 1).is_none());
+        slots[1] = Some(ItemStack::new("minecraft:flint", 1));
+        assert!(part_preview(&slots, 0).is_none());
+    }
+    #[test]
     fn repair_preserves_name_and_unknown_components() {
         let mut slots = vec![None; 27];
         let mut tool = ItemStack::new("tconstruct:flint_pickaxe", 1);
@@ -105,4 +117,11 @@ mod tests {
         assert_eq!(slots[2].as_ref().unwrap().count, 2);
     }
 
+}
+
+/// The selected recipe has no result unless the current inputs still match.
+pub(super) fn part_preview(stacks: &[Option<ItemStack>], selected: i16) -> Option<ItemStack> {
+    let mut copy = stacks.to_vec();
+    let mut result = None;
+    take(&mut copy, &mut result, false, selected + 24).then_some(result).flatten()
 }

@@ -18,9 +18,9 @@ known gaps; missing entries must not be interpreted as implemented.
 
 | Original pinned source | Current port | Evidence and gap |
 | --- | --- | --- |
-| `tables/client/inventory/PartBuilderScreen.java`: 176×184 background; buttons at (51,15), 18-pixel cells; selected/hover button variants and scrollbar | `mixins/tconstruct/part-draw.rs`, `part-layout.rs`, `station-height.rs` | Background and button coordinates visually checked at 640×360 and 960×540. Selected state, hover button variant, scrolling, material information and side panels are missing. |
-| `tables/menu/PartBuilderContainerMenu.java`: output (148,42); pattern (8,43); material (29,43); inventory y=102; `clickMenuButton` selects recipe, `LazyResultSlot` takes output | `part-layout.rs`, `part-output.rs`, `guest-part-output.rs` | Input and inventory coordinates align; output slot and selection protocol are not implemented. Direct button pickup is a user-visible divergence. |
-| `tables/block/entity/table/PartBuilderBlockEntity.java`: recipe list from the pattern and inputs, selected pattern, `calcResult`, `onCraft`, remaining items and screen synchronization | `transaction.rs` | Only fixed prototype recipes are implemented; no authoritative selected pattern, computed preview, original recipe conditions or remainders. The current atomic pickup tests establish prototype behavior only. |
+| `tables/client/inventory/PartBuilderScreen.java`: 176×184 background; buttons at (51,15), 18-pixel cells; selected/hover button variants and scrollbar | `mixins/tconstruct/part-draw.rs`, `part-layout.rs`, `station-height.rs` | Background and button coordinates visually checked at 640×360 and 960×540. Selection for three fixed parts is present; the original recipe-dependent lists, hover button variant, scrolling, material information and side panels are missing. |
+| `tables/menu/PartBuilderContainerMenu.java`: output (148,42); pattern (8,43); material (29,43); inventory y=102; `clickMenuButton` selects recipe, `LazyResultSlot` takes output | `part-layout.rs`, `part-output.rs`, `guest-part-output.rs` | Input, inventory and output coordinates align; button selection and result pickup work for three fixed parts. Original recipe-derived selection, slot behavior and output tooltip are still missing. |
+| `tables/block/entity/table/PartBuilderBlockEntity.java`: recipe list from the pattern and inputs, selected pattern, `calcResult`, `onCraft`, remaining items and screen synchronization | `transaction.rs` | Only fixed prototype recipes are implemented; selection and preview exist for those parts, but original recipe conditions, materials and remainders are missing. The current atomic pickup tests establish prototype behavior only. |
 | `textures/gui/part_builder.png`, `textures/gui/tinker.png` | `assets/tconstruct/gui/` | SHA-256 matches original files from the pinned Git tree. Asset identity alone does not establish GUI parity. |
 | `tables/client/inventory/TinkerStationScreen.java`: dynamic selected layout, slot borders, panels, text field, tooltips | `part-draw.rs`, `part-layout.rs` | The existing fixed arrangement, simplified assembly/repair actions and absent panels differ from the original. Visual checks are not parity tests. |
 
@@ -40,6 +40,7 @@ completeness or a substitute for original reference tests.
 | Original definition | Original values | Current state and required test |
 | --- | --- | --- |
 | `data/tconstruct/recipes/tools/parts/builder/{pick_head,tool_handle,tool_binding}.json` | Costs 2, 1 and 1 material units; each accepts the default-pattern tag or its specific cast and creates a material-bearing part. | `transaction.rs` has hard-coded item inputs and outputs; tag/cast behavior, material units, resulting material identity and remaining items need original-based tests. |
+| `data/tconstruct/recipes/tools/materials/flint/flint.json` and `wood/planks/default.json` | One flint or one qualifying plank supplies one material unit; default planks exclude the wood-variant tag. | The current code accepts flint and only oak planks; the complete tag difference and material variants are missing. |
 | `data/tconstruct/tinkering/materials/stats/flint.json` | Flint head: durability 85, mining speed 3.5, melee attack 1.25, stone tier. | The prototype copies two head numbers into one fixed tool. It does not calculate combined tool statistics from material-bearing parts; test all original multipliers, rounding, traits and modifier interactions. |
 | `data/tconstruct/tinkering/tool_definitions/pickaxe.json` | Head, handle and binding; base attack damage 0.5, attack speed 1.2, one ability and three upgrade slots, Pierce level 1, and defined tool actions/AOE modules. | Fixed prototype does not implement these modules or their interactions; test each module and the full computed tool state against the original. |
 | `data/tconstruct/tinkering/station_layouts/pickaxe.json` | Head (53,22), handle (15,60), binding (33,42); result (114,38) from `TinkerStationContainerMenu.java`. | The three assembly input positions now match; the separate repair output and absence of selection differ. Original selection, dynamic layouts, validation and result processing remain to be implemented and tested. |
@@ -51,8 +52,11 @@ completeness or a substitute for original reference tests.
 feature. The pinned Mixins CLI applied a state field to the official Horizon
 `ChunkMap` and the resulting `horizon-client` library passed a locked offline
 Cargo check. It is scoped to each chunk map, avoiding a process-global registry.
-This does **not** implement selection: removal/unload lifetime, original menu
-button semantics, synchronization with every viewer, preview/result authority,
-and persistence behavior still require design, implementation and tests.
+The production code now uses world-scoped selection and has hooks to remove it
+on block change or chunk unload; block replacement was tested, chunk unload was
+not exercised. Fixed-part button selection, preview and result pickup
+were exercised in both game modes and under two-player contention. Original
+recipe-derived selection and full lifecycle parity still require implementation
+and tests.
 The original `PartBuilderBlockEntity` recipe-selection and refresh paths are
 the acceptance reference; do not encode the selection as a real droppable item.

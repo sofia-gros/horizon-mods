@@ -23,5 +23,7 @@ with `E_BRIDGE_TARGET`. The current implementation avoids that restriction by
 using existing per-world block storage and per-player cursor state. Dedicated
 server and every possible container action are not yet validated. The GUI
 supports ordinary pickup; shift-click, drag and pickup-all are deliberately
-blocked to avoid bypassing the transaction. The original selection/result
-interaction, material variants and naming UI remain future work.
+blocked to avoid bypassing the transaction. Three fixed part selections now
+use a preview and the separate result slot, with per-world selection state and
+a virtual menu synchronization slot. Recipe-derived selection, complete
+material variants, output tooltips and naming UI remain future work.

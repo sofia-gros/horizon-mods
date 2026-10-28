@@ -24,7 +24,7 @@ Linux, Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e`, Mixins
   in both game modes. Full original broken behavior is not established.
 
 The client and server use a compact subset of the original interface: part
-icons directly take a result, and assembly and repair have separate icons.
+icons select fixed parts for pickup in the result slot, and assembly and repair have separate icons.
 Shift-click, drag and pickup-all are blocked. Oak planks are the only supported
 wood input, and the part/tool combination is fixed. Other materials, tool
 components and the full Station interface are not implemented. Dedicated
@@ -82,8 +82,9 @@ in the printed run directory. Use a fresh output path for a new stage.
 The 176×184 station panel is centered using its actual height. The Part Builder
 buttons and Tinker Station slot borders are cut from the original atlases; the
 station slot background uses the original 28% opacity. The three assembly
-input positions match the original pickaxe layout. The prototype still uses
-direct part output buttons and lacks original layout selection and repair UI.
+input positions match the original pickaxe layout. The prototype selects among three fixed part buttons and takes the result from
+the original output position. Original recipe-derived choices, layout selection
+and repair UI are not complete.
 
 At 960×540 (integrated server) and 640×360 (in-frame), visually inspected
 empty and populated panels, hovered slot tooltips, and the reopened Part
@@ -96,3 +97,20 @@ a repaired tool's Lore remained in saved server data and in-frame display, but
 the integrated client's display dropped Lore. Other arbitrary component
 round-trips are not established; do not treat the custom-data synchronization
 as general component support.
+
+### Fixed-part selection checkpoint
+
+The prototype selects a part before taking a previewed output. The selection
+is scoped to a `ChunkMap` instance and its block position. For the current LAN
+menu, a virtual slot carries the selection to the modded client; it is not
+written to the table inventory. Both modes passed selection, repeated pickup,
+block replacement, spill and two-player contention tests. Chunk unloading was
+not exercised. Original recipe
+selection, content, preview tooltip and all untested lifecycle cases remain
+open. In the software-rendered integrated two-client test, screenshots at
+960×540 for both processes sometimes captured a blank panel despite successful
+operations; a 960×540 host with a 640×360 guest rendered both previews. The
+cause of the former is not established.
+
+The independent fixture Mod was built with the selection changes and its
+station hook logged during the station test in both game modes.
