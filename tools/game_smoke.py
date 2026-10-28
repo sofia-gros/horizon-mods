@@ -8,6 +8,7 @@ p.add_argument('--game', type=Path, required=True)
 p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--split-sticks', action='store_true', help='put one stick in each of two slots')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 a.output_parent.mkdir(parents=True, exist_ok=True)
@@ -32,8 +33,12 @@ try:
         if time.monotonic() > deadline: raise TimeoutError('control endpoint')
         time.sleep(.2)
     ctl('wait-ready','90',timeout=95)
-    for cmd in ('clear @s','give @s minecraft:flint 1','give @s minecraft:stick 2'):
+    commands = ('clear @s', 'item replace entity @s hotbar.0 with minecraft:flint 1', 'item replace entity @s hotbar.1 with minecraft:stick 1', 'item replace entity @s hotbar.2 with minecraft:stick 1') if a.split_sticks else ('clear @s','give @s minecraft:flint 1','give @s minecraft:stick 2')
+    for cmd in commands:
         ctl('command',cmd)
+    if a.split_sticks:
+        slots = ctl('inventory')['hotbar']
+        assert sum(1 for s in slots if s and s.get('item') == 'minecraft:stick' and s.get('count') == 1) == 2, slots
     ctl('chat','/tconstruct parts'); time.sleep(1)
     parts = ctl('inventory')['counts']
     assert all(parts.get(x)==1 for x in ('tconstruct:flint_pick_head','tconstruct:wood_binding','tconstruct:wood_handle')), parts

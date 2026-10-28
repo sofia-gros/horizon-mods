@@ -3,23 +3,27 @@ fn tconstruct_command(game: &mut crate::game::Game<'_>, command: &str) -> std::o
     const PARTS: [&str; 3] = ["tconstruct:flint_pick_head", "tconstruct:wood_binding", "tconstruct:wood_handle"];
     match command {
         "tconstruct parts" => {
-            let flint = game.inventory.iter().position(|s| s.as_ref().is_some_and(|s| &*s.item == "minecraft:flint"));
-            let wood = game.inventory.iter().position(|s| s.as_ref().is_some_and(|s| &*s.item == "minecraft:stick" && s.count >= 2));
-            if let (Some(flint), Some(wood)) = (flint, wood) {
-                let empty = game.inventory.iter().filter(|s| s.is_none()).count();
-                let freed = usize::from(game.inventory[flint].as_ref().unwrap().count == 1)
-                    + usize::from(game.inventory[wood].as_ref().unwrap().count == 2);
-                if empty + freed >= 3 {
-                    for (slot, amount) in [(flint, 1), (wood, 2)] {
-                        let stack = game.inventory[slot].as_mut().unwrap();
-                        stack.count -= amount;
-                        if stack.count == 0 { game.inventory[slot] = None; }
-                    }
-                    for item in PARTS {
-                        let slot = game.inventory.iter().position(Option::is_none).unwrap();
-                        game.inventory[slot] = Some(horizon_client::items::ItemStack::new(item, 1));
+            // Work on a copy so missing ingredients or output capacity cannot consume inputs.
+            let mut next = game.inventory.clone();
+            let mut available = true;
+            for (item, mut needed) in [("minecraft:flint", 1), ("minecraft:stick", 2)] {
+                for slot in &mut next {
+                    if let Some(stack) = slot.as_mut().filter(|s| &*s.item == item) {
+                        let used = stack.count.min(needed);
+                        stack.count -= used;
+                        needed -= used;
+                        if stack.count == 0 { *slot = None; }
+                        if needed == 0 { break; }
                     }
                 }
+                if needed != 0 { available = false; break; }
+            }
+            if available && next.iter().filter(|slot| slot.is_none()).count() >= PARTS.len() {
+                for item in PARTS {
+                    let slot = next.iter().position(Option::is_none).unwrap();
+                    next[slot] = Some(horizon_client::items::ItemStack::new(item, 1));
+                }
+                game.inventory = next;
             }
             Break(true)
         }
