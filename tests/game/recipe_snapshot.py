@@ -11,6 +11,8 @@ p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
 p.add_argument('--source-pack-test', action='store_true')
+p.add_argument('--vanilla-pack-test', action='store_true')
+p.add_argument('--forge-pack-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 if a.source_pack_test:
@@ -33,7 +35,7 @@ def pack(g, name, marker):
     (base / 'data/test/tags/items').mkdir(parents=True, exist_ok=True)
     (base / 'data/test/tags/items/probe.json').write_text(marker)
 
-def probe(g, expected, tag_expected=None):
+def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None):
     # The fixture is the inner RETURN modifier, so it observes the previous
     # snapshot. The first reload refreshes it; the second observes that state.
     g.call('command', 'reload')
@@ -47,6 +49,12 @@ def probe(g, expected, tag_expected=None):
             assert markers[-1] == expected, (markers, expected)
             tags = [line.split('TCONSTRUCT_TAG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_TAG_PROBE ' in line]
             assert tags and tags[-1] == (tag_expected or expected), (tags, tag_expected or expected)
+            if planks_expected is not None:
+                planks = [line.split('TCONSTRUCT_PLANKS_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_PLANKS_PROBE ' in line]
+                assert planks and int(planks[-1]) == planks_expected, (planks, planks_expected)
+            if forge_expected is not None:
+                forge = [line.split('TCONSTRUCT_FORGE_IRON_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_FORGE_IRON_PROBE ' in line]
+                assert forge and int(forge[-1]) == forge_expected, (forge, forge_expected)
             return
         time.sleep(.1)
     raise TimeoutError('recipe probe log')
@@ -54,10 +62,10 @@ def probe(g, expected, tag_expected=None):
 games = []
 try:
     first = Game(a, run, 'First', in_frame=a.in_frame); games.append(first); first.ready()
-    probe(first, 'source-layer' if a.source_pack_test else 'missing')
+    probe(first, 'source-layer' if a.source_pack_test else 'missing', planks_expected=2 if a.vanilla_pack_test else None, forge_expected=1 if a.forge_pack_test else None)
     if a.source_pack_test:
         first.call('command', 'datapack disable vanilla')
-        probe(first, 'source-layer')
+        probe(first, 'source-layer', planks_expected=1 if a.vanilla_pack_test else None, forge_expected=1 if a.forge_pack_test else None)
     pack(first, 'a', 'world-one-a')
     probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None)
     pack(first, 'b', 'world-one-b')

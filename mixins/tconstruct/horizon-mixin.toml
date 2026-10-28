@@ -343,6 +343,18 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[module]]
+id = "source-recipe-order"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_recipe_order"
+source = "recipe-order.rs"
+
+[[module]]
+id = "source-recipe-order-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_recipe_order"
+source = "recipe-order.rs"
+
 [[state]]
 id = "recipe-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"

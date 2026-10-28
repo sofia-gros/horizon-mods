@@ -13,7 +13,7 @@ pub(super) fn merge_pack(
         let Some(rest) = file.strip_prefix("data/") else { continue; };
         let Some((namespace, path)) = rest.split_once('/') else { continue; };
         let Some(path) = path.strip_prefix("recipes/").and_then(|p| p.strip_suffix(".json")) else { continue; };
-        if namespace.is_empty() || path.is_empty() || path.starts_with('_')
+        if namespace.is_empty() || path.is_empty()
             || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
             || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c))
             || path.split('/').any(|part| part == "." || part == ".." || part.is_empty()) { continue; }
@@ -26,6 +26,12 @@ pub(super) fn merge_pack(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn retains_forge_metadata_until_the_recipe_load_phase() {
+        let mut recipes = BTreeMap::new();
+        merge_pack(&mut recipes, ["data/tconstruct/recipes/_metadata.json".into()], |_| Some(b"{}".to_vec()));
+        assert!(recipes.contains_key("tconstruct:_metadata"));
+    }
     #[test]
     fn later_pack_overrides_by_id_and_world_snapshots_are_independent() {
         let path = "data/tconstruct/recipes/tools/materials/flint/flint.json";

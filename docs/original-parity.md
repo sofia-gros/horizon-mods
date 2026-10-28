@@ -71,10 +71,26 @@ currently rejected and are not claimed to match the original dependency
 sorter. The 427 original generated item-tag files are retained in a separate mod pack
 with their bytes checked against `docs/upstream-tags.sha256`; the preparation
 step also puts the 245 original recipes in that pack, so disabling the vanilla
-pack does not disable mod data. Minecraft 1.20.1 base tags, world registry and
+pack does not disable mod data. The setup can extract Minecraft 1.20.1 item tags from the user-supplied
+client jar after verifying Mojang’s published SHA-1, and Forge 47.4.0 item
+tags from its official universal jar after verifying SHA-256
+`2b0e97b22fd4d043dbbcc8e0a44ef0d58915689ed9224e4cd28d5c4976a16bcc`.
+The world registry and
 resolved tags are not yet connected to Part Builder. Both game modes were
 probed for raw tag-pack order, reload,
 disabling and world separation, not for crafting with resolved tags.
+
+The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
+recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
+metadata. `RecipeManager.getRecipeFor` uses the first match in that map's
+iteration order. The unconnected `recipe-order.rs` reproduces normal Java
+`HashMap` buckets and resizing, and was compared against a Java oracle for
+4,241 IDs from the pinned Minecraft, Forge and TConstruct source packs. Run
+`tools/verify_recipe_order.py` with the two pinned jars and a TConstruct clone
+to repeat the Java comparison. Java
+tree bins are explicitly rejected until ported. It cannot be used as a parity
+claim until all of the world's original and additional recipe IDs are loaded,
+conditions are evaluated and the lookup is connected to actual transactions.
 
 ## Examples of value-level gaps
 
