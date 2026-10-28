@@ -37,7 +37,7 @@ planklike materials. Shift-click, drag and double-click collection in these
 screens are disabled. Broken-tool visuals and full broken behavior remain
 incomplete. Dedicated servers and arbitrary other item components are not
 verified. A plain Lore entry was tested through repair, display and save/reload
-in both modes, including alongside custom data; this does not establish
+in both modes, including with the tool material list and unrelated custom data; this does not establish
 preservation of arbitrary other components or all styled text.
 
 ## Requirements and setup

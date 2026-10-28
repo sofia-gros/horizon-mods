@@ -57,6 +57,17 @@ fn part_matches_material(stack: &ItemStack, expected: &str) -> bool {
     }
 }
 
+/// The fixed prototype has a flint head. Original `MaterialStatsModule`
+/// checks the tool's material list before accepting a repair material.
+fn fixed_pickaxe_has_flint_head(stack: &ItemStack) -> bool {
+    use horizon_world::nbt::Tag;
+    if &*stack.item == "tconstruct:flint_pickaxe" { return true; }
+    match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_materials")) {
+        Some(Tag::List(materials)) => matches!(materials.first(), Some(Tag::String(id)) if id.to_string_lossy() == "tconstruct:flint"),
+        _ => false,
+    }
+}
+
 fn fixed_pickaxe_with_materials() -> ItemStack {
     use horizon_world::nbt::Tag;
     let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
@@ -99,7 +110,7 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
     } else if action == 25 {
         if !(is(0, "tconstruct:pickaxe", 1) || is(0, "tconstruct:flint_pickaxe", 1)) { return false; }
         let mut tool = stacks[0].as_ref().unwrap().clone();
-        if tool.count != 1 || tool.damage == 0 { return false; }
+        if tool.count != 1 || tool.damage == 0 || !fixed_pickaxe_has_flint_head(&tool) { return false; }
         if (1..=2).any(|i| stacks[i].as_ref().is_some_and(|s| &*s.item != "minecraft:flint" || s.count == 0)) { return false; }
         let Ok(mut needed) = i32::try_from(tool.damage) else { return false; };
         let mut consume = vec![(0, 1)];
@@ -209,6 +220,28 @@ mod tests {
         let data = cursor.unwrap();
         let list = data.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("tic_materials"));
         assert_eq!(list, Some(&horizon_world::nbt::Tag::List(["tconstruct:flint", "tconstruct:wood", "tconstruct:wood"].into_iter().map(|id| horizon_world::nbt::Tag::String(id.into())).collect())));
+    }
+    #[test]
+    fn repair_rejects_missing_or_wrong_head_material_without_mutating() {
+        let mut slots = vec![None; 27];
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        tool.damage = 50;
+        slots[0] = Some(tool);
+        slots[1] = Some(ItemStack::new("minecraft:flint", 1));
+        let before = slots.clone();
+        let mut cursor = None;
+        assert!(!take(&mut slots, &mut cursor, true, 25));
+        assert_eq!(slots, before);
+        let mut wrong = fixed_pickaxe_with_materials();
+        wrong.damage = 50;
+        wrong.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
+            ("tic_materials", horizon_world::nbt::Tag::List(vec![horizon_world::nbt::Tag::String("tconstruct:wood".into())]))
+        ])));
+        slots[0] = Some(wrong);
+        let before = slots.clone();
+        assert!(!take(&mut slots, &mut cursor, true, 25));
+        assert_eq!(slots, before);
+        assert!(cursor.is_none());
     }
     #[test]
     fn repair_preserves_name_and_unknown_components() {

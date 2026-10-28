@@ -52,7 +52,7 @@ try:
  g.call('wait','10');mined=g.call('break','0','71','1','--timeout','30',timeout=35)
  held=g.call('inventory')['held'];assert mined['block']=='minecraft:air' and held.get('item')=='tconstruct:pickaxe' and held.get('damage')==1 and 'tic_materials' in held.get('components','')
  cmd('gamemode creative @s')
- cmd("item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84,minecraft:custom_name='\"Blade\"',minecraft:custom_data={proof:17},minecraft:lore=['\"Durable story\"']]")
+ cmd("item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84,minecraft:custom_name='\"Blade\"',minecraft:custom_data={proof:17,tic_materials:[\"tconstruct:flint\",\"tconstruct:wood\",\"tconstruct:wood\"]},minecraft:lore=['\"Durable story\"']]")
  cmd('give @s minecraft:flint 2');g.call('wait','10');held=g.call('inventory')['held'];print('before repair',held,flush=True)
  assert held.get('damage')==84 and 'Blade' in held.get('components','') and 'proof' in held.get('components','') and 'Durable story' in held.get('components','')
  g.call('interact','1','71','2');click(0);click(300);click(hotbar('minecraft:flint'));click(301)
@@ -67,13 +67,19 @@ try:
  g.call('interact','0','71','2');g.call('wait','10');g.call('screenshot',str(run/'part-builder-reopened.png'))
  items={s['slot']:s['stack'] for s in g.call('menu')['slots']}
  assert items[300]['item']=='tconstruct:pattern'
- # Exercise Lore without custom_data as well as the combined case above.
- g.call('close');cmd("item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84,minecraft:lore=['\"Lore only\"']]")
+ # Exercise Lore without unrelated custom fields as well as the combined case above.
+ g.call('close');cmd("item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84,minecraft:custom_data={tic_materials:[\"tconstruct:flint\",\"tconstruct:wood\",\"tconstruct:wood\"]},minecraft:lore=['\"Lore only\"']]")
  cmd('give @s minecraft:flint 2');g.call('wait','15')
  assert 'Lore only' in g.call('inventory')['held'].get('components','')
  g.call('interact','1','71','2');click(0);click(300);click(hotbar('minecraft:flint'));click(301);click(325);click(0)
  assert 'Lore only' in g.call('inventory')['held'].get('components','')
  g.call('close');g.call('save');g.stop();g.cleanup();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready()
  assert 'Lore only' in g.call('inventory')['held'].get('components','')
- g.stop();print('PASS station assembly, repair, data and save/reload',flush=True)
+ # A bare original-ID tool has no valid repair material in its material list.
+ cmd('clear @s');cmd('item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84]');cmd('give @s minecraft:flint 1')
+ g.call('wait','10');g.call('interact','1','71','2');click(0);click(300);click(hotbar('minecraft:flint'));click(301)
+ click(325);assert not carried()
+ entries={s['slot']:s['stack'] for s in g.call('menu')['slots'] if s.get('stack')}
+ assert entries[300]['item']=='tconstruct:pickaxe' and entries[300]['damage']==84 and entries[301]['count']==1
+ g.call('close');g.stop();print('PASS station assembly, repair, data and save/reload',flush=True)
 finally:g.cleanup()

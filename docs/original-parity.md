@@ -47,8 +47,8 @@ save/reload, multiple simultaneous users, game modes and GUI scales against the
 original behavior. Track each original recipe, material and station layout as it
 is analyzed. General component synchronization remains incomplete. An independent review
 found Lore missing from the integrated-client display after repair; a later
-fix was tested with one plain Lore entry alone and with custom data in both game
-modes. Other components and styled text remain unverified.
+fix was tested with one plain Lore entry with the tool material list, both with
+and without unrelated custom fields, in both game modes. Other components and styled text remain unverified.
 
 ## Examples of value-level gaps
 
@@ -65,6 +65,7 @@ completeness or a substitute for original reference tests.
 | `library/recipe/material/IMaterialValue.java`: `getItemsUsed` and `getRemainder` | Integer multiplication, division and modulo use Java `int` semantics, including wraparound; positive needed/value are loader constraints. | `transaction.rs` implements this arithmetic and unit tests normal, fractional and wraparound cases. The production transaction currently uses only value=needed=1 and does not apply leftover items or extra outputs. |
 | `library/recipe/partbuilder/PartRecipe.java`: `assemble` | If a material recipe has no leftover and its value exceeds the part cost, the output count is `outputCount * value / cost` with Java integer semantics. | `transaction.rs` ports this calculation and tests examples; only one-item outputs are wired into the transaction. |
 | `data/tconstruct/recipes/tools/materials/flint/flint.json` and `wood/planks/default.json` | One flint or one qualifying plank supplies one material unit; default planks exclude the wood-variant tag. | The current code accepts flint and only oak planks; the complete tag difference and material variants are missing. |
+| `library/tools/definition/module/material/MaterialStatsModule.java`, `tables/recipe/TinkerStationRepairRecipe.java` | Repair checks the tool material list and accepts a material only when a repairable part or modifier permits it. | The fixed original-ID pickaxe requires a flint head before accepting flint; missing and wrong head material are rejected without consuming inputs. Other materials, modifiers and repairable part types remain unimplemented. |
 | `data/tconstruct/tinkering/materials/stats/flint.json` | Flint head: durability 85, mining speed 3.5, melee attack 1.25, stone tier. | The prototype copies two head numbers into one fixed tool. It does not calculate combined tool statistics from material-bearing parts; test all original multipliers, rounding, traits and modifier interactions. |
 | `data/tconstruct/tinkering/tool_definitions/pickaxe.json` | Head, handle and binding; base attack damage 0.5, attack speed 1.2, one ability and three upgrade slots, Pierce level 1, and defined tool actions/AOE modules. | Fixed prototype does not implement these modules or their interactions; test each module and the full computed tool state against the original. |
 | `data/tconstruct/tinkering/station_layouts/pickaxe.json` | Head (53,22), handle (15,60), binding (33,42); result (114,38) from `TinkerStationContainerMenu.java`. | The three assembly input positions now match; the separate repair output and absence of selection differ. Original selection, dynamic layouts, validation and result processing remain to be implemented and tested. |

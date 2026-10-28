@@ -18,7 +18,7 @@ try:
  h=Game(a,run,'Host',in_frame=a.in_frame);games.append(h);h.ready()
  port=h.call('lan','open','0','commands')['port']
  q=Game(a,run,'Guest',server='127.0.0.1:'+str(port));games.append(q);q.ready()
- for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 tconstruct:tinker_station',"item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84,minecraft:custom_name='\"Blade\"',minecraft:custom_data={proof:17},minecraft:lore=['\"Durable story\"']]",'give @s minecraft:flint 2'):
+ for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 tconstruct:tinker_station',"item replace entity @s weapon.mainhand with tconstruct:pickaxe[minecraft:damage=84,minecraft:custom_name='\"Blade\"',minecraft:custom_data={proof:17,tic_materials:[\"tconstruct:flint\",\"tconstruct:wood\",\"tconstruct:wood\"]},minecraft:lore=['\"Durable story\"']]",'give @s minecraft:flint 2'):
   print('command',cmd,h.call('command',cmd),flush=True)
  for g in games:
   wait(g.label+' block',lambda:g.call('block','0','71','2').get('block')=='tconstruct:tinker_station')

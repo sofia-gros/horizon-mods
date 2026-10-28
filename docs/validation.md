@@ -94,7 +94,8 @@ to update and verified a single output under concurrent clicks.
 
 Reviewer testing found that the integrated client's display dropped Lore after
 repair even though the saved server data retained it. A subsequent fix was
-tested in both modes with one plain Lore entry alone and alongside custom data,
+tested in both modes with one plain Lore entry and the tool material list, with
+and without unrelated custom data,
 including repair, tooltip display, save/reload and a two-player repair race.
 Other arbitrary components and styled text round-trips are not established.
 
@@ -150,3 +151,7 @@ supplies a fixed repair rate rather than deriving material and modifier rates.
 After part, assembly and repair races, the table was reopened to verify that
 its relevant input slots were empty; a closed menu alone is not evidence that
 inputs were consumed.
+
+The original-ID prototype pickaxe with a missing material list cannot be
+repaired using flint; this was checked in both game modes with inputs retained.
+A mismatched head material is also rejected in a transaction unit test.
