@@ -382,6 +382,32 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "resolved-item-tags"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-config"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_config"
+source = "source-config.rs"
+
+[[state]]
+id = "source-config-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,bool>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "recipe-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<u8>>>"

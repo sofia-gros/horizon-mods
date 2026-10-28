@@ -31,6 +31,15 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
             merge(pack, &mut recipes, &mut tags, &mut materials, &mut material_tags);
         }
     }
+    let resolved_tags = game.res.rest.get().map(|rest| {
+        let registry = rest.items.registry_order.iter().map(|id| id.to_string()).collect();
+        crate::game::tconstruct_source_tags::resolve_registry(&tags, &registry)
+    });
+    let config = game.world_root.parent().and_then(std::path::Path::parent)
+        .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
+        .and_then(crate::game::tconstruct_source_config::load);
+    *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
+    *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);

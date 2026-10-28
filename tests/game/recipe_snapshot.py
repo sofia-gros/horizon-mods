@@ -18,6 +18,8 @@ p.add_argument('--full-recipe-test', action='store_true')
 p.add_argument('--lookup-test', action='store_true')
 p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--choices-test', action='store_true')
+p.add_argument('--world-tags-test', action='store_true')
+p.add_argument('--world-config-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 if a.source_pack_test:
@@ -49,8 +51,12 @@ def pack(g, name, marker):
         path = base / 'data/tconstruct/recipes/tools/parts/builder/pick_head.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(recipe))
+    if a.world_tags_test:
+        path = base / 'data/minecraft/tags/items/oak_logs.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'replace': True, 'values': ['minecraft:oak_log' if name == 'a' else 'minecraft:stripped_oak_log']}))
 
-def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True, choice_layer="base"):
+def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True, choice_layer="base", config_expected="default"):
     # The fixture is the inner RETURN modifier, so it observes the previous
     # snapshot. The first reload refreshes it; the second observes that state.
     g.call('command', 'reload')
@@ -70,6 +76,25 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
             if forge_expected is not None:
                 forge = [line.split('TCONSTRUCT_FORGE_IRON_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_FORGE_IRON_PROBE ' in line]
                 assert forge and int(forge[-1]) == forge_expected, (forge, forge_expected)
+            if a.world_tags_test:
+                values = [line.split('TCONSTRUCT_RESOLVED_OAK ', 1)[1] for line in lines if 'TCONSTRUCT_RESOLVED_OAK ' in line]
+                if choice_layer == 'a': expected_oak = 'true false true'
+                elif choice_layer == 'b': expected_oak = 'false true true'
+                elif vanilla_enabled: expected_oak = 'true true true'
+                else: expected_oak = 'false false true'
+                assert values and values[-1] == expected_oak, (values, expected_oak)
+            if a.world_config_test:
+                configs = [line.split('TCONSTRUCT_CONFIG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_CONFIG_PROBE ' in line]
+                assert configs and (configs[-1] == 'false true' if config_expected == 'default' else configs[-1].startswith('unsupported ')), configs
+                flint = [line.split('TCONSTRUCT_REAL_LOOKUP_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_REAL_LOOKUP_FLINT ' in line]
+                oak = [line.split('TCONSTRUCT_REAL_LOOKUP_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_REAL_LOOKUP_OAK_LOG ' in line]
+                if config_expected == 'default':
+                    assert flint and flint[-1] == 'tconstruct:tools/materials/flint/flint tconstruct:flint 1 1', flint
+                    expect_oak = choice_layer == 'a' or choice_layer == 'base' and vanilla_enabled
+                    expected_oak = 'tconstruct:tools/materials/wood/logs/oak tconstruct:wood 4 1' if expect_oak else 'none'
+                    assert oak and oak[-1] == expected_oak, (oak, expected_oak)
+                else:
+                    assert flint and flint[-1] == 'unavailable', flint
             if a.material_pack_test:
                 def material_last(marker):
                     values = [line.split(marker, 1)[1] for line in lines if marker in line]
@@ -125,6 +150,12 @@ try:
     pack(second, 'a', 'world-two-a')
     probe(second, 'world-two-a', 'source-layer|world-two-a' if a.source_pack_test else None, choice_layer='a')
     probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test, choice_layer='a')
+    if a.world_config_test:
+        config_path = first.root / 'config/tconstruct-common.toml'
+        config_path.parent.mkdir(exist_ok=True)
+        config_path.write_text('[debug]\nforceIntegrationMaterials = true\n')
+        probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None, vanilla_enabled=not a.source_pack_test, choice_layer='a', config_expected='unsupported')
+        probe(second, 'world-two-a', 'source-layer|world-two-a' if a.source_pack_test else None, choice_layer='a')
     for game in games: game.stop()
     print('PASS world separation, reload, priority, disable', flush=True)
 finally:

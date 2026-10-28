@@ -117,6 +117,21 @@ world-pack cost overrides, ordering, reload, disabling and world isolation.
 Other recipe types, registry validation, real world contexts, screen rendering,
 preview and taking outputs remain unimplemented.
 
+The world snapshot also attempts item-tag resolution against the actual
+Horizon item registry. Missing required references omit their tag, while
+cycles fail closed because Forge's dependency sorter is not yet ported. In
+one locally prepared fixture resource set, 274 of 616 fixed source item tags resolve;
+342 do not, including tags referencing unregistered TConstruct items. This is
+not an original-equivalent item registry. If `config/tconstruct-common.toml`
+is absent, the source condition defaults are captured per world; if it exists
+or cannot be inspected, configuration is explicitly unavailable. Forge TOML
+parsing and user overrides remain unimplemented. A server-side fixture in both
+game modes verified actual oak-log and Pattern tags through pack replacement,
+disabling and reload; flint and oak-log material lookup with real item tags
+and default configuration; and rejection of a present common config file.
+Other registries remain incomplete and these contexts are not used for player
+crafting yet.
+
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
 recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
 metadata. `RecipeManager.getRecipeFor` uses the first match in that map's

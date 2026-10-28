@@ -124,6 +124,25 @@ pub(super) fn resolve_tag(
     resolve(&canonical(id), tags, registry, &mut Vec::new())
 }
 
+/// Resolve item tags against one world's actual item registry. Like the
+/// source loader, omit tags with unresolved required entries. Cycles remain
+/// an explicit error until the original dependency sorter is implemented.
+#[allow(dead_code)]
+pub(super) fn resolve_registry(
+    tags: &BTreeMap<String, Vec<Vec<u8>>>,
+    registry: &std::collections::HashSet<String>,
+) -> Result<std::collections::HashMap<String, std::collections::HashSet<String>>, String> {
+    let mut resolved = std::collections::HashMap::new();
+    for id in tags.keys() {
+        match resolve_tag(id, tags, registry) {
+            Ok(values) => { resolved.insert(id.clone(), values.into_iter().collect()); },
+            Err(error) if error.starts_with("cyclic tag ") => return Err(error),
+            Err(_) => {},
+        }
+    }
+    Ok(resolved)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -154,6 +173,19 @@ mod tests {
         tags.insert("test:cycle".into(), vec![br##"{"values":[{"id":"#test:cycle","required":false}]}"##.to_vec()]);
         assert!(resolve_tag("test:cycle", &tags, &Default::default()).unwrap_err().starts_with("cyclic tag"));
     }
+    #[test]
+    fn registry_omits_missing_required_tags_and_rejects_cycles() {
+        let mut tags = BTreeMap::new();
+        tags.insert("test:valid".into(), vec![br#"{"values":["test:item",{"id":"test:optional","required":false}]}"#.to_vec()]);
+        tags.insert("test:invalid".into(), vec![br#"{"values":["test:missing"]}"#.to_vec()]);
+        let registry = ["test:item".to_owned()].into_iter().collect();
+        let resolved = resolve_registry(&tags, &registry).unwrap();
+        assert!(resolved["test:valid"].contains("test:item"));
+        assert!(!resolved.contains_key("test:invalid"));
+        tags.insert("test:cycle".into(), vec![br##"{"values":["#test:cycle"]}"##.to_vec()]);
+        assert!(resolve_registry(&tags, &registry).unwrap_err().starts_with("cyclic tag"));
+    }
+
     #[test]
     fn raw_tag_files_preserve_pack_order_and_ignore_other_kinds() {
         let mut tags = BTreeMap::new();

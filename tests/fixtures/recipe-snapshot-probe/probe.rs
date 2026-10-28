@@ -61,5 +61,35 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         eprintln!("TCONSTRUCT_MATERIAL_TAG_PROBE {}", files.as_deref().unwrap_or("missing"));
         eprintln!("TCONSTRUCT_MATERIAL_TAG_COUNT_PROBE {}", tags.keys().filter(|id| id.starts_with("tconstruct:")).count());
     } else { eprintln!("TCONSTRUCT_MATERIAL_TAG_PROBE uninitialized"); }
+    if let Some(Ok(tags)) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags() {
+        let has = |tag: &str, item: &str| tags.get(tag).is_some_and(|items| items.contains(item));
+        eprintln!("TCONSTRUCT_RESOLVED_OAK {} {} {}", has("minecraft:oak_logs", "minecraft:oak_log"), has("minecraft:oak_logs", "minecraft:stripped_oak_log"), has("tconstruct:patterns/default", "tconstruct:pattern"));
+    } else { eprintln!("TCONSTRUCT_RESOLVED_OAK unavailable"); }
+    match game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot() {
+        Some(Ok(config)) => eprintln!("TCONSTRUCT_CONFIG_PROBE {} {}", config.get("force_integration_materials").copied().unwrap_or(true), config.get("allow_ingotless_alloys").copied().unwrap_or(false)),
+        Some(Err(error)) => eprintln!("TCONSTRUCT_CONFIG_PROBE unsupported {error}"),
+        None => eprintln!("TCONSTRUCT_CONFIG_PROBE uninitialized"),
+    }
+    if let (Some(Ok(tags)), Some(Ok(config)), Some(recipes)) = (
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags(),
+        game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot(),
+        game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot(),
+    ) {
+        let mut registries = std::collections::HashMap::new();
+        registries.insert("minecraft:item".to_owned(), tags.clone());
+        let instruments = Default::default();
+        let instrument_tags = Default::default();
+        for (name, item) in [("FLINT", "minecraft:flint"), ("OAK_LOG", "minecraft:oak_log")] {
+            // This diagnostic uses the real item tags and default config.
+            // Other registries and full TConstruct item registration are not
+            // complete, so it is not a production crafting context.
+            let result = crate::game::tconstruct_tx::source_material_lookup(recipes, item, None, tags, &instruments, &instrument_tags, &registries, config, true);
+            match result {
+                Ok(Some(found)) => eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} {} {} {} {}", found.id, found.material, found.value, found.needed),
+                Ok(None) => eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} none"),
+                Err(error) => eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} {error:?}"),
+            }
+        }
+    } else { eprintln!("TCONSTRUCT_REAL_LOOKUP_FLINT unavailable"); eprintln!("TCONSTRUCT_REAL_LOOKUP_OAK_LOG unavailable"); }
     value
 }
