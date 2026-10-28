@@ -31,7 +31,7 @@ class StageExport(unittest.TestCase):
             (repos[1] / 'marker').write_text('dirty')
             project = root / 'project'
             (project / 'tools').mkdir(parents=True)
-            (project / 'mixins').mkdir()
+            (project / 'tests/fixtures').mkdir(parents=True)
             shutil.copy(SCRIPT, project / 'tools/stage.py')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_revision=git(repos[1], 'rev-parse', 'HEAD'))))
             bindir = root / 'bin'
@@ -47,7 +47,13 @@ chmod +x "$2/debug/horizon-mixins"
 ''')
             cargo.chmod(0o755)
             env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ['PATH'])
-            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1])], env=env, check=True)
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, check=True)
             self.assertEqual((repos[0] / 'marker').read_text(), 'dirty horizon')
             self.assertEqual((repos[1] / 'marker').read_text(), 'dirty')
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
+            failed = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
+            custom = project / 'separate-output'
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(custom)], env=env, check=True)
+            self.assertEqual((custom / 'original/marker').read_text(), 'committed')

@@ -525,8 +525,9 @@ mod tests {
     fn parses_all_pinned_material_recipe_ingredients() {
         use std::io::Read;
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../../../docs/upstream-recipes.json.gz");
-        let file = std::fs::File::open(path).expect("pinned reference catalog");
+            .ancestors().map(|dir| dir.join("docs/upstream-recipes.json.gz"))
+            .find(|path| path.is_file()).expect("pinned reference catalog");
+        let file = std::fs::File::open(path).expect("read pinned reference catalog");
         let mut json = String::new();
         flate2::read::GzDecoder::new(file).read_to_string(&mut json).unwrap();
         let catalog: serde_json::Value = serde_json::from_str(&json).unwrap();
