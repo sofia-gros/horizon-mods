@@ -217,7 +217,7 @@ try:
         first.call('wait', '5')
         lines = (first.root / 'game.log').read_text().splitlines()
         patterns = [line.split('TCONSTRUCT_CLIENT_PATTERN_ATLAS ', 1)[1] for line in lines if 'TCONSTRUCT_CLIENT_PATTERN_ATLAS ' in line]
-        assert patterns and int(patterns[-1]) == 28, patterns
+        assert patterns and int(patterns[-1]) == 62, patterns
         first.call('close')
     probe(first, 'source-layer' if a.source_pack_test else 'missing', planks_expected=2 if a.vanilla_pack_test else None, forge_expected=1 if a.forge_pack_test else None)
     if a.source_pack_test:

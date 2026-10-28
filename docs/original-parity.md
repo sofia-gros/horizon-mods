@@ -161,7 +161,7 @@ container returns, tag-output resolution, inventory capacity, crafting events,
 sounds and atomic commit are not implemented by this plan; it is not used by
 player gameplay.
 
-The 28 pinned source pattern textures are copied into the client GUI atlas;
+All 62 pinned source pattern textures are copied into the client GUI atlas;
 an independent fixture checked their registration when opening the Part Builder
 in both game modes. The current screen does not yet draw these patterns. The
 single-craft plan was also checked with real world tags and default configuration,

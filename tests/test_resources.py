@@ -71,7 +71,7 @@ class ResourceOverlay(unittest.TestCase):
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             manifest = Path(__file__).resolve().parents[1] / 'docs/upstream-patterns.sha256'
             rows = manifest.read_text().splitlines()
-            self.assertEqual(len(rows), 28)
+            self.assertEqual(len(rows), 62)
             for row in rows:
                 digest, name = row.split('  ', 1)
                 original = (pattern_root / name).read_bytes()
