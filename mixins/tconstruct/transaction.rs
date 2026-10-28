@@ -648,6 +648,35 @@ pub(super) fn source_material_casting_costs(
     }
     Ok(costs)
 }
+/// `PartBuilderContainerWrapper.getMaterial` diverts `tconstruct:parts` tagged items away
+/// from ordinary material recipes. The caller must resolve tags, the item
+/// interface registry and casting costs for the same world/reload snapshot.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum SourceReusedPart {
+    NotToolPart,
+    NoMaterial,
+    Material { material: String, value: i32, needed: i32 },
+}
+
+#[allow(dead_code)]
+pub(super) fn source_reused_part_material(
+    in_tool_parts_tag: bool,
+    is_material_item: bool,
+    material_tag: Option<&str>,
+    casting_cost: Option<i32>,
+    complete: bool,
+) -> Result<SourceReusedPart, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    if !in_tool_parts_tag { return Ok(SourceReusedPart::NotToolPart); }
+    if !is_material_item { return Ok(SourceReusedPart::NoMaterial); }
+    let Some(material) = material_tag.and_then(super::tconstruct_source_render_info::material_id) else { return Ok(SourceReusedPart::NoMaterial); };
+    let base = material.split_once('#').map_or(material.as_str(), |(base, _)| base);
+    let Some(value) = casting_cost.filter(|cost| *cost > 0) else { return Ok(SourceReusedPart::NoMaterial); };
+    if base == "tconstruct:unknown" { return Ok(SourceReusedPart::NoMaterial); }
+    Ok(SourceReusedPart::Material { material, value, needed: 1 })
+}
+
 fn source_variant_matches(expected: &str, actual: &str) -> bool {
     let (base, variant) = expected.split_once('#').unwrap_or((expected, ""));
     let (actual_base, actual_variant) = actual.split_once('#').unwrap_or((actual, ""));
@@ -732,6 +761,30 @@ pub(super) fn source_part_plan(
     available: i32,
     reusable_pattern: bool,
 ) -> Result<Option<SourcePartPlan>, SourceLookupError> {
+    let material = material.map(|source| SourceMaterialValue {
+        material: &source.material, value: source.value, needed: source.needed, leftover: source.leftover.as_ref(),
+    });
+    source_part_plan_value(recipe, input, material, available, reusable_pattern)
+}
+
+/// Shared source IMaterialValue view. It supports both material recipes and
+/// MaterialValue built from an existing tool part without inventing a recipe ID.
+#[allow(dead_code)]
+pub(super) struct SourceMaterialValue<'a> {
+    pub material: &'a str,
+    pub value: i32,
+    pub needed: i32,
+    pub leftover: Option<&'a SourceItemOutput>,
+}
+
+#[allow(dead_code)]
+pub(super) fn source_part_plan_value(
+    recipe: &SourcePartRecipe,
+    input: &SourcePartInput<'_>,
+    material: Option<SourceMaterialValue<'_>>,
+    available: i32,
+    reusable_pattern: bool,
+) -> Result<Option<SourcePartPlan>, SourceLookupError> {
     let pattern_used = i32::from(!reusable_pattern);
     match (&recipe.kind, input, material) {
         (SourcePartKind::Item { material: required, output }, SourcePartInput::Empty, None) if required == "tconstruct:unknown" => {
@@ -746,12 +799,12 @@ pub(super) fn source_part_plan(
             }
             let (used, remainder) = material_cost(recipe.cost, source.needed, source.value).ok_or(SourceLookupError::UnsupportedRecipe)?;
             if available < used { return Ok(None); }
-            let leftover = source.leftover.as_ref().and_then(|output| output.count_for_remainder(remainder, source.needed).map(|count| (output.clone(), count)));
+            let leftover = source.leftover.and_then(|output| output.count_for_remainder(remainder, source.needed).map(|count| (output.clone(), count)));
             let count = match kind { SourcePartKind::MaterialItem { count, .. } => *count, SourcePartKind::Item { output, .. } => output.count };
             let count = material_output_count(count, source.value, recipe.cost, source.leftover.is_some()).ok_or(SourceLookupError::UnsupportedRecipe)?;
             if count <= 0 { return Err(SourceLookupError::UnsupportedRecipe); }
             let output = match kind {
-                SourcePartKind::MaterialItem { item, .. } => SourcePartOutput::MaterialItem { item: item.clone(), material: source.material.clone(), count },
+                SourcePartKind::MaterialItem { item, .. } => SourcePartOutput::MaterialItem { item: item.clone(), material: source.material.to_owned(), count },
                 SourcePartKind::Item { output, .. } => SourcePartOutput::Item { output: output.clone(), count },
             };
             Ok(Some(SourcePartPlan { output, materials_used: used, pattern_used, leftover }))
@@ -1369,6 +1422,40 @@ mod tests {
         assert_eq!(source_supported_original_parts(&only_repair_kit, false),
             ["tconstruct:repair_kit".to_owned()].into_iter().collect());
         assert!(source_supported_original_parts(&Default::default(), false).is_empty());
+    }
+
+    #[test]
+    fn reused_parts_use_casting_cost_and_bypass_normal_material_recipes() {
+        assert_eq!(source_reused_part_material(false, true, Some("tconstruct:wood"), Some(2), true), Ok(SourceReusedPart::NotToolPart));
+        assert_eq!(source_reused_part_material(true, false, Some("tconstruct:wood"), Some(2), true), Ok(SourceReusedPart::NoMaterial));
+        assert_eq!(source_reused_part_material(true, true, Some("tconstruct:unknown#variant"), Some(2), true), Ok(SourceReusedPart::NoMaterial));
+        assert_eq!(source_reused_part_material(true, true, Some("tconstruct:wood#Bad"), Some(2), true), Ok(SourceReusedPart::NoMaterial));
+        assert_eq!(source_reused_part_material(true, true, Some("tconstruct:wood#warped"), Some(0), true), Ok(SourceReusedPart::NoMaterial));
+        assert_eq!(source_reused_part_material(true, true, Some("tconstruct:wood#warped"), Some(2), true), Ok(SourceReusedPart::Material { material: "tconstruct:wood#warped".into(), value: 2, needed: 1 }));
+        assert_eq!(source_reused_part_material(true, true, Some("tconstruct:wood"), Some(2), false), Err(SourceLookupError::IncompleteContext));
+    }
+
+    #[test]
+    fn reused_part_value_yields_source_count_and_material_variant() {
+        let recipe = SourcePartRecipe::parse("test:handle".into(), &serde_json::json!({
+            "type":"tconstruct:part_builder", "pattern":"tconstruct:tool_handle", "cost":1,
+            "result":{"item":"tconstruct:tool_handle"}
+        })).unwrap();
+        let reuse = source_reused_part_material(true, true, Some("tconstruct:wood#warped"), Some(2), true).unwrap();
+        let SourceReusedPart::Material { material, value, needed } = reuse else { panic!("missing reusable material"); };
+        let supported = ["tconstruct:tool_handle".to_owned()].into_iter().collect();
+        let input = SourcePartInput::Material { input_item:"tconstruct:pick_head", material:&material, craftable:true, supported_outputs:&supported };
+        let source = SourceMaterialValue { material:&material, value, needed, leftover:None };
+        let plan = source_part_plan_value(&recipe, &input, Some(source), 1, false).unwrap().unwrap();
+        assert_eq!(plan.materials_used, 1);
+        assert_eq!(plan.pattern_used, 1);
+        assert_eq!(plan.leftover, None);
+        assert_eq!(plan.output, SourcePartOutput::MaterialItem { item:"tconstruct:tool_handle".into(), material:"tconstruct:wood#warped".into(), count:2 });
+        let same_item = SourcePartInput::Material { input_item:"tconstruct:tool_handle", material:&material, craftable:true, supported_outputs:&supported };
+        let source = SourceMaterialValue { material:&material, value, needed, leftover:None };
+        assert_eq!(source_part_plan_value(&recipe, &same_item, Some(source), 1, false).unwrap(), None);
+        let source = SourceMaterialValue { material:&material, value, needed, leftover:None };
+        assert_eq!(source_part_plan_value(&recipe, &input, Some(source), 0, false).unwrap(), None);
     }
 
     #[test]
