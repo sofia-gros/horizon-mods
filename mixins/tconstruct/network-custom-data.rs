@@ -1,12 +1,13 @@
 fn tconstruct_network_data(hub: &mut crate::lan::hub::Hub, source: &Option<ItemStack>) -> std::ops::ControlFlow<Option<horizon_protocol::item::Stack>> {
     use std::ops::ControlFlow::{Break, Continue};
-    let Some(item) = source.as_ref().filter(|s| s.item.starts_with("tconstruct:")) else { return Continue(()); };
+    let Some(item) = source.as_ref() else { return Continue(()); };
+    let tconstruct = item.item.starts_with("tconstruct:");
     let custom = item.data().and_then(|data| data.other("minecraft:custom_data")).cloned();
-    let lore = item.data().and_then(|data| data.other("minecraft:lore")).and_then(|tag| match tag {
+    let lore = item.data().filter(|_| tconstruct).and_then(|data| data.other("minecraft:lore")).and_then(|tag| match tag {
         horizon_world::nbt::Tag::List(lines) => Some(lines.clone()),
         _ => None,
     });
-    let model = item.data().and_then(|data| data.other("minecraft:item_model")).and_then(|tag| match tag {
+    let model = item.data().filter(|_| tconstruct).and_then(|data| data.other("minecraft:item_model")).and_then(|tag| match tag {
         horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy()),
         _ => None,
     });

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Prepare an isolated placeholder block solely to test material NBT placement.
 
-The iron-block model and template are test fixtures, not TConstruct behavior.
+The iron-block model and dirt template are test fixtures, not TConstruct behavior.
 """
 import argparse
 import json
@@ -14,6 +14,7 @@ p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--game', type=Path, required=True)
 p.add_argument('--base', type=Path, required=True)
 p.add_argument('--output', type=Path, required=True)
+p.add_argument('--reverse-drop-order', action='store_true')
 a = p.parse_args()
 root = Path(__file__).resolve().parents[3]
 game, base, output = a.game.resolve(strict=True), a.base.resolve(strict=True), a.output.absolute()
@@ -29,8 +30,13 @@ with tempfile.TemporaryDirectory(prefix='material-block-content-') as tmp:
             if dst.exists():
                 raise ValueError(f'fixture would overwrite a real content file: {dst}')
             shutil.copyfile(src, dst)
+    if a.reverse_drop_order:
+        loot = content / 'data/tconstruct/loot_table/blocks/fake_storage_block.json'
+        data = json.loads(loot.read_text())
+        data['pools'].reverse()
+        loot.write_text(json.dumps(data))
     subprocess.run([str(game), '--tconstruct-prepare', str(base), str(content), str(output)], check=True)
-# The fixture uses an iron block template; mark the placeholder as having an
+# The fixture uses an dirt template; mark the placeholder as having an
 # entity only in this isolated output, so Horizon retains unknown NBT on save.
 facts = json.loads((output / 'facts.json').read_text())
 path = output / 'gameplay-facts.json'

@@ -1,0 +1,28 @@
+[mod]
+id = "material_drop_proof"
+version = "0.1.0"
+priority = 300
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "add-drop-proof"
+target = "horizon_client::game::spill::Pending::record_saved"
+kind = "HEAD"
+helper = "proof.rs"
+bindings = [
+  { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" },
+]
+
+[[injection]]
+id = "inspect-drop-order"
+target = "horizon_client::game::spill::Pending::attach"
+kind = "HEAD"
+helper = "log-order.rs"
+bindings = [
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "&*stack" },
+]

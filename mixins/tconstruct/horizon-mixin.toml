@@ -613,3 +613,25 @@ bindings = [
   { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
   { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
 ]
+
+[[injection]]
+id = "material-block-record-drop"
+target = "horizon_client::game::spill::Pending::record_saved"
+kind = "HEAD"
+helper = "material-block-record-drop.rs"
+bindings = [
+  { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" },
+]
+
+[[injection]]
+id = "material-block-attach-drop"
+target = "horizon_client::game::spill::Pending::attach"
+kind = "HEAD"
+helper = "material-block-attach-drop.rs"
+bindings = [
+  { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&mut horizon_client::items::ItemStack", value = "stack" },
+]

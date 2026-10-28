@@ -32,6 +32,10 @@ the tool's existing name and custom data.
 Station inputs survive closing and saving the world. Breaking a table returns
 its inputs. The pickaxe wears while mining or hitting a living mob, stays when broken, and
 mines slowly. The fixed flint/wood parts and tool use original Tinkers textures. In GUI slots, the tested flint and wood parts select their original material sprites; a command-supplied oxidized copper head was also checked, but is not yet craftable. Part tooltips display tested material names in English and Japanese; existing explicit names are preserved.
+A tested vanilla diamond with custom data also keeps that data when two players
+move it through a shared chest and save/reload the world. This check covers
+custom data, not every item component.
+
 Two players can use the same table; the tested competing result pickups consume
 inputs once. In both game modes, a guest can reopen the table and see the
 shared fixed-part selection after the Pattern is removed and restored. See the
