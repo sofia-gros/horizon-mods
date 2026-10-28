@@ -5,5 +5,5 @@ description = "Projects specimen tool properties and supports checked flint repa
 authors = ["Horizon port contributors"]
 api = "0.3"
 side = "server"
-capabilities = ["players", "items-read", "items-edit", "items-tools", "inventory-transactions"]
-experimental = ["items-read", "items-edit", "items-tools", "inventory-transactions"]
+capabilities = ["players", "items-read", "items-edit", "items-tools", "inventory-transactions", "workstations"]
+experimental = ["items-read", "items-edit", "items-tools", "inventory-transactions", "workstations"]

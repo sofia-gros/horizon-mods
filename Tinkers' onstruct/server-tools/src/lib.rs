@@ -150,8 +150,8 @@ fn inspect_with_profile(
 mod adapter {
     use super::*;
     use horizon_mod_sdk::server::{
-        Args, GameMode, Player, Registration, ServerMod, inventory_transactions, items_edit,
-        items_read, items_tools,
+        Args, GameMode, Player, Registration, ServerMod, WorkstationInput, WorkstationPlan,
+        inventory_transactions, items_edit, items_read, items_tools, workstations,
     };
 
     fn active(player: &Player) -> Result<bool, String> {
@@ -212,10 +212,71 @@ mod adapter {
         fn init() -> Result<(Self, Registration), String> {
             items_tools::enable_mining_events();
             items_tools::enable_melee_events();
+            workstations::register(
+                "tconstruct:tinker_station",
+                "Tinker Station",
+                &["tconstruct".into(), "state_json".into()],
+                &[
+                    "minecraft:planks".into(),
+                    "tconstruct:wood_variants/planks".into(),
+                ],
+            )?;
             Ok((
                 Self(Catalog::embedded()?),
                 Registration::new().command("tconstruct_tool"),
             ))
+        }
+        fn workstation_preview(
+            &mut self,
+            block: &str,
+            tool: &WorkstationInput,
+            ingredient: &WorkstationInput,
+        ) -> Result<Option<WorkstationPlan>, String> {
+            if block != "tconstruct:tinker_station"
+                || tool.item != "minecraft:wooden_pickaxe"
+                || tool.count != 1
+            {
+                return Ok(None);
+            }
+            let Some(source) = tool.custom_text.as_deref() else {
+                return Ok(None);
+            };
+            let material = if ingredient.item == "minecraft:flint" {
+                "flint"
+            } else if ingredient.tags.iter().any(|t| t == "minecraft:planks")
+                && !ingredient
+                    .tags
+                    .iter()
+                    .any(|t| t == "tconstruct:wood_variants/planks")
+            {
+                "wood"
+            } else {
+                return Ok(None);
+            };
+            let state = ToolState::from_json(&self.0, source)?;
+            let Ok(plan) = tconstruct_horizon::crafting::plan_repair(
+                &self.0,
+                &state,
+                material,
+                ingredient.count,
+            ) else {
+                return Ok(None);
+            };
+            let replacement = plan.output.to_json()?;
+            let mining = mining_projection(&self.0, &tool.item, tool.count, &replacement)?;
+            Ok(Some(WorkstationPlan {
+                replacement: replacement.clone(),
+                consume: plan.material_items,
+                tool: profile(&mining).into(),
+                damage: mining.damage,
+                max_damage: mining.max_damage,
+                melee: melee(melee_projection(
+                    &self.0,
+                    &tool.item,
+                    tool.count,
+                    &replacement,
+                )?).into(),
+            }))
         }
         fn mined(
             &mut self,
