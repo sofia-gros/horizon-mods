@@ -1,6 +1,6 @@
 # TConstruct server tool state adapter
 
-独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 14、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` が必要です。SDKは検証済み本体 `9dd2ae076ee39e77035e3890ee83cde58e6138ac` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
+独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 14、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` が必要です。SDKは検証済み本体 `83eafa818a6a5fc573b97b024b5c40bdaf23b209` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
 
 MITライセンスと原作の著作権表示は [LICENSE](LICENSE)。共通コアが使う原作入力・出典・固定コミットは [親のthird_party記録](../third_party/README.md) を参照してください。
 
