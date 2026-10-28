@@ -278,7 +278,7 @@ mod adapter {
             Ok(Some(WorkstationPlan {
                 replacement: replacement.clone(),
                 consume: plan.material_items,
-                tool: profile(&mining),
+                tool: profile(&mining).into(),
                 damage: mining.damage,
                 max_damage: mining.max_damage,
                 melee: melee(melee_projection(
@@ -286,7 +286,7 @@ mod adapter {
                     &tool.item,
                     tool.count,
                     &replacement,
-                )?),
+                )?).into(),
             }))
         }
         fn gui_workstation_preview(
@@ -404,9 +404,9 @@ mod adapter {
                     count: 1,
                     source_slot: source,
                     text: Some(replacement),
-                    tool: Some(profile(&mining)),
+                    tool: Some(profile(&mining).into()),
                     durability: Some((mining.damage, mining.max_damage)),
-                    melee: Some(melee(combat)),
+                    melee: Some(melee(combat).into()),
                 }],
             }))
         }
