@@ -2,7 +2,7 @@
 param(
     [string]$Horizon,
     [string]$Resources,
-    [ValidateSet('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame', 'melee', 'melee-in-frame', 'all')]
+    [ValidateSet('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame', 'melee', 'melee-in-frame', 'melee-pvp', 'melee-pvp-dedicated', 'all')]
     [string]$Mode = 'all'
 )
 $ErrorActionPreference = 'Stop'
@@ -14,10 +14,10 @@ $game = Join-Path $Horizon 'target\fast\horizon-client.exe'
 $ctl = Join-Path $Horizon 'target\fast\horizon-ctl.exe'
 if (-not $Resources) { $Resources = Join-Path $Horizon '.local\horizon-client\26.3' }
 $common = @('--game', $game, '--ctl', $ctl, '--resources', $resources)
-$checks = if ($Mode -eq 'all') { @('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame', 'melee', 'melee-in-frame') } else { @($Mode) }
+$checks = if ($Mode -eq 'all') { @('integrated', 'in-frame', 'players', 'dedicated', 'coexist', 'coexist-in-frame', 'melee', 'melee-in-frame', 'melee-pvp', 'melee-pvp-dedicated') } else { @($Mode) }
 foreach ($check in $checks) {
-    $script = if ($check -in @('players', 'dedicated')) { 'probe_horizon_mining_players.py' } elseif ($check -in @('melee', 'melee-in-frame')) { 'probe_horizon_melee_wear.py' } else { 'probe_horizon_mining_wear.py' }
-    $extra = if ($check -in @('in-frame', 'melee-in-frame')) { @('--in-frame') } elseif ($check -eq 'dedicated') { @('--dedicated') } elseif ($check -in @('coexist', 'coexist-in-frame')) {
+    $script = if ($check -in @('players', 'dedicated')) { 'probe_horizon_mining_players.py' } elseif ($check -in @('melee', 'melee-in-frame')) { 'probe_horizon_melee_wear.py' } elseif ($check -in @('melee-pvp', 'melee-pvp-dedicated')) { 'probe_horizon_melee_players.py' } else { 'probe_horizon_mining_wear.py' }
+    $extra = if ($check -in @('in-frame', 'melee-in-frame')) { @('--in-frame') } elseif ($check -in @('dedicated', 'melee-pvp-dedicated')) { @('--dedicated') } elseif ($check -in @('coexist', 'coexist-in-frame')) {
         $probe = Join-Path $mods "Tinkers' onstruct\probes\server-lifecycle\target\horizon-mod\tconstruct_probe.hmod"
         $arguments = @('--lifecycle-probe', $probe)
         if ($check -eq 'coexist-in-frame') { $arguments += '--in-frame' }

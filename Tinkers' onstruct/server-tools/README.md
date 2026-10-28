@@ -24,4 +24,4 @@ Creativeで `/tconstruct_tool activate` を実行すると、手持ち個体の�
 
 基本採掘耐久の実ゲーム試験・残る制限は [M3b4検証記録](../../docs/tconstruct-m3b4-verification.md) を参照してください。
 
-直接 Mob 攻撃の基本耐久消費、素材・jagged による攻撃力、攻撃速度、broken の攻撃禁止は接続済みです。PvP の耐久消費・他の modifier は未対応です。[近接攻撃の記録](../../docs/tconstruct-melee-design.md)。
+直接 Mob 攻撃の基本耐久消費、素材・jagged による攻撃力、攻撃速度、broken の攻撃禁止は接続済みです。PvP の基本耐久消費も接続済みです。他の modifier や特殊攻撃は未対応です。[近接攻撃の記録](../../docs/tconstruct-melee-design.md)。

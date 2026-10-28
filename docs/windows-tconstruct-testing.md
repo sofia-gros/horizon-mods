@@ -60,7 +60,7 @@ $play = Join-Path $work "horizon-mods\Tinkers' onstruct\tools\play-item-state.ps
 ```powershell
 $test = 'A:\Project\horizon-mods\tools\test-windows-tconstruct.ps1'
 & $test -Mode all -Resources $resources
-# 個別実行: integrated / in-frame / players / dedicated / coexist / coexist-in-frame / melee / melee-in-frame
+# 個別実行: integrated / in-frame / players / dedicated / coexist / coexist-in-frame / melee / melee-in-frame / melee-pvp / melee-pvp-dedicated
 & $test -Mode integrated -Resources $resources
 ```
 
