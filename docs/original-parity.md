@@ -22,7 +22,12 @@ currently marked `unreviewed`: the prototype coverage in the table below is
 partial and does not establish parity for an entire recipe. These are file counts,
 not verified counts of active features; conditions, aliases and runtime
 registrations still have to be audited. The current three fixed choices do not
-cover those definitions.
+cover those definitions. The material directory includes 217 material-input
+recipes, 73 fluid material recipes and 48 material-melting recipes; the part
+builder directory contains 24 material-part and four item-part recipes. This
+counts source `type` fields, not enabled recipes. Conditions, leftovers and
+nontrivial ingredient forms require implementation, not conversion to fixed
+item matches.
 
 ## Current Part Builder crosswalk
 
