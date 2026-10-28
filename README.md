@@ -27,7 +27,7 @@ inputs once. See the [Part Builder](docs/part-builder.png) and
 This is a narrow prototype, not complete Tinkers' Construct. Only the fixed
 flint-head/wood-handle/wood-binding combination is supported; other materials,
 tools and traits are not. The Part Builder supports selection and a separate result slot for only three
-fixed prototype parts; original recipe lists, material variants and tooltips
+fixed prototype parts; original recipe lists, material variants and detailed tooltips
 are incomplete. The Tinker Station uses separate assembly and repair
 result icons, and does not yet provide the original naming or modifier UI.
 Only oak planks are accepted for wood parts; the original accepts more

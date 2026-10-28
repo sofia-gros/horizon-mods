@@ -282,3 +282,14 @@ target = "horizon_client::chunk_map::ChunkMap::clear"
 kind = "HEAD"
 helper = "part-selection-chunk-clear.rs"
 bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "station-result-tooltip"
+target = "horizon_client::game::stations::Game<'_>::draw_slot_tooltip"
+kind = "HEAD"
+cancellable = true
+helper = "station-result-tooltip.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]

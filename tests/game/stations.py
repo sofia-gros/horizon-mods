@@ -30,6 +30,7 @@ try:
  click(322);assert not carried()  # no selection means no output
  click(324);assert not carried()  # selecting is not result pickup
  g.call('scroll-at','0','0','0');g.call('wait','5');g.call('screenshot',str(run/'part-builder-selected.png'))
+ hover(322,'part-builder-result-hover.png')
  click(322);assert carried().get('item')=='tconstruct:flint_pick_head'
  click(322);assert carried().get('count')==1
  click(3);click(hotbar('minecraft:oak_planks'));click(301)

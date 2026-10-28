@@ -7,7 +7,7 @@ not evidence of coverage here.
 
 | Area | Current status | Next work |
 | --- | --- | --- |
-| Part Builder | Playable fixed flint/wood subset | Original recipe-derived lists, output tooltip, other materials and variants |
+| Part Builder | Playable fixed flint/wood subset | Original recipe-derived lists, detailed material tooltips, other materials and variants |
 | Tinker Station | Fixed pickaxe assembly and flint repair | Naming UI, all combinations, component replacement and modifiers |
 | Durability | Wear, slow broken mining and repair for fixed pickaxe | Full original broken behavior and original broken textures |
 | Models and tooltips | Original textures for the fixed tool and parts; static table models | All material combinations, orientation, tooltips and traits |

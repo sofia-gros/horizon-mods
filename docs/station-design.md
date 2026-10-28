@@ -26,4 +26,4 @@ supports ordinary pickup; shift-click, drag and pickup-all are deliberately
 blocked to avoid bypassing the transaction. Three fixed part selections now
 use a preview and the separate result slot, with per-world selection state and
 a virtual menu synchronization slot. Recipe-derived selection, complete
-material variants, output tooltips and naming UI remain future work.
+material variants, detailed material/trait tooltips and naming UI remain future work.

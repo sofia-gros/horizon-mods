@@ -106,7 +106,7 @@ menu, a virtual slot carries the selection to the modded client; it is not
 written to the table inventory. Both modes passed selection, repeated pickup,
 block replacement, spill and two-player contention tests. Chunk unloading was
 not exercised. Original recipe
-selection, content, preview tooltip and all untested lifecycle cases remain
+selection, content, detailed material/trait tooltips and untested lifecycle cases remain
 open. In the software-rendered integrated two-client test, screenshots at
 960×540 for both processes sometimes captured a blank panel despite successful
 operations; a 960×540 host with a 640×360 guest rendered both previews. Both
@@ -116,3 +116,7 @@ cause is not established.
 
 The independent fixture Mod was built with the selection changes and its
 station hook logged during the station test in both game modes.
+
+The fixed-part result slot now shows the item tooltip on hover; this is not
+the original detailed material/trait tooltip. Both game modes passed the
+selection/repair/save test after this change.
