@@ -78,7 +78,7 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-part-visuals.zip
         if hashlib.sha256(payload).hexdigest() != source_manifest[name]:
             raise ValueError('part visual hash mismatch')
         relative = name.removeprefix('assets/tconstruct/')
-        if relative.startswith('textures/') or relative.startswith('tinkering/materials/'):
+        if relative.startswith(('textures/', 'tinkering/materials/', 'lang/')):
             destination = mod_assets / relative
         elif relative.startswith('models/item/') and relative.endswith('.json'):
             destination = mod_assets / 'tinkering/source_part_models' / Path(relative).name

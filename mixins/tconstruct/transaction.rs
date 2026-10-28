@@ -776,17 +776,16 @@ fn part_with_material(id: &str, material: &str) -> ItemStack {
     part.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
         ("Material", horizon_world::nbt::Tag::String(material.into())),
     ])));
-    let (model, title) = match (id, material) {
-        ("tconstruct:pick_head", "tconstruct:flint") => ("tconstruct:flint_pick_head", "Flint Pick Head"),
-        ("tconstruct:pick_head", "tconstruct:wood") => ("tconstruct:wood_pick_head", "Wooden Pick Head"),
-        ("tconstruct:tool_handle", "tconstruct:flint") => ("tconstruct:flint_handle", "Flint Tool Handle"),
-        ("tconstruct:tool_handle", "tconstruct:wood") => ("tconstruct:wood_handle", "Wooden Tool Handle"),
-        ("tconstruct:tool_binding", "tconstruct:flint") => ("tconstruct:flint_binding", "Flint Tool Binding"),
-        ("tconstruct:tool_binding", "tconstruct:wood") => ("tconstruct:wood_binding", "Wooden Tool Binding"),
+    let model = match (id, material) {
+        ("tconstruct:pick_head", "tconstruct:flint") => "tconstruct:flint_pick_head",
+        ("tconstruct:pick_head", "tconstruct:wood") => "tconstruct:wood_pick_head",
+        ("tconstruct:tool_handle", "tconstruct:flint") => "tconstruct:flint_handle",
+        ("tconstruct:tool_handle", "tconstruct:wood") => "tconstruct:wood_handle",
+        ("tconstruct:tool_binding", "tconstruct:flint") => "tconstruct:flint_binding",
+        ("tconstruct:tool_binding", "tconstruct:wood") => "tconstruct:wood_binding",
         _ => return part,
     };
     part.data_mut().set_other("minecraft:item_model", Some(horizon_world::nbt::Tag::String(model.into())));
-    part.data_mut().set_other("minecraft:item_name", Some(horizon_world::nbt::Tag::String(title.into())));
     part
 }
 

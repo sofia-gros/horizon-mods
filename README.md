@@ -31,7 +31,7 @@ the tool's existing name and custom data.
 
 Station inputs survive closing and saving the world. Breaking a table returns
 its inputs. The pickaxe wears while mining or hitting a living mob, stays when broken, and
-mines slowly. The fixed flint/wood parts and tool use original Tinkers textures. In GUI slots, the tested flint and wood parts select their original material sprites; a command-supplied oxidized copper head was also checked, but is not yet craftable.
+mines slowly. The fixed flint/wood parts and tool use original Tinkers textures. In GUI slots, the tested flint and wood parts select their original material sprites; a command-supplied oxidized copper head was also checked, but is not yet craftable. Part tooltips display tested material names in English and Japanese; existing explicit names are preserved.
 Two players can use the same table; the tested competing result pickups consume
 inputs once. See the [Part Builder](docs/part-builder.png) and
 [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant.
@@ -40,7 +40,7 @@ This is a narrow prototype, not complete Tinkers' Construct. Assembly supports o
 the other craftable parts cannot yet be assembled into tools. Other materials,
 tools and traits are not supported. The Part Builder supports selection and a separate result slot for only three
 fixed prototype parts; original recipe lists, material variants and detailed tooltips
-are incomplete. The Tinker Station uses separate assembly and repair
+are incomplete. Dynamic part names are not yet connected to hotbar labels or recipe search. The Tinker Station uses separate assembly and repair
 result icons, and does not yet provide the original naming or modifier UI.
 Only oak planks are accepted for wood parts; the original accepts more
 planklike materials. Shift-click, drag and double-click collection in these

@@ -1,5 +1,5 @@
-// Source material-render metadata and sprite selection. The resource-pack
-// collector and native renderer still need to be connected.
+// Source material-render metadata and sprite selection. GUI rendering uses
+// the prepared overlay; dynamic resource-pack reload is not yet supported.
 use std::collections::{HashMap, HashSet};
 use serde_json::{Map, Value};
 

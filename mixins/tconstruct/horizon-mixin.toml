@@ -559,3 +559,26 @@ target = "horizon_client::game::functions::Game<'_>::apply_pack_change"
 kind = "RETURN"
 helper = "recipe-pack.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-part-names"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_part_name"
+source = "source-part-name.rs"
+
+[[injection]]
+id = "source-part-name-line"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+kind = "RETURN"
+helper = "part-name-injection.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[module]]
+id = "source-part-names-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_part_name"
+source = "source-part-name.rs"

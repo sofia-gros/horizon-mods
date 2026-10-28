@@ -27,6 +27,7 @@ def build(repo: Path, output: Path, manifest: Path):
         raise ValueError('output and manifest must not already exist')
     names = git(repo, 'ls-tree', '-r', '--name-only', REV).decode().splitlines()
     model_paths, roots = [], []
+    languages = [name for name in names if name.startswith("src/main/resources/assets/tconstruct/lang/") and name.endswith(".json")]
     for item in PARTS:
         suffix = f'/assets/tconstruct/models/item/{item}.json'
         matches = [path for path in names if path.startswith(('src/main/resources/', 'src/generated/resources/')) and path.endswith(suffix)]
@@ -49,9 +50,9 @@ def build(repo: Path, output: Path, manifest: Path):
             textures.append(name)
         elif path.startswith('assets/tconstruct/tinkering/materials/') and path.endswith('.json'):
             info.append(name)
-    paths = sorted(model_paths + textures + info)
+    paths = sorted(model_paths + textures + info + languages)
     entries = [path.split('/resources/', 1)[1] for path in paths]
-    if len(entries) != len(set(entries)) or not textures or not info:
+    if len(entries) != len(set(entries)) or not textures or not info or not languages:
         raise ValueError('duplicate or missing part visual resources')
     data = git(repo, 'archive', REV, *paths)
     rows = []
@@ -63,7 +64,7 @@ def build(repo: Path, output: Path, manifest: Path):
             out.writestr(entry, contents)
             rows.append(f'{hashlib.sha256(contents).hexdigest()}  {name}')
     manifest.write_text('\n'.join(rows) + '\n')
-    print(f'Archived {len(model_paths)} models, {len(textures)} sprites and {len(info)} render definitions')
+    print(f'Archived {len(model_paths)} models, {len(textures)} sprites and {len(info)} render definitions and {len(languages)} languages')
 
 
 def main():

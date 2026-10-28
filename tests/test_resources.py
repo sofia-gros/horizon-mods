@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'tools/resources.py'
 
@@ -34,6 +35,10 @@ class ResourceOverlay(unittest.TestCase):
             self.assertFalse((out / 'assets/tconstruct/textures').is_symlink())
             self.assertTrue((out / 'assets/tconstruct/textures/item/tool/pickaxe/head_tconstruct_flint.png').is_file())
             self.assertTrue((out / 'assets/tconstruct/tinkering/materials/flint.json').is_file())
+            with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-part-visuals.zip') as archive:
+                for code in ('en_us', 'ja_jp'):
+                    name = f'assets/tconstruct/lang/{code}.json'
+                    self.assertEqual((out / name).read_bytes(), archive.read(name))
             self.assertTrue((out / 'assets/tconstruct/tinkering/source_part_models/pick_head.json').is_file())
             self.assertTrue((out / 'assets/tconstruct/items/tconstruct_part/item/tool/pickaxe/head_tconstruct_flint.json').is_file())
             native = json.loads((out / 'assets/tconstruct/models/item/tconstruct_part/item/tool/pickaxe/head_tconstruct_flint.json').read_text())
