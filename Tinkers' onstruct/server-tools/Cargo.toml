@@ -23,3 +23,7 @@ lto = true
 
 [lints.clippy]
 all = "warn"
+
+[dev-dependencies]
+# Cross-repository transaction integration tests; not used by the Wasm mod.
+horizon-items = { git = "https://github.com/sofia-gros/horizon.git", rev = "81b3be3791171700c8105e5b0b218dfa434a12a1" }
