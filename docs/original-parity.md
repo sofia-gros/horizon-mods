@@ -146,9 +146,9 @@ in both game modes. The current screen does not yet draw these patterns. The
 single-craft plan was also checked with real world tags and default configuration,
 but with controlled material support and craftability; it does not mutate slots.
 
-`source_supported_original_parts` maps the pinned `TinkerToolParts` stat IDs
-to their registered parts and handles the repair-kit's separate repairable-stat
-condition. Its inputs must already be validated by the source stat registry;
+`source_supported_original_parts` maps the pinned `ToolPartItem` registrations
+to stat IDs and handles the repair-kit's separate repairable-stat condition.
+Fake ingots and storage blocks are not covered. Its inputs must already be validated by the source stat registry;
 raw JSON keys alone are insufficient. This mapping has a unit test but is not
 connected to the registry or gameplay, and does not cover other mods' items.
 

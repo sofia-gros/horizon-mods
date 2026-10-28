@@ -515,8 +515,9 @@ pub(super) enum SourcePartInput<'a> {
     Material { input_item: &'a str, material: &'a str, craftable: bool, supported_outputs: &'a std::collections::HashSet<String> },
 }
 
-/// Map the pinned TinkerToolParts registrations to already validated material
-/// stat IDs. The caller must deserialize the registry first; merely seeing a
+/// Map the pinned ToolPartItem and RepairKitItem registrations to already
+/// validated material stat IDs. Fake ingot and block items are not covered.
+/// The caller must deserialize the registry first; merely seeing a
 /// raw JSON stat key is not enough to establish that the original accepts it.
 /// `has_repairable_stat` must likewise come from the registered stat types.
 #[allow(dead_code)]
