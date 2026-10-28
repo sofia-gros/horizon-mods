@@ -45,3 +45,9 @@ commit. Their SHA-256 values are respectively
 `ab1d44ba8937357be7cbc02fcb314ce6ee5ce144073156d4eb790a37f45c8dfb`,
 `06bb82ef9c82cf984549ba23a8b991290c160cffe8e7dbb98ad062a9a763fc0e`, and
 `5587625a90f5e2a677bbe323f504ecb80f80c3c0c45e99a7efb43cf96b4f3313`.
+
+The packaged content mod also includes the complete upstream MIT license and
+source attribution at `assets/tconstruct/license.txt` and
+`assets/tconstruct/source_notice.txt`. After building, run
+`python3 tools/check_tconstruct_notice.py` from the repository root to verify
+the actual `.hmod` archive and original GUI texture hashes.
