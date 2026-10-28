@@ -35,10 +35,13 @@ fn part_with_material(id: &str, material: &str) -> ItemStack {
     part.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
         ("Material", horizon_world::nbt::Tag::String(material.into())),
     ])));
-    let (model, title) = match id {
-        "tconstruct:pick_head" => ("tconstruct:flint_pick_head", "Flint Pick Head"),
-        "tconstruct:tool_handle" => ("tconstruct:wood_handle", "Wood Tool Handle"),
-        "tconstruct:tool_binding" => ("tconstruct:wood_binding", "Wood Tool Binding"),
+    let (model, title) = match (id, material) {
+        ("tconstruct:pick_head", "tconstruct:flint") => ("tconstruct:flint_pick_head", "Flint Pick Head"),
+        ("tconstruct:pick_head", "tconstruct:wood") => ("tconstruct:wood_pick_head", "Wooden Pick Head"),
+        ("tconstruct:tool_handle", "tconstruct:flint") => ("tconstruct:flint_handle", "Flint Tool Handle"),
+        ("tconstruct:tool_handle", "tconstruct:wood") => ("tconstruct:wood_handle", "Wooden Tool Handle"),
+        ("tconstruct:tool_binding", "tconstruct:flint") => ("tconstruct:flint_binding", "Flint Tool Binding"),
+        ("tconstruct:tool_binding", "tconstruct:wood") => ("tconstruct:wood_binding", "Wooden Tool Binding"),
         _ => return part,
     };
     part.data_mut().set_other("minecraft:item_model", Some(horizon_world::nbt::Tag::String(model.into())));
@@ -85,10 +88,15 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
     if stacks.len() < 27 { return false; }
     let is = |slot: usize, item: &str, count: u32| stacks.get(slot).and_then(Option::as_ref).is_some_and(|s| &*s.item == item && s.count >= count);
     let (output, consume): (ItemStack, Vec<(usize, u32)>) = if !station {
-        let (material, cost, result) = match action {
-            24 => ("minecraft:flint", 2, "tconstruct:pick_head"),
-            25 => ("minecraft:oak_planks", 1, "tconstruct:tool_handle"),
-            26 => ("minecraft:oak_planks", 1, "tconstruct:tool_binding"),
+        let (cost, result) = match action {
+            24 => (2, "tconstruct:pick_head"),
+            25 => (1, "tconstruct:tool_handle"),
+            26 => (1, "tconstruct:tool_binding"),
+            _ => return false,
+        };
+        let (material, material_id) = match stacks[1].as_ref().map(|s| &*s.item) {
+            Some("minecraft:flint") => ("minecraft:flint", "tconstruct:flint"),
+            Some("minecraft:oak_planks") => ("minecraft:oak_planks", "tconstruct:wood"),
             _ => return false,
         };
         let Some((amount, remainder)) = material_cost(cost, 1, 1) else { return false; };
@@ -99,7 +107,6 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         // material recipes and their remainder items are not yet supported.
         let Ok(amount) = u32::try_from(amount) else { return false; };
         if amount == 0 || remainder != 0 || !is(0, "tconstruct:pattern", 1) || !is(1, material, amount) { return false; }
-        let material_id = if material == "minecraft:flint" { "tconstruct:flint" } else { "tconstruct:wood" };
         (part_with_material(result, material_id), vec![(0, 1), (1, amount)])
     } else if action == 24 {
         if !(is(0, "tconstruct:pick_head", 1) || is(0, "tconstruct:flint_pick_head", 1)) || !(is(1, "tconstruct:tool_handle", 1) || is(1, "tconstruct:wood_handle", 1)) || !(is(2, "tconstruct:tool_binding", 1) || is(2, "tconstruct:wood_binding", 1)) { return false; }
@@ -192,6 +199,22 @@ mod tests {
         assert!(cursor.is_none());
     }
     #[test]
+    fn both_supported_materials_make_each_fixed_part_with_source_cost() {
+        for (item, id) in [("minecraft:flint", "tconstruct:flint"), ("minecraft:oak_planks", "tconstruct:wood")] {
+            for (action, output, cost) in [(24, "tconstruct:pick_head", 2), (25, "tconstruct:tool_handle", 1), (26, "tconstruct:tool_binding", 1)] {
+                let mut slots = vec![None; 27];
+                slots[0] = Some(ItemStack::new("tconstruct:pattern", 1));
+                slots[1] = Some(ItemStack::new(item, cost));
+                let mut cursor = None;
+                assert!(take(&mut slots, &mut cursor, false, action));
+                let part = cursor.unwrap();
+                assert_eq!(&*part.item, output);
+                assert!(part_matches_material(&part, id));
+                assert!(slots[0].is_none() && slots[1].is_none());
+            }
+        }
+    }
+    #[test]
     fn preview_does_not_consume_and_rechecks_material() {
         let mut slots = vec![None; 27];
         slots[0] = Some(ItemStack::new("tconstruct:pattern", 1));
@@ -199,7 +222,7 @@ mod tests {
         let before = slots.clone();
         assert_eq!(part_preview(&slots, 0).unwrap().item.as_ref(), "tconstruct:pick_head");
         assert_eq!(slots, before);
-        assert!(part_preview(&slots, 1).is_none());
+        assert_eq!(part_preview(&slots, 1).unwrap().item.as_ref(), "tconstruct:tool_handle");
         slots[1] = Some(ItemStack::new("minecraft:flint", 1));
         assert!(part_preview(&slots, 0).is_none());
     }

@@ -31,6 +31,10 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(len({ids[name]['protocol_id'] for name in names}), len(names))
             self.assertTrue((out / 'assets/tconstruct/textures').is_symlink())
             self.assertEqual(items[names[-1]]['minecraft:item_model'], names[-1])
+            for alias in ('wood_pick_head', 'flint_handle', 'flint_binding'):
+                self.assertTrue((out / 'assets/tconstruct/items' / (alias + '.json')).is_file())
+                self.assertTrue((out / 'assets/tconstruct/models/item' / (alias + '.json')).is_file())
+                self.assertTrue((out / 'assets/tconstruct/textures/item' / (alias + '.png')).is_file())
             rejected = subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], capture_output=True)
             self.assertNotEqual(rejected.returncode, 0)
 

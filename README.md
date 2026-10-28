@@ -11,8 +11,8 @@ Horizon documentation describes Mixins as its official exclusive mod system.
 In single-player worlds, craft a Pattern and the Part Builder and Tinker
 Station at a crafting table, place both tables, and open them by interacting.
 In the Part Builder, insert a Pattern and material, then select an illustrated
-part and take it from the result slot: two flint make a flint pick head; one oak plank makes a wood handle or
-binding. These parts use the original shared item IDs and carry their tested
+part and take it from the result slot. Flint or oak planks make a pick head
+for two materials, or a tool handle or binding for one. These parts use the original shared item IDs and carry their tested
 material ID in custom data. A Pattern is consumed for each part. In the Tinker Station, put the head, handle
 and binding in the three input positions and take a flint/wood pickaxe. Its tested
 `tic_materials` list survives save and reload, but derived statistics, traits
@@ -26,9 +26,9 @@ Two players can use the same table; the tested competing result pickups consume
 inputs once. See the [Part Builder](docs/part-builder.png) and
 [Tinker Station](docs/tinker-station.png) screenshots.
 
-This is a narrow prototype, not complete Tinkers' Construct. Only the fixed
-flint-head/wood-handle/wood-binding combination is supported; other materials,
-tools and traits are not. The Part Builder supports selection and a separate result slot for only three
+This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
+the other craftable parts cannot yet be assembled into tools. Other materials,
+tools and traits are not supported. The Part Builder supports selection and a separate result slot for only three
 fixed prototype parts; original recipe lists, material variants and detailed tooltips
 are incomplete. The Tinker Station uses separate assembly and repair
 result icons, and does not yet provide the original naming or modifier UI.

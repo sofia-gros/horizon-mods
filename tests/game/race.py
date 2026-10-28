@@ -18,16 +18,17 @@ try:
  h=Game(a,run,'Host',in_frame=a.in_frame);games.append(h);h.ready()
  port=h.call('lan','open','0','commands')['port']
  q=Game(a,run,'Guest',server='127.0.0.1:'+str(port));games.append(q);q.ready()
- for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 tconstruct:part_builder','give @s tconstruct:pattern 1','give @s minecraft:flint 2'):
+ for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 tconstruct:part_builder','give @s tconstruct:pattern 2','give @s minecraft:flint 3'):
   print('command',cmd,h.call('command',cmd),flush=True)
  for g in games:
   wait(g.label+' block',lambda:g.call('block','0','71','2').get('block')=='tconstruct:part_builder')
   print(g.label,'interact',g.call('interact','0','71','2'),flush=True)
  click(h,0);click(h,300);click(h,1);click(h,301)
- wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:pattern' and slots(g).get(301,{}).get('count')==2 for g in games))
+ wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:pattern' and slots(g).get(301,{}).get('count')==3 for g in games))
  click(h,324);assert not (h.call('menu').get('carried') or {})
  click(q,325);q.call('wait','20');h.call('wait','20');click(h,322)
- assert not (h.call('menu').get('carried') or {}), 'guest selection must replace host selection'
+ assert (h.call('menu').get('carried') or {}).get('item') == 'tconstruct:tool_handle', 'guest selection must replace host selection'
+ click(h,2)
  click(q,324)
  h.call('wait','20');q.call('wait','20');time.sleep(2)
  h.call('wait','20');q.call('wait','20');time.sleep(2)

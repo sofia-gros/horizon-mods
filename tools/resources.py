@@ -47,8 +47,8 @@ items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
-    ('tconstruct:wood_binding', 'minecraft:stick', 'Wood Tool Binding'),
-    ('tconstruct:wood_handle', 'minecraft:stick', 'Wood Tool Handle'),
+    ('tconstruct:wood_binding', 'minecraft:stick', 'Wooden Tool Binding'),
+    ('tconstruct:wood_handle', 'minecraft:stick', 'Wooden Tool Handle'),
     ('tconstruct:flint_pickaxe', 'minecraft:stone_pickaxe', 'Flint Pickaxe'),
     ('tconstruct:pick_head', 'minecraft:flint', 'Pick Head'),
     ('tconstruct:tool_handle', 'minecraft:stick', 'Tool Handle'),
@@ -67,6 +67,10 @@ for name, template, title in entries:
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5
     items[name] = item
+# Material-specific visual models for shared original item IDs.
+for short in ('wood_pick_head', 'flint_handle', 'flint_binding'):
+    (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type': 'minecraft:model', 'model': 'tconstruct:item/' + short}}))
+    (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps({'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/' + short}}))
 (out / 'items.json').write_text(json.dumps(items))
 commands = json.loads((src / 'command-registries.json').read_text())
 commands['items'].extend(name for name, _, _ in entries)
