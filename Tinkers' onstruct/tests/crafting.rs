@@ -36,6 +36,89 @@ fn insufficient_or_unknown_inputs_are_rejected_without_mutation() {
 }
 
 #[test]
+fn station_repair_checks_all_slots_and_consumes_in_order() {
+    use tconstruct_horizon::crafting::plan_repair_slots;
+    let catalog = Catalog::embedded().unwrap();
+    let mut tool = ToolState::pickaxe(["flint", "wood", "wood"]);
+    tool.damage_points(&catalog, 85).unwrap();
+    let split = plan_repair_slots(
+        &catalog,
+        &tool,
+        [Some(("flint", 1)), None, Some(("tconstruct:flint", 3))],
+    )
+    .unwrap();
+    assert_eq!(split.consumed, [1, 0, 1]);
+    assert_eq!(split.output.damage, 0);
+    let partial = plan_repair_slots(&catalog, &tool, [None, Some(("flint", 1)), None]).unwrap();
+    assert_eq!(partial.consumed, [0, 1, 0]);
+    assert_eq!(partial.output.damage, 29);
+    let excess = plan_repair_slots(
+        &catalog,
+        &tool,
+        [Some(("flint", 3)), Some(("flint", 2)), None],
+    )
+    .unwrap();
+    assert_eq!(excess.consumed, [2, 0, 0]);
+    assert!(
+        plan_repair_slots(
+            &catalog,
+            &tool,
+            [Some(("flint", 3)), None, Some(("wood", 1))]
+        )
+        .is_err()
+    );
+    assert!(
+        plan_repair_slots(
+            &catalog,
+            &tool,
+            [Some(("flint", 3)), None, Some(("stone", 1))]
+        )
+        .is_err()
+    );
+    assert!(plan_repair_slots(&catalog, &tool, [None, None, None]).is_err());
+    assert_eq!(tool.damage, 85);
+    assert!(plan_repair_slots(&catalog, &split.output, [Some(("flint", 1)), None, None]).is_err());
+    let mut wood = ToolState::pickaxe(["wood", "wood", "wood"]);
+    wood.damage_points(&catalog, 60).unwrap();
+    let wood_plan = plan_repair_slots(
+        &catalog,
+        &wood,
+        [None, Some(("wood", 1)), Some(("tconstruct:wood", 2))],
+    )
+    .unwrap();
+    assert_eq!(wood_plan.consumed, [0, 1, 1]);
+    assert_eq!(wood_plan.output.damage, 0);
+}
+
+#[test]
+fn station_repair_truncates_each_stack_before_the_next() {
+    use tconstruct_horizon::crafting::plan_repair_slots;
+    let catalog = Catalog::embedded().unwrap();
+    let mut tool = ToolState::pickaxe(["flint", "wood", "flint"]);
+    tool.damage_points(&catalog, 85).unwrap();
+    let one_stack = plan_repair_slots(&catalog, &tool, [Some(("flint", 2)), None, None]).unwrap();
+    let split = plan_repair_slots(
+        &catalog,
+        &tool,
+        [Some(("flint", 1)), Some(("flint", 1)), None],
+    )
+    .unwrap();
+    assert_eq!(
+        (one_stack.repaired_points, one_stack.output.damage),
+        (85, 0)
+    );
+    assert_eq!((split.repaired_points, split.output.damage), (84, 1));
+    let third = plan_repair_slots(
+        &catalog,
+        &tool,
+        [Some(("flint", 1)), Some(("flint", 1)), Some(("flint", 1))],
+    )
+    .unwrap();
+    assert_eq!(third.consumed, [1, 1, 1]);
+    assert_eq!(third.output.damage, 0);
+}
+
+#[test]
 fn replacement_rebuilds_stats_and_preserves_or_clamps_damage() {
     use tconstruct_horizon::crafting::{Part, plan_part_replacement};
     let catalog = Catalog::embedded().unwrap();

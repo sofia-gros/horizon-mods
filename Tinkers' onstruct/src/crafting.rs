@@ -159,16 +159,8 @@ pub struct RepairPlan {
 /// Only the selected wood/flint 1:1 recipes are supported. Other ingredients,
 /// multiple input slots, repair kits and modifier-dependent recipes are outside
 /// this function's contract and must not be treated as matching.
-pub fn plan_repair(
-    catalog: &Catalog,
-    tool: &ToolState,
-    material: &str,
-    available: u32,
-) -> Result<RepairPlan, String> {
+fn repair_per_item(catalog: &Catalog, tool: &ToolState, material: &str) -> Result<f32, String> {
     let evaluation = catalog.evaluate(tool)?;
-    if tool.damage == 0 || available == 0 {
-        return Err("nothing to repair or no material".into());
-    }
     let name = material.strip_prefix("tconstruct:").unwrap_or(material);
     let (recipe, stats) = match name {
         "wood" => (
@@ -203,6 +195,19 @@ pub fn plan_repair(
     if !per_item.is_finite() || per_item <= 0.0 {
         return Err("invalid repair value".into());
     }
+    Ok(per_item)
+}
+
+pub fn plan_repair(
+    catalog: &Catalog,
+    tool: &ToolState,
+    material: &str,
+    available: u32,
+) -> Result<RepairPlan, String> {
+    if tool.damage == 0 || available == 0 {
+        return Err("nothing to repair or no material".into());
+    }
+    let per_item = repair_per_item(catalog, tool, material)?;
     let used = available.min(((tool.damage as f32 / per_item).ceil() as u32).max(1));
     let points = (used as f32 * per_item) as u32;
     if points == 0 {
@@ -212,6 +217,75 @@ pub fn plan_repair(
     let repaired_points = output.repair_points(catalog, points)?;
     Ok(RepairPlan {
         material_items: used,
+        repaired_points,
+        output,
+    })
+}
+
+/// Plan a Station repair from the three ordered material slots. Every nonempty
+/// stack must match before any result is offered; consumption is recalculated
+/// against the actual repaired durability, as in the Station input update.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MultiRepairPlan {
+    pub consumed: [u32; 3],
+    pub repaired_points: u32,
+    pub output: ToolState,
+}
+
+pub fn plan_repair_slots(
+    catalog: &Catalog,
+    tool: &ToolState,
+    slots: [Option<(&str, u32)>; 3],
+) -> Result<MultiRepairPlan, String> {
+    if tool.damage == 0 {
+        return Err("nothing to repair".into());
+    }
+    let mut material = None;
+    for (name, count) in slots.iter().flatten() {
+        if *count == 0 {
+            return Err("empty repair stack".into());
+        }
+        let name = name.strip_prefix("tconstruct:").unwrap_or(name);
+        if material.is_some_and(|previous| previous != name) {
+            return Err("mixed repair materials".into());
+        }
+        material = Some(name);
+    }
+    let per_item = repair_per_item(catalog, tool, material.ok_or("no material")?)?;
+    let apply = |needed: u32, available: u32| -> (u32, u32) {
+        let used = available.min((needed as f32 / per_item).ceil() as u32);
+        (used, (used as f32 * per_item) as u32)
+    };
+    let mut remaining = tool.damage;
+    for (_, count) in slots.iter().flatten() {
+        if remaining == 0 {
+            break;
+        }
+        remaining = remaining.saturating_sub(apply(remaining, *count).1);
+    }
+    let points = tool.damage - remaining;
+    if points == 0 {
+        return Err("material would not repair durability".into());
+    }
+    let mut output = tool.clone();
+    let repaired_points = output.repair_points(catalog, points)?;
+    let mut remaining = repaired_points;
+    let mut consumed = [0; 3];
+    for (index, slot) in slots.iter().enumerate() {
+        if remaining == 0 {
+            break;
+        }
+        if let Some((_, count)) = slot {
+            let (used, repaired) = apply(remaining, *count);
+            consumed[index] = used;
+            remaining = remaining.saturating_sub(repaired);
+        }
+    }
+    if remaining != 0 {
+        return Err("repair consumption does not cover result".into());
+    }
+    Ok(MultiRepairPlan {
+        consumed,
         repaired_points,
         output,
     })

@@ -39,3 +39,7 @@ kill "$xvfb_pid"
 ## Station のレイアウト・名前・同時取得
 
 Station の入力は保存される収納で、組立と修理のボタンを選ぶ。`tools/probe_tconstruct_crafting_gui.py --scale 1` と `--scale 2 --in-frame` は制作・名前・Enter/Escape・中断再開・保存復帰を確認し、`tools/probe_tconstruct_station_repair.py` は wood/flint 修理、無効材料とピッケルの単一部品交換を確認する。`tools/probe_tconstruct_station_players.py` は2人の異なる名前と同一結果の同時取得を検査する。GUIの詳細な原典との差と未対応範囲は `docs/tconstruct-crafting-gui.md` に記す。
+
+## 複数slot修理
+
+`tools/probe_tconstruct_multislot_repair.py` と `--in-frame` は、火打石を分割した修理、間の不正材料による拒否と復帰、収納の保存・再読込、2人の同時取得とslot順の一度だけの消費を実ゲームで確認する。対応範囲はwood/flint pickaxeで、repair kit・他素材・他ツール・未対応modifierは含まれない。
