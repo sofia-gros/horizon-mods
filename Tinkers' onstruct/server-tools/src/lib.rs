@@ -297,7 +297,7 @@ mod adapter {
             selection: Option<&str>,
         ) -> Result<Option<GuiWorkstationPlan>, String> {
             use tconstruct_horizon::crafting::{
-                Part, PartKind, plan_part, plan_part_replacement, plan_pickaxe, plan_repair,
+                Part, PartKind, plan_part, plan_part_replacement, plan_pickaxe, plan_repair_slots,
             };
             let material = |input: &WorkstationInput| -> Option<&'static str> {
                 if input.item == "minecraft:flint" {
@@ -370,14 +370,24 @@ mod adapter {
                     return Ok(None);
                 };
                 match (selection, head, handle, binding) {
-                    (Some("repair"), Some(ingredient), None, None) => {
-                        let Some(name) = material(ingredient) else {
+                    (Some("repair"), head, handle, binding) => {
+                        let mut slots = [None; 3];
+                        for (index, input) in [head, handle, binding].into_iter().enumerate() {
+                            if let Some(input) = input {
+                                let Some(name) = material(input) else {
+                                    return Ok(None);
+                                };
+                                slots[index] = Some((name, input.count));
+                            }
+                        }
+                        let Ok(plan) = plan_repair_slots(&self.0, &state, slots) else {
                             return Ok(None);
                         };
-                        let Ok(plan) = plan_repair(&self.0, &state, name, ingredient.count) else {
-                            return Ok(None);
-                        };
-                        (plan.output, vec![1, plan.material_items, 0, 0, 0], Some(0))
+                        (
+                            plan.output,
+                            vec![1, plan.consumed[0], plan.consumed[1], plan.consumed[2], 0],
+                            Some(0),
+                        )
                     }
                     (Some("pickaxe"), head, handle, binding) => {
                         let choices = [head, handle, binding];

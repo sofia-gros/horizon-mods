@@ -8,7 +8,7 @@
 
 ## 材料修理の計画
 
-木・火打石の 1:1 素材について、ピッケルの修理可能な head 素材と一致することを確認し、head の原作耐久値、素材レシピの 1/3 換算、`cultivated` の repair factor から消費数と回復後の ToolState を計画します。不足・不適合・未損傷は拒否し、入力状態自体は変更しません。固定原作の `MaterialRecipe.scaleRepair` と `TinkerStationRepairRecipe.repairFromSlot` の Java 断片による 4 ケースと照合しました。複数入力 slot、repair kit、その他素材・modifier は対象外です。
+木・火打石の 1:1 素材について、ピッケルの修理可能な head 素材と一致することを確認し、head の原作耐久値、素材レシピの 1/3 換算、`cultivated` の repair factor から消費数と回復後の ToolState を計画します。不足・不適合・未損傷は拒否し、入力状態自体は変更しません。固定原作の `MaterialRecipe.scaleRepair` と `TinkerStationRepairRecipe.repairFromSlot` の Java 断片による 4 ケースと照合しました。複数入力slotでは同一素材を全枠で検証し、枠順に端数を切り捨てて必要数を計画します。repair kit、その他素材・modifier は対象外です。
 
 実際の材料消費や修理完了は実装されておらず、サーバーの認可・inventory transaction・Station UI との接続が必要です。
 
