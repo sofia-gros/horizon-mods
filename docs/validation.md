@@ -163,3 +163,8 @@ wood-handle, wood-binding combination can currently be assembled.
 
 The prepared resource overlay retains the TConstruct, Mantle and Forge license
 notices under `THIRD_PARTY_LICENSES/`; the generated overlay links to its base.
+
+Melee regression: in both game modes, a living hit from damage 0 used two
+durability; a hit at damage 84 left the tool at 85 with `tic_broken`, name and
+custom data retained after save/reload. This is not coverage of modifier-based
+wear or other damage paths.

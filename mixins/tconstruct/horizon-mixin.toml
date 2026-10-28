@@ -293,3 +293,14 @@ bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
 ]
+
+[[injection]]
+id = "melee-wear"
+target = "horizon_client::game::mace::Game<'_>::weapon_wear"
+kind = "HEAD"
+cancellable = true
+helper = "melee-wear.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]

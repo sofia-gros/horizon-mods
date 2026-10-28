@@ -215,6 +215,24 @@ impl SourceItemOutput {
         };
         Some(Self { kind, count, nbt: obj.get("nbt").cloned() })
     }
+    /// Item tag preference from Mantle 1.11.115. Outer None means the
+    /// namespace preference snapshot is unavailable; Some(None) is an empty tag.
+    fn resolve_id(&self, tags: &std::collections::HashMap<String, std::collections::HashSet<String>>, preferences: Option<&[String]>) -> Option<Option<String>> {
+        match &self.kind {
+            SourceOutputKind::Item(id) => Some(Some(id.clone())),
+            SourceOutputKind::Tag(tag) => {
+                let Some(values) = tags.get(tag) else { return Some(None); };
+                if values.len() <= 1 { return Some(values.iter().next().cloned()); }
+                let preferences = preferences?;
+                let key = |id: &String| {
+                    let (namespace, path) = id.split_once(':').unwrap_or(("minecraft", id));
+                    let rank = preferences.iter().position(|value| value == namespace).unwrap_or(preferences.len());
+                    (rank, namespace.to_owned(), path.to_owned())
+                };
+                Some(values.iter().min_by_key(|id| key(id)).cloned())
+            }
+        }
+    }
     /// `IMaterialValue.getLeftover`: Java int multiply then truncating divide.
     fn count_for_remainder(&self, remainder: i32, needed: i32) -> Option<i32> {
         if remainder <= 0 || needed <= 0 { return None; }
@@ -334,6 +352,27 @@ fn fixed_pickaxe_with_materials() -> ItemStack {
     tool
 }
 
+/// `ToolStack.setDamage` for the currently supported fixed-durability tool.
+/// Preserve all unrelated custom data while writing the source broken flag.
+pub(super) fn fixed_set_damage(stack: &mut ItemStack, damage: u32) {
+    use horizon_world::nbt::Tag;
+    let mut custom = stack.data().and_then(|data| data.other("minecraft:custom_data"))
+        .cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
+    if let Tag::Compound(ref mut entries) = custom {
+        entries.insert("tic_broken".into(), Tag::Byte(i8::from(damage >= 85)));
+        stack.data_mut().set_other("minecraft:custom_data", Some(custom));
+    }
+    stack.damage = damage.min(85);
+}
+
+/// No damage is applied to an already broken or source-unbreakable tool.
+pub(super) fn fixed_damage(stack: &mut ItemStack, amount: u32) {
+    use horizon_world::nbt::Tag;
+    let flag = |name: &str| matches!(stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get(name)), Some(Tag::Byte(value)) if *value != 0);
+    if amount == 0 || stack.damage >= 85 || flag("tic_broken") || flag("Unbreakable") { return; }
+    fixed_set_damage(stack, stack.damage.saturating_add(amount));
+}
+
 /// Apply a single result pickup to the authoritative slots and cursor.
 /// Inputs are checked before any mutation; tool data is carried by cloning it.
 pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, station: bool, action: i16) -> bool {
@@ -382,7 +421,7 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
             }
         }
         if consume.len() == 1 { return false; }
-        tool.damage = needed as u32;
+        fixed_set_damage(&mut tool, needed as u32);
         (tool, consume)
     } else { return false; };
     if let Some(existing) = carried.as_ref() {
@@ -525,6 +564,12 @@ mod tests {
         assert!(matches!(&output.kind, SourceOutputKind::Tag(tag) if tag == "forge:ingots/copper"));
         assert_eq!(output.count_for_remainder(7, 1), Some(7));
         assert_eq!(output.count_for_remainder(1, 2), None);
+        let mut tags = std::collections::HashMap::new();
+        tags.insert("forge:ingots/copper".into(), std::collections::HashSet::from(["alpha:z".into(), "beta:a".into(), "minecraft:copper_ingot".into()]));
+        assert_eq!(output.resolve_id(&tags, None), None);
+        assert_eq!(output.resolve_id(&tags, Some(&["minecraft".into()])), Some(Some("minecraft:copper_ingot".into())));
+        assert_eq!(output.resolve_id(&tags, Some(&[])), Some(Some("alpha:z".into())));
+        assert_eq!(output.resolve_id(&std::collections::HashMap::new(), Some(&[])), Some(None));
         assert!(SourceMaterialRecipe::parse(&serde_json::json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:flint"}, "material":"tconstruct:flint", "needed":0})).is_none());
     }
     #[test]
@@ -660,9 +705,26 @@ mod tests {
         assert!(take(&mut slots, &mut cursor, true, 25));
         let repaired = cursor.as_ref().unwrap();
         assert_eq!(repaired.damage, 29);
-        assert_eq!(repaired.extra, tool.extra);
+        assert_eq!(repaired.data().and_then(|d| d.other("example:custom")), tool.data().and_then(|d| d.other("example:custom")));
+        assert_eq!(repaired.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("tic_broken")), Some(&horizon_world::nbt::Tag::Byte(0)));
         assert!(slots[0].is_none() && slots[1].is_none());
         assert!(!take(&mut slots, &mut None, true, 25));
+    }
+    #[test]
+    fn fixed_damage_breaks_without_removing_tool_and_preserves_custom_data() {
+        let mut tool = fixed_pickaxe_with_materials();
+        tool.damage = 84;
+        fixed_damage(&mut tool, 2);
+        assert_eq!(tool.damage, 85);
+        let data = tool.data().and_then(|d| d.other("minecraft:custom_data")).unwrap();
+        assert_eq!(data.get("tic_broken"), Some(&horizon_world::nbt::Tag::Byte(1)));
+        assert!(data.get("tic_materials").is_some());
+        let before = tool.clone();
+        fixed_damage(&mut tool, 2);
+        assert_eq!(tool, before);
+        fixed_set_damage(&mut tool, 29);
+        assert_eq!(tool.damage, 29);
+        assert_eq!(tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("tic_broken")), Some(&horizon_world::nbt::Tag::Byte(0)));
     }
     #[test]
     fn repair_rechecks_split_inputs_and_never_consumes_excess() {

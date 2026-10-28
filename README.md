@@ -20,8 +20,8 @@ and modifiers are not fully ported. Put a worn pickaxe and flint in the inputs a
 the tool's existing name and custom data.
 
 Station inputs survive closing and saving the world. Breaking a table returns
-its inputs. The pickaxe wears while mining, stays when broken, and mines
-slowly. The fixed flint/wood parts and tool use original Tinkers textures.
+its inputs. The pickaxe wears while mining or hitting a living mob, stays when broken, and
+mines slowly. The fixed flint/wood parts and tool use original Tinkers textures.
 Two players can use the same table; the tested competing result pickups consume
 inputs once. See the [Part Builder](docs/part-builder.png) and
 [Tinker Station](docs/tinker-station.png) screenshots.

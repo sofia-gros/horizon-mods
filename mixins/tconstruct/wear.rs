@@ -4,7 +4,7 @@ fn tconstruct_wear(game: &mut crate::game::Game<'_>, hardness: f32) -> std::ops:
     if hardness != 0.0 {
         let loss = game.durability_loss(&stack, 1);
         if let Some(held) = game.inventory[game.selected].as_mut() {
-            held.damage = held.damage.saturating_add(loss).min(85);
+            crate::game::tconstruct_tx::fixed_damage(held, loss);
         }
     }
     game.stats.add("used", &stack.item, 1);
