@@ -28,9 +28,10 @@ Before calling this area ported, test original selection and result pickup,
 input changes, invalid inputs and cursor capacity, tooltips/hover, close/reopen,
 save/reload, multiple simultaneous users, game modes and GUI scales against the
 original behavior. Track each original recipe, material and station layout as it
-is analyzed. General component synchronization remains incomplete: independent
-review found Lore missing from the integrated-client display after repair while
-it remained in saved server data and in-frame display.
+is analyzed. General component synchronization remains incomplete. An independent review
+found Lore missing from the integrated-client display after repair; a later
+fix was tested with one plain Lore entry alone and with custom data in both game
+modes. Other components and styled text remain unverified.
 
 ## Examples of value-level gaps
 

@@ -92,11 +92,11 @@ Builder after save/reload. The station test exercised click targets, output
 collection and repair. The LAN test captured both clients after allowing frames
 to update and verified a single output under concurrent clicks.
 
-Reviewer testing found that
-a repaired tool's Lore remained in saved server data and in-frame display, but
-the integrated client's display dropped Lore. Other arbitrary component
-round-trips are not established; do not treat the custom-data synchronization
-as general component support.
+Reviewer testing found that the integrated client's display dropped Lore after
+repair even though the saved server data retained it. A subsequent fix was
+tested in both modes with one plain Lore entry alone and alongside custom data,
+including repair, tooltip display, save/reload and a two-player repair race.
+Other arbitrary components and styled text round-trips are not established.
 
 ### Fixed-part selection checkpoint
 
