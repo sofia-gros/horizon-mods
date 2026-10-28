@@ -601,3 +601,15 @@ bindings = [
   { name = "slot", ty = "usize", value = "slot" },
   { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
 ]
+
+[[injection]]
+id = "source-material-block-place"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+kind = "HEAD"
+helper = "material-block-place.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]

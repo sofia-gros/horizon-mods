@@ -1,5 +1,59 @@
 use horizon_items::items::ItemStack;
 
+/// MaterialBlockEntity uses Java object identity when deciding whether to
+/// write the unknown material. A parsed "tconstruct:unknown" is equal to, but
+/// is not the same object as, the singleton used for an absent or invalid tag.
+/// This source model is not yet connected to a registered storage block.
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) enum SourceBlockMaterial {
+    UnknownSingleton,
+    Parsed(String),
+}
+#[allow(dead_code)]
+impl SourceBlockMaterial {
+    fn id(&self) -> &str {
+        match self { Self::UnknownSingleton => "tconstruct:unknown", Self::Parsed(id) => id }
+    }
+    /// The original load ignores absent/non-string tags; invalid strings reset
+    /// the field to the UNKNOWN singleton.
+    pub(super) fn load(&mut self, string_tag: Option<&str>) {
+        if let Some(raw) = string_tag {
+            *self = super::tconstruct_source_render_info::material_id(raw)
+                .map_or(Self::UnknownSingleton, Self::Parsed);
+        }
+    }
+    /// setMaterial always assigns, even when the IDs compare equal; its return
+    /// indicates whether the source would mark the entity dirty and rerender.
+    pub(super) fn set(&mut self, material: Self) -> bool {
+        let changed = self.id() != material.id();
+        *self = material;
+        changed
+    }
+    pub(super) fn load_tag(&mut self, tag: &horizon_world::nbt::Tag) {
+        use horizon_world::nbt::Tag;
+        let material = match tag.get("Material") { Some(Tag::String(value)) => Some(value.to_string_lossy()), _ => None };
+        self.load(material.as_deref());
+    }
+    /// saveSynced writes only Material when the source reference is not the
+    /// singleton. It does not clear unrelated fields or a pre-existing key.
+    pub(super) fn write_tag(&self, tag: &mut horizon_world::nbt::Compound) {
+        if let Some(material) = self.save_string() {
+            tag.insert("Material".into(), horizon_world::nbt::Tag::String(material.into()));
+        }
+    }
+    pub(super) fn save_string(&self) -> Option<&str> {
+        match self { Self::UnknownSingleton => None, Self::Parsed(id) => Some(id) }
+    }
+    /// MaterialItem.getMaterialId returns the singleton for an empty or
+    /// malformed stack tag; a valid string constructs a distinct object.
+    pub(super) fn placed_material(string_tag: Option<&str>) -> Self {
+        string_tag.filter(|s| !s.is_empty())
+            .and_then(super::tconstruct_source_render_info::material_id)
+            .map_or(Self::UnknownSingleton, Self::Parsed)
+    }
+}
+
 /// The current preview still has only three fixed choices, but selection is
 /// stored as the original Pattern identity rather than its transient index.
 const PREVIEW_PATTERNS: [&str; 3] = ["tconstruct:pick_head", "tconstruct:tool_handle", "tconstruct:tool_binding"];
@@ -1376,6 +1430,42 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn material_block_preserves_original_unknown_identity_and_load_rules() {
+        use super::SourceBlockMaterial as M;
+        let mut m = M::UnknownSingleton;
+        assert_eq!(m.save_string(), None);
+        m.load(None);
+        assert_eq!(m.save_string(), None);
+        m.load(Some("tconstruct:unknown"));
+        assert_eq!(m.save_string(), Some("tconstruct:unknown"));
+        assert!(!m.set(M::UnknownSingleton));
+        assert_eq!(m.save_string(), None);
+        assert!(!m.set(M::Parsed("tconstruct:unknown".into())));
+        assert_eq!(m.save_string(), Some("tconstruct:unknown"));
+        m.load(Some("tconstruct:wood#warped"));
+        assert_eq!(m.save_string(), Some("tconstruct:wood#warped"));
+        m.load(None);
+        assert_eq!(m.save_string(), Some("tconstruct:wood#warped"));
+        m.load(Some("bad namespace:wood"));
+        assert_eq!(m.save_string(), None);
+        assert_eq!(M::placed_material(Some("")), M::UnknownSingleton);
+        assert_eq!(M::placed_material(Some("wood#oak")), M::Parsed("minecraft:wood#oak".into()));
+        use horizon_world::nbt::{Compound, Tag};
+        let tag = Tag::compound([("Material", Tag::String("tconstruct:bronze".into()))]);
+        m.load_tag(&tag);
+        let mut output = Compound::new();
+        output.insert("Other".into(), Tag::Int(42));
+        m.write_tag(&mut output);
+        assert_eq!(output.get(&"Material".into()), Some(&Tag::String("tconstruct:bronze".into())));
+        assert_eq!(output.get(&"Other".into()), Some(&Tag::Int(42)));
+        m.load_tag(&Tag::compound([("Material", Tag::Int(1))]));
+        assert_eq!(m.save_string(), Some("tconstruct:bronze"));
+        m.load_tag(&Tag::compound([("Material", Tag::String("INVALID".into()))]));
+        m.write_tag(&mut output);
+        assert_eq!(output.get(&"Material".into()), Some(&Tag::String("tconstruct:bronze".into())));
+    }
+
     #[test]
     fn selection_identity_survives_reordering_and_missing_choices() {
         use super::*;
