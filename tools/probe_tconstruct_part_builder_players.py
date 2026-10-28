@@ -34,6 +34,7 @@ def click(g, n, *flags):
 
 def add_flint(count):
     host.call('command', f'give @s minecraft:flint {count}')
+    wait('flint received', lambda: any(s.get('item') == 'minecraft:flint' for s in host.call('inventory')['hotbar']))
     slot = next(s['slot'] for s in host.call('inventory')['hotbar'] if s.get('item') == 'minecraft:flint')
     click(host, slot)
     click(host, 601)
