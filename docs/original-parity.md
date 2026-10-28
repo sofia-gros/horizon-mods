@@ -152,6 +152,22 @@ Fake ingots and storage blocks are not covered. Its inputs must already be valid
 raw JSON keys alone are insufficient. This mapping has a unit test but is not
 connected to the registry or gameplay, and does not cover other mods' items.
 
+Source material definitions and material tags now have test-only registry
+builders that preserve pack layers and reject unsupported context. A missing
+fluid registry is treated as unknown, rather than as an empty registry: the
+source treated-wood definition can depend on `forge:creosote`. Fake ingot and
+storage block checks have a separate source arithmetic prototype, but need the
+actual material tags and visible base-material recipe cache before use. None of
+these builders is connected to the player crafting transaction.
+
+The source mod's 131 fluid tag files are copied byte-for-byte into the source
+pack; pinned local Minecraft and Forge jars supply their fluid tags. The game
+now collects and resolves these layers against its actual fluid registry. An
+independent fixture checked fluid-tag replacement, disable, reload and two-world
+isolation in both game modes. Horizon currently registers only five fluids in
+the tested resources; original mod fluid registration, source conditions in
+gameplay, and cyclic tag ordering remain unfinished.
+
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
 recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
 metadata. `RecipeManager.getRecipeFor` uses the first match in that map's

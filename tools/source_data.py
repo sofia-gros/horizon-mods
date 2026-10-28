@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extract pinned Minecraft or Forge 1.20.1 item tags and recipes from a local jar."""
+"""Extract pinned Minecraft or Forge 1.20.1 item/fluid tags and recipes from a local jar."""
 import argparse
 import hashlib
 import re
@@ -11,11 +11,13 @@ CLIENT_SHA1 = '0c3ec587af28e5a785c0b4a7b8a30f9a8f78f838'
 FORGE_SHA256 = '2b0e97b22fd4d043dbbcc8e0a44ef0d58915689ed9224e4cd28d5c4976a16bcc'
 PREFIX = 'data/minecraft/tags/items/'
 FORGE_PREFIX = 'data/forge/tags/items/'
+FLUID_PREFIX = 'data/minecraft/tags/fluids/'
+FORGE_FLUID_PREFIX = 'data/forge/tags/fluids/'
 RECIPE_PREFIX = 'data/minecraft/recipes/'
 VALID = re.compile(r'[a-z0-9_.-]+(?:/[a-z0-9_.-]+)*\.json\Z')
 
 
-def extract(jar: Path, output: Path, expected_hash: str = CLIENT_SHA1, *, prefixes: tuple[str, ...] = (PREFIX, RECIPE_PREFIX), algorithm: str = "sha1") -> int:
+def extract(jar: Path, output: Path, expected_hash: str = CLIENT_SHA1, *, prefixes: tuple[str, ...] = (PREFIX, FLUID_PREFIX, RECIPE_PREFIX), algorithm: str = "sha1") -> int:
     jar = jar.resolve(strict=True)
     output = output.absolute()
     if output.exists() or output.is_symlink():
@@ -52,11 +54,11 @@ def main():
     p.add_argument('output', type=Path)
     args = p.parse_args()
     try:
-        count = (extract(args.client_jar, args.output, FORGE_SHA256, prefixes=(FORGE_PREFIX, RECIPE_PREFIX), algorithm="sha256")
+        count = (extract(args.client_jar, args.output, FORGE_SHA256, prefixes=(FORGE_PREFIX, FORGE_FLUID_PREFIX, RECIPE_PREFIX), algorithm="sha256")
                  if args.forge else extract(args.client_jar, args.output))
     except (OSError, ValueError, zipfile.BadZipFile) as error:
         p.error(str(error))
-    print(f'Extracted {count} original item tags and recipes into {args.output}')
+    print(f'Extracted {count} original item/fluid tags and recipes into {args.output}')
 
 
 if __name__ == '__main__':

@@ -76,6 +76,20 @@ pub(super) fn merge_pack_tags(
     }
 }
 
+pub(super) fn merge_pack_fluid_tags(
+    tags: &mut BTreeMap<String, Vec<Vec<u8>>>,
+    files: impl IntoIterator<Item = String>,
+    read: impl Fn(&str) -> Option<Vec<u8>>,
+) {
+    for file in files {
+        let Some(rest) = file.strip_prefix("data/") else { continue; };
+        let Some((namespace, path)) = rest.split_once('/') else { continue; };
+        let Some(path) = path.strip_prefix("tags/fluids/").and_then(|p| p.strip_suffix(".json")) else { continue; };
+        if !valid_id(&format!("{namespace}:{path}")) || path.split('/').any(|p| p.is_empty() || p == "." || p == "..") { continue; }
+        if let Some(bytes) = read(&file) { tags.entry(format!("{namespace}:{path}")).or_default().push(bytes); }
+    }
+}
+
 /// Resolve an acyclic tag against the current registry. Missing required
 /// entries fail the tag; missing removals are optional in Forge. Cycles are
 /// explicitly unsupported for now and must not be treated as an empty tag.
@@ -143,9 +157,46 @@ pub(super) fn resolve_registry(
     Ok(resolved)
 }
 
+/// MaterialManager uses the same TagLoader, but with material identifiers
+/// rather than items and the tinkering/tags/materials resource directory.
+#[allow(dead_code)]
+pub(super) fn resolve_material_registry(
+    files: &BTreeMap<String, Vec<Vec<u8>>>,
+    materials: &std::collections::HashSet<String>,
+) -> Result<std::collections::HashMap<String, std::collections::HashSet<String>>, String> {
+    let mut tags = BTreeMap::new();
+    for (id, layers) in files {
+        let Some((namespace, path)) = id.split_once(':') else { return Err(format!("invalid material tag {id}")); };
+        let Some(path) = path.strip_prefix("tinkering/tags/materials/") else { continue; };
+        tags.insert(format!("{namespace}:{path}"), layers.clone());
+    }
+    resolve_registry(&tags, materials)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn material_tags_resolve_against_materials_in_pack_order() {
+        let mut files = BTreeMap::new();
+        files.insert("tconstruct:tinkering/tags/materials/compatibility_metals".into(), vec![
+            br#"{"values":["tconstruct:wood"]}"#.to_vec(),
+            br#"{"replace":true,"values":["tconstruct:flint",{"id":"tconstruct:missing","required":false}]}"#.to_vec(),
+        ]);
+        let materials = ["tconstruct:wood".into(), "tconstruct:flint".into()].into_iter().collect();
+        let tags = resolve_material_registry(&files, &materials).unwrap();
+        assert_eq!(tags["tconstruct:compatibility_metals"], ["tconstruct:flint".into()].into_iter().collect());
+    }
+
+    #[test]
+    fn fluid_tags_preserve_pack_layers_without_reading_item_tags() {
+        let mut tags = BTreeMap::new();
+        let fluid = "data/forge/tags/fluids/creosote.json";
+        merge_pack_fluid_tags(&mut tags, [fluid.into(), "data/forge/tags/items/creosote.json".into()], |_| Some(b"base".to_vec()));
+        merge_pack_fluid_tags(&mut tags, [fluid.into()], |_| Some(b"override".to_vec()));
+        assert_eq!(tags["forge:creosote"], [b"base".to_vec(), b"override".to_vec()]);
+        assert_eq!(tags.len(), 1);
+    }
     #[test]
     fn pack_priority_replace_and_forge_removal() {
         let files = vec![br##"{"values":["minecraft:stone",{"id":"#test:optional","required":false}]}"##.to_vec(),

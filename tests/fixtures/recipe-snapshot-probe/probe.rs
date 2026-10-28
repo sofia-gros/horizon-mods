@@ -65,6 +65,10 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         let has = |tag: &str, item: &str| tags.get(tag).is_some_and(|items| items.contains(item));
         eprintln!("TCONSTRUCT_RESOLVED_OAK {} {} {}", has("minecraft:oak_logs", "minecraft:oak_log"), has("minecraft:oak_logs", "minecraft:stripped_oak_log"), has("tconstruct:patterns/default", "tconstruct:pattern"));
     } else { eprintln!("TCONSTRUCT_RESOLVED_OAK unavailable"); }
+    if let Some(Ok(tags)) = game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags() {
+        let has = |tag: &str, fluid: &str| tags.get(tag).is_some_and(|values| values.contains(fluid));
+        eprintln!("TCONSTRUCT_RESOLVED_CREOSOTE {} {}", has("forge:creosote", "minecraft:water"), has("forge:creosote", "minecraft:lava"));
+    } else { eprintln!("TCONSTRUCT_RESOLVED_CREOSOTE unavailable"); }
     match game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot() {
         Some(Ok(config)) => eprintln!("TCONSTRUCT_CONFIG_PROBE {} {}", config.get("force_integration_materials").copied().unwrap_or(true), config.get("allow_ingotless_alloys").copied().unwrap_or(false)),
         Some(Err(error)) => eprintln!("TCONSTRUCT_CONFIG_PROBE unsupported {error}"),

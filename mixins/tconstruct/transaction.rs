@@ -166,9 +166,9 @@ impl SourceCondition {
     }
     fn matches(&self, registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>, config: &std::collections::HashMap<String, bool>) -> Option<bool> {
         match self {
-            Self::TagFilled { registry, tag } => Some(registries.get(registry).and_then(|tags| tags.get(tag)).is_some_and(|values| !values.is_empty())),
+            Self::TagFilled { registry, tag } => Some(registries.get(registry)?.get(tag).is_some_and(|values| !values.is_empty())),
             Self::TagCombination { registry, required, ignore } => {
-                let Some(tags) = registries.get(registry) else { return Some(false); };
+                let tags = registries.get(registry)?;
                 let Some(first) = required.first().and_then(|tag| tags.get(tag)) else { return Some(false); };
                 Some(first.iter().any(|entry| !ignore.as_ref().and_then(|tag| tags.get(tag)).is_some_and(|values| values.contains(entry))
                     && required[1..].iter().all(|tag| tags.get(tag).is_some_and(|values| values.contains(entry)))))
@@ -355,6 +355,35 @@ pub(super) fn source_material_definition(
         Some(_) => return Err(SourceLookupError::UnsupportedRecipe),
     };
     Ok(SourceMaterialDefinition::Material { craftable, hidden, tier, sort_order, rarity: rarity.into() })
+}
+
+/// Assemble definitions from one world's ordered source-pack snapshot. Until
+/// all Forge conditions and source JSON error handling are ported, unsupported
+/// input fails the whole snapshot instead of fabricating a partial registry.
+#[allow(dead_code)]
+pub(super) fn source_material_registry(
+    files: &std::collections::BTreeMap<String, Vec<Vec<u8>>>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    complete: bool,
+) -> Result<(std::collections::HashMap<String, SourceMaterialDefinition>, std::collections::HashMap<String, String>), SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let mut materials = std::collections::HashMap::new();
+    let mut redirects = std::collections::HashMap::new();
+    for (key, layers) in files {
+        let Some((namespace, path)) = key.split_once(':') else { return Err(SourceLookupError::UnsupportedRecipe); };
+        let Some(path) = path.strip_prefix("tinkering/materials/definition/") else { continue; };
+        let bytes = layers.last().ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let value = serde_json::from_slice(bytes).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+        let id = format!("{namespace}:{path}");
+        match source_material_definition(&value, registries, config, true)? {
+            definition @ SourceMaterialDefinition::Material { .. } => { materials.insert(id, definition); },
+            SourceMaterialDefinition::Redirect(target) => { redirects.insert(id, target); },
+            SourceMaterialDefinition::Disabled => {},
+        }
+    }
+    redirects.retain(|_, target| materials.contains_key(target));
+    Ok((materials, redirects))
 }
 
 /// Source MaterialStatsManager merges stat objects by stat ID and field,
@@ -549,6 +578,20 @@ pub(super) fn source_supported_original_parts(
         result.insert("tconstruct:repair_kit".into());
     }
     result
+}
+
+/// FakeIngotItem.hasItem examines the visible material-recipe cache for the
+/// base MaterialId (not its variants), dividing Java float values. The caller
+/// must resolve the material tag and provide precisely that filtered cache.
+#[allow(dead_code)]
+pub(super) fn source_fake_material_allowed(
+    in_material_tag: bool,
+    visible_base_recipes: &[(i32, i32)],
+    repair_amount: f32,
+) -> bool {
+    in_material_tag && !visible_base_recipes.iter().any(|&(value, needed)| {
+        value as f32 / needed as f32 == repair_amount
+    })
 }
 fn source_variant_matches(expected: &str, actual: &str) -> bool {
     let (base, variant) = expected.split_once('#').unwrap_or((expected, ""));
@@ -876,6 +919,8 @@ mod tests {
         let or = SourceCondition::parse(&serde_json::json!({"type":"forge:or", "values":[{"type":"mantle:tag_filled","tag":"test:missing"}, {"type":"mantle:tag_filled","tag":"minecraft:planks"}]})).unwrap();
         assert_eq!(or.matches(&registries, &config), Some(true));
         let other = SourceCondition::parse(&serde_json::json!({"type":"mantle:tag_filled", "registry":"minecraft:instrument", "tag":"minecraft:planks"})).unwrap();
+        assert_eq!(other.matches(&registries, &config), None);
+        registries.insert("minecraft:instrument".into(), Default::default());
         assert_eq!(other.matches(&registries, &config), Some(false));
         let configured = SourceCondition::parse(&serde_json::json!({"type":"tconstruct:config", "prop":"FORCE_INTEGRATION_MATERIALS"})).unwrap();
         assert_eq!(configured.matches(&registries, &config), None);
@@ -1118,7 +1163,8 @@ mod tests {
         for key in ["spawn_with_book", "gravel_to_flint", "cheaper_netherite_alloy", "wither_bone_drop", "wither_bone_conversion", "slime_recipe_fix", "glass_recipe_fix", "allow_ingotless_alloys", "force_integration_materials", "slimy_loot_chests", "sync_knockback_resistance"] {
             config.insert(key.to_owned(), true);
         }
-        let registries = Default::default();
+        let registries = ["minecraft:item", "minecraft:fluid"].into_iter()
+            .map(|id| (id.to_owned(), Default::default())).collect();
         let mut count = 0;
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).unwrap();
@@ -1167,6 +1213,34 @@ mod tests {
         assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Disabled));
         config.insert("force_integration_materials".into(), true);
         assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Material { craftable:false, hidden:false, tier:5, sort_order:100, rarity:"epic".into() }));
+    }
+
+    #[test]
+    fn source_world_material_registry_uses_last_layer_and_validates_redirects() {
+        let mut files = std::collections::BTreeMap::new();
+        files.insert("test:tinkering/materials/definition/a".into(), vec![
+            br#"{"craftable":false}"#.to_vec(), br#"{"craftable":true}"#.to_vec(),
+        ]);
+        files.insert("test:tinkering/materials/definition/alias".into(), vec![
+            br#"{"redirect":[{"id":"test:a"}]}"#.to_vec(),
+        ]);
+        files.insert("test:tinkering/materials/definition/bad_alias".into(), vec![
+            br#"{"redirect":[{"id":"test:missing"}]}"#.to_vec(),
+        ]);
+        let (materials, redirects) = source_material_registry(&files, &Default::default(), &Default::default(), true).unwrap();
+        assert!(matches!(materials.get("test:a"), Some(SourceMaterialDefinition::Material { craftable:true, .. })));
+        assert_eq!(redirects.get("test:alias").map(String::as_str), Some("test:a"));
+        assert!(!redirects.contains_key("test:bad_alias"));
+        assert_eq!(source_material_registry(&files, &Default::default(), &Default::default(), false), Err(SourceLookupError::IncompleteContext));
+    }
+
+    #[test]
+    fn source_fake_material_checks_tag_and_visible_base_recipe_ratio() {
+        assert!(!source_fake_material_allowed(false, &[], 1.0));
+        assert!(source_fake_material_allowed(true, &[], 1.0));
+        assert!(!source_fake_material_allowed(true, &[(2, 2)], 1.0));
+        assert!(source_fake_material_allowed(true, &[(2, 2)], 9.0));
+        assert!(!source_fake_material_allowed(true, &[(18, 2)], 9.0));
     }
 
     #[test]

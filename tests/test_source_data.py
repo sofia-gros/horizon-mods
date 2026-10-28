@@ -17,6 +17,7 @@ class VanillaTags(unittest.TestCase):
             jar = root / 'client.jar'
             with zipfile.ZipFile(jar, 'w') as archive:
                 archive.writestr('data/minecraft/tags/items/planks.json', '{"values":[]}')
+                archive.writestr('data/minecraft/tags/fluids/water.json', '{"values":[]}')
                 archive.writestr('data/minecraft/recipes/stick.json', '{"type":"minecraft:crafting_shaped"}')
                 archive.writestr('assets/irrelevant', 'ignore')
             digest = hashlib.sha1(jar.read_bytes()).hexdigest()
@@ -24,7 +25,8 @@ class VanillaTags(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'does not match'):
                 module.extract(jar, out)
             self.assertFalse(out.exists())
-            self.assertEqual(module.extract(jar, out, digest), 2)
+            self.assertEqual(module.extract(jar, out, digest), 3)
+            self.assertTrue((out / 'data/minecraft/tags/fluids/water.json').is_file())
             self.assertEqual((out / 'data/minecraft/tags/items/planks.json').read_text(), '{"values":[]}')
             self.assertTrue((out / 'data/minecraft/recipes/stick.json').is_file())
             with self.assertRaisesRegex(ValueError, 'already exists'):

@@ -19,6 +19,7 @@ p.add_argument('--lookup-test', action='store_true')
 p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--choices-test', action='store_true')
 p.add_argument('--world-tags-test', action='store_true')
+p.add_argument('--world-fluid-tags-test', action='store_true')
 p.add_argument('--world-config-test', action='store_true')
 p.add_argument('--pattern-atlas-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
@@ -56,6 +57,10 @@ def pack(g, name, marker):
         path = base / 'data/minecraft/tags/items/oak_logs.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({'replace': True, 'values': ['minecraft:oak_log' if name == 'a' else 'minecraft:stripped_oak_log']}))
+    if a.world_fluid_tags_test:
+        path = base / 'data/forge/tags/fluids/creosote.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'replace': True, 'values': ['minecraft:water' if name == 'a' else 'minecraft:lava']}))
 
 def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True, choice_layer="base", config_expected="default"):
     # The fixture is the inner RETURN modifier, so it observes the previous
@@ -84,6 +89,10 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 elif vanilla_enabled: expected_oak = 'true true true'
                 else: expected_oak = 'false false true'
                 assert values and values[-1] == expected_oak, (values, expected_oak)
+            if a.world_fluid_tags_test:
+                values = [line.split('TCONSTRUCT_RESOLVED_CREOSOTE ', 1)[1] for line in lines if 'TCONSTRUCT_RESOLVED_CREOSOTE ' in line]
+                expected_fluids = {'base': 'false false', 'a': 'true false', 'b': 'false true'}[choice_layer]
+                assert values and values[-1] == expected_fluids, (values, expected_fluids)
             if a.world_config_test:
                 configs = [line.split('TCONSTRUCT_CONFIG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_CONFIG_PROBE ' in line]
                 assert configs and (configs[-1] == 'false true' if config_expected == 'default' else configs[-1].startswith('unsupported ')), configs
