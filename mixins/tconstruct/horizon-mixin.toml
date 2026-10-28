@@ -29,9 +29,17 @@ bindings = [
 ]
 
 [[injection]]
-id = "broken"
-target = "horizon_client::game::Game<'_>::break_block_as_player"
+id = "broken-speed"
+target = "horizon_items::items::Items::mining_speed"
 kind = "HEAD"
 cancellable = true
-helper = "broken.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+helper = "broken-speed.rs"
+bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
+
+[[injection]]
+id = "broken-harvest"
+target = "horizon_items::items::Items::correct_for_drops"
+kind = "HEAD"
+cancellable = true
+helper = "broken-harvest.rs"
+bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]

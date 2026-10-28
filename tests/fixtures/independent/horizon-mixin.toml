@@ -1,0 +1,14 @@
+[mod]
+id = "independent_fixture"
+version = "0.1.0"
+priority = 10
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "atan-probe"
+target = "horizon_core::jmath::atan"
+kind = "HEAD"
+helper = "probe.rs"
+bindings = [{ name = "value", ty = "f64", value = "x" }]

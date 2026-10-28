@@ -29,7 +29,8 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items[names[-1]]['minecraft:max_damage'], 85)
             self.assertEqual(items[names[-1]]['minecraft:tool']['rules'][-1]['speed'], 3.5)
             self.assertEqual(len({ids[name]['protocol_id'] for name in names}), 4)
-            self.assertTrue((out / 'assets').is_symlink())
+            self.assertTrue((out / 'assets/tconstruct/textures').is_symlink())
+            self.assertEqual(items[names[-1]]['minecraft:item_model'], names[-1])
             rejected = subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], capture_output=True)
             self.assertNotEqual(rejected.returncode, 0)
 

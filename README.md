@@ -13,12 +13,11 @@ into a flint pick head, wood binding and wood handle with `/tconstruct parts`.
 `/tconstruct assemble` consumes those parts and produces a flint pickaxe.
 The pickaxe mines stone, loses one durability per non-instant block, and its
 item ID and damage survive a save and reload. At 85 damage it remains in the
-inventory and cannot mine. Its current appearance uses the vanilla stone
-pickaxe model, not a composed Tinkers texture. [Game screenshot](docs/game-smoke.png).
+inventory and mines slowly. Its model uses the original flint head and wood
+handle and binding textures, composed for this fixed material combination. [Game screenshot](docs/game-smoke.png).
 
 This is a narrow prototype: its command-based crafting is not the original
-station UI, parts do not retain independent material data, and a broken tool
-stops mining rather than mining slowly as in the original. Other game modes,
+station UI, parts do not retain independent material data, and the prototype does not yet represent other material combinations. Other game modes,
 multiplayer, repair and traits are not verified.
 
 ## Requirements and setup
@@ -47,8 +46,8 @@ and runs the Mixins CLI. It refuses an existing export; remove only your own
 generated `target/original` when deliberately regenerating. Resource preparation
 creates a separate overlay with links to the supplied base resources; keep the
 base available. It refuses an existing destination. Generated trees and worlds
-are not distributed. The prototype uses vanilla placeholder models, not the
-original Tinkers artwork.
+are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
+are included in the distribution.
 
 For the automated single-player game smoke test, run the following under a working
 X11/Vulkan display (software Vulkan and Xvfb also work):
@@ -63,7 +62,7 @@ The script creates a fresh world under `target/`, checks consumption and
 mining wear, saves, and writes a screenshot there. The independent save/reload
 and broken-state checks are described in [validation](docs/validation.md).
 
-See [coverage and roadmap](docs/roadmap.md) for scope and validation status.
+See the [feature matrix](docs/feature-matrix.md) and [roadmap](docs/roadmap.md) for scope and validation status.
 
 ## Provenance and recovery
 

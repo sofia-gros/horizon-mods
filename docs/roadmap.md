@@ -8,8 +8,8 @@ implementation; the archived Wasm work is not evidence of coverage here.
 | --- | --- | --- |
 | Material and part creation | Prototype, verified in single-player | Flint and wood only; add patterns, recipes and Part Builder UI |
 | Pickaxe assembly | Prototype, verified in single-player | Replace command flow with Tinker Station; persist actual component state |
-| Mining and durability | Prototype, verified in single-player | Implement original broken behavior, repair and traits |
-| Rendering and tooltip | Placeholder, verified in single-player | Replace vanilla placeholder models with licensed part-composed visuals |
+| Mining and durability | Prototype, verified in single-player | Extend broken-state parity, repair and traits |
+| Rendering and tooltip | Fixed-material original textures, verified in single-player | Add material-specific combinations, broken appearance and tooltips |
 | Other tools, materials and modifiers | Not implemented | Add definitions, stat aggregation, traits and modifiers with reference tests |
 | Stations and crafting | Not implemented | Part Builder, Tinker Station, recipes, repair and modification |
 | Smeltery and foundry | Not implemented | Fluids, melting, casting, multiblocks and interaction |

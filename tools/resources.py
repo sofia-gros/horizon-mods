@@ -13,8 +13,18 @@ if out.exists() or out.is_relative_to(src) or src.is_relative_to(out):
     p.error('output must not exist and must be separate from source')
 out.mkdir(parents=True)
 for path in src.iterdir():
-    if path.name not in {'items.json', 'registries.json', 'command-registries.json'}:
+    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'assets'}:
         (out / path.name).symlink_to(path, target_is_directory=path.is_dir())
+assets = out / 'assets'
+assets.mkdir()
+for namespace in (src / 'assets').iterdir():
+    if namespace.name != 'tconstruct':
+        (assets / namespace.name).symlink_to(namespace, target_is_directory=namespace.is_dir())
+mod_assets = assets / 'tconstruct'
+mod_assets.mkdir()
+(mod_assets / 'textures').symlink_to(Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures', target_is_directory=True)
+(mod_assets / 'items').mkdir()
+(mod_assets / 'models/item').mkdir(parents=True)
 items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
@@ -25,6 +35,11 @@ entries = [
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     item['minecraft:item_name'] = {'text': title}
+    short = name.split(':')[1]
+    item['minecraft:item_model'] = name
+    layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short == 'flint_pickaxe' else [short]
+    (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
+    (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps({'parent': 'minecraft:item/handheld' if short == 'flint_pickaxe' else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}))
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5
