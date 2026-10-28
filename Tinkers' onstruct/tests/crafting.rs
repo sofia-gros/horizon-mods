@@ -36,6 +36,52 @@ fn insufficient_or_unknown_inputs_are_rejected_without_mutation() {
 }
 
 #[test]
+fn replacement_rebuilds_stats_and_preserves_or_clamps_damage() {
+    use tconstruct_horizon::crafting::{Part, plan_part_replacement};
+    let catalog = Catalog::embedded().unwrap();
+    let mut tool = ToolState::pickaxe(["flint", "wood", "wood"]);
+    tool.damage_points(&catalog, 70).unwrap();
+    let replacement = Part {
+        kind: PartKind::Head,
+        material: "tconstruct:wood".into(),
+    };
+    let result = plan_part_replacement(&catalog, &tool, &replacement).unwrap();
+    let maximum = catalog
+        .evaluate(&result)
+        .unwrap()
+        .stats
+        .durability()
+        .unwrap();
+    assert_eq!(result.damage, 70.min(maximum));
+    assert_eq!(result.broken, 70 >= maximum);
+    assert_eq!(
+        result.materials,
+        ["tconstruct:wood", "tconstruct:wood", "tconstruct:wood"]
+    );
+    assert_eq!(tool.materials[0], "tconstruct:flint");
+    assert_eq!(tool.damage, 70);
+    let unknown = Part {
+        kind: PartKind::Binding,
+        material: "tconstruct:unknown".into(),
+    };
+    assert!(plan_part_replacement(&catalog, &tool, &unknown).is_err());
+}
+
+#[test]
+fn broken_tool_increased_maximum_is_rejected_without_losing_broken_state() {
+    use tconstruct_horizon::crafting::{Part, plan_part_replacement};
+    let catalog = Catalog::embedded().unwrap();
+    let mut tool = ToolState::pickaxe(["wood", "wood", "wood"]);
+    tool.damage_points(&catalog, u32::MAX).unwrap();
+    let part = Part {
+        kind: PartKind::Head,
+        material: "tconstruct:flint".into(),
+    };
+    assert!(plan_part_replacement(&catalog, &tool, &part).is_err());
+    assert!(tool.broken);
+}
+
+#[test]
 fn part_costs_match_pinned_java_method() {
     let fixture: serde_json::Value =
         serde_json::from_str(include_str!("fixtures/part-cost-oracle.json")).unwrap();
