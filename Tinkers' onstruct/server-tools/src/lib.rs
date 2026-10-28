@@ -223,14 +223,14 @@ mod adapter {
                 "Part Builder",
                 &path,
                 &tags,
-                r##"{"width":176,"height":166,"slots":[{"id":"pattern","x":8,"y":47,"role":"input","accepts":["tconstruct:pattern"]},{"id":"material","x":30,"y":47,"role":"input","accepts":["minecraft:flint","#minecraft:planks"]},{"id":"result","x":134,"y":47,"role":"output"}],"elements":[{"type":"button","id":"head","x":8,"y":18,"width":36,"height":14,"text":"Head"},{"type":"button","id":"handle","x":47,"y":18,"width":40,"height":14,"text":"Handle"},{"type":"button","id":"binding","x":90,"y":18,"width":42,"height":14,"text":"Binding"}]}"##,
+                r##"{"width":176,"height":184,"slots":[{"id":"pattern","x":8,"y":43,"role":"input","accepts":["tconstruct:pattern"],"background":false},{"id":"material","x":29,"y":43,"role":"input","accepts":["minecraft:flint","#minecraft:planks"],"background":false},{"id":"result","x":148,"y":42,"role":"output","background":false}],"elements":[{"type":"image","x":0,"y":0,"width":176,"height":184,"texture":"tconstruct:gui/part_builder","region":[0,0,176,184]},{"type":"button","id":"head","x":51,"y":15,"width":18,"height":18,"text":"H","images":{"normal":"tconstruct:gui/part_builder","regions":{"normal":[176,15,18,18],"selected":[176,33,18,18],"hover":[176,51,18,18]}}},{"type":"button","id":"handle","x":69,"y":15,"width":18,"height":18,"text":"R","images":{"normal":"tconstruct:gui/part_builder","regions":{"normal":[176,15,18,18],"selected":[176,33,18,18],"hover":[176,51,18,18]}}},{"type":"button","id":"binding","x":87,"y":15,"width":18,"height":18,"text":"B","images":{"normal":"tconstruct:gui/part_builder","regions":{"normal":[176,15,18,18],"selected":[176,33,18,18],"hover":[176,51,18,18]}}}],"player_inventory":{"x":8,"y":102}}"##,
             )?;
             workstations::register_gui(
                 "tconstruct:tinker_station",
                 "Tinker Station",
                 &path,
                 &tags,
-                r##"{"width":176,"height":166,"slots":[{"id":"first","x":8,"y":47,"role":"input"},{"id":"second","x":30,"y":47,"role":"input"},{"id":"third","x":52,"y":47,"role":"input"},{"id":"result","x":134,"y":47,"role":"output"}],"elements":[]}"##,
+                r##"{"width":176,"height":184,"slots":[{"id":"first","x":53,"y":22,"role":"input"},{"id":"second","x":15,"y":60,"role":"input"},{"id":"third","x":33,"y":42,"role":"input"},{"id":"result","x":114,"y":38,"role":"output","background":false}],"elements":[{"type":"image","x":0,"y":0,"width":176,"height":184,"texture":"tconstruct:gui/tinker","region":[0,0,176,184]}],"player_inventory":{"x":8,"y":102,"background":false}}"##,
             )?;
             Ok((
                 Self(Catalog::embedded()?),
@@ -286,7 +286,8 @@ mod adapter {
                     &tool.item,
                     tool.count,
                     &replacement,
-                )?).into(),
+                )?)
+                .into(),
             }))
         }
         fn gui_workstation_preview(
