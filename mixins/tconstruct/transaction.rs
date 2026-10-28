@@ -488,6 +488,57 @@ pub(super) fn source_material_lookup(
     Ok(None)
 }
 
+/// Read the original ToolPartsHook from the highest-priority definition.
+/// The caller must have fully decoded the definition and validated every
+/// module, hook and item against the actual world registries first. This
+/// helper does not substitute a list of guessed module implementations.
+#[allow(dead_code)]
+pub(super) fn source_tool_parts_hook(
+    layers: &[Vec<u8>], definition_validated: bool,
+    module_defaults: &std::collections::HashMap<String, bool>,
+    registered_parts: &std::collections::HashSet<String>,
+) -> Result<Vec<String>, SourceLookupError> {
+    if !definition_validated { return Err(SourceLookupError::IncompleteContext); }
+    let bytes = layers.last().ok_or(SourceLookupError::IncompleteContext)?;
+    let value: serde_json::Value = serde_json::from_slice(bytes).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+    let modules = match value.get("modules") {
+        None => return Ok(Vec::new()),
+        Some(value) => value.as_array().ok_or(SourceLookupError::UnsupportedRecipe)?,
+    };
+    let mut result = None;
+    for module in modules {
+        let object = module.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let typ = object.get("type").and_then(serde_json::Value::as_str).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let default = *module_defaults.get(typ).ok_or(SourceLookupError::IncompleteContext)?;
+        let hooks = match object.get("hooks") {
+            None => Vec::new(),
+            Some(value) => value.as_array().ok_or(SourceLookupError::UnsupportedRecipe)?.iter()
+                .map(|hook| hook.as_str().ok_or(SourceLookupError::UnsupportedRecipe)).collect::<Result<Vec<_>,_>>()?,
+        };
+        let supplies_parts = if hooks.is_empty() { default } else { hooks.contains(&"tconstruct:tool_parts") };
+        if !supplies_parts { continue; }
+        if !matches!(typ, "tconstruct:part_stats" | "tconstruct:tool_parts") { return Err(SourceLookupError::IncompleteContext); }
+        let parts = object.get("parts").and_then(serde_json::Value::as_array).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if parts.is_empty() { return Err(SourceLookupError::UnsupportedRecipe); }
+        let mut resolved = Vec::new();
+        for part in parts {
+            let name = part.as_str().or_else(|| part.get("item").and_then(serde_json::Value::as_str)).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let id = super::tconstruct_source_render_info::material_id(name).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            if id.contains('#') { return Err(SourceLookupError::UnsupportedRecipe); }
+            if !registered_parts.contains(&id) { return Err(SourceLookupError::IncompleteContext); }
+            resolved.push(id);
+        }
+        if let Some((previous_type, previous_parts)) = &result {
+            // PartsModule is a Java record: LinkedHashMultimap collapses
+            // identical modules, whereas PartStatsModule uses identity.
+            if typ == "tconstruct:tool_parts" && previous_type == typ && previous_parts == &resolved { continue; }
+            return Err(SourceLookupError::UnsupportedRecipe);
+        }
+        result = Some((typ.to_owned(), resolved));
+    }
+    Ok(result.map(|(_, parts)| parts).unwrap_or_default())
+}
+
 /// Original PartBuilderRecycle, which can expose several patterns from one
 /// input. Random leftover choice and world item/ingredient validation are
 /// separate dependencies and are not connected to gameplay.
@@ -647,6 +698,30 @@ impl SourceToolRecyclingRecipe {
         }
         if unknown { None } else { Some(true) }
     }
+}
+
+/// Enumerate the material-supported patterns for the original tool recycler.
+/// `materials` must already be decoded as original MaterialVariantIds and
+/// `supported` must come from the validated world material-stat registry.
+#[allow(dead_code)]
+pub(super) fn source_tool_recycling_patterns(
+    recipe: &SourceToolRecyclingRecipe, tool_parts: Option<&[String]>, materials: &[String],
+    supported: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    complete: bool,
+) -> Result<Vec<String>, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let parts = if recipe.parts.is_empty() { tool_parts.ok_or(SourceLookupError::IncompleteContext)? } else { &recipe.parts };
+    let mut seen = std::collections::HashSet::new();
+    let mut result = Vec::new();
+    for (index, part) in parts.iter().enumerate() {
+        if part == "minecraft:air" { continue; }
+        let material = materials.get(index).map(String::as_str).unwrap_or("tconstruct:unknown");
+        let normalized = super::tconstruct_source_render_info::material_id(material).ok_or(SourceLookupError::IncompleteContext)?;
+        let base = normalized.split_once('#').map_or(normalized.as_str(), |(base, _)| base);
+        let allowed = supported.get(base).ok_or(SourceLookupError::IncompleteContext)?;
+        if allowed.contains(part) && seen.insert(part.clone()) { result.push(part.clone()); }
+    }
+    Ok(result)
 }
 
 /// Parsed source PartRecipe and ItemPartRecipe. Item registry validation,
@@ -1743,6 +1818,46 @@ mod tests {
     }
 
     #[test]
+    fn source_tool_parts_hook_uses_overrides_and_validated_modules() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
+            .map(|p| p.join("content/reference/tconstruct-tool-definitions.zip"))
+            .find(|p| p.is_file()).expect("pinned tool definitions archive");
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut definitions = std::collections::HashMap::new();
+        let mut defaults = std::collections::HashMap::new();
+        let mut parts = std::collections::HashSet::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).unwrap();
+            let name = file.name().to_owned(); let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
+            let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+            for module in value["modules"].as_array().unwrap() {
+                let typ = module["type"].as_str().unwrap();
+                let supplies = matches!(typ, "tconstruct:part_stats" | "tconstruct:tool_parts");
+                defaults.insert(typ.to_owned(), supplies);
+                if supplies { for part in module["parts"].as_array().unwrap() {
+                    parts.insert(part.as_str().or_else(|| part["item"].as_str()).unwrap().to_owned());
+                }}
+            }
+            definitions.insert(name, bytes);
+        }
+        assert_eq!(definitions.len(), 45);
+        let get = |name: &str| vec![definitions[&format!("data/tconstruct/tinkering/tool_definitions/{name}.json")].clone()];
+        assert_eq!(source_tool_parts_hook(&get("pickaxe"), true, &defaults, &parts).unwrap(), vec!["tconstruct:pick_head", "tconstruct:tool_handle", "tconstruct:tool_binding"]);
+        assert_eq!(source_tool_parts_hook(&get("broad_axe"), true, &defaults, &parts).unwrap(), vec!["tconstruct:broad_axe_head", "tconstruct:tough_handle", "tconstruct:pick_head", "tconstruct:tough_binding"]);
+        assert_eq!(source_tool_parts_hook(&get("plate_shield"), true, &defaults, &parts).unwrap(), vec!["tconstruct:shield_core"]);
+        assert_eq!(source_tool_parts_hook(&get("pickaxe"), false, &defaults, &parts), Err(SourceLookupError::IncompleteContext));
+        let mut missing = parts.clone(); missing.remove("tconstruct:pick_head");
+        assert_eq!(source_tool_parts_hook(&get("pickaxe"), true, &defaults, &missing), Err(SourceLookupError::IncompleteContext));
+        let disabled = serde_json::to_vec(&serde_json::json!({"modules":[{"type":"tconstruct:tool_parts", "parts":["tconstruct:pick_head"], "hooks":["tconstruct:tool_stats"]}]})).unwrap();
+        assert!(source_tool_parts_hook(&[get("pickaxe")[0].clone(), disabled], true, &defaults, &parts).unwrap().is_empty());
+        let duplicate = serde_json::to_vec(&serde_json::json!({"modules":[{"type":"tconstruct:tool_parts", "parts":["tconstruct:pick_head"]},{"type":"tconstruct:tool_parts", "parts":["tconstruct:tool_handle"]}]})).unwrap();
+        assert_eq!(source_tool_parts_hook(&[duplicate], true, &defaults, &parts), Err(SourceLookupError::UnsupportedRecipe));
+        let identical = serde_json::to_vec(&serde_json::json!({"modules":[{"type":"tconstruct:tool_parts", "parts":["tconstruct:pick_head"]},{"type":"tconstruct:tool_parts", "parts":["tconstruct:pick_head"]}]})).unwrap();
+        assert_eq!(source_tool_parts_hook(&[identical], true, &defaults, &parts).unwrap(), vec!["tconstruct:pick_head"]);
+    }
+
+    #[test]
     fn pinned_vanilla_recycling_preserves_patterns_damage_and_conditions() {
         use std::io::Read;
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
@@ -1772,9 +1887,54 @@ mod tests {
         assert_eq!(actual_choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), vec!["tconstruct:ingot", "tconstruct:shard"]);
         assert_eq!(recipes.len(), 37);
         assert_eq!(tool_recipes.len(), 15);
+        let material_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
+            .map(|p| p.join("content/reference/tconstruct-materials.zip"))
+            .find(|p| p.is_file()).expect("pinned material archive");
+        let mut material_archive = zip::ZipArchive::new(std::fs::File::open(material_path).unwrap()).unwrap();
+        let tier_names = ["wood", "stone", "iron", "gold", "diamond", "netherite"].into_iter().map(|id| format!("minecraft:{id}")).collect();
+        let tiers = super::super::tconstruct_source_stat_types::TierRegistry { names: &tier_names, complete: false };
+        let mut supported: std::collections::HashMap<String, std::collections::HashSet<String>> = Default::default();
+        for id in ["flint", "wood"] {
+            let mut file = material_archive.by_name(&format!("data/tconstruct/tinkering/materials/stats/{id}.json")).unwrap();
+            let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
+            let merged = source_merge_material_stats(&[bytes]).unwrap();
+            let validated = super::super::tconstruct_source_stat_types::validate_builtin_stats(&merged, Some(&tiers)).unwrap();
+            let stat_ids = validated.keys().cloned().collect();
+            supported.insert(format!("tconstruct:{id}"), source_supported_original_parts(&stat_ids, validated.values().any(|repairable| *repairable)));
+        }
+        supported.insert("tconstruct:unknown".into(), Default::default());
+        let travelers = tool_recipes.values().find(|r| r.parts == ["tconstruct:repair_kit", "tconstruct:repair_kit"]).unwrap();
+        assert_eq!(source_tool_recycling_patterns(travelers, None, &["tconstruct:flint".into(), "tconstruct:wood#warped".into()], &supported, true).unwrap(), vec!["tconstruct:repair_kit"]);
+        assert_eq!(source_tool_recycling_patterns(travelers, None, &[], &supported, true).unwrap(), Vec::<String>::new());
+        assert_eq!(source_tool_recycling_patterns(travelers, None, &[], &Default::default(), true), Err(SourceLookupError::IncompleteContext));
         let dagger = tool_recipes.values().find(|recipe| recipe.amount_needed == 2).unwrap();
         assert!(!dagger.partial_match("tconstruct:venom_bottle", "tconstruct:dagger", 1, &Default::default(), &Default::default(), &Default::default()));
         assert!(dagger.partial_match("tconstruct:venom_bottle", "tconstruct:dagger", 2, &Default::default(), &Default::default(), &Default::default()));
+        let tool_parts = ["tconstruct:pick_head".to_owned(), "tconstruct:tool_handle".to_owned(), "tconstruct:tool_binding".to_owned()];
+        let materials = ["tconstruct:flint".to_owned(), "tconstruct:wood#warped".to_owned(), "tconstruct:wood".to_owned()];
+        assert_eq!(source_tool_recycling_patterns(dagger, Some(&tool_parts), &materials, &supported, true).unwrap(), tool_parts);
+        assert_eq!(source_tool_recycling_patterns(dagger, None, &materials, &supported, true), Err(SourceLookupError::IncompleteContext));
+        // Controlled end-to-end source-data context: original definition,
+        // original material stat loaders and original general recycling recipe.
+        let tool_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
+            .map(|p| p.join("content/reference/tconstruct-tool-definitions.zip"))
+            .find(|p| p.is_file()).expect("pinned tool archive");
+        let mut tool_archive = zip::ZipArchive::new(std::fs::File::open(tool_path).unwrap()).unwrap();
+        let mut file = tool_archive.by_name("data/tconstruct/tinkering/tool_definitions/pickaxe.json").unwrap();
+        let mut definition = Vec::new(); file.read_to_end(&mut definition).unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&definition).unwrap();
+        let defaults = json["modules"].as_array().unwrap().iter().map(|module| {
+            let id = module["type"].as_str().unwrap();
+            (id.to_owned(), matches!(id, "tconstruct:part_stats" | "tconstruct:tool_parts"))
+        }).collect();
+        let registered = tool_parts.iter().cloned().collect();
+        let hooks = source_tool_parts_hook(&[definition], true, &defaults, &registered).unwrap();
+        let general = &tool_recipes["tconstruct:tools/recycling/general"];
+        let patterns = source_tool_recycling_patterns(general, Some(&hooks), &materials, &supported, true).unwrap();
+        let pattern_context = [(general.id.clone(), patterns)].into_iter().collect();
+        let tags = [("tconstruct:modifiable/multipart".to_owned(), ["tconstruct:pickaxe".to_owned()].into_iter().collect())].into_iter().collect();
+        let choices = source_all_part_choices(&raw_recipes, "tconstruct:venom_bottle", &SourcePartInput::Invalid, "tconstruct:pickaxe", 1, &tags, &Default::default(), &Default::default(), &Default::default(), &Default::default(), Some(&Default::default()), Some(&pattern_context), true).unwrap();
+        assert_eq!(choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), vec!["tconstruct:pick_head", "tconstruct:tool_binding", "tconstruct:tool_handle"]);
         let recipe = &recipes["tconstruct:tables/recycling/flint_and_steel"];
         let tags = Default::default(); let instruments = Default::default(); let instrument_tags = Default::default();
         assert!(recipe.partial_match("tconstruct:venom_bottle", "minecraft:flint_and_steel", &tags, &instruments, &instrument_tags));

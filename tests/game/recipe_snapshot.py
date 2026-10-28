@@ -55,7 +55,7 @@ def pack(g, name, marker):
     if a.material_pack_test:
         path = base / 'data/tconstruct/tinkering/tool_definitions/pickaxe.json'
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({'marker': marker}))
+        path.write_text(json.dumps({'marker': marker, 'modules': [{'type': 'tconstruct:tool_parts', 'parts': ['tconstruct:shield_core']}]}))
     if a.choices_test:
         original = Path(__file__).resolve().parents[2] / 'content/data/tconstruct/recipes/tools/parts/builder/pick_head.json'
         recipe = json.loads(original.read_text())
@@ -182,6 +182,8 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 assert material_last('TCONSTRUCT_MATERIAL_WOOD_PROBE ') == '89e9d6af86e89ee4fb6079aa540323104c4afbe11784f5dca9c935ea7381b453'
                 source_tool = '21a82245cb76e6425ba177a90d963145afadda0f2e7c1be7fbbdf8b7313e1810'
                 assert material_last('TCONSTRUCT_TOOL_DEFINITION_PROBE ') == (source_tool if expected == 'source-layer' else expected)
+                source_parts = 'tconstruct:pick_head,tconstruct:tool_handle,tconstruct:tool_binding'
+                assert material_last('TCONSTRUCT_TOOL_PARTS_PROBE ') == (source_parts if expected == 'source-layer' else 'tconstruct:shield_core')
             if a.choices_test:
                 empty = [line.split('TCONSTRUCT_CHOICES_EMPTY ', 1)[1] for line in lines if 'TCONSTRUCT_CHOICES_EMPTY ' in line]
                 wood = [line.split('TCONSTRUCT_CHOICES_WOOD ', 1)[1] for line in lines if 'TCONSTRUCT_CHOICES_WOOD ' in line]

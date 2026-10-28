@@ -129,6 +129,10 @@ random leftovers, actual inventory transactions or GUI selection.
 `PartBuilderRecycle.java` and `PartBuilderToolRecycle.java` remain the
 reference for durability scaling, modifier/enchantment restrictions, output
 selection and leftovers; the prototype is not gameplay parity.
+For recycling leftovers, `PartBuilderRecycle` iterates the decoded result
+map and chooses an alternative using `TConstruct.RANDOM.nextInt`; the original
+uses a shared `java.util.Random` and Mantle builds the result with `Map.copyOf`.
+Neither map iteration nor the original random call sequence is ported yet.
 The source recycling recipes use `TinkerFluids.venomBottle`: it has a
 16-item stack limit, glass-bottle crafting remainder, venom fluid content and
 food effects. It is not yet registered, so a controlled fixture input does not
@@ -145,8 +149,14 @@ byte; the world snapshot keeps their ordered pack layers. The original loader
 selects the highest priority file and only applies it to registered tool
 definitions. An independent fixture tested the original pickaxe bytes and
 world-pack priority, disable, reload and two-world isolation in both game
-modes. Module decoding, registered tool validation, material-dependent
-pattern enumeration and gameplay integration remain unfinished.
+modes. Full module decoding, registered tool validation and gameplay
+integration remain unfinished. A test-only
+ToolPartsHook extractor accepts a separately validated module/item context,
+and the recycling pattern helper accepts separately validated material stats.
+A fixture using a controlled module context and the current item registry
+checked source pickaxe parts and a shield-core datapack override, including
+reload and two worlds, in both game modes. Neither helper is connected to the
+real module registry or player transactions.
 
 The world snapshot also attempts item-tag resolution against the actual
 Horizon item registry. Missing required references omit their tag, while

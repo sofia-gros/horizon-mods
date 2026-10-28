@@ -70,6 +70,19 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         let marker = tool_value.as_ref().and_then(|v| v.get("marker")).and_then(serde_json::Value::as_str).map(str::to_owned)
             .or_else(|| tool.map(|v| format!("{:x}", Sha256::digest(v)))).unwrap_or_else(|| "missing".into());
         eprintln!("TCONSTRUCT_TOOL_DEFINITION_PROBE {marker}");
+        // Test-only context: fixed source fixture modules and registered item
+        // IDs are supplied explicitly; this is not full module validation.
+        let test_parts = tool.and_then(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).ok()).and_then(|value| {
+            let modules = value.get("modules").and_then(serde_json::Value::as_array)?;
+            let mut defaults = std::collections::HashMap::new();
+            for module in modules {
+                let typ = module.get("type")?.as_str()?;
+                defaults.insert(typ.to_owned(), matches!(typ, "tconstruct:part_stats" | "tconstruct:tool_parts"));
+            }
+            let registered = game.res.rest.get()?.items.registry_order.iter().map(|id| id.to_string()).collect();
+            crate::game::tconstruct_tx::source_tool_parts_hook(&[tool?.clone()], true, &defaults, &registered).ok()
+        });
+        eprintln!("TCONSTRUCT_TOOL_PARTS_PROBE {}", test_parts.map_or("unavailable".into(), |parts| parts.join(",")));
     } else { eprintln!("TCONSTRUCT_MATERIAL_PROBE uninitialized"); }
     if let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot() {
         let files = tags.get("test:tinkering/tags/materials/probe").map(|v| v.iter().map(|b| String::from_utf8_lossy(b).into_owned()).collect::<Vec<_>>().join("|"));
