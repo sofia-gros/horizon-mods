@@ -41,6 +41,31 @@ impl SourceFloatStat {
     fn build(&self) -> f32 { (self.base + self.add) * (1.0 + self.percent) * self.multiply }
 }
 
+/// Source head/handle additions for a pickaxe before tiers, modifiers, clamps,
+/// persistence or item components. These remaining stages are not yet ported.
+#[allow(dead_code)]
+struct SourceHeadStats { durability: i32, mining_speed: f32, attack_damage: f32 }
+#[allow(dead_code)]
+struct SourceHandleStats { durability: f32, mining_speed: f32, attack_speed: f32, attack_damage: f32 }
+#[allow(dead_code)]
+fn source_pickaxe_base(head: &SourceHeadStats, handle: &SourceHandleStats) -> [f32; 4] {
+    let mut durability = SourceFloatStat::new(1.0);
+    let mut mining = SourceFloatStat::new(1.0);
+    let mut attack = SourceFloatStat::new(0.0);
+    let mut speed = SourceFloatStat::new(1.0);
+    durability.update(head.durability as f32);
+    mining.update(head.mining_speed);
+    attack.update(head.attack_damage);
+    durability.percent(handle.durability as f64);
+    mining.percent(handle.mining_speed as f64);
+    attack.percent(handle.attack_damage as f64);
+    speed.percent(handle.attack_speed as f64);
+    // `tool_definitions/pickaxe.json`: base stats update after part stats.
+    attack.update(0.5);
+    speed.update(1.2);
+    [durability.build(), mining.build(), attack.build(), speed.build()]
+}
+
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
@@ -207,6 +232,16 @@ mod tests {
         stat.add(5.0);
         stat.multiply(1.5);
         assert_eq!(stat.build(), 114.75);
+    }
+    #[test]
+    fn original_pickaxe_part_stats_preserve_float_precision_before_modifiers() {
+        let flint = SourceHeadStats { durability: 85, mining_speed: 3.5, attack_damage: 1.25 };
+        let wood_handle = SourceHandleStats { durability: 0.0, mining_speed: 0.0, attack_speed: 0.0, attack_damage: 0.0 };
+        assert_eq!(source_pickaxe_base(&flint, &wood_handle), [85.0, 3.5, 1.75, 1.2]);
+        let flint_handle = SourceHandleStats { durability: -0.15, mining_speed: 0.0, attack_speed: 0.0, attack_damage: 0.1 };
+        let stats = source_pickaxe_base(&flint, &flint_handle);
+        assert_eq!(stats[0], 72.25);
+        assert_eq!(stats[2].to_bits(), 0x3ff66667);
     }
     #[test]
     fn original_repair_rounds_count_before_truncating_total() {
