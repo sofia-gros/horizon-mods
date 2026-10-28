@@ -20,6 +20,7 @@ p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--choices-test', action='store_true')
 p.add_argument('--world-tags-test', action='store_true')
 p.add_argument('--world-config-test', action='store_true')
+p.add_argument('--pattern-atlas-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 if a.source_pack_test:
@@ -93,6 +94,12 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                     expect_oak = choice_layer == 'a' or choice_layer == 'base' and vanilla_enabled
                     expected_oak = 'tconstruct:tools/materials/wood/logs/oak tconstruct:wood 4 1' if expect_oak else 'none'
                     assert oak and oak[-1] == expected_oak, (oak, expected_oak)
+                    flint_plan = [line.split('TCONSTRUCT_REAL_PLAN_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_REAL_PLAN_FLINT ' in line]
+                    oak_plan = [line.split('TCONSTRUCT_REAL_PLAN_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_REAL_PLAN_OAK_LOG ' in line]
+                    cost = {'base': 2, 'a': 3, 'b': 1}[choice_layer] if a.choices_test else 2
+                    assert flint_plan and flint_plan[-1] == f'{cost} 1 0', flint_plan
+                    expected_plan = f'1 1 {4 - cost}' if expect_oak else 'none'
+                    assert oak_plan and oak_plan[-1] == expected_plan, (oak_plan, expected_plan)
                 else:
                     assert flint and flint[-1] == 'unavailable', flint
             if a.material_pack_test:
@@ -136,6 +143,16 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
 games = []
 try:
     first = Game(a, run, 'First', in_frame=a.in_frame); games.append(first); first.ready()
+    if a.pattern_atlas_test:
+        first.call('command', 'tp @s 0.5 71 0.5')
+        first.call('command', 'setblock 0 71 2 tconstruct:part_builder')
+        time.sleep(1)
+        first.call('interact', '0', '71', '2')
+        first.call('wait', '5')
+        lines = (first.root / 'game.log').read_text().splitlines()
+        patterns = [line.split('TCONSTRUCT_CLIENT_PATTERN_ATLAS ', 1)[1] for line in lines if 'TCONSTRUCT_CLIENT_PATTERN_ATLAS ' in line]
+        assert patterns and int(patterns[-1]) == 28, patterns
+        first.call('close')
     probe(first, 'source-layer' if a.source_pack_test else 'missing', planks_expected=2 if a.vanilla_pack_test else None, forge_expected=1 if a.forge_pack_test else None)
     if a.source_pack_test:
         first.call('command', 'datapack disable vanilla')

@@ -132,6 +132,20 @@ and default configuration; and rejection of a present common config file.
 Other registries remain incomplete and these contexts are not used for player
 crafting yet.
 
+`source_part_plan` prototypes the source's single-craft arithmetic for the
+two supported recipe serializers: ingredient quantity, default or reusable
+pattern consumption, extra part count and the material leftover descriptor.
+The caller must still revalidate the selected pattern and conditions. Item
+container returns, tag-output resolution, inventory capacity, crafting events,
+sounds and atomic commit are not implemented by this plan; it is not used by
+player gameplay.
+
+The 28 pinned source pattern textures are copied into the client GUI atlas;
+an independent fixture checked their registration when opening the Part Builder
+in both game modes. The current screen does not yet draw these patterns. The
+single-craft plan was also checked with real world tags and default configuration,
+but with controlled material support and craftability; it does not mutate slots.
+
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
 recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
 metadata. `RecipeManager.getRecipeFor` uses the first match in that map's

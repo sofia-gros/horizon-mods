@@ -85,11 +85,23 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
             // complete, so it is not a production crafting context.
             let result = crate::game::tconstruct_tx::source_material_lookup(recipes, item, None, tags, &instruments, &instrument_tags, &registries, config, true);
             match result {
-                Ok(Some(found)) => eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} {} {} {} {}", found.id, found.material, found.value, found.needed),
-                Ok(None) => eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} none"),
-                Err(error) => eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} {error:?}"),
+                Ok(Some(found)) => {
+                    eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} {} {} {} {}", found.id, found.material, found.value, found.needed);
+                    let recipe_id = "tconstruct:tools/parts/builder/pick_head";
+                    let plan = recipes.get(recipe_id).and_then(|bytes| serde_json::from_slice(bytes).ok()).and_then(|value| crate::game::tconstruct_tx::SourcePartRecipe::parse(recipe_id.into(), &value)).and_then(|recipe| {
+                        let supported = ["tconstruct:pick_head".to_owned()].into_iter().collect();
+                        let input = crate::game::tconstruct_tx::SourcePartInput::Material { input_item:item, material:&found.material, craftable:true, supported_outputs:&supported };
+                        crate::game::tconstruct_tx::source_part_plan(&recipe, &input, Some(&found), 3, false).ok().flatten()
+                    });
+                    match plan {
+                        Some(plan) => eprintln!("TCONSTRUCT_REAL_PLAN_{name} {} {} {}", plan.materials_used, plan.pattern_used, plan.leftover.as_ref().map_or(0, |(_, count)| *count)),
+                        None => eprintln!("TCONSTRUCT_REAL_PLAN_{name} unavailable"),
+                    }
+                },
+                Ok(None) => { eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} none"); eprintln!("TCONSTRUCT_REAL_PLAN_{name} none"); },
+                Err(error) => { eprintln!("TCONSTRUCT_REAL_LOOKUP_{name} {error:?}"); eprintln!("TCONSTRUCT_REAL_PLAN_{name} unavailable"); },
             }
         }
-    } else { eprintln!("TCONSTRUCT_REAL_LOOKUP_FLINT unavailable"); eprintln!("TCONSTRUCT_REAL_LOOKUP_OAK_LOG unavailable"); }
+    } else { eprintln!("TCONSTRUCT_REAL_LOOKUP_FLINT unavailable"); eprintln!("TCONSTRUCT_REAL_LOOKUP_OAK_LOG unavailable"); eprintln!("TCONSTRUCT_REAL_PLAN_FLINT unavailable"); eprintln!("TCONSTRUCT_REAL_PLAN_OAK_LOG unavailable"); }
     value
 }

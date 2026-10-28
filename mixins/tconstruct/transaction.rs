@@ -204,10 +204,10 @@ impl SourceCondition {
 /// Source ItemOutput forms in the pinned material recipes. Tag selection and
 /// NBT decoding are deliberately deferred until the world registry is present.
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) enum SourceOutputKind { Item(String), Tag(String) }
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub(super) struct SourceItemOutput { pub kind: SourceOutputKind, pub count: i32, pub nbt: Option<serde_json::Value> }
 #[allow(dead_code)]
 impl SourceItemOutput {
@@ -473,7 +473,7 @@ pub(super) struct SourcePartRecipe {
 }
 #[allow(dead_code)]
 impl SourcePartRecipe {
-    fn parse(id: String, value: &serde_json::Value) -> Option<Self> {
+    pub(super) fn parse(id: String, value: &serde_json::Value) -> Option<Self> {
         let object = value.as_object()?;
         let typ = object.get("type")?.as_str()?;
         let pattern = object.get("pattern")?.as_str()?.to_owned();
@@ -570,6 +570,60 @@ pub(super) fn source_part_choices(
     candidates.retain(|recipe| patterns.insert(recipe.pattern.clone()));
     candidates.sort_by(|a, b| a.cost.cmp(&b.cost).then_with(|| source_id_order(&a.pattern).cmp(&source_id_order(&b.pattern))));
     Ok(candidates)
+}
+
+/// A single source Part Builder craft plan. ItemOutput tag resolution, item
+/// crafting-container returns, inventory capacity, events and atomic commit
+/// are deliberately deferred; this is not used by player gameplay. Callers
+/// must revalidate the pattern and conditions before any eventual commit.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub(super) enum SourcePartOutput {
+    MaterialItem { item: String, material: String, count: i32 },
+    Item { output: SourceItemOutput, count: i32 },
+}
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub(super) struct SourcePartPlan {
+    pub output: SourcePartOutput,
+    pub materials_used: i32,
+    pub pattern_used: i32,
+    pub leftover: Option<(SourceItemOutput, i32)>,
+}
+#[allow(dead_code)]
+pub(super) fn source_part_plan(
+    recipe: &SourcePartRecipe,
+    input: &SourcePartInput<'_>,
+    material: Option<&SourceMaterialMatch>,
+    available: i32,
+    reusable_pattern: bool,
+) -> Result<Option<SourcePartPlan>, SourceLookupError> {
+    let pattern_used = i32::from(!reusable_pattern);
+    match (&recipe.kind, input, material) {
+        (SourcePartKind::Item { material: required, output }, SourcePartInput::Empty, None) if required == "tconstruct:unknown" => {
+            Ok(Some(SourcePartPlan { output: SourcePartOutput::Item { output: output.clone(), count: output.count }, materials_used: 0, pattern_used, leftover: None }))
+        },
+        (kind, SourcePartInput::Material { input_item, material: identity, craftable, supported_outputs }, Some(source)) => {
+            if source.material != *identity { return Err(SourceLookupError::IncompleteContext); }
+            match kind {
+                SourcePartKind::MaterialItem { item, allow_uncraftable, .. } if item == input_item || (!allow_uncraftable && !craftable) || !supported_outputs.contains(item) => return Ok(None),
+                SourcePartKind::Item { material: required, .. } if required == "tconstruct:unknown" || !source_variant_matches(required, identity) => return Ok(None),
+                _ => {},
+            }
+            let (used, remainder) = material_cost(recipe.cost, source.needed, source.value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            if available < used { return Ok(None); }
+            let leftover = source.leftover.as_ref().and_then(|output| output.count_for_remainder(remainder, source.needed).map(|count| (output.clone(), count)));
+            let count = match kind { SourcePartKind::MaterialItem { count, .. } => *count, SourcePartKind::Item { output, .. } => output.count };
+            let count = material_output_count(count, source.value, recipe.cost, source.leftover.is_some()).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            if count <= 0 { return Err(SourceLookupError::UnsupportedRecipe); }
+            let output = match kind {
+                SourcePartKind::MaterialItem { item, .. } => SourcePartOutput::MaterialItem { item: item.clone(), material: source.material.clone(), count },
+                SourcePartKind::Item { output, .. } => SourcePartOutput::Item { output: output.clone(), count },
+            };
+            Ok(Some(SourcePartPlan { output, materials_used: used, pattern_used, leftover }))
+        },
+        _ => Ok(None),
+    }
 }
 
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
@@ -1140,6 +1194,36 @@ mod tests {
         let input = SourcePartInput::Material { input_item:"tconstruct:arrow_head", material:"tconstruct:rock#granite", craftable:false, supported_outputs:&supported };
         let choices = source_part_choices(&recipes, "tconstruct:pattern", &input, &tags, &Default::default(), &Default::default(), &Default::default(), &Default::default(), true).unwrap();
         assert_eq!(choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), ["tconstruct:fixed"]);
+    }
+
+    #[test]
+    fn source_part_plan_calculates_cost_remainders_and_reusable_patterns() {
+        let recipe = SourcePartRecipe::parse("tconstruct:pick_head".into(), &serde_json::json!({"type":"tconstruct:part_builder","pattern":"tconstruct:pick_head","cost":2,"result":{"item":"tconstruct:pick_head"}})).unwrap();
+        let supported = ["tconstruct:pick_head".to_owned()].into_iter().collect();
+        let wood = SourcePartInput::Material { input_item:"minecraft:oak_log", material:"tconstruct:wood", craftable:true, supported_outputs:&supported };
+        let source = SourceMaterialMatch { id:"test:oak_log".into(), material:"tconstruct:wood".into(), value:4, needed:1, leftover:SourceItemOutput::parse(&serde_json::json!("minecraft:oak_planks")) };
+        let plan = source_part_plan(&recipe, &wood, Some(&source), 1, false).unwrap().unwrap();
+        assert_eq!((plan.materials_used, plan.pattern_used), (1, 1));
+        assert_eq!(plan.leftover.as_ref().map(|(_, count)| *count), Some(2));
+        assert_eq!(plan.output, SourcePartOutput::MaterialItem { item:"tconstruct:pick_head".into(), material:"tconstruct:wood".into(), count:1 });
+        assert_eq!(source_part_plan(&recipe, &wood, Some(&source), 0, false).unwrap(), None);
+        assert_eq!(source_part_plan(&recipe, &wood, Some(&source), 1, true).unwrap().unwrap().pattern_used, 0);
+        let no_leftover = SourceMaterialMatch { leftover:None, ..source };
+        let plan = source_part_plan(&recipe, &wood, Some(&no_leftover), 1, false).unwrap().unwrap();
+        assert_eq!(plan.output, SourcePartOutput::MaterialItem { item:"tconstruct:pick_head".into(), material:"tconstruct:wood".into(), count:2 });
+    }
+
+    #[test]
+    fn source_part_plan_handles_no_material_and_item_material_variants() {
+        let free = SourcePartRecipe::parse("test:free".into(), &serde_json::json!({"type":"tconstruct:item_part_builder","pattern":"test:free","result":"minecraft:stick"})).unwrap();
+        let plan = source_part_plan(&free, &SourcePartInput::Empty, None, 0, false).unwrap().unwrap();
+        assert_eq!((plan.materials_used, plan.pattern_used), (0, 1));
+        let recipe = SourcePartRecipe::parse("test:rock".into(), &serde_json::json!({"type":"tconstruct:item_part_builder","pattern":"test:rock","material":"tconstruct:rock","cost":2,"result":"minecraft:stone"})).unwrap();
+        let supported = Default::default();
+        let input = SourcePartInput::Material { input_item:"minecraft:stone", material:"tconstruct:rock#granite", craftable:false, supported_outputs:&supported };
+        let source = SourceMaterialMatch { id:"test:stone".into(), material:"tconstruct:rock#granite".into(), value:1, needed:1, leftover:None };
+        assert!(source_part_plan(&recipe, &input, Some(&source), 1, false).unwrap().is_none());
+        assert_eq!(source_part_plan(&recipe, &input, Some(&source), 2, false).unwrap().unwrap().materials_used, 2);
     }
 
     #[test]

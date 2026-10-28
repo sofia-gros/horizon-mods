@@ -12,3 +12,10 @@ target = "horizon_client::game::functions::Game<'_>::cmd_reload"
 kind = "RETURN"
 helper = "probe.rs"
 bindings = [{ name = "value", ty = "R<i32>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "inspect-client-pattern-atlas"
+target = "horizon_client::game::storage::Game<'_>::draw_chest_screen"
+kind = "HEAD"
+helper = "atlas-probe.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
