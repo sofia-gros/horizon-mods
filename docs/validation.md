@@ -137,3 +137,8 @@ The fixed flint/wood outputs now use `tconstruct:pick_head`, `tool_handle`,
 were exercised for selection, assembly, mining wear, repair, save/reload,
 broken mining and two-player races in both modes. The old prototype IDs remain
 registered and their diagnostic command was tested in both modes.
+
+The original default Pattern is consumed once per successful part pickup. This
+was checked in both game modes, including reopening the table after two-player
+contention to confirm both Pattern and material were consumed once. Other
+pattern items and the original reusable-pattern tag remain unimplemented.

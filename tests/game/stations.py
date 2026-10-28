@@ -21,7 +21,7 @@ def hover(slot, name):
  g.call('screenshot',str(run/name))
 try:
  g.ready()
- for command in ('clear @s','tp @s 0.5 71 0.5','setblock 0 71 2 tconstruct:part_builder','give @s tconstruct:pattern 1','give @s minecraft:flint 2','give @s minecraft:oak_planks 2'):cmd(command)
+ for command in ('clear @s','tp @s 0.5 71 0.5','setblock 0 71 2 tconstruct:part_builder','give @s tconstruct:pattern 5','give @s minecraft:flint 2','give @s minecraft:oak_planks 2'):cmd(command)
  time.sleep(1);g.call('interact','0','71','2')
  g.call('screenshot',str(run/'part-builder-empty.png'))
  click(hotbar('tconstruct:pattern'));click(300);click(hotbar('minecraft:flint'));click(301)
@@ -32,6 +32,7 @@ try:
  g.call('scroll-at','0','0','0');g.call('wait','5');g.call('screenshot',str(run/'part-builder-selected.png'))
  hover(322,'part-builder-result-hover.png')
  click(322);assert carried().get('item')=='tconstruct:pick_head'
+ assert next(s['stack']['count'] for s in g.call('menu')['slots'] if s['slot']==300)==4
  click(322);assert carried().get('count')==1
  click(3);g.call('wait','10');assert 'tconstruct:flint' in g.call('inventory')['hotbar'][3].get('components','')
  click(hotbar('minecraft:oak_planks'));click(301)

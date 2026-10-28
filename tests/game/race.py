@@ -38,7 +38,10 @@ try:
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
  print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pick_head'),flush=True)
  assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pick_head')==1
- assert all(301 not in slots(g) for g in games)
+ h.call("close")
+ h.call("interact","0","71","2")
+ wait("host reopened table",lambda:any(s["id"] == "slot-300" for s in h.call("ui")["widgets"]))
+ assert 300 not in slots(h) and 301 not in slots(h), "pattern and material must each be consumed"
  for g in reversed(games):g.stop()
 finally:
  for g in reversed(games):g.cleanup()

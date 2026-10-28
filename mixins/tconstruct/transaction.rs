@@ -80,7 +80,7 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         let Ok(amount) = u32::try_from(amount) else { return false; };
         if amount == 0 || remainder != 0 || !is(0, "tconstruct:pattern", 1) || !is(1, material, amount) { return false; }
         let material_id = if material == "minecraft:flint" { "tconstruct:flint" } else { "tconstruct:wood" };
-        (part_with_material(result, material_id), vec![(1, amount)])
+        (part_with_material(result, material_id), vec![(0, 1), (1, amount)])
     } else if action == 24 {
         if !(is(0, "tconstruct:pick_head", 1) || is(0, "tconstruct:flint_pick_head", 1)) || !(is(1, "tconstruct:tool_handle", 1) || is(1, "tconstruct:wood_handle", 1)) || !(is(2, "tconstruct:tool_binding", 1) || is(2, "tconstruct:wood_binding", 1)) { return false; }
         for (slot, material) in [(0, "tconstruct:flint"), (1, "tconstruct:wood"), (2, "tconstruct:wood")] {
@@ -143,7 +143,7 @@ mod tests {
         assert_eq!(material_output_count(1, 3, 0, false), None);
     }
     #[test]
-    fn part_take_is_atomic_and_pattern_is_reusable() {
+    fn part_take_is_atomic_and_consumes_default_pattern() {
         let mut slots = vec![None; 27];
         slots[0] = Some(ItemStack::new("tconstruct:pattern", 1));
         slots[1] = Some(ItemStack::new("minecraft:flint", 2));
@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
         assert_eq!(cursor.as_ref().unwrap().data().and_then(|d| d.other("minecraft:custom_data")), Some(&horizon_world::nbt::Tag::compound([("Material", horizon_world::nbt::Tag::String("tconstruct:flint".into()))])));
         assert!(slots[1].is_none());
-        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert!(slots[0].is_none());
         cursor = None;
         assert!(!take(&mut slots, &mut cursor, false, 24));
         assert!(cursor.is_none());
