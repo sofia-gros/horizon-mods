@@ -10,6 +10,8 @@ class Game:
         if resume: self.endpoint.unlink(missing_ok=True)
         self.env = dict(os.environ, HORIZON_NO_AUDIO='1', HORIZON_NO_DISCORD='1',
                         HORIZON_TELEMETRY_URL='off', RUST_MIN_STACK='16777216')
+        display = os.environ.get('HORIZON_TEST_DISPLAY_' + label.upper())
+        if display: self.env['DISPLAY'] = display
         for key in ('HORIZON_HOME','HORIZON_LAUNCHER_HOME','XDG_DATA_HOME','XDG_CONFIG_HOME'):
             folder = self.root / key.lower(); folder.mkdir(exist_ok=resume); self.env[key] = str(folder)
         width, height = os.environ.get('HORIZON_TEST_SIZE_' + label.upper(), os.environ.get('HORIZON_TEST_SIZE', '960x540')).split('x', 1)

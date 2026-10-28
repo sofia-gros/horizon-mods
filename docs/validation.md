@@ -109,8 +109,10 @@ not exercised. Original recipe
 selection, content, preview tooltip and all untested lifecycle cases remain
 open. In the software-rendered integrated two-client test, screenshots at
 960×540 for both processes sometimes captured a blank panel despite successful
-operations; a 960×540 host with a 640×360 guest rendered both previews. The
-cause of the former is not established.
+operations; a 960×540 host with a 640×360 guest rendered both previews. Both
+960×540 clients also rendered their previews when run on separate Xvfb displays.
+This isolates the observation to the shared-display test setup, but its exact
+cause is not established.
 
 The independent fixture Mod was built with the selection changes and its
 station hook logged during the station test in both game modes.
