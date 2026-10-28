@@ -7,4 +7,4 @@ edition = "2024"
 crate-type = ["cdylib"]
 
 [dependencies]
-horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "ab67540bd157bb6d2f2ce1db32417c30ad971c3e" }
+horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "960f269fb3f9b2bd23806c8c256c9474c7b0a31a" }
