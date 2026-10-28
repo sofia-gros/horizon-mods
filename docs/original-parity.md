@@ -61,3 +61,19 @@ recipe-derived selection and full lifecycle parity still require implementation
 and tests.
 The original `PartBuilderBlockEntity` recipe-selection and refresh paths are
 the acceptance reference; do not encode the selection as a real droppable item.
+
+### Repair calculation investigation
+
+At the pinned revision, `MaterialStatsModule.addTraits` adds traits from each
+part and `ModifierEntry.merge` adds levels. The default wood trait data names
+Cultivated with `each_level: 0.5`; `RepairModule` applies its percent formula.
+For the original flint-head/wood-handle/wood-binding combination, this implies
+Cultivated level 2 under the normal trait path. Flint head repair uses durability
+85, and `MaterialRecipe.scaleRepair` divides by `INGOTS_PER_REPAIR = 3` before
+modifier factors. `TinkerStationRepairRecipe.repairFromSlot` uses `ceil` for
+items needed and truncates the total per input slot to an integer. Under those
+assumptions one flint repairs 56 and two in one stack repair 113 before capping
+at the tool's damage. The current fixed `56` per item does not represent the
+fractional calculation or configurable trait behavior. Original runtime
+comparison, alternate trait configuration, rounding boundaries and all other
+materials remain unverified; do not generalize the prototype's tests.
