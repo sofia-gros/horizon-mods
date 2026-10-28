@@ -33,7 +33,18 @@ fn prepare_tconstruct_resources() {
         let original_pack = out.join("tconstruct-original-pack");
         if std::fs::symlink_metadata(&original_pack).is_ok() { return Err("original pack output already exists".into()); }
         copy_pack_dir(&content_path.join("reference/tconstruct-tags/data"), &original_pack.join("data"))?;
-        copy_pack_dir(&content_path.join("data/tconstruct/recipes"), &original_pack.join("data/tconstruct/recipes"))?;
+        let mut recipes = zip::ZipArchive::new(std::fs::File::open(content_path.join("reference/tconstruct-recipes.zip"))?)?;
+        for index in 0..recipes.len() {
+            let mut entry = recipes.by_index(index)?;
+            let path = entry.enclosed_name().ok_or("invalid original recipe path")?;
+            if entry.is_dir() || !path.starts_with("data/tconstruct/recipes") || path.extension().is_none_or(|ext| ext != "json") {
+                return Err("invalid original recipe archive entry".into());
+            }
+            let target = original_pack.join(path);
+            if target.exists() { return Err("duplicate original recipe path".into()); }
+            std::fs::create_dir_all(target.parent().ok_or("missing recipe parent")?)?;
+            std::io::copy(&mut entry, &mut std::fs::File::create(target)?)?;
+        }
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.

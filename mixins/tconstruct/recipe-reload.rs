@@ -8,11 +8,13 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         crate::game::tconstruct_recipes::merge_pack(&mut recipes, files.iter().cloned(), |name| builtin.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_tags(&mut tags, files, |name| builtin.__horizon_mixins_tconstruct_recipe_read(name));
         let vanilla_1201 = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
-        let files = vanilla_1201.__horizon_mixins_tconstruct_recipe_files(&["tags"]);
+        let files = vanilla_1201.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags"]);
+        crate::game::tconstruct_recipes::merge_pack(&mut recipes, files.iter().cloned(), |name| vanilla_1201.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_tags(&mut tags, files, |name| vanilla_1201.__horizon_mixins_tconstruct_recipe_read(name));
     }
     let forge = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("forge-original-pack"));
-    let files = forge.__horizon_mixins_tconstruct_recipe_files(&["tags"]);
+    let files = forge.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags"]);
+    crate::game::tconstruct_recipes::merge_pack(&mut recipes, files.iter().cloned(), |name| forge.__horizon_mixins_tconstruct_recipe_read(name));
     crate::game::tconstruct_source_tags::merge_pack_tags(&mut tags, files, |name| forge.__horizon_mixins_tconstruct_recipe_read(name));
     let original = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("tconstruct-original-pack"));
     let files = original.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags"]);

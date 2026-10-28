@@ -70,14 +70,18 @@ world snapshot. The unconnected tag helper handles ordered `replace`, Forge
 currently rejected and are not claimed to match the original dependency
 sorter. The 427 original generated item-tag files are retained in a separate mod pack
 with their bytes checked against `docs/upstream-tags.sha256`; the preparation
-step also puts the 245 original recipes in that pack, so disabling the vanilla
-pack does not disable mod data. The setup can extract Minecraft 1.20.1 item tags from the user-supplied
+step also puts all 3,067 pinned generated TConstruct recipes in that pack
+from `content/reference/tconstruct-recipes.zip` (SHA-256
+`d84f5da24c464af5d6b158ddf324c0de0f2b27a5cdeb8737cace6d6ab4699951`),
+so disabling the vanilla pack does not disable mod data. The setup can extract Minecraft 1.20.1 item tags from the user-supplied
 client jar after verifying Mojang’s published SHA-1, and Forge 47.4.0 item
-tags from its official universal jar after verifying SHA-256
+tags and recipes from its official universal jar after verifying SHA-256
 `2b0e97b22fd4d043dbbcc8e0a44ef0d58915689ed9224e4cd28d5c4976a16bcc`.
-The world registry and
-resolved tags are not yet connected to Part Builder. Both game modes were
-probed for raw tag-pack order, reload,
+The Minecraft 1.20.1 recipes are extracted from the same verified jar. Horizon
+26.3 base recipes may also enter the snapshot; exact source precedence and
+isolation, the world registry and resolved tags are not yet connected to Part
+Builder. Both game modes were probed for raw tag-pack order, 3,067
+TConstruct recipe IDs, Minecraft recipe bytes, a Forge override, reload,
 disabling and world separation, not for crafting with resolved tags.
 
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed

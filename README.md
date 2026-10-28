@@ -71,9 +71,9 @@ python3 -m unittest discover -s tests -v
 python3 tools/resources.py /path/to/prepared/26.3 target/item-resources
 ./target/build/fast/horizon-client --tconstruct-prepare \
   target/item-resources content target/resources
-python3 tools/vanilla_tags.py /path/to/minecraft-1.20.1-client.jar \
+python3 tools/source_data.py /path/to/minecraft-1.20.1-client.jar \
   target/resources/minecraft-original-pack
-python3 tools/vanilla_tags.py --forge /path/to/forge-1.20.1-47.4.0-universal.jar \
+python3 tools/source_data.py --forge /path/to/forge-1.20.1-47.4.0-universal.jar \
   target/resources/forge-original-pack
 ./target/build/fast/horizon-client --resources "$PWD/target/resources"
 ```
@@ -84,11 +84,11 @@ generated `target/original` when deliberately regenerating. Resource preparation
 creates a separate overlay with links to the supplied base resources; keep the
 base available. Both preparation commands refuse an existing destination.
 The 1.20.1 client jar and Forge 47.4.0 universal jar are supplied locally and
-checked against pinned hashes; the extracted tag files stay in your generated
+checked against pinned hashes; the extracted source data stay in your generated
 resource directory. The [Forge universal jar](https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.0/forge-1.20.1-47.4.0-universal.jar) is available from the official Forge Maven repository. These files
 prepare source data for the unfinished Part Builder and do not enable its
-original recipes yet. The second command uses a Mixins-injected entry point and official Horizon's
-native data-table builder; it does not start a Wasm engine. Generated trees and worlds
+original recipes yet. `--tconstruct-prepare` uses a Mixins-injected entry point
+and official Horizon's native data-table builder; it does not start a Wasm engine. Generated trees and worlds
 are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
 are included in the repository and the generated resource overlay under
 `THIRD_PARTY_LICENSES/`.
