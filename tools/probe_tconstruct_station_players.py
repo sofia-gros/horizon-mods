@@ -7,6 +7,7 @@ from pathlib import Path
 from probe_horizon_server_mods import Game, ROOT
 
 p = argparse.ArgumentParser(description=__doc__)
+p.add_argument('--in-frame', action='store_true')
 p.add_argument('--game', type=Path, default=ROOT.parent/'horizon/target/fast/horizon-client')
 p.add_argument('--ctl', type=Path, default=ROOT.parent/'horizon/target/fast/horizon-ctl')
 p.add_argument('--resources', type=Path, default=ROOT.parent/'horizon/.local/horizon-client/26.3')
@@ -31,16 +32,16 @@ def click(game, slot, *flags):
     game.call('click-slot', str(slot), *flags)
     game.call('wait', '5')
 try:
-    host = Game(args, run, 'Host'); games.append(host); host.ready()
+    host = Game(args, run, 'Host', in_frame=args.in_frame); games.append(host); host.ready()
     lan = host.call('lan', 'open', '0', 'commands')
     port = lan.get('port') or host.call('lan', 'status').get('port')
     guest = Game(args, run, 'Guest', server=f'127.0.0.1:{port}'); games.append(guest); guest.ready()
     for command in ['gamemode creative @a', 'clear @a', 'fill -2 70 -2 2 70 3 minecraft:stone',
-                    'tp Host -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'setblock 0 71 2 tconstruct:tinker_station']:
+                    'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'setblock 0 71 2 tconstruct:tinker_station']:
         host.call('command', command)
     for item, kind, material in [('pick_head', 'Head', 'flint'), ('tool_handle', 'Handle', 'wood'), ('tool_binding', 'Binding', 'wood')]:
         payload = f'{{"kind":"{kind}","material":"tconstruct:{material}"}}'
-        host.call('command', f"give Host tconstruct:{item}[custom_data={{tconstruct:{{state_json:'{payload}'}}}}] 1")
+        host.call('command', f"give @s tconstruct:{item}[custom_data={{tconstruct:{{state_json:'{payload}'}}}}] 1")
     host.call('command', 'gamemode survival @a')
     for game in games:
         wait(game.label+' block visible', lambda: game.call('block','0','71','2').get('block') == 'tconstruct:tinker_station')
