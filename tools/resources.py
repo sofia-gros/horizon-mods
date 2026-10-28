@@ -2,6 +2,7 @@
 """Create a separate, disposable resource overlay for the prototype."""
 import argparse, copy, hashlib, json, shutil, zipfile
 from pathlib import Path
+from import_part_visuals import PARTS
 
 p = argparse.ArgumentParser()
 p.add_argument('source', type=Path)
@@ -101,22 +102,37 @@ items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
-    ('tconstruct:wood_binding', 'minecraft:stick', 'Wooden Tool Binding'),
-    ('tconstruct:wood_handle', 'minecraft:stick', 'Wooden Tool Handle'),
+    ('tconstruct:wood_binding', 'minecraft:flint', 'Wooden Tool Binding'),
+    ('tconstruct:wood_handle', 'minecraft:flint', 'Wooden Tool Handle'),
     ('tconstruct:flint_pickaxe', 'minecraft:stone_pickaxe', 'Flint Pickaxe'),
     ('tconstruct:pick_head', 'minecraft:flint', 'Pick Head'),
-    ('tconstruct:tool_handle', 'minecraft:stick', 'Tool Handle'),
-    ('tconstruct:tool_binding', 'minecraft:stick', 'Tool Binding'),
+    ('tconstruct:tool_handle', 'minecraft:flint', 'Tool Handle'),
+    ('tconstruct:tool_binding', 'minecraft:flint', 'Tool Binding'),
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
 ]
+# Original material-bearing part IDs share the source MaterialItem behavior.
+# Their rendering and tooltip name paths are connected; stats, traits and
+# recipe-driven crafting remain incomplete, as documented.
+source_names = json.loads((repository / 'content/assets/tconstruct/lang/en_us.json').read_text())
+existing = {name for name, _, _ in entries}
+for short in PARTS:
+    name = 'tconstruct:' + short
+    if name not in existing:
+        entries.append((name, 'minecraft:flint', source_names['item.tconstruct.' + short]))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     item['minecraft:item_name'] = {'text': title}
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
-    layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [{'pick_head': 'flint_pick_head', 'tool_handle': 'wood_handle', 'tool_binding': 'wood_binding'}.get(short, short)]
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
-    (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps({'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}))
+    if short in PARTS:
+        original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
+        texture = original_model['textures']['texture']
+        native_model = {'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': texture, 'particle': texture}}
+    else:
+        layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
+        native_model = {'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}
+    (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps(native_model))
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5

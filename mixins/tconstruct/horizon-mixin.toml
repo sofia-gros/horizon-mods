@@ -582,3 +582,15 @@ id = "source-part-names-tests"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_part_name"
 source = "source-part-name.rs"
+
+[[injection]]
+id = "nonfuel-inframe"
+target = "horizon_client::game::storage::Game<'_>::refuses"
+kind = "HEAD"
+cancellable = true
+helper = "nonfuel-inframe.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]

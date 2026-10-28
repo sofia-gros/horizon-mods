@@ -66,6 +66,8 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
     if let Some(Ok(tags)) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags() {
         let has = |tag: &str, item: &str| tags.get(tag).is_some_and(|items| items.contains(item));
         eprintln!("TCONSTRUCT_RESOLVED_OAK {} {} {}", has("minecraft:oak_logs", "minecraft:oak_log"), has("minecraft:oak_logs", "minecraft:stripped_oak_log"), has("tconstruct:patterns/default", "tconstruct:pattern"));
+        let bartered = tags.get("tconstruct:parts/bartered");
+        eprintln!("TCONSTRUCT_REGISTERED_PART_TAGS {} {} {}", bartered.map_or(0, |v| v.len()), has("tconstruct:parts/bartered", "tconstruct:pick_head"), tags.contains_key("tconstruct:parts"));
     } else { eprintln!("TCONSTRUCT_RESOLVED_OAK unavailable"); }
     if let Some(Ok(tags)) = game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags() {
         let has = |tag: &str, fluid: &str| tags.get(tag).is_some_and(|values| values.contains(fluid));

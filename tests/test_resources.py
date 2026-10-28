@@ -6,6 +6,8 @@ import sys
 import tempfile
 import unittest
 import zipfile
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from import_part_visuals import PARTS
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'tools/resources.py'
 
@@ -16,6 +18,7 @@ class ResourceOverlay(unittest.TestCase):
             src.mkdir()
             raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}}}
+            raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
             (src / 'items.json').write_text(json.dumps(raw))
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
@@ -26,6 +29,19 @@ class ResourceOverlay(unittest.TestCase):
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']
             self.assertTrue(all(name in items and name in ids for name in names))
+            for short in PARTS:
+                name = 'tconstruct:' + short
+                self.assertIn(name, items)
+                self.assertIn(name, ids)
+                self.assertNotIn('minecraft:cooking_fuel', items[name])
+                native = json.loads((out / 'assets/tconstruct/models/item' / (short + '.json')).read_text())
+                original = json.loads((out / 'assets/tconstruct/tinkering/source_part_models' / (short + '.json')).read_text())
+                self.assertEqual(native['textures']['layer0'], original['textures']['texture'])
+            tag_file = Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-tags/data/tconstruct/tags/items/parts/bartered.json'
+            for item in json.loads(tag_file.read_text())['values']:
+                self.assertIn(item, ids)
+            for name in ('tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:wood_handle', 'tconstruct:wood_binding'):
+                self.assertNotIn('minecraft:cooking_fuel', items[name])
             command_ids = json.loads((out / 'command-registries.json').read_text())['by_registry']['minecraft:item']['ids']
             self.assertTrue(all(name in command_ids for name in names))
             self.assertEqual(items[names[-1]]['minecraft:max_damage'], 85)

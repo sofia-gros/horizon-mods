@@ -19,6 +19,7 @@ p.add_argument('--lookup-test', action='store_true')
 p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--choices-test', action='store_true')
 p.add_argument('--world-tags-test', action='store_true')
+p.add_argument('--registered-parts-test', action='store_true')
 p.add_argument('--world-fluid-tags-test', action='store_true')
 p.add_argument('--world-material-registry-test', action='store_true')
 p.add_argument('--world-material-stats-test', action='store_true')
@@ -98,6 +99,11 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 elif vanilla_enabled: expected_oak = 'true true true'
                 else: expected_oak = 'false false true'
                 assert values and values[-1] == expected_oak, (values, expected_oak)
+            if a.registered_parts_test:
+                values = [line.split('TCONSTRUCT_REGISTERED_PART_TAGS ', 1)[1] for line in lines if 'TCONSTRUCT_REGISTERED_PART_TAGS ' in line]
+                # The 21 bartered parts are registered; the parent remains
+                # unresolved until fake ingot and storage block are ported.
+                assert values and values[-1] == '21 true false', values
             if a.world_fluid_tags_test:
                 values = [line.split('TCONSTRUCT_RESOLVED_CREOSOTE ', 1)[1] for line in lines if 'TCONSTRUCT_RESOLVED_CREOSOTE ' in line]
                 expected_fluids = {'base': 'false false', 'a': 'true false', 'b': 'false true'}[choice_layer]
