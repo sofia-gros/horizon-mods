@@ -59,7 +59,7 @@ python3 tools/resources.py /path/to/prepared/26.3 target/item-resources
 ./target/build/fast/horizon-client --resources "$PWD/target/resources"
 ```
 
-`stage.py` requires cleanly pinned commits, exports a separate source tree,
+`stage.py` verifies both checkout HEADs and exports their pinned commits; local working-tree changes are not included. It exports a separate source tree,
 and runs the Mixins CLI. It refuses an existing export; remove only your own
 generated `target/original` when deliberately regenerating. Resource preparation
 creates a separate overlay with links to the supplied base resources; keep the
@@ -76,6 +76,7 @@ X11/Vulkan display (software Vulkan and Xvfb also work):
 python3 tools/game_smoke.py --game target/build/fast/horizon-client \
   --ctl target/build/fast/horizon-ctl --resources target/resources
 # Add --in-frame to test the alternate single-player path.
+# Add --split-sticks to test one stick in each of two slots.
 ```
 
 The script creates a fresh world under `target/`, checks consumption and
