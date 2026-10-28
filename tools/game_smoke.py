@@ -37,6 +37,7 @@ try:
     for cmd in commands:
         ctl('command',cmd)
     if a.split_sticks:
+        time.sleep(1)  # integrated-server inventory updates are asynchronous
         slots = ctl('inventory')['hotbar']
         assert sum(1 for s in slots if s and s.get('item') == 'minecraft:stick' and s.get('count') == 1) == 2, slots
     ctl('chat','/tconstruct parts'); time.sleep(1)
