@@ -11,7 +11,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
         let _ = crate::game::tconstruct_tx::take(&mut copy, &mut output, true, (slot - 300) as i16);
         output
     } else {
-        game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).copied()).and_then(|selected| crate::game::tconstruct_tx::part_preview(slots, selected))
+        game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).and_then(|s| crate::game::tconstruct_tx::preview_pattern_index(s))).and_then(|selected| crate::game::tconstruct_tx::part_preview(slots, selected))
     };
     if let Some(result) = result { game.draw_stack_tooltip(batch, &result, game.cursor.0, game.cursor.1); }
     Break(())

@@ -3,8 +3,9 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
     if id == 0 {
         if let Some(key) = game.container {
-            if value < 0 { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().remove(&key); }
-            else { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, value); }
+            if let Some(pattern) = crate::game::tconstruct_tx::preview_pattern(value) {
+                game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, pattern.to_owned());
+            } else { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().remove(&key); }
         }
     }
     Break(())

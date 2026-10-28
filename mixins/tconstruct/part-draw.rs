@@ -33,7 +33,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     } else {
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
             if slots.first().and_then(Option::as_ref).is_some_and(|s| &*s.item == "tconstruct:pattern") {
-                let selected = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).copied());
+                let selected = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).and_then(|s| crate::game::tconstruct_tx::preview_pattern_index(s)));
                 for (index, (x, id)) in [(52.0, "tconstruct:flint_pick_head"), (70.0, "tconstruct:wood_handle"), (88.0, "tconstruct:wood_binding")].into_iter().enumerate() {
                     let v = if selected == Some(index as i16) { 33.0 } else { 15.0 };
                     part(batch, 176.0, v, x - 1.0, 15.0, u32::MAX);

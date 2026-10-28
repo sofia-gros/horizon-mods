@@ -1,5 +1,21 @@
 use horizon_items::items::ItemStack;
 
+/// The current preview still has only three fixed choices, but selection is
+/// stored as the original Pattern identity rather than its transient index.
+const PREVIEW_PATTERNS: [&str; 3] = ["tconstruct:pick_head", "tconstruct:tool_handle", "tconstruct:tool_binding"];
+#[allow(dead_code)]
+pub(super) fn preview_pattern(index: i16) -> Option<&'static str> {
+    usize::try_from(index).ok().and_then(|i| PREVIEW_PATTERNS.get(i).copied())
+}
+#[allow(dead_code)]
+pub(super) fn pattern_index(selected: &str, patterns: &[&str]) -> Option<usize> {
+    patterns.iter().position(|pattern| *pattern == selected)
+}
+#[allow(dead_code)]
+pub(super) fn preview_pattern_index(selected: &str) -> Option<i16> {
+    pattern_index(selected, &PREVIEW_PATTERNS).map(|i| i as i16)
+}
+
 /// `IMaterialValue.getItemsUsed` and `getRemainder` from the pinned original.
 /// Recipe loaders require strictly positive cost, needed and value.
 fn material_cost(cost: i32, needed: i32, value: i32) -> Option<(i32, i32)> {
@@ -1360,6 +1376,23 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn selection_identity_survives_reordering_and_missing_choices() {
+        use super::*;
+        let selected = preview_pattern(1).unwrap();
+        assert_eq!(selected, "tconstruct:tool_handle");
+        assert_eq!(pattern_index(selected, &["tconstruct:pick_head", selected, "tconstruct:tool_binding"]), Some(1));
+        assert_eq!(pattern_index(selected, &[selected, "tconstruct:tool_binding", "tconstruct:pick_head"]), Some(0));
+        assert_eq!(pattern_index(selected, &["tconstruct:pick_head"]), None);
+        assert_eq!(preview_pattern_index(selected), Some(1));
+        assert_eq!(preview_pattern(-1), None);
+        assert_eq!(preview_pattern(3), None);
+        let mut many = vec!["test:other"; 32768];
+        many.push(selected);
+        assert_eq!(pattern_index(selected, &many), Some(32768));
+        assert_eq!(pattern_index(selected, &many).map(|i| i as i16), Some(i16::MIN));
+    }
+
     use super::*;
     #[test]
     fn original_material_cost_rounds_up_and_tracks_remainder() {

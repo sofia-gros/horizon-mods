@@ -294,11 +294,11 @@ modes covered guest reopen, removing and restoring the Pattern, selection
 previews and a single result under simultaneous pickup. Original recipe-derived
 selection and full lifecycle parity still require implementation and tests.
 The original `PartBuilderBlockEntity` stores the selected `Pattern` identity
-and recomputes its index after recipe or material changes. The current fixed
-prototype stores an integer instead; dynamic recipe ordering must preserve the
-pattern identity and handle removal exactly as the source does. The source
-selection and refresh paths are the acceptance reference; do not encode the
-selection as a real droppable item.
+and recomputes its index after recipe or material changes. The fixed preview
+now stores the Pattern ID and derives its index from the three fixed choices.
+Dynamic recipe ordering, selection removal and refresh behavior are still
+unimplemented; the source selection and refresh paths are the acceptance
+reference.
 
 ### Repair calculation investigation
 

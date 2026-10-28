@@ -15,7 +15,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         return Break(Vec::new());
     }
     let action = if !is_station && packet.slot == 22 {
-        world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).copied().map(|s| s + 24)
+        world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).and_then(|s| crate::tconstruct_tx::preview_pattern_index(s)).map(|s| s + 24)
     } else if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
     let Some(action) = action else {
         if !is_station && packet.slot == 22 {

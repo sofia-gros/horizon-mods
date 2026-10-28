@@ -11,7 +11,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         let has_pattern = world.block_entities.get(&pos).and_then(|entity| entity.slots().first())
             .and_then(Option::as_ref).is_some_and(|stack| &*stack.item == "tconstruct:pattern");
         let value = if has_pattern {
-            world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).copied().unwrap_or(-1)
+            world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).and_then(|s| crate::tconstruct_tx::preview_pattern_index(s)).unwrap_or(-1)
         } else { -1 };
         let guest = &mut hub.guests[i];
         let Some(menu) = guest.menu.as_mut() else { continue; };

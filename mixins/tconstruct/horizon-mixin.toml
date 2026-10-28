@@ -206,7 +206,7 @@ bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 [[state]]
 id = "part-selections"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<(i32,i32,i32),i16>"
+ty = "std::collections::HashMap<(i32,i32,i32),String>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
