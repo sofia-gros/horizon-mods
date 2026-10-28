@@ -51,6 +51,8 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
     if let Some(materials) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot() {
         use sha2::{Digest, Sha256};
         let probe = materials.get("test:tinkering/materials/definition/probe").and_then(|v| v.last()).and_then(|v| std::str::from_utf8(v).ok()).unwrap_or("missing");
+        let parsed = serde_json::from_str::<serde_json::Value>(probe).ok();
+        let probe = parsed.as_ref().and_then(|v| v.get("marker")).and_then(serde_json::Value::as_str).unwrap_or(probe);
         let wood = materials.get("tconstruct:tinkering/materials/definition/wood").and_then(|v| v.last()).map(|v| format!("{:x}", Sha256::digest(v))).unwrap_or_else(|| "missing".into());
         eprintln!("TCONSTRUCT_MATERIAL_PROBE {probe}");
         eprintln!("TCONSTRUCT_MATERIAL_COUNT_PROBE {}", materials.keys().filter(|id| id.starts_with("tconstruct:")).count());
@@ -69,6 +71,11 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         let has = |tag: &str, fluid: &str| tags.get(tag).is_some_and(|values| values.contains(fluid));
         eprintln!("TCONSTRUCT_RESOLVED_CREOSOTE {} {}", has("forge:creosote", "minecraft:water"), has("forge:creosote", "minecraft:lava"));
     } else { eprintln!("TCONSTRUCT_RESOLVED_CREOSOTE unavailable"); }
+    match game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions() {
+        Some(Ok((materials, _, _))) => eprintln!("TCONSTRUCT_WORLD_MATERIALS {} {} {}", materials.contains_key("tconstruct:wood"), materials.contains_key("tconstruct:flint"), materials.contains_key("tconstruct:treated_wood")),
+        Some(Err(error)) => eprintln!("TCONSTRUCT_WORLD_MATERIALS error {error}"),
+        None => eprintln!("TCONSTRUCT_WORLD_MATERIALS unavailable"),
+    }
     match game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot() {
         Some(Ok(config)) => eprintln!("TCONSTRUCT_CONFIG_PROBE {} {}", config.get("force_integration_materials").copied().unwrap_or(true), config.get("allow_ingotless_alloys").copied().unwrap_or(false)),
         Some(Err(error)) => eprintln!("TCONSTRUCT_CONFIG_PROBE unsupported {error}"),

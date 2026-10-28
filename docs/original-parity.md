@@ -152,13 +152,17 @@ Fake ingots and storage blocks are not covered. Its inputs must already be valid
 raw JSON keys alone are insufficient. This mapping has a unit test but is not
 connected to the registry or gameplay, and does not cover other mods' items.
 
-Source material definitions and material tags now have test-only registry
-builders that preserve pack layers and reject unsupported context. A missing
+Source material definitions and material tags now have per-world snapshots
+that preserve pack layers and reject unsupported context. A missing
 fluid registry is treated as unknown, rather than as an empty registry: the
 source treated-wood definition can depend on `forge:creosote`. Fake ingot and
 storage block checks have a separate source arithmetic prototype, but need the
 actual material tags and visible base-material recipe cache before use. None of
-these builders is connected to the player crafting transaction.
+these snapshots is connected to the player crafting transaction. In both game
+modes, a fixture observed the original treated-wood condition change as the
+world's creosote tag was overridden, disabled and reloaded, while a second
+world remained independent. The snapshot reflects Horizon's current incomplete
+item and fluid registries, and unsupported source data fail the snapshot.
 
 The source mod's 131 fluid tag files are copied byte-for-byte into the source
 pack; pinned local Minecraft and Forge jars supply their fluid tags. The game

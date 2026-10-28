@@ -20,6 +20,7 @@ p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--choices-test', action='store_true')
 p.add_argument('--world-tags-test', action='store_true')
 p.add_argument('--world-fluid-tags-test', action='store_true')
+p.add_argument('--world-material-registry-test', action='store_true')
 p.add_argument('--world-config-test', action='store_true')
 p.add_argument('--pattern-atlas-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
@@ -28,11 +29,12 @@ if a.source_pack_test:
     layer = a.resources / 'tconstruct-original-pack/data/test'
     for kind in ('recipes', 'tags/items', 'tinkering/materials/definition', 'tinkering/tags/materials'):
         path = layer / kind / 'probe.json'
+        content = json.dumps({'craftable': True, 'marker': 'source-layer'}) if a.world_material_registry_test and kind == 'tinkering/materials/definition' else 'source-layer'
         if path.exists():
-            if path.read_text() != 'source-layer': raise RuntimeError(f'refusing to overwrite {path}')
+            if path.read_text() != content: raise RuntimeError(f'refusing to overwrite {path}')
         else:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text('source-layer')
+            path.write_text(content)
 run = Path(tempfile.mkdtemp(prefix='recipe-snapshot-', dir=a.output_parent.resolve()))
 print('run', run, flush=True)
 
@@ -45,7 +47,8 @@ def pack(g, name, marker):
     (base / 'data/test/tags/items/probe.json').write_text(marker)
     for kind in ('tinkering/materials/definition', 'tinkering/tags/materials'):
         (base / 'data/test' / kind).mkdir(parents=True, exist_ok=True)
-        (base / 'data/test' / kind / 'probe.json').write_text(marker)
+        content = json.dumps({'craftable': True, 'marker': marker}) if a.world_material_registry_test and kind == 'tinkering/materials/definition' else marker
+        (base / 'data/test' / kind / 'probe.json').write_text(content)
     if a.choices_test:
         original = Path(__file__).resolve().parents[2] / 'content/data/tconstruct/recipes/tools/parts/builder/pick_head.json'
         recipe = json.loads(original.read_text())
@@ -93,6 +96,13 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 values = [line.split('TCONSTRUCT_RESOLVED_CREOSOTE ', 1)[1] for line in lines if 'TCONSTRUCT_RESOLVED_CREOSOTE ' in line]
                 expected_fluids = {'base': 'false false', 'a': 'true false', 'b': 'false true'}[choice_layer]
                 assert values and values[-1] == expected_fluids, (values, expected_fluids)
+            if a.world_material_registry_test:
+                values = [line.split('TCONSTRUCT_WORLD_MATERIALS ', 1)[1] for line in lines if 'TCONSTRUCT_WORLD_MATERIALS ' in line]
+                if config_expected == 'unsupported':
+                    assert values and values[-1].startswith('error '), values
+                else:
+                    expected_materials = 'true true ' + ('false' if choice_layer == 'base' else 'true')
+                    assert values and values[-1] == expected_materials, (values, expected_materials)
             if a.world_config_test:
                 configs = [line.split('TCONSTRUCT_CONFIG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_CONFIG_PROBE ' in line]
                 assert configs and (configs[-1] == 'false true' if config_expected == 'default' else configs[-1].startswith('unsupported ')), configs

@@ -411,6 +411,16 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[state]]
+id = "resolved-material-definitions"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<(std::collections::HashMap<String,(bool,bool,i32,i32,String)>,std::collections::HashMap<String,String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[module]]
 id = "source-config"
 file = "crates/horizon-client/src/game.rs"

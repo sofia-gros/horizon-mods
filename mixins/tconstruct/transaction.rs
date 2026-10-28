@@ -1216,6 +1216,32 @@ mod tests {
     }
 
     #[test]
+    fn source_world_material_registry_changes_with_creosote_condition() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors().map(|dir| dir.join("content/reference/tconstruct-materials.zip"))
+            .find(|path| path.is_file()).expect("pinned material data");
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut files = std::collections::BTreeMap::new();
+        for i in 0..archive.len() {
+            let mut file = archive.by_index(i).unwrap();
+            let name = file.name().to_owned();
+            if let Some(path) = name.strip_prefix("data/tconstruct/tinkering/materials/definition/").and_then(|s| s.strip_suffix(".json")) {
+                let mut data = Vec::new(); file.read_to_end(&mut data).unwrap();
+                files.insert(format!("tconstruct:tinkering/materials/definition/{path}"), vec![data]);
+            }
+        }
+        let mut registries = [("minecraft:item".to_owned(), Default::default()), ("minecraft:fluid".to_owned(), Default::default())].into_iter().collect::<std::collections::HashMap<String,std::collections::HashMap<String,std::collections::HashSet<String>>>>();
+        let config = ["spawn_with_book", "gravel_to_flint", "cheaper_netherite_alloy", "wither_bone_drop", "slimy_loot_chests", "sync_knockback_resistance", "glass_recipe_fix", "allow_ingotless_alloys", "force_integration_materials"].into_iter().map(|key| (key.to_owned(), false)).collect();
+        let (base, _) = source_material_registry(&files, &registries, &config, true).unwrap();
+        assert!(base.contains_key("tconstruct:wood"));
+        assert!(!base.contains_key("tconstruct:treated_wood"));
+        registries.get_mut("minecraft:fluid").unwrap().insert("forge:creosote".into(), ["test:creosote".to_owned()].into_iter().collect());
+        let (with_creosote, _) = source_material_registry(&files, &registries, &config, true).unwrap();
+        assert!(with_creosote.contains_key("tconstruct:treated_wood"));
+    }
+
+    #[test]
     fn source_world_material_registry_uses_last_layer_and_validates_redirects() {
         let mut files = std::collections::BTreeMap::new();
         files.insert("test:tinkering/materials/definition/a".into(), vec![

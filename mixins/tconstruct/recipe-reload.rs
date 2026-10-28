@@ -51,10 +51,32 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let config = game.world_root.parent().and_then(std::path::Path::parent)
         .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
         .and_then(crate::game::tconstruct_source_config::load);
+    // Preserve an explicit failure when any required input is unavailable.
+    // These definitions describe the current Horizon registries, which do not
+    // yet contain every original TConstruct item or fluid.
+    let definitions = (|| -> Result<_, String> {
+        let item_tags = resolved_tags.as_ref().ok_or("item registry not ready")?.as_ref().map_err(Clone::clone)?;
+        let fluid_tags = resolved_fluids.as_ref().map_err(Clone::clone)?;
+        let config = config.as_ref().map_err(Clone::clone)?;
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        let (materials, redirects) = crate::game::tconstruct_tx::source_material_registry(&materials, &registries, config, true)
+            .map_err(|error| format!("material definitions: {error:?}"))?;
+        let ids = materials.keys().cloned().collect();
+        let material_tags = crate::game::tconstruct_source_tags::resolve_material_registry(&material_tags, &ids)?;
+        let definitions = materials.into_iter().filter_map(|(id, value)| {
+            match value {
+                crate::game::tconstruct_tx::SourceMaterialDefinition::Material { craftable, hidden, tier, sort_order, rarity } =>
+                    Some((id, (craftable, hidden, tier, sort_order, rarity))),
+                _ => None,
+            }
+        }).collect();
+        Ok((definitions, redirects, material_tags))
+    })();
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = Some(resolved_fluids);
+    *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = Some(definitions);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
