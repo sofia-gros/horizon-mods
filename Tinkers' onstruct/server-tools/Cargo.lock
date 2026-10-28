@@ -167,7 +167,7 @@ dependencies = [
 [[package]]
 name = "horizon-mod-sdk"
 version = "0.1.0"
-source = "git+https://github.com/sofia-gros/horizon.git?rev=b09565c670088734d633c1a1f091ae451d347ede#b09565c670088734d633c1a1f091ae451d347ede"
+source = "git+https://github.com/sofia-gros/horizon.git?rev=9ece9c394bcbd4c510a00407ed2b61c8ec6cd753#9ece9c394bcbd4c510a00407ed2b61c8ec6cd753"
 dependencies = [
  "wit-bindgen",
 ]
