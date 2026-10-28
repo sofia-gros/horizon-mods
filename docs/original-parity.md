@@ -64,6 +64,13 @@ Horizon enabled-pack order and refreshes on `/reload` and pack changes. An
 independent probe tested pack priority, disabling, reload, and two worlds in
 both game modes; it does not validate recipe decoding or gameplay. Live tag
 and configuration resolution, recipe conditions and transactions remain open.
+Raw 1.20.1 `tags/items` files are now retained in pack order in a separate
+world snapshot. The unconnected tag helper handles ordered `replace`, Forge
+`remove`, nested, required and optional entries; cyclic references are
+currently rejected and are not claimed to match the original dependency
+sorter. The original tag files and world registry are not yet connected to
+Part Builder. Both game modes were probed for raw tag-pack order, reload,
+disabling and world separation, not for crafting with resolved tags.
 
 ## Examples of value-level gaps
 

@@ -20,8 +20,10 @@ def pack(g, name, marker):
     (base / 'data/test/recipes').mkdir(parents=True, exist_ok=True)
     (base / 'pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"test"}}')
     (base / 'data/test/recipes/probe.json').write_text(marker)
+    (base / 'data/test/tags/items').mkdir(parents=True, exist_ok=True)
+    (base / 'data/test/tags/items/probe.json').write_text(marker)
 
-def probe(g, expected):
+def probe(g, expected, tag_expected=None):
     # The fixture is the inner RETURN modifier, so it observes the previous
     # snapshot. The first reload refreshes it; the second observes that state.
     g.call('command', 'reload')
@@ -33,6 +35,8 @@ def probe(g, expected):
         markers = [line.split('TCONSTRUCT_RECIPE_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_RECIPE_PROBE ' in line]
         if len(markers) > before:
             assert markers[-1] == expected, (markers, expected)
+            tags = [line.split('TCONSTRUCT_TAG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_TAG_PROBE ' in line]
+            assert tags and tags[-1] == (tag_expected or expected), (tags, tag_expected or expected)
             return
         time.sleep(.1)
     raise TimeoutError('recipe probe log')
@@ -44,7 +48,7 @@ try:
     pack(first, 'a', 'world-one-a')
     probe(first, 'world-one-a')
     pack(first, 'b', 'world-one-b')
-    probe(first, 'world-one-b')
+    probe(first, 'world-one-b', 'world-one-a|world-one-b')
     first.call('command', 'datapack disable "file/b"')
     probe(first, 'world-one-a')
     second = Game(a, run, 'Second', in_frame=a.in_frame); games.append(second); second.ready()

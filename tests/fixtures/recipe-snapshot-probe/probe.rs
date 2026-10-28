@@ -5,5 +5,9 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
     } else {
         eprintln!("TCONSTRUCT_RECIPE_PROBE uninitialized");
     }
+    if let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot() {
+        let files = tags.get("test:probe").map(|v| v.iter().map(|b| String::from_utf8_lossy(b).into_owned()).collect::<Vec<_>>().join("|"));
+        eprintln!("TCONSTRUCT_TAG_PROBE {}", files.as_deref().unwrap_or("missing"));
+    } else { eprintln!("TCONSTRUCT_TAG_PROBE uninitialized"); }
     value
 }
