@@ -116,7 +116,8 @@ cause is not established.
 
 The independent fixture Mod was built with the selection changes and its
 station hook logged during the station test in both game modes, including the
-new shared item IDs and save/reload. This verifies this fixture only.
+new shared item IDs, repair calculation order and save/reload. This verifies
+this fixture only.
 
 The fixed-part result slot now shows the item tooltip on hover; this is not
 the original detailed material/trait tooltip. Both game modes passed the
@@ -142,3 +143,10 @@ The original default Pattern is consumed once per successful part pickup. This
 was checked in both game modes, including reopening the table after two-player
 contention to confirm both Pattern and material were consumed once. Other
 pattern items and the original reusable-pattern tag remain unimplemented.
+
+The repair slot's source-derived float calculation is tested with one and two
+items, including truncation after multiplying. The active prototype still
+supplies a fixed repair rate rather than deriving material and modifier rates.
+After part, assembly and repair races, the table was reopened to verify that
+its relevant input slots were empty; a closed menu alone is not evidence that
+inputs were consumed.

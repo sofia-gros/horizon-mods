@@ -96,7 +96,8 @@ Cultivated level 2 under the normal trait path. Flint head repair uses durabilit
 modifier factors. `TinkerStationRepairRecipe.repairFromSlot` uses `ceil` for
 items needed and truncates the total per input slot to an integer. Under those
 assumptions one flint repairs 56 and two in one stack repair 113 before capping
-at the tool's damage. The current fixed `56` per item does not represent the
-fractional calculation or configurable trait behavior. Original runtime
+at the tool's damage. The per-slot rounding and truncation are implemented and tested independently,
+but the current fixed `56` rate does not represent the fractional material and
+trait calculation. Original runtime
 comparison, alternate trait configuration, rounding boundaries and all other
 materials remain unverified; do not generalize the prototype's tests.

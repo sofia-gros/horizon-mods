@@ -19,6 +19,15 @@ fn material_output_count(output_count: i32, value: i32, cost: i32, has_leftover:
     Some(if !has_leftover && value > cost { output_count.wrapping_mul(value) / cost } else { output_count })
 }
 
+/// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
+/// multiplication as floats, rounds the item count up, then truncates the
+/// repaired durability. The caller supplies the material/modifier-derived rate.
+fn repair_from_slot(needed: i32, stack: i32, durability_per_item: f32) -> (i32, i32) {
+    if needed <= 0 || stack <= 0 || !(durability_per_item > 0.0) { return (0, 0); }
+    let applied = stack.min(((needed as f32) / durability_per_item).ceil() as i32);
+    (applied, (applied as f32 * durability_per_item) as i32)
+}
+
 /// The original `IMaterialItem` stores the chosen material under `Material`.
 /// Horizon 26.3 keeps that legacy item tag inside `minecraft:custom_data`.
 fn part_with_material(id: &str, material: &str) -> ItemStack {
@@ -92,16 +101,18 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         let mut tool = stacks[0].as_ref().unwrap().clone();
         if tool.count != 1 || tool.damage == 0 { return false; }
         if (1..=2).any(|i| stacks[i].as_ref().is_some_and(|s| &*s.item != "minecraft:flint" || s.count == 0)) { return false; }
-        let mut needed = tool.damage;
+        let Ok(mut needed) = i32::try_from(tool.damage) else { return false; };
         let mut consume = vec![(0, 1)];
         for slot in 1..=2 {
             if let Some(stack) = &stacks[slot] {
-                let count = stack.count.min(needed.div_ceil(56));
-                if count > 0 { consume.push((slot, count)); needed = needed.saturating_sub(count.saturating_mul(56)); }
+                let Ok(available) = i32::try_from(stack.count) else { return false; };
+                // Fixed prototype rate; material stats and modifier hooks still need porting.
+                let (count, repaired) = repair_from_slot(needed, available, 56.0);
+                if count > 0 { consume.push((slot, count as u32)); needed = (needed - repaired).max(0); }
             }
         }
         if consume.len() == 1 { return false; }
-        tool.damage = needed;
+        tool.damage = needed as u32;
         (tool, consume)
     } else { return false; };
     if let Some(existing) = carried.as_ref() {
@@ -141,6 +152,14 @@ mod tests {
         assert_eq!(material_output_count(2, 5, 2, false), Some(5));
         assert_eq!(material_output_count(1, 3, 2, true), Some(1));
         assert_eq!(material_output_count(1, 3, 0, false), None);
+    }
+    #[test]
+    fn original_repair_rounds_count_before_truncating_total() {
+        let per_item = (85.0_f32 / 3.0) * 2.0;
+        assert_eq!(repair_from_slot(85, 2, per_item), (2, 113));
+        assert_eq!(repair_from_slot(85, 1, per_item), (1, 56));
+        assert_eq!(repair_from_slot(29, 1, per_item), (1, 56));
+        assert_eq!(repair_from_slot(85, 2, 0.0), (0, 0));
     }
     #[test]
     fn part_take_is_atomic_and_consumes_default_pattern() {

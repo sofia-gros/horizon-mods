@@ -31,8 +31,11 @@ try:
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
  print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe'),flush=True)
  assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe')==1
- wait('inputs consumed once',lambda: all(300 not in slots(g) and 301 not in slots(g) for g in games))
  winner=next(g for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe')
+ observer=next(g for g in games if g is not winner)
+ observer.call('close');observer.call('interact','0','71','2')
+ wait('observer reopened station',lambda:any(w['id']=='slot-300' for w in observer.call('ui')['widgets']))
+ assert 300 not in slots(observer) and 301 not in slots(observer), 'tool and material must be consumed once'
  click(winner,0);held=winner.call('inventory')['held'];print('winner held',held,flush=True)
  assert held.get('damage',0)==0 and 'Blade' in held.get('components','') and 'proof' in held.get('components','') and 'Durable story' in held.get('components','')
  for g in reversed(games):g.stop()

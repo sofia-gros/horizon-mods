@@ -33,7 +33,11 @@ try:
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
  print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe'),flush=True)
  assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe')==1
- wait('inputs consumed once',lambda: all(all(slot not in slots(g) for slot in (300,301,302)) for g in games))
+ winner=next(g for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe')
+ observer=next(g for g in games if g is not winner)
+ observer.call('close');observer.call('interact','0','71','2')
+ wait('observer reopened station',lambda:any(w['id']=='slot-300' for w in observer.call('ui')['widgets']))
+ assert all(slot not in slots(observer) for slot in (300,301,302)), 'all parts must be consumed once'
  for g in reversed(games):g.stop()
 finally:
  for g in reversed(games):g.cleanup()
