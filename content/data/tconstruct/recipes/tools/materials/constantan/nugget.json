@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:nuggets/constantan",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:nuggets/constantan"
+  },
+  "material": "tconstruct:constantan",
+  "needed": 9,
+  "type": "tconstruct:material",
+  "value": 1
+}

@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "item": "minecraft:bamboo_planks"
+  },
+  "material": "tconstruct:bamboo",
+  "needed": 2,
+  "type": "tconstruct:material",
+  "value": 1
+}

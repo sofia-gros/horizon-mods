@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/nicrosil",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/nicrosil"
+  },
+  "material": "tconstruct:nicrosil",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

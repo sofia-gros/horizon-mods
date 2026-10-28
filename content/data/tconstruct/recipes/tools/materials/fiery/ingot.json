@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/fiery",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/fiery"
+  },
+  "material": "tconstruct:fiery",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

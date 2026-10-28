@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "tag": "forge:glass"
+  },
+  "material": "tconstruct:glass",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 4
+}

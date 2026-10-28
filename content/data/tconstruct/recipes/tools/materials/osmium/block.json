@@ -1,0 +1,19 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:storage_blocks/osmium",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:storage_blocks/osmium"
+  },
+  "leftover": {
+    "count": 1,
+    "tag": "forge:ingots/osmium"
+  },
+  "material": "tconstruct:osmium",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 9
+}

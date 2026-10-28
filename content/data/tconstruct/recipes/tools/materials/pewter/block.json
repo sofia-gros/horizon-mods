@@ -1,0 +1,19 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:storage_blocks/pewter",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:storage_blocks/pewter"
+  },
+  "leftover": {
+    "count": 1,
+    "tag": "forge:ingots/pewter"
+  },
+  "material": "tconstruct:pewter",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 9
+}

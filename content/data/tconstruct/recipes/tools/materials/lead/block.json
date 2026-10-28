@@ -1,0 +1,19 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:storage_blocks/lead",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:storage_blocks/lead"
+  },
+  "leftover": {
+    "count": 1,
+    "tag": "forge:ingots/lead"
+  },
+  "material": "tconstruct:lead",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 9
+}

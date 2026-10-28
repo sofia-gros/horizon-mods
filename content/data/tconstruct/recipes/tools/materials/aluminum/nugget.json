@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:nuggets/aluminum",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:nuggets/aluminum"
+  },
+  "material": "tconstruct:aluminum",
+  "needed": 9,
+  "type": "tconstruct:material",
+  "value": 1
+}

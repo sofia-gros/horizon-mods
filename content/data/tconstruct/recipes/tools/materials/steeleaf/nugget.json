@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:nuggets/steeleaf",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:nuggets/steeleaf"
+  },
+  "material": "tconstruct:steeleaf",
+  "needed": 9,
+  "type": "tconstruct:material",
+  "value": 1
+}

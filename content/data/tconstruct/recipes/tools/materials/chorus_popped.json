@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "item": "minecraft:popped_chorus_fruit"
+  },
+  "material": "tconstruct:chorus",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

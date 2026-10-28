@@ -1,0 +1,26 @@
+{
+  "conditions": [
+    {
+      "ignore": "tconstruct:wood_variants/logs",
+      "match": "minecraft:logs",
+      "type": "mantle:tag_combination_filled"
+    }
+  ],
+  "ingredient": {
+    "base": {
+      "tag": "minecraft:logs"
+    },
+    "subtracted": {
+      "tag": "tconstruct:wood_variants/logs"
+    },
+    "type": "forge:difference"
+  },
+  "leftover": {
+    "count": 2,
+    "item": "minecraft:stick"
+  },
+  "material": "tconstruct:wood",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 4
+}

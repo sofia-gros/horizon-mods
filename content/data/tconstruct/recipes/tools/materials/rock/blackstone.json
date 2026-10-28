@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "tag": "forge:blackstone"
+  },
+  "material": "tconstruct:rock#blackstone",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

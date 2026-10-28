@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "item": "minecraft:glowstone"
+  },
+  "material": "tconstruct:glowstone",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

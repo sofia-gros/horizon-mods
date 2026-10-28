@@ -1,0 +1,24 @@
+{
+  "conditions": [
+    {
+      "type": "forge:or",
+      "values": [
+        {
+          "prop": "force_integration_materials",
+          "type": "tconstruct:config"
+        },
+        {
+          "tag": "forge:ingots/uranium",
+          "type": "mantle:tag_filled"
+        }
+      ]
+    }
+  ],
+  "ingredient": {
+    "item": "tconstruct:necronium_bone"
+  },
+  "material": "tconstruct:necronium",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

@@ -1,0 +1,10 @@
+{
+  "ingredient": {
+    "tag": "tconstruct:seared_blocks"
+  },
+  "leftover": "tconstruct:seared_brick",
+  "material": "tconstruct:seared_stone",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 4
+}

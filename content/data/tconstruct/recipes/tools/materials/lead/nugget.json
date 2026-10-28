@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:nuggets/lead",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:nuggets/lead"
+  },
+  "material": "tconstruct:lead",
+  "needed": 9,
+  "type": "tconstruct:material",
+  "value": 1
+}

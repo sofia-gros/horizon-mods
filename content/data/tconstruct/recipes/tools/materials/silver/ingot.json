@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/silver",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/silver"
+  },
+  "material": "tconstruct:silver",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

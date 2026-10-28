@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/bronze",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/bronze"
+  },
+  "material": "tconstruct:bronze",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

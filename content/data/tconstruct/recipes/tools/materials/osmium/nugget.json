@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:nuggets/osmium",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:nuggets/osmium"
+  },
+  "material": "tconstruct:osmium",
+  "needed": 9,
+  "type": "tconstruct:material",
+  "value": 1
+}

@@ -50,6 +50,18 @@ found Lore missing from the integrated-client display after repair; a later
 fix was tested with one plain Lore entry with the tool material list, both with
 and without unrelated custom fields, in both game modes. Other components and styled text remain unverified.
 
+## Source recipe files in the resource overlay
+
+`content/data/tconstruct/recipes/` carries all 217 pinned material-input
+recipes and 28 Part Builder recipes as individual JSON files, retaining their
+source paths and IDs. `tools/export_part_builder_reference.py` regenerates the
+same semantic data from the pinned reference catalog and refuses to overwrite a
+different existing file; `tests/test_source_recipes.py` compares every file
+with that catalog. The official content overlay was checked to retain all 245
+files. These files are source data only: the game does not yet load them for
+Part Builder transactions, and world datapack overrides and reloads are not
+implemented.
+
 ## Examples of value-level gaps
 
 These entries are starting points for a complete behavior audit, not a claim of
