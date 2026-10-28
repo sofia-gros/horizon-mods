@@ -36,3 +36,12 @@ without modification from SlimeKnights/TinkersConstruct commit
 `db597ebec5a5a6cb06e0d702a63ee1a2371f0efb006878e65dc176fac86e8336`;
 `part_builder.png`
 `971d1b29f4cec328602fbfee415382cdef822b5afec89b63eb46a2d545cf03aa`.
+
+The Part Builder panel and three pattern icons additionally retain unmodified
+upstream `textures/gui/panel.png` and `textures/gui/tinker_pattern/` files for
+`pick_head`, `tool_handle` and `tool_binding`, from the same MIT-licensed
+commit. Their SHA-256 values are respectively
+`6dce4d43b21133c75d774dfb3043bec34f9b326b9b3dd9475ff6973a8b329916`,
+`ab1d44ba8937357be7cbc02fcb314ce6ee5ce144073156d4eb790a37f45c8dfb`,
+`06bb82ef9c82cf984549ba23a8b991290c160cffe8e7dbb98ad062a9a763fc0e`, and
+`5587625a90f5e2a677bbe323f504ecb80f80c3c0c45e99a7efb43cf96b4f3313`.

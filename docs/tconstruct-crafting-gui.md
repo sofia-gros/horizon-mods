@@ -6,10 +6,12 @@ GUI、スロット、選択、処理計画は公開された汎用基盤を使�
 
 これは tinco 全体の完成を意味しない。他の素材・道具、動的外観、溶解・鋳造などは残る。専用サーバーでの検証は含まない。
 
-分離済み Linux 実ゲームの環境準備は [実ゲーム検証](linux-tconstruct-game-verification.md) を参照。`tools/probe_tconstruct_crafting_gui.py` は選択、材料不足、中断返却、部品3種、組立、保存復帰、採掘時の耐久消費を確認する。`tools/probe_tconstruct_station_repair.py` は既存修理を確認する。`tools/probe_generic_machine_gui.py`、`tools/probe_generic_storage_gui.py` と `tools/probe_generic_storage_players.py` は汎用 fixture を確認する。
+分離済み Linux 実ゲームの環境準備は [実ゲーム検証](linux-tconstruct-game-verification.md) を参照。`tools/probe_tconstruct_crafting_gui.py` は選択、材料不足、中断・再開時の入力保持、部品3種、組立、保存復帰、採掘時の耐久消費を確認する。`tools/probe_tconstruct_station_repair.py` は既存修理を確認する。`tools/probe_generic_machine_gui.py`、`tools/probe_generic_storage_gui.py` と `tools/probe_generic_storage_players.py` は汎用 fixture を確認する。
 
 ## 原典GUIとの対応と差
 
 Part BuilderとTinker Stationの背景は、固定原典 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` のMIT textureを使用する。Part Builderは原典のpattern・材料・結果位置、pattern選択の18ピクセル格子と通常・hover・選択画像を使い、player inventoryは両画面ともY=102に置く。Stationの結果位置は原典の `(114, 38)`。
 
-未再現: Part Builderの選択肢はhead・handle・bindingの3種類で、原典のpatternアイコンの代わりに文字を表示し、スクロールと情報パネルはない。Stationは原典のレイアウト切替、tool slotの位置移動、ツールの大型アイコン、名前入力、装備slot、側面パネルを持たず、3入力の固定位置で組立と限定修理を共用する。素材・部品と修理の対応範囲も本Modの既存部分集合に限る。
+Part Builderの選択肢は既存のhead・handle・bindingの3種類で、原典patternアイコンと選択状態を使う。16件以下なので原典どおりスクロールは無効。情報パネルには選択中の部品・必要数と投入材料の既存wood/flintデータを表示する。原典の全材料と詳細なtrait説明・tooltip・レシピ一覧は未対応。Stationは原典のレイアウト切替、tool slotの位置移動、ツールの大型アイコン、名前入力、装備slot、側面パネルを持たず、3入力の固定位置で組立と限定修理を共用する。素材・部品と修理の対応範囲も本Modの既存部分集合に限る。
+
+Part Builderのpattern・材料slotは汎用storageを使用し、画面を閉じても内容が残り、ワールド保存・再読込後も復元される。選択は同一ブロックの画面を閉じて再度開いても共有される。ワールド再読込後の選択復元は行わない。情報panelは対応済みwood／flintの基礎値とtrait名に限定され、原典の詳細tooltipやtextのスクロールは未対応。Stationの名前入力や動的slot配置は別の機能単位とする。
