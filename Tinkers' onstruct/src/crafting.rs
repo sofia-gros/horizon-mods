@@ -117,6 +117,36 @@ pub fn plan_pickaxe(catalog: &Catalog, parts: &[Part; 3]) -> Result<ToolState, S
     Ok(state)
 }
 
+/// Plan a pickaxe material replacement without consuming a part. The caller
+/// must validate and atomically consume the actual part stack at commit time.
+/// Broken tools whose new maximum exceeds their damage are rejected: upstream
+/// preserves the broken flag on rebuild, a state this subset cannot represent.
+pub fn plan_part_replacement(
+    catalog: &Catalog,
+    tool: &ToolState,
+    part: &Part,
+) -> Result<ToolState, String> {
+    catalog.evaluate(tool)?;
+    let index = match part.kind {
+        PartKind::Head => 0,
+        PartKind::Handle => 1,
+        PartKind::Binding => 2,
+    };
+    let mut output = tool.clone();
+    output.materials[index] = part.material.clone();
+    // Evaluate the new definition independently of the old durability state.
+    output.damage = 0;
+    output.broken = false;
+    let max = catalog.evaluate(&output)?.stats.durability()?;
+    if tool.broken && tool.damage < max {
+        return Err("broken state after increasing durability is unsupported".into());
+    }
+    output.damage = tool.damage.min(max);
+    output.broken = output.damage == max;
+    catalog.evaluate(&output)?;
+    Ok(output)
+}
+
 /// A single-slot 1:1 material repair plan. No inventory is mutated here.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RepairPlan {
