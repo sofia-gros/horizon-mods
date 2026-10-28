@@ -15,7 +15,7 @@ serde_json = "1.0.145"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 # Experimental synchronous mining callback and item/profile API, level 14.
-horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "5cdbfc5564e5f5f309042bd4ff724fbf7553a380" }
+horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "5f4356d5f625a449498db5163f342ac74998c637" }
 
 [profile.release]
 opt-level = "s"
