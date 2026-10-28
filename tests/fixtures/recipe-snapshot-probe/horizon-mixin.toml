@@ -1,0 +1,14 @@
+[mod]
+id = "recipe_snapshot_probe"
+version = "0.1.0"
+priority = 300
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "inspect-reloaded-recipes"
+target = "horizon_client::game::functions::Game<'_>::cmd_reload"
+kind = "RETURN"
+helper = "probe.rs"
+bindings = [{ name = "value", ty = "R<i32>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

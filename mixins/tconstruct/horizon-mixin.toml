@@ -304,3 +304,56 @@ bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "stack", ty = "&ItemStack", value = "stack" },
 ]
+
+[[bridge]]
+id = "recipe-files"
+kind = "INVOKE"
+target = "horizon_client::datapack::DataPack::list_kinds"
+
+[[bridge]]
+id = "recipe-read"
+kind = "INVOKE"
+target = "horizon_client::datapack::DataPack::read"
+
+[[module]]
+id = "world-recipe-loader"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_recipes"
+source = "recipe-snapshot.rs"
+
+[[state]]
+id = "recipe-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<u8>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "recipe-reload-helper"
+file = "crates/horizon-client/src/game/functions.rs"
+name = "tconstruct_recipe_reload"
+source = "recipe-reload.rs"
+
+[[injection]]
+id = "recipe-initial-load"
+target = "horizon_client::game::functions::Game<'_>::ensure_datapacks"
+kind = "RETURN"
+helper = "recipe-ensure.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "recipe-reload-command"
+target = "horizon_client::game::functions::Game<'_>::cmd_reload"
+kind = "RETURN"
+helper = "recipe-command.rs"
+bindings = [{ name = "value", ty = "R<i32>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "recipe-pack-change"
+target = "horizon_client::game::functions::Game<'_>::apply_pack_change"
+kind = "RETURN"
+helper = "recipe-pack.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

@@ -59,8 +59,11 @@ same semantic data from the pinned reference catalog and refuses to overwrite a
 different existing file; `tests/test_source_recipes.py` compares every file
 with that catalog. The official content overlay was checked to retain all 245
 files. These files are source data only: the game does not yet load them for
-Part Builder transactions, and world datapack overrides and reloads are not
-implemented.
+Part Builder transactions. A per-world raw recipe snapshot now follows the
+Horizon enabled-pack order and refreshes on `/reload` and pack changes. An
+independent probe tested pack priority, disabling, reload, and two worlds in
+both game modes; it does not validate recipe decoding or gameplay. Live tag
+and configuration resolution, recipe conditions and transactions remain open.
 
 ## Examples of value-level gaps
 

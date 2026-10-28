@@ -6,6 +6,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         "tconstruct:tinker_station" => "TConstruct Tinker Station",
         _ => return Continue(()),
     };
+    if title == "TConstruct Part Builder" { game.ensure_datapacks(); }
     let slots = horizon_client::lan::menu::Slots::Block(pos);
     let Some(items) = host.hub.guest(conn).and_then(|g| slots.read(&game.world, g)) else { return Break(false); };
     game.guest_container_closed(host, conn);

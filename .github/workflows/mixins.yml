@@ -22,6 +22,8 @@ jobs:
           python3 -m unittest discover -s tests -v
           rustc --test tests/rust/command.rs -o /tmp/tconstruct-command-test
           /tmp/tconstruct-command-test
+          rustc --test tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
+          /tmp/tconstruct-recipe-snapshot-test
       - name: Fetch pinned upstream sources
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official
