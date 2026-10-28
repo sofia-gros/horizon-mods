@@ -150,7 +150,8 @@ fn inspect_with_profile(
 mod adapter {
     use super::*;
     use horizon_mod_sdk::server::{
-        Args, GameMode, Player, Registration, ServerMod, items_edit, items_read, items_tools,
+        Args, GameMode, Player, Registration, ServerMod, inventory_transactions, items_edit,
+        items_read, items_tools,
     };
 
     fn active(player: &Player) -> Result<bool, String> {
@@ -325,7 +326,7 @@ mod adapter {
                     .custom_text
                     .as_deref()
                     .ok_or("no TConstruct state in main hand")?;
-                let ingredient = items_read::inventory_slot(&player.id, slot, &[])?
+                let ingredient = inventory_transactions::inventory_slot(&player.id, slot, &[])?
                     .ok_or("empty ingredient slot")?;
                 let (replacement, used) = repair_flint(
                     &self.0,
@@ -336,7 +337,7 @@ mod adapter {
                     ingredient.count,
                 )?;
                 let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
-                items_tools::replace_main_hand_combat_profile_consuming(
+                inventory_transactions::replace_main_hand_combat_profile_consuming(
                     &player.id,
                     &path,
                     source,
