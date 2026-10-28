@@ -10,8 +10,18 @@ p.add_argument('--game', type=Path, required=True)
 p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--source-pack-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
+if a.source_pack_test:
+    layer = a.resources / 'tconstruct-original-pack/data/test'
+    for kind in ('recipes', 'tags/items'):
+        path = layer / kind / 'probe.json'
+        if path.exists():
+            if path.read_text() != 'source-layer': raise RuntimeError(f'refusing to overwrite {path}')
+        else:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text('source-layer')
 run = Path(tempfile.mkdtemp(prefix='recipe-snapshot-', dir=a.output_parent.resolve()))
 print('run', run, flush=True)
 
@@ -44,17 +54,20 @@ def probe(g, expected, tag_expected=None):
 games = []
 try:
     first = Game(a, run, 'First', in_frame=a.in_frame); games.append(first); first.ready()
-    probe(first, 'missing')
+    probe(first, 'source-layer' if a.source_pack_test else 'missing')
+    if a.source_pack_test:
+        first.call('command', 'datapack disable vanilla')
+        probe(first, 'source-layer')
     pack(first, 'a', 'world-one-a')
-    probe(first, 'world-one-a')
+    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None)
     pack(first, 'b', 'world-one-b')
-    probe(first, 'world-one-b', 'world-one-a|world-one-b')
+    probe(first, 'world-one-b', 'source-layer|world-one-a|world-one-b' if a.source_pack_test else 'world-one-a|world-one-b')
     first.call('command', 'datapack disable "file/b"')
-    probe(first, 'world-one-a')
+    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None)
     second = Game(a, run, 'Second', in_frame=a.in_frame); games.append(second); second.ready()
     pack(second, 'a', 'world-two-a')
-    probe(second, 'world-two-a')
-    probe(first, 'world-one-a')
+    probe(second, 'world-two-a', 'source-layer|world-two-a' if a.source_pack_test else None)
+    probe(first, 'world-one-a', 'source-layer|world-one-a' if a.source_pack_test else None)
     for game in games: game.stop()
     print('PASS world separation, reload, priority, disable', flush=True)
 finally:

@@ -68,8 +68,12 @@ Raw 1.20.1 `tags/items` files are now retained in pack order in a separate
 world snapshot. The unconnected tag helper handles ordered `replace`, Forge
 `remove`, nested, required and optional entries; cyclic references are
 currently rejected and are not claimed to match the original dependency
-sorter. The original tag files and world registry are not yet connected to
-Part Builder. Both game modes were probed for raw tag-pack order, reload,
+sorter. The 427 original generated item-tag files are retained in a separate mod pack
+with their bytes checked against `docs/upstream-tags.sha256`; the preparation
+step also puts the 245 original recipes in that pack, so disabling the vanilla
+pack does not disable mod data. Minecraft 1.20.1 base tags, world registry and
+resolved tags are not yet connected to Part Builder. Both game modes were
+probed for raw tag-pack order, reload,
 disabling and world separation, not for crafting with resolved tags.
 
 ## Examples of value-level gaps

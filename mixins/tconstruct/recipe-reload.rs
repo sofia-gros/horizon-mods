@@ -8,6 +8,10 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         crate::game::tconstruct_recipes::merge_pack(&mut recipes, files.iter().cloned(), |name| builtin.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_tags(&mut tags, files, |name| builtin.__horizon_mixins_tconstruct_recipe_read(name));
     }
+    let original = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("tconstruct-original-pack"));
+    let files = original.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags"]);
+    crate::game::tconstruct_recipes::merge_pack(&mut recipes, files.iter().cloned(), |name| original.__horizon_mixins_tconstruct_recipe_read(name));
+    crate::game::tconstruct_source_tags::merge_pack_tags(&mut tags, files, |name| original.__horizon_mixins_tconstruct_recipe_read(name));
     for id in &game.fns.enabled {
         if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) {
             let files = pack.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags"]);

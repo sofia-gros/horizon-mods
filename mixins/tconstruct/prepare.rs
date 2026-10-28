@@ -16,6 +16,24 @@ fn prepare_tconstruct_resources() {
         let content = horizon_mods::content::Content::read(&content_path, &manifest)?;
         let content_mod = crate::mod_content::ContentMod { id: "tconstruct".into(), content };
         let warnings = crate::mod_content::build(&base, &[content_mod], &out)?;
+        // Preserve the original 1.20.1 pack as its own layer: Horizon's
+        // flattened content builder is not Forge's ordered tag-file loader.
+        fn copy_pack_dir(src: &std::path::Path, dst: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+            std::fs::create_dir_all(dst)?;
+            for entry in std::fs::read_dir(src)? {
+                let entry = entry?;
+                let kind = entry.file_type()?;
+                let to = dst.join(entry.file_name());
+                if kind.is_dir() { copy_pack_dir(&entry.path(), &to)?; }
+                else if kind.is_file() { std::fs::copy(entry.path(), to)?; }
+                else { return Err("source pack contains a non-file entry".into()); }
+            }
+            Ok(())
+        }
+        let original_pack = out.join("tconstruct-original-pack");
+        if std::fs::symlink_metadata(&original_pack).is_ok() { return Err("original pack output already exists".into()); }
+        copy_pack_dir(&content_path.join("reference/tconstruct-tags/data"), &original_pack.join("data"))?;
+        copy_pack_dir(&content_path.join("data/tconstruct/recipes"), &original_pack.join("data/tconstruct/recipes"))?;
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.
