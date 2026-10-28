@@ -1,4 +1,4 @@
-"""Verify upstream GUI attribution in the built TConstruct package."""
+"""Verify upstream GUI and derived pickaxe attribution in the built package."""
 from pathlib import Path
 from zipfile import ZipFile
 import hashlib
@@ -30,7 +30,12 @@ with ZipFile(archive) as package:
     notice = package.read(notice_path).decode("utf-8")
     if "f4e77d43f39ba1047bf93ae816b7e1beaab514c2" not in notice:
         raise SystemExit("packaged notice lacks the pinned source revision")
+    for part in ("handle", "head", "binding", "broken"):
+        for material in ("wood", "flint"):
+            path = f"assets/tconstruct/textures/item/pickaxe_visual/{part}_{material}.png"
+            if names.count(path) != 1 or package.read(path) != (root / "Tinkers' onstruct" / path).read_bytes():
+                raise SystemExit(f"missing or unexpected derived sprite: {path}")
     for path, digest in expected.items():
         if hashlib.sha256(package.read(path)).hexdigest() != digest:
             raise SystemExit(f"unexpected upstream texture bytes: {path}")
-print(f"verified upstream license, source and GUI textures in {archive}")
+print(f"verified upstream license, source, GUI textures and pickaxe sprites in {archive}")

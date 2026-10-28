@@ -1,0 +1,8 @@
+{
+  "parent": "minecraft:item/handheld",
+  "textures": {
+    "layer0": "tconstruct:item/pickaxe_visual/handle_flint",
+    "layer1": "tconstruct:item/pickaxe_visual/broken_wood",
+    "layer2": "tconstruct:item/pickaxe_visual/binding_wood"
+  }
+}

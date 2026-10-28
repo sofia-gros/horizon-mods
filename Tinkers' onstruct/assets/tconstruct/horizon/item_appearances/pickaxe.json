@@ -1,0 +1,185 @@
+{
+  "item": "minecraft:wooden_pickaxe",
+  "path": [
+    "tconstruct",
+    "state_json"
+  ],
+  "cases": [
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:wood",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_wood_wood_wood_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:wood",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_wood_wood_wood_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:flint",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_wood_wood_flint_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:flint",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_wood_wood_flint_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:wood",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_wood_flint_wood_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:wood",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_wood_flint_wood_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:flint",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_wood_flint_flint_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:wood",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:flint",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_wood_flint_flint_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:wood",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_flint_wood_wood_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:wood",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_flint_wood_wood_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:flint",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_flint_wood_flint_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:wood",
+        "/materials/2": "tconstruct:flint",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_flint_wood_flint_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:wood",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_flint_flint_wood_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:wood",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_flint_flint_wood_broken"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:flint",
+        "/broken": false
+      },
+      "model": "tconstruct:pickaxe_flint_flint_flint_intact"
+    },
+    {
+      "when": {
+        "/schema": 1,
+        "/tool": "tconstruct:pickaxe",
+        "/materials/0": "tconstruct:flint",
+        "/materials/1": "tconstruct:flint",
+        "/materials/2": "tconstruct:flint",
+        "/broken": true
+      },
+      "model": "tconstruct:pickaxe_flint_flint_flint_broken"
+    }
+  ]
+}

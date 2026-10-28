@@ -59,3 +59,5 @@ M3b3の汎用採掘経路は本体 `2e7ec5b6` で実装。本体Tool component�
 2026-10-28: M4 の土台として、固定原作の木・火打石の部品コスト、pickaxe の部品順序、head 素材による修理を純粋な計画として実装し、対応する Java の計算と比較しました。本体の単一 inventory 向け原子的更新 primitive と組み合わせたメモリ上の競合試験も追加しています。ゲーム内での材料消費・部品生成・修理、transaction の実ゲーム接続、Station UI は未実装です。[制作コアの検証](tconstruct-crafting-core.md)。
 
 2026-10-28 次の縦断単位: M4のStation修理は現状、原典の3材料slotのうち先頭1枠だけを処理する。M5の動的外観より先に、対応済みwood/flint pickaxeで原典の複数slot修理を完成させる。固定原典 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` の `TinkerStationRepairRecipe.matches/getValidatedResult/updateInputs/repairFromSlot` を基準に、全非空入力を同一の対応素材として検証し、slot順・各slotの小数切捨て・必要数・余剰を守る。previewは副作用なし、取得時はsnapshotと消費を原子的に検証する。材料不足、異種・未対応材料、無傷、空slot、複数人、shift-click、中断・保存復帰を対象テストと実ゲームで確認する。repair kit、他素材、他ツールと未対応modifierは別途残る。ホストへの固有分岐は加えない。
+
+2026-10-28 M5 対象範囲: wood/flint pickaxe の head・handle・binding を原典の順に合成し、broken 状態で head を切り替える。Horizon の名前空間付き item appearance を使用し、carrier 全体のモデルを上書きしない。他の素材・道具、modifier の画像と tooltip は引き続き未対応。固定原典の素材 palette と texture から `tools/generate_pickaxe_appearance.py` で生成し、MIT notice と出典を hmod に同梱する。
