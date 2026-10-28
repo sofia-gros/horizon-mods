@@ -36,3 +36,9 @@ without modification from SlimeKnights/TinkersConstruct commit
 `db597ebec5a5a6cb06e0d702a63ee1a2371f0efb006878e65dc176fac86e8336`;
 `part_builder.png`
 `971d1b29f4cec328602fbfee415382cdef822b5afec89b63eb46a2d545cf03aa`.
+
+The packaged content mod also includes the complete upstream MIT license and
+source attribution at `assets/tconstruct/license.txt` and
+`assets/tconstruct/source_notice.txt`. After building, run
+`python3 tools/check_tconstruct_notice.py` from the repository root to verify
+the actual `.hmod` archive and original GUI texture hashes.

@@ -1,0 +1,4 @@
+The GUI textures in this package are from SlimeKnights/TinkersConstruct,
+revision f4e77d43f39ba1047bf93ae816b7e1beaab514c2, distributed under the
+MIT license in assets/tconstruct/license.txt. Copyright (c) 2022 SlimeKnights.
+Source: https://github.com/SlimeKnights/TinkersConstruct
