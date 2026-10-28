@@ -12,9 +12,10 @@ class Game:
                         HORIZON_TELEMETRY_URL='off', RUST_MIN_STACK='16777216')
         for key in ('HORIZON_HOME','HORIZON_LAUNCHER_HOME','XDG_DATA_HOME','XDG_CONFIG_HOME'):
             folder = self.root / key.lower(); folder.mkdir(exist_ok=resume); self.env[key] = str(folder)
+        width, height = os.environ.get('HORIZON_TEST_SIZE', '960x540').split('x', 1)
         command = [str(args.game.resolve()), '--resources', str(args.resources.resolve()),
                    '--control-socket', str(self.endpoint), '--test-terrain', '--render-distance', '2',
-                   '--offscreen', '--width', '960', '--height', '540', '--name', label]
+                   '--offscreen', '--width', width, '--height', height, '--name', label]
         command += ['--server', server] if server else ['--world','Probe','--seed','42','--creative']
         if in_frame: command.append('--in-frame')
         self.log = (self.root / 'game.log').open('a' if resume else 'w')

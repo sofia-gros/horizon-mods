@@ -76,3 +76,16 @@ integrated-server and in-frame modes, and the fixture message was present in
 each game log. Run the same test with
 `--game target/fixture-build/fast/horizon-client`; inspect `Player/game.log`
 in the printed run directory. Use a fresh output path for a new stage.
+
+### GUI rendering regression
+
+The 176×184 station panel is centered using its actual height. The Part Builder
+buttons and Tinker Station slot borders are cut from the original atlases; the
+station slot background uses the original 28% opacity. The prototype still
+uses direct part output buttons and a simplified station layout.
+
+At 960×540 (integrated server) and 640×360 (in-frame), visually inspected
+empty and populated panels, hovered slot tooltips, and the reopened Part
+Builder after save/reload. The station test exercised click targets, output
+collection and repair. The LAN test captured both clients after allowing frames
+to update and verified a single output under concurrent clicks.

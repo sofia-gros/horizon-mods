@@ -6,9 +6,9 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
         300 => if station { (27.0, 35.0) } else { (8.0, 43.0) },
         301 => if station { (48.0, 35.0) } else { (29.0, 43.0) },
         302 if station => (69.0, 35.0),
-        324 => if station { (114.0, 38.0) } else { (60.0, 18.0) },
-        325 => if station { (134.0, 38.0) } else { (78.0, 18.0) },
-        326 if !station => (96.0, 18.0),
+        324 => if station { (114.0, 38.0) } else { (52.0, 16.0) },
+        325 => if station { (134.0, 38.0) } else { (70.0, 16.0) },
+        326 if !station => (88.0, 16.0),
         302..=326 => (-10000.0, -10000.0),
         _ => return std::ops::ControlFlow::Continue(()),
     };

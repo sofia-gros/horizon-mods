@@ -25,6 +25,8 @@ try:
   print(g.label,'interact',g.call('interact','0','71','2'),flush=True)
  click(h,0);click(h,300);click(h,1);click(h,301);click(h,2);click(h,302)
  wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:flint_pick_head' and slots(g).get(301,{}).get('item')=='tconstruct:wood_handle' and slots(g).get(302,{}).get('item')=='tconstruct:wood_binding' for g in games))
+ h.call('wait','20');q.call('wait','20')
+ h.call('screenshot',str(run/'host-station.png'));q.call('screenshot',str(run/'guest-station.png'))
  with ThreadPoolExecutor(max_workers=2) as pool:
   futures=[pool.submit(click,g,324) for g in games]
   for f in futures:f.result()

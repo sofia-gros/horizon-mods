@@ -194,3 +194,11 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "source", ty = "&Option<ItemStack>", value = "s" },
 ]
+
+[[injection]]
+id = "station-screen-height"
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+kind = "HEAD"
+cancellable = true
+helper = "station-height.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
