@@ -50,15 +50,19 @@ entries = [
     ('tconstruct:wood_binding', 'minecraft:stick', 'Wood Tool Binding'),
     ('tconstruct:wood_handle', 'minecraft:stick', 'Wood Tool Handle'),
     ('tconstruct:flint_pickaxe', 'minecraft:stone_pickaxe', 'Flint Pickaxe'),
+    ('tconstruct:pick_head', 'minecraft:flint', 'Pick Head'),
+    ('tconstruct:tool_handle', 'minecraft:stick', 'Tool Handle'),
+    ('tconstruct:tool_binding', 'minecraft:stick', 'Tool Binding'),
+    ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
 ]
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     item['minecraft:item_name'] = {'text': title}
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
-    layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short == 'flint_pickaxe' else [short]
+    layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [{'pick_head': 'flint_pick_head', 'tool_handle': 'wood_handle', 'tool_binding': 'wood_binding'}.get(short, short)]
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
-    (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps({'parent': 'minecraft:item/handheld' if short == 'flint_pickaxe' else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}))
+    (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps({'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}))
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5

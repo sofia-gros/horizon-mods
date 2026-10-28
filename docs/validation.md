@@ -115,7 +115,8 @@ This isolates the observation to the shared-display test setup, but its exact
 cause is not established.
 
 The independent fixture Mod was built with the selection changes and its
-station hook logged during the station test in both game modes.
+station hook logged during the station test in both game modes, including the
+new shared item IDs and save/reload. This verifies this fixture only.
 
 The fixed-part result slot now shows the item tooltip on hover; this is not
 the original detailed material/trait tooltip. Both game modes passed the
@@ -123,10 +124,16 @@ selection/repair/save test after this change.
 
 The fixed flint head and wood handle were checked for their original material
 IDs in `minecraft:custom_data`; a wood handle retained that field across save
-and reload in both game modes. Their current prototype item IDs still differ
-from the original shared part IDs and material variants remain incomplete.
+and reload in both game modes. They now use the original shared part IDs;
+other material variants remain incomplete.
 
 The prototype flint/wood pickaxe's ordered `tic_materials` list was checked
 after assembly and save/reload in both modes. A unit test rejects a conflicting
 part Material value without changing inputs. This is not validation of original
-tool IDs, derived statistics, traits or arbitrary combinations.
+derived statistics, traits or arbitrary combinations.
+
+The fixed flint/wood outputs now use `tconstruct:pick_head`, `tool_handle`,
+`tool_binding` and `pickaxe`, with material and model components. The new IDs
+were exercised for selection, assembly, mining wear, repair, save/reload,
+broken mining and two-player races in both modes. The old prototype IDs remain
+registered and their diagnostic command was tested in both modes.

@@ -6,7 +6,11 @@ fn tconstruct_network_data(hub: &mut crate::lan::hub::Hub, source: &Option<ItemS
         horizon_world::nbt::Tag::List(lines) => Some(lines.clone()),
         _ => None,
     });
-    if custom.is_none() && lore.is_none() { return Continue(()); }
+    let model = item.data().and_then(|data| data.other("minecraft:item_model")).and_then(|tag| match tag {
+        horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy()),
+        _ => None,
+    });
+    if custom.is_none() && lore.is_none() && model.is_none() { return Continue(()); }
     let name = item.item.clone();
     let id = hub.item_id(&name);
     let sync = hub.sync.clone();
@@ -21,6 +25,9 @@ fn tconstruct_network_data(hub: &mut crate::lan::hub::Hub, source: &Option<ItemS
         }
         if let Some(lore) = lore {
             stack.added.push((horizon_protocol::item::component::LORE, horizon_protocol::item::Component::Lore(lore)));
+        }
+        if let Some(model) = model {
+            stack.added.push((horizon_protocol::item::component::ITEM_MODEL, horizon_protocol::item::Component::Ident(model)));
         }
     }
     Break(result)

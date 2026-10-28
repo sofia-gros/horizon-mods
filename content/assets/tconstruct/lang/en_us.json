@@ -5,5 +5,9 @@
   "item.tconstruct.wood_binding": "Wood Tool Binding",
   "item.tconstruct.flint_pickaxe": "Flint Pickaxe",
   "block.tconstruct.part_builder": "Part Builder",
-  "block.tconstruct.tinker_station": "Tinker Station"
+  "block.tconstruct.tinker_station": "Tinker Station",
+  "item.tconstruct.pick_head": "Pick Head",
+  "item.tconstruct.tool_handle": "Tool Handle",
+  "item.tconstruct.tool_binding": "Tool Binding",
+  "item.tconstruct.pickaxe": "Pickaxe"
 }

@@ -36,8 +36,8 @@ try:
   futures=[pool.submit(click,g,322) for g in games]
   for f in futures:f.result()
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
- print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:flint_pick_head'),flush=True)
- assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:flint_pick_head')==1
+ print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pick_head'),flush=True)
+ assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pick_head')==1
  assert all(301 not in slots(g) for g in games)
  for g in reversed(games):g.stop()
 finally:

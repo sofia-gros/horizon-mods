@@ -1,6 +1,6 @@
 fn tconstruct_wear(game: &mut crate::game::Game<'_>, hardness: f32) -> std::ops::ControlFlow<()> {
     let Some(stack) = game.inventory[game.selected].clone() else { return std::ops::ControlFlow::Continue(()); };
-    if &*stack.item != "tconstruct:flint_pickaxe" { return std::ops::ControlFlow::Continue(()); }
+    if !matches!(&*stack.item, "tconstruct:flint_pickaxe" | "tconstruct:pickaxe") { return std::ops::ControlFlow::Continue(()); }
     if hardness != 0.0 {
         let loss = game.durability_loss(&stack, 1);
         if let Some(held) = game.inventory[game.selected].as_mut() {

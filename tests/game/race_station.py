@@ -18,21 +18,21 @@ try:
  h=Game(a,run,'Host',in_frame=a.in_frame);games.append(h);h.ready()
  port=h.call('lan','open','0','commands')['port']
  q=Game(a,run,'Guest',server='127.0.0.1:'+str(port));games.append(q);q.ready()
- for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 tconstruct:tinker_station','give @s tconstruct:flint_pick_head 1','give @s tconstruct:wood_handle 1','give @s tconstruct:wood_binding 1'):
+ for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 tconstruct:tinker_station','give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"},minecraft:item_model="tconstruct:flint_pick_head"] 1','give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"},minecraft:item_model="tconstruct:wood_handle"] 1','give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"},minecraft:item_model="tconstruct:wood_binding"] 1'):
   print('command',cmd,h.call('command',cmd),flush=True)
  for g in games:
   wait(g.label+' block',lambda:g.call('block','0','71','2').get('block')=='tconstruct:tinker_station')
   print(g.label,'interact',g.call('interact','0','71','2'),flush=True)
  click(h,0);click(h,300);click(h,1);click(h,301);click(h,2);click(h,302)
- wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:flint_pick_head' and slots(g).get(301,{}).get('item')=='tconstruct:wood_handle' and slots(g).get(302,{}).get('item')=='tconstruct:wood_binding' for g in games))
+ wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:pick_head' and slots(g).get(301,{}).get('item')=='tconstruct:tool_handle' and slots(g).get(302,{}).get('item')=='tconstruct:tool_binding' for g in games))
  h.call('wait','20');q.call('wait','20')
  h.call('screenshot',str(run/'host-station.png'));q.call('screenshot',str(run/'guest-station.png'))
  with ThreadPoolExecutor(max_workers=2) as pool:
   futures=[pool.submit(click,g,324) for g in games]
   for f in futures:f.result()
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
- print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:flint_pickaxe'),flush=True)
- assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:flint_pickaxe')==1
+ print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe'),flush=True)
+ assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe')==1
  wait('inputs consumed once',lambda: all(all(slot not in slots(g) for slot in (300,301,302)) for g in games))
  for g in reversed(games):g.stop()
 finally:

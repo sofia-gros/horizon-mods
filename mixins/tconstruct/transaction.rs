@@ -26,6 +26,14 @@ fn part_with_material(id: &str, material: &str) -> ItemStack {
     part.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
         ("Material", horizon_world::nbt::Tag::String(material.into())),
     ])));
+    let (model, title) = match id {
+        "tconstruct:pick_head" => ("tconstruct:flint_pick_head", "Flint Pick Head"),
+        "tconstruct:tool_handle" => ("tconstruct:wood_handle", "Wood Tool Handle"),
+        "tconstruct:tool_binding" => ("tconstruct:wood_binding", "Wood Tool Binding"),
+        _ => return part,
+    };
+    part.data_mut().set_other("minecraft:item_model", Some(horizon_world::nbt::Tag::String(model.into())));
+    part.data_mut().set_other("minecraft:item_name", Some(horizon_world::nbt::Tag::String(title.into())));
     part
 }
 
@@ -34,7 +42,7 @@ fn part_with_material(id: &str, material: &str) -> ItemStack {
 fn part_matches_material(stack: &ItemStack, expected: &str) -> bool {
     use horizon_world::nbt::Tag;
     match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("Material")) {
-        None => true, // legacy prototype stack, whose ID fixes the material
+        None => matches!(&*stack.item, "tconstruct:flint_pick_head" | "tconstruct:wood_handle" | "tconstruct:wood_binding"),
         Some(Tag::String(value)) => value.to_string_lossy() == expected,
         Some(_) => false,
     }
@@ -42,10 +50,12 @@ fn part_matches_material(stack: &ItemStack, expected: &str) -> bool {
 
 fn fixed_pickaxe_with_materials() -> ItemStack {
     use horizon_world::nbt::Tag;
-    let mut tool = ItemStack::new("tconstruct:flint_pickaxe", 1);
+    let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
     let materials = ["tconstruct:flint", "tconstruct:wood", "tconstruct:wood"]
         .into_iter().map(|id| Tag::String(id.into())).collect();
     tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_materials", Tag::List(materials))])));
+    tool.data_mut().set_other("minecraft:item_model", Some(Tag::String("tconstruct:flint_pickaxe".into())));
+    tool.data_mut().set_other("minecraft:item_name", Some(Tag::String("Flint Pickaxe".into())));
     tool
 }
 
@@ -56,9 +66,9 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
     let is = |slot: usize, item: &str, count: u32| stacks.get(slot).and_then(Option::as_ref).is_some_and(|s| &*s.item == item && s.count >= count);
     let (output, consume): (ItemStack, Vec<(usize, u32)>) = if !station {
         let (material, cost, result) = match action {
-            24 => ("minecraft:flint", 2, "tconstruct:flint_pick_head"),
-            25 => ("minecraft:oak_planks", 1, "tconstruct:wood_handle"),
-            26 => ("minecraft:oak_planks", 1, "tconstruct:wood_binding"),
+            24 => ("minecraft:flint", 2, "tconstruct:pick_head"),
+            25 => ("minecraft:oak_planks", 1, "tconstruct:tool_handle"),
+            26 => ("minecraft:oak_planks", 1, "tconstruct:tool_binding"),
             _ => return false,
         };
         let Some((amount, remainder)) = material_cost(cost, 1, 1) else { return false; };
@@ -72,13 +82,13 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         let material_id = if material == "minecraft:flint" { "tconstruct:flint" } else { "tconstruct:wood" };
         (part_with_material(result, material_id), vec![(1, amount)])
     } else if action == 24 {
-        if !is(0, "tconstruct:flint_pick_head", 1) || !is(1, "tconstruct:wood_handle", 1) || !is(2, "tconstruct:wood_binding", 1) { return false; }
+        if !(is(0, "tconstruct:pick_head", 1) || is(0, "tconstruct:flint_pick_head", 1)) || !(is(1, "tconstruct:tool_handle", 1) || is(1, "tconstruct:wood_handle", 1)) || !(is(2, "tconstruct:tool_binding", 1) || is(2, "tconstruct:wood_binding", 1)) { return false; }
         for (slot, material) in [(0, "tconstruct:flint"), (1, "tconstruct:wood"), (2, "tconstruct:wood")] {
             if !part_matches_material(stacks[slot].as_ref().unwrap(), material) { return false; }
         }
         (fixed_pickaxe_with_materials(), vec![(0, 1), (1, 1), (2, 1)])
     } else if action == 25 {
-        if !is(0, "tconstruct:flint_pickaxe", 1) { return false; }
+        if !(is(0, "tconstruct:pickaxe", 1) || is(0, "tconstruct:flint_pickaxe", 1)) { return false; }
         let mut tool = stacks[0].as_ref().unwrap().clone();
         if tool.count != 1 || tool.damage == 0 { return false; }
         if (1..=2).any(|i| stacks[i].as_ref().is_some_and(|s| &*s.item != "minecraft:flint" || s.count == 0)) { return false; }
@@ -95,7 +105,7 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         (tool, consume)
     } else { return false; };
     if let Some(existing) = carried.as_ref() {
-        let max = if &*output.item == "tconstruct:flint_pickaxe" { 1 } else { 64 };
+        let max = if &*output.item == "tconstruct:flint_pickaxe" || &*output.item == "tconstruct:pickaxe" { 1 } else { 64 };
         let mut compare = existing.clone();
         compare.count = output.count;
         if compare != output || existing.count >= max { return false; }
@@ -143,7 +153,7 @@ mod tests {
         assert_eq!(slots, before);
         cursor = None;
         assert!(take(&mut slots, &mut cursor, false, 24));
-        assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:flint_pick_head");
+        assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
         assert_eq!(cursor.as_ref().unwrap().data().and_then(|d| d.other("minecraft:custom_data")), Some(&horizon_world::nbt::Tag::compound([("Material", horizon_world::nbt::Tag::String("tconstruct:flint".into()))])));
         assert!(slots[1].is_none());
         assert_eq!(slots[0].as_ref().unwrap().count, 1);
@@ -157,7 +167,7 @@ mod tests {
         slots[0] = Some(ItemStack::new("tconstruct:pattern", 1));
         slots[1] = Some(ItemStack::new("minecraft:flint", 2));
         let before = slots.clone();
-        assert_eq!(part_preview(&slots, 0).unwrap().item.as_ref(), "tconstruct:flint_pick_head");
+        assert_eq!(part_preview(&slots, 0).unwrap().item.as_ref(), "tconstruct:pick_head");
         assert_eq!(slots, before);
         assert!(part_preview(&slots, 1).is_none());
         slots[1] = Some(ItemStack::new("minecraft:flint", 1));
@@ -165,6 +175,8 @@ mod tests {
     }
     #[test]
     fn assembly_retains_materials_and_rejects_conflicting_identity() {
+        assert!(!part_matches_material(&ItemStack::new("tconstruct:pick_head", 1), "tconstruct:flint"));
+        assert!(part_matches_material(&ItemStack::new("tconstruct:flint_pick_head", 1), "tconstruct:flint"));
         let mut slots = vec![None; 27];
         slots[0] = Some(part_with_material("tconstruct:flint_pick_head", "tconstruct:flint"));
         slots[1] = Some(part_with_material("tconstruct:wood_handle", "tconstruct:wood"));
