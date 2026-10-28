@@ -77,3 +77,12 @@ CLIも `cargo test --locked -p cargo-horizon-mod --bin cargo-horizon-mod` で3�
 ### ユーザーがゲームで確認できる範囲
 
 今回の取り込みだけではserver Modのゲーム内試験はまだできない。`welcome` を導入してもjoin通知や `/online` の動作確認にはならない。既存client診断Modの手順と、将来のserver接続完了時の手順を分けて案内する。M2は未完了のままとする。
+
+### 2026-10-28: 作業ブランチの main 反映前検証
+
+本体 `a731fde7d75a9ee5aec7c9b702ac631b70393ceb` は上流 `56f968e11c7627536cb6a83420caddce7e3acb8f` を取り込み、Mod の SDK 依存は検証済み `83eafa818a6a5fc573b97b024b5c40bdaf23b209` のままです。Mod のコード `3b7681f16e29c27595a39e6c1b6b96d11c162e48` と組み合わせ、Linux の llvmpipe で実行しました。
+
+- Mod 有効の本体型検査とゲーム・`horizon-ctl` の fast ビルド、Mod コア・server-tools テスト、server-tools の Clippy、Wasm package の test と check が成功。
+- 採掘耐久と戦闘耐久の実ゲーム試験は integrated server と `--in-frame` の両方で成功。採掘では broken、持ち替え、通常アイテム、保存・再起動を含みます。
+- sandbox は上流取り込み前の本体 `81b3be3791171700c8105e5b0b218dfa434a12a1` で 34 成功・1 ignored。今回の上流マージには sandbox や SDK の変更はありません。
+- 今回、Windows 11・専用サーバー・PvP の再試験とフル CI は実施していません。制作・修理 UI、動的外観、溶解・鋳造は引き続き未完成です。
