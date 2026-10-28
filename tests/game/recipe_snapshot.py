@@ -15,11 +15,12 @@ p.add_argument('--vanilla-pack-test', action='store_true')
 p.add_argument('--forge-pack-test', action='store_true')
 p.add_argument('--full-recipe-test', action='store_true')
 p.add_argument('--lookup-test', action='store_true')
+p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 if a.source_pack_test:
     layer = a.resources / 'tconstruct-original-pack/data/test'
-    for kind in ('recipes', 'tags/items'):
+    for kind in ('recipes', 'tags/items', 'tinkering/materials/definition', 'tinkering/tags/materials'):
         path = layer / kind / 'probe.json'
         if path.exists():
             if path.read_text() != 'source-layer': raise RuntimeError(f'refusing to overwrite {path}')
@@ -36,6 +37,9 @@ def pack(g, name, marker):
     (base / 'data/test/recipes/probe.json').write_text(marker)
     (base / 'data/test/tags/items').mkdir(parents=True, exist_ok=True)
     (base / 'data/test/tags/items/probe.json').write_text(marker)
+    for kind in ('tinkering/materials/definition', 'tinkering/tags/materials'):
+        (base / 'data/test' / kind).mkdir(parents=True, exist_ok=True)
+        (base / 'data/test' / kind / 'probe.json').write_text(marker)
 
 def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True):
     # The fixture is the inner RETURN modifier, so it observes the previous
@@ -57,6 +61,16 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
             if forge_expected is not None:
                 forge = [line.split('TCONSTRUCT_FORGE_IRON_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_FORGE_IRON_PROBE ' in line]
                 assert forge and int(forge[-1]) == forge_expected, (forge, forge_expected)
+            if a.material_pack_test:
+                def material_last(marker):
+                    values = [line.split(marker, 1)[1] for line in lines if marker in line]
+                    assert values, marker
+                    return values[-1]
+                assert material_last('TCONSTRUCT_MATERIAL_PROBE ') == expected
+                assert material_last('TCONSTRUCT_MATERIAL_TAG_PROBE ') == (tag_expected or expected)
+                assert int(material_last('TCONSTRUCT_MATERIAL_COUNT_PROBE ')) == 302
+                assert int(material_last('TCONSTRUCT_MATERIAL_TAG_COUNT_PROBE ')) == 18
+                assert material_last('TCONSTRUCT_MATERIAL_WOOD_PROBE ') == '89e9d6af86e89ee4fb6079aa540323104c4afbe11784f5dca9c935ea7381b453'
             if a.lookup_test:
                 flint = [line.split('TCONSTRUCT_LOOKUP_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_FLINT ' in line]
                 oak = [line.split('TCONSTRUCT_LOOKUP_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_OAK_LOG ' in line]

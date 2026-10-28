@@ -131,6 +131,7 @@ enum SourceCondition {
     TagFilled { registry: String, tag: String },
     TagCombination { registry: String, required: Vec<String>, ignore: Option<String> },
     Or(Vec<Self>),
+    And(Vec<Self>),
     Config(String),
 }
 #[allow(dead_code)]
@@ -154,10 +155,11 @@ impl SourceCondition {
                 if !KNOWN.contains(&property.as_str()) { return None; }
                 Some(Self::Config(if property == "slime_recipe_fix" { "glass_recipe_fix".into() } else { property }))
             }
-            "forge:or" => {
+            "forge:or" | "forge:and" => {
                 let values = o.get("values")?.as_array()?;
                 if values.is_empty() { return None; }
-                Some(Self::Or(values.iter().map(Self::parse).collect::<Option<_>>()?))
+                let parsed = values.iter().map(Self::parse).collect::<Option<_>>()?;
+                Some(if o.get("type")?.as_str()? == "forge:or" { Self::Or(parsed) } else { Self::And(parsed) })
             }
             _ => None,
         }
@@ -181,6 +183,17 @@ impl SourceCondition {
                     }
                 }
                 if unknown { None } else { Some(false) }
+            }
+            Self::And(values) => {
+                let mut unknown = false;
+                for value in values {
+                    match value.matches(registries, config) {
+                        Some(false) => return Some(false),
+                        Some(true) => {},
+                        None => unknown = true,
+                    }
+                }
+                if unknown { None } else { Some(true) }
             }
             Self::Config(property) if property == "wither_bone_conversion" => Some(false),
             Self::Config(property) => config.get(property).copied(),
@@ -287,6 +300,107 @@ impl SourceMaterialRecipe {
         }
         if unknown { None } else { Some(true) }
     }
+}
+
+/// The source material-definition loader checks redirects before its own
+/// condition, then requires a craftable value. This parser is not yet wired
+/// into the world's material registry or the Part Builder.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum SourceMaterialDefinition {
+    Material { craftable: bool, hidden: bool, tier: i32, sort_order: i32, rarity: String },
+    Redirect(String),
+    Disabled,
+}
+
+#[allow(dead_code)]
+pub(super) fn source_material_definition(
+    value: &serde_json::Value,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    complete: bool,
+) -> Result<SourceMaterialDefinition, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let object = value.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+    let condition = |value: &serde_json::Value| -> Result<Option<bool>, SourceLookupError> {
+        if value.is_null() { return Ok(Some(true)); }
+        let parsed = SourceCondition::parse(value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        Ok(parsed.matches(registries, config))
+    };
+    if let Some(redirects) = object.get("redirect").filter(|v| !v.is_null()) {
+        for redirect in redirects.as_array().ok_or(SourceLookupError::UnsupportedRecipe)? {
+            let redirect = redirect.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let target = redirect.get("id").and_then(serde_json::Value::as_str).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            match redirect.get("condition").map_or(Ok(Some(true)), &condition)? {
+                Some(true) => return Ok(SourceMaterialDefinition::Redirect(target.to_owned())),
+                Some(false) => {},
+                None => return Err(SourceLookupError::UnknownCondition),
+            }
+        }
+    }
+    match object.get("condition").map_or(Ok(Some(true)), &condition)? {
+        Some(false) => return Ok(SourceMaterialDefinition::Disabled),
+        Some(true) => {},
+        None => return Err(SourceLookupError::UnknownCondition),
+    }
+    let craftable = object.get("craftable").and_then(serde_json::Value::as_bool).ok_or(SourceLookupError::UnsupportedRecipe)?;
+    let hidden = match object.get("hidden") { None | Some(serde_json::Value::Null) => false, Some(v) => v.as_bool().ok_or(SourceLookupError::UnsupportedRecipe)? };
+    let integer = |key: &str, default| -> Result<i32, SourceLookupError> {
+        match object.get(key) { None | Some(serde_json::Value::Null) => Ok(default), Some(v) => v.as_i64().and_then(|n| i32::try_from(n).ok()).ok_or(SourceLookupError::UnsupportedRecipe) }
+    };
+    let tier = integer("tier", 0)?;
+    let sort_order = integer("sortOrder", 100)?;
+    let rarity = match object.get("rarity") {
+        None | Some(serde_json::Value::Null) => if tier >= 5 { "epic" } else if tier == 4 { "rare" } else if tier == 3 { "uncommon" } else { "common" },
+        Some(_) => return Err(SourceLookupError::UnsupportedRecipe),
+    };
+    Ok(SourceMaterialDefinition::Material { craftable, hidden, tier, sort_order, rarity: rarity.into() })
+}
+
+/// Source MaterialStatsManager merges stat objects by stat ID and field,
+/// while a null stat removes that entry. Invalid layers fail closed until the
+/// original loader's error/partial-update behavior is ported in full.
+#[allow(dead_code)]
+pub(super) fn source_merge_material_stats(files: &[Vec<u8>]) -> Result<std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>>, SourceLookupError> {
+    let mut stats: std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>> = std::collections::BTreeMap::new();
+    for file in files {
+        let value: serde_json::Value = serde_json::from_slice(file).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+        let object = value.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let Some(raw) = object.get("stats").filter(|v| !v.is_null()) else { continue; };
+        for (id, value) in raw.as_object().ok_or(SourceLookupError::UnsupportedRecipe)? {
+            if value.is_null() { stats.remove(id); continue; }
+            let fields = value.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+            stats.entry(id.clone()).or_default().extend(fields.clone());
+        }
+    }
+    Ok(stats)
+}
+
+/// Preserve the source trait loader's layer operations. Modifier entries and
+/// per-stat fallback rules are not yet deserialized or connected to gameplay.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub(super) struct SourceRawTraits {
+    pub default: Option<Vec<serde_json::Value>>,
+    pub per_stat: std::collections::BTreeMap<String, Vec<serde_json::Value>>,
+}
+#[allow(dead_code)]
+pub(super) fn source_merge_material_traits(files: &[Vec<u8>]) -> Result<SourceRawTraits, SourceLookupError> {
+    let mut result = SourceRawTraits { default: None, per_stat: std::collections::BTreeMap::new() };
+    for file in files {
+        let value: serde_json::Value = serde_json::from_slice(file).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+        let object = value.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if let Some(default) = object.get("default").filter(|v| !v.is_null()) {
+            result.default = Some(default.as_array().ok_or(SourceLookupError::UnsupportedRecipe)?.clone());
+        }
+        if let Some(per_stat) = object.get("perStat").filter(|v| !v.is_null()) {
+            for (id, entries) in per_stat.as_object().ok_or(SourceLookupError::UnsupportedRecipe)? {
+                if entries.is_null() { result.per_stat.remove(id); }
+                else { result.per_stat.insert(id.clone(), entries.as_array().ok_or(SourceLookupError::UnsupportedRecipe)?.clone()); }
+            }
+        }
+    }
+    Ok(result)
 }
 
 /// Source material lookup over a complete, ordered recipe snapshot. This is
@@ -570,6 +684,14 @@ mod tests {
         assert_eq!(removed.matches(&registries, &config), Some(false));
         assert!(SourceCondition::parse(&serde_json::json!({"type":"tconstruct:config", "prop":"unknown"})).is_none());
         assert!(SourceCondition::parse(&serde_json::json!({"type":"forge:or", "values":[]})).is_none());
+        let and = SourceCondition::parse(&serde_json::json!({"type":"forge:and", "values":[{"type":"tconstruct:config","prop":"force_integration_materials"}, {"type":"mantle:tag_filled","tag":"test:missing"}]})).unwrap();
+        config.remove("force_integration_materials");
+        assert_eq!(and.matches(&registries, &config), Some(false));
+        let and = SourceCondition::parse(&serde_json::json!({"type":"forge:and", "values":[{"type":"tconstruct:config","prop":"force_integration_materials"}, {"type":"mantle:tag_filled","tag":"minecraft:planks"}]})).unwrap();
+        assert_eq!(and.matches(&registries, &config), None);
+        config.insert("force_integration_materials".into(), true);
+        assert_eq!(and.matches(&registries, &config), Some(true));
+
     }
     #[test]
     fn parses_all_pinned_material_recipe_ingredients() {
@@ -777,6 +899,67 @@ mod tests {
         assert_eq!(tool.damage, 29);
         assert_eq!(tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("tic_broken")), Some(&horizon_world::nbt::Tag::Byte(0)));
     }
+    #[test]
+    fn parses_pinned_material_definitions_without_guessing() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors().map(|dir| dir.join("content/reference/tconstruct-materials.zip"))
+            .find(|path| path.is_file()).expect("pinned material data");
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut config = std::collections::HashMap::new();
+        for key in ["spawn_with_book", "gravel_to_flint", "cheaper_netherite_alloy", "wither_bone_drop", "wither_bone_conversion", "slime_recipe_fix", "glass_recipe_fix", "allow_ingotless_alloys", "force_integration_materials", "slimy_loot_chests", "sync_knockback_resistance"] {
+            config.insert(key.to_owned(), true);
+        }
+        let registries = Default::default();
+        let mut count = 0;
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).unwrap();
+            if !file.name().contains("/materials/definition/") { continue; }
+            let name = file.name().to_owned();
+            let value: serde_json::Value = serde_json::from_reader(&mut file).unwrap();
+            source_material_definition(&value, &registries, &config, true).unwrap_or_else(|e| panic!("{name}: {e:?}"));
+            count += 1;
+        }
+        assert_eq!(count, 104);
+    }
+
+    #[test]
+    fn original_material_traits_replace_lists_and_reset_per_stat() {
+        let files = [br#"{"default":[{"name":"test:a","level":1}],"perStat":{"test:head":[{"name":"test:b","level":1}]}}"#.to_vec(),
+                     br#"{"default":null,"perStat":{"test:head":null,"test:handle":[{"name":"test:c","level":2}]}}"#.to_vec()];
+        let traits = source_merge_material_traits(&files).unwrap();
+        assert_eq!(traits.default.unwrap()[0]["name"], "test:a");
+        assert!(!traits.per_stat.contains_key("test:head"));
+        assert_eq!(traits.per_stat["test:handle"][0]["level"], 2);
+    }
+
+    #[test]
+    fn original_material_stats_merge_fields_and_remove_types() {
+        let files = [br#"{"stats":{"tconstruct:head":{"durability":60,"mining_speed":2.0},"tconstruct:binding":{}}}"#.to_vec(),
+                     br#"{"stats":{"tconstruct:head":{"durability":80},"tconstruct:binding":null,"tconstruct:handle":{}}}"#.to_vec()];
+        let stats = source_merge_material_stats(&files).unwrap();
+        assert_eq!(stats["tconstruct:head"]["durability"], 80);
+        assert_eq!(stats["tconstruct:head"]["mining_speed"], 2.0);
+        assert!(!stats.contains_key("tconstruct:binding"));
+        assert!(stats.contains_key("tconstruct:handle"));
+        assert_eq!(source_merge_material_stats(&[br#"{"stats":{"tconstruct:head":7}}"#.to_vec()]), Err(SourceLookupError::UnsupportedRecipe));
+    }
+
+    #[test]
+    fn original_material_definition_defaults_conditions_and_redirects() {
+        let registries = Default::default();
+        let mut config = std::collections::HashMap::new();
+        let wood = serde_json::json!({"craftable":true,"hidden":false,"sortOrder":0,"tier":0});
+        assert_eq!(source_material_definition(&wood, &registries, &config, true), Ok(SourceMaterialDefinition::Material { craftable:true, hidden:false, tier:0, sort_order:0, rarity:"common".into() }));
+        let redirect = serde_json::json!({"redirect":[{"id":"tconstruct:rose_gold"}]});
+        assert_eq!(source_material_definition(&redirect, &registries, &config, true), Ok(SourceMaterialDefinition::Redirect("tconstruct:rose_gold".into())));
+        let conditional = serde_json::json!({"condition":{"type":"tconstruct:config","prop":"force_integration_materials"},"craftable":false,"tier":5});
+        assert_eq!(source_material_definition(&conditional, &registries, &config, true), Err(SourceLookupError::UnknownCondition));
+        config.insert("force_integration_materials".into(), false);
+        assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Disabled));
+        config.insert("force_integration_materials".into(), true);
+        assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Material { craftable:false, hidden:false, tier:5, sort_order:100, rarity:"epic".into() }));
+    }
+
     #[test]
     fn source_material_lookup_requires_context_and_matches_original_flint() {
         let mut recipes = std::collections::BTreeMap::new();

@@ -35,5 +35,18 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         eprintln!("TCONSTRUCT_PLANKS_PROBE {}", tags.get("minecraft:planks").map_or(0, Vec::len));
         eprintln!("TCONSTRUCT_FORGE_IRON_PROBE {}", tags.get("forge:ingots/iron").map_or(0, Vec::len));
     } else { eprintln!("TCONSTRUCT_TAG_PROBE uninitialized"); }
+    if let Some(materials) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot() {
+        use sha2::{Digest, Sha256};
+        let probe = materials.get("test:tinkering/materials/definition/probe").and_then(|v| v.last()).and_then(|v| std::str::from_utf8(v).ok()).unwrap_or("missing");
+        let wood = materials.get("tconstruct:tinkering/materials/definition/wood").and_then(|v| v.last()).map(|v| format!("{:x}", Sha256::digest(v))).unwrap_or_else(|| "missing".into());
+        eprintln!("TCONSTRUCT_MATERIAL_PROBE {probe}");
+        eprintln!("TCONSTRUCT_MATERIAL_COUNT_PROBE {}", materials.keys().filter(|id| id.starts_with("tconstruct:")).count());
+        eprintln!("TCONSTRUCT_MATERIAL_WOOD_PROBE {wood}");
+    } else { eprintln!("TCONSTRUCT_MATERIAL_PROBE uninitialized"); }
+    if let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot() {
+        let files = tags.get("test:tinkering/tags/materials/probe").map(|v| v.iter().map(|b| String::from_utf8_lossy(b).into_owned()).collect::<Vec<_>>().join("|"));
+        eprintln!("TCONSTRUCT_MATERIAL_TAG_PROBE {}", files.as_deref().unwrap_or("missing"));
+        eprintln!("TCONSTRUCT_MATERIAL_TAG_COUNT_PROBE {}", tags.keys().filter(|id| id.starts_with("tconstruct:")).count());
+    } else { eprintln!("TCONSTRUCT_MATERIAL_TAG_PROBE uninitialized"); }
     value
 }

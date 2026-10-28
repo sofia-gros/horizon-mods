@@ -33,18 +33,23 @@ fn prepare_tconstruct_resources() {
         let original_pack = out.join("tconstruct-original-pack");
         if std::fs::symlink_metadata(&original_pack).is_ok() { return Err("original pack output already exists".into()); }
         copy_pack_dir(&content_path.join("reference/tconstruct-tags/data"), &original_pack.join("data"))?;
-        let mut recipes = zip::ZipArchive::new(std::fs::File::open(content_path.join("reference/tconstruct-recipes.zip"))?)?;
-        for index in 0..recipes.len() {
-            let mut entry = recipes.by_index(index)?;
-            let path = entry.enclosed_name().ok_or("invalid original recipe path")?;
-            if entry.is_dir() || !path.starts_with("data/tconstruct/recipes") || path.extension().is_none_or(|ext| ext != "json") {
-                return Err("invalid original recipe archive entry".into());
+        fn unpack_pack(src: &std::path::Path, dst: &std::path::Path, prefixes: &[&str]) -> Result<(), Box<dyn std::error::Error>> {
+            let mut archive = zip::ZipArchive::new(std::fs::File::open(src)?)?;
+            for index in 0..archive.len() {
+                let mut entry = archive.by_index(index)?;
+                let path = entry.enclosed_name().ok_or("invalid original data path")?;
+                if entry.is_dir() || !prefixes.iter().any(|prefix| path.starts_with(prefix)) || path.extension().is_none_or(|ext| ext != "json") {
+                    return Err("invalid original data archive entry".into());
+                }
+                let target = dst.join(path);
+                if target.exists() { return Err("duplicate original data path".into()); }
+                std::fs::create_dir_all(target.parent().ok_or("missing data parent")?)?;
+                std::io::copy(&mut entry, &mut std::fs::File::create(target)?)?;
             }
-            let target = original_pack.join(path);
-            if target.exists() { return Err("duplicate original recipe path".into()); }
-            std::fs::create_dir_all(target.parent().ok_or("missing recipe parent")?)?;
-            std::io::copy(&mut entry, &mut std::fs::File::create(target)?)?;
+            Ok(())
         }
+        unpack_pack(&content_path.join("reference/tconstruct-recipes.zip"), &original_pack, &["data/tconstruct/recipes"])?;
+        unpack_pack(&content_path.join("reference/tconstruct-materials.zip"), &original_pack, &["data/tconstruct/tinkering/materials", "data/tconstruct/tinkering/tags/materials"])?;
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.

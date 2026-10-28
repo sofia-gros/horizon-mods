@@ -93,6 +93,18 @@ remaining oak planks for a one-unit part cost and the source wood variant ID. Un
 not world-registry, GUI or transaction coverage; tool-part material recycling
 and arbitrary custom recipes also remain incomplete.
 
+The original source pack also retains 104 material definitions, 99 stat
+files, 99 trait files and 18 material-tag files, in
+`content/reference/tconstruct-materials.zip` (SHA-256
+`5076dc235c89022d26f71e8c125ba073977e9c540adedb628c897fd7c657e6c7`). The
+world snapshot retains every pack layer. Source-based helper tests cover
+material definition defaults, redirects, conditions, the `forge:and` condition,
+stats field merging and removal, and raw trait list replacement. Material
+registry construction, tag resolution, stat deserialization, trait fallback,
+modifier behavior and the Part Builder are not connected. The current raw
+helpers fail closed for unsupported values and do not yet match the original
+loader's full error behavior.
+
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
 recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
 metadata. `RecipeManager.getRecipeFor` uses the first match in that map's

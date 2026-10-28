@@ -355,6 +355,32 @@ file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_recipe_order"
 source = "recipe-order.rs"
 
+[[module]]
+id = "world-material-loader"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_materials"
+source = "material-snapshot.rs"
+
+[[state]]
+id = "material-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "material-tag-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[state]]
 id = "recipe-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"

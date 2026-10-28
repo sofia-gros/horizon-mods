@@ -24,6 +24,8 @@ jobs:
           /tmp/tconstruct-command-test
           rustc --test tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
           /tmp/tconstruct-recipe-snapshot-test
+          rustc --test tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
+          /tmp/tconstruct-material-snapshot-test
       - name: Fetch pinned upstream sources
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official
