@@ -65,6 +65,11 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         eprintln!("TCONSTRUCT_MATERIAL_PROBE {probe}");
         eprintln!("TCONSTRUCT_MATERIAL_COUNT_PROBE {}", materials.keys().filter(|id| id.starts_with("tconstruct:")).count());
         eprintln!("TCONSTRUCT_MATERIAL_WOOD_PROBE {wood}");
+        let tool = materials.get("tconstruct:tinkering/tool_definitions/pickaxe").and_then(|v| v.last());
+        let tool_value = tool.and_then(|v| serde_json::from_slice::<serde_json::Value>(v).ok());
+        let marker = tool_value.as_ref().and_then(|v| v.get("marker")).and_then(serde_json::Value::as_str).map(str::to_owned)
+            .or_else(|| tool.map(|v| format!("{:x}", Sha256::digest(v)))).unwrap_or_else(|| "missing".into());
+        eprintln!("TCONSTRUCT_TOOL_DEFINITION_PROBE {marker}");
     } else { eprintln!("TCONSTRUCT_MATERIAL_PROBE uninitialized"); }
     if let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot() {
         let files = tags.get("test:tinkering/tags/materials/probe").map(|v| v.iter().map(|b| String::from_utf8_lossy(b).into_owned()).collect::<Vec<_>>().join("|"));

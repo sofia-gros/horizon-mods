@@ -138,6 +138,16 @@ inputs; its `shrinkSlot` also returns each input item's crafting remainder
 (multiplied by consumed count). Reproducing both paths is required for venom
 bottles and must not be inferred from the preview alone.
 
+Tool recycling without a recipe-level `parts` override depends on the
+world's `ToolDefinitionLoader` and its `ToolPartsHook`. The pinned source pack
+now contains all 45 generated tool definition JSON files, preserved byte for
+byte; the world snapshot keeps their ordered pack layers. The original loader
+selects the highest priority file and only applies it to registered tool
+definitions. An independent fixture tested the original pickaxe bytes and
+world-pack priority, disable, reload and two-world isolation in both game
+modes. Module decoding, registered tool validation, material-dependent
+pattern enumeration and gameplay integration remain unfinished.
+
 The world snapshot also attempts item-tag resolution against the actual
 Horizon item registry. Missing required references omit their tag, while
 cycles fail closed because Forge's dependency sorter is not yet ported. In

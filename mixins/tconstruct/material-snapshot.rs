@@ -1,8 +1,8 @@
 use std::collections::BTreeMap;
 
-// Keep every material definition, stat, trait and material-tag file in pack
-// order. Definitions select the highest layer; stats and traits merge
-// fields across layers. Parsing and gameplay remain unfinished.
+// Keep material and tool-definition data in pack order. Material definitions
+// and tool definitions select the highest layer; stats and traits merge fields
+// across layers. Parsing and gameplay remain unfinished.
 pub(super) fn merge_pack(
     materials: &mut BTreeMap<String, Vec<Vec<u8>>>,
     tags: &mut BTreeMap<String, Vec<Vec<u8>>>,
@@ -17,7 +17,8 @@ pub(super) fn merge_pack(
             || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c))
             || path.split('/').any(|part| part.is_empty() || part == "." || part == "..") { continue; }
         let is_tag = path.starts_with("tinkering/tags/materials/");
-        let is_material = ["definition", "stats", "traits"].iter().any(|kind| path.starts_with(&format!("tinkering/materials/{kind}/")));
+        let is_material = ["definition", "stats", "traits"].iter().any(|kind| path.starts_with(&format!("tinkering/materials/{kind}/")))
+            || path.starts_with("tinkering/tool_definitions/");
         if !is_tag && !is_material { continue; }
         if let Some(bytes) = read(&file) {
             let id = format!("{namespace}:{path}");
@@ -34,10 +35,12 @@ mod tests {
     fn material_and_tag_files_preserve_all_pack_layers() {
         let material = "data/tconstruct/tinkering/materials/definition/wood.json";
         let tag = "data/tconstruct/tinkering/tags/materials/wood.json";
+        let tool = "data/tconstruct/tinkering/tool_definitions/pickaxe.json";
         let mut values = BTreeMap::new(); let mut tags = BTreeMap::new();
-        merge_pack(&mut values, &mut tags, [material.into(), tag.into()], |_| Some(b"base".to_vec()));
-        merge_pack(&mut values, &mut tags, [material.into(), tag.into()], |_| Some(b"override".to_vec()));
+        merge_pack(&mut values, &mut tags, [material.into(), tag.into(), tool.into()], |_| Some(b"base".to_vec()));
+        merge_pack(&mut values, &mut tags, [material.into(), tag.into(), tool.into()], |_| Some(b"override".to_vec()));
         assert_eq!(values["tconstruct:tinkering/materials/definition/wood"], [b"base".to_vec(), b"override".to_vec()]);
         assert_eq!(tags["tconstruct:tinkering/tags/materials/wood"], [b"base".to_vec(), b"override".to_vec()]);
+        assert_eq!(values["tconstruct:tinkering/tool_definitions/pickaxe"], [b"base".to_vec(), b"override".to_vec()]);
     }
 }
