@@ -5,3 +5,9 @@
 `IMaterialValue.getItemsUsed` の原作 Java メソッドを使う oracle と、Rust の不足材料・不正 pattern・未知素材・誤った部品順の試験を実施。原作の剰余物、1:1 以外の材料比率、素材 variant、全レシピは対象外です。
 
 **このコードは純粋な計画のみで、実ゲームで材料を消費したり部品を作ったりしません。** Host に revision と全 slot の比較、材料消費と出力を一体で確定する汎用 transaction、Station の menu と保存を実装した後に接続します。プレビュー結果だけを信用して inventory を更新すると、同時操作による増殖・消失の危険があります。
+
+## 材料修理の計画
+
+木・火打石の 1:1 素材について、ピッケルの修理可能な head 素材と一致することを確認し、head の原作耐久値、素材レシピの 1/3 換算、`cultivated` の repair factor から消費数と回復後の ToolState を計画します。不足・不適合・未損傷は拒否し、入力状態自体は変更しません。固定原作の `MaterialRecipe.scaleRepair` と `TinkerStationRepairRecipe.repairFromSlot` の Java 断片による 4 ケースと照合しました。複数入力 slot、repair kit、その他素材・modifier は対象外です。
+
+実際の材料消費や修理完了は実装されておらず、サーバーの認可・inventory transaction・Station UI との接続が必要です。

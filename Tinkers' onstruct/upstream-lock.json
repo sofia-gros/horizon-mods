@@ -94,6 +94,10 @@
       "sha256": "1d7c03e425958e82f7d9bf379e2d6ed67f87c2068e56c3ec4278a976e03c42c0"
     },
     {
+      "path": "src/main/java/slimeknights/tconstruct/library/recipe/material/MaterialRecipe.java",
+      "sha256": "cdf2370efd1b9ab54ab196447b5d3bc05505bebcda1c05b6449454ecc8b7fec3"
+    },
+    {
       "path": "src/main/java/slimeknights/tconstruct/library/tools/definition/module/build/SetStatsModule.java",
       "sha256": "145c3ab2bc09407e8dce70cb37f06b3e27b8a7ddebad13a2c1c623ec8d2a6a7e"
     },
@@ -136,6 +140,10 @@
     {
       "path": "src/main/java/slimeknights/tconstruct/library/tools/stat/ToolStats.java",
       "sha256": "30064f0dfb53189042c4db5c56e898b753f1abd485653bb48e82ee5826bb443b"
+    },
+    {
+      "path": "src/main/java/slimeknights/tconstruct/tables/recipe/TinkerStationRepairRecipe.java",
+      "sha256": "a728326b9efd9a05dbcd143d450575b4bfec0b02e5b3e4e1588ac7681fea39fd"
     },
     {
       "path": "src/main/java/slimeknights/tconstruct/tools/stats/HandleMaterialStats.java",

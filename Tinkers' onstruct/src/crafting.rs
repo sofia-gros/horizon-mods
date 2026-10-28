@@ -116,3 +116,73 @@ pub fn plan_pickaxe(catalog: &Catalog, parts: &[Part; 3]) -> Result<ToolState, S
     catalog.evaluate(&state)?;
     Ok(state)
 }
+
+/// A single-slot 1:1 material repair plan. No inventory is mutated here.
+#[derive(Clone, Debug, PartialEq)]
+pub struct RepairPlan {
+    pub material_items: u32,
+    pub repaired_points: u32,
+    pub output: ToolState,
+}
+
+/// Plan one Station repair using the pickaxe's repairable head material.
+/// Only the selected wood/flint 1:1 recipes are supported. Other ingredients,
+/// multiple input slots, repair kits and modifier-dependent recipes are outside
+/// this function's contract and must not be treated as matching.
+pub fn plan_repair(
+    catalog: &Catalog,
+    tool: &ToolState,
+    material: &str,
+    available: u32,
+) -> Result<RepairPlan, String> {
+    let evaluation = catalog.evaluate(tool)?;
+    if tool.damage == 0 || available == 0 {
+        return Err("nothing to repair or no material".into());
+    }
+    let name = material.strip_prefix("tconstruct:").unwrap_or(material);
+    let (recipe, stats) = match name {
+        "wood" => (
+            WOOD,
+            include_str!(
+                "../third_party/tconstruct/src/generated/resources/data/tconstruct/tinkering/materials/stats/wood.json"
+            ),
+        ),
+        "flint" => (
+            FLINT,
+            include_str!(
+                "../third_party/tconstruct/src/generated/resources/data/tconstruct/tinkering/materials/stats/flint.json"
+            ),
+        ),
+        _ => return Err("unsupported repair material".into()),
+    };
+    if tool.materials[0] != format!("tconstruct:{name}") {
+        return Err("material does not match the repairable head".into());
+    }
+    let recipe: Value = serde_json::from_str(recipe).map_err(|e| e.to_string())?;
+    let stats: Value = serde_json::from_str(stats).map_err(|e| e.to_string())?;
+    if recipe["needed"] != 1
+        || recipe["value"] != 1
+        || recipe["material"] != format!("tconstruct:{name}")
+    {
+        return Err("unsupported material repair recipe".into());
+    }
+    let head = stats["stats"]["tconstruct:head"]["durability"]
+        .as_u64()
+        .ok_or("missing repairable head durability")? as f32;
+    let per_item = (head / 3.0) * evaluation.repair_factor(catalog)?;
+    if !per_item.is_finite() || per_item <= 0.0 {
+        return Err("invalid repair value".into());
+    }
+    let used = available.min(((tool.damage as f32 / per_item).ceil() as u32).max(1));
+    let points = (used as f32 * per_item) as u32;
+    if points == 0 {
+        return Err("material would not repair durability".into());
+    }
+    let mut output = tool.clone();
+    let repaired_points = output.repair_points(catalog, points)?;
+    Ok(RepairPlan {
+        material_items: used,
+        repaired_points,
+        output,
+    })
+}

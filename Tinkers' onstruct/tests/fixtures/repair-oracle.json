@@ -1,0 +1,38 @@
+{
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "source_sha256": {
+    "MaterialRecipe.java": "cdf2370efd1b9ab54ab196447b5d3bc05505bebcda1c05b6449454ecc8b7fec3",
+    "TinkerStationRepairRecipe.java": "a728326b9efd9a05dbcd143d450575b4bfec0b02e5b3e4e1588ac7681fea39fd"
+  },
+  "scope": "verbatim scaleRepair and repairFromSlot; 1:1 material, fixed factors; no Forge inventory",
+  "cases": [
+    {
+      "head": "flint",
+      "damage": 85,
+      "available": 1,
+      "items": 1,
+      "repaired": 56
+    },
+    {
+      "head": "flint",
+      "damage": 85,
+      "available": 64,
+      "items": 2,
+      "repaired": 85
+    },
+    {
+      "head": "wood",
+      "damage": 51,
+      "available": 2,
+      "items": 2,
+      "repaired": 51
+    },
+    {
+      "head": "wood",
+      "damage": 1,
+      "available": 1,
+      "items": 1,
+      "repaired": 1
+    }
+  ]
+}

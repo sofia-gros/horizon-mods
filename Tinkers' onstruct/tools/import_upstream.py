@@ -36,6 +36,8 @@ FILES += [JAVA + path for path in (
     "library/tools/helper/ToolHarvestLogic.java",
     "library/tools/helper/ToolAttackUtil.java",
     "library/recipe/material/IMaterialValue.java",
+    "library/recipe/material/MaterialRecipe.java",
+    "tables/recipe/TinkerStationRepairRecipe.java",
     "library/tools/helper/ToolDamageUtil.java",
 )]
 
