@@ -12,6 +12,13 @@ fn material_cost(cost: i32, needed: i32, value: i32) -> Option<(i32, i32)> {
     Some((used, remainder))
 }
 
+/// `PartRecipe.assemble` changes the part count when a material's value
+/// exceeds the part cost and the material recipe has no leftover item.
+fn material_output_count(output_count: i32, value: i32, cost: i32, has_leftover: bool) -> Option<i32> {
+    if output_count <= 0 || value <= 0 || cost <= 0 { return None; }
+    Some(if !has_leftover && value > cost { output_count.wrapping_mul(value) / cost } else { output_count })
+}
+
 /// Apply a single result pickup to the authoritative slots and cursor.
 /// Inputs are checked before any mutation; tool data is carried by cloning it.
 pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, station: bool, action: i16) -> bool {
@@ -25,6 +32,9 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
             _ => return false,
         };
         let Some((amount, remainder)) = material_cost(cost, 1, 1) else { return false; };
+        let Some(count) = material_output_count(1, 1, cost, false) else { return false; };
+        // Only unit-value materials and one-item results are currently wired in.
+        if count != 1 { return false; }
         // The current two inputs have unit value and no remainder. Other
         // material recipes and their remainder items are not yet supported.
         let Ok(amount) = u32::try_from(amount) else { return false; };
@@ -79,6 +89,14 @@ mod tests {
         assert_eq!(material_cost(2, 3, 2), Some((3, 0)));
         assert_eq!(material_cost(i32::MAX, 2, 3), Some((1, 2)));
         assert_eq!(material_cost(1, 1, 0), None);
+    }
+    #[test]
+    fn original_part_count_depends_on_material_value_and_leftover() {
+        assert_eq!(material_output_count(1, 1, 2, false), Some(1));
+        assert_eq!(material_output_count(1, 3, 1, false), Some(3));
+        assert_eq!(material_output_count(2, 5, 2, false), Some(5));
+        assert_eq!(material_output_count(1, 3, 2, true), Some(1));
+        assert_eq!(material_output_count(1, 3, 0, false), None);
     }
     #[test]
     fn part_take_is_atomic_and_pattern_is_reusable() {
