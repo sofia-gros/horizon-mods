@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Create a separate, disposable resource overlay for the prototype."""
-import argparse, copy, json, shutil
+import argparse, copy, hashlib, json, shutil, zipfile
 from pathlib import Path
 
 p = argparse.ArgumentParser()
@@ -54,9 +54,49 @@ for path in sorted(pattern_source.glob('*.png')):
     (pattern_dest / path.name).write_bytes(path.read_bytes())
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
-(mod_assets / 'textures').symlink_to(Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures', target_is_directory=True)
+shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
 (mod_assets / 'items').mkdir()
 (mod_assets / 'models/item').mkdir(parents=True)
+# Keep the pinned upstream material images and render metadata as a separate
+# source layer. The original Forge loader is ported by the Mixins, rather than
+# making these original models look like vanilla models without their behavior.
+source_manifest = {}
+for row in (repository / 'docs/upstream-part-visuals.sha256').read_text().splitlines():
+    digest, name = row.split('  ', 1)
+    if name in source_manifest:
+        raise ValueError('duplicate part visual manifest path')
+    source_manifest[name] = digest
+forge_model = json.loads((repository / 'content/reference/forge-default-item-model.json').read_text())
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-part-visuals.zip') as archive:
+    if set(archive.namelist()) != set(source_manifest) or len(archive.namelist()) != len(source_manifest):
+        raise ValueError('part visual archive does not match manifest')
+    for name in archive.namelist():
+        parts = Path(name).parts
+        if not name.startswith('assets/tconstruct/') or any(part in ('', '.', '..') for part in parts):
+            raise ValueError('invalid part visual path')
+        payload = archive.read(name)
+        if hashlib.sha256(payload).hexdigest() != source_manifest[name]:
+            raise ValueError('part visual hash mismatch')
+        relative = name.removeprefix('assets/tconstruct/')
+        if relative.startswith('textures/') or relative.startswith('tinkering/materials/'):
+            destination = mod_assets / relative
+        elif relative.startswith('models/item/') and relative.endswith('.json'):
+            destination = mod_assets / 'tinkering/source_part_models' / Path(relative).name
+        else:
+            raise ValueError('unexpected part visual path')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists():
+            raise ValueError(f'part visual output exists: {destination}')
+        destination.write_bytes(payload)
+        if relative.startswith('textures/') and relative.endswith('.png'):
+            sprite = relative.removeprefix('textures/').removesuffix('.png')
+            alias = 'tconstruct_part/' + sprite
+            model = mod_assets / 'models/item' / (alias + '.json')
+            item = mod_assets / 'items' / (alias + '.json')
+            model.parent.mkdir(parents=True, exist_ok=True)
+            item.parent.mkdir(parents=True, exist_ok=True)
+            model.write_text(json.dumps({'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': 'tconstruct:' + sprite, 'particle': 'tconstruct:' + sprite}}))
+            item.write_text(json.dumps({'model': {'type': 'minecraft:model', 'model': 'tconstruct:item/' + alias}}))
 items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),

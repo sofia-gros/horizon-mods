@@ -345,6 +345,36 @@ file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_stat_types"
 source = "source-stat-types.rs"
 
+[[module]]
+id = "source-render-info"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_render_info"
+source = "source-render-info.rs"
+
+[[module]]
+id = "source-render-info-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_render_info"
+source = "source-render-info.rs"
+
+[[module]]
+id = "source-mantle-layer"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_mantle_layer"
+source = "source-mantle-layer.rs"
+
+[[module]]
+id = "source-mantle-layer-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_mantle_layer"
+source = "source-mantle-layer.rs"
+
+[[module]]
+id = "source-sprite-frames"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_sprite_frames"
+source = "source-sprite-frames.rs"
+
 [[state]]
 id = "recipe-tag-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
@@ -442,6 +472,40 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[state]]
+id = "render-assets"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::sync::OnceLock<Result<(std::collections::HashMap<String,serde_json::Value>,std::collections::HashMap<String,(String,[f32;2])>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "render-sprite-frames"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::sync::Mutex<std::collections::HashMap<String,(usize,usize,Vec<Vec<u8>>)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "render-source-part-gui"
+target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
+kind = "HEAD"
+cancellable = true
+helper = "render-source-part.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]
 
 [[module]]
 id = "source-config"
