@@ -122,6 +122,72 @@ impl SourceIngredient {
     }
 }
 
+/// Material-recipe load conditions present in the pinned source catalog.
+/// Evaluation takes explicit registry and config snapshots; this remains unconnected to
+/// world datapacks and recipe reloads.
+#[allow(dead_code)]
+#[derive(Debug)]
+enum SourceCondition {
+    TagFilled { registry: String, tag: String },
+    TagCombination { registry: String, required: Vec<String>, ignore: Option<String> },
+    Or(Vec<Self>),
+    Config(String),
+}
+#[allow(dead_code)]
+impl SourceCondition {
+    fn parse(v: &serde_json::Value) -> Option<Self> {
+        let o = v.as_object()?;
+        let text = |name: &str| o.get(name).and_then(serde_json::Value::as_str).map(str::to_owned);
+        let registry = text("registry").unwrap_or_else(|| "minecraft:item".into());
+        match o.get("type")?.as_str()? {
+            "mantle:tag_filled" => Some(Self::TagFilled { registry, tag: text("tag")? }),
+            "mantle:tag_combination_filled" => {
+                let value = o.get("match")?;
+                let required: Vec<String> = if let Some(id) = value.as_str() { vec![id.into()] }
+                    else { value.as_array()?.iter().map(|v| v.as_str().map(str::to_owned)).collect::<Option<_>>()? };
+                if required.is_empty() { return None; }
+                Some(Self::TagCombination { registry, required, ignore: text("ignore") })
+            }
+            "tconstruct:config" => {
+                let property = text("prop")?.to_lowercase();
+                const KNOWN: &[&str] = &["spawn_with_book", "gravel_to_flint", "cheaper_netherite_alloy", "wither_bone_drop", "wither_bone_conversion", "slime_recipe_fix", "glass_recipe_fix", "allow_ingotless_alloys", "force_integration_materials", "slimy_loot_chests", "sync_knockback_resistance"];
+                if !KNOWN.contains(&property.as_str()) { return None; }
+                Some(Self::Config(if property == "slime_recipe_fix" { "glass_recipe_fix".into() } else { property }))
+            }
+            "forge:or" => {
+                let values = o.get("values")?.as_array()?;
+                if values.is_empty() { return None; }
+                Some(Self::Or(values.iter().map(Self::parse).collect::<Option<_>>()?))
+            }
+            _ => None,
+        }
+    }
+    fn matches(&self, registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>, config: &std::collections::HashMap<String, bool>) -> Option<bool> {
+        match self {
+            Self::TagFilled { registry, tag } => Some(registries.get(registry).and_then(|tags| tags.get(tag)).is_some_and(|values| !values.is_empty())),
+            Self::TagCombination { registry, required, ignore } => {
+                let Some(tags) = registries.get(registry) else { return Some(false); };
+                let Some(first) = required.first().and_then(|tag| tags.get(tag)) else { return Some(false); };
+                Some(first.iter().any(|entry| !ignore.as_ref().and_then(|tag| tags.get(tag)).is_some_and(|values| values.contains(entry))
+                    && required[1..].iter().all(|tag| tags.get(tag).is_some_and(|values| values.contains(entry)))))
+            }
+            Self::Or(values) => {
+                let mut unknown = false;
+                for value in values {
+                    match value.matches(registries, config) {
+                        Some(true) => return Some(true),
+                        Some(false) => {},
+                        None => unknown = true,
+                    }
+                }
+                if unknown { None } else { Some(false) }
+            }
+            Self::Config(property) if property == "wither_bone_conversion" => Some(false),
+            Self::Config(property) => config.get(property).copied(),
+        }
+    }
+}
+
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
@@ -299,6 +365,41 @@ mod tests {
         assert!(SourceIngredient::parse(&serde_json::json!({"type":"example:unknown"})).is_none());
     }
     #[test]
+    fn source_tag_conditions_use_intersection_exclusion_and_or() {
+        use std::collections::{HashMap, HashSet};
+        let mut items = HashMap::new();
+        items.insert("minecraft:planks".into(), HashSet::from(["minecraft:oak_planks".into(), "minecraft:warped_planks".into()]));
+        items.insert("tconstruct:wood_variants/planks".into(), HashSet::from(["minecraft:warped_planks".into()]));
+        items.insert("test:only_warped".into(), HashSet::from(["minecraft:warped_planks".into()]));
+        let mut registries = HashMap::new();
+        registries.insert("minecraft:item".into(), items);
+        let condition = SourceCondition::parse(&serde_json::json!({"type":"mantle:tag_combination_filled", "match":"minecraft:planks", "ignore":"tconstruct:wood_variants/planks"})).unwrap();
+        let mut config = HashMap::new();
+        assert_eq!(condition.matches(&registries, &config), Some(true));
+        let intersection = SourceCondition::parse(&serde_json::json!({"type":"mantle:tag_combination_filled", "match":["minecraft:planks", "test:only_warped"], "ignore":"tconstruct:wood_variants/planks"})).unwrap();
+        assert_eq!(intersection.matches(&registries, &config), Some(false));
+        let or = SourceCondition::parse(&serde_json::json!({"type":"forge:or", "values":[{"type":"mantle:tag_filled","tag":"test:missing"}, {"type":"mantle:tag_filled","tag":"minecraft:planks"}]})).unwrap();
+        assert_eq!(or.matches(&registries, &config), Some(true));
+        let other = SourceCondition::parse(&serde_json::json!({"type":"mantle:tag_filled", "registry":"minecraft:instrument", "tag":"minecraft:planks"})).unwrap();
+        assert_eq!(other.matches(&registries, &config), Some(false));
+        let configured = SourceCondition::parse(&serde_json::json!({"type":"tconstruct:config", "prop":"FORCE_INTEGRATION_MATERIALS"})).unwrap();
+        assert_eq!(configured.matches(&registries, &config), None);
+        let config_or_tag = SourceCondition::parse(&serde_json::json!({"type":"forge:or", "values":[{"type":"tconstruct:config","prop":"force_integration_materials"}, {"type":"mantle:tag_filled","tag":"test:missing"}]})).unwrap();
+        assert_eq!(config_or_tag.matches(&registries, &config), None);
+        config.insert("force_integration_materials".into(), false);
+        assert_eq!(config_or_tag.matches(&registries, &config), Some(false));
+        config.insert("force_integration_materials".into(), true);
+        assert_eq!(configured.matches(&registries, &config), Some(true));
+        config.insert("glass_recipe_fix".into(), true);
+        let alias = SourceCondition::parse(&serde_json::json!({"type":"tconstruct:config", "prop":"slime_recipe_fix"})).unwrap();
+        assert_eq!(alias.matches(&registries, &config), Some(true));
+        config.insert("wither_bone_conversion".into(), true);
+        let removed = SourceCondition::parse(&serde_json::json!({"type":"tconstruct:config", "prop":"wither_bone_conversion"})).unwrap();
+        assert_eq!(removed.matches(&registries, &config), Some(false));
+        assert!(SourceCondition::parse(&serde_json::json!({"type":"tconstruct:config", "prop":"unknown"})).is_none());
+        assert!(SourceCondition::parse(&serde_json::json!({"type":"forge:or", "values":[]})).is_none());
+    }
+    #[test]
     fn parses_all_pinned_material_recipe_ingredients() {
         use std::io::Read;
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -308,14 +409,20 @@ mod tests {
         flate2::read::GzDecoder::new(file).read_to_string(&mut json).unwrap();
         let catalog: serde_json::Value = serde_json::from_str(&json).unwrap();
         let mut count = 0;
+        let mut condition_count = 0;
         for recipe in catalog["groups"]["materials"].as_array().unwrap() {
             let data = &recipe["data"];
             if data["type"] == "tconstruct:material" {
                 assert!(SourceIngredient::parse(&data["ingredient"]).is_some(), "{}", recipe["source"]);
+                for condition in data["conditions"].as_array().into_iter().flatten() {
+                    assert!(SourceCondition::parse(condition).is_some(), "{}", recipe["source"]);
+                    condition_count += 1;
+                }
                 count += 1;
             }
         }
         assert_eq!(count, 217);
+        assert_eq!(condition_count, 44);
     }
     #[test]
     fn original_head_and_handle_durability_uses_float_then_integer() {

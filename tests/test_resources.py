@@ -35,6 +35,8 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertTrue((out / 'assets/tconstruct/items' / (alias + '.json')).is_file())
                 self.assertTrue((out / 'assets/tconstruct/models/item' / (alias + '.json')).is_file())
                 self.assertTrue((out / 'assets/tconstruct/textures/item' / (alias + '.png')).is_file())
+            for name in ('tconstruct', 'mantle', 'forge'):
+                self.assertTrue((out / 'THIRD_PARTY_LICENSES' / (name + '.txt')).is_file())
             rejected = subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], capture_output=True)
             self.assertNotEqual(rejected.returncode, 0)
 

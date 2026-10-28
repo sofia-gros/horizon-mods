@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Create a separate, disposable resource overlay for the prototype."""
-import argparse, copy, json
+import argparse, copy, json, shutil
 from pathlib import Path
 
 p = argparse.ArgumentParser()
@@ -11,12 +11,20 @@ src = a.source.resolve(strict=True)
 out = a.output.absolute()
 if out.exists() or out.is_relative_to(src) or src.is_relative_to(out):
     p.error('output must not exist and must be separate from source')
+if (src / 'THIRD_PARTY_LICENSES').exists():
+    p.error('source already contains THIRD_PARTY_LICENSES')
 if (src / 'assets/tconstruct').exists():
     p.error('source already contains a tconstruct asset namespace')
 out.mkdir(parents=True)
 for path in src.iterdir():
     if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'assets'}:
         (out / path.name).symlink_to(path, target_is_directory=path.is_dir())
+# Keep the source notices in the generated resource distribution as well.
+licenses = out / 'THIRD_PARTY_LICENSES'
+licenses.mkdir()
+repository = Path(__file__).resolve().parents[1]
+for name in ('tconstruct', 'mantle', 'forge'):
+    shutil.copyfile(repository / 'third_party' / name / 'LICENSE', licenses / (name + '.txt'))
 assets = out / 'assets'
 assets.mkdir()
 for namespace in (src / 'assets').iterdir():

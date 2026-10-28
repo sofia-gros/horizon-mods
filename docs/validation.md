@@ -160,3 +160,6 @@ The flint and wood versions of each fixed part were crafted using their
 source cost (2/1/1), checked for material ID and model, visually inspected,
 and saved/reloaded in both game modes. Only the original fixed flint-head,
 wood-handle, wood-binding combination can currently be assembled.
+
+The prepared resource overlay retains the TConstruct, Mantle and Forge license
+notices under `THIRD_PARTY_LICENSES/`; the generated overlay links to its base.

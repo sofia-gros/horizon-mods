@@ -71,7 +71,8 @@ base available. Both preparation commands refuse an existing destination.
 The second command uses a Mixins-injected entry point and official Horizon's
 native data-table builder; it does not start a Wasm engine. Generated trees and worlds
 are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
-are included in the distribution.
+are included in the repository and the generated resource overlay under
+`THIRD_PARTY_LICENSES/`.
 
 For the automated single-player game smoke test, run the following under a working
 X11/Vulkan display (software Vulkan and Xvfb also work):
@@ -103,3 +104,8 @@ git switch -c restore-pre-mixins FETCH_HEAD
 Tinkers' Construct data is referenced at the revision in `compatibility.json`;
 its MIT license and notice are included in [third_party/tconstruct/LICENSE](third_party/tconstruct/LICENSE).
 The old environment's uncommitted chest work was not transferred to this checkout.
+
+The material-condition reference work also follows Mantle 1.11.115 and Forge
+47.4.0. Their license notices are included at
+[third_party/mantle/LICENSE](third_party/mantle/LICENSE) and
+[third_party/forge/LICENSE](third_party/forge/LICENSE).
