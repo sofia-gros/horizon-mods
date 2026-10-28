@@ -14,6 +14,7 @@ p.add_argument('--source-pack-test', action='store_true')
 p.add_argument('--vanilla-pack-test', action='store_true')
 p.add_argument('--forge-pack-test', action='store_true')
 p.add_argument('--full-recipe-test', action='store_true')
+p.add_argument('--lookup-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 if a.source_pack_test:
@@ -56,6 +57,11 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
             if forge_expected is not None:
                 forge = [line.split('TCONSTRUCT_FORGE_IRON_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_FORGE_IRON_PROBE ' in line]
                 assert forge and int(forge[-1]) == forge_expected, (forge, forge_expected)
+            if a.lookup_test:
+                flint = [line.split('TCONSTRUCT_LOOKUP_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_FLINT ' in line]
+                oak = [line.split('TCONSTRUCT_LOOKUP_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_OAK_LOG ' in line]
+                assert flint and flint[-1] == 'tconstruct:tools/materials/flint/flint tconstruct:flint 1 1 0', flint
+                assert oak and oak[-1] == 'tconstruct:tools/materials/wood/logs/oak tconstruct:wood 4 1 3', oak
             if a.full_recipe_test:
                 def last(marker):
                     values = [line.split(marker, 1)[1] for line in lines if marker in line]

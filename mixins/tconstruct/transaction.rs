@@ -191,11 +191,11 @@ impl SourceCondition {
 /// Source ItemOutput forms in the pinned material recipes. Tag selection and
 /// NBT decoding are deliberately deferred until the world registry is present.
 #[allow(dead_code)]
-#[derive(Debug)]
-enum SourceOutputKind { Item(String), Tag(String) }
+#[derive(Debug, PartialEq)]
+pub(super) enum SourceOutputKind { Item(String), Tag(String) }
 #[allow(dead_code)]
-#[derive(Debug)]
-struct SourceItemOutput { kind: SourceOutputKind, count: i32, nbt: Option<serde_json::Value> }
+#[derive(Debug, PartialEq)]
+pub(super) struct SourceItemOutput { pub kind: SourceOutputKind, pub count: i32, pub nbt: Option<serde_json::Value> }
 #[allow(dead_code)]
 impl SourceItemOutput {
     fn parse(value: &serde_json::Value) -> Option<Self> {
@@ -217,7 +217,7 @@ impl SourceItemOutput {
     }
     /// Item tag preference from Mantle 1.11.115. Outer None means the
     /// namespace preference snapshot is unavailable; Some(None) is an empty tag.
-    fn resolve_id(&self, tags: &std::collections::HashMap<String, std::collections::HashSet<String>>, preferences: Option<&[String]>) -> Option<Option<String>> {
+    pub(super) fn resolve_id(&self, tags: &std::collections::HashMap<String, std::collections::HashSet<String>>, preferences: Option<&[String]>) -> Option<Option<String>> {
         match &self.kind {
             SourceOutputKind::Item(id) => Some(Some(id.clone())),
             SourceOutputKind::Tag(tag) => {
@@ -234,7 +234,7 @@ impl SourceItemOutput {
         }
     }
     /// `IMaterialValue.getLeftover`: Java int multiply then truncating divide.
-    fn count_for_remainder(&self, remainder: i32, needed: i32) -> Option<i32> {
+    pub(super) fn count_for_remainder(&self, remainder: i32, needed: i32) -> Option<i32> {
         if remainder <= 0 || needed <= 0 { return None; }
         let count = self.count.wrapping_mul(remainder) / needed;
         (count > 0).then_some(count)
@@ -287,6 +287,56 @@ impl SourceMaterialRecipe {
         }
         if unknown { None } else { Some(true) }
     }
+}
+
+/// Source material lookup over a complete, ordered recipe snapshot. This is
+/// deliberately not used by gameplay until world registries, config, recipe
+/// provenance and all ingredient forms can be supplied without approximation.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
+pub(super) enum SourceLookupError { IncompleteContext, UnsupportedOrder, UnsupportedRecipe, UnknownCondition }
+
+#[allow(dead_code)]
+#[derive(Debug, PartialEq)]
+pub(super) struct SourceMaterialMatch {
+    pub id: String,
+    pub material: String,
+    pub value: i32,
+    pub needed: i32,
+    pub leftover: Option<SourceItemOutput>,
+}
+
+#[allow(dead_code)]
+pub(super) fn source_material_lookup(
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+    item: &str,
+    instrument: Option<&str>,
+    item_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    instruments: &std::collections::HashSet<String>,
+    instrument_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    complete: bool,
+) -> Result<Option<SourceMaterialMatch>, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let parsed: std::collections::BTreeMap<String, serde_json::Value> = recipes.iter()
+        .filter_map(|(id, bytes)| serde_json::from_slice(bytes).ok().map(|value| (id.clone(), value)))
+        .collect();
+    let ids = parsed.keys().cloned().collect::<Vec<_>>();
+    let order = super::tconstruct_recipe_order::java_recipe_order(&ids).map_err(|_| SourceLookupError::UnsupportedOrder)?;
+    for id in order {
+        if id.split_once(':').is_some_and(|(_, path)| path.starts_with('_')) { continue; }
+        let value = &parsed[&id];
+        if value.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:material") { continue; }
+        let recipe = SourceMaterialRecipe::parse(value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if !recipe.ingredient.matches(item, instrument, item_tags, instruments, instrument_tags) { continue; }
+        match recipe.enabled(registries, config) {
+            Some(true) => return Ok(Some(SourceMaterialMatch { id, material: recipe.material, value: recipe.value, needed: recipe.needed, leftover: recipe.leftover })),
+            Some(false) => continue,
+            None => return Err(SourceLookupError::UnknownCondition),
+        }
+    }
+    Ok(None)
 }
 
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
@@ -727,6 +777,89 @@ mod tests {
         assert_eq!(tool.damage, 29);
         assert_eq!(tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("tic_broken")), Some(&horizon_world::nbt::Tag::Byte(0)));
     }
+    #[test]
+    fn source_material_lookup_requires_context_and_matches_original_flint() {
+        let mut recipes = std::collections::BTreeMap::new();
+        recipes.insert("tconstruct:tools/materials/flint/flint".into(), br#"{"type":"tconstruct:material","ingredient":{"item":"minecraft:flint"},"material":"tconstruct:flint","needed":1,"value":1}"#.to_vec());
+        recipes.insert("tconstruct:_metadata".into(), br#"{"type":"tconstruct:material"}"#.to_vec());
+        let tags = Default::default();
+        let set = Default::default();
+        let registries = Default::default();
+        let config = Default::default();
+        assert_eq!(source_material_lookup(&recipes, "minecraft:flint", None, &tags, &set, &tags, &registries, &config, false), Err(SourceLookupError::IncompleteContext));
+        assert_eq!(source_material_lookup(&recipes, "minecraft:flint", None, &tags, &set, &tags, &registries, &config, true).unwrap(), Some(SourceMaterialMatch { id: "tconstruct:tools/materials/flint/flint".into(), material: "tconstruct:flint".into(), value: 1, needed: 1, leftover: None }));
+        assert_eq!(source_material_lookup(&recipes, "minecraft:stick", None, &tags, &set, &tags, &registries, &config, true).unwrap(), None);
+    }
+
+    #[test]
+    fn source_material_lookup_does_not_guess_unknown_conditions() {
+        let ids = vec!["test:first".to_owned(), "test:second".to_owned()];
+        let order = super::super::tconstruct_recipe_order::java_recipe_order(&ids).unwrap();
+        let mut recipes = std::collections::BTreeMap::new();
+        recipes.insert(order[0].clone(), br#"{"type":"tconstruct:material","ingredient":{"item":"minecraft:flint"},"material":"test:conditional","conditions":[{"type":"tconstruct:config","prop":"gravel_to_flint"}]}"#.to_vec());
+        recipes.insert(order[1].clone(), br#"{"type":"tconstruct:material","ingredient":{"item":"minecraft:flint"},"material":"test:fallback"}"#.to_vec());
+        let tags = Default::default();
+        let set = Default::default();
+        let registries = Default::default();
+        let mut config = std::collections::HashMap::new();
+        assert_eq!(source_material_lookup(&recipes, "minecraft:flint", None, &tags, &set, &tags, &registries, &config, true), Err(SourceLookupError::UnknownCondition));
+        config.insert("gravel_to_flint".into(), false);
+        let found = source_material_lookup(&recipes, "minecraft:flint", None, &tags, &set, &tags, &registries, &config, true).unwrap().unwrap();
+        assert_eq!((found.id, found.material), (order[1].clone(), "test:fallback".into()));
+        config.insert("gravel_to_flint".into(), true);
+        let found = source_material_lookup(&recipes, "minecraft:flint", None, &tags, &set, &tags, &registries, &config, true).unwrap().unwrap();
+        assert_eq!((found.id, found.material), (order[0].clone(), "test:conditional".into()));
+    }
+
+    #[test]
+    fn source_material_lookup_reads_pinned_material_recipes() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .ancestors().map(|dir| dir.join("docs/upstream-recipes.json.gz"))
+            .find(|path| path.is_file()).expect("pinned reference catalog");
+        let mut json = String::new();
+        flate2::read::GzDecoder::new(std::fs::File::open(path).unwrap()).read_to_string(&mut json).unwrap();
+        let catalog: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let mut recipes = std::collections::BTreeMap::new();
+        for entry in catalog["groups"]["materials"].as_array().unwrap() {
+            if entry["data"]["type"] != "tconstruct:material" { continue; }
+            let source = entry["source"].as_str().unwrap();
+            let path = source.split_once("/recipes/").unwrap().1.strip_suffix(".json").unwrap();
+            recipes.insert(format!("tconstruct:{path}"), serde_json::to_vec(&entry["data"]).unwrap());
+        }
+        assert_eq!(recipes.len(), 217);
+        let mut tags = std::collections::HashMap::new();
+        tags.insert("minecraft:oak_logs".to_owned(), ["minecraft:oak_log".to_owned()].into_iter().collect());
+        tags.insert("minecraft:planks".to_owned(), ["minecraft:oak_planks".to_owned(), "minecraft:warped_planks".to_owned()].into_iter().collect());
+        tags.insert("tconstruct:wood_variants/planks".to_owned(), ["minecraft:warped_planks".to_owned()].into_iter().collect());
+        let set = Default::default();
+        let regs = [("minecraft:item".to_owned(), tags.clone())].into_iter().collect();
+        let config = Default::default();
+        let flint = source_material_lookup(&recipes, "minecraft:flint", None, &tags, &set, &Default::default(), &regs, &config, true).unwrap().unwrap();
+        assert_eq!((flint.material.as_str(), flint.value, flint.needed), ("tconstruct:flint", 1, 1));
+        let oak = source_material_lookup(&recipes, "minecraft:oak_log", None, &tags, &set, &Default::default(), &regs, &config, true).unwrap().unwrap();
+        assert_eq!((oak.material.as_str(), oak.value, oak.needed), ("tconstruct:wood", 4, 1));
+        assert_eq!(oak.leftover.unwrap().count_for_remainder(3, oak.needed), Some(3));
+        let oak_planks = source_material_lookup(&recipes, "minecraft:oak_planks", None, &tags, &set, &Default::default(), &regs, &config, true).unwrap().unwrap();
+        assert_eq!(oak_planks.material, "tconstruct:wood");
+        let warped = source_material_lookup(&recipes, "minecraft:warped_planks", None, &tags, &set, &Default::default(), &regs, &config, true).unwrap().unwrap();
+        assert_eq!(warped.material, "tconstruct:wood#warped");
+    }
+
+    #[test]
+    fn source_material_lookup_preserves_fractional_cost_and_leftover() {
+        let mut recipes = std::collections::BTreeMap::new();
+        recipes.insert("test:log".into(), br#"{"type":"tconstruct:material","ingredient":{"tag":"minecraft:oak_logs"},"material":"tconstruct:wood","needed":1,"value":4,"leftover":"minecraft:oak_planks"}"#.to_vec());
+        let mut tags = std::collections::HashMap::new();
+        tags.insert("minecraft:oak_logs".to_owned(), ["minecraft:oak_log".to_owned()].into_iter().collect());
+        let set = Default::default();
+        let regs = Default::default();
+        let config = Default::default();
+        let found = source_material_lookup(&recipes, "minecraft:oak_log", None, &tags, &set, &Default::default(), &regs, &config, true).unwrap().unwrap();
+        assert_eq!(material_cost(1, found.needed, found.value), Some((1, 3)));
+        assert_eq!(found.leftover.unwrap().count_for_remainder(3, found.needed), Some(3));
+    }
+
     #[test]
     fn repair_rechecks_split_inputs_and_never_consumes_excess() {
         let mut slots = vec![None; 27];

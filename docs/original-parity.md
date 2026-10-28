@@ -84,6 +84,15 @@ Builder. Both game modes were probed for raw tag-pack order, 3,067
 TConstruct recipe IDs, Minecraft recipe bytes, a Forge override, reload,
 disabling and world separation, not for crafting with resolved tags.
 
+`source_material_lookup` is an unconnected prototype that applies the source
+order, ingredient and condition helpers to a supplied complete context, and
+returns the original material value, needed quantity and leftover descriptor.
+Tests using the 217 pinned material definitions cover flint, oak logs and
+oak versus warped planks in a controlled tag context, including three
+remaining oak planks for a one-unit part cost and the source wood variant ID. Unknown configuration and incomplete input are rejected. This is
+not world-registry, GUI or transaction coverage; tool-part material recycling
+and arbitrary custom recipes also remain incomplete.
+
 The 1.20.1 `SimpleJsonResourceReloadListener` puts all successfully parsed
 recipe JSON IDs in a Java `HashMap` before Forge filters leading-underscore
 metadata. `RecipeManager.getRecipeFor` uses the first match in that map's

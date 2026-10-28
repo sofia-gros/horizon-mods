@@ -3,6 +3,24 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         let probe = recipes.get("test:probe").and_then(|v| std::str::from_utf8(v).ok()).unwrap_or("missing");
         eprintln!("TCONSTRUCT_RECIPE_PROBE {probe}");
         eprintln!("TCONSTRUCT_COUNT_PROBE {}", recipes.keys().filter(|id| id.starts_with("tconstruct:")).count());
+        // A controlled test context: this does not represent the world's full
+        // registry, tags or config and is not connected to transactions.
+        let mut item_tags = std::collections::HashMap::new();
+        item_tags.insert("minecraft:oak_logs".to_owned(), ["minecraft:oak_log".to_owned()].into_iter().collect());
+        let instruments = Default::default();
+        let instrument_tags = Default::default();
+        let registries = Default::default();
+        let config = Default::default();
+        for (name, item) in [("FLINT", "minecraft:flint"), ("OAK_LOG", "minecraft:oak_log")] {
+            let result = crate::game::tconstruct_tx::source_material_lookup(recipes, item, None, &item_tags, &instruments, &instrument_tags, &registries, &config, true);
+            match result {
+                Ok(Some(found)) => {
+                    let leftover = found.leftover.as_ref().and_then(|v| v.count_for_remainder(3, found.needed)).unwrap_or(0);
+                    eprintln!("TCONSTRUCT_LOOKUP_{name} {} {} {} {} {}", found.id, found.material, found.value, found.needed, leftover);
+                },
+                other => eprintln!("TCONSTRUCT_LOOKUP_{name} {other:?}"),
+            }
+        }
         for (marker, id) in [("STICK", "minecraft:stick"), ("BOAT", "minecraft:acacia_chest_boat")] {
             use sha2::{Digest, Sha256};
             let hash = recipes.get(id).map(|bytes| format!("{:x}", Sha256::digest(bytes))).unwrap_or_else(|| "missing".into());
