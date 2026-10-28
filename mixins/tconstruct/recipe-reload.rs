@@ -72,11 +72,31 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }).collect();
         Ok((definitions, redirects, material_tags))
     })();
+    // Forge 1.20.1's six vanilla tiers are known. Other Mixins may add tier
+    // types, so an unknown tier is an incomplete context, never an automatic
+    // rejection of the original stat.
+    let stats = (|| -> Result<_, String> {
+        let tier_names = ["wood", "stone", "iron", "gold", "diamond", "netherite"].into_iter()
+            .map(|name| format!("minecraft:{name}")).collect();
+        let tiers = crate::game::tconstruct_source_stat_types::TierRegistry { names: &tier_names, complete: false };
+        let mut result = std::collections::HashMap::new();
+        for (id, layers) in &materials {
+            let Some((namespace, path)) = id.split_once(':') else { return Err(format!("invalid material stats {id}")); };
+            let Some(path) = path.strip_prefix("tinkering/materials/stats/") else { continue; };
+            let merged = crate::game::tconstruct_tx::source_merge_material_stats(layers)
+                .map_err(|error| format!("material stats {id}: {error:?}"))?;
+            let validated = crate::game::tconstruct_source_stat_types::validate_builtin_stats(&merged, Some(&tiers))
+                .map_err(|error| format!("material stats {id}: {error}"))?;
+            result.insert(format!("{namespace}:{path}"), validated);
+        }
+        Ok(result)
+    })();
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = Some(resolved_fluids);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = Some(definitions);
+    *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);

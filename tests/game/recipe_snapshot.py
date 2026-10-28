@@ -21,6 +21,7 @@ p.add_argument('--choices-test', action='store_true')
 p.add_argument('--world-tags-test', action='store_true')
 p.add_argument('--world-fluid-tags-test', action='store_true')
 p.add_argument('--world-material-registry-test', action='store_true')
+p.add_argument('--world-material-stats-test', action='store_true')
 p.add_argument('--world-config-test', action='store_true')
 p.add_argument('--pattern-atlas-test', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
@@ -64,6 +65,11 @@ def pack(g, name, marker):
         path = base / 'data/forge/tags/fluids/creosote.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({'replace': True, 'values': ['minecraft:water' if name == 'a' else 'minecraft:lava']}))
+    if a.world_material_stats_test:
+        path = base / 'data/tconstruct/tinkering/materials/stats/flint.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        head = None if name == 'a' else {'durability': 85, 'mining_tier': 'minecraft:stone'}
+        path.write_text(json.dumps({'stats': {'tconstruct:head': head}}))
 
 def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True, choice_layer="base", config_expected="default"):
     # The fixture is the inner RETURN modifier, so it observes the previous
@@ -103,6 +109,13 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 else:
                     expected_materials = 'true true ' + ('false' if choice_layer == 'base' else 'true')
                     assert values and values[-1] == expected_materials, (values, expected_materials)
+            if a.world_material_stats_test:
+                values = [line.split('TCONSTRUCT_WORLD_FLINT_STATS ', 1)[1] for line in lines if 'TCONSTRUCT_WORLD_FLINT_STATS ' in line]
+                expected_stats = 'false true false' if choice_layer == 'a' else 'true true true'
+                assert values and values[-1] == expected_stats, (values, expected_stats)
+                choices = [line.split('TCONSTRUCT_WORLD_FLINT_CHOICES ', 1)[1] for line in lines if 'TCONSTRUCT_WORLD_FLINT_CHOICES ' in line]
+                expected_choices = 'unavailable' if config_expected == 'unsupported' else ('false true true' if choice_layer == 'a' else 'true true true')
+                assert choices and choices[-1] == expected_choices, (choices, expected_choices)
             if a.world_config_test:
                 configs = [line.split('TCONSTRUCT_CONFIG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_CONFIG_PROBE ' in line]
                 assert configs and (configs[-1] == 'false true' if config_expected == 'default' else configs[-1].startswith('unsupported ')), configs

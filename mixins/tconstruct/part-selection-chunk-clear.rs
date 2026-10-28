@@ -8,5 +8,6 @@ fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     *chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = None;
     *chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = None;
     *chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = None;
+    *chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = None;
     *chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = None;
 }

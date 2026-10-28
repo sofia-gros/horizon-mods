@@ -593,6 +593,61 @@ pub(super) fn source_fake_material_allowed(
         value as f32 / needed as f32 == repair_amount
     })
 }
+
+/// MaterialCastingRecipe registers each result's smallest item_cost during
+/// recipe loading. Caller must provide a complete registry of IMaterialItems;
+/// unsupported source predicate forms fail closed instead of being ignored.
+#[allow(dead_code)]
+pub(super) fn source_material_casting_costs(
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+    material_items: &std::collections::HashSet<String>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    complete: bool,
+) -> Result<std::collections::HashMap<String, i32>, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let mut costs = std::collections::HashMap::new();
+    for (id, bytes) in recipes {
+        if id.split_once(':').is_some_and(|(_, path)| path.starts_with('_')) { continue; }
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+        if !matches!(value.get("type").and_then(serde_json::Value::as_str), Some("tconstruct:table_casting_material" | "tconstruct:basin_casting_material")) { continue; }
+        let conditions = match value.get("conditions") {
+            None => Vec::new(),
+            Some(v) => v.as_array().ok_or(SourceLookupError::UnsupportedRecipe)?.iter()
+                .map(SourceCondition::parse).collect::<Option<Vec<_>>>().ok_or(SourceLookupError::UnsupportedRecipe)?,
+        };
+        let mut enabled = true;
+        for condition in conditions {
+            match condition.matches(registries, config) {
+                Some(false) => { enabled = false; break; },
+                Some(true) => {},
+                None => return Err(SourceLookupError::UnknownCondition),
+            }
+        }
+        if !enabled { continue; }
+        if value.get("allowed_materials").is_some_and(|v| !v.is_null()) { return Err(SourceLookupError::UnsupportedRecipe); }
+        if let Some(cast) = value.get("cast").filter(|v| !v.is_null()) {
+            let object = cast.as_object().ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let tag = object.get("tag").and_then(serde_json::Value::as_str).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let (namespace, path) = tag.split_once(':').unwrap_or(("minecraft", tag));
+            if object.len() != 1 || namespace.is_empty() || path.is_empty()
+                || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
+                || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) {
+                return Err(SourceLookupError::UnsupportedRecipe);
+            }
+        }
+        if value.get("group").is_some_and(|v| !v.is_null() && !v.is_string()) { return Err(SourceLookupError::UnsupportedRecipe); }
+        for name in ["cast_consumed", "switch_slots"] {
+            if value.get(name).is_some_and(|v| !v.is_null() && !v.is_boolean()) { return Err(SourceLookupError::UnsupportedRecipe); }
+        }
+        let item = value.get("result").and_then(serde_json::Value::as_str).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if !material_items.contains(item) { return Err(SourceLookupError::IncompleteContext); }
+        let cost = value.get("item_cost").and_then(serde_json::Value::as_i64)
+            .and_then(|n| i32::try_from(n).ok()).filter(|n| *n > 0).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        costs.entry(item.to_owned()).and_modify(|previous: &mut i32| *previous = (*previous).min(cost)).or_insert(cost);
+    }
+    Ok(costs)
+}
 fn source_variant_matches(expected: &str, actual: &str) -> bool {
     let (base, variant) = expected.split_once('#').unwrap_or((expected, ""));
     let (actual_base, actual_variant) = actual.split_once('#').unwrap_or((actual, ""));
@@ -1267,6 +1322,37 @@ mod tests {
         assert!(!source_fake_material_allowed(true, &[(2, 2)], 1.0));
         assert!(source_fake_material_allowed(true, &[(2, 2)], 9.0));
         assert!(!source_fake_material_allowed(true, &[(18, 2)], 9.0));
+    }
+
+    #[test]
+    fn source_casting_costs_use_loaded_recipe_results_and_minimum() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
+            .map(|p| p.join("content/reference/tconstruct-recipes.zip"))
+            .find(|p| p.is_file()).expect("pinned recipe archive");
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut recipes = std::collections::BTreeMap::new();
+        let mut items = std::collections::HashSet::new();
+        for i in 0..zip.len() {
+            let mut entry = zip.by_index(i).unwrap();
+            let mut bytes = Vec::new(); entry.read_to_end(&mut bytes).unwrap();
+            let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else { continue; };
+            if !matches!(value.get("type").and_then(serde_json::Value::as_str), Some("tconstruct:table_casting_material" | "tconstruct:basin_casting_material")) { continue; }
+            items.insert(value["result"].as_str().unwrap().to_owned());
+            recipes.insert(format!("test:recipe_{i}"), bytes);
+        }
+        assert_eq!(recipes.len(), 43);
+        let costs = source_material_casting_costs(&recipes, &items, &Default::default(), &Default::default(), true).unwrap();
+        assert_eq!(costs.get("tconstruct:pick_head"), Some(&2));
+        assert_eq!(costs.get("tconstruct:tool_handle"), Some(&1));
+        recipes.insert("test:override".into(), br#"{"type":"tconstruct:table_casting_material","result":"tconstruct:pick_head","item_cost":1}"#.to_vec());
+        let costs = source_material_casting_costs(&recipes, &items, &Default::default(), &Default::default(), true).unwrap();
+        assert_eq!(costs.get("tconstruct:pick_head"), Some(&1));
+        assert_eq!(source_material_casting_costs(&recipes, &Default::default(), &Default::default(), &Default::default(), true), Err(SourceLookupError::IncompleteContext));
+        recipes.insert("test:conditional".into(), br#"{"type":"tconstruct:table_casting_material","result":"test:unregistered","item_cost":1,"conditions":[{"type":"tconstruct:config","prop":"force_integration_materials"}]}"#.to_vec());
+        assert_eq!(source_material_casting_costs(&recipes, &items, &Default::default(), &Default::default(), true), Err(SourceLookupError::UnknownCondition));
+        let config = [("force_integration_materials".to_owned(), false)].into_iter().collect();
+        assert!(source_material_casting_costs(&recipes, &items, &Default::default(), &config, true).is_ok());
     }
 
     #[test]

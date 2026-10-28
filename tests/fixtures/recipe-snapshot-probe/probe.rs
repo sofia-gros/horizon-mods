@@ -76,6 +76,40 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         Some(Err(error)) => eprintln!("TCONSTRUCT_WORLD_MATERIALS error {error}"),
         None => eprintln!("TCONSTRUCT_WORLD_MATERIALS unavailable"),
     }
+    match game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats() {
+        Some(Ok(stats)) => {
+            let flint = stats.get("tconstruct:flint");
+            let head = flint.and_then(|s| s.get("tconstruct:head"));
+            let binding = flint.and_then(|s| s.get("tconstruct:binding"));
+            eprintln!("TCONSTRUCT_WORLD_FLINT_STATS {} {} {}", head.is_some(), binding.is_some(), head.copied().unwrap_or(false));
+        },
+        Some(Err(error)) => eprintln!("TCONSTRUCT_WORLD_FLINT_STATS error {error}"),
+        None => eprintln!("TCONSTRUCT_WORLD_FLINT_STATS unavailable"),
+    }
+    if let (Some(Ok((definitions, _, _))), Some(Ok(stats)), Some(Ok(item_tags)), Some(Ok(fluid_tags)), Some(Ok(config)), Some(recipes)) = (
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions(),
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats(),
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags(),
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags(),
+        game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot(),
+        game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot(),
+    ) {
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        let empty = Default::default();
+        let lookup = crate::game::tconstruct_tx::source_material_lookup(recipes, "minecraft:flint", None, item_tags, &empty, &Default::default(), &registries, config, true);
+        let choices = lookup.ok().flatten().and_then(|found| {
+            let definition = definitions.get(&found.material)?;
+            let stat_map = stats.get(&found.material)?;
+            let valid = stat_map.keys().cloned().collect();
+            let supported = crate::game::tconstruct_tx::source_supported_original_parts(&valid, stat_map.values().any(|v| *v));
+            let input = crate::game::tconstruct_tx::SourcePartInput::Material { input_item: "minecraft:flint", material: &found.material, craftable: definition.0, supported_outputs: &supported };
+            crate::game::tconstruct_tx::source_part_choices(recipes, "tconstruct:pattern", &input, item_tags, &empty, &Default::default(), &registries, config, true).ok()
+        });
+        if let Some(choices) = choices {
+            let has = |pattern: &str| choices.iter().any(|choice| choice.pattern == pattern);
+            eprintln!("TCONSTRUCT_WORLD_FLINT_CHOICES {} {} {}", has("tconstruct:pick_head"), has("tconstruct:tool_handle"), has("tconstruct:tool_binding"));
+        } else { eprintln!("TCONSTRUCT_WORLD_FLINT_CHOICES unavailable"); }
+    } else { eprintln!("TCONSTRUCT_WORLD_FLINT_CHOICES unavailable"); }
     match game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot() {
         Some(Ok(config)) => eprintln!("TCONSTRUCT_CONFIG_PROBE {} {}", config.get("force_integration_materials").copied().unwrap_or(true), config.get("allow_ingotless_alloys").copied().unwrap_or(false)),
         Some(Err(error)) => eprintln!("TCONSTRUCT_CONFIG_PROBE unsupported {error}"),

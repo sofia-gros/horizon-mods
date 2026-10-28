@@ -333,6 +333,18 @@ file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_tags"
 source = "source-tags.rs"
 
+[[module]]
+id = "source-stat-types"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_stat_types"
+source = "source-stat-types.rs"
+
+[[module]]
+id = "source-stat-types-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_stat_types"
+source = "source-stat-types.rs"
+
 [[state]]
 id = "recipe-tag-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
@@ -415,6 +427,16 @@ require = 1
 id = "resolved-material-definitions"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "Option<Result<(std::collections::HashMap<String,(bool,bool,i32,i32,String)>,std::collections::HashMap<String,String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "resolved-material-stats"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashMap<String,bool>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"

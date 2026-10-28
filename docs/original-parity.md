@@ -164,6 +164,22 @@ world's creosote tag was overridden, disabled and reloaded, while a second
 world remained independent. The snapshot reflects Horizon's current incomplete
 item and fluid registries, and unsupported source data fail the snapshot.
 
+The stat snapshot follows `MaterialStatsManager`'s layer merge and the
+`HeadMaterialStats`, `HandleMaterialStats`, `LimbMaterialStats`,
+`GripMaterialStats`, `PlatingMaterialStats`, `RepairStats`, `SkullStats`,
+`SlimeStats` and `StatlessMaterialStats` loaders. It validates the original
+built-in stat types and merges layers
+before deriving each material's available parts. All 99 pinned stat files have
+targeted tests. An independent fixture uses the world snapshots and confirms in
+both game modes that removing and restoring flint's head stat changes the
+recipe-derived pick-head choice. This is not connected to the player GUI or
+transactions. Unknown added stat types, added tier IDs and
+numeric encodings outside the implemented range explicitly fail the snapshot;
+the full Forge registry and arbitrary datapack parity remain unfinished. The
+source casting-cost prototype computes the minimum registered `item_cost` from
+the 43 pinned material-casting recipes; reuse of material-bearing input parts
+is not yet connected to crafting.
+
 The source mod's 131 fluid tag files are copied byte-for-byte into the source
 pack; pinned local Minecraft and Forge jars supply their fluid tags. The game
 now collects and resolves these layers against its actual fluid registry. An
