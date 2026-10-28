@@ -1,0 +1,14 @@
+{
+  "item.tconstruct.pattern": "Pattern",
+  "block.tconstruct.pattern": "Pattern",
+  "item.tconstruct.pick_head": "Pick Head",
+  "block.tconstruct.pick_head": "Pick Head",
+  "item.tconstruct.tool_handle": "Tool Handle",
+  "block.tconstruct.tool_handle": "Tool Handle",
+  "item.tconstruct.tool_binding": "Tool Binding",
+  "block.tconstruct.tool_binding": "Tool Binding",
+  "item.tconstruct.part_builder": "Part Builder",
+  "block.tconstruct.part_builder": "Part Builder",
+  "item.tconstruct.tinker_station": "Tinker Station",
+  "block.tconstruct.tinker_station": "Tinker Station"
+}

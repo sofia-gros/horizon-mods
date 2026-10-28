@@ -31,3 +31,7 @@ kill "$xvfb_pid"
 ```
 
 両方式で、Creative で作った破損試験個体を有効化し、Survival で火打石を2個消費して修理、無傷での再操作・保存復帰を確認した。`Game` ヘルパーは実行ごとの一時 world・endpoint・ログを作り、`HORIZON_HOME`、`HORIZON_LAUNCHER_HOME`、`XDG_DATA_HOME`、`XDG_CONFIG_HOME` を分離して self-update と audio を無効にする。ログと JSON report は `.local/repair-tests/` に出る。専用サーバー、複数プレイヤー、Station UI はこの試験に含まれない。
+
+## 汎用 GUI と制作・組立
+
+上記の本体と TConstruct のビルドに加え、`examples/gui-storage-fixture` とその `server` でも `cargo-horizon-mod horizon-mod build` を実行する。上記と同じ表示環境で、`tools/probe_tconstruct_crafting_gui.py`、`tools/probe_tconstruct_station_repair.py`、`tools/probe_generic_machine_gui.py`、`tools/probe_generic_storage_gui.py` を通常方式と `--in-frame` の両方で実行する。`tools/probe_generic_storage_players.py` は LAN の二人が同じ収納を開く競合を確認する。`tools/probe_tconstruct_table_recipes.py` は作業台でのテーブルと型紙のレシピを確認する。実行ごとの world とログは `.local` に隔離される。

@@ -150,8 +150,9 @@ fn inspect_with_profile(
 mod adapter {
     use super::*;
     use horizon_mod_sdk::server::{
-        Args, GameMode, Player, Registration, ServerMod, WorkstationInput, WorkstationPlan,
-        inventory_transactions, items_edit, items_read, items_tools, workstations,
+        Args, GameMode, GuiWorkstationOutput, GuiWorkstationPlan, Player, Registration, ServerMod,
+        WorkstationInput, WorkstationPlan, inventory_transactions, items_edit, items_read,
+        items_tools, workstations,
     };
 
     fn active(player: &Player) -> Result<bool, String> {
@@ -212,14 +213,24 @@ mod adapter {
         fn init() -> Result<(Self, Registration), String> {
             items_tools::enable_mining_events();
             items_tools::enable_melee_events();
-            workstations::register(
+            let path = ["tconstruct".into(), "state_json".into()];
+            let tags = [
+                "minecraft:planks".into(),
+                "tconstruct:wood_variants/planks".into(),
+            ];
+            workstations::register_gui(
+                "tconstruct:part_builder",
+                "Part Builder",
+                &path,
+                &tags,
+                r##"{"width":176,"height":166,"slots":[{"id":"pattern","x":8,"y":47,"role":"input","accepts":["tconstruct:pattern"]},{"id":"material","x":30,"y":47,"role":"input","accepts":["minecraft:flint","#minecraft:planks"]},{"id":"result","x":134,"y":47,"role":"output"}],"elements":[{"type":"button","id":"head","x":8,"y":18,"width":36,"height":14,"text":"Head"},{"type":"button","id":"handle","x":47,"y":18,"width":40,"height":14,"text":"Handle"},{"type":"button","id":"binding","x":90,"y":18,"width":42,"height":14,"text":"Binding"}]}"##,
+            )?;
+            workstations::register_gui(
                 "tconstruct:tinker_station",
                 "Tinker Station",
-                &["tconstruct".into(), "state_json".into()],
-                &[
-                    "minecraft:planks".into(),
-                    "tconstruct:wood_variants/planks".into(),
-                ],
+                &path,
+                &tags,
+                r##"{"width":176,"height":166,"slots":[{"id":"first","x":8,"y":47,"role":"input"},{"id":"second","x":30,"y":47,"role":"input"},{"id":"third","x":52,"y":47,"role":"input"},{"id":"result","x":134,"y":47,"role":"output"}],"elements":[]}"##,
             )?;
             Ok((
                 Self(Catalog::embedded()?),
@@ -276,6 +287,127 @@ mod adapter {
                     tool.count,
                     &replacement,
                 )?).into(),
+            }))
+        }
+        fn gui_workstation_preview(
+            &mut self,
+            block: &str,
+            inputs: &[Option<WorkstationInput>],
+            selection: Option<&str>,
+        ) -> Result<Option<GuiWorkstationPlan>, String> {
+            use tconstruct_horizon::crafting::{
+                Part, PartKind, plan_part, plan_pickaxe, plan_repair,
+            };
+            let material = |input: &WorkstationInput| -> Option<&'static str> {
+                if input.item == "minecraft:flint" {
+                    Some("flint")
+                } else if input.tags.iter().any(|t| t == "minecraft:planks")
+                    && !input
+                        .tags
+                        .iter()
+                        .any(|t| t == "tconstruct:wood_variants/planks")
+                {
+                    Some("wood")
+                } else {
+                    None
+                }
+            };
+            if block == "tconstruct:part_builder" {
+                let [Some(pattern), Some(ingredient), None] = inputs else {
+                    return Ok(None);
+                };
+                if pattern.item != "tconstruct:pattern" {
+                    return Ok(None);
+                }
+                let kind = match selection {
+                    Some("head") => PartKind::Head,
+                    Some("handle") => PartKind::Handle,
+                    Some("binding") => PartKind::Binding,
+                    _ => return Ok(None),
+                };
+                let Some(name) = material(ingredient) else {
+                    return Ok(None);
+                };
+                let Ok(part) = plan_part(&self.0, kind, name, ingredient.count, true) else {
+                    return Ok(None);
+                };
+                let item = match kind {
+                    PartKind::Head => "tconstruct:pick_head",
+                    PartKind::Handle => "tconstruct:tool_handle",
+                    PartKind::Binding => "tconstruct:tool_binding",
+                };
+                return Ok(Some(GuiWorkstationPlan {
+                    consume: vec![0, part.material_items, 0],
+                    outputs: vec![GuiWorkstationOutput {
+                        item: item.into(),
+                        count: 1,
+                        source_slot: None,
+                        text: Some(serde_json::to_string(&part.output).map_err(|e| e.to_string())?),
+                        tool: None,
+                        durability: None,
+                        melee: None,
+                    }],
+                }));
+            }
+            if block != "tconstruct:tinker_station" {
+                return Ok(None);
+            }
+            let [Some(first), Some(second), third, None] = inputs else {
+                return Ok(None);
+            };
+            let (state, consume, source) = if first.item == "minecraft:wooden_pickaxe"
+                && first.count == 1
+                && third.is_none()
+            {
+                let Some(text) = first.custom_text.as_deref() else {
+                    return Ok(None);
+                };
+                let Some(name) = material(second) else {
+                    return Ok(None);
+                };
+                let Ok(state) = ToolState::from_json(&self.0, text) else {
+                    return Ok(None);
+                };
+                let Ok(plan) = plan_repair(&self.0, &state, name, second.count) else {
+                    return Ok(None);
+                };
+                (plan.output, vec![1, plan.material_items, 0, 0], Some(0))
+            } else {
+                let Some(third) = third else {
+                    return Ok(None);
+                };
+                if first.item != "tconstruct:pick_head"
+                    || second.item != "tconstruct:tool_handle"
+                    || third.item != "tconstruct:tool_binding"
+                {
+                    return Ok(None);
+                }
+                let parse = |s: &WorkstationInput| -> Option<Part> {
+                    serde_json::from_str(s.custom_text.as_deref()?).ok()
+                };
+                let (Some(a), Some(b), Some(c)) = (parse(first), parse(second), parse(third))
+                else {
+                    return Ok(None);
+                };
+                let Ok(state) = plan_pickaxe(&self.0, &[a, b, c]) else {
+                    return Ok(None);
+                };
+                (state, vec![1, 1, 1, 0], None)
+            };
+            let replacement = state.to_json()?;
+            let mining = mining_projection(&self.0, "minecraft:wooden_pickaxe", 1, &replacement)?;
+            let combat = melee_projection(&self.0, "minecraft:wooden_pickaxe", 1, &replacement)?;
+            Ok(Some(GuiWorkstationPlan {
+                consume,
+                outputs: vec![GuiWorkstationOutput {
+                    item: "minecraft:wooden_pickaxe".into(),
+                    count: 1,
+                    source_slot: source,
+                    text: Some(replacement),
+                    tool: Some(profile(&mining).into()),
+                    durability: Some((mining.damage, mining.max_damage)),
+                    melee: Some(melee(combat).into()),
+                }],
             }))
         }
         fn mined(

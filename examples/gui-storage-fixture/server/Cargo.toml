@@ -1,0 +1,10 @@
+[package]
+name = "gui-fixture-server"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+horizon-mod-sdk = { git = "https://github.com/sofia-gros/horizon.git", rev = "139f37f1ed5992cb2fe1e8ab05ce776f9804e94a" }
