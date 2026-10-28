@@ -66,6 +66,62 @@ fn source_pickaxe_base(head: &SourceHeadStats, handle: &SourceHandleStats) -> [f
     [durability.build(), mining.build(), attack.build(), speed.build()]
 }
 
+/// Ingredient forms used by pinned original material recipes. This parser and
+/// matcher are not yet connected to world recipes, tags or item components.
+#[allow(dead_code)]
+#[derive(Debug)]
+enum SourceIngredient {
+    Item(String), Tag(String), Any(Vec<Self>), Difference(Box<Self>, Box<Self>),
+    Instrument { item: String, exact: Option<String>, ignore: Option<String> },
+}
+#[allow(dead_code)]
+impl SourceIngredient {
+    fn parse(v: &serde_json::Value) -> Option<Self> {
+        if let Some(list) = v.as_array() {
+            if list.is_empty() { return None; }
+            return Some(Self::Any(list.iter().map(Self::parse).collect::<Option<_>>()?));
+        }
+        let o = v.as_object()?;
+        let get = |key: &str| o.get(key).and_then(serde_json::Value::as_str).map(str::to_owned);
+        match o.get("type").and_then(serde_json::Value::as_str) {
+            None => match (get("item"), get("tag")) {
+                (Some(item), None) => Some(Self::Item(item)),
+                (None, Some(tag)) => Some(Self::Tag(tag)),
+                _ => None,
+            },
+            Some("forge:difference") => Some(Self::Difference(Box::new(Self::parse(o.get("base")?)?), Box::new(Self::parse(o.get("subtracted")?)?))),
+            Some("tconstruct:instrument") => {
+                let item = get("item")?;
+                let exact = get("instrument");
+                let ignore = get("ignore");
+                if exact.is_none() && ignore.is_none() { return None; }
+                Some(Self::Instrument { item, exact, ignore })
+            }
+            _ => None,
+        }
+    }
+
+    /// `instrument` is a normalized valid ID, or None if absent or malformed.
+    /// Tags and known instruments must come from the current world's registries.
+    fn matches(&self, item: &str, instrument: Option<&str>, item_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>, known_instruments: &std::collections::HashSet<String>, instrument_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>) -> bool {
+        match self {
+            Self::Item(id) => item == id,
+            Self::Tag(tag) => item_tags.get(tag).is_some_and(|set| set.contains(item)),
+            Self::Any(list) => list.iter().any(|v| v.matches(item, instrument, item_tags, known_instruments, instrument_tags)),
+            Self::Difference(base, subtracted) => base.matches(item, instrument, item_tags, known_instruments, instrument_tags) && !subtracted.matches(item, instrument, item_tags, known_instruments, instrument_tags),
+            Self::Instrument { item: expected, exact, ignore } => {
+                if item != expected { return false; }
+                match (instrument, exact, ignore) {
+                    (Some(id), Some(expected), _) => id == expected,
+                    (Some(id), None, Some(tag)) => known_instruments.contains(id) && !instrument_tags.get(tag).is_some_and(|set| set.contains(id)),
+                    (None, None, Some(_)) => true,
+                    _ => false,
+                }
+            }
+        }
+    }
+}
+
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
@@ -217,6 +273,49 @@ mod tests {
         assert_eq!(material_output_count(2, 5, 2, false), Some(5));
         assert_eq!(material_output_count(1, 3, 2, true), Some(1));
         assert_eq!(material_output_count(1, 3, 0, false), None);
+    }
+    #[test]
+    fn original_material_ingredients_cover_tags_difference_and_instruments() {
+        use std::collections::{HashMap, HashSet};
+        let mut tags = HashMap::new();
+        tags.insert("minecraft:planks".into(), HashSet::from(["minecraft:oak_planks".into(), "minecraft:warped_planks".into()]));
+        tags.insert("tconstruct:wood_variants/planks".into(), HashSet::from(["minecraft:warped_planks".into()]));
+        let difference = SourceIngredient::parse(&serde_json::json!({"type":"forge:difference", "base":{"tag":"minecraft:planks"}, "subtracted":{"tag":"tconstruct:wood_variants/planks"}})).unwrap();
+        let known = HashSet::from(["minecraft:ponder_goat_horn".into(), "minecraft:sing_goat_horn".into()]);
+        let mut instruments = HashMap::new();
+        instruments.insert("tconstruct:variant_horns".into(), HashSet::from(["minecraft:sing_goat_horn".into()]));
+        assert!(difference.matches("minecraft:oak_planks", None, &tags, &known, &instruments));
+        assert!(!difference.matches("minecraft:warped_planks", None, &tags, &known, &instruments));
+        let exact = SourceIngredient::parse(&serde_json::json!({"type":"tconstruct:instrument", "item":"minecraft:goat_horn", "instrument":"minecraft:sing_goat_horn"})).unwrap();
+        assert!(exact.matches("minecraft:goat_horn", Some("minecraft:sing_goat_horn"), &tags, &known, &instruments));
+        assert!(!exact.matches("minecraft:goat_horn", None, &tags, &known, &instruments));
+        let fallback = SourceIngredient::parse(&serde_json::json!({"type":"tconstruct:instrument", "item":"minecraft:goat_horn", "ignore":"tconstruct:variant_horns"})).unwrap();
+        assert!(fallback.matches("minecraft:goat_horn", None, &tags, &known, &instruments));
+        assert!(fallback.matches("minecraft:goat_horn", Some("minecraft:ponder_goat_horn"), &tags, &known, &instruments));
+        assert!(!fallback.matches("minecraft:goat_horn", Some("minecraft:sing_goat_horn"), &tags, &known, &instruments));
+        assert!(!fallback.matches("minecraft:goat_horn", Some("example:unknown"), &tags, &known, &instruments));
+        let alternatives = SourceIngredient::parse(&serde_json::json!([{"tag":"forge:storage_blocks/copper"}, {"item":"minecraft:waxed_copper_block"}])).unwrap();
+        assert!(alternatives.matches("minecraft:waxed_copper_block", None, &tags, &known, &instruments));
+        assert!(SourceIngredient::parse(&serde_json::json!({"type":"example:unknown"})).is_none());
+    }
+    #[test]
+    fn parses_all_pinned_material_recipe_ingredients() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../../docs/upstream-recipes.json.gz");
+        let file = std::fs::File::open(path).expect("pinned reference catalog");
+        let mut json = String::new();
+        flate2::read::GzDecoder::new(file).read_to_string(&mut json).unwrap();
+        let catalog: serde_json::Value = serde_json::from_str(&json).unwrap();
+        let mut count = 0;
+        for recipe in catalog["groups"]["materials"].as_array().unwrap() {
+            let data = &recipe["data"];
+            if data["type"] == "tconstruct:material" {
+                assert!(SourceIngredient::parse(&data["ingredient"]).is_some(), "{}", recipe["source"]);
+                count += 1;
+            }
+        }
+        assert_eq!(count, 217);
     }
     #[test]
     fn original_head_and_handle_durability_uses_float_then_integer() {
