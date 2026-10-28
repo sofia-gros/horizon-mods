@@ -14,6 +14,12 @@ registrations, data-driven combinations, lifecycle paths and their tests are
 mapped. [Feature matrix](feature-matrix.md) and [roadmap](roadmap.md) identify
 known gaps; missing entries must not be interpreted as implemented.
 
+The pinned tree contains 338 generated material-recipe files, 28 generated
+Part Builder recipe files and 23 station-layout files. These are file counts,
+not verified counts of active features; conditions, aliases and runtime
+registrations still have to be audited. The current three fixed choices do not
+cover those definitions.
+
 ## Current Part Builder crosswalk
 
 | Original pinned source | Current port | Evidence and gap |
