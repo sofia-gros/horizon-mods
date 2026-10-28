@@ -1,0 +1,21 @@
+[mod]
+id = "raw_entity_probe"
+version = "0.1.0"
+priority = 250
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "raw-fixture-save"
+target = "horizon_client::game::functions::Game<'_>::cmd_reload"
+kind = "RETURN"
+helper = "raw-write.rs"
+bindings = [{ name = "value", ty = "R<i32>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "raw-fixture-mesh"
+target = "horizon_client::streaming::Streaming::region"
+kind = "HEAD"
+helper = "raw-read.rs"
+bindings = [{ name = "world", ty = "&World", value = "world" }, { name = "x", ty = "i32", value = "x" }, { name = "z", ty = "i32", value = "z" }]
