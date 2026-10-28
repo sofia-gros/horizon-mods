@@ -1,6 +1,6 @@
 # TConstruct server tool state adapter
 
-独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 18、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` / `inventory-transactions` / `workstations` が必要です。SDKは検証済み本体 `bdb50a1152efa482b0fb241d53e60f17ae23d88a` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
+独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 18、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` / `inventory-transactions` / `workstations` が必要です。SDKは検証済み本体 `809ec8d358810f699e15099946b5189c9cd6b0aa` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
 
 MITライセンスと原作の著作権表示は [LICENSE](LICENSE)。共通コアが使う原作入力・出典・固定コミットは [親のthird_party記録](../third_party/README.md) を参照してください。
 
@@ -28,7 +28,7 @@ Creativeで `/tconstruct_tool activate` を実行すると、手持ち個体の�
 
 ## 火打石による試験用ツールの修理
 
-本体 `bdb50a1152efa482b0fb241d53e60f17ae23d88a` とこの Mod を使います。Creativeで `/tconstruct specimen flint wood wood 85` を作成し、手持ちで `/tconstruct_tool activate` を実行します。別の inventory slot（0〜35）に火打石を置き、Survivalで `/tconstruct_tool repair-flint 1` のようにその slot 番号を指定します（ホットバーは左から 0〜8）。成功時は必要な火打石だけを消費し、耐久・破損・採掘と攻撃の性能を更新します。フリント head の素材レシピのみ対象で、このコマンドはフリント専用です。Station UI の wood / flint 修理と制作は別途接続しています。これは登録済み TConstruct の道具ではなく既存の試験用 carrier に対する操作です。
+本体 `809ec8d358810f699e15099946b5189c9cd6b0aa` とこの Mod を使います。Creativeで `/tconstruct specimen flint wood wood 85` を作成し、手持ちで `/tconstruct_tool activate` を実行します。別の inventory slot（0〜35）に火打石を置き、Survivalで `/tconstruct_tool repair-flint 1` のようにその slot 番号を指定します（ホットバーは左から 0〜8）。成功時は必要な火打石だけを消費し、耐久・破損・採掘と攻撃の性能を更新します。フリント head の素材レシピのみ対象で、このコマンドはフリント専用です。Station UI の wood / flint 修理と制作は別途接続しています。これは登録済み TConstruct の道具ではなく既存の試験用 carrier に対する操作です。
 
 サーバーはコマンド実行者の同一スナップショットから手持ちと材料を取得し、適用前に両方の完全な stack を照合します。別の inventory 操作で変わった場合、材料・道具とも更新しません。開いている container やカーソル上の持ち物がある場合も拒否します。原作の Station 上の操作や multiplayer における網羅的な検証の代替ではありません。
 
