@@ -514,6 +514,41 @@ pub(super) enum SourcePartInput<'a> {
     Invalid,
     Material { input_item: &'a str, material: &'a str, craftable: bool, supported_outputs: &'a std::collections::HashSet<String> },
 }
+
+/// Map the pinned TinkerToolParts registrations to already validated material
+/// stat IDs. The caller must deserialize the registry first; merely seeing a
+/// raw JSON stat key is not enough to establish that the original accepts it.
+/// `has_repairable_stat` must likewise come from the registered stat types.
+#[allow(dead_code)]
+pub(super) fn source_supported_original_parts(
+    valid_stats: &std::collections::HashSet<String>,
+    has_repairable_stat: bool,
+) -> std::collections::HashSet<String> {
+    let mut result = std::collections::HashSet::new();
+    for (stat, parts) in [
+        ("head", &["pick_head", "hammer_head", "small_axe_head", "broad_axe_head", "small_blade", "broad_blade", "adze_head", "large_plate"][..]),
+        ("limb", &["bow_limb"][..]), ("grip", &["bow_grip"][..]),
+        ("bowstring", &["bowstring"][..]), ("arrow_head", &["arrow_head"][..]),
+        ("arrow_shaft", &["arrow_shaft"][..]), ("fletching", &["fletching"][..]),
+        ("binding", &["tool_binding", "tough_binding"][..]),
+        ("handle", &["tool_handle", "tough_handle"][..]),
+        ("plating_helmet", &["helmet_plating"][..]),
+        ("plating_chestplate", &["chestplate_plating"][..]),
+        ("plating_leggings", &["leggings_plating"][..]),
+        ("plating_boots", &["boots_plating"][..]),
+        ("maille", &["maille"][..]), ("shield_core", &["shield_core"][..]),
+        ("ribcage", &["ribcage"][..]), ("shell", &["shell"][..]),
+        ("laces", &["laces"][..]),
+    ] {
+        if valid_stats.contains(&format!("tconstruct:{stat}")) {
+            result.extend(parts.iter().map(|part| format!("tconstruct:{part}")));
+        }
+    }
+    if has_repairable_stat || valid_stats.contains("tconstruct:repair_kit") {
+        result.insert("tconstruct:repair_kit".into());
+    }
+    result
+}
 fn source_variant_matches(expected: &str, actual: &str) -> bool {
     let (base, variant) = expected.split_once('#').unwrap_or((expected, ""));
     let (actual_base, actual_variant) = actual.split_once('#').unwrap_or((actual, ""));
@@ -1131,6 +1166,23 @@ mod tests {
         assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Disabled));
         config.insert("force_integration_materials".into(), true);
         assert_eq!(source_material_definition(&conditional, &registries, &config, true), Ok(SourceMaterialDefinition::Material { craftable:false, hidden:false, tier:5, sort_order:100, rarity:"epic".into() }));
+    }
+
+    #[test]
+    fn source_part_support_uses_validated_stat_types_and_repairability() {
+        let stats = ["tconstruct:head", "tconstruct:handle", "tconstruct:binding"]
+            .into_iter().map(str::to_owned).collect();
+        let parts = source_supported_original_parts(&stats, true);
+        assert!(parts.contains("tconstruct:pick_head"));
+        assert!(parts.contains("tconstruct:tool_handle"));
+        assert!(parts.contains("tconstruct:tool_binding"));
+        assert!(parts.contains("tconstruct:repair_kit"));
+        assert!(!parts.contains("tconstruct:bow_limb"));
+        assert!(!parts.contains("tconstruct:helmet_plating"));
+        let only_repair_kit = ["tconstruct:repair_kit".to_owned()].into_iter().collect();
+        assert_eq!(source_supported_original_parts(&only_repair_kit, false),
+            ["tconstruct:repair_kit".to_owned()].into_iter().collect());
+        assert!(source_supported_original_parts(&Default::default(), false).is_empty());
     }
 
     #[test]
