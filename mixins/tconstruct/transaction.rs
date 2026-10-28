@@ -188,6 +188,41 @@ impl SourceCondition {
     }
 }
 
+/// Source ItemOutput forms in the pinned material recipes. Tag selection and
+/// NBT decoding are deliberately deferred until the world registry is present.
+#[allow(dead_code)]
+#[derive(Debug)]
+enum SourceOutputKind { Item(String), Tag(String) }
+#[allow(dead_code)]
+#[derive(Debug)]
+struct SourceItemOutput { kind: SourceOutputKind, count: i32, nbt: Option<serde_json::Value> }
+#[allow(dead_code)]
+impl SourceItemOutput {
+    fn parse(value: &serde_json::Value) -> Option<Self> {
+        if let Some(id) = value.as_str() {
+            if id == "minecraft:air" { return None; }
+            return Some(Self { kind: SourceOutputKind::Item(id.into()), count: 1, nbt: None });
+        }
+        let obj = value.as_object()?;
+        let count = match obj.get("count") { Some(value) => i32::try_from(value.as_i64()?).ok()?, None => 1 };
+        if count <= 0 { return None; }
+        let kind = if let Some(tag) = obj.get("tag").and_then(serde_json::Value::as_str) {
+            SourceOutputKind::Tag(tag.into())
+        } else {
+            let id = obj.get("item")?.as_str()?;
+            if id == "minecraft:air" { return None; }
+            SourceOutputKind::Item(id.into())
+        };
+        Some(Self { kind, count, nbt: obj.get("nbt").cloned() })
+    }
+    /// `IMaterialValue.getLeftover`: Java int multiply then truncating divide.
+    fn count_for_remainder(&self, remainder: i32, needed: i32) -> Option<i32> {
+        if remainder <= 0 || needed <= 0 { return None; }
+        let count = self.count.wrapping_mul(remainder) / needed;
+        (count > 0).then_some(count)
+    }
+}
+
 /// Pinned `MaterialRecipe` fields used for lookup and cost calculation.
 /// Leftover output stays unresolved until Mantle's tag preference and NBT
 /// rules are connected to the current world. Not used by gameplay yet.
@@ -197,7 +232,7 @@ struct SourceMaterialRecipe {
     material: String,
     value: i32,
     needed: i32,
-    leftover: Option<serde_json::Value>,
+    leftover: Option<SourceItemOutput>,
     conditions: Vec<SourceCondition>,
 }
 #[allow(dead_code)]
@@ -219,7 +254,7 @@ impl SourceMaterialRecipe {
             value,
             needed: positive("needed")?,
             // Original MaterialRecipe discards leftover for values of one.
-            leftover: if value > 1 { v.get("leftover").filter(|v| !v.is_null()).cloned() } else { None },
+            leftover: if value > 1 { v.get("leftover").and_then(SourceItemOutput::parse) } else { None },
             conditions,
         })
     }
@@ -458,11 +493,16 @@ mod tests {
         let catalog: serde_json::Value = serde_json::from_str(&json).unwrap();
         let mut count = 0;
         let mut condition_count = 0;
+        let mut leftover_count = 0;
         for recipe in catalog["groups"]["materials"].as_array().unwrap() {
             let data = &recipe["data"];
             if data["type"] == "tconstruct:material" {
                 let parsed = SourceMaterialRecipe::parse(data).unwrap_or_else(|| panic!("{}", recipe["source"]));
                 assert!(parsed.value > 0 && parsed.needed > 0 && !parsed.material.is_empty());
+                if data.get("leftover").is_some() && parsed.value > 1 {
+                    assert!(parsed.leftover.is_some(), "{}", recipe["source"]);
+                    leftover_count += 1;
+                }
                 for condition in data["conditions"].as_array().into_iter().flatten() {
                     assert!(SourceCondition::parse(condition).is_some(), "{}", recipe["source"]);
                     condition_count += 1;
@@ -472,6 +512,7 @@ mod tests {
         }
         assert_eq!(count, 217);
         assert_eq!(condition_count, 44);
+        assert_eq!(leftover_count, 47);
     }
     #[test]
     fn source_material_recipe_defaults_and_deferred_leftovers() {
@@ -480,7 +521,10 @@ mod tests {
         assert!(single.leftover.is_none());
         let block = SourceMaterialRecipe::parse(&serde_json::json!({"type":"tconstruct:material", "ingredient":{"tag":"forge:storage_blocks/copper"}, "material":"tconstruct:copper", "value":9, "leftover":{"tag":"forge:ingots/copper", "count":1}})).unwrap();
         assert_eq!(material_cost(2, block.needed, block.value), Some((1, 7)));
-        assert_eq!(block.leftover.unwrap()["tag"], "forge:ingots/copper");
+        let output = block.leftover.unwrap();
+        assert!(matches!(&output.kind, SourceOutputKind::Tag(tag) if tag == "forge:ingots/copper"));
+        assert_eq!(output.count_for_remainder(7, 1), Some(7));
+        assert_eq!(output.count_for_remainder(1, 2), None);
         assert!(SourceMaterialRecipe::parse(&serde_json::json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:flint"}, "material":"tconstruct:flint", "needed":0})).is_none());
     }
     #[test]
