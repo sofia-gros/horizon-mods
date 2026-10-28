@@ -1,21 +1,81 @@
-# Horizon Mods
+# Tinkers' Construct for Horizon — Mixins migration
 
-A workspace for developing mods with the [Horizon](https://github.com/sofia-gros/horizon) fork. Horizon provides general APIs and hooks; code mods use them from a restricted WebAssembly environment rather than rewriting the engine. This work prioritizes permission boundaries, compatibility and long-term maintenance while testing the APIs in real games.
-
-![Part Builder with a flint pick head selected and its material information](docs/screenshots/part-builder-interactive/selected-material.png)
-
-The screenshot shows the current Part Builder's three supported pickaxe parts and the flint information panel. Wood and flint are the implemented material subset; this is not the full original interface or material catalog.
+This is an early native source-mixin port of selected Tinkers' Construct
+mechanics. It is not a complete port. It builds a separate Horizon executable;
+it does not use the former fork's Wasm host API. The native code runs with the
+user's privileges. The user's adoption decision is not a claim that current
+Horizon documentation describes Mixins as its official exclusive mod system.
 
 ## What works today
 
-The [Tinkers’ Construct port](<Tinkers' onstruct/README.md>) is the main validation project. On this repository's `main`, it can make pick heads, handles and bindings from wood or flint, assemble a pickaxe and perform a limited single-material Station repair. Supported tools use the vanilla wooden-pickaxe carrier while the server mod applies mining, melee and durability behavior. The project aims for a complete TConstruct 1.20.1 port; that goal is not yet complete. Smeltery, the full tool and material catalog, many modifiers and original dynamic tool visuals remain unfinished.
+In single-player worlds using the integrated server or in-frame mode, one flint and two sticks can be converted
+into a flint pick head, wood binding and wood handle with `/tconstruct parts`.
+`/tconstruct assemble` consumes those parts and produces a flint pickaxe.
+The pickaxe mines stone, loses one durability per non-instant block, and its
+item ID and damage survive a save and reload. At 85 damage it remains in the
+inventory and cannot mine. Its current appearance uses the vanilla stone
+pickaxe model, not a composed Tinkers texture. [Game screenshot](docs/game-smoke.png).
 
-The code and data live in the user-named `Tinkers' onstruct/` directory. The content and server components are separate `.hmod` packages. This repository is a development workspace, not the upstream Horizon mod registry, and is not a loader for Forge or Fabric `.jar` files.
+This is a narrow prototype: its command-based crafting is not the original
+station UI, parts do not retain independent material data, and a broken tool
+stops mining rather than mining slowly as in the original. Other game modes,
+multiplayer, repair and traits are not verified.
 
-## Try it or build a mod
+## Requirements and setup
 
-Start with [building and trying the port](docs/playing-tconstruct.md) or the [documentation index](docs/README.md). Horizon's [mod guide](https://github.com/sofia-gros/horizon/blob/fc4848f4d7920390ea3aa8e6a5f804111f93a45d/docs/mods.md) explains the manifest and sandbox; the [generated API reference](https://github.com/sofia-gros/horizon/blob/fc4848f4d7920390ea3aa8e6a5f804111f93a45d/docs/api/mods-reference.md) lists the exact interfaces. Use a matching fork revision and run the tests for the package you build.
+Linux, Python 3.12+, Git, Rust and Cargo, and your own prepared Horizon 26.3
+resources are required. `compatibility.json` pins the source revisions. This
+project does not distribute Minecraft game files or resources.
 
-Mods run with declared capabilities and bounded host interfaces. These controls reduce exposure and make conflicts visible; they do not guarantee that every mod is safe or compatible. Malware has appeared in Minecraft mod distribution ([CurseForge incident notice](https://support.curseforge.com/en/support/solutions/articles/9000228509-june-2023-infected-mods-detection-tool/)). Future integration with trusted Horizon Mixins is an idea for extending missing host APIs while retaining Wasm mods; it is not implemented here, and trusted host extensions change the security boundary.
+```sh
+git clone https://github.com/horizon-rust/horizon.git ../horizon-official
+git -C ../horizon-official checkout b6c936f82b08798057161bdfa577e3aac53fb91e
+git clone https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
+git -C ../horizon-mixins checkout 0500ff24aa5933fca95a877ef41125353c4b4fe3
+python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
+cargo fetch --locked --manifest-path target/modded/Cargo.toml
+cargo build --locked --offline --manifest-path target/modded/Cargo.toml \
+  -p horizon-client --bin horizon-client --bin horizon-ctl --no-default-features --profile fast \
+  --target-dir "$PWD/target/build"
+python3 -m unittest discover -s tests -v
+python3 tools/resources.py /path/to/prepared/26.3 target/resources
+./target/build/fast/horizon-client --resources "$PWD/target/resources"
+```
 
-The original TConstruct textures shown here are distributed with their [MIT license and source notice](<Tinkers' onstruct/assets/tconstruct/source_notice.txt>); the pinned upstream revision and remaining attribution are recorded in [third-party sources](<Tinkers' onstruct/third_party/README.md>).
+`stage.py` requires cleanly pinned commits, exports a separate source tree,
+and runs the Mixins CLI. It refuses an existing export; remove only your own
+generated `target/original` when deliberately regenerating. Resource preparation
+creates a separate overlay with links to the supplied base resources; keep the
+base available. It refuses an existing destination. Generated trees and worlds
+are not distributed. The prototype uses vanilla placeholder models, not the
+original Tinkers artwork.
+
+For the automated single-player game smoke test, run the following under a working
+X11/Vulkan display (software Vulkan and Xvfb also work):
+
+```sh
+python3 tools/game_smoke.py --game target/build/fast/horizon-client \
+  --ctl target/build/fast/horizon-ctl --resources target/resources
+# Add --in-frame to test the alternate single-player path.
+```
+
+The script creates a fresh world under `target/`, checks consumption and
+mining wear, saves, and writes a screenshot there. The independent save/reload
+and broken-state checks are described in [validation](docs/validation.md).
+
+See [coverage and roadmap](docs/roadmap.md) for scope and validation status.
+
+## Provenance and recovery
+
+The prior `main` was preserved at remote branch `backup/pre-mixins-92f696b`,
+commit `92f696b475799403120330f6ad9c45c423de4ab7`. To inspect or restore it
+without rewriting history, fetch that branch and create a new branch from it:
+
+```sh
+git fetch origin backup/pre-mixins-92f696b
+git switch -c restore-pre-mixins FETCH_HEAD
+```
+
+Tinkers' Construct data is referenced at the revision in `compatibility.json`;
+its MIT license and notice are included in [third_party/tconstruct/LICENSE](third_party/tconstruct/LICENSE).
+The old environment's uncommitted chest work was not transferred to this checkout.

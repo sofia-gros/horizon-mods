@@ -1,8 +1,0 @@
-id = "tconstruct_probe"
-name = "TConstruct Server Lifecycle Probe"
-version = "0.1.0"
-description = "M2 diagnostics: server lifecycle and player event delivery. No playable tools."
-authors = ["Horizon port contributors"]
-api = "0.3"
-side = "server"
-capabilities = ["players", "storage"]

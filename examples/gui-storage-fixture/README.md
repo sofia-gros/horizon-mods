@@ -1,5 +1,0 @@
-# Generic storage and machine fixture
-
-The server package uses the public workstation GUI and machine-storage APIs. The `gui_fixture:auto_machine` example polls the overworld position `0 71 2` every 20 ticks; this fixed position is deliberately a test fixture, not a general-purpose machine implementation. When a flint and coal are present, it queues a single atomic operation consuming one of each and inserting one diamond. Three progress bars confirm that a duplicate commit, a foreign delegated block, and a token reused in a later callback are rejected. Full output prevents all consumption. The other fixture blocks continue to exercise a seven-slot store and a multi-output player-triggered machine.
-
-Build the client and server packages with `cargo horizon-mod build`. With the Linux test setup in `docs/linux-tconstruct-game-verification.md`, run `python3 tools/probe_generic_auto_machine.py` and `--in-frame`, plus `python3 tools/probe_generic_auto_machine_players.py` for a GUI extraction racing a server tick. These scripts create isolated worlds and keep their outputs under `.local`.

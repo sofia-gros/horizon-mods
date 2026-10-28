@@ -1,17 +1,4 @@
-# 各Modのビルド成果物（Cargo.lockは管理する）
-**/target/
-*.hmod
-*.hmod.partial
-
-# 実行時のデータ・設定・ログ
-.local/
-**/.horizon-mod-data/
-**/horizon-mods.txt
-**/options.txt
-**/saves/
-**/logs/
-
-# ローカル設定・秘密情報
-.env
-.env.*
-!.env.example
+/target/
+/.local/
+/Tinkers' onstruct/
+__pycache__/

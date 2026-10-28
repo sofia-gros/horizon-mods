@@ -1,7 +1,0 @@
-id = "gui_fixture_server"
-name = "Generic Storage Fixture Server"
-version = "0.1.0"
-api = "0.3"
-side = "server"
-capabilities = ["players", "storage", "items-read", "items-edit", "items-tools", "inventory-transactions", "workstations"]
-experimental = ["items-read", "items-edit", "items-tools", "inventory-transactions", "workstations"]

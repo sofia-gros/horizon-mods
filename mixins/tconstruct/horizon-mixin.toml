@@ -1,0 +1,37 @@
+[mod]
+id = "tconstruct"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "command"
+target = "horizon_client::game::commands::Game<'_>::run_command"
+kind = "HEAD"
+cancellable = true
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+]
+
+[[injection]]
+id = "wear"
+target = "horizon_client::game::Game<'_>::mine_block_with_held"
+kind = "HEAD"
+cancellable = true
+helper = "wear.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "hardness", ty = "f32", value = "hardness" },
+]
+
+[[injection]]
+id = "broken"
+target = "horizon_client::game::Game<'_>::break_block_as_player"
+kind = "HEAD"
+cancellable = true
+helper = "broken.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
