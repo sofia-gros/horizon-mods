@@ -61,6 +61,34 @@ fn two_players_cannot_consume_the_same_material_or_duplicate_the_part() {
 }
 
 #[test]
+fn part_preview_rechecks_pattern_and_output_before_consuming_material() {
+    let catalog = Catalog::embedded().unwrap();
+    let plan = plan_part(&catalog, PartKind::Head, "flint", 2, true).unwrap();
+    assert_eq!(plan.material_items, 2);
+    let original = vec![item("example:pattern", 1), item("minecraft:flint", 2), None];
+    let changes = [
+        change(0, original[0].clone(), original[0].clone()),
+        change(1, original[1].clone(), None),
+        change(2, None, item("example:pick_head", 1)),
+    ];
+    for changed_slot in [0, 2] {
+        let mut slots = original.clone();
+        slots[changed_slot] = if changed_slot == 0 {
+            None
+        } else {
+            item("example:pick_head", 64)
+        };
+        let before = slots.clone();
+        let mut revision = 7;
+        assert_eq!(
+            inventory_transaction::apply(&mut slots, &mut revision, 7, &changes, allowed),
+            Err(TransactionError::ChangedSlot)
+        );
+        assert_eq!((revision, slots), (7, before));
+    }
+}
+
+#[test]
 fn changed_part_or_output_rejects_the_whole_pickaxe_plan() {
     let catalog = Catalog::embedded().unwrap();
     let parts = [
