@@ -90,6 +90,10 @@
       "sha256": "ad17ffe07a29bc9d5ac92b20488b63986c41776312213c65d0cecf15d229c539"
     },
     {
+      "path": "src/main/java/slimeknights/tconstruct/library/recipe/material/IMaterialValue.java",
+      "sha256": "1d7c03e425958e82f7d9bf379e2d6ed67f87c2068e56c3ec4278a976e03c42c0"
+    },
+    {
       "path": "src/main/java/slimeknights/tconstruct/library/tools/definition/module/build/SetStatsModule.java",
       "sha256": "145c3ab2bc09407e8dce70cb37f06b3e27b8a7ddebad13a2c1c623ec8d2a6a7e"
     },

@@ -1,0 +1,19 @@
+{
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "source_sha256": "1d7c03e425958e82f7d9bf379e2d6ed67f87c2068e56c3ec4278a976e03c42c0",
+  "scope": "verbatim getItemsUsed with pinned cost and 1:1 wood/flint material values",
+  "cases": [
+    {
+      "part": "pick_head",
+      "items": 2
+    },
+    {
+      "part": "tool_handle",
+      "items": 1
+    },
+    {
+      "part": "tool_binding",
+      "items": 1
+    }
+  ]
+}

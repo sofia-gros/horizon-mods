@@ -1,5 +1,6 @@
 //! Game-independent port core, diagnostics and state transport specimens.
 pub mod catalog;
+pub mod crafting;
 pub mod specimen;
 pub mod stats;
 pub mod tool;
