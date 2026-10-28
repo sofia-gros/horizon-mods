@@ -29,6 +29,26 @@ fn part_with_material(id: &str, material: &str) -> ItemStack {
     part
 }
 
+/// Legacy prototype IDs encode a single material. If a Material tag is
+/// present, reject a conflicting value rather than silently assembling it.
+fn part_matches_material(stack: &ItemStack, expected: &str) -> bool {
+    use horizon_world::nbt::Tag;
+    match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("Material")) {
+        None => true, // legacy prototype stack, whose ID fixes the material
+        Some(Tag::String(value)) => value.to_string_lossy() == expected,
+        Some(_) => false,
+    }
+}
+
+fn fixed_pickaxe_with_materials() -> ItemStack {
+    use horizon_world::nbt::Tag;
+    let mut tool = ItemStack::new("tconstruct:flint_pickaxe", 1);
+    let materials = ["tconstruct:flint", "tconstruct:wood", "tconstruct:wood"]
+        .into_iter().map(|id| Tag::String(id.into())).collect();
+    tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_materials", Tag::List(materials))])));
+    tool
+}
+
 /// Apply a single result pickup to the authoritative slots and cursor.
 /// Inputs are checked before any mutation; tool data is carried by cloning it.
 pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, station: bool, action: i16) -> bool {
@@ -53,7 +73,10 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         (part_with_material(result, material_id), vec![(1, amount)])
     } else if action == 24 {
         if !is(0, "tconstruct:flint_pick_head", 1) || !is(1, "tconstruct:wood_handle", 1) || !is(2, "tconstruct:wood_binding", 1) { return false; }
-        (ItemStack::new("tconstruct:flint_pickaxe", 1), vec![(0, 1), (1, 1), (2, 1)])
+        for (slot, material) in [(0, "tconstruct:flint"), (1, "tconstruct:wood"), (2, "tconstruct:wood")] {
+            if !part_matches_material(stacks[slot].as_ref().unwrap(), material) { return false; }
+        }
+        (fixed_pickaxe_with_materials(), vec![(0, 1), (1, 1), (2, 1)])
     } else if action == 25 {
         if !is(0, "tconstruct:flint_pickaxe", 1) { return false; }
         let mut tool = stacks[0].as_ref().unwrap().clone();
@@ -139,6 +162,22 @@ mod tests {
         assert!(part_preview(&slots, 1).is_none());
         slots[1] = Some(ItemStack::new("minecraft:flint", 1));
         assert!(part_preview(&slots, 0).is_none());
+    }
+    #[test]
+    fn assembly_retains_materials_and_rejects_conflicting_identity() {
+        let mut slots = vec![None; 27];
+        slots[0] = Some(part_with_material("tconstruct:flint_pick_head", "tconstruct:flint"));
+        slots[1] = Some(part_with_material("tconstruct:wood_handle", "tconstruct:wood"));
+        slots[2] = Some(part_with_material("tconstruct:wood_binding", "tconstruct:flint"));
+        let before = slots.clone();
+        let mut cursor = None;
+        assert!(!take(&mut slots, &mut cursor, true, 24));
+        assert_eq!(slots, before);
+        slots[2] = Some(part_with_material("tconstruct:wood_binding", "tconstruct:wood"));
+        assert!(take(&mut slots, &mut cursor, true, 24));
+        let data = cursor.unwrap();
+        let list = data.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|v| v.get("tic_materials"));
+        assert_eq!(list, Some(&horizon_world::nbt::Tag::List(["tconstruct:flint", "tconstruct:wood", "tconstruct:wood"].into_iter().map(|id| horizon_world::nbt::Tag::String(id.into())).collect())));
     }
     #[test]
     fn repair_preserves_name_and_unknown_components() {

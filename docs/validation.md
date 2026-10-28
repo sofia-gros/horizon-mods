@@ -125,3 +125,8 @@ The fixed flint head and wood handle were checked for their original material
 IDs in `minecraft:custom_data`; a wood handle retained that field across save
 and reload in both game modes. Their current prototype item IDs still differ
 from the original shared part IDs and material variants remain incomplete.
+
+The prototype flint/wood pickaxe's ordered `tic_materials` list was checked
+after assembly and save/reload in both modes. A unit test rejects a conflicting
+part Material value without changing inputs. This is not validation of original
+tool IDs, derived statistics, traits or arbitrary combinations.
