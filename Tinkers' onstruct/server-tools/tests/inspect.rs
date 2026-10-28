@@ -3,6 +3,59 @@ use tconstruct_horizon::{Catalog, ToolState};
 use tconstruct_server_tools::{edit_state, inspect, melee_projection, mining_projection};
 
 #[test]
+fn flint_repair_consumes_only_needed_material_and_rejects_wrong_inputs() {
+    use tconstruct_server_tools::repair_flint;
+    let catalog = Catalog::embedded().unwrap();
+    let mut tool = ToolState::pickaxe(["flint", "wood", "wood"]);
+    tool.damage_points(&catalog, 85).unwrap();
+    let source = tool.to_json().unwrap();
+    let (result, used) = repair_flint(
+        &catalog,
+        "minecraft:wooden_pickaxe",
+        1,
+        &source,
+        "minecraft:flint",
+        3,
+    )
+    .unwrap();
+    assert_eq!(used, 2);
+    assert_eq!(ToolState::from_json(&catalog, &result).unwrap().damage, 0);
+    assert!(
+        repair_flint(
+            &catalog,
+            "minecraft:wooden_pickaxe",
+            1,
+            &source,
+            "minecraft:stone",
+            3
+        )
+        .is_err()
+    );
+    assert!(
+        repair_flint(
+            &catalog,
+            "minecraft:wooden_pickaxe",
+            1,
+            &source,
+            "minecraft:flint",
+            0
+        )
+        .is_err()
+    );
+    assert!(
+        repair_flint(
+            &catalog,
+            "minecraft:wooden_pickaxe",
+            1,
+            &result,
+            "minecraft:flint",
+            3
+        )
+        .is_err()
+    );
+}
+
+#[test]
 fn mining_projection_matches_original_java_speed_bits() {
     let fixture: Value =
         serde_json::from_str(include_str!("fixtures/mining-speed-oracle.json")).unwrap();

@@ -1,6 +1,6 @@
 # TConstruct server tool state adapter
 
-独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 14、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` が必要です。SDKは検証済み本体 `83eafa818a6a5fc573b97b024b5c40bdaf23b209` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
+独立した補助server packageです。親のコアをclient-adapter featureなしで使います。API 0.3 / fork API level 15、capability `players` と実験capability `items-read` / `items-edit` / `items-tools` / `inventory-transactions` が必要です。SDKは検証済み本体 `ea51f25aa2e5063a6ca79d4e7277c8df090f9d59` に固定し、Cargo.lockを管理します。インストール済みv0.2.66では動きません。
 
 MITライセンスと原作の著作権表示は [LICENSE](LICENSE)。共通コアが使う原作入力・出典・固定コミットは [親のthird_party記録](../third_party/README.md) を参照してください。
 
@@ -25,3 +25,9 @@ Creativeで `/tconstruct_tool activate` を実行すると、手持ち個体の�
 基本採掘耐久の実ゲーム試験・残る制限は [M3b4検証記録](../../docs/tconstruct-m3b4-verification.md) を参照してください。
 
 直接 Mob 攻撃の基本耐久消費、素材・jagged による攻撃力、攻撃速度、broken の攻撃禁止は接続済みです。PvP の基本耐久消費も接続済みです。他の modifier や特殊攻撃は未対応です。[近接攻撃の記録](../../docs/tconstruct-melee-design.md)。
+
+## 火打石による試験用ツールの修理
+
+本体 `ea51f25aa2e5063a6ca79d4e7277c8df090f9d59` とこの Mod を使います。Creativeで `/tconstruct specimen flint wood wood 85` を作成し、手持ちで `/tconstruct_tool activate` を実行します。別の inventory slot（0〜35）に火打石を置き、Survivalで `/tconstruct_tool repair-flint 1` のようにその slot 番号を指定します（ホットバーは左から 0〜8）。成功時は必要な火打石だけを消費し、耐久・破損・採掘と攻撃の性能を更新します。フリント head の素材レシピのみ対象で、通常の Station UI、他の素材と修理レシピは未対応です。これは登録済み TConstruct の道具ではなく既存の試験用 carrier に対する操作です。
+
+サーバーはコマンド実行者の同一スナップショットから手持ちと材料を取得し、適用前に両方の完全な stack を照合します。別の inventory 操作で変わった場合、材料・道具とも更新しません。開いている container やカーソル上の持ち物がある場合も拒否します。原作の Station 上の操作や multiplayer における網羅的な検証の代替ではありません。

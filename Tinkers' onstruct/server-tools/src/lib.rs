@@ -150,7 +150,8 @@ fn inspect_with_profile(
 mod adapter {
     use super::*;
     use horizon_mod_sdk::server::{
-        Args, GameMode, Player, Registration, ServerMod, items_edit, items_read, items_tools,
+        Args, GameMode, Player, Registration, ServerMod, inventory_transactions, items_edit,
+        items_read, items_tools,
     };
 
     fn active(player: &Player) -> Result<bool, String> {
@@ -311,6 +312,50 @@ mod adapter {
             args: &Args,
         ) -> Result<Option<String>, String> {
             let words: Vec<_> = args.text().split_whitespace().collect();
+            if let ["repair-flint", slot] = words.as_slice() {
+                let slot = slot.parse::<u32>().map_err(|_| "slot must be 0..35")?;
+                if slot >= 36 {
+                    return Err("slot must be 0..35".into());
+                }
+                if !active(player)? {
+                    return Err("activate the TConstruct tool first".into());
+                }
+                let path = ["tconstruct".into(), "state_json".into()];
+                let item = items_read::main_hand(&player.id, &path)?.ok_or("empty main hand")?;
+                let source = item
+                    .custom_text
+                    .as_deref()
+                    .ok_or("no TConstruct state in main hand")?;
+                let ingredient = inventory_transactions::inventory_slot(&player.id, slot, &[])?
+                    .ok_or("empty ingredient slot")?;
+                let (replacement, used) = repair_flint(
+                    &self.0,
+                    &item.item,
+                    item.count,
+                    source,
+                    &ingredient.item,
+                    ingredient.count,
+                )?;
+                let projection = mining_projection(&self.0, &item.item, item.count, &replacement)?;
+                inventory_transactions::replace_main_hand_combat_profile_consuming(
+                    &player.id,
+                    &path,
+                    source,
+                    &replacement,
+                    &profile(&projection),
+                    projection.damage,
+                    projection.max_damage,
+                    melee(melee_projection(
+                        &self.0,
+                        &item.item,
+                        item.count,
+                        &replacement,
+                    )?),
+                    slot,
+                    used,
+                )?;
+                return Ok(None);
+            }
             if let ["activate"] = words.as_slice() {
                 if !matches!(&player.game_mode, GameMode::Creative) {
                     return Err("activation requires creative mode".into());
@@ -397,6 +442,23 @@ mod adapter {
         }
     }
     horizon_mod_sdk::export_server_mod!(Inspector);
+}
+
+/// Plan the supported flint repair; the host must atomically apply consumption.
+pub fn repair_flint(
+    catalog: &Catalog,
+    item: &str,
+    count: u32,
+    source: &str,
+    ingredient: &str,
+    available: u32,
+) -> Result<(String, u32), String> {
+    if item != "minecraft:wooden_pickaxe" || count != 1 || ingredient != "minecraft:flint" {
+        return Err("requires a TConstruct tool and flint".into());
+    }
+    let state = ToolState::from_json(catalog, source)?;
+    let plan = tconstruct_horizon::crafting::plan_repair(catalog, &state, "flint", available)?;
+    Ok((plan.output.to_json()?, plan.material_items))
 }
 
 /// Raw core points for Creative test commands, not recipe costs or game wear.
