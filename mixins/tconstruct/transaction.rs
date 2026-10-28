@@ -1,18 +1,34 @@
 use horizon_items::items::ItemStack;
 
+/// `IMaterialValue.getItemsUsed` and `getRemainder` from the pinned original.
+/// Recipe loaders require strictly positive cost, needed and value.
+fn material_cost(cost: i32, needed: i32, value: i32) -> Option<(i32, i32)> {
+    if cost <= 0 || needed <= 0 || value <= 0 { return None; }
+    // Java's int multiplication/subtraction wrap, and division truncates to zero.
+    let total = cost.wrapping_mul(needed);
+    let used = total / value + i32::from(total % value != 0);
+    let mut remainder = value.wrapping_sub(total) % value;
+    if remainder < 0 { remainder += value; }
+    Some((used, remainder))
+}
+
 /// Apply a single result pickup to the authoritative slots and cursor.
 /// Inputs are checked before any mutation; tool data is carried by cloning it.
 pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, station: bool, action: i16) -> bool {
     if stacks.len() < 27 { return false; }
     let is = |slot: usize, item: &str, count: u32| stacks.get(slot).and_then(Option::as_ref).is_some_and(|s| &*s.item == item && s.count >= count);
     let (output, consume): (ItemStack, Vec<(usize, u32)>) = if !station {
-        let (material, amount, result) = match action {
+        let (material, cost, result) = match action {
             24 => ("minecraft:flint", 2, "tconstruct:flint_pick_head"),
             25 => ("minecraft:oak_planks", 1, "tconstruct:wood_handle"),
             26 => ("minecraft:oak_planks", 1, "tconstruct:wood_binding"),
             _ => return false,
         };
-        if !is(0, "tconstruct:pattern", 1) || !is(1, material, amount) { return false; }
+        let Some((amount, remainder)) = material_cost(cost, 1, 1) else { return false; };
+        // The current two inputs have unit value and no remainder. Other
+        // material recipes and their remainder items are not yet supported.
+        let Ok(amount) = u32::try_from(amount) else { return false; };
+        if amount == 0 || remainder != 0 || !is(0, "tconstruct:pattern", 1) || !is(1, material, amount) { return false; }
         (ItemStack::new(result, 1), vec![(1, amount)])
     } else if action == 24 {
         if !is(0, "tconstruct:flint_pick_head", 1) || !is(1, "tconstruct:wood_handle", 1) || !is(2, "tconstruct:wood_binding", 1) { return false; }
@@ -55,6 +71,15 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn original_material_cost_rounds_up_and_tracks_remainder() {
+        assert_eq!(material_cost(2, 1, 1), Some((2, 0)));
+        assert_eq!(material_cost(1, 2, 3), Some((1, 1)));
+        assert_eq!(material_cost(2, 1, 3), Some((1, 1)));
+        assert_eq!(material_cost(2, 3, 2), Some((3, 0)));
+        assert_eq!(material_cost(i32::MAX, 2, 3), Some((1, 2)));
+        assert_eq!(material_cost(1, 1, 0), None);
+    }
     #[test]
     fn part_take_is_atomic_and_pattern_is_reusable() {
         let mut slots = vec![None; 27];
