@@ -12,7 +12,8 @@ In single-player worlds, craft a Pattern and the Part Builder and Tinker
 Station at a crafting table, place both tables, and open them by interacting.
 In the Part Builder, insert a Pattern and material, then select an illustrated
 part and take it from the result slot: two flint make a flint pick head; one oak plank makes a wood handle or
-binding. The Pattern is reusable. In the Tinker Station, put the head, handle
+binding. These parts carry the tested original material ID in custom data; their
+prototype item IDs still differ from the original. The Pattern is reusable. In the Tinker Station, put the head, handle
 and binding in the three input positions and take a flint/wood pickaxe. Put a
 worn pickaxe and flint in the inputs and take a repaired copy. Repair retains
 the tool's existing name and custom data.

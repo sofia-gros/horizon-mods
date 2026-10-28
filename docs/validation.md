@@ -120,3 +120,8 @@ station hook logged during the station test in both game modes.
 The fixed-part result slot now shows the item tooltip on hover; this is not
 the original detailed material/trait tooltip. Both game modes passed the
 selection/repair/save test after this change.
+
+The fixed flint head and wood handle were checked for their original material
+IDs in `minecraft:custom_data`; a wood handle retained that field across save
+and reload in both game modes. Their current prototype item IDs still differ
+from the original shared part IDs and material variants remain incomplete.

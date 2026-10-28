@@ -19,6 +19,16 @@ fn material_output_count(output_count: i32, value: i32, cost: i32, has_leftover:
     Some(if !has_leftover && value > cost { output_count.wrapping_mul(value) / cost } else { output_count })
 }
 
+/// The original `IMaterialItem` stores the chosen material under `Material`.
+/// Horizon 26.3 keeps that legacy item tag inside `minecraft:custom_data`.
+fn part_with_material(id: &str, material: &str) -> ItemStack {
+    let mut part = ItemStack::new(id, 1);
+    part.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
+        ("Material", horizon_world::nbt::Tag::String(material.into())),
+    ])));
+    part
+}
+
 /// Apply a single result pickup to the authoritative slots and cursor.
 /// Inputs are checked before any mutation; tool data is carried by cloning it.
 pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, station: bool, action: i16) -> bool {
@@ -39,7 +49,8 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
         // material recipes and their remainder items are not yet supported.
         let Ok(amount) = u32::try_from(amount) else { return false; };
         if amount == 0 || remainder != 0 || !is(0, "tconstruct:pattern", 1) || !is(1, material, amount) { return false; }
-        (ItemStack::new(result, 1), vec![(1, amount)])
+        let material_id = if material == "minecraft:flint" { "tconstruct:flint" } else { "tconstruct:wood" };
+        (part_with_material(result, material_id), vec![(1, amount)])
     } else if action == 24 {
         if !is(0, "tconstruct:flint_pick_head", 1) || !is(1, "tconstruct:wood_handle", 1) || !is(2, "tconstruct:wood_binding", 1) { return false; }
         (ItemStack::new("tconstruct:flint_pickaxe", 1), vec![(0, 1), (1, 1), (2, 1)])
@@ -110,6 +121,7 @@ mod tests {
         cursor = None;
         assert!(take(&mut slots, &mut cursor, false, 24));
         assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:flint_pick_head");
+        assert_eq!(cursor.as_ref().unwrap().data().and_then(|d| d.other("minecraft:custom_data")), Some(&horizon_world::nbt::Tag::compound([("Material", horizon_world::nbt::Tag::String("tconstruct:flint".into()))])));
         assert!(slots[1].is_none());
         assert_eq!(slots[0].as_ref().unwrap().count, 1);
         cursor = None;

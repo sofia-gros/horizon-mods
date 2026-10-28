@@ -33,8 +33,10 @@ try:
  hover(322,'part-builder-result-hover.png')
  click(322);assert carried().get('item')=='tconstruct:flint_pick_head'
  click(322);assert carried().get('count')==1
- click(3);click(hotbar('minecraft:oak_planks'));click(301)
+ click(3);g.call('wait','10');assert 'tconstruct:flint' in g.call('inventory')['hotbar'][3].get('components','')
+ click(hotbar('minecraft:oak_planks'));click(301)
  click(325);assert not carried();click(322);assert carried().get('item')=='tconstruct:wood_handle';click(4)
+ g.call('wait','10');assert 'tconstruct:wood' in g.call('inventory')['hotbar'][4].get('components','')
  click(326);assert not carried();click(322);assert carried().get('item')=='tconstruct:wood_binding';click(5)
  g.call('close');cmd('setblock 1 71 2 tconstruct:tinker_station');time.sleep(1);g.call('interact','1','71','2')
  g.call('screenshot',str(run/'tinker-station-empty.png'))
@@ -48,7 +50,11 @@ try:
  g.call('interact','1','71','2');click(0);click(300);click(hotbar('minecraft:flint'));click(301)
  click(325);assert carried().get('item')=='tconstruct:flint_pickaxe' and carried().get('damage')==0;click(0)
  g.call('wait','10');hover(0,'lore-hover.png');held=g.call('inventory')['held'];print('after repair',held,flush=True);assert 'Blade' in held.get('components','') and 'proof' in held.get('components','') and 'Durable story' in held.get('components','')
+ g.call('close');cmd('give @s minecraft:oak_planks 1');g.call('wait','10');g.call('interact','0','71','2')
+ click(hotbar('minecraft:oak_planks'));click(301);click(325);click(322);click(8)
+ assert 'tconstruct:wood' in g.call('inventory')['hotbar'][8].get('components','')
  g.call('close');g.call('save');g.stop();g.cleanup();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready()
+ assert 'tconstruct:wood' in g.call('inventory')['hotbar'][8].get('components','')
  held=g.call('inventory')['held'];assert held.get('damage',0)==0 and 'Blade' in held.get('components','') and 'proof' in held.get('components','') and 'Durable story' in held.get('components','')
  g.call('interact','0','71','2');g.call('wait','10');g.call('screenshot',str(run/'part-builder-reopened.png'))
  items={s['slot']:s['stack'] for s in g.call('menu')['slots']}
