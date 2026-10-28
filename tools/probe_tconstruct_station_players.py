@@ -54,6 +54,13 @@ try:
     for game, name in [(host, 'HostBlade'), (guest, 'GuestBlade')]:
         game.call('click-gui','90','10'); game.call('type', name); game.call('wait','10')
     wait('names stay player-local', lambda: 'HostBlade' in str(slots(host).get(650,{})) and 'GuestBlade' in str(slots(guest).get(650,{})))
+    guest.call('click-gui','90','73')
+    wait('guest selection clears both previews', lambda: all(650 not in slots(game) for game in games))
+    host.call('click-gui','109','73')
+    wait('switching back does not restore stale names', lambda: all(slots(game).get(650,{}).get('item') == 'minecraft:wooden_pickaxe' and slots(game)[650].get('custom_name') is None for game in games))
+    for game, name in [(host, 'HostBlade'), (guest, 'GuestBlade')]:
+        game.call('click-gui','90','10'); game.call('type', name); game.call('wait','10')
+    wait('new names stay player-local', lambda: 'HostBlade' in str(slots(host).get(650,{})) and 'GuestBlade' in str(slots(guest).get(650,{})))
     with ThreadPoolExecutor(max_workers=2) as pool:
         futures = [pool.submit(click, game, 650, 'shift') for game in games]
         for future in futures: future.result()
