@@ -1,9 +1,0 @@
-id = "tconstruct_tools"
-name = "TConstruct Server Tool Inspector"
-version = "0.2.0"
-description = "Projects specimen tool properties and supports checked flint repair. Requires the fork item API previews."
-authors = ["Horizon port contributors"]
-api = "0.3"
-side = "server"
-capabilities = ["players", "items-read", "items-edit", "items-tools", "inventory-transactions", "workstations"]
-experimental = ["items-read", "items-edit", "items-tools", "inventory-transactions", "workstations"]

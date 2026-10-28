@@ -1,9 +1,0 @@
-* text=auto
-*.rs text eol=lf
-*.py text eol=lf
-*.toml text eol=lf
-*.md text eol=lf
-# Immutable upstream bytes: hashes must also survive a Windows checkout.
-"Tinkers' onstruct/third_party/tconstruct/**" -text
-"Tinkers' onstruct/LICENSE" -text
-"Tinkers' onstruct/server-tools/LICENSE" -text

@@ -1,0 +1,31 @@
+name: Mixins validation
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
+          rustup toolchain install 1.95.0 --profile minimal
+          rustup default 1.95.0
+      - name: Test pinned source export
+        run: python3 -m unittest discover -s tests -v
+      - name: Fetch pinned upstream sources
+        run: |
+          git clone https://github.com/horizon-rust/horizon.git ../horizon-official
+          git -C ../horizon-official checkout --detach b6c936f82b08798057161bdfa577e3aac53fb91e
+          git clone https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
+          git -C ../horizon-mixins checkout --detach 0500ff24aa5933fca95a877ef41125353c4b4fe3
+      - name: Apply Mixins and check client
+        run: |
+          python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
+          cargo check --locked --manifest-path target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
