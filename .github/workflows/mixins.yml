@@ -1,6 +1,7 @@
 name: Mixins validation
 on:
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
@@ -16,11 +17,8 @@ jobs:
           sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
           rustup toolchain install 1.95.0 --profile minimal
           rustup default 1.95.0
-      - name: Test resource preparation and command transactions
-        run: |
-          python3 -m unittest discover -s tests -v
-          rustc --test tests/rust/command.rs -o /tmp/tconstruct-command-test
-          /tmp/tconstruct-command-test
+      - name: Test pinned source export
+        run: python3 -m unittest discover -s tests -v
       - name: Fetch pinned upstream sources
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official

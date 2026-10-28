@@ -1,19 +1,25 @@
-# Coverage and roadmap
+# Tinkers’ Construct port roadmap
 
-The reference is Tinkers' Construct 1.20.1, commit
-`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Status refers only to this Mixins
-implementation; the archived Wasm work is not evidence of coverage here.
+The goal is the full original 1.20.1 Mod, including its presentation, values,
+processing, and behavior. Each completion unit must trace the fixed original
+source and data to implementation and tests; no prototype is accepted merely
+because it looks similar. The inventories below identify source scope, not
+implemented coverage.
 
-| Area | Status | Next work |
+| Unit | Original reference | Status on this foundation |
 | --- | --- | --- |
-| Material and part creation | Prototype, verified in single-player | Flint and wood only; add patterns, recipes and Part Builder UI |
-| Pickaxe assembly | Prototype, verified in single-player | Replace command flow with Tinker Station; persist actual component state |
-| Mining and durability | Prototype, verified in single-player | Implement original broken behavior, repair and traits |
-| Rendering and tooltip | Placeholder, verified in single-player | Replace vanilla placeholder models with licensed part-composed visuals |
-| Other tools, materials and modifiers | Not implemented | Add definitions, stat aggregation, traits and modifiers with reference tests |
-| Stations and crafting | Not implemented | Part Builder, Tinker Station, recipes, repair and modification |
-| Smeltery and foundry | Not implemented | Fluids, melting, casting, multiblocks and interaction |
-| Progression, world content and compatibility | Not implemented | Ores, mobs, books, advancements, networking and interoperability |
+| Part Builder, recipes and material selection | `tables/`, `library/recipe/partbuilder/`, `data/tconstruct/recipes/tools/parts/builder` | Not implemented here. Preview in PR #13. |
+| Tinker Station and related workstations | `tables/`, `tinkering/station_layouts/` | Not implemented here. |
+| Materials, variants, parts, tools, weapons and armor | `library/materials/`, `library/tools/`, `tools/`, `tinkering/materials/` | Not implemented here. |
+| Modifiers, traits and interactions | `library/modifiers/`, `tools/modifiers/`, `tinkering/modifiers/` | Not implemented here. |
+| Smeltery, foundry, casting, fluids and multiblocks | `smeltery/`, `fluids/`, `recipes/smeltery/` | Not implemented here. |
+| Recipes, progression, world generation and loot | `recipes/`, `data/`, `world/`, `loot/`, advancements and tags | Not implemented here. |
+| Models, textures, animations, sound, translations and tooltips | `assets/tconstruct/`, client rendering and screen code | Not implemented here. |
+| Save/reload, synchronization, automation and multiplayer | original block entities, menus, packets and inventory code | Not implemented here. |
 
-Extend the repeatable game test to cover additional paths and replace shortcuts with real part state and UI before broadening material and
-tool coverage. Dedicated server and multiplayer behavior have not been tested.
+The [source inventory](upstream-inventory.json) lists selected generated
+registrations, [complete tracked tree](upstream-tree.txt.gz) lists all upstream
+paths, and [recipe catalog](upstream-recipes.json.gz) preserves the referenced
+material, Part Builder and station-layout JSON. Their presence does not mean
+those contents are implemented or exhaustively reviewed. Additional original
+features discovered in those files remain in scope.
