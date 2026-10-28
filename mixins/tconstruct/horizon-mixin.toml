@@ -228,29 +228,36 @@ bindings = [
 ]
 
 [[injection]]
-id = "part-selection-view"
-target = "horizon_client::lan::containers::Hub::view_slot"
+id = "part-selection-send-data"
+target = "horizon_client::lan::hub::Hub::track_entities"
 kind = "HEAD"
-cancellable = true
-helper = "part-selection-view.rs"
+helper = "part-selection-send-data.rs"
 bindings = [
-  { name = "hub", ty = "&crate::lan::hub::Hub", value = "&*self" },
-  { name = "index", ty = "usize", value = "i" },
-  { name = "world", ty = "&World", value = "world" },
-  { name = "slot", ty = "usize", value = "slot" },
+  { name = "hub", ty = "&mut Hub", value = "&mut *self" },
+  { name = "ctx", ty = "&mut TickCtx<'_>", value = "&mut *ctx" },
 ]
 
 [[injection]]
-id = "part-selection-receive"
-target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
+id = "part-selection-remote-open"
+target = "horizon_client::game::remote_stations::Game<'_>::remote_station_open"
 kind = "HEAD"
 cancellable = true
-helper = "part-selection-receive.rs"
+helper = "part-selection-remote-open.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "container", ty = "i32", value = "container" },
+]
+
+[[injection]]
+id = "part-selection-remote-data"
+target = "horizon_client::game::remote_stations::Game<'_>::remote_station_data"
+kind = "HEAD"
+cancellable = true
+helper = "part-selection-remote-data.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
-  { name = "window", ty = "i32", value = "container" },
-  { name = "slot", ty = "i32", value = "slot" },
-  { name = "item", ty = "&Option<ItemStack>", value = "&item" },
+  { name = "id", ty = "usize", value = "id" },
+  { name = "value", ty = "i16", value = "value" },
 ]
 
 [[injection]]

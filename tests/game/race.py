@@ -29,6 +29,15 @@ try:
  click(q,325);q.call('wait','20');h.call('wait','20');click(h,322)
  assert (h.call('menu').get('carried') or {}).get('item') == 'tconstruct:tool_handle', 'guest selection must replace host selection'
  click(h,2)
+ # Empty the pattern slot and restore it: the source keeps the selected
+ # pattern identity while its transmitted index is temporarily -1.
+ click(h,300);click(h,3)
+ wait('pattern removed on guest',lambda:300 not in slots(q))
+ click(h,3);click(h,300)
+ wait('pattern restored on guest',lambda:slots(q).get(300,{}).get('item')=='tconstruct:pattern')
+ q.call('close');q.call('interact','0','71','2')
+ wait('guest reopened table',lambda:any(s["id"] == "slot-300" for s in q.call('ui')["widgets"]))
+ q.call('wait','20');time.sleep(1);q.call('screenshot',str(run/'guest-reopened.png'))
  click(q,324)
  h.call('wait','20');q.call('wait','20');time.sleep(2)
  h.call('wait','20');q.call('wait','20');time.sleep(2)

@@ -33,7 +33,9 @@ Station inputs survive closing and saving the world. Breaking a table returns
 its inputs. The pickaxe wears while mining or hitting a living mob, stays when broken, and
 mines slowly. The fixed flint/wood parts and tool use original Tinkers textures. In GUI slots, the tested flint and wood parts select their original material sprites; a command-supplied oxidized copper head was also checked, but is not yet craftable. Part tooltips display tested material names in English and Japanese; existing explicit names are preserved.
 Two players can use the same table; the tested competing result pickups consume
-inputs once. See the [Part Builder](docs/part-builder.png) and
+inputs once. In both game modes, a guest can reopen the table and see the
+shared fixed-part selection after the Pattern is removed and restored. See the
+[guest Part Builder preview](docs/part-builder-dataslot-preview.png) and
 [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
 
 This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
