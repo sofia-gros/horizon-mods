@@ -121,13 +121,22 @@ world-pack cost overrides, ordering, reload, disabling and world isolation.
 Other recipe types, registry validation, real world contexts, screen rendering,
 preview and taking outputs remain unimplemented. In particular, the pinned
 generated data contain 37 `tconstruct:part_builder_recycling` and 15
-`tconstruct:part_builder_tool_recycling` recipes. The existing candidate
-prototype omits both serializers. `PartBuilderRecycle.java` and
-`PartBuilderToolRecycle.java` define their distinct pattern enumeration,
-durability scaling, modifier/enchantment restrictions, output selection and
-random leftovers; none of those behaviors is implemented by the current GUI.
-The source `PartBuilderBlockEntity` must combine these candidates with the
-other recipe types and deduplicate/sort them according to the original rules.
+`tconstruct:part_builder_tool_recycling` recipes. A server-side prototype
+parses these fixed recipes and combines their candidate patterns with ordinary
+recipes using the source recipe-ID deduplication and cost/pattern order. It
+requires the caller to resolve tool material patterns and does not implement
+random leftovers, actual inventory transactions or GUI selection.
+`PartBuilderRecycle.java` and `PartBuilderToolRecycle.java` remain the
+reference for durability scaling, modifier/enchantment restrictions, output
+selection and leftovers; the prototype is not gameplay parity.
+The source recycling recipes use `TinkerFluids.venomBottle`: it has a
+16-item stack limit, glass-bottle crafting remainder, venom fluid content and
+food effects. It is not yet registered, so a controlled fixture input does not
+prove that players can supply it or that its remainder is preserved.
+`PartBuilderBlockEntity.onCraft` gives the recipe leftover before shrinking
+inputs; its `shrinkSlot` also returns each input item's crafting remainder
+(multiplied by consumed count). Reproducing both paths is required for venom
+bottles and must not be inferred from the preview alone.
 
 The world snapshot also attempts item-tag resolution against the actual
 Horizon item registry. Missing required references omit their tag, while

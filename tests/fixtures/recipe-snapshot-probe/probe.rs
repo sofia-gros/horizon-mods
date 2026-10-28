@@ -34,6 +34,14 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
             Ok(choices) => eprintln!("TCONSTRUCT_CHOICES_WOOD {}", choices.iter().map(|choice| format!("{}:{}", choice.pattern, choice.cost)).collect::<Vec<_>>().join(",")),
             Err(error) => eprintln!("TCONSTRUCT_CHOICES_WOOD {error:?}"),
         }
+        // Controlled item IDs and loaded-mod set; this probes source data,
+        // not the unimplemented normal Part Builder transaction.
+        let mods = std::collections::HashSet::new();
+        let recycled = crate::game::tconstruct_tx::source_all_part_choices(recipes, "tconstruct:venom_bottle", &crate::game::tconstruct_tx::SourcePartInput::Invalid, "minecraft:flint_and_steel", 1, &item_tags, &instruments, &instrument_tags, &registries, &config, Some(&mods), None, true);
+        match recycled {
+            Ok(choices) => eprintln!("TCONSTRUCT_RECYCLING_CHOICES {}", choices.iter().map(|c| format!("{}:{}", c.pattern, c.cost)).collect::<Vec<_>>().join(",")),
+            Err(error) => eprintln!("TCONSTRUCT_RECYCLING_CHOICES {error:?}"),
+        }
         for (marker, id) in [("STICK", "minecraft:stick"), ("BOAT", "minecraft:acacia_chest_boat")] {
             use sha2::{Digest, Sha256};
             let hash = recipes.get(id).map(|bytes| format!("{:x}", Sha256::digest(bytes))).unwrap_or_else(|| "missing".into());

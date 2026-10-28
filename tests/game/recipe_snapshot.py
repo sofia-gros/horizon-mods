@@ -186,6 +186,8 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                     cost = 3 if choice_layer == 'a' else 2
                     expected_choices = f'tconstruct:tool_binding:1,tconstruct:tool_handle:1,tconstruct:pick_head:{cost}'
                 assert wood and wood[-1] == expected_choices, (wood, expected_choices)
+                recycling = [line.split('TCONSTRUCT_RECYCLING_CHOICES ', 1)[1] for line in lines if 'TCONSTRUCT_RECYCLING_CHOICES ' in line]
+                assert recycling and recycling[-1] == 'tconstruct:ingot:0,tconstruct:shard:0', recycling
             if a.lookup_test:
                 flint = [line.split('TCONSTRUCT_LOOKUP_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_FLINT ' in line]
                 oak = [line.split('TCONSTRUCT_LOOKUP_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_LOOKUP_OAK_LOG ' in line]

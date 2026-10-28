@@ -488,6 +488,167 @@ pub(super) fn source_material_lookup(
     Ok(None)
 }
 
+/// Original PartBuilderRecycle, which can expose several patterns from one
+/// input. Random leftover choice and world item/ingredient validation are
+/// separate dependencies and are not connected to gameplay.
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(super) struct SourceRecyclingRecipe {
+    pub id: String,
+    tool: SourceIngredient,
+    pattern_item: SourceIngredient,
+    pub results: std::collections::BTreeMap<String, SourceItemOutput>,
+    conditions: Vec<SourceRecyclingCondition>,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum SourceRecyclingCondition { ModLoaded(String), Other(SourceCondition) }
+
+#[allow(dead_code)]
+impl SourceRecyclingRecipe {
+    pub(super) fn parse(id: String, value: &serde_json::Value) -> Option<Self> {
+        if value.get("type")?.as_str()? != "tconstruct:part_builder_recycling" { return None; }
+        let tool = SourceIngredient::parse(value.get("tool")?)?;
+        let pattern_item = SourceIngredient::parse(value.get("pattern")?)?;
+        let mut results = std::collections::BTreeMap::new();
+        for (pattern, output) in value.get("results")?.as_object()? {
+            let pattern = super::tconstruct_source_render_info::material_id(pattern)?;
+            if pattern.contains('#') || results.insert(pattern, SourceItemOutput::parse(output)?).is_some() { return None; }
+        }
+        if results.is_empty() { return None; }
+        let conditions = match value.get("conditions") {
+            None => Vec::new(),
+            Some(conditions) => conditions.as_array()?.iter().map(|condition| {
+                if condition.get("type").and_then(serde_json::Value::as_str) == Some("forge:mod_loaded") {
+                    Some(SourceRecyclingCondition::ModLoaded(condition.get("modid")?.as_str()?.to_owned()))
+                } else { Some(SourceRecyclingCondition::Other(SourceCondition::parse(condition)?)) }
+            }).collect::<Option<Vec<_>>>()?,
+        };
+        Some(Self { id, tool, pattern_item, results, conditions })
+    }
+
+    pub(super) fn enabled(
+        &self,
+        registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+        config: &std::collections::HashMap<String, bool>,
+        loaded_mods: Option<&std::collections::HashSet<String>>,
+    ) -> Option<bool> {
+        let mut unknown = false;
+        for condition in &self.conditions {
+            let state = match condition {
+                SourceRecyclingCondition::ModLoaded(id) => loaded_mods.map(|mods| mods.contains(id)),
+                SourceRecyclingCondition::Other(condition) => condition.matches(registries, config),
+            };
+            match state { Some(false) => return Some(false), Some(true) => {}, None => unknown = true }
+        }
+        if unknown { None } else { Some(true) }
+    }
+
+    pub(super) fn partial_match(
+        &self, pattern_item: &str, tool_item: &str,
+        tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+        instruments: &std::collections::HashSet<String>,
+        instrument_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    ) -> bool {
+        self.pattern_item.matches(pattern_item, None, tags, instruments, instrument_tags)
+            && self.tool.matches(tool_item, None, tags, instruments, instrument_tags)
+    }
+
+    pub(super) fn maximum_amount(&self, max_damage: i32, damage: i32) -> Result<i32, SourceLookupError> {
+        if max_damage < 0 || damage < 0 { return Err(SourceLookupError::UnsupportedRecipe); }
+        let maximum = self.results.values().fold(0i32, |sum, result| sum.wrapping_add(result.count));
+        if max_damage == 0 { Ok(maximum) }
+        else { Ok(maximum.wrapping_mul(max_damage.wrapping_sub(damage)) / max_damage) }
+    }
+
+    /// Preserve the original Java conditional expression, including its
+    /// precedence: the else branch checks enchantment independently.
+    pub(super) fn matches(&self, partial: bool, max_damage: i32, damage: i32, modifiable: bool, upgrades: bool, enchanted: bool) -> Result<bool, SourceLookupError> {
+        Ok(if partial && self.maximum_amount(max_damage, damage)? > 0 && modifiable { !upgrades } else { !enchanted })
+    }
+
+    pub(super) fn output(&self, pattern: &str, max_damage: i32, damage: i32) -> Result<Option<SourceItemOutput>, SourceLookupError> {
+        let Some(output) = self.results.get(pattern) else { return Ok(None); };
+        let count = self.maximum_amount(max_damage, damage)?.min(output.count);
+        if count <= 0 { return Ok(None); }
+        let mut result = output.clone(); result.count = count;
+        Ok(Some(result))
+    }
+}
+
+/// Source tool-recycling recipe metadata. Material-bearing part resolution is
+/// intentionally supplied by the caller from the actual tool definition.
+#[allow(dead_code)]
+#[derive(Debug)]
+pub(super) struct SourceToolRecyclingRecipe {
+    pub id: String,
+    tool: SourceIngredient,
+    pattern_item: SourceIngredient,
+    pub amount_needed: i32,
+    pub parts: Vec<String>,
+    conditions: Vec<SourceRecyclingCondition>,
+}
+
+#[allow(dead_code)]
+impl SourceToolRecyclingRecipe {
+    pub(super) fn parse(id: String, value: &serde_json::Value) -> Option<Self> {
+        if value.get("type")?.as_str()? != "tconstruct:part_builder_tool_recycling" { return None; }
+        let default_tool = serde_json::json!({"tag":"tconstruct:modifiable/multipart"});
+        let tool_value = value.get("tools").unwrap_or(&default_tool);
+        let tool = SourceIngredient::parse(tool_value.get("ingredient").unwrap_or(tool_value))?;
+        let amount_needed = match tool_value.get("amount_needed") {
+            None => 1,
+            Some(amount) => i32::try_from(amount.as_i64()?).ok()?,
+        };
+        if amount_needed < 1 { return None; }
+        let parts = match value.get("parts") {
+            None => Vec::new(),
+            Some(parts) => parts.as_array()?.iter().map(|part| {
+                let id = super::tconstruct_source_render_info::material_id(part.as_str()?)?;
+                if id.contains('#') { None } else { Some(id) }
+            }).collect::<Option<Vec<_>>>()?,
+        };
+        let conditions = match value.get("conditions") {
+            None => Vec::new(),
+            Some(conditions) => conditions.as_array()?.iter().map(|condition| {
+                if condition.get("type").and_then(serde_json::Value::as_str) == Some("forge:mod_loaded") {
+                    Some(SourceRecyclingCondition::ModLoaded(condition.get("modid")?.as_str()?.to_owned()))
+                } else { Some(SourceRecyclingCondition::Other(SourceCondition::parse(condition)?)) }
+            }).collect::<Option<Vec<_>>>()?,
+        };
+        Some(Self { id, tool, pattern_item: SourceIngredient::parse(value.get("pattern")?)?, amount_needed, parts, conditions })
+    }
+
+    pub(super) fn partial_match(
+        &self, pattern_item: &str, tool_item: &str, count: i32,
+        tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+        instruments: &std::collections::HashSet<String>,
+        instrument_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    ) -> bool {
+        count >= self.amount_needed
+            && self.pattern_item.matches(pattern_item, None, tags, instruments, instrument_tags)
+            && self.tool.matches(tool_item, None, tags, instruments, instrument_tags)
+    }
+
+    pub(super) fn enabled(
+        &self,
+        registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+        config: &std::collections::HashMap<String, bool>,
+        loaded_mods: Option<&std::collections::HashSet<String>>,
+    ) -> Option<bool> {
+        let mut unknown = false;
+        for condition in &self.conditions {
+            let state = match condition {
+                SourceRecyclingCondition::ModLoaded(id) => loaded_mods.map(|mods| mods.contains(id)),
+                SourceRecyclingCondition::Other(condition) => condition.matches(registries, config),
+            };
+            match state { Some(false) => return Some(false), Some(true) => {}, None => unknown = true }
+        }
+        if unknown { None } else { Some(true) }
+    }
+}
+
 /// Parsed source PartRecipe and ItemPartRecipe. Item registry validation,
 /// material stat support and result resolution are supplied by the caller.
 #[allow(dead_code)]
@@ -789,9 +950,9 @@ fn source_id_order(id: &str) -> (&str, &str) {
     (path, namespace)
 }
 
-/// Source `PartBuilderBlockEntity.getCurrentRecipes`: partial-match, sort by
-/// recipe ID, retain the first recipe for each pattern, then sort by cost and
-/// pattern. World tag/config/stat contexts must be complete before use.
+/// Ordinary part recipe candidates only; the complete source candidate set
+/// also includes recycling and is assembled by `source_all_part_choices`.
+/// World tag/config/stat contexts must be complete before use.
 #[allow(dead_code)]
 pub(super) fn source_part_choices(
     recipes: &std::collections::BTreeMap<String, Vec<u8>>,
@@ -835,6 +996,61 @@ pub(super) fn source_part_choices(
     candidates.retain(|recipe| patterns.insert(recipe.pattern.clone()));
     candidates.sort_by(|a, b| a.cost.cmp(&b.cost).then_with(|| source_id_order(&a.pattern).cmp(&source_id_order(&b.pattern))));
     Ok(candidates)
+}
+
+/// Source candidate metadata, before preview or inventory mutation.
+#[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq)]
+pub(super) struct SourceAllPartChoice { pub id: String, pub pattern: String, pub cost: i32 }
+
+/// Merge ordinary and both recycling recipe types using the original
+/// recipe-ID deduplication and cost/pattern ordering. Tool recycling requires
+/// the caller to provide patterns resolved from that actual tool and its
+/// material stats; absent context is an error, never an empty approximation.
+#[allow(dead_code)]
+pub(super) fn source_all_part_choices(
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+    pattern_item: &str, input: &SourcePartInput<'_>, tool_item: &str, tool_count: i32,
+    item_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    instruments: &std::collections::HashSet<String>,
+    instrument_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    loaded_mods: Option<&std::collections::HashSet<String>>,
+    tool_patterns: Option<&std::collections::HashMap<String, Vec<String>>>, complete: bool,
+) -> Result<Vec<SourceAllPartChoice>, SourceLookupError> {
+    let base = source_part_choices(recipes, pattern_item, input, item_tags, instruments, instrument_tags, registries, config, complete)?;
+    if pattern_item.is_empty() { return Ok(Vec::new()); }
+    let mut choices: Vec<_> = base.into_iter().map(|r| SourceAllPartChoice { id: r.id, pattern: r.pattern, cost: r.cost }).collect();
+    for (id, bytes) in recipes {
+        if id.split_once(':').is_some_and(|(_, path)| path.starts_with('_')) { continue; }
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+        match value.get("type").and_then(serde_json::Value::as_str) {
+            Some("tconstruct:part_builder_recycling") => {
+                let recipe = SourceRecyclingRecipe::parse(id.clone(), &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+                if tool_count < 1 || !recipe.partial_match(pattern_item, tool_item, item_tags, instruments, instrument_tags) { continue; }
+                match recipe.enabled(registries, config, loaded_mods) {
+                    Some(false) => continue, None => return Err(SourceLookupError::UnknownCondition), Some(true) => {},
+                }
+                for pattern in recipe.results.keys() { choices.push(SourceAllPartChoice { id: id.clone(), pattern: pattern.clone(), cost: 0 }); }
+            },
+            Some("tconstruct:part_builder_tool_recycling") => {
+                let recipe = SourceToolRecyclingRecipe::parse(id.clone(), &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+                if !recipe.partial_match(pattern_item, tool_item, tool_count, item_tags, instruments, instrument_tags) { continue; }
+                match recipe.enabled(registries, config, loaded_mods) {
+                    Some(false) => continue, None => return Err(SourceLookupError::UnknownCondition), Some(true) => {},
+                }
+                let patterns = tool_patterns.and_then(|all| all.get(id)).ok_or(SourceLookupError::IncompleteContext)?;
+                for pattern in patterns { choices.push(SourceAllPartChoice { id: id.clone(), pattern: pattern.clone(), cost: 0 }); }
+            },
+            _ => {},
+        }
+    }
+    choices.sort_by(|a,b| source_id_order(&a.id).cmp(&source_id_order(&b.id)));
+    let mut patterns = std::collections::HashSet::new();
+    choices.retain(|c| patterns.insert(c.pattern.clone()));
+    choices.sort_by(|a,b| a.cost.cmp(&b.cost).then_with(|| source_id_order(&a.pattern).cmp(&source_id_order(&b.pattern))));
+    Ok(choices)
 }
 
 /// A single source Part Builder craft plan. ItemOutput tag resolution, item
@@ -1524,6 +1740,87 @@ mod tests {
         assert_eq!(source_supported_original_parts(&only_repair_kit, false),
             ["tconstruct:repair_kit".to_owned()].into_iter().collect());
         assert!(source_supported_original_parts(&Default::default(), false).is_empty());
+    }
+
+    #[test]
+    fn pinned_vanilla_recycling_preserves_patterns_damage_and_conditions() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
+            .map(|p| p.join("content/reference/tconstruct-recipes.zip"))
+            .find(|p| p.is_file()).expect("pinned recipes archive");
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut recipes = std::collections::BTreeMap::new();
+        let mut tool_recipes = std::collections::BTreeMap::new();
+        let mut raw_recipes = std::collections::BTreeMap::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).unwrap();
+            let name = file.name().to_owned();
+            let Some(path) = name.strip_prefix("data/tconstruct/recipes/").and_then(|p| p.strip_suffix(".json")) else { continue; };
+            let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
+            let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else { continue; };
+            raw_recipes.insert(format!("tconstruct:{path}"), bytes);
+            if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_tool_recycling") {
+                let id = format!("tconstruct:{path}");
+                tool_recipes.insert(id.clone(), SourceToolRecyclingRecipe::parse(id, &value).expect(&name));
+            }
+            if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_recycling") {
+                let id = format!("tconstruct:{path}");
+                recipes.insert(id.clone(), SourceRecyclingRecipe::parse(id, &value).expect(&name));
+            }
+        }
+        let actual_choices = source_all_part_choices(&raw_recipes, "tconstruct:venom_bottle", &SourcePartInput::Invalid, "minecraft:flint_and_steel", 1, &Default::default(), &Default::default(), &Default::default(), &Default::default(), &Default::default(), Some(&Default::default()), None, true).unwrap();
+        assert_eq!(actual_choices.iter().map(|choice| choice.pattern.as_str()).collect::<Vec<_>>(), vec!["tconstruct:ingot", "tconstruct:shard"]);
+        assert_eq!(recipes.len(), 37);
+        assert_eq!(tool_recipes.len(), 15);
+        let dagger = tool_recipes.values().find(|recipe| recipe.amount_needed == 2).unwrap();
+        assert!(!dagger.partial_match("tconstruct:venom_bottle", "tconstruct:dagger", 1, &Default::default(), &Default::default(), &Default::default()));
+        assert!(dagger.partial_match("tconstruct:venom_bottle", "tconstruct:dagger", 2, &Default::default(), &Default::default(), &Default::default()));
+        let recipe = &recipes["tconstruct:tables/recycling/flint_and_steel"];
+        let tags = Default::default(); let instruments = Default::default(); let instrument_tags = Default::default();
+        assert!(recipe.partial_match("tconstruct:venom_bottle", "minecraft:flint_and_steel", &tags, &instruments, &instrument_tags));
+        assert!(!recipe.partial_match("tconstruct:pattern", "minecraft:flint_and_steel", &tags, &instruments, &instrument_tags));
+        assert_eq!(recipe.maximum_amount(64, 0), Ok(2));
+        assert_eq!(recipe.maximum_amount(64, 1), Ok(1));
+        assert_eq!(recipe.maximum_amount(64, 32), Ok(1));
+        assert_eq!(recipe.maximum_amount(64, 33), Ok(0));
+        assert_eq!(recipe.maximum_amount(0, 0), Ok(2));
+        assert_eq!(recipe.output("tconstruct:shard", 64, 0).unwrap().unwrap().kind, SourceOutputKind::Item("minecraft:flint".into()));
+        assert_eq!(recipe.output("tconstruct:shard", 64, 33).unwrap(), None);
+        assert_eq!(recipe.matches(true, 64, 0, false, false, false), Ok(true));
+        assert_eq!(recipe.matches(true, 64, 0, false, false, true), Ok(false));
+        assert_eq!(recipe.matches(true, 64, 0, true, true, false), Ok(false));
+        assert_eq!(recipe.matches(false, 64, 0, false, false, false), Ok(true));
+        let conditional = &recipes["tconstruct:tables/recycling/twilightforest/arctic_boots"];
+        assert_eq!(conditional.enabled(&Default::default(), &Default::default(), None), None);
+        assert_eq!(conditional.enabled(&Default::default(), &Default::default(), Some(&Default::default())), Some(false));
+        let mods = ["twilightforest".to_owned()].into_iter().collect();
+        assert_eq!(conditional.enabled(&Default::default(), &Default::default(), Some(&mods)), Some(true));
+    }
+
+    #[test]
+    fn all_part_choices_include_recycling_and_require_tool_context() {
+        let entry = |value: serde_json::Value| serde_json::to_vec(&value).unwrap();
+        let recipes = [
+            ("test:recycle".to_owned(), entry(serde_json::json!({
+                "type":"tconstruct:part_builder_recycling", "pattern":{"item":"tconstruct:venom_bottle"},
+                "tool":{"item":"minecraft:flint_and_steel"},
+                "results":{"tconstruct:shard":{"item":"minecraft:flint"},"tconstruct:ingot":{"item":"minecraft:iron_ingot"}}
+            }))),
+            ("test:tool".to_owned(), entry(serde_json::json!({
+                "type":"tconstruct:part_builder_tool_recycling", "pattern":{"item":"tconstruct:venom_bottle"},
+                "tools":{"item":"tconstruct:dagger","amount_needed":2}
+            }))),
+        ].into_iter().collect();
+        let tags = Default::default(); let instruments = Default::default(); let instrument_tags = Default::default();
+        let registries = Default::default(); let config = Default::default(); let mods = Default::default();
+        let get = |tool: &str, count, patterns| source_all_part_choices(&recipes, "tconstruct:venom_bottle", &SourcePartInput::Invalid, tool, count, &tags, &instruments, &instrument_tags, &registries, &config, Some(&mods), patterns, true);
+        let choices = get("minecraft:flint_and_steel", 1, None).unwrap();
+        assert_eq!(choices.iter().map(|x| x.pattern.as_str()).collect::<Vec<_>>(), vec!["tconstruct:ingot", "tconstruct:shard"]);
+        assert!(choices.iter().all(|choice| choice.cost == 0));
+        assert!(get("tconstruct:dagger", 1, None).unwrap().is_empty());
+        assert_eq!(get("tconstruct:dagger", 2, None).unwrap_err(), SourceLookupError::IncompleteContext);
+        let patterns = [("test:tool".to_owned(), vec!["tconstruct:repair_kit".to_owned()])].into_iter().collect();
+        assert_eq!(get("tconstruct:dagger", 2, Some(&patterns)).unwrap()[0].pattern, "tconstruct:repair_kit");
     }
 
     #[test]
