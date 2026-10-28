@@ -62,7 +62,9 @@ try:
  wait('pickaxe selected',lambda:g.call('inventory')['held'].get('item')=='minecraft:wooden_pickaxe')
  g.call('wait','10')
  g.call('command','setblock 0 71 2 minecraft:stone')
- g.call('break','0','71','2','--timeout','30',timeout=35)
+ wait('mining target synchronized',lambda:g.call('block','0','71','2')['block']=='minecraft:stone')
+ print('break result',g.call('break','0','71','2','--timeout','30',timeout=35),flush=True)
+ print('after break held',g.call('inventory')['held'],flush=True)
  wait('crafted pickaxe consumes durability when used',lambda: [s['damage'] for s in states(g.call('inventory'))] == [1])
 finally:
  if g: g.stop()
