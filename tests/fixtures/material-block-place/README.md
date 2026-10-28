@@ -36,3 +36,32 @@ not part of the release resources.
 Pass `--reverse-drop-order` to the fixture preparation and `--reverse-order`
 to the game test to check the other drop order. These switches affect only the
 fixture, not released loot.
+
+`tests/game/material_block_sync.py` checks Material delivery, client chunk
+state, changed-only delivery, reconnect, world reload and untagged position
+reuse for two players. It
+requires the test-only `tests/fixtures/material-wire-observer` diagnostic to be
+included when staging the Mixins. This diagnostic only logs received and stored
+values; it is not part of the mod or release resources. The fixture block is
+still a placeholder and does not validate original visuals or clone behavior.
+
+For the client-state diagnostic, stage the production bundle with the observer
+in a fresh directory, then build that generated tree and run the game test:
+
+```sh
+mkdir -p target/material-wire-mods
+cp -a mixins/tconstruct target/material-wire-mods/
+cp -a tests/fixtures/material-wire-observer target/material-wire-mods/
+python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins \
+  --mods target/material-wire-mods --output-dir target/material-wire-stage
+cargo build --locked --offline --manifest-path target/material-wire-stage/modded/Cargo.toml \
+  -p horizon-client --bin horizon-client --bin horizon-ctl --no-default-features \
+  --profile fast --target-dir "$PWD/target/build"
+python3 tests/game/material_block_sync.py \
+  --game target/build/fast/horizon-client --ctl target/build/fast/horizon-ctl \
+  --resources target/material-block-fixture
+# Repeat with --in-frame.
+```
+
+The initial chunk packet still sends an empty entity tag, followed by the
+Material update. The fixture does not verify the original block's appearance.

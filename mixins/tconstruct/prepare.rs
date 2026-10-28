@@ -56,11 +56,30 @@ fn prepare_tconstruct_resources() {
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.
         let facts: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("facts.json"))?)?;
+        // Register the source block entity type only when the content pack
+        // actually registers the corresponding block. Its wire ID remains
+        // local to this generated registry, never a guessed constant.
+        if facts["defaults"]["tconstruct:fake_storage_block"].as_u64().is_some() {
+            let path = out.join("registries.json");
+            let mut registries: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+            let entries = registries["minecraft:block_entity_type"]["entries"].as_object_mut().ok_or("missing block entity registry")?;
+            if !entries.contains_key("tconstruct:material_block") {
+                let next = entries.values().filter_map(|v| v["protocol_id"].as_u64()).max().ok_or("empty block entity registry")? + 1;
+                entries.insert("tconstruct:material_block".to_owned(), serde_json::json!({"protocol_id": next}));
+            }
+            let temp = out.join("registries.json.tmp");
+            std::fs::write(&temp, serde_json::to_vec(&registries)?)?;
+            std::fs::rename(temp, path)?;
+        }
         let path = out.join("gameplay-facts.json");
         let mut gameplay: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
             let id = facts["defaults"][name].as_u64().ok_or("missing station block state")? as usize;
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id)).ok_or("missing station gameplay row")?;
+            row["block_entity"] = serde_json::Value::Bool(true);
+        }
+        if let Some(id) = facts["defaults"]["tconstruct:fake_storage_block"].as_u64() {
+            let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id as usize)).ok_or("missing material block gameplay row")?;
             row["block_entity"] = serde_json::Value::Bool(true);
         }
         let temp = out.join("gameplay-facts.json.tmp");

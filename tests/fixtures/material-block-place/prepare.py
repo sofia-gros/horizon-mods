@@ -41,5 +41,5 @@ with tempfile.TemporaryDirectory(prefix='material-block-content-') as tmp:
 facts = json.loads((output / 'facts.json').read_text())
 path = output / 'gameplay-facts.json'
 gameplay = json.loads(path.read_text())
-gameplay['states'][facts['defaults']['tconstruct:fake_storage_block']]['block_entity'] = True
-path.write_text(json.dumps(gameplay))
+if not gameplay['states'][facts['defaults']['tconstruct:fake_storage_block']]['block_entity']:
+    raise ValueError('prepared fixture block is missing its block entity flag')

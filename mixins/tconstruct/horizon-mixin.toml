@@ -635,3 +635,53 @@ bindings = [
   { name = "pos", ty = "[i32; 3]", value = "pos" },
   { name = "stack", ty = "&mut horizon_client::items::ItemStack", value = "stack" },
 ]
+
+[[state]]
+id = "material-wire-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32, u64, [i32; 3]), horizon_world::nbt::Tag>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "material-block-wire-type"
+target = "horizon_client::lan::chunks::block_entity_type"
+kind = "HEAD"
+cancellable = true
+helper = "material-block-wire-type.rs"
+bindings = [{ name = "name", ty = "&str", value = "name" }]
+
+[[injection]]
+id = "material-block-wire-send"
+target = "horizon_client::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "material-block-wire-send.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[injection]]
+id = "material-block-wire-receive"
+target = "horizon_client::game::remote::Game<'_>::remote_block_entity_data"
+kind = "HEAD"
+cancellable = true
+helper = "material-block-wire-receive.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "kind", ty = "i32", value = "kind" }, { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[injection]]
+id = "material-block-wire-prune"
+target = "horizon_client::lan::hub::Hub::tick_level"
+kind = "HEAD"
+helper = "material-block-wire-prune.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[state]]
+id = "material-wire-client"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "bool"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
