@@ -1,10 +1,20 @@
 # Tinkers' Construct for Horizon — Mixins migration
 
+> Draft preview on the unmerged `codex/tconstruct-stations` branch. This README
+> does not describe the current `main` branch.
+
 This is an early native source-mixin port of selected Tinkers' Construct
 mechanics. It is not a complete port. It builds a separate Horizon executable;
 it does not use the former fork's Wasm host API. The native code runs with the
 user's privileges. The user's adoption decision is not a claim that current
 Horizon documentation describes Mixins as its official exclusive mod system.
+
+The proposed first completion unit is the original Part Builder: recipe-driven
+selection, preview, exact material consumption and leftovers, result handling,
+presentation, persistence and multiplayer behavior. The Tinker Station and
+fixed pickaxe are incomplete previews for a later completion unit. The current
+branch does not yet meet Part Builder acceptance; see the
+[source-to-port record](docs/original-parity.md) and [roadmap](docs/roadmap.md).
 
 ## What works today
 
