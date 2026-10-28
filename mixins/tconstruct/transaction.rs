@@ -279,13 +279,19 @@ impl SourceMaterialRecipe {
             Some(list) => list.as_array()?.iter().map(SourceCondition::parse).collect::<Option<_>>()?,
             None => Vec::new(),
         };
+        // The original loader validates the optional output before the
+        // constructor discards it for value 1. Unsupported explicit empty
+        // output forms fail closed rather than silently changing the recipe.
+        let leftover = match v.get("leftover") {
+            None | Some(serde_json::Value::Null) => None,
+            Some(output) => Some(SourceItemOutput::parse(output)?),
+        };
         Some(Self {
             ingredient: SourceIngredient::parse(v.get("ingredient")?)?,
             material: v.get("material")?.as_str()?.to_owned(),
             value,
             needed: positive("needed")?,
-            // Original MaterialRecipe discards leftover for values of one.
-            leftover: if value > 1 { v.get("leftover").and_then(SourceItemOutput::parse) } else { None },
+            leftover: if value > 1 { leftover } else { None },
             conditions,
         })
     }
@@ -592,6 +598,102 @@ pub(super) fn source_fake_material_allowed(
     in_material_tag && !visible_base_recipes.iter().any(|&(value, needed)| {
         value as f32 / needed as f32 == repair_amount
     })
+}
+
+/// Values in `MaterialRecipeCache.getRecipes(baseMaterial)`: only recipes
+/// for the exact base variant whose resolved material is visible are relevant.
+/// Registry visibility and Forge condition contexts must be complete.
+#[allow(dead_code)]
+pub(super) fn source_visible_base_recipe_values(
+    material: &str,
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+    visible_materials: &std::collections::HashSet<String>,
+    known_items: &std::collections::HashSet<String>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+    complete: bool,
+) -> Result<Vec<(i32, i32)>, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let material = super::tconstruct_source_render_info::material_id(material).ok_or(SourceLookupError::UnsupportedRecipe)?;
+    if material.contains('#') { return Err(SourceLookupError::UnsupportedRecipe); }
+    if !visible_materials.contains(&material) { return Ok(Vec::new()); }
+    fn valid_ingredient(ingredient: &SourceIngredient, known_items: &std::collections::HashSet<String>) -> bool {
+        let id = |id: &str| super::tconstruct_source_render_info::material_id(id).filter(|id| !id.contains('#'));
+        match ingredient {
+            SourceIngredient::Item(item) => id(item).is_some_and(|item| known_items.contains(&item)),
+            SourceIngredient::Tag(tag) => id(tag).is_some(),
+            SourceIngredient::Any(values) => values.iter().all(|value| valid_ingredient(value, known_items)),
+            SourceIngredient::Difference(base, subtracted) => valid_ingredient(base, known_items) && valid_ingredient(subtracted, known_items),
+            // Instrument registry validation is not yet implemented here.
+            SourceIngredient::Instrument { .. } => false,
+        }
+    }
+    let mut result = Vec::new();
+    for (id, bytes) in recipes {
+        if id.split_once(':').is_some_and(|(_, path)| path.starts_with('_')) { continue; }
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+        if value.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:material") { continue; }
+        let Some(identity) = value.get("material").and_then(serde_json::Value::as_str)
+            .and_then(super::tconstruct_source_render_info::material_id) else { continue; };
+        if identity != material { continue; }
+        // Forge checks conditions before attempting to deserialize a recipe.
+        if let Some(conditions) = value.get("conditions") {
+            let conditions = conditions.as_array().ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let mut enabled = true;
+            for condition in conditions {
+                match SourceCondition::parse(condition).ok_or(SourceLookupError::UnsupportedRecipe)?.matches(registries, config) {
+                    Some(false) => { enabled = false; break; },
+                    Some(true) => {},
+                    None => return Err(SourceLookupError::UnknownCondition),
+                }
+            }
+            if !enabled { continue; }
+        }
+        // Validate the output before relying on this recipe's constructor.
+        // NBT and explicit-empty output forms remain unsupported here.
+        if let Some(output) = value.get("leftover").filter(|output| !output.is_null()) {
+            let output = SourceItemOutput::parse(output).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            if output.nbt.is_some() { return Err(SourceLookupError::UnsupportedRecipe); }
+            let valid = |id: &str| super::tconstruct_source_render_info::material_id(id).filter(|id| !id.contains('#'));
+            match &output.kind {
+                SourceOutputKind::Item(item) if !valid(item).is_some_and(|item| known_items.contains(&item)) => return Err(SourceLookupError::IncompleteContext),
+                SourceOutputKind::Tag(tag) if valid(tag).is_none() => return Err(SourceLookupError::UnsupportedRecipe),
+                _ => {},
+            }
+        }
+        let recipe = SourceMaterialRecipe::parse(&value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if !valid_ingredient(&recipe.ingredient, known_items) { return Err(SourceLookupError::IncompleteContext); }
+        result.push((recipe.value, recipe.needed));
+    }
+    Ok(result)
+}
+
+/// `TinkerToolParts` registers fake ingot with repair amount 1 and fake
+/// storage block with repair amount 9. The caller supplies the world's
+/// resolved material tags and the already-filtered, visible base recipes.
+#[allow(dead_code)]
+pub(super) fn source_supported_fake_items(
+    material: &str,
+    material_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    visible_base_recipes: &[(i32, i32)],
+    complete: bool,
+) -> Result<std::collections::HashSet<String>, SourceLookupError> {
+    if !complete { return Err(SourceLookupError::IncompleteContext); }
+    let material = super::tconstruct_source_render_info::material_id(material).ok_or(SourceLookupError::UnsupportedRecipe)?;
+    if material.contains('#') || visible_base_recipes.iter().any(|(value, needed)| *value <= 0 || *needed <= 0) {
+        return Err(SourceLookupError::UnsupportedRecipe);
+    }
+    let mut supported = std::collections::HashSet::new();
+    for (tag, item, amount) in [
+        ("tconstruct:compatibility_metals", "tconstruct:fake_ingot", 1.0),
+        ("tconstruct:compatibility_metals/blocks", "tconstruct:fake_storage_block", 9.0),
+    ] {
+        let in_tag = material_tags.get(tag).is_some_and(|values| values.contains(&material));
+        if source_fake_material_allowed(in_tag, visible_base_recipes, amount) {
+            supported.insert(item.to_owned());
+        }
+    }
+    Ok(supported)
 }
 
 /// MaterialCastingRecipe registers each result's smallest item_cost during
@@ -1422,6 +1524,86 @@ mod tests {
         assert_eq!(source_supported_original_parts(&only_repair_kit, false),
             ["tconstruct:repair_kit".to_owned()].into_iter().collect());
         assert!(source_supported_original_parts(&Default::default(), false).is_empty());
+    }
+
+    #[test]
+    fn fake_item_cache_uses_only_visible_enabled_base_variant_recipes() {
+        let entry = |material: &str, value: i32, needed: i32| serde_json::to_vec(&serde_json::json!({
+            "type":"tconstruct:material", "ingredient":{"item":"minecraft:flint"},
+            "material":material, "value":value, "needed":needed
+        })).unwrap();
+        let recipes = [
+            ("test:base".to_owned(), entry("test:bronze", 2, 2)),
+            ("test:variant".to_owned(), entry("test:bronze#dark", 9, 1)),
+            ("test:other".to_owned(), entry("test:copper", 9, 1)),
+            ("test:disabled".to_owned(), serde_json::to_vec(&serde_json::json!({
+                "type":"tconstruct:material", "material":"test:bronze", "ingredient":42,
+                "conditions":[{"type":"tconstruct:config","prop":"spawn_with_book"}]
+            })).unwrap()),
+        ].into_iter().collect();
+        let visible = ["test:bronze".to_owned()].into_iter().collect();
+        let known = ["minecraft:flint".to_owned()].into_iter().collect();
+        let registries = Default::default(); let config = [("spawn_with_book".to_owned(), false)].into_iter().collect();
+        assert_eq!(source_visible_base_recipe_values("test:bronze", &recipes, &visible, &known, &registries, &config, true), Ok(vec![(2,2)]));
+        assert_eq!(source_visible_base_recipe_values("test:other", &recipes, &visible, &known, &registries, &config, true), Ok(Vec::new()));
+        assert_eq!(source_visible_base_recipe_values("test:bronze#dark", &recipes, &visible, &known, &registries, &config, true), Err(SourceLookupError::UnsupportedRecipe));
+        assert_eq!(source_visible_base_recipe_values("test:bronze", &recipes, &visible, &known, &registries, &config, false), Err(SourceLookupError::IncompleteContext));
+        assert_eq!(source_visible_base_recipe_values("test:bronze", &recipes, &visible, &Default::default(), &registries, &config, true), Err(SourceLookupError::IncompleteContext));
+        let mut malformed = recipes.clone();
+        malformed.insert("test:bad_leftover".into(), serde_json::to_vec(&serde_json::json!({
+            "type":"tconstruct:material", "ingredient":{"item":"minecraft:flint"},
+            "material":"test:bronze", "value":1, "leftover":42
+        })).unwrap());
+        assert_eq!(source_visible_base_recipe_values("test:bronze", &malformed, &visible, &known, &registries, &config, true), Err(SourceLookupError::UnsupportedRecipe));
+    }
+
+    #[test]
+    fn original_bronze_recipes_enable_and_disable_fake_forms() {
+        use std::io::Read;
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
+            .map(|p| p.join("content/reference/tconstruct-recipes.zip"))
+            .find(|p| p.is_file()).expect("pinned recipes archive");
+        let mut archive = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut recipes = std::collections::BTreeMap::new();
+        for index in 0..archive.len() {
+            let mut file = archive.by_index(index).unwrap();
+            let name = file.name().to_owned();
+            if let Some(path) = name.strip_prefix("data/tconstruct/recipes/").and_then(|p| p.strip_suffix(".json")) {
+                let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
+                recipes.insert(format!("tconstruct:{path}"), bytes);
+            }
+        }
+        let visible = ["tconstruct:bronze".to_owned()].into_iter().collect();
+        let material_tags = [
+            ("tconstruct:compatibility_metals".to_owned(), ["tconstruct:bronze".to_owned()].into_iter().collect()),
+            ("tconstruct:compatibility_metals/blocks".to_owned(), ["tconstruct:bronze".to_owned()].into_iter().collect()),
+        ].into_iter().collect();
+        let mut item_tags = std::collections::HashMap::new();
+        let config = Default::default();
+        let known = std::collections::HashSet::new();
+        for (ingots, blocks, expected) in [(false,false,2), (true,false,1), (true,true,0)] {
+            if ingots { item_tags.insert("forge:ingots/bronze".to_owned(), ["test:ingot".to_owned()].into_iter().collect()); }
+            if blocks { item_tags.insert("forge:storage_blocks/bronze".to_owned(), ["test:block".to_owned()].into_iter().collect()); }
+            let registries = [("minecraft:item".to_owned(), item_tags.clone())].into_iter().collect();
+            let values = source_visible_base_recipe_values("tconstruct:bronze", &recipes, &visible, &known, &registries, &config, true).unwrap();
+            assert_eq!(source_supported_fake_items("tconstruct:bronze", &material_tags, &values, true).unwrap().len(), expected);
+        }
+    }
+
+    #[test]
+    fn fake_ingot_and_storage_block_use_distinct_source_tags_and_values() {
+        let tags = [
+            ("tconstruct:compatibility_metals".to_owned(), ["test:bronze".to_owned()].into_iter().collect()),
+            ("tconstruct:compatibility_metals/blocks".to_owned(), ["test:bronze".to_owned()].into_iter().collect()),
+        ].into_iter().collect();
+        let both = ["tconstruct:fake_ingot".to_owned(), "tconstruct:fake_storage_block".to_owned()].into_iter().collect();
+        assert_eq!(source_supported_fake_items("test:bronze", &tags, &[], true), Ok(both));
+        let block_only = ["tconstruct:fake_storage_block".to_owned()].into_iter().collect();
+        assert_eq!(source_supported_fake_items("test:bronze", &tags, &[(2, 2)], true), Ok(block_only));
+        assert!(source_supported_fake_items("test:bronze", &tags, &[(1, 1), (18, 2)], true).unwrap().is_empty());
+        assert!(source_supported_fake_items("test:other", &tags, &[], true).unwrap().is_empty());
+        assert_eq!(source_supported_fake_items("test:bronze#variant", &tags, &[], true), Err(SourceLookupError::UnsupportedRecipe));
+        assert_eq!(source_supported_fake_items("test:bronze", &tags, &[], false), Err(SourceLookupError::IncompleteContext));
     }
 
     #[test]

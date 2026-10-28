@@ -186,6 +186,15 @@ path now covers `tconstruct:parts`-tagged material-bearing parts: it rejects unk
 and zero casting cost, preserves variants, and uses the registered casting cost.
 A cost-2 wood variant head yields two cost-1 handles in the source calculation.
 The world registry, tags and actual atomic crafting remain unconnected.
+The fake-item source calculation checks the distinct compatibility metal and
+block tags against visible base-variant material recipes and their float ratios.
+Pinned bronze recipes are unit-tested. In both game modes an independent fixture
+used test datapacks to override bronze definitions and ingot/block tags, then
+checked enable/disable, reload and world isolation. This is a controlled
+server-side calculation, not fake-item gameplay. Recipe outputs with NBT or
+explicit empty forms, unknown items, custom condition types and
+instrument-registry validation fail closed; these are not full Forge loader
+semantics. Fake items and their gameplay are not registered yet.
 
 The source mod's 131 fluid tag files are copied byte-for-byte into the source
 pack; pinned local Minecraft and Forge jars supply their fluid tags. The game

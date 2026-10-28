@@ -112,6 +112,24 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
             eprintln!("TCONSTRUCT_WORLD_FLINT_CHOICES {} {} {}", has("tconstruct:pick_head"), has("tconstruct:tool_handle"), has("tconstruct:tool_binding"));
         } else { eprintln!("TCONSTRUCT_WORLD_FLINT_CHOICES unavailable"); }
     } else { eprintln!("TCONSTRUCT_WORLD_FLINT_CHOICES unavailable"); }
+    if let (Some(Ok((definitions, _, material_tags))), Some(Ok(item_tags)), Some(Ok(fluid_tags)), Some(Ok(config)), Some(recipes)) = (
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions(),
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags(),
+        game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags(),
+        game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot(),
+        game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot(),
+    ) {
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        let visible = definitions.iter().filter(|(_, value)| !value.1).map(|(id, _)| id.clone()).collect();
+        let known = game.res.rest.get().map(|rest| rest.items.registry_order.iter().map(|id| id.to_string()).collect());
+        let result = known.ok_or(crate::game::tconstruct_tx::SourceLookupError::IncompleteContext)
+            .and_then(|known| crate::game::tconstruct_tx::source_visible_base_recipe_values("tconstruct:bronze", recipes, &visible, &known, &registries, config, true))
+            .and_then(|values| crate::game::tconstruct_tx::source_supported_fake_items("tconstruct:bronze", material_tags, &values, true));
+        match result {
+            Ok(items) => eprintln!("TCONSTRUCT_FAKE_BRONZE {} {}", items.contains("tconstruct:fake_ingot"), items.contains("tconstruct:fake_storage_block")),
+            Err(error) => eprintln!("TCONSTRUCT_FAKE_BRONZE error {error:?}"),
+        }
+    } else { eprintln!("TCONSTRUCT_FAKE_BRONZE unavailable"); }
     match game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot() {
         Some(Ok(config)) => eprintln!("TCONSTRUCT_CONFIG_PROBE {} {}", config.get("force_integration_materials").copied().unwrap_or(true), config.get("allow_ingotless_alloys").copied().unwrap_or(false)),
         Some(Err(error)) => eprintln!("TCONSTRUCT_CONFIG_PROBE unsupported {error}"),

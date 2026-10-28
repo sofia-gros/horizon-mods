@@ -20,6 +20,7 @@ p.add_argument('--material-pack-test', action='store_true')
 p.add_argument('--choices-test', action='store_true')
 p.add_argument('--world-tags-test', action='store_true')
 p.add_argument('--registered-parts-test', action='store_true')
+p.add_argument('--fake-material-test', action='store_true')
 p.add_argument('--world-fluid-tags-test', action='store_true')
 p.add_argument('--world-material-registry-test', action='store_true')
 p.add_argument('--world-material-stats-test', action='store_true')
@@ -66,6 +67,14 @@ def pack(g, name, marker):
         path = base / 'data/forge/tags/fluids/creosote.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps({'replace': True, 'values': ['minecraft:water' if name == 'a' else 'minecraft:lava']}))
+    if a.fake_material_test:
+        path = base / 'data/tconstruct/tinkering/materials/definition/bronze.json'
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'craftable': True}))
+        tag = 'ingots/bronze' if name == 'a' else 'storage_blocks/bronze'
+        path = base / 'data/forge/tags/items' / (tag + '.json')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps({'replace': True, 'values': ['minecraft:stone']}))
     if a.world_material_stats_test:
         path = base / 'data/tconstruct/tinkering/materials/stats/flint.json'
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -75,14 +84,27 @@ def pack(g, name, marker):
 def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=None, vanilla_enabled=True, choice_layer="base", config_expected="default"):
     # The fixture is the inner RETURN modifier, so it observes the previous
     # snapshot. The first reload refreshes it; the second observes that state.
+    # The fixture is an inner RETURN modifier and observes the previous
+    # snapshot. Wait for its final line on each reload before reading the next.
+    marker = 'TCONSTRUCT_REAL_PLAN_OAK_LOG '
+    before = (g.root / 'game.log').read_text().count(marker)
     g.call('command', 'reload')
-    before = (g.root / 'game.log').read_text().count('TCONSTRUCT_RECIPE_PROBE ')
+    deadline = time.monotonic() + 20
+    while time.monotonic() < deadline:
+        current = (g.root / 'game.log').read_text().count(marker)
+        if current > before:
+            break
+        time.sleep(.05)
+    else:
+        raise TimeoutError('first snapshot probe did not complete')
+    before = current
     g.call('command', 'reload')
     deadline = time.monotonic() + 20
     while time.monotonic() < deadline:
         lines = (g.root / 'game.log').read_text().splitlines()
         markers = [line.split('TCONSTRUCT_RECIPE_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_RECIPE_PROBE ' in line]
-        if len(markers) > before:
+        complete = sum('TCONSTRUCT_REAL_PLAN_OAK_LOG ' in line for line in lines)
+        if complete > before:
             assert markers[-1] == expected, (markers, expected)
             tags = [line.split('TCONSTRUCT_TAG_PROBE ', 1)[1] for line in lines if 'TCONSTRUCT_TAG_PROBE ' in line]
             assert tags and tags[-1] == (tag_expected or expected), (tags, tag_expected or expected)
@@ -104,6 +126,10 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 # The 21 bartered parts are registered; the parent remains
                 # unresolved until fake ingot and storage block are ported.
                 assert values and values[-1] == '21 true false', values
+            if a.fake_material_test:
+                values = [line.split('TCONSTRUCT_FAKE_BRONZE ', 1)[1] for line in lines if 'TCONSTRUCT_FAKE_BRONZE ' in line]
+                expected_fake = 'unavailable' if config_expected == 'unsupported' else {'base': 'false false', 'a': 'false true', 'b': 'false false'}[choice_layer]
+                assert values and values[-1] == expected_fake, (values, expected_fake)
             if a.world_fluid_tags_test:
                 values = [line.split('TCONSTRUCT_RESOLVED_CREOSOTE ', 1)[1] for line in lines if 'TCONSTRUCT_RESOLVED_CREOSOTE ' in line]
                 expected_fluids = {'base': 'false false', 'a': 'true false', 'b': 'false true'}[choice_layer]
