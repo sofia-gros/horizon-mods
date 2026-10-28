@@ -8,17 +8,33 @@ Horizon documentation describes Mixins as its official exclusive mod system.
 
 ## What works today
 
-In single-player worlds using the integrated server or in-frame mode, one flint and two sticks can be converted
-into a flint pick head, wood binding and wood handle with `/tconstruct parts`.
-`/tconstruct assemble` consumes those parts and produces a flint pickaxe.
-The pickaxe mines stone, loses one durability per non-instant block, and its
-item ID and damage survive a save and reload. At 85 damage it remains in the
-inventory and mines slowly. Its model uses the original flint head and wood
-handle and binding textures, composed for this fixed material combination. [Game screenshot](docs/game-smoke.png).
+In single-player worlds, craft a Pattern and the Part Builder and Tinker
+Station at a crafting table, place both tables, and open them by interacting.
+In the Part Builder, insert a Pattern and material, then click an illustrated
+part: two flint make a flint pick head; one oak plank makes a wood handle or
+binding. The Pattern is reusable. In the Tinker Station, put the head, handle
+and binding in the three input positions and take a flint/wood pickaxe. Put a
+worn pickaxe and flint in the inputs and take a repaired copy. Repair retains
+the tool's existing name and custom data.
 
-This is a narrow prototype: its command-based crafting is not the original
-station UI, parts do not retain independent material data, and the prototype does not yet represent other material combinations. Other game modes,
-multiplayer, repair and traits are not verified.
+Station inputs survive closing and saving the world. Breaking a table returns
+its inputs. The pickaxe wears while mining, stays when broken, and mines
+slowly. The fixed flint/wood parts and tool use original Tinkers textures.
+Two players can use the same table; the tested competing result pickups consume
+inputs once. See the [Part Builder](docs/part-builder.png) and
+[Tinker Station](docs/tinker-station.png) screenshots.
+
+This is a narrow prototype, not complete Tinkers' Construct. Only the fixed
+flint-head/wood-handle/wood-binding combination is supported; other materials,
+tools and traits are not. The Part Builder's three illustrated choices take
+the result directly instead of selecting a recipe and using the original
+separate result slot. The Tinker Station uses separate assembly and repair
+result icons, and does not yet provide the original naming or modifier UI.
+Only oak planks are accepted for wood parts; the original accepts more
+planklike materials. Shift-click, drag and double-click collection in these
+screens are disabled. Broken-tool visuals and full broken behavior remain
+incomplete. Dedicated servers and arbitrary other item components are not
+verified.
 
 ## Requirements and setup
 
@@ -37,7 +53,9 @@ cargo build --locked --offline --manifest-path target/modded/Cargo.toml \
   -p horizon-client --bin horizon-client --bin horizon-ctl --no-default-features --profile fast \
   --target-dir "$PWD/target/build"
 python3 -m unittest discover -s tests -v
-python3 tools/resources.py /path/to/prepared/26.3 target/resources
+python3 tools/resources.py /path/to/prepared/26.3 target/item-resources
+./target/build/fast/horizon-client --tconstruct-prepare \
+  target/item-resources content target/resources
 ./target/build/fast/horizon-client --resources "$PWD/target/resources"
 ```
 
@@ -45,7 +63,9 @@ python3 tools/resources.py /path/to/prepared/26.3 target/resources
 and runs the Mixins CLI. It refuses an existing export; remove only your own
 generated `target/original` when deliberately regenerating. Resource preparation
 creates a separate overlay with links to the supplied base resources; keep the
-base available. It refuses an existing destination. Generated trees and worlds
+base available. Both preparation commands refuse an existing destination.
+The second command uses a Mixins-injected entry point and official Horizon's
+native data-table builder; it does not start a Wasm engine. Generated trees and worlds
 are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
 are included in the distribution.
 
@@ -59,8 +79,8 @@ python3 tools/game_smoke.py --game target/build/fast/horizon-client \
 ```
 
 The script creates a fresh world under `target/`, checks consumption and
-mining wear, saves, and writes a screenshot there. The independent save/reload
-and broken-state checks are described in [validation](docs/validation.md).
+mining wear, saves, and writes a screenshot there. The station, recipe,
+spill and two-player tests are described in [validation](docs/validation.md).
 
 See the [feature matrix](docs/feature-matrix.md) and [roadmap](docs/roadmap.md) for scope and validation status.
 

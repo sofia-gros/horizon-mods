@@ -1,33 +1,63 @@
 # Validation
 
-On Linux, with Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e` and
-Mixins `0500ff24aa5933fca95a877ef41125353c4b4fe3`:
+Linux, Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e`, Mixins
+`0500ff24aa5933fca95a877ef41125353c4b4fe3`, with prepared 26.3 resources:
 
-- Four HEAD injections applied to an exported Horizon source tree. The
-  `horizon-client` binary passed `cargo check` and a locked fast build.
-- `python3 -m unittest discover -s tests -v` passed the overlay registration
-  and input preservation test.
-- `tools/game_smoke.py` passed in isolated integrated-server and in-frame worlds: flint and sticks
-  became the three named part IDs; the parts became a flint pickaxe; mining
-  stone dropped cobblestone and increased damage to 1. The screenshot is
-  [here](game-smoke.png).
-- An independent save/reopen retained the pickaxe and damage 1. With an
-  item set to damage 84 through `/item`, mining stone raised damage to 85
-  while keeping the item. After another save/reopen and the follow-up speed
-  hooks, the damage-85 tool mined dirt in 51 ticks and stayed at damage 85
-  in both in-frame and integrated-server modes. Full broken-tool parity
-  remains unverified.
+- Sixteen injections and three support modules applied to an exported Horizon
+  source tree. The client passed `cargo check` and a locked `fast` build.
+  With `--no-default-features`, the dependency tree contains no Wasmtime runtime.
+- The resource overlay unit test and three transaction unit tests passed. The
+  latter cover failed atomic takes, repeated takes, split repair inputs, excess
+  material and preservation of custom data.
+- In both integrated-server and in-frame single-player modes, normal crafting
+  produced the Pattern and two tables, and both tables were placed as blocks.
+  GUI operations made the three parts, assembled the pickaxe and repaired it;
+  the named tool's custom data survived repair and save/reload. Reopening the
+  Part Builder retained its Pattern. The game screenshots are
+  [Part Builder](part-builder.png) and [Tinker Station](tinker-station.png).
+- In both modes, breaking a Part Builder returned its stored Pattern, flint and
+  the table item. Two-player LAN races for a part, assembly and repair each
+  produced exactly one output and consumed the inputs once. Two separate worlds at the same coordinates kept independent inputs. The repaired race
+  result retained the name and custom data. Integrated assembly contention was
+  repeated twice after fixing a stale-view synchronization issue.
+- The fixed pickaxe's damage-85 slow dirt mining and retained tool were checked
+  in both game modes. Full original broken behavior is not established.
 
-LAN, dedicated server, repair, traits,
-material-variable part rendering and the original station UI have not been tested or
-implemented. The screenshot shows the fixed flint/wood composition using upstream textures.
+The client and server use a compact subset of the original interface: part
+icons directly take a result, and assembly and repair have separate icons.
+Shift-click, drag and pickup-all are blocked. Oak planks are the only supported
+wood input, and the part/tool combination is fixed. Other materials, tool
+components and the full Station interface are not implemented. Dedicated
+server and arbitrary unrelated item components are not verified.
 
-An independent fixture bundle and this mod planned together (five injections)
-and the combined staged client passed `cargo check`. Combined gameplay was not
-run.
+## Reproducing game checks
 
-To reproduce combined planning/compilation with a fresh output path (after
-`tools/stage.py`):
+Build and prepare the resource root as in the README. Under X11/Vulkan (or
+Xvfb with software Vulkan), run each script with a fresh world; add `--in-frame`
+for the alternate single-player path:
+
+```sh
+for test in stations spill race race_station race_repair recipes isolation broken; do
+  python3 "tests/game/$test.py" --game target/build/fast/horizon-client \
+    --ctl target/build/fast/horizon-ctl --resources target/resources
+  python3 "tests/game/$test.py" --game target/build/fast/horizon-client \
+    --ctl target/build/fast/horizon-ctl --resources target/resources --in-frame
+done
+```
+
+Each script leaves its isolated world and logs under `target/`. The unit test
+is `python3 -m unittest discover -s tests -v`; the Rust transaction test is:
+
+```sh
+cargo test --locked --offline --manifest-path target/modded/Cargo.toml \
+  -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
+```
+
+## Independent fixture
+
+`tests/fixtures/independent` is a second bundle with a HEAD hook on the same
+station-click function, ordered before TConstruct. To construct a combined
+stage after `tools/stage.py`:
 
 ```sh
 mkdir -p target/fixture-mods
@@ -35,8 +65,14 @@ cp -R mixins/tconstruct target/fixture-mods/
 cp -R tests/fixtures/independent target/fixture-mods/
 ../horizon-mixins/target/debug/horizon-mixins apply \
   --workspace target/original --mods target/fixture-mods --out target/fixture-game
-cargo check --locked --offline --manifest-path target/fixture-game/Cargo.toml \
-  -p horizon-client --bin horizon-client --no-default-features
+cargo build --locked --offline --manifest-path target/fixture-game/Cargo.toml \
+  -p horizon-client --bin horizon-client --no-default-features --profile fast \
+  --target-dir "$PWD/target/fixture-build"
 ```
 
-Use a fresh `fixture-mods`/`fixture-game` path for each independent run.
+The fixture logs `independent fixture station-click hook executed` the first
+time its hook runs. Combined gameplay passed `tests/game/stations.py` in both
+integrated-server and in-frame modes, and the fixture message was present in
+each game log. Run the same test with
+`--game target/fixture-build/fast/horizon-client`; inspect `Player/game.log`
+in the printed run directory. Use a fresh output path for a new stage.

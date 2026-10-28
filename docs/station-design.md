@@ -1,24 +1,27 @@
-# Station implementation: unresolved integration
+# Station implementation
 
-This branch does not implement a Part Builder or Tinker Station. A correct
-implementation needs persistent block inventories, host-authoritative result
-transactions and client rendering/input in both single-player paths and LAN.
-Closing a GUI, retrying a click and handling two viewers must not duplicate or
-lose inputs. Tool repairs must retain unrelated item components and names.
+The two custom blocks are built into a separate resource root by the pinned
+Horizon data-table builder, invoked from a Mixins-injected native entry point.
+The generated gameplay facts mark their block states as having block entities.
+A Mixins hook opens an existing per-world `BlockEntity::Chest` storage at each
+table position. Its normal chunk save/load path persists inputs; an injected
+`pre_remove` mapping makes normal block removal spill the stored stacks.
+There is no process-global station inventory. The original textures and block
+model are attributed in `assets/tconstruct/NOTICE.md`.
 
-At the pinned Horizon revision, the existing workstation UI is represented by
-`game::stations::Kind`, `Station`, `Game<'a>::station`, and the vanilla menu
-engine. `Game<'a>` owns both client and integrated-server state. The Mixins
-0.5 state feature targets named nongeneric structs, and does not add enum
-variants or automatically serialize new world data. A direct attempt to add
-state to `Game<'_>` failed planning with `E_BRIDGE_TARGET`; this is a limitation
-of that proposed integration, not proof that the complete station is
-impossible. Mixins support modules and ordinary hook code may permit another
-design, but that alternative and its save, authority and coexistence behavior
-have not been established.
+Both the local-player click path and the LAN server's container-click path
+invoke the same transaction code against current authoritative inputs. It
+validates all inputs and cursor capacity before changing any slot, moves or
+clones the result once, and marks the chunk modified. The server resends the
+current menu after a result attempt so a losing viewer cannot keep a stale
+preview. Repair clones the existing tool and changes its damage, retaining its
+name and custom data. Separate Mixins carry that tool's custom data across
+Horizon network stacks; arbitrary other components remain outside this slice.
 
-Do not implement the stations as a process-global UI inventory or as a
-client-side preview that consumes items independently: neither would satisfy
-world persistence or two-player atomicity. The next step is to design and test
-a Mixins-only host-authoritative storage/transaction path and its network
-projection before adding the menu and real station block assets.
+The previous attempt to add state directly to `Game<'_>` failed Mixins planning
+with `E_BRIDGE_TARGET`. The current implementation avoids that restriction by
+using existing per-world block storage and per-player cursor state. Dedicated
+server and every possible container action are not yet validated. The GUI
+supports ordinary pickup; shift-click, drag and pickup-all are deliberately
+blocked to avoid bypassing the transaction. The original selection/result
+interaction, material variants and naming UI remain future work.

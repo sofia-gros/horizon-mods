@@ -1,0 +1,9 @@
+{
+  "item.tconstruct.pattern": "Pattern",
+  "item.tconstruct.flint_pick_head": "Flint Pick Head",
+  "item.tconstruct.wood_handle": "Wood Tool Handle",
+  "item.tconstruct.wood_binding": "Wood Tool Binding",
+  "item.tconstruct.flint_pickaxe": "Flint Pickaxe",
+  "block.tconstruct.part_builder": "Part Builder",
+  "block.tconstruct.tinker_station": "Tinker Station"
+}

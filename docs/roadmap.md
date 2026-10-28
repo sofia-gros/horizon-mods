@@ -1,19 +1,24 @@
 # Coverage and roadmap
 
 The reference is Tinkers' Construct 1.20.1, commit
-`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Status refers only to this Mixins
-implementation; the archived Wasm work is not evidence of coverage here.
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The [feature matrix](feature-matrix.md)
+links the original source and lists the remaining scope. Archived Wasm work is
+not evidence of coverage here.
 
-| Area | Status | Next work |
+| Area | Current status | Next work |
 | --- | --- | --- |
-| Material and part creation | Prototype, verified in single-player | Flint and wood only; add patterns, recipes and Part Builder UI |
-| Pickaxe assembly | Prototype, verified in single-player | Replace command flow with Tinker Station; persist actual component state |
-| Mining and durability | Prototype, verified in single-player | Extend broken-state parity, repair and traits |
-| Rendering and tooltip | Fixed-material original textures, verified in single-player | Add material-specific combinations, broken appearance and tooltips |
-| Other tools, materials and modifiers | Not implemented | Add definitions, stat aggregation, traits and modifiers with reference tests |
-| Stations and crafting | Not implemented | Part Builder, Tinker Station, recipes, repair and modification |
-| Smeltery and foundry | Not implemented | Fluids, melting, casting, multiblocks and interaction |
-| Progression, world content and compatibility | Not implemented | Ores, mobs, books, advancements, networking and interoperability |
+| Part Builder | Playable fixed flint/wood subset | Original separate preview/selection flow, other materials and variants |
+| Tinker Station | Fixed pickaxe assembly and flint repair | Naming UI, all combinations, component replacement and modifiers |
+| Durability | Wear, slow broken mining and repair for fixed pickaxe | Full original broken behavior and original broken textures |
+| Models and tooltips | Original textures for the fixed tool and parts; static table models | All material combinations, orientation, tooltips and traits |
+| Other tools, armor, materials and modifiers | Not implemented | Definition-driven stat aggregation, traits, equipment and actions |
+| Smeltery and foundry | Not implemented | Fluids, melting, casting, alloys and multiblocks |
+| Progression and world content | Not implemented | Ores, mobs, books, advancements, recipes and gadgets |
+| Persistence and multiplayer | Station input, tool name/custom data and LAN races tested | Dedicated server, arbitrary components, more click modes and mixed-mod testing |
 
-Extend the repeatable game test to cover additional paths and replace shortcuts with real part state and UI before broadening material and
-tool coverage. Dedicated server and multiplayer behavior have not been tested.
+The GUI uses the original backgrounds but has a simplified interaction: the
+three part icons directly take a result; the original has selection and a
+separate result slot. Assembly and repair have separate icons. Shift-click,
+drag and pickup-all are disabled in these screens. Only oak planks work for
+the wood parts. See [station design](station-design.md) and
+[validation](validation.md) for authority, save and test details.

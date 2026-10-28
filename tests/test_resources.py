@@ -12,12 +12,12 @@ class ResourceOverlay(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
-            raw = {'minecraft:flint': {}, 'minecraft:stick': {},
+            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}}}
             (src / 'items.json').write_text(json.dumps(raw))
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
-            (src / 'assets').mkdir()
+            (src / 'assets/minecraft/textures/gui').mkdir(parents=True)
             subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], check=True)
             self.assertEqual(json.loads((src / 'items.json').read_text()), raw)
             items = json.loads((out / 'items.json').read_text())

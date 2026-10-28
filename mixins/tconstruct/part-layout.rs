@@ -1,0 +1,16 @@
+fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<(f32, f32)> {
+    let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
+    let position = match slot {
+        0..=8 => (8.0 + slot as f32 * 18.0, 160.0),
+        9..=35 => (8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0),
+        300 => if station { (27.0, 35.0) } else { (8.0, 43.0) },
+        301 => if station { (48.0, 35.0) } else { (29.0, 43.0) },
+        302 if station => (69.0, 35.0),
+        324 => if station { (114.0, 38.0) } else { (60.0, 18.0) },
+        325 => if station { (134.0, 38.0) } else { (78.0, 18.0) },
+        326 if !station => (96.0, 18.0),
+        302..=326 => (-10000.0, -10000.0),
+        _ => return std::ops::ControlFlow::Continue(()),
+    };
+    std::ops::ControlFlow::Break(position)
+}

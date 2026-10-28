@@ -43,3 +43,154 @@ kind = "HEAD"
 cancellable = true
 helper = "broken-harvest.rs"
 bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
+
+[[injection]]
+id = "prepare-station-resources"
+target = "horizon_client::logging::game_home"
+kind = "HEAD"
+helper = "prepare.rs"
+
+[[injection]]
+id = "station-storage-open"
+target = "horizon_client::game::stations::Game<'_>::open_station"
+kind = "HEAD"
+cancellable = true
+helper = "station-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+[[injection]]
+id = "part-builder-output"
+target = "horizon_client::game::Game<'_>::menu_click"
+kind = "HEAD"
+cancellable = true
+helper = "part-output.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]
+
+[[injection]]
+id = "guest-part-output"
+target = "horizon_client::lan::containers::Hub::container_click"
+kind = "HEAD"
+cancellable = true
+helper = "guest-part-output.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&play::ContainerClick", value = "p" },
+  { name = "world", ty = "&mut World", value = "&mut *world" },
+]
+
+[[module]]
+id = "station-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_ui"
+source = "station-ui.rs"
+
+[[injection]]
+id = "part-layout"
+target = "horizon_client::game::Game<'_>::slot_position"
+kind = "HEAD"
+cancellable = true
+helper = "part-layout.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "slot", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "part-draw"
+target = "horizon_client::game::storage::Game<'_>::draw_chest_screen"
+kind = "HEAD"
+cancellable = true
+helper = "part-draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+[[injection]]
+id = "guest-station-open"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_open_container"
+kind = "HEAD"
+cancellable = true
+helper = "guest-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+]
+
+[[module]]
+id = "host-transactions"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_tx"
+source = "transaction.rs"
+
+[[module]]
+id = "server-transactions"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_tx"
+source = "transaction.rs"
+
+[[injection]]
+id = "station-pointer-output"
+target = "horizon_client::game::stations::Game<'_>::station_click"
+kind = "HEAD"
+cancellable = true
+helper = "station-pointer.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
+id = "station-drag-guard"
+target = "horizon_client::game::Game<'_>::menu_ops"
+kind = "HEAD"
+cancellable = true
+helper = "station-drag-guard.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+[[injection]]
+id = "station-spill"
+target = "horizon_world::level::removal::pre_remove"
+kind = "HEAD"
+cancellable = true
+helper = "station-spill.rs"
+bindings = [{ name = "name", ty = "&str", value = "name" }]
+
+[[injection]]
+id = "network-custom-data"
+target = "horizon_client::lan::hub::Hub::stack"
+kind = "HEAD"
+cancellable = true
+helper = "network-custom-data.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
+
+[[injection]]
+id = "client-network-custom-data"
+target = "horizon_client::game::remote::Game<'_>::to_network"
+kind = "HEAD"
+cancellable = true
+helper = "client-network-custom-data.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]

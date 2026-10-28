@@ -11,6 +11,8 @@ src = a.source.resolve(strict=True)
 out = a.output.absolute()
 if out.exists() or out.is_relative_to(src) or src.is_relative_to(out):
     p.error('output must not exist and must be separate from source')
+if (src / 'assets/tconstruct').exists():
+    p.error('source already contains a tconstruct asset namespace')
 out.mkdir(parents=True)
 for path in src.iterdir():
     if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'assets'}:
@@ -18,8 +20,24 @@ for path in src.iterdir():
 assets = out / 'assets'
 assets.mkdir()
 for namespace in (src / 'assets').iterdir():
-    if namespace.name != 'tconstruct':
+    if namespace.name not in {'tconstruct', 'minecraft'}:
         (assets / namespace.name).symlink_to(namespace, target_is_directory=namespace.is_dir())
+vanilla = assets / 'minecraft'
+vanilla.mkdir()
+for child in (src / 'assets/minecraft').iterdir():
+    if child.name != 'textures':
+        (vanilla / child.name).symlink_to(child, target_is_directory=child.is_dir())
+textures = vanilla / 'textures'
+textures.mkdir()
+for child in (src / 'assets/minecraft/textures').iterdir():
+    if child.name != 'gui':
+        (textures / child.name).symlink_to(child, target_is_directory=child.is_dir())
+gui = textures / 'gui'
+gui.mkdir()
+for child in (src / 'assets/minecraft/textures/gui').iterdir():
+    (gui / child.name).symlink_to(child, target_is_directory=child.is_dir())
+for name in ('part_builder', 'tinker_station'):
+    (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 (mod_assets / 'textures').symlink_to(Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures', target_is_directory=True)
@@ -27,6 +45,7 @@ mod_assets.mkdir()
 (mod_assets / 'models/item').mkdir(parents=True)
 items = json.loads((src / 'items.json').read_text())
 entries = [
+    ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
     ('tconstruct:wood_binding', 'minecraft:stick', 'Wood Tool Binding'),
     ('tconstruct:wood_handle', 'minecraft:stick', 'Wood Tool Handle'),
