@@ -13,6 +13,8 @@ expected = {
     "assets/tconstruct/textures/gui/tinker_pattern/pick_head.png": "ab1d44ba8937357be7cbc02fcb314ce6ee5ce144073156d4eb790a37f45c8dfb",
     "assets/tconstruct/textures/gui/tinker_pattern/tool_handle.png": "06bb82ef9c82cf984549ba23a8b991290c160cffe8e7dbb98ad062a9a763fc0e",
     "assets/tconstruct/textures/gui/tinker_pattern/tool_binding.png": "5587625a90f5e2a677bbe323f504ecb80f80c3c0c45e99a7efb43cf96b4f3313",
+    "assets/tconstruct/textures/gui/tinker_pattern/button_repair.png": "d2f95c50add16864c753c3e0df017ca4bfe07d2ed575a43c4629227de382824b",
+    "assets/tconstruct/textures/gui/tinker_pattern/pickaxe.png": "e5908883fed304c5d5abc673dffd0ec90b3b5ab71f07c72fe531df1570d56986",
 }
 with ZipFile(archive) as package:
     names = package.namelist()

@@ -230,7 +230,7 @@ mod adapter {
                 "Tinker Station",
                 &path,
                 &tags,
-                r##"{"width":176,"height":184,"slots":[{"id":"first","x":53,"y":22,"role":"input"},{"id":"second","x":15,"y":60,"role":"input"},{"id":"third","x":33,"y":42,"role":"input"},{"id":"result","x":114,"y":38,"role":"output","background":false}],"elements":[{"type":"image","x":0,"y":0,"width":176,"height":184,"texture":"tconstruct:gui/tinker","region":[0,0,176,184]}],"player_inventory":{"x":8,"y":102,"background":false}}"##,
+                r##"{"width":302,"height":184,"slots":[{"id":"tool","x":137,"y":74,"role":"storage"},{"id":"head","x":53,"y":22,"role":"storage"},{"id":"handle","x":15,"y":60,"role":"storage"},{"id":"binding","x":33,"y":42,"role":"storage"},{"id":"result","x":114,"y":38,"role":"output","background":false}],"elements":[{"type":"image","x":0,"y":0,"width":176,"height":184,"texture":"tconstruct:gui/tinker","region":[0,0,176,184]},{"type":"button","id":"repair","x":82,"y":65,"width":18,"height":18,"text":"","icon":"tconstruct:gui/tinker_pattern/button_repair","images":{"normal":"tconstruct:gui/part_builder","regions":{"normal":[176,15,18,18],"selected":[176,33,18,18],"hover":[176,51,18,18]}}},{"type":"button","id":"pickaxe","x":100,"y":65,"width":18,"height":18,"text":"","icon":"tconstruct:gui/tinker_pattern/pickaxe","images":{"normal":"tconstruct:gui/part_builder","regions":{"normal":[176,15,18,18],"selected":[176,33,18,18],"hover":[176,51,18,18]}}},{"type":"image","x":176,"y":0,"width":4,"height":4,"texture":"tconstruct:gui/panel","region":[0,0,4,4]},{"type":"image","x":180,"y":0,"width":118,"height":4,"texture":"tconstruct:gui/panel","region":[4,0,118,4]},{"type":"image","x":298,"y":0,"width":4,"height":4,"texture":"tconstruct:gui/panel","region":[122,0,4,4]},{"type":"image","x":176,"y":4,"width":4,"height":176,"texture":"tconstruct:gui/panel","region":[0,4,4,75]},{"type":"image","x":180,"y":4,"width":118,"height":176,"texture":"tconstruct:gui/panel","region":[4,4,118,75]},{"type":"image","x":298,"y":4,"width":4,"height":176,"texture":"tconstruct:gui/panel","region":[122,4,4,75]},{"type":"image","x":176,"y":180,"width":4,"height":4,"texture":"tconstruct:gui/panel","region":[0,79,4,4]},{"type":"image","x":180,"y":180,"width":118,"height":4,"texture":"tconstruct:gui/panel","region":[4,79,118,4]},{"type":"image","x":298,"y":180,"width":4,"height":4,"texture":"tconstruct:gui/panel","region":[122,79,4,4]},{"type":"label","x":183,"y":12,"text":"Pickaxe","color":[240,240,240],"when_selected":"pickaxe","scale":78},{"type":"label","x":183,"y":24,"text":"Head, Handle, Binding","color":[240,240,240],"when_selected":"pickaxe","scale":78},{"type":"label","x":183,"y":36,"text":"Wood / Flint supported","color":[240,240,240],"when_selected":"pickaxe","scale":78},{"type":"label","x":183,"y":48,"text":"Insert a tool to replace","color":[240,240,240],"when_selected":"pickaxe","scale":78},{"type":"label","x":183,"y":60,"text":"one part.","color":[240,240,240],"when_selected":"pickaxe","scale":78},{"type":"label","x":183,"y":12,"text":"Repair","color":[240,240,240],"when_selected":"repair","scale":78},{"type":"label","x":183,"y":24,"text":"Insert a tool and material","color":[240,240,240],"when_selected":"repair","scale":78},{"type":"label","x":183,"y":36,"text":"Wood / Flint supported","color":[240,240,240],"when_selected":"repair","scale":78},{"type":"label","x":183,"y":48,"text":"Other materials unsupported","color":[240,240,240],"when_selected":"repair","scale":78},{"type":"label","x":183,"y":78,"text":"Head: {item} x{count}","color":[127,255,255],"when_selected":"pickaxe","slot":"head","scale":78},{"type":"label","x":183,"y":89,"text":"Handle: {item} x{count}","color":[127,255,255],"when_selected":"pickaxe","slot":"handle","scale":78},{"type":"label","x":183,"y":100,"text":"Binding: {item} x{count}","color":[127,255,255],"when_selected":"pickaxe","slot":"binding","scale":78},{"type":"label","x":183,"y":65,"text":"Tool: {item}","color":[127,255,255],"when_selected":"repair","slot":"tool","scale":78}],"player_inventory":{"x":8,"y":102,"background":false},"shared_selection":true,"layouts":[{"selection":"repair","slots":[{"id":"tool","x":53,"y":41},{"id":"head","x":11,"y":41},{"id":"handle","x":31,"y":30},{"id":"binding","x":31,"y":50}]}],"text_input":{"x":80,"y":7,"width":82,"height":9,"max_length":50,"when_selected":"pickaxe","output":"result","empty_slot":"tool"}}"##,
             )?;
             Ok((
                 Self(Catalog::embedded()?),
@@ -297,7 +297,7 @@ mod adapter {
             selection: Option<&str>,
         ) -> Result<Option<GuiWorkstationPlan>, String> {
             use tconstruct_horizon::crafting::{
-                Part, PartKind, plan_part, plan_pickaxe, plan_repair,
+                Part, PartKind, plan_part, plan_part_replacement, plan_pickaxe, plan_repair,
             };
             let material = |input: &WorkstationInput| -> Option<&'static str> {
                 if input.item == "minecraft:flint" {
@@ -353,28 +353,73 @@ mod adapter {
             if block != "tconstruct:tinker_station" {
                 return Ok(None);
             }
-            let [Some(first), Some(second), third, None] = inputs else {
+            let [tool, head, handle, binding, None] = inputs else {
                 return Ok(None);
             };
-            let (state, consume, source) = if first.item == "minecraft:wooden_pickaxe"
-                && first.count == 1
-                && third.is_none()
-            {
-                let Some(text) = first.custom_text.as_deref() else {
+            let parse = |s: &WorkstationInput| -> Option<Part> {
+                serde_json::from_str(s.custom_text.as_deref()?).ok()
+            };
+            let (state, consume, source) = if let Some(tool) = tool {
+                if tool.item != "minecraft:wooden_pickaxe" || tool.count != 1 {
                     return Ok(None);
-                };
-                let Some(name) = material(second) else {
+                }
+                let Some(text) = tool.custom_text.as_deref() else {
                     return Ok(None);
                 };
                 let Ok(state) = ToolState::from_json(&self.0, text) else {
                     return Ok(None);
                 };
-                let Ok(plan) = plan_repair(&self.0, &state, name, second.count) else {
-                    return Ok(None);
-                };
-                (plan.output, vec![1, plan.material_items, 0, 0], Some(0))
+                match (selection, head, handle, binding) {
+                    (Some("repair"), Some(ingredient), None, None) => {
+                        let Some(name) = material(ingredient) else {
+                            return Ok(None);
+                        };
+                        let Ok(plan) = plan_repair(&self.0, &state, name, ingredient.count) else {
+                            return Ok(None);
+                        };
+                        (plan.output, vec![1, plan.material_items, 0, 0, 0], Some(0))
+                    }
+                    (Some("pickaxe"), head, handle, binding) => {
+                        let choices = [head, handle, binding];
+                        let Some((index, part)) = choices
+                            .iter()
+                            .enumerate()
+                            .find_map(|(i, v)| v.as_ref().map(|p| (i, p)))
+                        else {
+                            return Ok(None);
+                        };
+                        if choices.iter().filter(|v| v.is_some()).count() != 1 {
+                            return Ok(None);
+                        }
+                        let expected = [
+                            "tconstruct:pick_head",
+                            "tconstruct:tool_handle",
+                            "tconstruct:tool_binding",
+                        ][index];
+                        if part.item != expected {
+                            return Ok(None);
+                        }
+                        let Some(part) = parse(part) else {
+                            return Ok(None);
+                        };
+                        if part.kind != [PartKind::Head, PartKind::Handle, PartKind::Binding][index]
+                        {
+                            return Ok(None);
+                        }
+                        let Ok(result) = plan_part_replacement(&self.0, &state, &part) else {
+                            return Ok(None);
+                        };
+                        let mut consume = vec![1, 0, 0, 0, 0];
+                        consume[index + 1] = 1;
+                        (result, consume, Some(0))
+                    }
+                    _ => return Ok(None),
+                }
             } else {
-                let Some(third) = third else {
+                if selection != Some("pickaxe") {
+                    return Ok(None);
+                }
+                let (Some(first), Some(second), Some(third)) = (head, handle, binding) else {
                     return Ok(None);
                 };
                 if first.item != "tconstruct:pick_head"
@@ -383,9 +428,6 @@ mod adapter {
                 {
                     return Ok(None);
                 }
-                let parse = |s: &WorkstationInput| -> Option<Part> {
-                    serde_json::from_str(s.custom_text.as_deref()?).ok()
-                };
                 let (Some(a), Some(b), Some(c)) = (parse(first), parse(second), parse(third))
                 else {
                     return Ok(None);
@@ -393,7 +435,7 @@ mod adapter {
                 let Ok(state) = plan_pickaxe(&self.0, &[a, b, c]) else {
                     return Ok(None);
                 };
-                (state, vec![1, 1, 1, 0], None)
+                (state, vec![0, 1, 1, 1, 0], None)
             };
             let replacement = state.to_json()?;
             let mining = mining_projection(&self.0, "minecraft:wooden_pickaxe", 1, &replacement)?;

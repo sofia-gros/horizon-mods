@@ -35,3 +35,7 @@ kill "$xvfb_pid"
 ## 汎用 GUI と制作・組立
 
 上記の本体と TConstruct のビルドに加え、`examples/gui-storage-fixture` とその `server` でも `cargo-horizon-mod horizon-mod build` を実行する。上記と同じ表示環境で、`tools/probe_tconstruct_crafting_gui.py`、`tools/probe_tconstruct_station_repair.py`、`tools/probe_generic_machine_gui.py`、`tools/probe_generic_storage_gui.py` を通常方式と `--in-frame` の両方で実行する。`tools/probe_generic_storage_players.py` は LAN の二人が同じ収納を開く競合を確認する。`tools/probe_tconstruct_table_recipes.py` は作業台でのテーブルと型紙のレシピを確認する。実行ごとの world とログは `.local` に隔離される。
+
+## Station のレイアウト・名前・同時取得
+
+Station の入力は保存される収納で、組立と修理のボタンを選ぶ。`tools/probe_tconstruct_crafting_gui.py --scale 1` と `--scale 2 --in-frame` は制作・名前・Enter/Escape・中断再開・保存復帰を確認し、`tools/probe_tconstruct_station_repair.py` は wood/flint 修理、無効材料とピッケルの単一部品交換を確認する。`tools/probe_tconstruct_station_players.py` は2人の異なる名前と同一結果の同時取得を検査する。GUIの詳細な原典との差と未対応範囲は `docs/tconstruct-crafting-gui.md` に記す。
