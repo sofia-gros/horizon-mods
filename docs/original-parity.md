@@ -14,8 +14,12 @@ registrations, data-driven combinations, lifecycle paths and their tests are
 mapped. [Feature matrix](feature-matrix.md) and [roadmap](roadmap.md) identify
 known gaps; missing entries must not be interpreted as implemented.
 
-The pinned tree contains 338 generated material-recipe files, 28 generated
-Part Builder recipe files and 23 station-layout files. These are file counts,
+[upstream-recipes.json.gz](upstream-recipes.json.gz) contains the original
+JSON and source path for all 338 generated material recipes, 28 Part Builder
+recipes and 23 station layouts; regenerate it with
+`python3 tools/reference_catalog.py /path/to/clone`. Every catalog entry is
+currently marked `unreviewed`: the prototype coverage in the table below is
+partial and does not establish parity for an entire recipe. These are file counts,
 not verified counts of active features; conditions, aliases and runtime
 registrations still have to be audited. The current three fixed choices do not
 cover those definitions.
