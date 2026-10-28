@@ -188,6 +188,54 @@ impl SourceCondition {
     }
 }
 
+/// Pinned `MaterialRecipe` fields used for lookup and cost calculation.
+/// Leftover output stays unresolved until Mantle's tag preference and NBT
+/// rules are connected to the current world. Not used by gameplay yet.
+#[allow(dead_code)]
+struct SourceMaterialRecipe {
+    ingredient: SourceIngredient,
+    material: String,
+    value: i32,
+    needed: i32,
+    leftover: Option<serde_json::Value>,
+    conditions: Vec<SourceCondition>,
+}
+#[allow(dead_code)]
+impl SourceMaterialRecipe {
+    fn parse(v: &serde_json::Value) -> Option<Self> {
+        if v.get("type")?.as_str()? != "tconstruct:material" { return None; }
+        let positive = |name: &str| -> Option<i32> {
+            let n = match v.get(name) { Some(value) => value.as_i64()?, None => 1 };
+            i32::try_from(n).ok().filter(|n| *n > 0)
+        };
+        let value = positive("value")?;
+        let conditions = match v.get("conditions") {
+            Some(list) => list.as_array()?.iter().map(SourceCondition::parse).collect::<Option<_>>()?,
+            None => Vec::new(),
+        };
+        Some(Self {
+            ingredient: SourceIngredient::parse(v.get("ingredient")?)?,
+            material: v.get("material")?.as_str()?.to_owned(),
+            value,
+            needed: positive("needed")?,
+            // Original MaterialRecipe discards leftover for values of one.
+            leftover: if value > 1 { v.get("leftover").filter(|v| !v.is_null()).cloned() } else { None },
+            conditions,
+        })
+    }
+    fn enabled(&self, registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>, config: &std::collections::HashMap<String, bool>) -> Option<bool> {
+        let mut unknown = false;
+        for condition in &self.conditions {
+            match condition.matches(registries, config) {
+                Some(false) => return Some(false),
+                Some(true) => {},
+                None => unknown = true,
+            }
+        }
+        if unknown { None } else { Some(true) }
+    }
+}
+
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
@@ -413,7 +461,8 @@ mod tests {
         for recipe in catalog["groups"]["materials"].as_array().unwrap() {
             let data = &recipe["data"];
             if data["type"] == "tconstruct:material" {
-                assert!(SourceIngredient::parse(&data["ingredient"]).is_some(), "{}", recipe["source"]);
+                let parsed = SourceMaterialRecipe::parse(data).unwrap_or_else(|| panic!("{}", recipe["source"]));
+                assert!(parsed.value > 0 && parsed.needed > 0 && !parsed.material.is_empty());
                 for condition in data["conditions"].as_array().into_iter().flatten() {
                     assert!(SourceCondition::parse(condition).is_some(), "{}", recipe["source"]);
                     condition_count += 1;
@@ -423,6 +472,16 @@ mod tests {
         }
         assert_eq!(count, 217);
         assert_eq!(condition_count, 44);
+    }
+    #[test]
+    fn source_material_recipe_defaults_and_deferred_leftovers() {
+        let single = SourceMaterialRecipe::parse(&serde_json::json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:flint"}, "material":"tconstruct:flint", "leftover":"minecraft:stick"})).unwrap();
+        assert_eq!((single.value, single.needed), (1, 1));
+        assert!(single.leftover.is_none());
+        let block = SourceMaterialRecipe::parse(&serde_json::json!({"type":"tconstruct:material", "ingredient":{"tag":"forge:storage_blocks/copper"}, "material":"tconstruct:copper", "value":9, "leftover":{"tag":"forge:ingots/copper", "count":1}})).unwrap();
+        assert_eq!(material_cost(2, block.needed, block.value), Some((1, 7)));
+        assert_eq!(block.leftover.unwrap()["tag"], "forge:ingots/copper");
+        assert!(SourceMaterialRecipe::parse(&serde_json::json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:flint"}, "material":"tconstruct:flint", "needed":0})).is_none());
     }
     #[test]
     fn original_head_and_handle_durability_uses_float_then_integer() {
