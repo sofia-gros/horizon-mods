@@ -23,7 +23,7 @@ class SourcePartVisuals(unittest.TestCase):
     def test_archive_matches_reference_manifest(self):
         rows = (ROOT / 'docs/upstream-part-visuals.sha256').read_text().splitlines()
         expected = dict(row.split('  ', 1)[::-1] for row in rows)
-        self.assertEqual(len(rows), 2162)
+        self.assertEqual(len(rows), 2179)
         self.assertEqual(len(expected), len(rows))
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-part-visuals.zip') as archive:
             actual = {name: hashlib.sha256(archive.read(name)).hexdigest() for name in archive.namelist()}

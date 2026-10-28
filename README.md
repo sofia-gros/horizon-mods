@@ -34,10 +34,10 @@ its inputs. The pickaxe wears while mining or hitting a living mob, stays when b
 mines slowly. The fixed flint/wood parts and tool use original Tinkers textures. In GUI slots, the tested flint and wood parts select their original material sprites; a command-supplied oxidized copper head was also checked, but is not yet craftable. Part tooltips display tested material names in English and Japanese; existing explicit names are preserved.
 Two players can use the same table; the tested competing result pickups consume
 inputs once. See the [Part Builder](docs/part-builder.png) and
-[Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) uses commands, including combinations that are not valid crafting recipes.
+[Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
 
 This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
-the other craftable parts cannot yet be assembled into tools. The 28 original part and repair-kit item IDs are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
+the other craftable parts cannot yet be assembled into tools. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
 tools and traits are not supported. The Part Builder supports selection and a separate result slot for only three
 fixed prototype parts; original recipe lists, material variants and detailed tooltips
 are incomplete. Dynamic part names are not yet connected to hotbar labels or recipe search. The Tinker Station uses separate assembly and repair

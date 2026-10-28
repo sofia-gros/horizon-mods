@@ -2,7 +2,7 @@
 """Create a separate, disposable resource overlay for the prototype."""
 import argparse, copy, hashlib, json, shutil, zipfile
 from pathlib import Path
-from import_part_visuals import PARTS
+from import_part_visuals import MATERIAL_MODELS
 
 p = argparse.ArgumentParser()
 p.add_argument('source', type=Path)
@@ -110,12 +110,12 @@ entries = [
     ('tconstruct:tool_binding', 'minecraft:flint', 'Tool Binding'),
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
 ]
-# Original material-bearing part IDs share the source MaterialItem behavior.
+# Original material-bearing part and fake-ingot IDs share MaterialItem behavior.
 # Their rendering and tooltip name paths are connected; stats, traits and
 # recipe-driven crafting remain incomplete, as documented.
 source_names = json.loads((repository / 'content/assets/tconstruct/lang/en_us.json').read_text())
 existing = {name for name, _, _ in entries}
-for short in PARTS:
+for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
     if name not in existing:
         entries.append((name, 'minecraft:flint', source_names['item.tconstruct.' + short]))
@@ -125,7 +125,7 @@ for name, template, title in entries:
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
-    if short in PARTS:
+    if short in MATERIAL_MODELS:
         original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
         texture = original_model['textures']['texture']
         native_model = {'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': texture, 'particle': texture}}

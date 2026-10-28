@@ -7,7 +7,7 @@ import tempfile
 import unittest
 import zipfile
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from import_part_visuals import PARTS
+from import_part_visuals import MATERIAL_MODELS
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'tools/resources.py'
 
@@ -29,7 +29,7 @@ class ResourceOverlay(unittest.TestCase):
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']
             self.assertTrue(all(name in items and name in ids for name in names))
-            for short in PARTS:
+            for short in MATERIAL_MODELS:
                 name = 'tconstruct:' + short
                 self.assertIn(name, items)
                 self.assertIn(name, ids)

@@ -15,6 +15,7 @@ PARTS = ('pick_head hammer_head small_axe_head broad_axe_head small_blade broad_
          'fletching tool_binding tough_binding tool_handle tough_handle helmet_plating '
          'chestplate_plating leggings_plating boots_plating maille shield_core ribcage '
          'shell laces repair_kit').split()
+MATERIAL_MODELS = PARTS + ['fake_ingot']
 
 
 def git(repo, *args):
@@ -28,7 +29,7 @@ def build(repo: Path, output: Path, manifest: Path):
     names = git(repo, 'ls-tree', '-r', '--name-only', REV).decode().splitlines()
     model_paths, roots = [], []
     languages = [name for name in names if name.startswith("src/main/resources/assets/tconstruct/lang/") and name.endswith(".json")]
-    for item in PARTS:
+    for item in MATERIAL_MODELS:
         suffix = f'/assets/tconstruct/models/item/{item}.json'
         matches = [path for path in names if path.startswith(('src/main/resources/', 'src/generated/resources/')) and path.endswith(suffix)]
         if len(matches) != 1:

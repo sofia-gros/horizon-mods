@@ -38,7 +38,7 @@ item matches.
 | `library/tools/part/IMaterialItem.java`: original part material is stored in the `Material` tag | `transaction.rs`, network hooks | Flint and wood head, handle and binding outputs carry that material ID in 26.3 `custom_data`; save/reload was tested. These outputs use the original shared part IDs; only the two tested materials are supported. GUI slots now select source sprites from material render metadata; flint, wood and a command-supplied oxidized copper head were visually checked in both game modes and GUI scales 1 and 2. The ordinary tooltip resolves tested material names in English and Japanese using the source fallback order. Existing explicit custom/item names are retained. Hotbar names, recipe search, detailed stat/trait tooltips, pack reload and 3D rendering remain incomplete, and arbitrary variants are not proven. |
 | `library/client/model/MaterialModel.java`, Mantle `MantleItemLayerModel.java` and material render info | `source-render-info.rs`, `source-mantle-layer.rs`, `source-sprite-frames.rs`, `render-source-part.rs` | Source sprite/variant fallback and standalone part geometry are used for GUI slots. The original sprite archive was byte checked; GUI screenshots and material swaps were inspected in both modes at scales 1/2. Resource-pack reload, names/tooltips, 3D rendering and full visual equivalence remain unverified. |
 | `library/tools/part/MaterialItem.java` and `MaterialTooltipCache.java` | `source-part-name.rs`, `part-name-injection.rs` | Ordinary tooltips follow variant-specific, material format, material prefix and base-name fallback. Pinned English/Japanese flint, wood and command-supplied oxidized copper names were visually checked; explicitly supplied names and material data survived save/reload. Names in other UI paths, all languages/variants, rarity and extra tooltip lines remain unverified. |
-| `tools/TinkerToolParts.java` and the 28 source material-item models | `tools/resources.py`, `source-render-info.rs` | All 28 source tool-part/repair-kit IDs are registered with source GUI sprites; command-supplied wood Material data survived save/reload in both modes. This diagnostic does not validate which materials can be crafted for each item. The real-world `tconstruct:parts/bartered` tag resolves to its 21 registered items in both modes; its parent `tconstruct:parts` remains unresolved while fake ingot and storage block are absent. Source material rarity and shiny glint, stat/trait tooltips, part reuse in actual crafting, complete 3D rendering, and fake ingot/storage block behavior remain open. |
+| `tools/TinkerToolParts.java` and the 28 source material-item models | `tools/resources.py`, `source-render-info.rs` | All 28 source tool-part/repair-kit IDs are registered with source GUI sprites; command-supplied wood Material data survived save/reload in both modes. This diagnostic does not validate which materials can be crafted for each item. The real-world `tconstruct:parts/bartered` tag resolves to its 21 registered items in both modes; its parent `tconstruct:parts` remains unresolved while the fake storage block is absent. Source material rarity and shiny glint, stat/trait tooltips, part reuse in actual crafting, complete 3D rendering, and fake ingot/storage block behavior remain open. |
 | `tools/TinkerToolParts.java` / `ToolPartItem.java` default item properties; vanilla `FurnaceFuelSlot.mayPlace` | `tools/resources.py`, `nonfuel-inframe.rs` | Part items do not inherit the stick fuel component. A source Mixins hook applies the fuel-slot check to TConstruct items in in-frame play. In both modes, wood handle/binding remained on the cursor when placed at the fuel slot, while a vanilla stick was consumed. Other fuel items and furnace behaviors are not comprehensively tested. |
 | `library/tools/nbt/ToolStack.java` and `MaterialNBT.java`: `tic_materials` contains ordered material variants | `transaction.rs` | The fixed prototype pickaxe carries `[flint, wood, wood]` through assembly and save/reload. It uses the original pickaxe item ID; derived stats, traits and other original tool data are not yet fully ported. |
 | `tables/block/entity/table/PartBuilderBlockEntity.java`: recipe list from the pattern and inputs, selected pattern, `calcResult`, `onCraft`, remaining items and screen synchronization | `transaction.rs` | Only fixed prototype recipes are implemented; selection and preview exist for those parts, but original recipe conditions, materials and remainders are missing. The current atomic pickup tests establish prototype behavior only. |
@@ -119,7 +119,15 @@ An independent fixture tested a controlled server-side context in both game
 modes: all 28 empty-material choices, three wood-supported choices, and
 world-pack cost overrides, ordering, reload, disabling and world isolation.
 Other recipe types, registry validation, real world contexts, screen rendering,
-preview and taking outputs remain unimplemented.
+preview and taking outputs remain unimplemented. In particular, the pinned
+generated data contain 37 `tconstruct:part_builder_recycling` and 15
+`tconstruct:part_builder_tool_recycling` recipes. The existing candidate
+prototype omits both serializers. `PartBuilderRecycle.java` and
+`PartBuilderToolRecycle.java` define their distinct pattern enumeration,
+durability scaling, modifier/enchantment restrictions, output selection and
+random leftovers; none of those behaviors is implemented by the current GUI.
+The source `PartBuilderBlockEntity` must combine these candidates with the
+other recipe types and deduplicate/sort them according to the original rules.
 
 The world snapshot also attempts item-tag resolution against the actual
 Horizon item registry. Missing required references omit their tag, while
@@ -194,7 +202,7 @@ checked enable/disable, reload and world isolation. This is a controlled
 server-side calculation, not fake-item gameplay. Recipe outputs with NBT or
 explicit empty forms, unknown items, custom condition types and
 instrument-registry validation fail closed; these are not full Forge loader
-semantics. Fake items and their gameplay are not registered yet.
+semantics. The fake ingot ID is registered with its original GUI model and material naming; command-supplied bronze, silver and unknown variants survived save/reload and their GUI displays were visually checked in both modes. Its crafting/eligibility connection is still absent. The fake storage block and its gameplay remain unregistered.
 
 The source mod's 131 fluid tag files are copied byte-for-byte into the source
 pack; pinned local Minecraft and Forge jars supply their fluid tags. The game

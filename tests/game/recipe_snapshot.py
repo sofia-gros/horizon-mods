@@ -124,7 +124,7 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
             if a.registered_parts_test:
                 values = [line.split('TCONSTRUCT_REGISTERED_PART_TAGS ', 1)[1] for line in lines if 'TCONSTRUCT_REGISTERED_PART_TAGS ' in line]
                 # The 21 bartered parts are registered; the parent remains
-                # unresolved until fake ingot and storage block are ported.
+                # unresolved until fake storage block is ported.
                 assert values and values[-1] == '21 true false', values
             if a.fake_material_test:
                 values = [line.split('TCONSTRUCT_FAKE_BRONZE ', 1)[1] for line in lines if 'TCONSTRUCT_FAKE_BRONZE ' in line]

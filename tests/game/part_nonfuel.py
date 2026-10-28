@@ -18,7 +18,7 @@ print('run', run, flush=True)
 g = Game(a, run, 'Player', in_frame=a.in_frame)
 try:
     g.ready()
-    for item in ('tconstruct:tool_handle', 'tconstruct:tool_binding'):
+    for item in ('tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:fake_ingot'):
         for command in ('clear @s', 'tp @s 0.5 71 0.5', 'setblock 0 71 2 minecraft:air',
                         'setblock 0 71 2 minecraft:furnace', 'give @s minecraft:iron_ore 1',
                         f'give @s {item}[minecraft:custom_data={{Material:"tconstruct:wood"}}] 1'):
@@ -66,6 +66,6 @@ try:
     slots = {entry['id']: entry.get('stack') for entry in g.call('ui')['widgets'] if entry['id'].startswith('slot-')}
     assert slots['slot-301'] is None and g.call('inventory')['carried'] is None, slots
     g.stop()
-    print('PASS wood parts rejected as fuel; vanilla stick is consumed', flush=True)
+    print('PASS parts and fake ingot rejected as fuel; vanilla stick is consumed', flush=True)
 finally:
     g.cleanup()

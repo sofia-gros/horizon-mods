@@ -10,7 +10,7 @@ fn tconstruct_part_name(
     // Preserve any explicit 26.3 item-name component, including old prototype outputs.
     if stack.item_name().is_some() { return value; }
     let Some(item) = stack.item.strip_prefix("tconstruct:") else { return value; };
-    if !["pick_head", "hammer_head", "small_axe_head", "broad_axe_head", "small_blade", "broad_blade", "adze_head", "large_plate", "bow_limb", "bow_grip", "bowstring", "arrow_head", "arrow_shaft", "fletching", "tool_binding", "tough_binding", "tool_handle", "tough_handle", "helmet_plating", "chestplate_plating", "leggings_plating", "boots_plating", "maille", "shield_core", "ribcage", "shell", "laces", "repair_kit"].contains(&item) { return value; }
+    if !["pick_head", "hammer_head", "small_axe_head", "broad_axe_head", "small_blade", "broad_blade", "adze_head", "large_plate", "bow_limb", "bow_grip", "bowstring", "arrow_head", "arrow_shaft", "fletching", "tool_binding", "tough_binding", "tool_handle", "tough_handle", "helmet_plating", "chestplate_plating", "leggings_plating", "boots_plating", "maille", "shield_core", "ribcage", "shell", "laces", "repair_kit", "fake_ingot"].contains(&item) { return value; }
     let material = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("Material")).and_then(|value| match value {
         horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy()),
         _ => None,
