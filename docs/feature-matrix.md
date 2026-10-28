@@ -1,5 +1,7 @@
 # Tinkers' Construct feature coverage
 
+[Original parity tracking and Part Builder source crosswalk](original-parity.md). This matrix is an incomplete audit, not a comprehensive list of implemented or unimplemented features.
+
 Reference: [1.20.1 source at f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2). The
 [upstream inventory](upstream-inventory.json) records every generated material
 definition (104 files), tool definition (45), and modifier definition (308)

@@ -34,7 +34,9 @@ Only oak planks are accepted for wood parts; the original accepts more
 planklike materials. Shift-click, drag and double-click collection in these
 screens are disabled. Broken-tool visuals and full broken behavior remain
 incomplete. Dedicated servers and arbitrary other item components are not
-verified.
+verified. A reviewer observed that Lore remained in saved server data but was
+missing from the integrated client display after repair; in-frame display
+retained it.
 
 ## Requirements and setup
 

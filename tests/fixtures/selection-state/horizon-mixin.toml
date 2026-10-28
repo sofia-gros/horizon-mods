@@ -1,0 +1,19 @@
+[mod]
+id = "selection_probe"
+version = "0.1.0"
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+[[state]]
+id = "selections"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),u8>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+[[module]]
+id = "access"
+file = "crates/horizon-client/src/chunk_map.rs"
+name = "selection_probe_access"
+source = "access.rs"

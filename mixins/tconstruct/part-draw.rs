@@ -15,15 +15,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     let title = if station { "Tinker Station" } else { "Part Builder" };
     batch.text(atlas, title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
-        // The original atlas uses separately drawn slot backgrounds. Clear its
-        // unused fixed result/side-slot artwork before laying out our two actions.
-        batch.fill(atlas, ox + 77.0, oy + 16.0, 96.0, 79.0, horizon_client::hud::rgba(198, 198, 198, 255));
-        for (x, y) in [(26.0, 34.0), (47.0, 34.0), (68.0, 34.0), (113.0, 37.0), (133.0, 37.0)] {
+        // These three locations come from the upstream pickaxe layout. The
+        // default repair layout and layout selection still need to be ported.
+        for (x, y) in [(52.0, 21.0), (14.0, 59.0), (32.0, 41.0)] {
             part(batch, 176.0, 0.0, x, y, horizon_client::hud::rgba(255, 255, 255, 71));
             part(batch, 194.0, 0.0, x, y, u32::MAX);
         }
-        batch.text(atlas, "Build", ox + 109.0, oy + 22.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
-        batch.text(atlas, "Repair", ox + 135.0, oy + 65.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
             for (x, action) in [(114.0, 24), (134.0, 25)] {
                 let mut preview = slots.clone();

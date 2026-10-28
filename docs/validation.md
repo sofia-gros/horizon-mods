@@ -81,11 +81,18 @@ in the printed run directory. Use a fresh output path for a new stage.
 
 The 176×184 station panel is centered using its actual height. The Part Builder
 buttons and Tinker Station slot borders are cut from the original atlases; the
-station slot background uses the original 28% opacity. The prototype still
-uses direct part output buttons and a simplified station layout.
+station slot background uses the original 28% opacity. The three assembly
+input positions match the original pickaxe layout. The prototype still uses
+direct part output buttons and lacks original layout selection and repair UI.
 
 At 960×540 (integrated server) and 640×360 (in-frame), visually inspected
 empty and populated panels, hovered slot tooltips, and the reopened Part
 Builder after save/reload. The station test exercised click targets, output
 collection and repair. The LAN test captured both clients after allowing frames
 to update and verified a single output under concurrent clicks.
+
+Reviewer testing found that
+a repaired tool's Lore remained in saved server data and in-frame display, but
+the integrated client's display dropped Lore. Other arbitrary component
+round-trips are not established; do not treat the custom-data synchronization
+as general component support.
