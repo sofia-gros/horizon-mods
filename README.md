@@ -61,8 +61,7 @@ yet connected to hotbar labels or recipe search. A table retains its cached reci
 the process and advances only after a successful transaction, but initialization
 is lazy, the JVM-wide seed uniquifier is not mirrored, and other original uses
 of the shared RNG are not yet connected; exact
-cross-process random sequences are not established. Random transactions on
-non-Unix builds remain unsupported. The Tinker Station uses
+cross-process random sequences are not established. Non-Unix builds now use the same bounded draw with a system-clock seed; Windows execution remains unverified. The Tinker Station uses
 separate assembly and repair result icons, and does not yet provide the original
 naming or modifier UI. Shift-click of other slots, right Shift-click, drag and double-click collection remain disabled. Result Shift-click is rejected when an adjacent block entity may supply the original side inventory or a neighboring chunk is unloaded; the original side-inventory behavior is not implemented. Broken-tool visuals and full broken behavior remain
 incomplete. Dedicated servers and arbitrary other item components are not

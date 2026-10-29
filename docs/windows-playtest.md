@@ -1,6 +1,6 @@
 # Windows でダブルクリックして試遊
 
-**Windows 実機ではまだ検証していません。** 現在の Mod は未完成です。非 Unix 環境では、ランダムな余りが必要なリサイクルは取得できません。
+**Windows 実機ではまだ検証していません。** 現在の Mod は未完成です。ランダムな余りを伴うリサイクルも Windows 向けに共通処理へ接続しましたが、Windows 実機では未検証です。
 
 1. [Windows 検証ブランチを ZIP でダウンロード](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/windowns-all-usertest.zip)して展開します。既存の検証ブランチの checkout があれば、それを使っても構いません。
 2. 展開したフォルダー内の **`Play-TConstruct.cmd`** をダブルクリックします。

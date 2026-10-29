@@ -357,9 +357,17 @@ fn source_random_seed() -> i64 {
     (8682522807148012u64.wrapping_mul(1181783497276652981) ^ nanos) as i64
 }
 
-/// Horizon exposes rustix's monotonic clock on Unix. Until the original
-/// Windows clock is wired, fail the random transaction without consuming.
+// The seed is nondeterministic, as with the original Java Random. Its exact
+// value need not match a different process; the shared bounded draw is unchanged.
+#[cfg(not(unix))]
+fn source_random_seed() -> i64 {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos() as u64;
+    (8682522807148012u64.wrapping_mul(1181783497276652981) ^ nanos) as i64
+}
+
 pub(super) fn source_random_draw(items: &horizon_items::items::Items, bound: usize) -> Option<usize> {
-    #[cfg(unix)] { items.__horizon_mixins_tconstruct_recycling_draw(source_random_seed, bound) }
-    #[cfg(not(unix))] { let _ = (items, bound); None }
+    items.__horizon_mixins_tconstruct_recycling_draw(source_random_seed, bound)
 }
