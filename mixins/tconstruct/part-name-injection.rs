@@ -3,6 +3,23 @@ fn tconstruct_part_name(
     game: &crate::game::Game<'_>,
     stack: &horizon_client::items::ItemStack,
 ) -> Vec<(horizon_client::text::Text, u32)> {
+    // DummyMaterialItem.appendHoverText is shared by all four stone plating
+    // items. It is independent of explicit names and material components.
+    if ["tconstruct:helmet_plating_dummy", "tconstruct:chestplate_plating_dummy",
+        "tconstruct:leggings_plating_dummy", "tconstruct:boots_plating_dummy"].contains(&&*stack.item) {
+        let hidden = stack.data().and_then(|data| data.other("minecraft:tooltip_display"))
+            .and_then(|display| display.get("hide_tooltip"))
+            .is_some_and(|value| matches!(value, horizon_world::nbt::Tag::Byte(n) if *n != 0));
+        if !hidden {
+            let key = "item.tconstruct.dummy_tool_part.tooltip";
+            let text = game.pack.names.display_get(key).unwrap_or_else(|| key.to_owned());
+            let name_visible = horizon_client::item_tooltip::TooltipDisplay::for_stack(stack)
+                .name_visible(game.screen == Screen::Creative);
+            let index = usize::from(name_visible).min(value.len());
+            value.insert(index, (horizon_client::text::Text::legacy(&text), horizon_client::hud::rgba(170, 170, 170, 255)));
+        }
+        return value;
+    }
     if stack.custom_name().is_some()
         || !horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative) {
         return value;
