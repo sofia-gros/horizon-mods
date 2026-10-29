@@ -1,0 +1,37 @@
+// Generated from pinned Minecraft 1.20.1 bytecode by
+// tools/extract_original_tier_durability.py. Unknown items remain unknown.
+pub(super) fn max_damage(item: &str) -> Option<i32> {
+    match item {
+        "minecraft:diamond_axe" => Some(1561),
+        "minecraft:diamond_hoe" => Some(1561),
+        "minecraft:diamond_pickaxe" => Some(1561),
+        "minecraft:diamond_shovel" => Some(1561),
+        "minecraft:diamond_sword" => Some(1561),
+        "minecraft:golden_axe" => Some(32),
+        "minecraft:golden_hoe" => Some(32),
+        "minecraft:golden_pickaxe" => Some(32),
+        "minecraft:golden_shovel" => Some(32),
+        "minecraft:golden_sword" => Some(32),
+        "minecraft:iron_axe" => Some(250),
+        "minecraft:iron_hoe" => Some(250),
+        "minecraft:iron_pickaxe" => Some(250),
+        "minecraft:iron_shovel" => Some(250),
+        "minecraft:iron_sword" => Some(250),
+        "minecraft:netherite_axe" => Some(2031),
+        "minecraft:netherite_hoe" => Some(2031),
+        "minecraft:netherite_pickaxe" => Some(2031),
+        "minecraft:netherite_shovel" => Some(2031),
+        "minecraft:netherite_sword" => Some(2031),
+        "minecraft:stone_axe" => Some(131),
+        "minecraft:stone_hoe" => Some(131),
+        "minecraft:stone_pickaxe" => Some(131),
+        "minecraft:stone_shovel" => Some(131),
+        "minecraft:stone_sword" => Some(131),
+        "minecraft:wooden_axe" => Some(59),
+        "minecraft:wooden_hoe" => Some(59),
+        "minecraft:wooden_pickaxe" => Some(59),
+        "minecraft:wooden_shovel" => Some(59),
+        "minecraft:wooden_sword" => Some(59),
+        _ => None,
+    }
+}

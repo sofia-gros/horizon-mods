@@ -62,8 +62,9 @@ pub(super) fn choices(
     tx::source_all_part_choices(recipes, &*pattern.item, &input, id, count, items, &instruments, &instrument_tags, &registries, config, None, None, true)
 }
 
-/// Compute one original normal-part result from the current authoritative
-/// world. Recycling, result resolution and inventory mutation remain separate.
+/// Compute one source result from the current authoritative world. Ordinary
+/// parts and supported single-result recycling are handled; inventory mutation
+/// and unsupported recycling cases remain separate.
 pub(super) fn plan(
     world: &super::tconstruct_world::World,
     pattern: Option<&ItemStack>,
@@ -80,7 +81,45 @@ pub(super) fn plan(
     let (definitions, _, _) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let bytes = recipes.get(&choice.id).ok_or(SourceLookupError::IncompleteContext)?;
-    let value = serde_json::from_slice(bytes).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+    let value: serde_json::Value = serde_json::from_slice(bytes).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+    if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_recycling") {
+        let recipe = tx::SourceRecyclingRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let Some(stack) = material else { return Ok(None); };
+        let max_damage = super::tconstruct_source_original_tier_durability::max_damage(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
+        let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+        // The original applies different checks to modifiable items. Do not
+        // infer non-membership from an unresolved world tag.
+        let modifiable = if let Some(values) = items.get("tconstruct:modifiable") {
+            values.contains(&*stack.item)
+        } else {
+            let raw = chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+            if !super::tconstruct_source_tags::definitely_absent("tconstruct:modifiable", &stack.item, raw)
+                .map_err(|_| SourceLookupError::IncompleteContext)? { return Err(SourceLookupError::IncompleteContext); }
+            false
+        };
+        if modifiable { return Err(SourceLookupError::IncompleteContext); }
+        if !recipe.matches(true, max_damage, damage, false, false, !stack.enchantments().is_empty())? { return Ok(None); }
+        let Some(output) = recipe.output(selected, max_damage, damage)? else { return Ok(None); };
+        let original_count = recipe.results.get(selected).ok_or(SourceLookupError::IncompleteContext)?.count;
+        if recipe.results.len() > 1 && recipe.maximum_amount(max_damage, damage)? > original_count {
+            // getLeftover uses TConstruct.RANDOM and original Map iteration;
+            // do not approximate either until the transaction supports them.
+            return Err(SourceLookupError::IncompleteContext);
+        }
+        let reusable = if let Some(values) = items.get("tconstruct:patterns/reusable") {
+            values.contains(&*pattern.item)
+        } else {
+            let raw = chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+            if !super::tconstruct_source_tags::definitely_absent("tconstruct:patterns/reusable", &pattern.item, raw)
+                .map_err(|_| SourceLookupError::IncompleteContext)? { return Err(SourceLookupError::IncompleteContext); }
+            false
+        };
+        let count = output.count;
+        return Ok(Some(tx::SourcePartPlan {
+            output: tx::SourcePartOutput::Item { output, count }, materials_used: 1,
+            pattern_used: i32::from(!reusable), leftover: None,
+        }));
+    }
     let recipe = tx::SourcePartRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
     let registries: HashMap<_, _> = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
     let instruments = HashSet::new();
@@ -162,7 +201,7 @@ pub(super) fn refresh_preview(
     result
 }
 
-/// Revalidate and resolve the current selected normal-part recipe immediately
+/// Revalidate and resolve the currently selected source recipe immediately
 /// before a player takes its output. No inventory has been mutated yet.
 pub(super) fn prepare_take(
     world: &super::tconstruct_world::World, pos: (i32, i32, i32),

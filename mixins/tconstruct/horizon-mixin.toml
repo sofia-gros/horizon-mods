@@ -862,3 +862,15 @@ id = "host-source-quick-packet"
 file = "crates/horizon-client/src/game/remote.rs"
 name = "tconstruct_source_quick_packet"
 source = "source-quick-packet.rs"
+
+[[module]]
+id = "host-source-original-tier-durability"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_original_tier_durability"
+source = "source-original-tier-durability.rs"
+
+[[module]]
+id = "server-source-original-tier-durability"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_original_tier_durability"
+source = "source-original-tier-durability.rs"

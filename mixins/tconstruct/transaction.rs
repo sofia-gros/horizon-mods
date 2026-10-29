@@ -1198,10 +1198,9 @@ pub(super) fn source_all_part_choices(
     Ok(choices)
 }
 
-/// A single source Part Builder craft plan. ItemOutput tag resolution, item
-/// crafting-container returns, inventory capacity, events and atomic commit
-/// are deliberately deferred; this is not used by player gameplay. Callers
-/// must revalidate the pattern and conditions before any eventual commit.
+/// A single source Part Builder craft plan. World and player callers resolve
+/// outputs and revalidate inputs before committing. Original crafting-container
+/// coverage, callbacks and transaction ordering remain incomplete.
 #[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub(super) enum SourcePartOutput {

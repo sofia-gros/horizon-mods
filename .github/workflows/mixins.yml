@@ -32,6 +32,8 @@ jobs:
           /tmp/tconstruct-source-builder-wire-test
           rustc --test tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
           /tmp/tconstruct-source-builder-layout-test
+          rustc --test tests/rust/original_tier_durability.rs -o /tmp/tconstruct-original-tier-test
+          /tmp/tconstruct-original-tier-test
       - name: Fetch pinned upstream sources
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official

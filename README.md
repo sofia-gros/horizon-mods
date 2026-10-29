@@ -18,7 +18,7 @@ branch does not yet meet Part Builder acceptance; see the
 
 The source recipes, material definitions, tags and tool definitions are
 prepared as shared data. Shared selection and material-cost calculations are connected to normal GUI
-crafting for the supported ordinary part recipes. Recycling remains a prototype. We will connect and verify each common behavior once,
+crafting for supported ordinary parts and a limited source-recycling path. We will connect and verify each common behavior once,
 then expand content through its source definitions and check separately only
 where the original has distinct behavior.
 
@@ -50,12 +50,12 @@ Two players can use the same table; the tested competing result pickups consume
 inputs once. In both game modes, a guest can reopen the table and see the
 shared source-pattern selection after the Pattern is removed and restored. See the
 [Part Builder source-recipe preview](docs/part-builder-source-preview.png) and
-[Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
+[recycling preview](docs/recycling-preview.png) and [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
 
 This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
-the other craftable parts cannot yet be assembled into tools. A command-supplied venom bottle can be drunk, giving Strength and poison and returning a glass bottle in the tested cases. Its fluid-container capability, detailed tooltip and normal acquisition remain unimplemented. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
+the other craftable parts cannot yet be assembled into tools. A command-supplied venom bottle can be drunk, giving Strength and poison and returning a glass bottle in the tested cases. A venom bottle and stone axe can also be used in the Part Builder: the tested undamaged axe returns three cobblestone and an empty glass bottle; durability affects the quantity. Its fluid-container capability, detailed tooltip and normal acquisition remain unimplemented. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
 tools and traits are not supported. The Part Builder has a source-recipe selection grid and ordinary pickup, but
-recycling, all material and item registrations, original container remainders,
+recycling with random leftovers, modifiable and unsupported input items, all material and item registrations, original container remainders,
 complete tooltips and side panels are unfinished. Dynamic part names are not
 yet connected to hotbar labels or recipe search. The Tinker Station uses
 separate assembly and repair result icons, and does not yet provide the original
@@ -106,6 +106,14 @@ and official Horizon's native data-table builder; it does not start a Wasm engin
 are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
 are included in the repository and the generated resource overlay under
 `THIRD_PARTY_LICENSES/`.
+
+To regenerate the original 1.20.1 tier-tool durability table, use a JDK and the
+pinned local client jar:
+
+```sh
+python3 tools/extract_original_tier_durability.py /path/to/minecraft-1.20.1-client.jar /tmp/original-tier-durability.rs
+cmp /tmp/original-tier-durability.rs mixins/tconstruct/source-original-tier-durability.rs
+```
 
 To repeat the source-recipe ordering comparison, install a JDK and run:
 
