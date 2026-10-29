@@ -118,3 +118,21 @@ pub(super) fn plan(
     };
     tx::source_part_plan(&recipe, &input, found.as_ref(), available, reusable)
 }
+
+/// Cache source candidates per world and table, recomputing only after either
+/// input changes. Pack reload and block/chunk removal clear the cache.
+pub(super) fn refresh(world: &mut super::tconstruct_world::World, pos: (i32, i32, i32)) -> Option<Vec<String>> {
+    let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else {
+        world.chunks.__horizon_mixins_tconstruct_builder_choices_mut().remove(&pos);
+        return None;
+    };
+    let pattern = slots.first().cloned().flatten();
+    let material = slots.get(1).cloned().flatten();
+    if let Some((old_pattern, old_material, result)) = world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&pos) {
+        if old_pattern == &pattern && old_material == &material { return result.clone(); }
+    }
+    let result = choices(world, pattern.as_ref(), material.as_ref()).ok()
+        .map(|candidates| candidates.into_iter().map(|c| c.pattern).collect());
+    world.chunks.__horizon_mixins_tconstruct_builder_choices_mut().insert(pos, (pattern, material, result.clone()));
+    result
+}

@@ -1,9 +1,9 @@
-import sys,tempfile,time,argparse
+import sys,tempfile,time,argparse,json
 from pathlib import Path
 from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from harness import Game
-p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--output-parent',type=Path,default=Path('target'))
+p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--source-choice-wire-test',action='store_true');p.add_argument('--output-parent',type=Path,default=Path('target'))
 a=p.parse_args();a.output_parent.mkdir(parents=True,exist_ok=True);run=Path(tempfile.mkdtemp(prefix='station-race-',dir=a.output_parent.resolve()))
 print('run',run,flush=True)
 games=[]
@@ -25,6 +25,21 @@ try:
   print(g.label,'interact',g.call('interact','0','71','2'),flush=True)
  click(h,0);click(h,300);click(h,1);click(h,301)
  wait('inputs shared',lambda:all(slots(g).get(300,{}).get('item')=='tconstruct:pattern' and slots(g).get(301,{}).get('count')==3 for g in games))
+ if a.source_choice_wire_test:
+  def guest_patterns():
+   text=(q.root/'game.log').read_text()
+   lines=[line.split('TCONSTRUCT_GUEST_BUILDER_CHOICES ',1)[1] for line in text.splitlines() if 'TCONSTRUCT_GUEST_BUILDER_CHOICES ' in line]
+   return lines[-1].split(',') if lines and lines[-1] else []
+  wait('guest receives source candidates',lambda:'tconstruct:pick_head' in guest_patterns() and 'tconstruct:tool_handle' in guest_patterns())
+  previous=guest_patterns().index('tconstruct:pick_head')
+  pack=h.root/'saves/Probe/datapacks/source-choice-wire'
+  (pack/'data/tconstruct/recipes/tools/parts/builder').mkdir(parents=True)
+  (pack/'pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"source choice test"}}')
+  recipe=json.loads((Path(__file__).resolve().parents[2]/'content/data/tconstruct/recipes/tools/parts/builder/pick_head.json').read_text())
+  recipe['cost']=1
+  (pack/'data/tconstruct/recipes/tools/parts/builder/pick_head.json').write_text(json.dumps(recipe))
+  h.call('command','reload')
+  wait('guest receives changed source order',lambda:'tconstruct:pick_head' in guest_patterns() and guest_patterns().index('tconstruct:pick_head')<previous)
  click(h,324);assert not (h.call('menu').get('carried') or {})
  click(q,325);q.call('wait','20');h.call('wait','20');click(h,322)
  assert (h.call('menu').get('carried') or {}).get('item') == 'tconstruct:tool_handle', 'guest selection must replace host selection'
@@ -33,8 +48,10 @@ try:
  # pattern identity while its transmitted index is temporarily -1.
  click(h,300);click(h,3)
  wait('pattern removed on guest',lambda:300 not in slots(q))
+ if a.source_choice_wire_test: wait('guest clears source candidates',lambda:not guest_patterns())
  click(h,3);click(h,300)
  wait('pattern restored on guest',lambda:slots(q).get(300,{}).get('item')=='tconstruct:pattern')
+ if a.source_choice_wire_test: wait('guest restores source candidates',lambda:'tconstruct:pick_head' in guest_patterns())
  q.call('close');q.call('interact','0','71','2')
  wait('guest reopened table',lambda:any(s["id"] == "slot-300" for s in q.call('ui')["widgets"]))
  q.call('wait','20');time.sleep(1);q.call('screenshot',str(run/'guest-reopened.png'))

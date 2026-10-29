@@ -28,6 +28,8 @@ jobs:
           /tmp/tconstruct-material-snapshot-test
           rustc --test tests/rust/source_config.rs -o /tmp/tconstruct-source-config-test
           /tmp/tconstruct-source-config-test
+          rustc --test tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
+          /tmp/tconstruct-source-builder-wire-test
       - name: Fetch pinned upstream sources
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official

@@ -101,4 +101,5 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);
+    game.world.chunks.__horizon_mixins_tconstruct_builder_choices_mut().clear();
 }

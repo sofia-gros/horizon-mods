@@ -737,3 +737,42 @@ id = "server-source-world-type"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_world"
 source = "source-world-type-server.rs"
+
+[[state]]
+id = "builder-choices"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>,Option<Vec<String>>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "refresh-local-builder-choices"
+target = "horizon_client::game::storage::Game<'_>::tick_container_reach"
+kind = "HEAD"
+helper = "source-builder-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "host-source-builder-wire"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_wire"
+source = "source-builder-wire.rs"
+
+[[module]]
+id = "server-source-builder-wire"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_builder_wire"
+source = "source-builder-wire.rs"
+
+[[state]]
+id = "builder-wire-recv"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
