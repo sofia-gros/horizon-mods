@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Export pinned Horizon sources and apply the pinned Mixins CLI."""
-import argparse, json, os, subprocess, tarfile, tempfile
+import argparse, json, os, subprocess, tempfile
+from portable_archive import extract_git_tar
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -23,22 +24,15 @@ if original.exists() or (output / 'modded').exists():
     p.error(f'{output}: original or modded already exists; choose a fresh output directory')
 original.mkdir(parents=True)
 proc = subprocess.Popen(['git', '-C', str(a.horizon), 'archive', '--format=tar', compat['horizon_revision']], stdout=subprocess.PIPE)
-with tarfile.open(fileobj=proc.stdout, mode='r|') as archive:
-    archive.extractall(original, filter='data')
+extract_git_tar(proc.stdout, original)
 if proc.wait():
     raise SystemExit('git archive failed')
-for path in original.rglob('*'):
-    if path.is_symlink():
-        data = path.read_bytes()
-        path.unlink()
-        path.write_bytes(data)
 (original / '.horizon-revision').write_text(compat['horizon_revision'] + '\n')
 # Build only exported committed source, never a possibly modified working tree.
 with tempfile.TemporaryDirectory(prefix='mixins-source-', dir=output) as temp:
     source = Path(temp)
     proc = subprocess.Popen(['git', '-C', str(a.mixins), 'archive', '--format=tar', compat['mixins_revision']], stdout=subprocess.PIPE)
-    with tarfile.open(fileobj=proc.stdout, mode='r|') as archive:
-        archive.extractall(source, filter='data')
+    extract_git_tar(proc.stdout, source)
     if proc.wait():
         raise SystemExit('Mixins git archive failed')
     cli_target = root / 'target/mixins-cli-build'

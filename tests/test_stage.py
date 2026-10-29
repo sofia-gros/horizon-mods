@@ -33,6 +33,7 @@ class StageExport(unittest.TestCase):
             (project / 'tools').mkdir(parents=True)
             (project / 'tests/fixtures').mkdir(parents=True)
             shutil.copy(SCRIPT, project / 'tools/stage.py')
+            shutil.copy(SCRIPT.parent / 'portable_archive.py', project / 'tools/portable_archive.py')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_revision=git(repos[1], 'rev-parse', 'HEAD'))))
             bindir = root / 'bin'
             bindir.mkdir()

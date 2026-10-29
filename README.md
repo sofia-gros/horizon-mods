@@ -72,7 +72,7 @@ preservation of arbitrary other components or all styled text.
 
 ## Requirements and setup
 
-[Windows PowerShell playtest instructions](docs/windows-playtest.md) (native Windows build and play are not yet verified).
+[Windows double-click playtest instructions](docs/windows-playtest.md) (native Windows build and play are not yet verified).
 
 Linux, Python 3.12+, Git, Rust and Cargo, and your own prepared Horizon 26.3
 resources are required. The reference-data setup also uses locally supplied

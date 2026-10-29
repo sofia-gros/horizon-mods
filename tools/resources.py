@@ -4,6 +4,19 @@ import argparse, copy, hashlib, json, shutil, zipfile
 from pathlib import Path
 from import_part_visuals import MATERIAL_MODELS
 
+def link_or_copy(source, destination):
+    """Preserve the source; Windows may deny symlink creation without developer mode."""
+    try:
+        destination.symlink_to(source, target_is_directory=source.is_dir())
+    except OSError:
+        if destination.exists() or destination.is_symlink():
+            raise
+        if source.is_dir():
+            shutil.copytree(source, destination)
+        else:
+            shutil.copy2(source, destination)
+
+
 p = argparse.ArgumentParser()
 p.add_argument('source', type=Path)
 p.add_argument('output', type=Path)
@@ -19,7 +32,7 @@ if (src / 'assets/tconstruct').exists():
 out.mkdir(parents=True)
 for path in src.iterdir():
     if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'assets'}:
-        (out / path.name).symlink_to(path, target_is_directory=path.is_dir())
+        link_or_copy(path, out / path.name)
 # Keep the source notices in the generated resource distribution as well.
 licenses = out / 'THIRD_PARTY_LICENSES'
 licenses.mkdir()
@@ -30,21 +43,21 @@ assets = out / 'assets'
 assets.mkdir()
 for namespace in (src / 'assets').iterdir():
     if namespace.name not in {'tconstruct', 'minecraft'}:
-        (assets / namespace.name).symlink_to(namespace, target_is_directory=namespace.is_dir())
+        link_or_copy(namespace, assets / namespace.name)
 vanilla = assets / 'minecraft'
 vanilla.mkdir()
 for child in (src / 'assets/minecraft').iterdir():
     if child.name != 'textures':
-        (vanilla / child.name).symlink_to(child, target_is_directory=child.is_dir())
+        link_or_copy(child, vanilla / child.name)
 textures = vanilla / 'textures'
 textures.mkdir()
 for child in (src / 'assets/minecraft/textures').iterdir():
     if child.name != 'gui':
-        (textures / child.name).symlink_to(child, target_is_directory=child.is_dir())
+        link_or_copy(child, textures / child.name)
 gui = textures / 'gui'
 gui.mkdir()
 for child in (src / 'assets/minecraft/textures/gui').iterdir():
-    (gui / child.name).symlink_to(child, target_is_directory=child.is_dir())
+    link_or_copy(child, gui / child.name)
 for name in ('part_builder', 'tinker_station', 'icons'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.

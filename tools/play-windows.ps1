@@ -1,0 +1,126 @@
+# Native Mixins playtest. All generated files and saves live in a separate folder.
+$ErrorActionPreference = 'Stop'
+$Repo = Split-Path -Parent $PSScriptRoot
+$HomeDir = Join-Path $env:LOCALAPPDATA 'TConstruct-Horizon-Playtest'
+$ClientHash = '0c3ec587af28e5a785c0b4a7b8a30f9a8f78f838'
+function Run([string]$Command, [string[]]$Arguments) {
+    & $Command @Arguments
+    if ($LASTEXITCODE -ne 0) { throw "$Command failed with exit code $LASTEXITCODE" }
+}
+function Pick-Folder([string]$Title) {
+    Add-Type -AssemblyName System.Windows.Forms
+    $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+    $dialog.Description = $Title
+    if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { throw 'Required folder was not selected.' }
+    return $dialog.SelectedPath
+}
+function Good-Client([string]$Path) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA1).Hash.ToLowerInvariant() -eq $ClientHash
+}
+function Checkout-Pinned([string]$Path, [string]$Url, [string]$Revision) {
+    if (-not (Test-Path -LiteralPath $Path)) {
+        Run git @('clone', '--no-checkout', $Url, $Path)
+        Run git @('-C', $Path, 'checkout', '--detach', $Revision)
+    }
+    $actual = (& git -C $Path rev-parse HEAD 2>$null)
+    if ($LASTEXITCODE -ne 0 -or $actual -ne $Revision) { throw "Pinned source checkout is incomplete or differs: $Path. Preserve any edits and fix this checkout before retrying." }
+}
+try {
+    foreach ($name in @('git', 'cargo', 'py')) {
+        if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "$name is missing. Install Git, Python 3.12 and Rust stable MSVC with Visual Studio C++ Build Tools, then try again. Nothing was installed automatically." }
+    }
+    Run py @('-3', '-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)')
+    $compat = Get-Content -LiteralPath (Join-Path $Repo 'compatibility.json') -Raw | ConvertFrom-Json
+    $settingsPath = Join-Path $HomeDir 'launcher-settings.json'
+    $settings = $null
+    if (Test-Path -LiteralPath $settingsPath -PathType Leaf) { $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json }
+    $candidates = @(
+        (Join-Path $env:APPDATA 'horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3'),
+        (Join-Path $env:LOCALAPPDATA 'horizon-client\26.3')
+    )
+    if ($settings -and $settings.resources) { $candidates = @($settings.resources) + $candidates }
+    $candidates += @(Get-ChildItem -Path (Join-Path $env:APPDATA 'horizon-launcher\versions\*\.local\horizon-client\26.3') -Directory -ErrorAction SilentlyContinue | ForEach-Object FullName)
+    $resources = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'horizon-resources.json') -PathType Leaf } | Select-Object -First 1
+    if (-not $resources) { $resources = Pick-Folder 'Select your prepared Horizon 26.3 resource folder' }
+    if (-not (Test-Path -LiteralPath (Join-Path $resources 'horizon-resources.json') -PathType Leaf)) { throw 'The selected folder is not a prepared Horizon 26.3 resource folder. Prepare it with Horizon Launcher first.' }
+    $clients = @(
+        (Join-Path $env:APPDATA '.minecraft\versions\1.20.1\1.20.1.jar'),
+        (Join-Path $env:APPDATA 'PrismLauncher\libraries\com\mojang\minecraft\1.20.1\minecraft-1.20.1-client.jar')
+    )
+    if ($settings -and $settings.client) { $clients = @($settings.client) + $clients }
+    $clients += @(Get-ChildItem -Path (Join-Path $env:APPDATA 'PrismLauncher\instances\*\minecraft\versions\1.20.1\1.20.1.jar') -File -ErrorAction SilentlyContinue | ForEach-Object FullName)
+    $client = $null
+    foreach ($candidate in $clients) { if (Good-Client $candidate) { $client = $candidate; break } }
+    if (-not $client) {
+        # 1.20.1 recipe/tag reference data is distinct from the prepared 26.3
+        # assets. No Java process is run; fetch the official fixed client only
+        # if an existing matching copy cannot be found.
+        $cache = Join-Path $HomeDir 'reference-data'
+        New-Item -ItemType Directory -Force -Path $cache | Out-Null
+        $client = Join-Path $cache 'minecraft-1.20.1-client.jar'
+        if ((Test-Path -LiteralPath $client) -and -not (Good-Client $client)) { throw "An unexpected existing file is at $client; it was left untouched." }
+        if (-not (Good-Client $client)) {
+            $partial = Join-Path $cache ('client-' + $PID + '.download')
+            if (Test-Path -LiteralPath $partial) { throw "Download temporary file already exists: $partial" }
+            try {
+                Write-Host 'Downloading the original 1.20.1 recipe and tag reference data from Mojang (no Java is run)...'
+                Invoke-WebRequest -Uri ('https://piston-data.mojang.com/v1/objects/' + $ClientHash + '/client.jar') -OutFile $partial
+                if (-not (Good-Client $partial)) { throw 'Downloaded Minecraft client did not match the pinned SHA-1.' }
+                Move-Item -LiteralPath $partial -Destination $client
+            } finally { if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial } }
+        }
+    }
+    # Key the generated build by actual input bytes, so a ZIP download and local
+    # modifications work without writing to or resetting the user's checkout.
+    $inputs = foreach ($dir in @('mixins', 'content', 'assets', 'tools', 'third_party')) {
+        Get-ChildItem -LiteralPath (Join-Path $Repo $dir) -Recurse -File |
+            Where-Object { $_.FullName -notmatch '[\\/]__pycache__[\\/]' -and $_.Extension -ne '.pyc' }
+    }
+    $lines = @($resources) + @($inputs | Sort-Object FullName | ForEach-Object {
+        $_.FullName.Substring($Repo.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
+    }) + @((Get-FileHash -LiteralPath (Join-Path $Repo 'compatibility.json') -Algorithm SHA256).Hash)
+    $hasher = [System.Security.Cryptography.SHA256]::Create()
+    try { $head = ([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))))).Replace('-', '').ToLowerInvariant() }
+    finally { $hasher.Dispose() }
+    New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
+    if (-not (Test-Path -LiteralPath $settingsPath)) { @{ resources = $resources; client = $client } | ConvertTo-Json | Set-Content -LiteralPath $settingsPath -Encoding UTF8 }
+    $sources = Join-Path $HomeDir 'sources'
+    New-Item -ItemType Directory -Force -Path $sources | Out-Null
+    $horizon = Join-Path $sources ('horizon-' + $compat.horizon_revision)
+    $mixins = Join-Path $sources ('mixins-' + $compat.mixins_revision)
+    Checkout-Pinned $horizon $compat.horizon_repository $compat.horizon_revision
+    Checkout-Pinned $mixins $compat.mixins_repository $compat.mixins_revision
+    $build = Join-Path $HomeDir ('builds\' + $head)
+    $ready = Join-Path $build '.ready'
+    $game = Join-Path $build 'horizon-client.exe'
+    $gameResources = Join-Path $build 'resources'
+    if (-not (Test-Path -LiteralPath $ready)) {
+        if (Test-Path -LiteralPath $build) { throw "An incomplete previous build exists at $build. It was left untouched; remove only this generated build folder after checking it, then retry." }
+        New-Item -ItemType Directory -Force -Path $build | Out-Null
+        Push-Location $Repo
+        try {
+            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--output-dir', $build)
+            $cargoTarget = Join-Path $HomeDir 'cargo-cache'
+            Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
+            Copy-Item -LiteralPath (Join-Path $cargoTarget 'fast\horizon-client.exe') -Destination $game
+            $overlay = Join-Path $build 'item-resources'
+            Run py @('-3', 'tools/resources.py', $resources, $overlay)
+            Run $game @('--tconstruct-prepare', $overlay, (Join-Path $Repo 'content'), $gameResources)
+            Run py @('-3', 'tools/source_data.py', $client, (Join-Path $gameResources 'minecraft-original-pack'))
+            Run py @('-3', 'tools/prepare_bundled_forge.py', (Join-Path $gameResources 'forge-original-pack'))
+            Set-Content -LiteralPath $ready -Value $head
+        } finally { Pop-Location }
+    }
+    if (-not (Test-Path -LiteralPath $game -PathType Leaf) -or -not (Test-Path -LiteralPath (Join-Path $gameResources 'horizon-resources.json') -PathType Leaf)) { throw 'Cached build is incomplete. It was left untouched.' }
+    $GameDir = Join-Path $HomeDir 'game'
+    New-Item -ItemType Directory -Force -Path $GameDir | Out-Null
+    $env:HORIZON_HOME = $GameDir
+    Write-Host "Starting isolated world TConstruct-Playtest. Saves: $GameDir\saves"
+    Push-Location $GameDir
+    try { Run $game @('--resources', $gameResources, '--world', 'TConstruct-Playtest', '--seed', '42', '--creative') } finally { Pop-Location }
+} catch {
+    Write-Host "`nCould not start the Mixins playtest: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host 'Existing saves and original resources were not changed. See docs/windows-playtest.md for prerequisites and troubleshooting.'
+    exit 1
+}
