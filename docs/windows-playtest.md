@@ -68,8 +68,9 @@ Set-Location -LiteralPath $GameHome
 /give @s minecraft:flint 16
 /give @s minecraft:calcite 16
 /give @s tconstruct:tool_handle_cast 1
+/give @s tconstruct:blank_sand_cast 1
 ```
 
-Part Builder を置いて右クリックし、Pattern と板材を入力、一覧から Tool Handle を選び、プレビューと結果を確認して取り出します。検証済み Linux 実行では板材 1 枚から木の柄ができ、保存・再開後も材料情報が残りました。Pattern と calcite を入力し、Helmet Plating を選ぶと石製 Helmet Plating を作れます（calcite 3 個を消費）。石製防具プレート 4 種を登録しています。Linux の検証用ビルドで helmet の制作と保存を確認していますが、正式変換版・Windows・残る 3 種と詳細 tooltip は未検証または未実装です。Tool Handle Cast を Pattern の代わりに入れると再利用可能な金型として柄を選べます。Linux の検証用ビルドでは板材消費後もこの金型が残りました。鋳造による自然な入手、金型の詳細 tooltip、他の金型と Windows は未実装または未検証です。材料や候補を変えて試せますが、未登録物・未対応レシピがあります。原作の革防具・亀の甲羅の耐久値もリサイクル共通処理へ追加しています。Linux の検証用ビルドでは革ブーツとコマンド投入の venom bottle から革と空瓶を取得し、保存・再開を確認しました。正式 Mixins ビルドと他の防具、Windows でのこの操作は未検証です。複数結果のランダム余り、隣接 inventory 連携、詳細表示、完全な道具組立などは未完成です。[現状の一覧](../README.md) と [対応状況](roadmap.md) を参照してください。
+Part Builder を置いて右クリックし、Pattern と板材を入力、一覧から Tool Handle を選び、プレビューと結果を確認して取り出します。検証済み Linux 実行では板材 1 枚から木の柄ができ、保存・再開後も材料情報が残りました。Pattern と calcite を入力し、Helmet Plating を選ぶと石製 Helmet Plating を作れます（calcite 3 個を消費）。石製防具プレート 4 種を登録しています。Linux の検証用ビルドで helmet の制作と保存を確認していますが、正式変換版・Windows・残る 3 種と詳細 tooltip は未検証または未実装です。Tool Handle Cast を Pattern の代わりに入れると再利用可能な金型として柄を選べます。Linux の検証用ビルドでは板材消費後もこの金型が残りました。鋳造による自然な入手、金型の詳細 tooltip、他の金型と Windows は未実装または未検証です。空の砂金型を Pattern 位置に入れ、材料を空にした状態で Adze Head を選ぶと砂金型を成形できます。Linux の検証用ビルドでは入力消費と保存再開を確認しました。赤砂・他の形・Windows は未検証です。材料や候補を変えて試せますが、未登録物・未対応レシピがあります。原作の革防具・亀の甲羅の耐久値もリサイクル共通処理へ追加しています。Linux の検証用ビルドでは革ブーツとコマンド投入の venom bottle から革と空瓶を取得し、保存・再開を確認しました。正式 Mixins ビルドと他の防具、Windows でのこの操作は未検証です。複数結果のランダム余り、隣接 inventory 連携、詳細表示、完全な道具組立などは未完成です。[現状の一覧](../README.md) と [対応状況](roadmap.md) を参照してください。
 
 実行時のエラー調査には、表示された Git SHA、失敗したコマンド、エラー全文、Windows・Python・Rust のバージョンを使ってください。Linux の成功は Windows 成功を意味しません。

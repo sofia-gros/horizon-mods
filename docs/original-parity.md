@@ -328,3 +328,5 @@ comparison. The implementation requires an explicit preference snapshot rather
 than assuming a world configuration.
 
 The official Horizon network serializer does not transmit generic item `custom_data`. The two network hooks add that component for vanilla and other mod items as well as TConstruct items; separate two-player tests checked a vanilla diamond through a shared chest, retrieval and save/reload in both execution modes. This does not establish complete preservation of arbitrary item components.
+
+Original cast-pattern evidence: `data/tconstruct/recipes/tools/parts/builder/tool_handle.json` accepts the default pattern tag or `tconstruct:tool_handle_cast`; `data/tconstruct/tags/items/patterns/reusable.json` includes the original gold-cast tag and elytra. The original sand/red-sand `builder_cast` recipes accept their respective cast tags and produce shaped casts; those inputs are outside the reusable tag and are consumed. A command-supplied gold handle cast and a blank sand cast were each exercised through the existing Linux test-generated GUI path. Natural cast acquisition, cast cost tooltip, other cases and Windows remain incomplete or unverified.
