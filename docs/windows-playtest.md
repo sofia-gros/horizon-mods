@@ -14,7 +14,7 @@
 
 ## 試せること
 
-Part Builder を置いて Pattern と材料を入れ、候補を選んで部品を取得できます。木の板材から柄、calcite から石製 Helmet Plating を作る操作は Linux の検証用ビルドで確認しています。Minecraft アイテムのリサイクル耐久値は 26.3 の登録値を使います。Linux の正式 Mixins ビルドで、試験 datapack のメイスを使って消費・保存を確認しました。原作にメイスのリサイクルレシピはなく、Windows は未検証です。個別の最大耐久上書きや非 Minecraft アイテムは未対応です。金型や砂金型も一部操作できますが、自然な鋳造による入手、金型の詳細 tooltip、Station の全機能などは未完成です。取得の確認には Creative ワールドのチャットで、例えば以下を入力できます。
+Part Builder を置いて Pattern と材料を入れ、候補を選んで部品を取得できます。木の板材から柄、calcite から石製 Helmet Plating を作る操作は Linux の検証用ビルドで確認しています。 4 種共通の原作説明文も追加し、英語の Helmet Plating を Linux 正式ビルドの実画面で確認しました。他の 3 種と Windows は未検証です。Minecraft アイテムのリサイクル耐久値は 26.3 の登録値を使います。Linux の正式 Mixins ビルドで、試験 datapack のメイスを使って消費・保存を確認しました。原作にメイスのリサイクルレシピはなく、Windows は未検証です。個別の最大耐久上書きや非 Minecraft アイテムは未対応です。金型や砂金型も一部操作できますが、自然な鋳造による入手、金型の詳細 tooltip、Station の全機能などは未完成です。取得の確認には Creative ワールドのチャットで、例えば以下を入力できます。
 
 ```text
 /give @s tconstruct:part_builder 1
