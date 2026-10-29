@@ -123,16 +123,10 @@ pub(super) fn plan(
         let mut alternatives = Vec::new();
         if recipe.results.len() > 1 && recipe.maximum_amount(max_damage, damage)? > original_count {
             let epoch = context.map_or(*chunks.__horizon_mixins_tconstruct_source_recipe_generation(), |(epoch, _, _)| *epoch);
-            if chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
-                != Some(&(selected.to_owned(), recipe.id.clone(), epoch)) {
-                return Err(SourceLookupError::IncompleteContext);
-            }
-            for (key, other) in &recipe.results {
-                if key != selected {
-                    let count = (recipe.maximum_amount(max_damage, damage)? - original_count).min(other.count);
-                    alternatives.push((other.clone(), count));
-                }
-            }
+            let origin = chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
+                .filter(|(pattern, _, _)| pattern == selected).ok_or(SourceLookupError::IncompleteContext)?;
+            let same_object = origin.1 == recipe.id && origin.2 == epoch;
+            alternatives = recipe.alternatives(selected, same_object, max_damage, damage)?;
         }
         let reusable = if let Some(values) = items.get("tconstruct:patterns/reusable") {
             values.contains(&*pattern.item)

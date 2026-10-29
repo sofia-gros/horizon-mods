@@ -15,6 +15,7 @@ p.add_argument('--iron-choice',action='store_true')
 p.add_argument('--crossbow',action='store_true')
 p.add_argument('--reload-after-select',action='store_true')
 p.add_argument('--reselect-after-reload',action='store_true')
+p.add_argument('--replace-pattern-after-reload',action='store_true')
 a=p.parse_args()
 run=Path(tempfile.mkdtemp(prefix='recycling-preview-',dir=Path('target').resolve()))
 print('run',run,flush=True)
@@ -46,6 +47,8 @@ try:
     g.call('click',node['id']);g.call('wait','20')
     if a.reload_after_select:
         g.call('command','reload');g.call('wait','60')
+        if a.replace_pattern_after_reload:
+            click(300); click(2); click(2); click(300); g.call('wait','20')
         if a.reselect_after_reload:
             fresh=next(n for n in g.call('ui')['widgets'] if n.get('label')==pattern and n.get('enabled'))
             g.call('click',fresh['id']);g.call('wait','20')
@@ -69,19 +72,24 @@ try:
     assert result.get('item') == result_item and result.get('count') == expected, result
     rows = {r['slot']: r['stack'] for r in g.call('menu')['slots'] if r.get('stack')}
     assert rows.get(300, {}).get('item') == 'minecraft:glass_bottle' and 301 not in rows, rows
+    if a.flint_steel and original_count > 1 and a.replace_pattern_after_reload and not a.reselect_after_reload:
+        inventory = g.call('inventory')['hotbar']
+        candidates = [(x.get('item'), x.get('count')) for x in inventory if x.get('item') in ('minecraft:flint', 'minecraft:iron_ingot')]
+        assert candidates in [[('minecraft:flint', 1)], [('minecraft:iron_ingot', 1)]], candidates
+        alternate = candidates[0][0]
     if not a.quick: click(1)
     g.call('screenshot',str(run/'recycled.png'))
     if a.flint_steel and original_count > 1:
-        assert any(x.get('item') == alternate and x.get('count') == 1 for x in g.call('inventory')['hotbar']), g.call('inventory')
+        assert sum(x.get('count', 0) for x in g.call('inventory')['hotbar'] if x.get('item') == alternate) == (2 if alternate == result_item and a.replace_pattern_after_reload and not a.reselect_after_reload else 1), g.call('inventory')
     if a.crossbow:
         items = g.call('inventory')['hotbar']
         leftovers = [(x.get('item'), x.get('count')) for x in items if x.get('item') in ('minecraft:string', 'minecraft:iron_ingot')]
         assert leftovers in [[('minecraft:string', 2)], [('minecraft:iron_ingot', 1)]], leftovers
     g.call('close');g.call('save');g.stop();g.cleanup()
     g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready()
-    assert any(x.get('item') == result_item and x.get('count') == expected for x in g.call('inventory')['hotbar'])
+    assert sum(x.get('count', 0) for x in g.call('inventory')['hotbar'] if x.get('item') == result_item) == (2 if a.flint_steel and alternate == result_item and a.replace_pattern_after_reload and not a.reselect_after_reload else expected)
     if a.flint_steel and original_count > 1:
-        assert any(x.get('item') == alternate and x.get('count') == 1 for x in g.call('inventory')['hotbar'])
+        assert sum(x.get('count', 0) for x in g.call('inventory')['hotbar'] if x.get('item') == alternate) == (2 if alternate == result_item and a.replace_pattern_after_reload and not a.reselect_after_reload else 1)
     if a.crossbow:
         items = g.call('inventory')['hotbar']
         assert any(x.get('item') == leftovers[0][0] and x.get('count') == leftovers[0][1] for x in items), items

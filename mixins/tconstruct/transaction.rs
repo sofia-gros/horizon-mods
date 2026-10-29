@@ -683,6 +683,18 @@ impl SourceRecyclingRecipe {
         else { Ok(maximum.wrapping_mul(max_damage.wrapping_sub(damage)) / max_damage) }
     }
 
+    /// Source getLeftover excludes the selected Pattern by object identity.
+    /// A selected value from another recipe object can therefore be returned
+    /// as an alternative even when its ID equals the current result key.
+    pub(super) fn alternatives(&self, selected: &str, same_object: bool, max_damage: i32, damage: i32)
+        -> Result<Vec<(SourceItemOutput, i32)>, SourceLookupError> {
+        let original_count = self.results.get(selected).ok_or(SourceLookupError::IncompleteContext)?.count;
+        let remaining = self.maximum_amount(max_damage, damage)?.wrapping_sub(original_count);
+        if remaining <= 0 || self.results.len() <= 1 { return Ok(Vec::new()); }
+        Ok(self.results.iter().filter(|(key, _)| !same_object || key.as_str() != selected)
+            .map(|(_, output)| (output.clone(), remaining.min(output.count))).collect())
+    }
+
     /// Preserve the original Java conditional expression, including its
     /// precedence: the else branch checks enchantment independently.
     pub(super) fn matches(&self, partial: bool, max_damage: i32, damage: i32, modifiable: bool, upgrades: bool, enchanted: bool) -> Result<bool, SourceLookupError> {
@@ -2644,6 +2656,21 @@ mod tests {
         cursor = None;
         assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output, None, vec![ItemStack::new("minecraft:stick", 1)], None, None, 64, |_| { draws.set(draws.get() + 1); Some(0) }).is_some());
         assert_eq!(draws.get(), 1);
+    }
+
+    #[test]
+    fn recycling_alternatives_follow_source_pattern_object_identity() {
+        let value = serde_json::json!({"type":"tconstruct:part_builder_recycling",
+            "tool":{"item":"minecraft:flint_and_steel"}, "pattern":{"item":"tconstruct:venom_bottle"},
+            "results":{"tconstruct:shard":{"item":"minecraft:flint"},"tconstruct:ingot":{"item":"minecraft:iron_ingot"}}});
+        let recipe = SourceRecyclingRecipe::parse("tconstruct:test".into(), &value).unwrap();
+        let same = recipe.alternatives("tconstruct:shard", true, 64, 0).unwrap();
+        let distinct = recipe.alternatives("tconstruct:shard", false, 64, 0).unwrap();
+        assert_eq!(same.len(), 1);
+        assert_eq!(same[0].0.kind, SourceOutputKind::Item("minecraft:iron_ingot".into()));
+        assert_eq!(distinct.len(), 2);
+        assert!(distinct.iter().any(|(item, count)| item.kind == SourceOutputKind::Item("minecraft:flint".into()) && *count == 1));
+        assert!(recipe.alternatives("tconstruct:shard", false, 64, 32).unwrap().is_empty());
     }
 
     #[test]
