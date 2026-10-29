@@ -34,6 +34,8 @@ jobs:
           /tmp/tconstruct-source-builder-layout-test
           rustc --test tests/rust/original_item_durability.rs -o /tmp/tconstruct-original-item-test
           /tmp/tconstruct-original-item-test
+          rustc --test tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test
+          /tmp/tconstruct-original-remainder-test
       - name: Fetch pinned upstream sources
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official

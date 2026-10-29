@@ -321,13 +321,18 @@ pub(super) fn prepare_take(
     Ok(Some((plan, output, leftover, alternatives)))
 }
 
-/// Obtain a current native crafting container, rejecting item-specific
-/// component overrides until the original 1.20.1 remainder registry is ported.
+/// Obtain an original vanilla crafting container, rejecting item-specific
+/// component overrides. Non-vanilla original container types remain incomplete.
 pub(super) fn crafting_container(stack: Option<&ItemStack>, items: &horizon_items::items::Items) -> Result<Option<ItemStack>, SourceLookupError> {
     let Some(stack) = stack else { return Ok(None); };
     if stack.data().and_then(|data| data.other("minecraft:crafting_remainder")).is_some() { return Err(SourceLookupError::IncompleteContext); }
     let item = items.get(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
-    Ok(item.remainder.as_deref().map(|id| ItemStack::new(id, 1)))
+    // Vanilla 1.20.1 uses Item.Properties.craftRemainder, not the newer
+    // consumption remainder component. Other original item types remain open.
+    let remainder = if stack.item.starts_with("minecraft:") {
+        super::tconstruct_source_original_crafting_remainders::vanilla_remainder(&stack.item)
+    } else { item.remainder.as_deref() };
+    Ok(remainder.map(|id| ItemStack::new(id, 1)))
 }
 
 /// Until the original adjacent inventory modules are available, do not run a
