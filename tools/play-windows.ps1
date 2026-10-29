@@ -2,7 +2,6 @@
 $ErrorActionPreference = 'Stop'
 $Repo = Split-Path -Parent $PSScriptRoot
 $HomeDir = Join-Path $env:LOCALAPPDATA 'TConstruct-Horizon-Playtest'
-$ClientHash = '0c3ec587af28e5a785c0b4a7b8a30f9a8f78f838'
 function Run([string]$Command, [string[]]$Arguments) {
     & $Command @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Command failed with exit code $LASTEXITCODE" }
@@ -13,10 +12,6 @@ function Pick-Folder([string]$Title) {
     $dialog.Description = $Title
     if ($dialog.ShowDialog() -ne [System.Windows.Forms.DialogResult]::OK) { throw 'Required folder was not selected.' }
     return $dialog.SelectedPath
-}
-function Good-Client([string]$Path) {
-    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
-    return (Get-FileHash -LiteralPath $Path -Algorithm SHA1).Hash.ToLowerInvariant() -eq $ClientHash
 }
 function Checkout-Pinned([string]$Path, [string]$Url, [string]$Revision) {
     if (-not (Test-Path -LiteralPath $Path)) {
@@ -44,33 +39,6 @@ try {
     $resources = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'horizon-resources.json') -PathType Leaf } | Select-Object -First 1
     if (-not $resources) { $resources = Pick-Folder 'Select your prepared Horizon 26.3 resource folder' }
     if (-not (Test-Path -LiteralPath (Join-Path $resources 'horizon-resources.json') -PathType Leaf)) { throw 'The selected folder is not a prepared Horizon 26.3 resource folder. Prepare it with Horizon Launcher first.' }
-    $clients = @(
-        (Join-Path $env:APPDATA '.minecraft\versions\1.20.1\1.20.1.jar'),
-        (Join-Path $env:APPDATA 'PrismLauncher\libraries\com\mojang\minecraft\1.20.1\minecraft-1.20.1-client.jar')
-    )
-    if ($settings -and $settings.client) { $clients = @($settings.client) + $clients }
-    $clients += @(Get-ChildItem -Path (Join-Path $env:APPDATA 'PrismLauncher\instances\*\minecraft\versions\1.20.1\1.20.1.jar') -File -ErrorAction SilentlyContinue | ForEach-Object FullName)
-    $client = $null
-    foreach ($candidate in $clients) { if (Good-Client $candidate) { $client = $candidate; break } }
-    if (-not $client) {
-        # 1.20.1 recipe/tag reference data is distinct from the prepared 26.3
-        # assets. No Java process is run; fetch the official fixed client only
-        # if an existing matching copy cannot be found.
-        $cache = Join-Path $HomeDir 'reference-data'
-        New-Item -ItemType Directory -Force -Path $cache | Out-Null
-        $client = Join-Path $cache 'minecraft-1.20.1-client.jar'
-        if ((Test-Path -LiteralPath $client) -and -not (Good-Client $client)) { throw "An unexpected existing file is at $client; it was left untouched." }
-        if (-not (Good-Client $client)) {
-            $partial = Join-Path $cache ('client-' + $PID + '.download')
-            if (Test-Path -LiteralPath $partial) { throw "Download temporary file already exists: $partial" }
-            try {
-                Write-Host 'Downloading the original 1.20.1 recipe and tag reference data from Mojang (no Java is run)...'
-                Invoke-WebRequest -Uri ('https://piston-data.mojang.com/v1/objects/' + $ClientHash + '/client.jar') -OutFile $partial
-                if (-not (Good-Client $partial)) { throw 'Downloaded Minecraft client did not match the pinned SHA-1.' }
-                Move-Item -LiteralPath $partial -Destination $client
-            } finally { if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial } }
-        }
-    }
     # Key the generated build by actual input bytes, so a ZIP download and local
     # modifications work without writing to or resetting the user's checkout.
     $inputs = foreach ($dir in @('mixins', 'content', 'assets', 'tools', 'third_party')) {
@@ -84,7 +52,7 @@ try {
     try { $head = ([BitConverter]::ToString($hasher.ComputeHash([Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))))).Replace('-', '').ToLowerInvariant() }
     finally { $hasher.Dispose() }
     New-Item -ItemType Directory -Force -Path $HomeDir | Out-Null
-    if (-not (Test-Path -LiteralPath $settingsPath)) { @{ resources = $resources; client = $client } | ConvertTo-Json | Set-Content -LiteralPath $settingsPath -Encoding UTF8 }
+    if (-not (Test-Path -LiteralPath $settingsPath)) { @{ resources = $resources } | ConvertTo-Json | Set-Content -LiteralPath $settingsPath -Encoding UTF8 }
     $sources = Join-Path $HomeDir 'sources'
     New-Item -ItemType Directory -Force -Path $sources | Out-Null
     $horizon = Join-Path $sources ('horizon-' + $compat.horizon_revision)
@@ -107,7 +75,7 @@ try {
             $overlay = Join-Path $build 'item-resources'
             Run py @('-3', 'tools/resources.py', $resources, $overlay)
             Run $game @('--tconstruct-prepare', $overlay, (Join-Path $Repo 'content'), $gameResources)
-            Run py @('-3', 'tools/source_data.py', $client, (Join-Path $gameResources 'minecraft-original-pack'))
+            Run py @('-3', 'tools/prepare_horizon_source_data.py', $resources, (Join-Path $gameResources 'minecraft-original-pack'))
             Run py @('-3', 'tools/prepare_bundled_forge.py', (Join-Path $gameResources 'forge-original-pack'))
             Set-Content -LiteralPath $ready -Value $head
         } finally { Pop-Location }

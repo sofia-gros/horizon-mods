@@ -7,8 +7,7 @@ links to original sources and records the wider scope. The
 mismatches. Archived Wasm work is not evidence of coverage in this port.
 
 The intended v0.5 milestone is a playable prerelease that reproduces almost all
-of the original mod's content and behavior on its own. v1.0 is the complete port,
-including the original processing and values. Neither milestone has been reached.
+of the original mod's content and behavior on its own. v1.0 targets the complete TConstruct port on Horizon's Minecraft 26.3 data. Minecraft-side material classifications and recipes may follow 26.3; TConstruct-specific mechanics remain in scope. Neither milestone has been reached.
 Broad compatibility testing with other mods, including hypothetical ID changes,
 is not a prerequisite for v0.5. The mod's own saving, synchronization and
 transaction integrity remain part of the work.
@@ -43,3 +42,5 @@ The Tinker Station still uses separate assembly and repair icons and a fixed
 layout rather than the original dynamic interface. See the
 [station design](station-design.md) and [validation notes](validation.md) for
 additional implementation and test details.
+
+The playtest now derives Minecraft recipe and item/fluid tag data from prepared Horizon 26.3 resources rather than requiring a 1.20.1 client. Ordinary sand and red sand each craft four blank casts. These two native inputs are a 26.3 adaptation, not a claim that every original Forge tag or datapack override is supported. Other materials, world reload interactions, official production-binary gameplay and Windows remain to be validated.

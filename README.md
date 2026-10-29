@@ -23,7 +23,7 @@ then expand content through its source definitions and check separately only
 where the original has distinct behavior.
 
 The planned v0.5 is a playable preview that nearly reproduces the original mod
-on its own; v1.0 is the complete port. Neither milestone has been reached.
+on its own; v1.0 targets the complete TConstruct port on Horizon's Minecraft 26.3 data. Minecraft-side materials and recipes may follow 26.3. Neither milestone has been reached.
 
 ## What works today
 
@@ -32,7 +32,7 @@ Station at a crafting table, place both tables, and open them by interacting.
 In the Part Builder, insert a Pattern and material, select a source-recipe
 pattern in the scrolling grid, and take an ordinary part from the result slot.
 For example, an oak log produces a wood tool handle and returns three oak
-planks; an oak plank can also produce a wood handle. Both paths and save/reload were tested in both game modes. All 29 original gold cast IDs are registered using their source models and sprites. A command-supplied Tool Handle Cast was reused without consumption while crafting a wood handle in a Linux test-generated build; normal casting acquisition, cast cost tooltip, other casts and Windows are not yet verified or implemented. The original sand and red-sand cast IDs are also registered. In a Linux test-generated build, a command-supplied blank sand cast was consumed to create an Adze Head sand cast through the source item-part recipe and survived save/reload. Red sand, other shapes and Windows remain unverified. Four original stone armor-plating dummy items now use the shared item-part recipe path. A test-generated Linux build crafted a stone helmet dummy from three calcite in the normal GUI and retained it after save/reload; the other three and the original dummy tooltip are unverified or incomplete. A left Shift-click on the result can repeat ordinary crafting into the player inventory when no adjacent block entity is present; the test also covers a full inventory and competing players. Part recipes
+planks; an oak plank can also produce a wood handle. Both paths and save/reload were tested in both game modes. All 29 original gold cast IDs are registered using their source models and sprites. A command-supplied Tool Handle Cast was reused without consumption while crafting a wood handle in a Linux test-generated build; normal casting acquisition, cast cost tooltip, other casts and Windows are not yet verified or implemented. The original sand and red-sand cast IDs are also registered. In a Linux test-generated build, a command-supplied blank sand cast was consumed to create an Adze Head sand cast through the source item-part recipe and survived save/reload. Red sand, other shapes and Windows remain unverified. One native 26.3 sand or red sand can also be crafted into four corresponding blank casts; both recipes and save/reload were checked in a test-generated Linux build. The native recipes use those two item IDs; arbitrary datapack sand categories are not yet supported. Four original stone armor-plating dummy items now use the shared item-part recipe path. A test-generated Linux build crafted a stone helmet dummy from three calcite in the normal GUI and retained it after save/reload; the other three and the original dummy tooltip are unverified or incomplete. A left Shift-click on the result can repeat ordinary crafting into the player inventory when no adjacent block entity is present; the test also covers a full inventory and competing players. Part recipes
 and materials are still incomplete, and unsupported contexts are rejected. In the Tinker Station, put the head, handle
 and binding in the three input positions and take a flint/wood pickaxe. Its tested
 `tic_materials` list survives save and reload, but derived statistics, traits
@@ -75,8 +75,7 @@ preservation of arbitrary other components or all styled text.
 [Windows double-click playtest instructions](docs/windows-playtest.md) (native Windows build and play are not yet verified).
 
 Linux, Python 3.12+, Git, Rust and Cargo, and your own prepared Horizon 26.3
-resources are required. The reference-data setup also uses locally supplied
-Minecraft 1.20.1 and Forge 47.4.0 jars. `compatibility.json` pins the source
+resources are required. The playtest derives Minecraft reference recipes and tags from the prepared 26.3 resources; pinned Forge reference data is bundled. `compatibility.json` pins the source
 revisions. This project does not distribute Minecraft game files or resources.
 
 ```sh
@@ -93,22 +92,17 @@ python3 -m unittest discover -s tests -v
 python3 tools/resources.py /path/to/prepared/26.3 target/item-resources
 ./target/build/fast/horizon-client --tconstruct-prepare \
   target/item-resources content target/resources
-python3 tools/source_data.py /path/to/minecraft-1.20.1-client.jar \
+python3 tools/prepare_horizon_source_data.py /path/to/prepared/26.3 \
   target/resources/minecraft-original-pack
-python3 tools/source_data.py --forge /path/to/forge-1.20.1-47.4.0-universal.jar \
-  target/resources/forge-original-pack
+python3 tools/prepare_bundled_forge.py target/resources/forge-original-pack
 ./target/build/fast/horizon-client --resources "$PWD/target/resources"
 ```
 
 `stage.py` verifies both checkout HEADs and exports their pinned commits; local working-tree changes are not included. It exports a separate source tree,
 and runs the Mixins CLI. It refuses an existing export; remove only your own
 generated `target/original` when deliberately regenerating. Resource preparation
-creates a separate overlay with links to the supplied base resources; keep the
-base available. Both preparation commands refuse an existing destination.
-The 1.20.1 client jar and Forge 47.4.0 universal jar are supplied locally and
-checked against pinned hashes; the extracted source data stay in your generated
-resource directory. The [Forge universal jar](https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.0/forge-1.20.1-47.4.0-universal.jar) is available from the official Forge Maven repository. These files
-prepare source data for the partially implemented Part Builder. `--tconstruct-prepare` uses a Mixins-injected entry point
+creates a separate overlay with links to the supplied base resources, or copies when links are unavailable; keep the base available. Both preparation commands refuse an existing destination.
+Prepared Horizon 26.3 Minecraft recipe and tag data and the bundled Forge data prepare source data for the partially implemented Part Builder. `--tconstruct-prepare` uses a Mixins-injected entry point
 and official Horizon's native data-table builder; it does not start a Wasm engine. Generated trees and worlds
 are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
 are included in the repository and the generated resource overlay under

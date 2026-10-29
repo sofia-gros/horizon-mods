@@ -8,7 +8,7 @@
 
 初回に Git、Python 3.12 以降、Rust stable の MSVC toolchain、Visual Studio Build Tools の「C++ によるデスクトップ開発」、準備済み Horizon 26.3 リソースが必要です。これらのインストールや管理者昇格は自動では行いません。既存 PC 設定にあった Horizon Launcher の資源場所は自動検出対象です。別の場所でもフォルダー選択で指定できます。Vulkan 対応 GPU も必要です。
 
-**コード上は Java と Forge の実行・インストールを必要としません。** Windows 実機では未確認です。 オリジナルの 1.20.1 のレシピ・タグ参照データは、既存の Minecraft 1.20.1 ファイルを探し、見つからなければ公式 Mojang 配布から固定ハッシュを確認して自動取得します。Forge 由来の固定レシピ・タグは必要部分だけ同梱しています。Minecraft ゲーム資源はこのリポジトリに同梱しません。資源や参照データはゲームの見た目とレシピに必要です。
+**コード上は Java と Forge の実行・インストールを必要としません。** Windows 実機では未確認です。Minecraft 側のレシピとタグは、既存の Horizon 26.3 資源から準備します。Minecraft 1.20.1 の jar は検索・取得しません。TConstruct の Forge 由来タグとレシピに必要な固定データは同梱されています。
 
 初回の完了後は同じファイルを再度ダブルクリックすると、変更がなければビルドを再利用します。セーブと生成物は `%LOCALAPPDATA%\TConstruct-Horizon-Playtest` に分離され、`TConstruct-Playtest` ワールドで起動します。既存の Horizon や Minecraft のワールドは上書きしません。現在のビルド設定では音声・コントローラーは無効です。失敗した場合、ウィンドウは閉じず、原因と対処を表示します。中断したビルドは自動削除しません。
 
@@ -25,4 +25,4 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 /give @s tconstruct:blank_sand_cast 1
 ```
 
-金型を Pattern 位置に入れると、金の Tool Handle Cast は部品取得時に残り、空の砂金型は成形時に消費されます。Windows での画面と操作は未検証です。詳細な進捗は [README](../README.md) と [ロードマップ](roadmap.md) を参照してください。
+金型を Pattern 位置に入れると、金の Tool Handle Cast は部品取得時に残り、空の砂金型は成形時に消費されます。砂または赤砂 1 個を通常クラフトに置くと、それぞれ空の砂金型 4 個を作れます。Windows での画面と操作は未検証です。詳細な進捗は [README](../README.md) と [ロードマップ](roadmap.md) を参照してください。
