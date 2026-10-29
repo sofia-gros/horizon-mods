@@ -5,6 +5,12 @@ The reference is Tinkers' Construct 1.20.1, commit
 links the original source and lists the remaining scope. Archived Wasm work is
 not evidence of coverage here.
 
+The intended v0.5 milestone is a playable prerelease that reproduces almost all
+of the original mod's content and behavior. Broad compatibility testing with
+other mods is not a prerequisite for that milestone. v1.0 is the complete
+port of the original, including its processing and values. Neither milestone is
+currently reached; the fixed preview below remains an early implementation.
+
 | Area | Current status | Next work |
 | --- | --- | --- |
 | Part Builder | Playable fixed flint/wood subset | Original recipe-derived lists, detailed material tooltips, other materials and variants |
@@ -14,7 +20,7 @@ not evidence of coverage here.
 | Other tools, armor, materials and modifiers | Not implemented | Definition-driven stat aggregation, traits, equipment and actions |
 | Smeltery and foundry | Not implemented | Fluids, melting, casting, alloys and multiblocks |
 | Progression and world content | Not implemented | Ores, mobs, books, advancements, recipes and gadgets |
-| Persistence and multiplayer | Station input, tool name/custom data and LAN races tested | Dedicated server, arbitrary components, more click modes and mixed-mod testing |
+| Persistence and multiplayer | Station input, tool name/custom data and LAN races tested | Dedicated server, arbitrary components and more click modes |
 
 The GUI uses the original backgrounds. Three fixed part buttons select a
 preview and the result is taken from the separate result slot; the original

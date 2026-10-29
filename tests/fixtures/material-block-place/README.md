@@ -63,5 +63,6 @@ python3 tests/game/material_block_sync.py \
 # Repeat with --in-frame.
 ```
 
-The initial chunk packet still sends an empty entity tag, followed by the
-Material update. The fixture does not verify the original block's appearance.
+The diagnostic checks Material inside the initial chunk packet and verifies
+that it is not redundantly sent again. The fixture does not verify the original
+block's appearance.

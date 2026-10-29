@@ -19,3 +19,10 @@ target = "horizon_client::game::storage::Game<'_>::draw_chest_screen"
 kind = "HEAD"
 helper = "stored.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "observe-initial-chunk-material"
+target = "horizon_client::game::remote_chunks::ChunkFormat::column"
+kind = "HEAD"
+helper = "chunk.rs"
+bindings = [{ name = "packet", ty = "&horizon_protocol::packets::play::LevelChunkWithLight", value = "p" }]

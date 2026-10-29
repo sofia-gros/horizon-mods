@@ -11,6 +11,9 @@ def wait(label,fn):
 def count(game,material):
  text=(game.root/'game.log').read_text()
  return sum('TCONSTRUCT_WIRE_OBSERVED 0 71 2 '+material in line for line in text.splitlines())
+def chunk_count(game,material):
+ text=(game.root/'game.log').read_text()
+ return sum('TCONSTRUCT_WIRE_CHUNK '+material in line for line in text.splitlines())
 def stored_count(game,material):
  text=(game.root/'game.log').read_text()
  return sum('TCONSTRUCT_WIRE_STORED '+material in line for line in text.splitlines())
@@ -48,17 +51,23 @@ try:
  check_stored(q,'tconstruct:unknown')
  check_stored(h,'tconstruct:unknown')
  if not a.in_frame: wait('host unknown',lambda:count(h,'tconstruct:unknown')>=1)
- previous=count(q,'tconstruct:unknown');q.stop();q.cleanup();games.remove(q);h.call('wait','20')
+ previous=count(q,'tconstruct:unknown');previous_chunk=chunk_count(q,'tconstruct:unknown');q.stop();q.cleanup();games.remove(q);h.call('wait','20')
  q=Game(a,root,'Guest',server='127.0.0.1:'+str(port),resume=True);games.append(q);q.ready()
  wait('guest reconnect unknown',lambda:count(q,'tconstruct:unknown')>previous)
+ wait('initial chunk has material',lambda:chunk_count(q,'tconstruct:unknown')>previous_chunk)
+ q.call('wait','60');time.sleep(.5)
+ assert count(q,'tconstruct:unknown')==previous+1, 'initial material was redundantly sent'
  check_stored(q,'tconstruct:unknown')
  q.stop();q.cleanup();games.remove(q);h.stop();h.cleanup();games.remove(h)
  h=Game(a,root,'Host',in_frame=a.in_frame,resume=True);games.append(h);h.ready()
  port=h.call('lan','open','0','commands')['port']
- previous=count(q,'tconstruct:unknown')
+ previous=count(q,'tconstruct:unknown');previous_chunk=chunk_count(q,'tconstruct:unknown')
  q=Game(a,root,'Guest',server='127.0.0.1:'+str(port),resume=True);games.append(q);q.ready()
  wait('saved unknown block',lambda:q.call('block','0','71','2').get('block')=='tconstruct:fake_storage_block')
  wait('saved unknown packet',lambda:count(q,'tconstruct:unknown')>previous)
+ wait('saved chunk has material',lambda:chunk_count(q,'tconstruct:unknown')>previous_chunk)
+ q.call('wait','60');time.sleep(.5)
+ assert count(q,'tconstruct:unknown')==previous+1, 'saved initial material was redundantly sent'
  check_stored(q,'tconstruct:unknown')
  h.call('command','setblock 0 71 2 minecraft:air')
  wait('guest removed again',lambda:q.call('block','0','71','2').get('block')=='minecraft:air')
