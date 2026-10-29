@@ -12,8 +12,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, color);
         }
     };
-    let title = if station { "Tinker Station" } else { "Part Builder" };
-    batch.text(atlas, title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
+    let (title_key, fallback) = if station { ("gui.tconstruct.tinker_station", "Tinker Station") } else { ("gui.tconstruct.part_builder", "Part Builder") };
+    let title = game.pack.names.display_get(title_key).unwrap_or_else(|| fallback.to_owned());
+    let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
+    batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
+    batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
         // These three locations come from the upstream pickaxe layout. The
         // default repair layout and layout selection still need to be ported.
@@ -32,16 +35,46 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         }
     } else {
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
-            if slots.first().and_then(Option::as_ref).is_some_and(|s| &*s.item == "tconstruct:pattern") {
-                let selected = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).and_then(|s| crate::game::tconstruct_tx::preview_pattern_index(s)));
-                for (index, (x, id)) in [(52.0, "tconstruct:flint_pick_head"), (70.0, "tconstruct:wood_handle"), (88.0, "tconstruct:wood_binding")].into_iter().enumerate() {
-                    let v = if selected == Some(index as i16) { 33.0 } else { 15.0 };
-                    part(batch, 176.0, v, x - 1.0, 15.0, u32::MAX);
-                    game.draw_item(batch, &horizon_client::items::ItemStack::new(id, 1), ox + x, oy + 16.0);
+            if let Some(icon) = atlas.sprites.get("gui/tconstruct_icons").copied() {
+                let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);
+                for (slot, sx, sy, x) in [(0, 0.0, 216.0, 7.0), (1, 54.0, 234.0, 28.0)] {
+                    if slots.get(slot).and_then(Option::as_ref).is_none() {
+                        let mut r = icon;
+                        r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
+                        batch.rect_uv(ox + x, oy + 42.0, 18.0, 18.0, r, u32::MAX);
+                    }
                 }
-                if let Some(item) = selected.and_then(|s| crate::game::tconstruct_tx::part_preview(slots, s)) {
-                    game.draw_item(batch, &item, ox + 148.0, oy + 42.0);
+            }
+            if let Some(key) = game.container {
+                let patterns = game.world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&key)
+                    .and_then(|(_, _, patterns)| patterns.as_deref()).unwrap_or(&[]);
+                let progress = game.world.chunks.__horizon_mixins_tconstruct_builder_scroll().get(&key).map_or(0.0, |state| state.0);
+                let offset = game.world.chunks.__horizon_mixins_tconstruct_builder_scroll().get(&key).map_or(0, |state| state.1);
+                let selected = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key);
+                for (relative, pattern) in patterns.iter().skip(offset).take(16).enumerate() {
+                    let x = 51.0 + (relative % 4) as f32 * 18.0;
+                    let y = 15.0 + (relative / 4) as f32 * 18.0;
+                    let hovered = game.cursor.0 >= ox + x && game.cursor.0 < ox + x + 18.0
+                        && game.cursor.1 >= oy + y && game.cursor.1 < oy + y + 18.0;
+                    let v = if selected == Some(pattern) { 33.0 } else if hovered { 51.0 } else { 15.0 };
+                    part(batch, 176.0, v, x, y, u32::MAX);
+                    if let Some(("tconstruct", name)) = pattern.split_once(':') {
+                        batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), ox + x + 1.0, oy + y + 1.0);
+                        let key = format!("pattern.tconstruct.{}", name.replace('/', "."));
+                        let label = game.pack.names.display_get(&key).unwrap_or(key);
+                        horizon_client::widgets::target([ox + x, oy + y, 18.0, 18.0]);
+                        horizon_client::widgets::record(&label, [ox + x, oy + y, 18.0, 18.0], true);
+                    }
                 }
+                if let Some(mut r) = atlas.sprites.get(texture).copied() {
+                    let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                    r.u0 += if patterns.len() > 16 { 176.0 * du } else { 188.0 * du };
+                    r.u1 = r.u0 + 12.0 * du; r.v1 = r.v0 + 15.0 * dv;
+                    batch.rect_uv(ox + 126.0, oy + 15.0 + (59.0 * progress.clamp(0.0, 1.0)) as i32 as f32, 12.0, 15.0, r, u32::MAX);
+                }
+                let result = if game.remote.is_some() { None }
+                    else { game.world.chunks.__horizon_mixins_tconstruct_builder_preview().get(&key).and_then(|(_, _, _, result)| result.as_ref()) };
+                if let Some(item) = result { game.draw_item(batch, item, ox + 148.0, oy + 42.0); }
             }
         }
     }

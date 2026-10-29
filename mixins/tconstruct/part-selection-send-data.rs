@@ -10,11 +10,16 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         if builder.is_none() || hub.encoder.block_ids.get(state).copied() != builder { continue; }
         let patterns = crate::tconstruct_source_builder_world::refresh(world, pos);
         let encoded = patterns.as_ref().and_then(|patterns| crate::tconstruct_source_builder_wire::encode(patterns));
-        let has_pattern = world.block_entities.get(&pos).and_then(|entity| entity.slots().first())
-            .and_then(Option::as_ref).is_some_and(|stack| &*stack.item == "tconstruct:pattern");
-        let value = if has_pattern {
-            world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).and_then(|s| crate::tconstruct_tx::preview_pattern_index(s)).unwrap_or(-1)
-        } else { -1 };
+        let value = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)
+            .and_then(|selected| patterns.as_ref()?.iter().position(|pattern| pattern == selected))
+            .map(|index| index as i16).unwrap_or(-1);
+        let preview = hub.sync.builtin.get("minecraft:item").and_then(|registry| {
+            crate::tconstruct_source_builder_world::refresh_preview(world, pos,
+                || registry.names.iter().filter(|id| !id.is_empty()).cloned().collect())
+        });
+        let preview_key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
+        let preview_changed = world.chunks.__horizon_mixins_tconstruct_builder_preview_sent().get(&preview_key)
+            .is_none_or(|(old_state, old)| *old_state != menu.state || old != &preview);
         let guest = &mut hub.guests[i];
         let Some(menu) = guest.menu.as_mut() else { continue; };
         if menu.sent_data.is_empty() { menu.sent_data.push(i16::MIN); }
@@ -36,5 +41,14 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             } else { send(guest, 1, -2); }
         }
         if selection_changed || wire_changed { guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 0, value })); }
+        if preview_changed {
+            let net = hub.stack(&preview);
+            let guest = &mut hub.guests[i];
+            let Some(menu) = guest.menu.as_mut() else { continue; };
+            menu.state = (menu.state + 1) & 0x7FFF;
+            let state = menu.state;
+            guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 22, item: net }));
+            world.chunks.__horizon_mixins_tconstruct_builder_preview_sent_mut().insert(preview_key, (state, preview));
+        }
     }
 }

@@ -1,6 +1,9 @@
 fn material_block_wire_prune(hub: &mut crate::lan::hub::Hub, ctx: &mut crate::lan::hub::TickCtx<'_>) {
     use horizon_world::nbt::Tag;
     use std::collections::HashSet;
+    ctx.world.chunks.__horizon_mixins_tconstruct_builder_preview_sent_mut().retain(|(conn, joined, window, pos), _|
+        hub.guests.iter().any(|guest| guest.conn == *conn && guest.placed_at == *joined && hub.here(guest)
+            && guest.menu.as_ref().is_some_and(|menu| menu.window == *window && menu.pos == Some(*pos))));
     let block = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:fake_storage_block"));
     let kind = hub.sync.builtin.get("minecraft:block_entity_type").and_then(|r| r.id("tconstruct:material_block"));
     let ids = block.zip(kind);

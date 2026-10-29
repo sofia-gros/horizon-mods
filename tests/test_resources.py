@@ -68,6 +68,9 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertTrue((out / 'assets/tconstruct/items' / (alias + '.json')).is_file())
                 self.assertTrue((out / 'assets/tconstruct/models/item' / (alias + '.json')).is_file())
                 self.assertTrue((out / 'assets/tconstruct/textures/item' / (alias + '.png')).is_file())
+            icons = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/icons.png').read_bytes()
+            self.assertEqual(hashlib.sha256(icons).hexdigest(), 'cb793955c7da6330162a32353d432e5236e0162ef12240ea1ca78858fcbc4b4a')
+            self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_icons.png').read_bytes(), icons)
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             manifest = Path(__file__).resolve().parents[1] / 'docs/upstream-patterns.sha256'
             rows = manifest.read_text().splitlines()

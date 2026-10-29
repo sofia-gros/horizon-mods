@@ -136,3 +136,52 @@ pub(super) fn refresh(world: &mut super::tconstruct_world::World, pos: (i32, i32
     world.chunks.__horizon_mixins_tconstruct_builder_choices_mut().insert(pos, (pattern, material, result.clone()));
     result
 }
+
+/// Cache the selected source result without mutating either input slot. The
+/// caller supplies the authoritative item registry, and revalidates on take.
+pub(super) fn refresh_preview(
+    world: &mut super::tconstruct_world::World, pos: (i32, i32, i32),
+    registered: impl FnOnce() -> HashSet<String>,
+) -> Option<ItemStack> {
+    let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else {
+        world.chunks.__horizon_mixins_tconstruct_builder_preview_mut().remove(&pos);
+        return None;
+    };
+    let pattern = slots.first().cloned().flatten();
+    let material = slots.get(1).cloned().flatten();
+    let selected = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).cloned();
+    if let Some((old_pattern, old_material, old_selected, result)) = world.chunks.__horizon_mixins_tconstruct_builder_preview().get(&pos) {
+        if old_pattern == &pattern && old_material == &material && old_selected == &selected { return result.clone(); }
+    }
+    let result = selected.as_deref().and_then(|selected| {
+        let plan = plan(world, pattern.as_ref(), material.as_ref(), selected).ok().flatten()?;
+        let items = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+        tx::source_resolve_part_plan(&plan, items, None, &registered()).ok().flatten().map(|(output, _)| output)
+    });
+    world.chunks.__horizon_mixins_tconstruct_builder_preview_mut().insert(pos, (pattern, material, selected, result.clone()));
+    result
+}
+
+/// Revalidate and resolve the current selected normal-part recipe immediately
+/// before a player takes its output. No inventory has been mutated yet.
+pub(super) fn prepare_take(
+    world: &super::tconstruct_world::World, pos: (i32, i32, i32),
+    items: &horizon_items::items::Items,
+) -> Result<Option<(tx::SourcePartPlan, ItemStack, Option<ItemStack>)>, SourceLookupError> {
+    let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else { return Ok(None); };
+    let Some(selected) = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos) else { return Ok(None); };
+    let Some(plan) = plan(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), selected)? else { return Ok(None); };
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let registered = items.registry_order.iter().map(|id| id.to_string()).collect();
+    let Some((output, leftover)) = tx::source_resolve_part_plan(&plan, tags, None, &registered)? else { return Ok(None); };
+    Ok(Some((plan, output, leftover)))
+}
+
+/// Obtain a current native crafting container, rejecting item-specific
+/// component overrides until the original 1.20.1 remainder registry is ported.
+pub(super) fn crafting_container(stack: Option<&ItemStack>, items: &horizon_items::items::Items) -> Result<Option<ItemStack>, SourceLookupError> {
+    let Some(stack) = stack else { return Ok(None); };
+    if stack.data().and_then(|data| data.other("minecraft:crafting_remainder")).is_some() { return Err(SourceLookupError::IncompleteContext); }
+    let item = items.get(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
+    Ok(item.remainder.as_deref().map(|id| ItemStack::new(id, 1)))
+}

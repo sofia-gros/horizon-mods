@@ -86,6 +86,7 @@ bindings = [
   { name = "conn", ty = "u32", value = "conn" },
   { name = "packet", ty = "&play::ContainerClick", value = "p" },
   { name = "world", ty = "&mut World", value = "&mut *world" },
+  { name = "rules", ty = "&dyn Rules", value = "rules" },
 ]
 
 [[module]]
@@ -776,3 +777,82 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[state]]
+id = "builder-preview"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>,Option<String>,Option<horizon_items::items::ItemStack>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "host-source-builder-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_layout"
+source = "source-builder-layout.rs"
+
+[[state]]
+id = "builder-scroll"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(f32,usize,bool,Vec<String>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-preview-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i32,Option<horizon_items::items::ItemStack>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "builder-scroll-input"
+target = "horizon_client::game::stations::Game<'_>::station_scroll"
+kind = "HEAD"
+cancellable = true
+helper = "source-builder-scroll.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "delta", ty = "f32", value = "d" }]
+
+[[injection]]
+id = "builder-drag"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+kind = "HEAD"
+cancellable = true
+helper = "source-builder-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "builder-release"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+kind = "HEAD"
+helper = "source-builder-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "builder-close"
+target = "horizon_client::game::Game<'_>::close_container"
+kind = "HEAD"
+helper = "source-builder-close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "builder-remote-close"
+target = "horizon_client::game::remote::Game<'_>::remote_close_local"
+kind = "HEAD"
+helper = "source-builder-close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "host-source-builder-take"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_take"
+source = "source-builder-take-host.rs"

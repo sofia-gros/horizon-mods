@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from harness import Game
-p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--source-choice-wire-test',action='store_true');p.add_argument('--output-parent',type=Path,default=Path('target'))
+p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--source-choice-wire-test',action='store_true');p.add_argument('--source-gui-test',action='store_true');p.add_argument('--output-parent',type=Path,default=Path('target'))
 a=p.parse_args();a.output_parent.mkdir(parents=True,exist_ok=True);run=Path(tempfile.mkdtemp(prefix='station-race-',dir=a.output_parent.resolve()))
 print('run',run,flush=True)
 games=[]
@@ -14,6 +14,11 @@ def wait(label,pred):
   if pred(): print('ok',label,flush=True);return
   time.sleep(.2)
  raise AssertionError(label)
+def pattern(g,label):
+ def node():
+  return next((n for n in g.call('ui')['widgets'] if n.get('label')==label and n.get('enabled')),None)
+ wait(g.label+' pattern '+label,lambda:node() is not None)
+ g.call('click',node()['id']);g.call('wait','3')
 try:
  h=Game(a,run,'Host',in_frame=a.in_frame);games.append(h);h.ready()
  port=h.call('lan','open','0','commands')['port']
@@ -40,8 +45,12 @@ try:
   (pack/'data/tconstruct/recipes/tools/parts/builder/pick_head.json').write_text(json.dumps(recipe))
   h.call('command','reload')
   wait('guest receives changed source order',lambda:'tconstruct:pick_head' in guest_patterns() and guest_patterns().index('tconstruct:pick_head')<previous)
- click(h,324);assert not (h.call('menu').get('carried') or {})
- click(q,325);q.call('wait','20');h.call('wait','20');click(h,322)
+ if a.source_gui_test: pattern(h,'Pick Head')
+ else: click(h,324)
+ assert not (h.call('menu').get('carried') or {})
+ if a.source_gui_test: pattern(q,'Tool Handle')
+ else: click(q,325)
+ q.call('wait','20');h.call('wait','20');click(h,322)
  assert (h.call('menu').get('carried') or {}).get('item') == 'tconstruct:tool_handle', 'guest selection must replace host selection'
  click(h,2)
  # Empty the pattern slot and restore it: the source keeps the selected
@@ -55,7 +64,8 @@ try:
  q.call('close');q.call('interact','0','71','2')
  wait('guest reopened table',lambda:any(s["id"] == "slot-300" for s in q.call('ui')["widgets"]))
  q.call('wait','20');time.sleep(1);q.call('screenshot',str(run/'guest-reopened.png'))
- click(q,324)
+ if a.source_gui_test: pattern(q,'Pick Head')
+ else: click(q,324)
  h.call('wait','20');q.call('wait','20');time.sleep(2)
  h.call('wait','20');q.call('wait','20');time.sleep(2)
  h.call('screenshot',str(run/'host-selected.png'));q.call('screenshot',str(run/'guest-selected.png'))
@@ -68,7 +78,9 @@ try:
  h.call("close")
  h.call("interact","0","71","2")
  wait("host reopened table",lambda:any(s["id"] == "slot-300" for s in h.call("ui")["widgets"]))
- assert 300 not in slots(h) and 301 not in slots(h), "pattern and material must each be consumed"
+ if a.source_gui_test and a.source_choice_wire_test:
+  assert 300 not in slots(h) and slots(h).get(301,{}).get('count')==1, 'one pattern and the reloaded source cost must be consumed'
+ else: assert 300 not in slots(h) and 301 not in slots(h), "pattern and material must each be consumed"
  for g in reversed(games):g.stop()
 finally:
  for g in reversed(games):g.cleanup()

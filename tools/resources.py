@@ -45,7 +45,7 @@ gui = textures / 'gui'
 gui.mkdir()
 for child in (src / 'assets/minecraft/textures/gui').iterdir():
     (gui / child.name).symlink_to(child, target_is_directory=child.is_dir())
-for name in ('part_builder', 'tinker_station'):
+for name in ('part_builder', 'tinker_station', 'icons'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.
 pattern_source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'

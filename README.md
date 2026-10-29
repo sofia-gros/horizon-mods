@@ -17,9 +17,8 @@ branch does not yet meet Part Builder acceptance; see the
 [source-to-port record](docs/original-parity.md) and [roadmap](docs/roadmap.md).
 
 The source recipes, material definitions, tags and tool definitions are
-prepared as shared data. Shared selection, material-cost and recycling
-calculations are implemented as prototypes; they are not yet connected to
-normal GUI crafting. We will connect and verify each common behavior once,
+prepared as shared data. Shared selection and material-cost calculations are connected to normal GUI
+crafting for the supported ordinary part recipes. Recycling remains a prototype. We will connect and verify each common behavior once,
 then expand content through its source definitions and check separately only
 where the original has distinct behavior.
 
@@ -30,10 +29,11 @@ on its own; v1.0 is the complete port. Neither milestone has been reached.
 
 In single-player worlds, craft a Pattern and the Part Builder and Tinker
 Station at a crafting table, place both tables, and open them by interacting.
-In the Part Builder, insert a Pattern and material, then select an illustrated
-part and take it from the result slot. Flint or oak planks make a pick head
-for two materials, or a tool handle or binding for one. These parts use the original shared item IDs and carry their tested
-material ID in custom data. A Pattern is consumed for each part. In the Tinker Station, put the head, handle
+In the Part Builder, insert a Pattern and material, select a source-recipe
+pattern in the scrolling grid, and take an ordinary part from the result slot.
+For example, an oak log produces a wood tool handle and returns three oak
+planks; this path and save/reload were tested in both game modes. Part recipes
+and materials are still incomplete, and unsupported contexts are rejected. In the Tinker Station, put the head, handle
 and binding in the three input positions and take a flint/wood pickaxe. Its tested
 `tic_materials` list survives save and reload, but derived statistics, traits
 and modifiers are not fully ported. Put a worn pickaxe and flint in the inputs and take a repaired copy. Repair retains
@@ -48,18 +48,18 @@ custom data, not every item component.
 
 Two players can use the same table; the tested competing result pickups consume
 inputs once. In both game modes, a guest can reopen the table and see the
-shared fixed-part selection after the Pattern is removed and restored. See the
-[guest Part Builder preview](docs/part-builder-dataslot-preview.png) and
+shared source-pattern selection after the Pattern is removed and restored. See the
+[Part Builder source-recipe preview](docs/part-builder-source-preview.png) and
 [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
 
 This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
 the other craftable parts cannot yet be assembled into tools. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
-tools and traits are not supported. The Part Builder supports selection and a separate result slot for only three
-fixed prototype parts; original recipe lists, material variants and detailed tooltips
-are incomplete. Dynamic part names are not yet connected to hotbar labels or recipe search. The Tinker Station uses separate assembly and repair
-result icons, and does not yet provide the original naming or modifier UI.
-Only oak planks are accepted for wood parts; the original accepts more
-planklike materials. Shift-click, drag and double-click collection in these
+tools and traits are not supported. The Part Builder has a source-recipe selection grid and ordinary pickup, but
+recycling, all material and item registrations, original container remainders,
+complete tooltips and side panels are unfinished. Dynamic part names are not
+yet connected to hotbar labels or recipe search. The Tinker Station uses
+separate assembly and repair result icons, and does not yet provide the original
+naming or modifier UI. Shift-click, drag and double-click collection in these
 screens are disabled. Broken-tool visuals and full broken behavior remain
 incomplete. Dedicated servers and arbitrary other item components are not
 verified. A plain Lore entry was tested through repair, display and save/reload
@@ -102,8 +102,7 @@ base available. Both preparation commands refuse an existing destination.
 The 1.20.1 client jar and Forge 47.4.0 universal jar are supplied locally and
 checked against pinned hashes; the extracted source data stay in your generated
 resource directory. The [Forge universal jar](https://maven.minecraftforge.net/net/minecraftforge/forge/1.20.1-47.4.0/forge-1.20.1-47.4.0-universal.jar) is available from the official Forge Maven repository. These files
-prepare source data for the unfinished Part Builder and do not enable its
-original recipes yet. `--tconstruct-prepare` uses a Mixins-injected entry point
+prepare source data for the partially implemented Part Builder. `--tconstruct-prepare` uses a Mixins-injected entry point
 and official Horizon's native data-table builder; it does not start a Wasm engine. Generated trees and worlds
 are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
 are included in the repository and the generated resource overlay under

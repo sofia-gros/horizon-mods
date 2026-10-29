@@ -9,11 +9,11 @@ The intended v0.5 milestone is a playable prerelease that reproduces almost all
 of the original mod's content and behavior. Broad compatibility testing with
 other mods is not a prerequisite for that milestone. v1.0 is the complete
 port of the original, including its processing and values. Neither milestone is
-currently reached; the fixed preview below remains an early implementation.
+currently reached; the source-recipe preview below remains an early implementation.
 
 | Area | Current status | Next work |
 | --- | --- | --- |
-| Part Builder | Playable fixed flint/wood subset | Original recipe-derived lists, detailed material tooltips, other materials and variants |
+| Part Builder | Source-recipe selection and ordinary pickup for tested materials | Recycling, shift-click, full source container remainders, detailed tooltips, other materials and variants |
 | Tinker Station | Fixed pickaxe assembly and flint repair | Naming UI, all combinations, component replacement and modifiers |
 | Durability | Wear, slow broken mining and repair for fixed pickaxe | Full original broken behavior and original broken textures |
 | Models and tooltips | Original textures for the fixed tool and parts; static table models | All material combinations, orientation, tooltips and traits |

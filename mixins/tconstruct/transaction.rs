@@ -1297,6 +1297,39 @@ pub(super) fn source_take_part_plan(
     match carried.as_mut() { Some(stack) => stack.count += output.count, None => *carried = Some(output) }
     Some(give)
 }
+
+/// Vanilla Inventory.add ordering: try the selected slot, then other existing
+/// stacks, then empty inventory slots. A remainder must be dropped by the
+/// caller if it cannot fit.
+pub(super) fn source_give_inventory(
+    inventory: &mut [Option<ItemStack>], selected: usize, mut stack: ItemStack,
+    max: u32, stackable: bool,
+) -> Option<ItemStack> {
+    if max == 0 { return Some(stack); }
+    if stackable {
+        let order = std::iter::once(selected).filter(|i| *i < inventory.len())
+            .chain((0..inventory.len()).filter(|i| *i != selected)).collect::<Vec<_>>();
+        for i in order {
+            if let Some(existing) = &mut inventory[i] {
+                if existing.same_item_same_components(&stack) && existing.count < max {
+                    let moved = (max - existing.count).min(stack.count);
+                    existing.count += moved;
+                    stack.count -= moved;
+                    if stack.count == 0 { return None; }
+                }
+            }
+        }
+    }
+    for slot in inventory {
+        if slot.is_none() {
+            let moved = stack.count.min(max);
+            *slot = Some(ItemStack { count: moved, ..stack.clone() });
+            stack.count -= moved;
+            if stack.count == 0 { return None; }
+        }
+    }
+    Some(stack)
+}
 #[allow(dead_code)]
 pub(super) fn source_part_plan(
     recipe: &SourcePartRecipe,
@@ -2403,6 +2436,10 @@ mod tests {
             Some(ItemStack::new("minecraft:bucket", 1)), Some(ItemStack::new("minecraft:glass_bottle", 1)), 64).unwrap();
         assert_eq!(slots[0].as_ref().map(|s| &*s.item), Some("minecraft:glass_bottle"));
         assert_eq!(gave.iter().map(|s| &*s.item).collect::<Vec<_>>(), ["minecraft:oak_planks", "minecraft:bucket"]);
+        let mut inventory = vec![Some(ItemStack::new("minecraft:oak_planks", 63))];
+        let overflow = source_give_inventory(&mut inventory, 0, gave[0].clone(), 64, true).unwrap();
+        assert_eq!(inventory[0].as_ref().unwrap().count, 64);
+        assert_eq!((&*overflow.item, overflow.count), ("minecraft:oak_planks", 1));
         assert_eq!(source_part_plan(&recipe, &wood, Some(&source), 0, false).unwrap(), None);
         assert_eq!(source_part_plan(&recipe, &wood, Some(&source), 1, true).unwrap().unwrap().pattern_used, 0);
         let no_leftover = SourceMaterialMatch { leftover:None, ..source };
