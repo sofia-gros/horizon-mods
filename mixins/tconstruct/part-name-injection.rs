@@ -3,6 +3,29 @@ fn tconstruct_part_name(
     game: &crate::game::Game<'_>,
     stack: &horizon_client::items::ItemStack,
 ) -> Vec<(horizon_client::text::Text, u32)> {
+    // Remote cost data is only available while the source menu is open; do
+    // not display an unsynchronized value in other remote contexts.
+    if let Some(index) = crate::game::tconstruct_source_cast_info::cast_index(&stack.item) {
+        let hidden = stack.data().and_then(|data| data.other("minecraft:tooltip_display"))
+            .and_then(|display| display.get("hide_tooltip"))
+            .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Byte(n) if *n != 0));
+        let costs = if game.remote.is_some() {
+            game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_cast_costs().get(&pos))
+        } else {
+            game.world.chunks.__horizon_mixins_tconstruct_source_cast_costs().as_ref()
+        };
+        if !hidden {
+            if let Some(cost) = costs.and_then(|values| values.get(index)).copied().filter(|n| *n > 0) {
+                let key = "item.tconstruct.cast.cost";
+                let text = game.pack.names.display_get(key).unwrap_or_else(|| key.to_owned()).replace("%d", "%s");
+                let text = horizon_client::text::format_translation(&text, &[horizon_client::text::Text::literal(cost.to_string())]);
+                let name_visible = horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative);
+                let index = usize::from(name_visible).min(value.len());
+                value.insert(index, (text, horizon_client::hud::rgba(170, 170, 170, 255)));
+            }
+        }
+        return value;
+    }
     // DummyMaterialItem.appendHoverText is shared by all four stone plating
     // items. It is independent of explicit names and material components.
     if ["tconstruct:helmet_plating_dummy", "tconstruct:chestplate_plating_dummy",

@@ -24,6 +24,9 @@ fn clear_part_selection_on_block_change(world: &mut crate::world::World, x: i32,
         world.chunks.__horizon_mixins_tconstruct_builder_preview_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_scroll_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_preview_sent_mut().retain(|(_, _, _, pos), _| *pos != (x,y,z));
+        world.chunks.__horizon_mixins_tconstruct_builder_cast_costs_mut().remove(&(x,y,z));
+        world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_recv_mut().remove(&(x,y,z));
+        world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_sent_mut().retain(|(_, _, _, pos), _| *pos != (x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().remove(&(x,y,z));
     }
 }

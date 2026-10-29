@@ -91,6 +91,27 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }
         Ok(result)
     })();
+    // PartCastItem costs use the registered material-casting recipes in this
+    // world. Unknown conditions or incomplete item/registry state fail closed.
+    let cast_costs = (|| -> Option<Vec<i32>> {
+        let item_tags = resolved_tags.as_ref()?.as_ref().ok()?;
+        let fluid_tags = resolved_fluids.as_ref().ok()?;
+        let config = config.as_ref().ok()?;
+        let registry = &game.res.rest.get()?.items.registry_order;
+        let material_items: std::collections::HashSet<String> = crate::game::tconstruct_source_cast_info::PARTS
+            .iter().map(|part| format!("tconstruct:{part}")).collect();
+        if material_items.iter().any(|id| !registry.iter().any(|entry| &**entry == id)) { return None; }
+        let filtered: std::collections::BTreeMap<String, Vec<u8>> = recipes.iter().filter_map(|(id, bytes)| {
+            let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+            let item = value.get("result")?.as_str()?;
+            if !material_items.contains(item) { return None; }
+            Some((id.clone(), bytes.clone()))
+        }).collect();
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        let costs = crate::game::tconstruct_tx::source_material_casting_costs(&filtered, &material_items, &registries, config, true).ok()?;
+        Some(crate::game::tconstruct_source_cast_info::PARTS.iter().map(|part| costs.get(&format!("tconstruct:{part}")).copied().unwrap_or(0)).collect())
+    })();
+    *game.world.chunks.__horizon_mixins_tconstruct_source_cast_costs_mut() = cast_costs;
     let durability = game.res.rest.get().map(|rest| {
         rest.items.items.iter().map(|(id, info)| (id.to_string(), info.max_damage)).collect()
     });

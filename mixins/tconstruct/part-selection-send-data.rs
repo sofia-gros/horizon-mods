@@ -20,6 +20,15 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         let preview_key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
         let preview_changed = world.chunks.__horizon_mixins_tconstruct_builder_preview_sent().get(&preview_key)
             .is_none_or(|(old_state, old)| *old_state != menu.state || old != &preview);
+        // The original cast cost is world recipe data. Send a complete frame
+        // alongside the menu data, never an inferred or partially updated cost.
+        let cast_frame = world.chunks.__horizon_mixins_tconstruct_source_cast_costs().as_ref()
+            .and_then(|costs| crate::tconstruct_source_builder_wire::encode(&costs.iter().map(ToString::to_string).collect::<Vec<_>>()));
+        let sent_frame = cast_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
+        let cast_changed = world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_sent().get(&preview_key) != Some(&sent_frame);
+        if cast_changed {
+            world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_sent_mut().insert(preview_key, sent_frame);
+        }
         let guest = &mut hub.guests[i];
         let Some(menu) = guest.menu.as_mut() else { continue; };
         if menu.sent_data.is_empty() { menu.sent_data.push(i16::MIN); }
@@ -39,6 +48,14 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 for (i, &word) in encoded[1..].iter().enumerate() { send(guest, (i + 2) as i16, word); }
                 send(guest, 1, encoded[0]);
             } else { send(guest, 1, -2); }
+        }
+        if cast_changed {
+            let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
+            if let Some(frame) = cast_frame {
+                send(guest, 20000, -1);
+                for (i, &word) in frame[1..].iter().enumerate() { send(guest, 20001 + i as i16, word); }
+                send(guest, 20000, frame[0]);
+            } else { send(guest, 20000, -2); }
         }
         if selection_changed || wire_changed { guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 0, value })); }
         if preview_changed {

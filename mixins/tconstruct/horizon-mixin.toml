@@ -811,6 +811,58 @@ name = "tconstruct_source_native_durability"
 source = "source-native-durability.rs"
 
 [[module]]
+id = "host-source-cast-info"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_cast_info"
+source = "source-cast-info.rs"
+
+[[module]]
+id = "server-source-cast-info"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_cast_info"
+source = "source-cast-info.rs"
+
+[[state]]
+id = "source-cast-costs"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Vec<i32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-cast-costs"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),Vec<i32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-cast-wire-recv"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-cast-wire-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),Vec<i16>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
 id = "host-source-builder-layout"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_builder_layout"

@@ -1,6 +1,30 @@
 fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value: i16) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
+    // Reserved ids are above the maximum Pattern-frame data-slot range.
+    if id >= 20000 {
+        if let Some(key) = game.container {
+            if id == 20000 && value == -1 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_cast_costs_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_recv_mut().insert(key, Vec::new());
+            } else if id == 20000 && value == -2 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_cast_costs_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_recv_mut().remove(&key);
+            } else if id == 20000 && value >= 0 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_recv_mut().remove(&key);
+                let costs = pending.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words))
+                    .and_then(|values| crate::game::tconstruct_source_cast_info::parse_costs(&values));
+                if let Some(costs) = costs { game.world.chunks.__horizon_mixins_tconstruct_builder_cast_costs_mut().insert(key, costs); }
+                else { game.world.chunks.__horizon_mixins_tconstruct_builder_cast_costs_mut().remove(&key); }
+            } else if id > 20000 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_recv_mut();
+                if let Some(words) = pending.get_mut(&key) {
+                    if words.len() == id - 20001 { words.push(value); } else { pending.remove(&key); }
+                }
+            }
+        }
+        return Break(());
+    }
     if id == 0 {
         if let Some(key) = game.container {
             let pattern = usize::try_from(value).ok().and_then(|index| {
