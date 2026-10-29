@@ -2,7 +2,7 @@
 
 **Windows 実機ではまだ検証していません。** 現在の Mod は未完成です。ランダムな余りには Windows 対応の Rust 乱数を使いますが、Windows 実機では未検証です。
 
-1. [Windows 検証ブランチを ZIP でダウンロード](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/windowns-all-usertest.zip)して展開します。既存の検証ブランチの checkout があれば、それを使っても構いません。
+1. [Windows 検証ブランチを ZIP でダウンロード](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/windows-all-usertest.zip)して展開します。既存の検証ブランチの checkout があれば、それを使っても構いません。
 2. 展開したフォルダー内の **`Play-TConstruct.cmd`** をダブルクリックします。
 3. 初回は本体のソース取得と正式 Mixins 変換・ビルドが実行されます。必要なツールや資源がない場合は画面に説明が出て停止します。Horizon 26.3 の資源を自動で見つけられなかったときだけ、準備済み資源フォルダーを選択してください。
 
