@@ -12,7 +12,7 @@ pub(super) fn choices(
 ) -> Result<Vec<SourceAllPartChoice>, SourceLookupError> {
     if pattern.is_none() { return Ok(Vec::new()); }
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
-    choices_from(world, pattern, material, recipes)
+    choices_from(world, pattern, material, recipes, None)
 }
 
 fn choices_from(
@@ -20,6 +20,7 @@ fn choices_from(
     pattern: Option<&ItemStack>,
     material: Option<&ItemStack>,
     recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+    cached_material: Option<&Option<tx::SourceMaterialMatch>>,
 ) -> Result<Vec<SourceAllPartChoice>, SourceLookupError> {
     let Some(pattern) = pattern else { return Ok(Vec::new()); };
     let chunks = &world.chunks;
@@ -36,16 +37,18 @@ fn choices_from(
     // The original takes a distinct route for tagged material-bearing parts.
     // Until that tag and casting costs are complete, do not silently use a
     // material recipe for them.
-    if material.is_some() && (items.get("tconstruct:parts").is_some_and(|tag| tag.contains(id))
+    if cached_material.is_none() && material.is_some() && (items.get("tconstruct:parts").is_some_and(|tag| tag.contains(id))
         || !items.contains_key("tconstruct:parts") && id.starts_with("tconstruct:")) {
         return Err(SourceLookupError::IncompleteContext);
     }
     // Instrument-based ingredient matches require the instrument component and
     // its registry, which are not present in the snapshot yet.
-    if material.is_some() && (id == "minecraft:goat_horn" || items.get("minecraft:goat_horns").is_some_and(|tag| tag.contains(id))) {
+    if cached_material.is_none() && material.is_some() && (id == "minecraft:goat_horn" || items.get("minecraft:goat_horns").is_some_and(|tag| tag.contains(id))) {
         return Err(SourceLookupError::IncompleteContext);
     }
-    let found = if material.is_some() {
+    let found = if let Some(cached) = cached_material {
+        cached.clone()
+    } else if material.is_some() {
         tx::source_material_lookup(recipes, id, None, items, &instruments, &instrument_tags, &registries, config, true)?
     } else { None };
     let mut supported = HashSet::new();
@@ -72,6 +75,31 @@ fn choices_from(
     tx::source_all_part_choices(recipes, &*pattern.item, &input, id, count, items, &instruments, &instrument_tags, &registries, config, None, None, true)
 }
 
+/// Cached `IMaterialValue` is independent of the pattern/recipe list and is
+/// invalidated only when the material item or its data changes.
+fn cached_material(world: &super::tconstruct_world::World, pos: (i32, i32, i32), material: Option<&ItemStack>) -> Option<Option<tx::SourceMaterialMatch>> {
+    let material = material?;
+    let (old, bytes) = world.chunks.__horizon_mixins_tconstruct_builder_material_cache().get(&pos)?;
+    if !old.same_item_same_components(material) { return None; }
+    serde_json::from_slice(bytes).ok()
+}
+
+fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack) -> Result<Option<tx::SourceMaterialMatch>, SourceLookupError> {
+    let chunks = &world.chunks;
+    let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+    let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let id = &*material.item;
+    if items.get("tconstruct:parts").is_some_and(|tag| tag.contains(id))
+        || !items.contains_key("tconstruct:parts") && id.starts_with("tconstruct:")
+        || id == "minecraft:goat_horn" || items.get("minecraft:goat_horns").is_some_and(|tag| tag.contains(id)) {
+        return Err(SourceLookupError::IncompleteContext);
+    }
+    let registries = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
+    tx::source_material_lookup(recipes, id, None, items, &HashSet::new(), &HashMap::new(), &registries, config, true)
+}
+
 /// Compute one source result from the current authoritative world. Ordinary
 /// parts and supported damageable-item recycling are handled; inventory mutation
 /// and unsupported recycling cases remain separate.
@@ -91,7 +119,7 @@ pub(super) fn plan(
     let choice_id = if let Some((_, _, entries)) = context {
         entries.iter().find(|(pattern, _)| pattern == selected).map(|(_, id)| id.clone())
     } else {
-        choices_from(world, Some(pattern), material, recipes)?.into_iter().find(|c| c.pattern == selected).map(|c| c.id)
+        choices_from(world, Some(pattern), material, recipes, cached_material(world, pos, material).as_ref())?.into_iter().find(|c| c.pattern == selected).map(|c| c.id)
     };
     let Some(choice_id) = choice_id else { return Ok(None); };
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
@@ -147,7 +175,9 @@ pub(super) fn plan(
     let instruments = HashSet::new();
     let instrument_tags = HashMap::new();
     let id = material.map_or("", |s| &*s.item);
-    let found = if material.is_some() {
+    let found = if let Some(cached) = cached_material(world, pos, material) {
+        cached
+    } else if material.is_some() {
         tx::source_material_lookup(recipes, id, None, items, &instruments, &instrument_tags, &registries, config, true)?
     } else { None };
     let mut supported = HashSet::new();
@@ -191,7 +221,7 @@ pub(super) fn select(world: &mut super::tconstruct_world::World, pos: (i32, i32,
     let choice_id = if let Some((_, _, entries)) = context {
         entries.iter().find(|(pattern, _)| pattern == &selected).map(|(_, id)| id.clone())
     } else {
-        let Ok(candidates) = choices_from(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), recipes) else { return false; };
+        let Ok(candidates) = choices_from(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), recipes, cached_material(world, pos, slots.get(1).and_then(Option::as_ref)).as_ref()) else { return false; };
         candidates.into_iter().find(|choice| choice.pattern == selected).map(|choice| choice.id)
     };
     let Some(choice_id) = choice_id else { return false; };
@@ -217,7 +247,29 @@ pub(super) fn refresh(world: &mut super::tconstruct_world::World, pos: (i32, i32
     }
     let epoch = *world.chunks.__horizon_mixins_tconstruct_source_recipe_generation();
     let recipes = world.chunks.__horizon_mixins_tconstruct_source_shared_recipes().clone();
-    let candidates = recipes.as_ref().and_then(|recipes| choices_from(world, pattern.as_ref(), material.as_ref(), recipes).ok());
+    let mut cached = cached_material(world, pos, material.as_ref());
+    if cached.is_none() {
+        world.chunks.__horizon_mixins_tconstruct_builder_material_cache_mut().remove(&pos);
+        if let (Some(pattern), Some(material), Some(recipes)) = (pattern.as_ref(), material.as_ref(), recipes.as_ref()) {
+            let chunks = &world.chunks;
+            let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
+            let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok());
+            let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok());
+            let needs_lookup = if let (Some(items), Some(fluids), Some(config)) = (items, fluids, config) {
+                let registries = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
+                tx::source_needs_material_lookup(recipes, &pattern.item, &material.item, items, &registries, config).ok() == Some(true)
+            } else { false };
+            if needs_lookup {
+                if let Ok(value) = lookup_material(world, material) {
+                    if let Ok(bytes) = serde_json::to_vec(&value) {
+                        world.chunks.__horizon_mixins_tconstruct_builder_material_cache_mut().insert(pos, (material.clone(), bytes));
+                        cached = Some(value);
+                    }
+                }
+            }
+        }
+    }
+    let candidates = recipes.as_ref().and_then(|recipes| choices_from(world, pattern.as_ref(), material.as_ref(), recipes, cached.as_ref()).ok());
     let result = candidates.as_ref().map(|items| items.iter().map(|c| c.pattern.clone()).collect());
     if let (Some(recipes), Some(candidates)) = (recipes, candidates) {
         let entries = candidates.into_iter().map(|c| (c.pattern, c.id)).collect();

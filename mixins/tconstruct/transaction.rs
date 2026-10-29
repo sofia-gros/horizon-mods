@@ -274,10 +274,10 @@ impl SourceCondition {
 /// Source ItemOutput forms in the pinned material recipes. Tag selection and
 /// NBT decoding are deliberately deferred until the world registry is present.
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(super) enum SourceOutputKind { Item(String), Tag(String) }
 #[allow(dead_code)]
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(super) struct SourceItemOutput { pub kind: SourceOutputKind, pub count: i32, pub nbt: Option<serde_json::Value> }
 #[allow(dead_code)]
 impl SourceItemOutput {
@@ -516,7 +516,7 @@ pub(super) fn source_merge_material_traits(files: &[Vec<u8>]) -> Result<SourceRa
 pub(super) enum SourceLookupError { IncompleteContext, UnsupportedOrder, UnsupportedRecipe, UnknownCondition }
 
 #[allow(dead_code)]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
 pub(super) struct SourceMaterialMatch {
     pub id: String,
     pub material: String,
@@ -1105,6 +1105,39 @@ fn source_variant_matches(expected: &str, actual: &str) -> bool {
 fn source_id_order(id: &str) -> (&str, &str) {
     let (namespace, path) = id.split_once(':').unwrap_or(("minecraft", id));
     (path, namespace)
+}
+
+/// Whether the source's matching ordinary recipe calls `getMaterial` for
+/// this input. Recycling recipes do not initialize the material cache.
+#[allow(dead_code)]
+pub(super) fn source_needs_material_lookup(
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>, pattern_item: &str, input_item: &str,
+    item_tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+) -> Result<bool, SourceLookupError> {
+    if pattern_item.is_empty() || input_item.is_empty() { return Ok(false); }
+    for (id, bytes) in recipes {
+        if id.split_once(':').is_some_and(|(_, path)| path.starts_with('_')) { continue; }
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+        if !matches!(value.get("type").and_then(serde_json::Value::as_str), Some("tconstruct:part_builder" | "tconstruct:item_part_builder")) { continue; }
+        let recipe = SourcePartRecipe::parse(id.clone(), &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        if !recipe.pattern_item.matches(pattern_item, None, item_tags, &Default::default(), &Default::default()) { continue; }
+        let calls_material = match &recipe.kind {
+            SourcePartKind::MaterialItem { item, .. } => item != input_item,
+            SourcePartKind::Item { material, .. } => material != "tconstruct:unknown",
+        };
+        if !calls_material { continue; }
+        let mut enabled = true;
+        for condition in &recipe.conditions {
+            match condition.matches(registries, config) {
+                Some(false) => { enabled = false; break; },
+                Some(true) => {}, None => return Err(SourceLookupError::UnknownCondition),
+            }
+        }
+        if enabled { return Ok(true); }
+    }
+    Ok(false)
 }
 
 /// Ordinary part recipe candidates only; the complete source candidate set
@@ -2683,6 +2716,28 @@ mod tests {
             let give = source_take_part_plan(&mut slots, &mut cursor, &plan, ItemStack::new("tconstruct:pick_head", 1), None, alternatives.clone(), None, None, 64, |bound| { assert_eq!(bound, 3); Some(chosen) }).unwrap();
             assert_eq!(give, vec![alternatives[chosen].clone()]);
         }
+    }
+
+    #[test]
+    fn material_lookup_starts_only_for_matching_ordinary_part_recipe() {
+        let recipe = serde_json::json!({"type":"tconstruct:part_builder", "pattern":"tconstruct:pick_head", "cost":2,
+            "result":{"item":"tconstruct:pick_head"}});
+        let recipes = [("tconstruct:test".to_owned(), serde_json::to_vec(&recipe).unwrap())].into_iter().collect();
+        let tags = [("tconstruct:patterns/default".to_owned(), ["tconstruct:pattern".to_owned()].into_iter().collect())].into_iter().collect();
+        assert_eq!(source_needs_material_lookup(&recipes, "tconstruct:pattern", "minecraft:flint", &tags, &Default::default(), &Default::default()), Ok(true));
+        assert_eq!(source_needs_material_lookup(&recipes, "tconstruct:venom_bottle", "minecraft:flint", &tags, &Default::default(), &Default::default()), Ok(false));
+        assert_eq!(source_needs_material_lookup(&recipes, "tconstruct:pattern", "tconstruct:pick_head", &tags, &Default::default(), &Default::default()), Ok(false));
+    }
+
+    #[test]
+    fn source_material_cache_round_trips_variants_and_leftovers() {
+        let value = Some(SourceMaterialMatch {
+            id: "tconstruct:wood".into(), material: "tconstruct:wood#warped".into(), value: 4, needed: 1,
+            leftover: Some(SourceItemOutput { kind: SourceOutputKind::Tag("minecraft:planks".into()), count: 3, nbt: None }),
+        });
+        let encoded = serde_json::to_vec(&value).unwrap();
+        assert_eq!(serde_json::from_slice::<Option<SourceMaterialMatch>>(&encoded).unwrap(), value);
+        assert_eq!(serde_json::from_slice::<Option<SourceMaterialMatch>>(b"null").unwrap(), None);
     }
 
     #[test]
