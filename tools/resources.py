@@ -126,6 +126,16 @@ for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
     if name not in existing:
         entries.append((name, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+# Register the complete original gold-cast tag, enabling reusable patterns.
+gold_casts = json.loads((repository / 'content/reference/tconstruct-tags/data/tconstruct/tags/items/casts/gold.json').read_text())['values']
+for name in gold_casts:
+    short = name.split(':')[1]
+    entries.append((name, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+    model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())
+    texture = model['textures']['layer0'].split(':', 1)[1] + '.png'
+    dest = mod_assets / 'textures' / texture
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(repository / 'content/assets/tconstruct/textures' / texture, dest)
 # Original stone plating items are regular DummyMaterialItem instances.
 for part in ('helmet', 'chestplate', 'leggings', 'boots'):
     short = part + '_plating_dummy'
@@ -138,7 +148,7 @@ for name, template, title in entries:
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
     if short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
-    elif short.endswith('_plating_dummy'):
+    elif name in gold_casts or short.endswith('_plating_dummy'):
         native_model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())
     elif short in MATERIAL_MODELS:
         original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
