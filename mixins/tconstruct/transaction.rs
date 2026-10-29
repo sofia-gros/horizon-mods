@@ -1216,6 +1216,87 @@ pub(super) struct SourcePartPlan {
     pub pattern_used: i32,
     pub leftover: Option<(SourceItemOutput, i32)>,
 }
+
+/// Resolve a planned source result and leftover against the live item/tag
+/// registry. An absent preference or an unsupported NBT form is not guessed.
+/// This does not mutate slots or deliver leftovers to the player.
+#[allow(dead_code)]
+pub(super) fn source_resolve_part_plan(
+    plan: &SourcePartPlan,
+    tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+    preferences: Option<&[String]>,
+    registered: &std::collections::HashSet<String>,
+) -> Result<Option<(ItemStack, Option<ItemStack>)>, SourceLookupError> {
+    let resolve = |output: &SourceItemOutput, count: i32| -> Result<Option<ItemStack>, SourceLookupError> {
+        if output.nbt.is_some() { return Err(SourceLookupError::UnsupportedRecipe); }
+        if let SourceOutputKind::Tag(tag) = &output.kind {
+            if !tags.contains_key(tag) { return Err(SourceLookupError::IncompleteContext); }
+        }
+        let Some(id) = output.resolve_id(tags, preferences).ok_or(SourceLookupError::IncompleteContext)? else { return Ok(None); };
+        if !registered.contains(&id) { return Err(SourceLookupError::IncompleteContext); }
+        let count = u32::try_from(count).ok().filter(|n| *n > 0).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        Ok(Some(ItemStack::new(&id, count)))
+    };
+    let output = match &plan.output {
+        SourcePartOutput::MaterialItem { item, material, count } => {
+            if !registered.contains(item) { return Err(SourceLookupError::IncompleteContext); }
+            let count = u32::try_from(*count).ok().filter(|n| *n > 0).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let material = super::tconstruct_source_render_info::material_id(material).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            let mut stack = ItemStack::new(item, count);
+            stack.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
+                ("Material", horizon_world::nbt::Tag::String(material.as_str().into())),
+            ])));
+            stack
+        },
+        SourcePartOutput::Item { output, count } => {
+            let Some(stack) = resolve(output, *count)? else { return Ok(None); };
+            stack
+        },
+    };
+    let leftover = match &plan.leftover {
+        Some((item, count)) => resolve(item, *count)?,
+        None => None,
+    };
+    Ok(Some((output, leftover)))
+}
+
+/// Apply a previously revalidated plan to the authoritative pattern/material
+/// slots and cursor. Return the source-ordered stacks to give to the player:
+/// recipe leftover first, then crafting containers from material and pattern.
+/// The caller must obtain each input's real crafting container and deliver or
+/// drop the returned stacks using the player's inventory rules.
+#[allow(dead_code)]
+pub(super) fn source_take_part_plan(
+    slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>,
+    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>,
+    material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
+    output_max: u32,
+) -> Option<Vec<ItemStack>> {
+    if slots.len() < 2 || output.count == 0 || output.count > output_max { return None; }
+    let material_used = u32::try_from(plan.materials_used).ok()?;
+    let pattern_used = u32::try_from(plan.pattern_used).ok()?;
+    for (slot, used) in [(1, material_used), (0, pattern_used)] {
+        if used != 0 && slots[slot].as_ref().is_none_or(|s| s.count < used) { return None; }
+    }
+    if let Some(existing) = carried.as_ref() {
+        if !existing.same_item_same_components(&output)
+            || existing.count.checked_add(output.count).is_none_or(|n| n > output_max) { return None; }
+    }
+    let mut give = Vec::new();
+    if let Some(leftover) = leftover { give.push(leftover); }
+    for (slot, used, container) in [(1, material_used, material_container), (0, pattern_used, pattern_container)] {
+        if used == 0 { continue; }
+        let stack = slots[slot].as_mut().expect("inputs were validated");
+        let container = container.map(|mut value| { value.count = value.count.wrapping_mul(used); value });
+        if stack.count <= used { slots[slot] = container; }
+        else {
+            stack.count -= used;
+            if let Some(container) = container { give.push(container); }
+        }
+    }
+    match carried.as_mut() { Some(stack) => stack.count += output.count, None => *carried = Some(output) }
+    Some(give)
+}
 #[allow(dead_code)]
 pub(super) fn source_part_plan(
     recipe: &SourcePartRecipe,
@@ -2293,6 +2374,35 @@ mod tests {
         assert_eq!((plan.materials_used, plan.pattern_used), (1, 1));
         assert_eq!(plan.leftover.as_ref().map(|(_, count)| *count), Some(2));
         assert_eq!(plan.output, SourcePartOutput::MaterialItem { item:"tconstruct:pick_head".into(), material:"tconstruct:wood".into(), count:1 });
+        let registry = ["tconstruct:pick_head".to_owned(), "minecraft:oak_planks".to_owned()].into_iter().collect();
+        let (output, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        assert_eq!((&*output.item, output.count), ("tconstruct:pick_head", 1));
+        assert_eq!(output.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("Material")), Some(&horizon_world::nbt::Tag::String("tconstruct:wood".into())));
+        assert_eq!(leftover.as_ref().map(|s| (s.item.to_string(), s.count)), Some(("minecraft:oak_planks".into(), 2)));
+        assert_eq!(source_resolve_part_plan(&plan, &Default::default(), None, &Default::default()), Err(SourceLookupError::IncompleteContext));
+        let original = vec![Some(ItemStack::new("tconstruct:pattern", 1)), Some(ItemStack::new("minecraft:oak_log", 2))];
+        let mut slots = original.clone();
+        let mut full_cursor = Some(ItemStack::new("minecraft:stone", 64));
+        assert!(source_take_part_plan(&mut slots, &mut full_cursor, &plan, output.clone(), leftover.clone(), None, None, 64).is_none());
+        assert_eq!(slots, original);
+        assert_eq!(full_cursor.unwrap().count, 64);
+        let mut cursor = None;
+        let gave = source_take_part_plan(&mut slots, &mut cursor, &plan, output, leftover, None, None, 64).unwrap();
+        assert_eq!(slots[0], None);
+        assert_eq!(slots[1].as_ref().unwrap().count, 1);
+        assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
+        assert_eq!((&*gave[0].item, gave[0].count), ("minecraft:oak_planks", 2));
+        let after = slots.clone();
+        let (second, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, second, leftover, None, None, 64).is_none());
+        assert_eq!(slots, after);
+        let (output, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        let mut slots = original;
+        let mut cursor = None;
+        let gave = source_take_part_plan(&mut slots, &mut cursor, &plan, output, leftover,
+            Some(ItemStack::new("minecraft:bucket", 1)), Some(ItemStack::new("minecraft:glass_bottle", 1)), 64).unwrap();
+        assert_eq!(slots[0].as_ref().map(|s| &*s.item), Some("minecraft:glass_bottle"));
+        assert_eq!(gave.iter().map(|s| &*s.item).collect::<Vec<_>>(), ["minecraft:oak_planks", "minecraft:bucket"]);
         assert_eq!(source_part_plan(&recipe, &wood, Some(&source), 0, false).unwrap(), None);
         assert_eq!(source_part_plan(&recipe, &wood, Some(&source), 1, true).unwrap().unwrap().pattern_used, 0);
         let no_leftover = SourceMaterialMatch { leftover:None, ..source };

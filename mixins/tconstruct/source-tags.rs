@@ -60,6 +60,32 @@ fn valid_id(id: &str) -> bool {
         && path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c))
 }
 
+/// Prove that an item cannot be in a tag even when unrelated required entries
+/// are not registered yet. Traverse the merged raw tag graph conservatively:
+/// removals cannot add an item, and any reachable matching item is unknown,
+/// not evidence of membership (the full tag might fail to load).
+pub(super) fn definitely_absent(
+    tag: &str, item: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>,
+) -> Result<bool, String> {
+    fn canonical(id: &str) -> String {
+        if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
+    }
+    fn visit(tag: &str, item: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>, visiting: &mut Vec<String>) -> Result<bool, String> {
+        if visiting.iter().any(|id| id == tag) { return Err(format!("cyclic tag {tag}")); }
+        let Some(files) = tags.get(tag) else { return Ok(true); };
+        visiting.push(tag.to_owned());
+        for entry in merge_tag_files(files).into_iter().filter(|entry| !entry.remove) {
+            let absent = if let Some(nested) = entry.id.strip_prefix('#') {
+                visit(&canonical(nested), item, tags, visiting)?
+            } else { canonical(&entry.id) != item };
+            if !absent { visiting.pop(); return Ok(false); }
+        }
+        visiting.pop();
+        Ok(true)
+    }
+    visit(&canonical(tag), &canonical(item), tags, &mut Vec::new())
+}
+
 /// Reconstruct the ordered merge inputs by namespaced tag ID. Values are
 /// raw files so `replace` and Forge `remove` retain their original ordering.
 pub(super) fn merge_pack_tags(
@@ -176,6 +202,18 @@ pub(super) fn resolve_material_registry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn absent_member_is_provable_without_unrelated_registered_casts() {
+        let mut tags = BTreeMap::new();
+        tags.insert("tconstruct:patterns/reusable".into(), vec![br##"{"values":["#tconstruct:casts/gold","minecraft:elytra"]}"##.to_vec()]);
+        tags.insert("tconstruct:casts/gold".into(), vec![br#"{"values":["tconstruct:ingot_cast","tconstruct:pick_head_cast"]}"#.to_vec()]);
+        assert_eq!(definitely_absent("tconstruct:patterns/reusable", "tconstruct:pattern", &tags), Ok(true));
+        assert_eq!(definitely_absent("tconstruct:patterns/reusable", "tconstruct:pick_head_cast", &tags), Ok(false));
+        tags.get_mut("tconstruct:casts/gold").unwrap().push(br#"{"replace":true,"values":["tconstruct:pattern"]}"#.to_vec());
+        assert_eq!(definitely_absent("tconstruct:patterns/reusable", "tconstruct:pattern", &tags), Ok(false));
+        tags.insert("tconstruct:casts/gold".into(), vec![br##"{"values":["#tconstruct:patterns/reusable"]}"##.to_vec()]);
+        assert!(definitely_absent("tconstruct:patterns/reusable", "tconstruct:pattern", &tags).is_err());
+    }
     #[test]
     fn material_tags_resolve_against_materials_in_pack_order() {
         let mut files = BTreeMap::new();

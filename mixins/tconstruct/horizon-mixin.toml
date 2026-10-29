@@ -713,3 +713,27 @@ kind = "HEAD"
 cancellable = true
 helper = "material-block-wire-chunk.rs"
 bindings = [{ name = "encoder", ty = "&crate::lan::chunks::ChunkEncoder", value = "&*self" }, { name = "chunk", ty = "&crate::chunk::Chunk", value = "chunk" }, { name = "world", ty = "&crate::world::World", value = "world" }]
+
+[[module]]
+id = "host-source-builder-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_world"
+source = "source-builder-world.rs"
+
+[[module]]
+id = "server-source-builder-world"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_builder_world"
+source = "source-builder-world.rs"
+
+[[module]]
+id = "host-source-world-type"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_world"
+source = "source-world-type-game.rs"
+
+[[module]]
+id = "server-source-world-type"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_world"
+source = "source-world-type-server.rs"

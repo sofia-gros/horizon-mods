@@ -158,6 +158,12 @@ def probe(g, expected, tag_expected=None, planks_expected=None, forge_expected=N
                 flint = [line.split('TCONSTRUCT_REAL_LOOKUP_FLINT ', 1)[1] for line in lines if 'TCONSTRUCT_REAL_LOOKUP_FLINT ' in line]
                 oak = [line.split('TCONSTRUCT_REAL_LOOKUP_OAK_LOG ', 1)[1] for line in lines if 'TCONSTRUCT_REAL_LOOKUP_OAK_LOG ' in line]
                 if config_expected == 'default':
+                    if not a.world_material_stats_test:
+                        choices = [line.split('TCONSTRUCT_LIVE_BUILDER_CHOICES ', 1)[1] for line in lines if 'TCONSTRUCT_LIVE_BUILDER_CHOICES ' in line]
+                        plans = [line.split('TCONSTRUCT_LIVE_BUILDER_PLAN ', 1)[1] for line in lines if 'TCONSTRUCT_LIVE_BUILDER_PLAN ' in line]
+                        cost = {'base': 2, 'a': 3, 'b': 1}[choice_layer] if a.choices_test else 2
+                        assert choices and 'tconstruct:pick_head' in choices[-1].split(','), choices
+                        assert plans and plans[-1] == f'{cost} 1', plans
                     assert flint and flint[-1] == 'tconstruct:tools/materials/flint/flint tconstruct:flint 1 1', flint
                     expect_oak = choice_layer == 'a' or choice_layer == 'base' and vanilla_enabled
                     expected_oak = 'tconstruct:tools/materials/wood/logs/oak tconstruct:wood 4 1' if expect_oak else 'none'

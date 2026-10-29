@@ -1,4 +1,16 @@
 fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
+    // Exercise the same world-scoped candidate entry point that the Part
+    // Builder will use, with ordinary source inputs and no fabricated tags.
+    let pattern = horizon_client::items::ItemStack::new("tconstruct:pattern", 1);
+    let flint = horizon_client::items::ItemStack::new("minecraft:flint", 3);
+    match crate::game::tconstruct_source_builder_world::choices(&game.world, Some(&pattern), Some(&flint)) {
+        Ok(choices) => eprintln!("TCONSTRUCT_LIVE_BUILDER_CHOICES {}", choices.iter().map(|c| c.pattern.as_str()).collect::<Vec<_>>().join(",")),
+        Err(error) => eprintln!("TCONSTRUCT_LIVE_BUILDER_CHOICES error {error:?}"),
+    }
+    match crate::game::tconstruct_source_builder_world::plan(&game.world, Some(&pattern), Some(&flint), "tconstruct:pick_head") {
+        Ok(Some(plan)) => eprintln!("TCONSTRUCT_LIVE_BUILDER_PLAN {} {}", plan.materials_used, plan.pattern_used),
+        other => eprintln!("TCONSTRUCT_LIVE_BUILDER_PLAN {other:?}"),
+    }
     if let Some(recipes) = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot() {
         let probe = recipes.get("test:probe").and_then(|v| std::str::from_utf8(v).ok()).unwrap_or("missing");
         eprintln!("TCONSTRUCT_RECIPE_PROBE {probe}");
