@@ -72,6 +72,8 @@ preservation of arbitrary other components or all styled text.
 
 ## Requirements and setup
 
+[Windows PowerShell playtest instructions](docs/windows-playtest.md) (native Windows build and play are not yet verified).
+
 Linux, Python 3.12+, Git, Rust and Cargo, and your own prepared Horizon 26.3
 resources are required. The reference-data setup also uses locally supplied
 Minecraft 1.20.1 and Forge 47.4.0 jars. `compatibility.json` pins the source

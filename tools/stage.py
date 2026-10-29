@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Export pinned Horizon sources and apply the pinned Mixins CLI."""
-import argparse, json, subprocess, tarfile, tempfile
+import argparse, json, os, subprocess, tarfile, tempfile
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[1]
@@ -43,5 +43,5 @@ with tempfile.TemporaryDirectory(prefix='mixins-source-', dir=output) as temp:
         raise SystemExit('Mixins git archive failed')
     cli_target = root / 'target/mixins-cli-build'
     subprocess.run(['cargo', 'build', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
-    cli = cli_target / 'debug/horizon-mixins'
+    cli = cli_target / 'debug' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(mods), '--out', str(output / 'modded')], check=True)
