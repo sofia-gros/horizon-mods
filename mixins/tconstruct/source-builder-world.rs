@@ -347,25 +347,12 @@ pub(super) fn player_only_quick_move(world: &super::tconstruct_world::World, pos
     })
 }
 
-/// Seed the source's non-deterministic default Java Random from the Linux
-/// monotonic clock and the first Java seed-uniquifier step. Initialization is
-/// lazy in this port; the random sequence is not a cross-process fixed value.
-#[cfg(unix)]
+// Seed the shared Rust generator from the system clock on every platform.
 fn source_random_seed() -> i64 {
-    let time = rustix::time::clock_gettime(rustix::time::ClockId::Monotonic);
-    let nanos = (time.tv_sec as u64).wrapping_mul(1_000_000_000).wrapping_add(time.tv_nsec as u64);
-    (8682522807148012u64.wrapping_mul(1181783497276652981) ^ nanos) as i64
-}
-
-// The seed is nondeterministic, as with the original Java Random. Its exact
-// value need not match a different process; the shared bounded draw is unchanged.
-#[cfg(not(unix))]
-fn source_random_seed() -> i64 {
-    let nanos = std::time::SystemTime::now()
+    std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
-        .as_nanos() as u64;
-    (8682522807148012u64.wrapping_mul(1181783497276652981) ^ nanos) as i64
+        .as_nanos() as i64
 }
 
 pub(super) fn source_random_draw(items: &horizon_items::items::Items, bound: usize) -> Option<usize> {

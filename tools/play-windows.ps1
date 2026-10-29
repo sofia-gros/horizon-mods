@@ -32,7 +32,9 @@ try {
     if (Test-Path -LiteralPath $settingsPath -PathType Leaf) { $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json }
     $candidates = @(
         (Join-Path $env:APPDATA 'horizon-launcher\versions\v0.2.66\.local\horizon-client\26.3'),
-        (Join-Path $env:LOCALAPPDATA 'horizon-client\26.3')
+        (Join-Path $env:LOCALAPPDATA 'horizon-client\26.3'),
+        'A:\Project\horizon\.local\horizon-client\26.3',
+        (Join-Path (Split-Path -Parent $Repo) 'horizon\.local\horizon-client\26.3')
     )
     if ($settings -and $settings.resources) { $candidates = @($settings.resources) + $candidates }
     $candidates += @(Get-ChildItem -Path (Join-Path $env:APPDATA 'horizon-launcher\versions\*\.local\horizon-client\26.3') -Directory -ErrorAction SilentlyContinue | ForEach-Object FullName)
