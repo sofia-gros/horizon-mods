@@ -91,6 +91,10 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }
         Ok(result)
     })();
+    let durability = game.res.rest.get().map(|rest| {
+        rest.items.items.iter().map(|(id, info)| (id.to_string(), info.max_damage)).collect()
+    });
+    *game.world.chunks.__horizon_mixins_tconstruct_source_native_durability_mut() = durability;
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);

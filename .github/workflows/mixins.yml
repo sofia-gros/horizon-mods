@@ -32,6 +32,8 @@ jobs:
           /tmp/tconstruct-source-builder-wire-test
           rustc --test tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
           /tmp/tconstruct-source-builder-layout-test
+          rustc --edition=2021 --test tests/rust/native_item_durability.rs -o /tmp/tconstruct-native-item-test
+          /tmp/tconstruct-native-item-test
           rustc --test tests/rust/original_item_durability.rs -o /tmp/tconstruct-original-item-test
           /tmp/tconstruct-original-item-test
           rustc --test tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test

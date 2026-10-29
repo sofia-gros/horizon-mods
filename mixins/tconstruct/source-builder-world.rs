@@ -132,7 +132,9 @@ pub(super) fn plan(
     if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_recycling") {
         let recipe = tx::SourceRecyclingRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
         let Some(stack) = material else { return Ok(None); };
-        let max_damage = super::tconstruct_source_original_item_durability::max_damage(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
+        let durability = chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+        let override_damage = stack.data().and_then(|data| data.other("minecraft:max_damage")).is_some();
+        let max_damage = super::tconstruct_source_native_durability::max_damage(&stack.item, durability, override_damage).ok_or(SourceLookupError::IncompleteContext)?;
         let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
         // The original applies different checks to modifiable items. Do not
         // infer non-membership from an unresolved world tag.
