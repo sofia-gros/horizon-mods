@@ -16,7 +16,7 @@ class ResourceOverlay(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
-            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {},
+            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:honey_bottle': {},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
             (src / 'items.json').write_text(json.dumps(raw))
@@ -29,6 +29,16 @@ class ResourceOverlay(unittest.TestCase):
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']
             self.assertTrue(all(name in items and name in ids for name in names))
+            bottle = items['tconstruct:venom_bottle']
+            self.assertEqual(bottle['minecraft:max_stack_size'], 16)
+            self.assertEqual(bottle['minecraft:food'], {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0})
+            self.assertEqual(bottle['minecraft:consumable']['consume_seconds'], 1.6)
+            self.assertEqual(bottle['minecraft:consumable']['on_consume_effects'][0]['effects'], [
+                {'id': 'minecraft:strength', 'duration': 600}, {'id': 'minecraft:poison', 'duration': 250}])
+            self.assertEqual(bottle['minecraft:use_remainder'], {'id': 'minecraft:glass_bottle'})
+            source_texture = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures/item/bottle/venom_contents.png').read_bytes()
+            self.assertEqual(hashlib.sha256(source_texture).hexdigest(), '6d3066505a8422952f7bb974a4c71d98503d35e423497bdf3c1bc4ca0ece2243')
+            self.assertEqual((out / 'assets/tconstruct/textures/item/bottle/venom_contents.png').read_bytes(), source_texture)
             for short in MATERIAL_MODELS:
                 name = 'tconstruct:' + short
                 self.assertIn(name, items)

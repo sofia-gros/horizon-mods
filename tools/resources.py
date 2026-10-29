@@ -101,6 +101,7 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-part-visuals.zip
 items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
+    ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
     ('tconstruct:wood_binding', 'minecraft:flint', 'Wooden Tool Binding'),
     ('tconstruct:wood_handle', 'minecraft:flint', 'Wooden Tool Handle'),
@@ -125,7 +126,9 @@ for name, template, title in entries:
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
-    if short in MATERIAL_MODELS:
+    if short == 'venom_bottle':
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short in MATERIAL_MODELS:
         original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
         texture = original_model['textures']['texture']
         native_model = {'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': texture, 'particle': texture}}
@@ -133,6 +136,19 @@ for name, template, title in entries:
         layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
         native_model = {'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}
     (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps(native_model))
+    if short == 'venom_bottle':
+        # TinkerFood.VENOM_BOTTLE and ContainerFoodItem (1.20.1): no
+        # nutrition, always drinkable, 32 ticks, strength and poison.
+        # Its Forge fluid capability and detailed tooltip are not yet ported.
+        item['minecraft:food'] = {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0}
+        item['minecraft:consumable'] = {'animation': 'drink', 'consume_seconds': 1.6,
+            'has_consume_particles': False, 'sound': 'minecraft:entity.generic.drink',
+            'on_consume_effects': [{'type': 'minecraft:apply_effects', 'effects': [
+                {'id': 'minecraft:strength', 'duration': 600},
+                {'id': 'minecraft:poison', 'duration': 250},
+            ]}]}
+        item['minecraft:max_stack_size'] = 16
+        item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5

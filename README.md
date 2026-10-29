@@ -53,7 +53,7 @@ shared source-pattern selection after the Pattern is removed and restored. See t
 [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
 
 This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
-the other craftable parts cannot yet be assembled into tools. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
+the other craftable parts cannot yet be assembled into tools. A command-supplied venom bottle can be drunk, giving Strength and poison and returning a glass bottle in the tested cases. Its fluid-container capability, detailed tooltip and normal acquisition remain unimplemented. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
 tools and traits are not supported. The Part Builder has a source-recipe selection grid and ordinary pickup, but
 recycling, all material and item registrations, original container remainders,
 complete tooltips and side panels are unfinished. Dynamic part names are not
