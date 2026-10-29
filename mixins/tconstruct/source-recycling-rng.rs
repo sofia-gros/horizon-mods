@@ -6,10 +6,10 @@ use std::sync::{Mutex, OnceLock};
 static RANDOM: OnceLock<Mutex<LegacyRandom>> = OnceLock::new();
 
 impl super::Items {
-    pub fn __horizon_mixins_tconstruct_recycling_draw(&self, seed: impl FnOnce() -> i64) -> bool {
+    pub fn __horizon_mixins_tconstruct_recycling_draw(&self, seed: impl FnOnce() -> i64, bound: usize) -> Option<usize> {
         let rng = RANDOM.get_or_init(|| Mutex::new(LegacyRandom::new(seed())));
         let mut rng = rng.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-        rng.next_int_bound(1).ok() == Some(0)
+        rng.next_int_bound(i32::try_from(bound).ok()?).ok().map(|value| value as usize)
     }
 }
 

@@ -102,24 +102,19 @@ pub(super) fn plan(
         if !recipe.matches(true, max_damage, damage, false, false, !stack.enchantments().is_empty())? { return Ok(None); }
         let Some(output) = recipe.output(selected, max_damage, damage)? else { return Ok(None); };
         let original_count = recipe.results.get(selected).ok_or(SourceLookupError::IncompleteContext)?.count;
-        let mut random_draw = false;
-        let mut leftover = None;
+        let mut alternatives = Vec::new();
         if recipe.results.len() > 1 && recipe.maximum_amount(max_damage, damage)? > original_count {
-            // Pattern keys are excluded by object identity, not value. Only
-            // a fresh selection from this exact recipe generation proves that
-            // the selected key is the one held by this recipe.
             let epoch = *chunks.__horizon_mixins_tconstruct_source_recipe_generation();
             if chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
-                != Some(&(selected.to_owned(), recipe.id.clone(), epoch)) || recipe.results.len() != 2 {
+                != Some(&(selected.to_owned(), recipe.id.clone(), epoch)) {
                 return Err(SourceLookupError::IncompleteContext);
             }
-            let (_, other) = recipe.results.iter().find(|(key, _)| key.as_str() != selected)
-                .ok_or(SourceLookupError::IncompleteContext)?;
-            let count = (recipe.maximum_amount(max_damage, damage)? - original_count).min(other.count);
-            leftover = Some((other.clone(), count));
-            // Even nextInt(1) advances java.util.Random state. Do it only once
-            // the authoritative transaction has passed every capacity check.
-            random_draw = true;
+            for (key, other) in &recipe.results {
+                if key != selected {
+                    let count = (recipe.maximum_amount(max_damage, damage)? - original_count).min(other.count);
+                    alternatives.push((other.clone(), count));
+                }
+            }
         }
         let reusable = if let Some(values) = items.get("tconstruct:patterns/reusable") {
             values.contains(&*pattern.item)
@@ -132,7 +127,7 @@ pub(super) fn plan(
         let count = output.count;
         return Ok(Some(tx::SourcePartPlan {
             output: tx::SourcePartOutput::Item { output, count }, materials_used: 1,
-            pattern_used: i32::from(!reusable), leftover, random_draw,
+            pattern_used: i32::from(!reusable), leftover: None, random_alternatives: alternatives,
         }));
     }
     let recipe = tx::SourcePartRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
@@ -224,7 +219,7 @@ pub(super) fn refresh_preview(
     let result = selected.as_deref().and_then(|selected| {
         let plan = plan(world, pos, pattern.as_ref(), material.as_ref(), selected).ok().flatten()?;
         let items = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-        tx::source_resolve_part_plan(&plan, items, None, &registered()).ok().flatten().map(|(output, _)| output)
+        tx::source_resolve_part_plan(&plan, items, None, &registered()).ok().flatten().map(|(output, _, _)| output)
     });
     world.chunks.__horizon_mixins_tconstruct_builder_preview_mut().insert(pos, (pattern, material, selected, result.clone()));
     result
@@ -235,14 +230,14 @@ pub(super) fn refresh_preview(
 pub(super) fn prepare_take(
     world: &super::tconstruct_world::World, pos: (i32, i32, i32),
     items: &horizon_items::items::Items,
-) -> Result<Option<(tx::SourcePartPlan, ItemStack, Option<ItemStack>)>, SourceLookupError> {
+) -> Result<Option<(tx::SourcePartPlan, ItemStack, Option<ItemStack>, Vec<ItemStack>)>, SourceLookupError> {
     let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else { return Ok(None); };
     let Some(selected) = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos) else { return Ok(None); };
     let Some(plan) = plan(world, pos, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), selected)? else { return Ok(None); };
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let registered = items.registry_order.iter().map(|id| id.to_string()).collect();
-    let Some((output, leftover)) = tx::source_resolve_part_plan(&plan, tags, None, &registered)? else { return Ok(None); };
-    Ok(Some((plan, output, leftover)))
+    let Some((output, leftover, alternatives)) = tx::source_resolve_part_plan(&plan, tags, None, &registered)? else { return Ok(None); };
+    Ok(Some((plan, output, leftover, alternatives)))
 }
 
 /// Obtain a current native crafting container, rejecting item-specific
@@ -276,7 +271,7 @@ fn source_random_seed() -> i64 {
 
 /// Horizon exposes rustix's monotonic clock on Unix. Until the original
 /// Windows clock is wired, fail the random transaction without consuming.
-pub(super) fn source_random_draw(items: &horizon_items::items::Items) -> bool {
-    #[cfg(unix)] { items.__horizon_mixins_tconstruct_recycling_draw(source_random_seed) }
-    #[cfg(not(unix))] { let _ = items; false }
+pub(super) fn source_random_draw(items: &horizon_items::items::Items, bound: usize) -> Option<usize> {
+    #[cfg(unix)] { items.__horizon_mixins_tconstruct_recycling_draw(source_random_seed, bound) }
+    #[cfg(not(unix))] { let _ = (items, bound); None }
 }

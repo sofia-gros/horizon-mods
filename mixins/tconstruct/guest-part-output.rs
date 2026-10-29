@@ -15,7 +15,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         if packet.button == 0 && crate::tconstruct_source_builder_world::player_only_quick_move(world, key) {
             let mut first_item = None;
             loop {
-                let Ok(Some((plan, output, leftover))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) else { break; };
+                let Ok(Some((plan, output, leftover, alternatives))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) else { break; };
                 if first_item.as_ref().is_some_and(|item| item != &output.item) { break; }
                 if first_item.is_none() { first_item = Some(output.item.clone()); }
                 let max = rules.max_stack(&output.item);
@@ -27,7 +27,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 });
                 let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) else { break; };
                 let guest = &mut hub.guests[gi];
-                let Some(give) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &plan, output, leftover, material, pattern, max, can_stack, || crate::tconstruct_source_builder_world::source_random_draw(rules.items())) else { break; };
+                let Some(give) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) else { break; };
                 for stack in give {
                     let max = rules.max_stack(&stack.item);
                     let stackable = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));
@@ -46,7 +46,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     if !is_station && packet.slot == 22 {
         let mut dropped = Vec::new();
         if packet.button == 0 {
-            if let Ok(Some((plan, output, leftover))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) {
+            if let Ok(Some((plan, output, leftover, alternatives))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) {
                 let containers = world.block_entities.get(&key).map(|entity| entity.slots()).and_then(|slots| {
                     let material = crate::tconstruct_source_builder_world::crafting_container(slots.get(1).and_then(Option::as_ref), rules.items()).ok()?;
                     let pattern = crate::tconstruct_source_builder_world::crafting_container(slots.first().and_then(Option::as_ref), rules.items()).ok()?;
@@ -55,7 +55,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 if let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) {
                     let max = rules.max_stack(&output.item);
                     let guest = &mut hub.guests[gi];
-                    if let Some(give) = crate::tconstruct_tx::source_take_part_plan(slots, &mut guest.carried, &plan, output, leftover, material, pattern, max, || crate::tconstruct_source_builder_world::source_random_draw(rules.items())) {
+                    if let Some(give) = crate::tconstruct_tx::source_take_part_plan(slots, &mut guest.carried, &plan, output, leftover, alternatives, material, pattern, max, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) {
                         for stack in give {
                             let max = rules.max_stack(&stack.item);
                             let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));

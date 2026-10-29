@@ -12,7 +12,7 @@ p.add_argument('--enchanted',action='store_true')
 p.add_argument('--quick',action='store_true')
 p.add_argument('--flint-steel',action='store_true')
 p.add_argument('--iron-choice',action='store_true')
-p.add_argument('--crossbow-unsupported',action='store_true')
+p.add_argument('--crossbow',action='store_true')
 p.add_argument('--reload-after-select',action='store_true')
 p.add_argument('--reselect-after-reload',action='store_true')
 a=p.parse_args()
@@ -23,9 +23,9 @@ def click(slot):
     g.call('click-slot',str(slot));g.call('wait','3')
 try:
     g.ready()
-    tool = 'minecraft:crossbow' if a.crossbow_unsupported else 'minecraft:flint_and_steel' if a.flint_steel else 'minecraft:stone_axe'
-    pattern = 'Rod' if a.crossbow_unsupported else ('Ingot' if a.iron_choice else 'Shard') if a.flint_steel else 'Block'
-    result_item = 'minecraft:stick' if a.crossbow_unsupported else ('minecraft:iron_ingot' if a.iron_choice else 'minecraft:flint') if a.flint_steel else 'minecraft:cobblestone'
+    tool = 'minecraft:crossbow' if a.crossbow else 'minecraft:flint_and_steel' if a.flint_steel else 'minecraft:stone_axe'
+    pattern = 'Rod' if a.crossbow else ('Ingot' if a.iron_choice else 'Shard') if a.flint_steel else 'Block'
+    result_item = 'minecraft:stick' if a.crossbow else ('minecraft:iron_ingot' if a.iron_choice else 'minecraft:flint') if a.flint_steel else 'minecraft:cobblestone'
     alternate = 'minecraft:flint' if a.iron_choice else 'minecraft:iron_ingot'
     for c in ('clear @s','tp @s 0.5 71 0.5','setblock 0 71 2 tconstruct:part_builder',
               'give @s tconstruct:venom_bottle 1',f'give @s {tool}[minecraft:damage={a.damage}] 1'):
@@ -50,9 +50,9 @@ try:
             fresh=next(n for n in g.call('ui')['widgets'] if n.get('label')==pattern and n.get('enabled'))
             g.call('click',fresh['id']);g.call('wait','20')
     g.call('screenshot',str(run/'recycling-choice.png'))
-    original_count = 6 * (465 - a.damage) // 465 if a.crossbow_unsupported else 2 * (64 - a.damage) // 64 if a.flint_steel else 3 * (131 - a.damage) // 131
-    unsupported_random = a.crossbow_unsupported or (a.flint_steel and original_count > 1 and a.reload_after_select) and not a.reselect_after_reload
-    expected = 0 if a.enchanted or unsupported_random else min(1, original_count) if a.flint_steel else original_count
+    original_count = 6 * (465 - a.damage) // 465 if a.crossbow else 2 * (64 - a.damage) // 64 if a.flint_steel else 3 * (131 - a.damage) // 131
+    unsupported_random = (a.flint_steel and original_count > 1 and a.reload_after_select) and not a.reselect_after_reload
+    expected = 0 if a.enchanted or unsupported_random else min(3, original_count) if a.crossbow else min(1, original_count) if a.flint_steel else original_count
     if a.quick:
         g.call('click-slot','322','shift');g.call('wait','10')
         result = next((x for x in g.call('inventory')['hotbar'] if x.get('item') == result_item), {})
@@ -73,11 +73,18 @@ try:
     g.call('screenshot',str(run/'recycled.png'))
     if a.flint_steel and original_count > 1:
         assert any(x.get('item') == alternate and x.get('count') == 1 for x in g.call('inventory')['hotbar']), g.call('inventory')
+    if a.crossbow:
+        items = g.call('inventory')['hotbar']
+        leftovers = [(x.get('item'), x.get('count')) for x in items if x.get('item') in ('minecraft:string', 'minecraft:iron_ingot')]
+        assert leftovers in [[('minecraft:string', 2)], [('minecraft:iron_ingot', 1)]], leftovers
     g.call('close');g.call('save');g.stop();g.cleanup()
     g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready()
     assert any(x.get('item') == result_item and x.get('count') == expected for x in g.call('inventory')['hotbar'])
     if a.flint_steel and original_count > 1:
         assert any(x.get('item') == alternate and x.get('count') == 1 for x in g.call('inventory')['hotbar'])
+    if a.crossbow:
+        items = g.call('inventory')['hotbar']
+        assert any(x.get('item') == leftovers[0][0] and x.get('count') == leftovers[0][1] for x in items), items
     print('PASS source tool recycling, bottle and save/reload',flush=True)
     g.stop()
 finally:

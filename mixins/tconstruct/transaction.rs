@@ -1214,7 +1214,7 @@ pub(super) struct SourcePartPlan {
     pub materials_used: i32,
     pub pattern_used: i32,
     pub leftover: Option<(SourceItemOutput, i32)>,
-    pub random_draw: bool,
+    pub random_alternatives: Vec<(SourceItemOutput, i32)>,
 }
 
 /// Resolve a planned source result and leftover against the live item/tag
@@ -1226,7 +1226,7 @@ pub(super) fn source_resolve_part_plan(
     tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
     preferences: Option<&[String]>,
     registered: &std::collections::HashSet<String>,
-) -> Result<Option<(ItemStack, Option<ItemStack>)>, SourceLookupError> {
+) -> Result<Option<(ItemStack, Option<ItemStack>, Vec<ItemStack>)>, SourceLookupError> {
     let resolve = |output: &SourceItemOutput, count: i32| -> Result<Option<ItemStack>, SourceLookupError> {
         if output.nbt.is_some() { return Err(SourceLookupError::UnsupportedRecipe); }
         if let SourceOutputKind::Tag(tag) = &output.kind {
@@ -1257,7 +1257,8 @@ pub(super) fn source_resolve_part_plan(
         Some((item, count)) => resolve(item, *count)?,
         None => None,
     };
-    Ok(Some((output, leftover)))
+    let alternatives = plan.random_alternatives.iter().map(|(item, count)| resolve(item, *count)?.ok_or(SourceLookupError::IncompleteContext)).collect::<Result<Vec<_>, _>>()?;
+    Ok(Some((output, leftover, alternatives)))
 }
 
 /// Apply a previously revalidated plan to the authoritative pattern/material
@@ -1268,9 +1269,9 @@ pub(super) fn source_resolve_part_plan(
 #[allow(dead_code)]
 pub(super) fn source_take_part_plan(
     slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>,
-    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>,
+    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
-    output_max: u32, random: impl FnOnce() -> bool,
+    output_max: u32, random: impl FnOnce(usize) -> Option<usize>,
 ) -> Option<Vec<ItemStack>> {
     if slots.len() < 2 || output.count == 0 || output.count > output_max { return None; }
     let material_used = u32::try_from(plan.materials_used).ok()?;
@@ -1284,9 +1285,11 @@ pub(super) fn source_take_part_plan(
     }
     // The original consumes the random draw only during a successful craft,
     // after output movement/capacity checks and before input consumption.
-    if plan.random_draw && !random() { return None; }
     let mut give = Vec::new();
-    if let Some(leftover) = leftover { give.push(leftover); }
+    if !alternatives.is_empty() {
+        let chosen = random(alternatives.len())?;
+        give.push(alternatives.get(chosen)?.clone());
+    } else if let Some(leftover) = leftover { give.push(leftover); }
     for (slot, used, container) in [(1, material_used, material_container), (0, pattern_used, pattern_container)] {
         if used == 0 { continue; }
         let stack = slots[slot].as_mut().expect("inputs were validated");
@@ -1370,9 +1373,9 @@ pub(super) fn source_quick_move_player(
 #[allow(dead_code)]
 pub(super) fn source_quick_take_part_plan(
     slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>],
-    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>,
+    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
-    output_max: u32, stackable: bool, random: impl FnOnce() -> bool,
+    output_max: u32, stackable: bool, random: impl FnOnce(usize) -> Option<usize>,
 ) -> Option<Vec<ItemStack>> {
     let mut staged_inventory = inventory.to_vec();
     let remainder = source_quick_move_player(&mut staged_inventory, output.clone(), output_max, stackable);
@@ -1381,7 +1384,7 @@ pub(super) fn source_quick_take_part_plan(
     let mut staged_slots = slots.to_vec();
     let mut carried = None;
     let give = source_take_part_plan(&mut staged_slots, &mut carried, plan,
-        ItemStack { count: moved, ..output }, leftover, material_container, pattern_container, output_max, random)?;
+        ItemStack { count: moved, ..output }, leftover, alternatives, material_container, pattern_container, output_max, random)?;
     inventory.clone_from_slice(&staged_inventory);
     slots.clone_from_slice(&staged_slots);
     Some(give)
@@ -1421,7 +1424,7 @@ pub(super) fn source_part_plan_value(
     let pattern_used = i32::from(!reusable_pattern);
     match (&recipe.kind, input, material) {
         (SourcePartKind::Item { material: required, output }, SourcePartInput::Empty, None) if required == "tconstruct:unknown" => {
-            Ok(Some(SourcePartPlan { output: SourcePartOutput::Item { output: output.clone(), count: output.count }, materials_used: 0, pattern_used, leftover: None, random_draw: false }))
+            Ok(Some(SourcePartPlan { output: SourcePartOutput::Item { output: output.clone(), count: output.count }, materials_used: 0, pattern_used, leftover: None, random_alternatives: Vec::new() }))
         },
         (kind, SourcePartInput::Material { input_item, material: identity, craftable, supported_outputs }, Some(source)) => {
             if source.material != *identity { return Err(SourceLookupError::IncompleteContext); }
@@ -1440,7 +1443,7 @@ pub(super) fn source_part_plan_value(
                 SourcePartKind::MaterialItem { item, .. } => SourcePartOutput::MaterialItem { item: item.clone(), material: source.material.to_owned(), count },
                 SourcePartKind::Item { output, .. } => SourcePartOutput::Item { output: output.clone(), count },
             };
-            Ok(Some(SourcePartPlan { output, materials_used: used, pattern_used, leftover, random_draw: false }))
+            Ok(Some(SourcePartPlan { output, materials_used: used, pattern_used, leftover, random_alternatives: Vec::new() }))
         },
         _ => Ok(None),
     }
@@ -2464,7 +2467,7 @@ mod tests {
         assert_eq!(plan.leftover.as_ref().map(|(_, count)| *count), Some(2));
         assert_eq!(plan.output, SourcePartOutput::MaterialItem { item:"tconstruct:pick_head".into(), material:"tconstruct:wood".into(), count:1 });
         let registry = ["tconstruct:pick_head".to_owned(), "minecraft:oak_planks".to_owned()].into_iter().collect();
-        let (output, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        let (output, leftover, alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
         assert_eq!((&*output.item, output.count), ("tconstruct:pick_head", 1));
         assert_eq!(output.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("Material")), Some(&horizon_world::nbt::Tag::String("tconstruct:wood".into())));
         assert_eq!(leftover.as_ref().map(|s| (s.item.to_string(), s.count)), Some(("minecraft:oak_planks".into(), 2)));
@@ -2472,33 +2475,33 @@ mod tests {
         let original = vec![Some(ItemStack::new("tconstruct:pattern", 1)), Some(ItemStack::new("minecraft:oak_log", 2))];
         let mut slots = original.clone();
         let mut full_cursor = Some(ItemStack::new("minecraft:stone", 64));
-        assert!(source_take_part_plan(&mut slots, &mut full_cursor, &plan, output.clone(), leftover.clone(), None, None, 64, || true).is_none());
+        assert!(source_take_part_plan(&mut slots, &mut full_cursor, &plan, output.clone(), leftover.clone(), alternatives.clone(), None, None, 64, |_| Some(0)).is_none());
         assert_eq!(slots, original);
         assert_eq!(full_cursor.unwrap().count, 64);
         let mut cursor = None;
-        let gave = source_take_part_plan(&mut slots, &mut cursor, &plan, output, leftover, None, None, 64, || true).unwrap();
+        let gave = source_take_part_plan(&mut slots, &mut cursor, &plan, output, leftover, alternatives, None, None, 64, |_| Some(0)).unwrap();
         assert_eq!(slots[0], None);
         assert_eq!(slots[1].as_ref().unwrap().count, 1);
         assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
         assert_eq!((&*gave[0].item, gave[0].count), ("minecraft:oak_planks", 2));
         let mut quick_slots = original.clone();
         let mut quick_inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
-        let (quick_output, quick_leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
-        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output.clone(), quick_leftover.clone(), None, None, 64, true, || true).is_none());
+        let (quick_output, quick_leftover, quick_alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output.clone(), quick_leftover.clone(), quick_alternatives.clone(), None, None, 64, true, |_| Some(0)).is_none());
         assert_eq!(quick_slots, original);
         quick_inventory[8] = None;
-        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output, quick_leftover, None, None, 64, true, || true).is_some());
+        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output, quick_leftover, quick_alternatives, None, None, 64, true, |_| Some(0)).is_some());
         assert_eq!(quick_inventory[8].as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
         assert!(quick_slots[0].is_none());
         let after = slots.clone();
-        let (second, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
-        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, second, leftover, None, None, 64, || true).is_none());
+        let (second, leftover, alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, second, leftover, alternatives, None, None, 64, |_| Some(0)).is_none());
         assert_eq!(slots, after);
-        let (output, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        let (output, leftover, alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
         let mut slots = original;
         let mut cursor = None;
-        let gave = source_take_part_plan(&mut slots, &mut cursor, &plan, output, leftover,
-            Some(ItemStack::new("minecraft:bucket", 1)), Some(ItemStack::new("minecraft:glass_bottle", 1)), 64, || true).unwrap();
+        let gave = source_take_part_plan(&mut slots, &mut cursor, &plan, output, leftover, alternatives,
+            Some(ItemStack::new("minecraft:bucket", 1)), Some(ItemStack::new("minecraft:glass_bottle", 1)), 64, |_| Some(0)).unwrap();
         assert_eq!(slots[0].as_ref().map(|s| &*s.item), Some("minecraft:glass_bottle"));
         assert_eq!(gave.iter().map(|s| &*s.item).collect::<Vec<_>>(), ["minecraft:oak_planks", "minecraft:bucket"]);
         let mut inventory = vec![Some(ItemStack::new("minecraft:oak_planks", 63))];
@@ -2610,18 +2613,30 @@ mod tests {
 
     #[test]
     fn recycling_random_draw_occurs_only_after_successful_capacity_checks() {
-        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_draw: true };
+        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![] };
         let original = vec![Some(ItemStack::new("tconstruct:pattern", 1)), Some(ItemStack::new("minecraft:oak_log", 1))];
         let output = ItemStack::new("tconstruct:pick_head", 1);
         let draws = std::cell::Cell::new(0);
         let mut slots = original.clone();
         let mut cursor = Some(ItemStack::new("minecraft:stone", 64));
-        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output.clone(), None, None, None, 64, || { draws.set(draws.get() + 1); true }).is_none());
+        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output.clone(), None, vec![ItemStack::new("minecraft:stick", 1)], None, None, 64, |_| { draws.set(draws.get() + 1); Some(0) }).is_none());
         assert_eq!(draws.get(), 0);
         assert_eq!(slots, original);
         cursor = None;
-        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output, None, None, None, 64, || { draws.set(draws.get() + 1); true }).is_some());
+        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output, None, vec![ItemStack::new("minecraft:stick", 1)], None, None, 64, |_| { draws.set(draws.get() + 1); Some(0) }).is_some());
         assert_eq!(draws.get(), 1);
+    }
+
+    #[test]
+    fn recycling_selects_each_alternative_only_after_capacity_check() {
+        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![] };
+        for chosen in 0..3 {
+            let mut slots = vec![Some(ItemStack::new("tconstruct:pattern", 1)), Some(ItemStack::new("minecraft:oak_log", 1))];
+            let mut cursor = None;
+            let alternatives = ["minecraft:stick", "minecraft:flint", "minecraft:iron_ingot"].map(|id| ItemStack::new(id, 1)).to_vec();
+            let give = source_take_part_plan(&mut slots, &mut cursor, &plan, ItemStack::new("tconstruct:pick_head", 1), None, alternatives.clone(), None, None, 64, |bound| { assert_eq!(bound, 3); Some(chosen) }).unwrap();
+            assert_eq!(give, vec![alternatives[chosen].clone()]);
+        }
     }
 
     #[test]
