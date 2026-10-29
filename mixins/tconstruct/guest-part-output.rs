@@ -27,7 +27,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 });
                 let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) else { break; };
                 let guest = &mut hub.guests[gi];
-                let Some(give) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &plan, output, leftover, material, pattern, max, can_stack) else { break; };
+                let Some(give) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &plan, output, leftover, material, pattern, max, can_stack, || crate::tconstruct_source_builder_world::source_random_draw(rules.items())) else { break; };
                 for stack in give {
                     let max = rules.max_stack(&stack.item);
                     let stackable = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));
@@ -55,7 +55,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 if let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) {
                     let max = rules.max_stack(&output.item);
                     let guest = &mut hub.guests[gi];
-                    if let Some(give) = crate::tconstruct_tx::source_take_part_plan(slots, &mut guest.carried, &plan, output, leftover, material, pattern, max) {
+                    if let Some(give) = crate::tconstruct_tx::source_take_part_plan(slots, &mut guest.carried, &plan, output, leftover, material, pattern, max, || crate::tconstruct_source_builder_world::source_random_draw(rules.items())) {
                         for stack in give {
                             let max = rules.max_stack(&stack.item);
                             let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));

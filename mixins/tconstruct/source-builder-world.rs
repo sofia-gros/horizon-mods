@@ -67,6 +67,7 @@ pub(super) fn choices(
 /// and unsupported recycling cases remain separate.
 pub(super) fn plan(
     world: &super::tconstruct_world::World,
+    pos: (i32, i32, i32),
     pattern: Option<&ItemStack>,
     material: Option<&ItemStack>,
     selected: &str,
@@ -101,10 +102,24 @@ pub(super) fn plan(
         if !recipe.matches(true, max_damage, damage, false, false, !stack.enchantments().is_empty())? { return Ok(None); }
         let Some(output) = recipe.output(selected, max_damage, damage)? else { return Ok(None); };
         let original_count = recipe.results.get(selected).ok_or(SourceLookupError::IncompleteContext)?.count;
+        let mut random_draw = false;
+        let mut leftover = None;
         if recipe.results.len() > 1 && recipe.maximum_amount(max_damage, damage)? > original_count {
-            // getLeftover uses TConstruct.RANDOM and original Map iteration;
-            // do not approximate either until the transaction supports them.
-            return Err(SourceLookupError::IncompleteContext);
+            // Pattern keys are excluded by object identity, not value. Only
+            // a fresh selection from this exact recipe generation proves that
+            // the selected key is the one held by this recipe.
+            let epoch = *chunks.__horizon_mixins_tconstruct_source_recipe_generation();
+            if chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
+                != Some(&(selected.to_owned(), recipe.id.clone(), epoch)) || recipe.results.len() != 2 {
+                return Err(SourceLookupError::IncompleteContext);
+            }
+            let (_, other) = recipe.results.iter().find(|(key, _)| key.as_str() != selected)
+                .ok_or(SourceLookupError::IncompleteContext)?;
+            let count = (recipe.maximum_amount(max_damage, damage)? - original_count).min(other.count);
+            leftover = Some((other.clone(), count));
+            // Even nextInt(1) advances java.util.Random state. Do it only once
+            // the authoritative transaction has passed every capacity check.
+            random_draw = true;
         }
         let reusable = if let Some(values) = items.get("tconstruct:patterns/reusable") {
             values.contains(&*pattern.item)
@@ -117,7 +132,7 @@ pub(super) fn plan(
         let count = output.count;
         return Ok(Some(tx::SourcePartPlan {
             output: tx::SourcePartOutput::Item { output, count }, materials_used: 1,
-            pattern_used: i32::from(!reusable), leftover: None,
+            pattern_used: i32::from(!reusable), leftover, random_draw,
         }));
     }
     let recipe = tx::SourcePartRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
@@ -158,6 +173,20 @@ pub(super) fn plan(
     tx::source_part_plan(&recipe, &input, found.as_ref(), available, reusable)
 }
 
+/// Record the original selected Pattern's source recipe identity and the
+/// current recipe generation. The source keeps the selected object across
+/// input changes, so a later recipe with the same Pattern may be a new object.
+pub(super) fn select(world: &mut super::tconstruct_world::World, pos: (i32, i32, i32), selected: String) -> bool {
+    let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else { return false; };
+    let Ok(candidates) = choices(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref)) else { return false; };
+    let Some(choice) = candidates.into_iter().find(|choice| choice.pattern == selected) else { return false; };
+    let epoch = *world.chunks.__horizon_mixins_tconstruct_source_recipe_generation();
+    world.chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().insert(pos, (selected.clone(), choice.id, epoch));
+    world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(pos, selected);
+    world.chunks.__horizon_mixins_tconstruct_builder_preview_mut().remove(&pos);
+    true
+}
+
 /// Cache source candidates per world and table, recomputing only after either
 /// input changes. Pack reload and block/chunk removal clear the cache.
 pub(super) fn refresh(world: &mut super::tconstruct_world::World, pos: (i32, i32, i32)) -> Option<Vec<String>> {
@@ -193,7 +222,7 @@ pub(super) fn refresh_preview(
         if old_pattern == &pattern && old_material == &material && old_selected == &selected { return result.clone(); }
     }
     let result = selected.as_deref().and_then(|selected| {
-        let plan = plan(world, pattern.as_ref(), material.as_ref(), selected).ok().flatten()?;
+        let plan = plan(world, pos, pattern.as_ref(), material.as_ref(), selected).ok().flatten()?;
         let items = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
         tx::source_resolve_part_plan(&plan, items, None, &registered()).ok().flatten().map(|(output, _)| output)
     });
@@ -209,7 +238,7 @@ pub(super) fn prepare_take(
 ) -> Result<Option<(tx::SourcePartPlan, ItemStack, Option<ItemStack>)>, SourceLookupError> {
     let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else { return Ok(None); };
     let Some(selected) = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos) else { return Ok(None); };
-    let Some(plan) = plan(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), selected)? else { return Ok(None); };
+    let Some(plan) = plan(world, pos, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), selected)? else { return Ok(None); };
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let registered = items.registry_order.iter().map(|id| id.to_string()).collect();
     let Some((output, leftover)) = tx::source_resolve_part_plan(&plan, tags, None, &registered)? else { return Ok(None); };
@@ -233,4 +262,21 @@ pub(super) fn player_only_quick_move(world: &super::tconstruct_world::World, pos
         world.chunks.contains_key(&(neighbor.0 >> 4, neighbor.2 >> 4))
             && !world.block_entities.contains_key(&neighbor)
     })
+}
+
+/// Seed the source's non-deterministic default Java Random from the Linux
+/// monotonic clock and the first Java seed-uniquifier step. Initialization is
+/// lazy in this port; the random sequence is not a cross-process fixed value.
+#[cfg(unix)]
+fn source_random_seed() -> i64 {
+    let time = rustix::time::clock_gettime(rustix::time::ClockId::Monotonic);
+    let nanos = (time.tv_sec as u64).wrapping_mul(1_000_000_000).wrapping_add(time.tv_nsec as u64);
+    (8682522807148012u64.wrapping_mul(1181783497276652981) ^ nanos) as i64
+}
+
+/// Horizon exposes rustix's monotonic clock on Unix. Until the original
+/// Windows clock is wired, fail the random transaction without consuming.
+pub(super) fn source_random_draw(items: &horizon_items::items::Items) -> bool {
+    #[cfg(unix)] { items.__horizon_mixins_tconstruct_recycling_draw(source_random_seed) }
+    #[cfg(not(unix))] { let _ = items; false }
 }

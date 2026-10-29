@@ -11,6 +11,10 @@ p.add_argument('--damage',type=int,default=0)
 p.add_argument('--enchanted',action='store_true')
 p.add_argument('--quick',action='store_true')
 p.add_argument('--flint-steel',action='store_true')
+p.add_argument('--iron-choice',action='store_true')
+p.add_argument('--crossbow-unsupported',action='store_true')
+p.add_argument('--reload-after-select',action='store_true')
+p.add_argument('--reselect-after-reload',action='store_true')
 a=p.parse_args()
 run=Path(tempfile.mkdtemp(prefix='recycling-preview-',dir=Path('target').resolve()))
 print('run',run,flush=True)
@@ -19,9 +23,10 @@ def click(slot):
     g.call('click-slot',str(slot));g.call('wait','3')
 try:
     g.ready()
-    tool = 'minecraft:flint_and_steel' if a.flint_steel else 'minecraft:stone_axe'
-    pattern = 'Shard' if a.flint_steel else 'Block'
-    result_item = 'minecraft:flint' if a.flint_steel else 'minecraft:cobblestone'
+    tool = 'minecraft:crossbow' if a.crossbow_unsupported else 'minecraft:flint_and_steel' if a.flint_steel else 'minecraft:stone_axe'
+    pattern = 'Rod' if a.crossbow_unsupported else ('Ingot' if a.iron_choice else 'Shard') if a.flint_steel else 'Block'
+    result_item = 'minecraft:stick' if a.crossbow_unsupported else ('minecraft:iron_ingot' if a.iron_choice else 'minecraft:flint') if a.flint_steel else 'minecraft:cobblestone'
+    alternate = 'minecraft:flint' if a.iron_choice else 'minecraft:iron_ingot'
     for c in ('clear @s','tp @s 0.5 71 0.5','setblock 0 71 2 tconstruct:part_builder',
               'give @s tconstruct:venom_bottle 1',f'give @s {tool}[minecraft:damage={a.damage}] 1'):
         g.call('command',c)
@@ -39,9 +44,14 @@ try:
         time.sleep(.2)
     assert node, g.call('ui')
     g.call('click',node['id']);g.call('wait','20')
+    if a.reload_after_select:
+        g.call('command','reload');g.call('wait','60')
+        if a.reselect_after_reload:
+            fresh=next(n for n in g.call('ui')['widgets'] if n.get('label')==pattern and n.get('enabled'))
+            g.call('click',fresh['id']);g.call('wait','20')
     g.call('screenshot',str(run/'recycling-choice.png'))
-    original_count = 2 * (64 - a.damage) // 64 if a.flint_steel else 3 * (131 - a.damage) // 131
-    unsupported_random = a.flint_steel and original_count > 1
+    original_count = 6 * (465 - a.damage) // 465 if a.crossbow_unsupported else 2 * (64 - a.damage) // 64 if a.flint_steel else 3 * (131 - a.damage) // 131
+    unsupported_random = a.crossbow_unsupported or (a.flint_steel and original_count > 1 and a.reload_after_select) and not a.reselect_after_reload
     expected = 0 if a.enchanted or unsupported_random else min(1, original_count) if a.flint_steel else original_count
     if a.quick:
         g.call('click-slot','322','shift');g.call('wait','10')
@@ -60,9 +70,14 @@ try:
     rows = {r['slot']: r['stack'] for r in g.call('menu')['slots'] if r.get('stack')}
     assert rows.get(300, {}).get('item') == 'minecraft:glass_bottle' and 301 not in rows, rows
     if not a.quick: click(1)
+    g.call('screenshot',str(run/'recycled.png'))
+    if a.flint_steel and original_count > 1:
+        assert any(x.get('item') == alternate and x.get('count') == 1 for x in g.call('inventory')['hotbar']), g.call('inventory')
     g.call('close');g.call('save');g.stop();g.cleanup()
     g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready()
     assert any(x.get('item') == result_item and x.get('count') == expected for x in g.call('inventory')['hotbar'])
+    if a.flint_steel and original_count > 1:
+        assert any(x.get('item') == alternate and x.get('count') == 1 for x in g.call('inventory')['hotbar'])
     print('PASS source tool recycling, bottle and save/reload',flush=True)
     g.stop()
 finally:

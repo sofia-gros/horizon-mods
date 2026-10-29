@@ -7,7 +7,7 @@ fn inspect_snapshot(value: R<i32>, game: &mut crate::game::Game<'_>) -> R<i32> {
         Ok(choices) => eprintln!("TCONSTRUCT_LIVE_BUILDER_CHOICES {}", choices.iter().map(|c| c.pattern.as_str()).collect::<Vec<_>>().join(",")),
         Err(error) => eprintln!("TCONSTRUCT_LIVE_BUILDER_CHOICES error {error:?}"),
     }
-    match crate::game::tconstruct_source_builder_world::plan(&game.world, Some(&pattern), Some(&flint), "tconstruct:pick_head") {
+    match crate::game::tconstruct_source_builder_world::plan(&game.world, (0, 0, 0), Some(&pattern), Some(&flint), "tconstruct:pick_head") {
         Ok(Some(plan)) => eprintln!("TCONSTRUCT_LIVE_BUILDER_PLAN {} {}", plan.materials_used, plan.pattern_used),
         other => eprintln!("TCONSTRUCT_LIVE_BUILDER_PLAN {other:?}"),
     }

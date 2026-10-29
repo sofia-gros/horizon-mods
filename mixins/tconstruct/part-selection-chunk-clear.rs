@@ -1,5 +1,7 @@
 fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     chunks.__horizon_mixins_tconstruct_part_selections_mut().clear();
+    chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().clear();
+    *chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = 0;
     chunks.__horizon_mixins_tconstruct_builder_choices_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_preview_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_scroll_mut().clear();

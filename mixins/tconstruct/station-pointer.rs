@@ -28,7 +28,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
                 if let Some((window, _)) = game.remote.as_ref().and_then(|r| r.menu.as_ref()) {
                     game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: index as i32 }));
                 } else if let Some(pattern) = pattern {
-                    game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, pattern);
+                    crate::game::tconstruct_source_builder_world::select(&mut game.world, key, pattern);
                 }
             }
             return Break(true);

@@ -874,3 +874,29 @@ id = "server-source-original-item-durability"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_original_item_durability"
 source = "source-original-item-durability.rs"
+
+[[module]]
+id = "source-recycling-rng"
+file = "crates/horizon-items/src/items.rs"
+name = "tconstruct_recycling_rng"
+source = "source-recycling-rng.rs"
+
+[[state]]
+id = "source-recipe-generation"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "u64"
+initial = "0"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "source-selection-origin"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(String,String,u64)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

@@ -20,7 +20,7 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
                 let pattern = game.world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&key)
                     .and_then(|(_, _, patterns)| patterns.as_ref()).and_then(|patterns| patterns.get(index)).cloned();
                 if let Some(pattern) = pattern {
-                    game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, pattern);
+                    crate::game::tconstruct_source_builder_world::select(&mut game.world, key, pattern);
                 }
             }
         }

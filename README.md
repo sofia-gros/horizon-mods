@@ -18,7 +18,7 @@ branch does not yet meet Part Builder acceptance; see the
 
 The source recipes, material definitions, tags and tool definitions are
 prepared as shared data. Shared selection and material-cost calculations are connected to normal GUI
-crafting for supported ordinary parts and source recycling where no random leftover is required. We will connect and verify each common behavior once,
+crafting for supported ordinary parts and limited source recycling. Two-result recycling can return its one alternate item when the selected source recipe identity is known. We will connect and verify each common behavior once,
 then expand content through its source definitions and check separately only
 where the original has distinct behavior.
 
@@ -50,14 +50,21 @@ Two players can use the same table; the tested competing result pickups consume
 inputs once. In both game modes, a guest can reopen the table and see the
 shared source-pattern selection after the Pattern is removed and restored. See the
 [Part Builder source-recipe preview](docs/part-builder-source-preview.png) and
-[stone-axe recycling](docs/recycling-preview.png), [damaged flint-and-steel recycling](docs/recycling-flint-preview.png), and [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
+[stone-axe recycling](docs/recycling-preview.png), [flint-and-steel result](docs/recycling-flint-result.png), and [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
 
 This is a narrow prototype, not complete Tinkers' Construct. Assembly supports only the fixed flint-head/wood-handle/wood-binding combination;
-the other craftable parts cannot yet be assembled into tools. A command-supplied venom bottle can be drunk, giving Strength and poison and returning a glass bottle in the tested cases. A venom bottle and stone axe can also be used in the Part Builder: the tested undamaged axe returns three cobblestone and an empty glass bottle; durability affects the quantity. A damaged flint-and-steel can likewise return flint when the source recipe requires no random leftover. Its fluid-container capability, detailed tooltip and normal acquisition remain unimplemented. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
+the other craftable parts cannot yet be assembled into tools. A command-supplied venom bottle can be drunk, giving Strength and poison and returning a glass bottle in the tested cases. A venom bottle and stone axe can also be used in the Part Builder: the tested undamaged axe returns three cobblestone and an empty glass bottle; durability affects the quantity. An undamaged flint-and-steel can return flint and an iron ingot along with the empty bottle when its source selection is current. The venom bottle's fluid-container capability, detailed tooltip and normal acquisition remain unimplemented. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. Other materials,
 tools and traits are not supported. The Part Builder has a source-recipe selection grid and ordinary pickup, but
-recycling with random leftovers, modifiable and unsupported input items, all material and item registrations, original container remainders,
+recycling with more than two results, unknown selection identity, modifiable and unsupported input items, all material and item registrations, original container remainders,
 complete tooltips and side panels are unfinished. Dynamic part names are not
-yet connected to hotbar labels or recipe search. The Tinker Station uses
+yet connected to hotbar labels or recipe search. The two-result recycling path conservatively rejects a stale selection after a
+recipe reload until it is selected again; original Pattern identity and reload
+behavior are not fully ported. The Java-compatible random state is shared in
+the process and advances only after a successful transaction, but initialization
+is lazy, the JVM-wide seed uniquifier is not mirrored, and other original uses
+of the shared RNG are not yet connected; exact
+cross-process random sequences are not established. Random transactions on
+non-Unix builds remain unsupported. The Tinker Station uses
 separate assembly and repair result icons, and does not yet provide the original
 naming or modifier UI. Shift-click of other slots, right Shift-click, drag and double-click collection remain disabled. Result Shift-click is rejected when an adjacent block entity may supply the original side inventory or a neighboring chunk is unloaded; the original side-inventory behavior is not implemented. Broken-tool visuals and full broken behavior remain
 incomplete. Dedicated servers and arbitrary other item components are not

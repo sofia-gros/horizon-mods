@@ -10,7 +10,10 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
                 .and_then(|patterns| patterns.get(index).cloned())
         });
         if let Some(pattern) = pattern {
-            game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, pattern);
+            crate::game::tconstruct_source_builder_world::select(&mut game.world, key, pattern);
+        } else if id >= 0 {
+            game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().remove(&key);
+            game.world.chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().remove(&key);
         }
     }
     Break(())
