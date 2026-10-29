@@ -1330,6 +1330,37 @@ pub(super) fn source_give_inventory(
     }
     Some(stack)
 }
+/// Original Mantle menu moves results into the player slots in reverse menu
+/// order: hotbar 8..0 followed by inventory 35..9. This is only the player
+/// stage; adjacent side inventories are handled separately by the caller.
+#[allow(dead_code)]
+pub(super) fn source_quick_move_player(
+    inventory: &mut [Option<ItemStack>], mut stack: ItemStack, max: u32, stackable: bool,
+) -> Option<ItemStack> {
+    if inventory.len() < 36 || max == 0 { return Some(stack); }
+    let order = (0..9).rev().chain((9..36).rev()).collect::<Vec<_>>();
+    if stackable {
+        for &i in &order {
+            if let Some(existing) = &mut inventory[i] {
+                if existing.same_item_same_components(&stack) && existing.count < max {
+                    let moved = (max - existing.count).min(stack.count);
+                    existing.count += moved;
+                    stack.count -= moved;
+                    if stack.count == 0 { return None; }
+                }
+            }
+        }
+    }
+    for i in order {
+        if inventory[i].is_none() {
+            let moved = stack.count.min(max);
+            inventory[i] = Some(ItemStack { count: moved, ..stack.clone() });
+            stack.count -= moved;
+            if stack.count == 0 { return None; }
+        }
+    }
+    Some(stack)
+}
 #[allow(dead_code)]
 pub(super) fn source_part_plan(
     recipe: &SourcePartRecipe,
@@ -2541,6 +2572,25 @@ mod tests {
         let found = source_material_lookup(&recipes, "minecraft:oak_log", None, &tags, &set, &Default::default(), &regs, &config, true).unwrap().unwrap();
         assert_eq!(material_cost(1, found.needed, found.value), Some((1, 3)));
         assert_eq!(found.leftover.unwrap().count_for_remainder(3, found.needed), Some(3));
+    }
+
+    #[test]
+    fn source_quick_move_player_uses_reverse_menu_order_and_capacity() {
+        let mut inventory = vec![None; 36];
+        inventory[3] = Some(ItemStack::new("tconstruct:tool_handle", 63));
+        inventory[35] = Some(ItemStack::new("tconstruct:tool_handle", 62));
+        assert!(source_quick_move_player(&mut inventory, ItemStack::new("tconstruct:tool_handle", 4), 64, true).is_none());
+        assert_eq!(inventory[3].as_ref().unwrap().count, 64);
+        assert_eq!(inventory[35].as_ref().unwrap().count, 64);
+        assert_eq!(inventory[8].as_ref().unwrap().count, 1);
+        let mut full = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
+        let unchanged = full.clone();
+        assert_eq!(source_quick_move_player(&mut full, ItemStack::new("tconstruct:tool_handle", 1), 64, true).unwrap().count, 1);
+        assert_eq!(full, unchanged);
+        full[8] = Some(ItemStack::new("tconstruct:tool_handle", 63));
+        let leftover = source_quick_move_player(&mut full, ItemStack::new("tconstruct:tool_handle", 3), 64, true).unwrap();
+        assert_eq!(full[8].as_ref().unwrap().count, 64);
+        assert_eq!(leftover.count, 2);
     }
 
     #[test]
