@@ -235,6 +235,8 @@ semantics. The fake ingot ID is registered with its original GUI model and mater
 
 The original `MaterialBlock.getCloneItemStack` copies a usable material even for ordinary pick block. On pinned Horizon, `Game::picked_stack` contains `matches!`; an isolated official Mixins HEAD probe was rejected with `E_UNSUPPORTED_MACRO`. This is a limitation of that injection point, not proof that every alternate route is impossible. The regular local mouse path and the LAN packet path differ, and neither has yet been made source-equivalent.
 
+The source `MaterialBlockModel.BakedSingleMaterial` retains the original model for unknown material or missing render information. For other materials it chooses the unique or fallback sprite, color and emissivity before baking. `storage_sprite_by` implements this selection and tests the pinned bronze sprite and fallback cases against the original assets. It is not yet connected to terrain rendering; atlas population, mesh data propagation, lighting and resource-pack reload remain open.
+
 The source mod's 131 fluid tag files are copied byte-for-byte into the source
 pack; pinned local Minecraft and Forge jars supply their fluid tags. The game
 now collects and resolves these layers against its actual fluid registry. An

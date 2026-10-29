@@ -121,6 +121,20 @@ pub(super) fn select_sprite_by(base: &str, info: &RenderInfo, available: impl Fn
     Ok((base, info.color, info.luminosity))
 }
 
+/// MaterialBlockModel.BakedSingleMaterial keeps its original model for
+/// unknown material or missing render info; otherwise it retextures `all`.
+/// None means the original model must be used unchanged.
+pub(super) fn storage_sprite_by(
+    records: &HashMap<String, Value>,
+    material: &str,
+    available: impl Fn(&str) -> bool,
+) -> Result<Option<(String, u32, u8)>, &'static str> {
+    let material = material_id(material).ok_or("invalid material ID")?;
+    if material == "tconstruct:unknown" { return Ok(None); }
+    let Some(info) = render_info(records, &material)? else { return Ok(None); };
+    select_sprite_by("tconstruct:block/storage/fallback", &info, available).map(Some)
+}
+
 pub(super) type PartModels = HashMap<String, (String, [f32; 2])>;
 
 /// Read the already-resolved resource overlay. Runtime resource-pack reload
@@ -210,7 +224,7 @@ mod tests {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).ancestors()
             .map(|p| p.join("content/reference/tconstruct-part-visuals.zip"))
             .find(|p| p.is_file()).expect("pinned part visuals");
-        let mut zip = zip::ZipArchive::new(std::fs::File::open(path).unwrap()).unwrap();
+        let mut zip = zip::ZipArchive::new(std::fs::File::open(&path).unwrap()).unwrap();
         let mut records = HashMap::new();
         let mut available = HashSet::new();
         for i in 0..zip.len() {
@@ -234,5 +248,17 @@ mod tests {
             assert_eq!(select_sprite("tconstruct:item/tool/pickaxe/head", &info, &available).unwrap().0,
                 format!("tconstruct:item/tool/pickaxe/head_{suffix}"));
         }
+        let root = path.ancestors().find(|p| p.join("content/reference/tconstruct-storage-visuals").is_dir()).unwrap();
+        let textures = root.join("content/reference/tconstruct-storage-visuals/assets/tconstruct/textures/block/storage");
+        let exists = |id: &str| id.strip_prefix("tconstruct:block/storage/")
+            .is_some_and(|name| textures.join(format!("{name}.png")).is_file());
+        assert_eq!(storage_sprite_by(&records, "tconstruct:unknown", exists), Ok(None));
+        assert_eq!(storage_sprite_by(&records, "tconstruct:not_a_material", exists), Ok(None));
+        let bronze = storage_sprite_by(&records, "tconstruct:bronze", exists).unwrap().unwrap();
+        assert_eq!(bronze.0, "tconstruct:block/storage/fallback_tconstruct_bronze");
+        assert_eq!(bronze.1, u32::MAX);
+        let info = render_info(&records, "tconstruct:wood").unwrap().unwrap();
+        assert_eq!(storage_sprite_by(&records, "tconstruct:wood", |_| false).unwrap(),
+            Some(("tconstruct:block/storage/fallback".into(), info.color, info.luminosity)));
     }
 }
