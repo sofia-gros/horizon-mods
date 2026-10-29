@@ -16,6 +16,16 @@ fixed pickaxe are incomplete previews for a later completion unit. The current
 branch does not yet meet Part Builder acceptance; see the
 [source-to-port record](docs/original-parity.md) and [roadmap](docs/roadmap.md).
 
+The source recipes, material definitions, tags and tool definitions are
+prepared as shared data. Shared selection, material-cost and recycling
+calculations are implemented as prototypes; they are not yet connected to
+normal GUI crafting. We will connect and verify each common behavior once,
+then expand content through its source definitions and check separately only
+where the original has distinct behavior.
+
+The planned v0.5 is a playable preview that nearly reproduces the original mod
+on its own; v1.0 is the complete port. Neither milestone has been reached.
+
 ## What works today
 
 In single-player worlds, craft a Pattern and the Part Builder and Tinker
