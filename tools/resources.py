@@ -56,6 +56,12 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+# Original dummy plating sprites are ordinary generated item textures.
+for part in ('helmet', 'chestplate', 'leggings', 'boots'):
+    relative = Path('item/tool/parts') / ('plating_' + part + '.png')
+    destination = mod_assets / 'textures' / relative
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(repository / 'content/assets/tconstruct/textures' / relative, destination)
 (mod_assets / 'items').mkdir()
 (mod_assets / 'models/item').mkdir(parents=True)
 # Keep the pinned upstream material images and render metadata as a separate
@@ -120,6 +126,10 @@ for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
     if name not in existing:
         entries.append((name, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+# Original stone plating items are regular DummyMaterialItem instances.
+for part in ('helmet', 'chestplate', 'leggings', 'boots'):
+    short = part + '_plating_dummy'
+    entries.append(('tconstruct:' + short, 'minecraft:flint', source_names['item.tconstruct.' + short]))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     item['minecraft:item_name'] = {'text': title}
@@ -128,6 +138,8 @@ for name, template, title in entries:
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
     if short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short.endswith('_plating_dummy'):
+        native_model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())
     elif short in MATERIAL_MODELS:
         original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
         texture = original_model['textures']['texture']

@@ -32,7 +32,7 @@ Station at a crafting table, place both tables, and open them by interacting.
 In the Part Builder, insert a Pattern and material, select a source-recipe
 pattern in the scrolling grid, and take an ordinary part from the result slot.
 For example, an oak log produces a wood tool handle and returns three oak
-planks; an oak plank can also produce a wood handle. Both paths and save/reload were tested in both game modes. A left Shift-click on the result can repeat ordinary crafting into the player inventory when no adjacent block entity is present; the test also covers a full inventory and competing players. Part recipes
+planks; an oak plank can also produce a wood handle. Both paths and save/reload were tested in both game modes. Four original stone armor-plating dummy items now use the shared item-part recipe path. A test-generated Linux build crafted a stone helmet dummy from three calcite in the normal GUI and retained it after save/reload; the other three and the original dummy tooltip are unverified or incomplete. A left Shift-click on the result can repeat ordinary crafting into the player inventory when no adjacent block entity is present; the test also covers a full inventory and competing players. Part recipes
 and materials are still incomplete, and unsupported contexts are rejected. In the Tinker Station, put the head, handle
 and binding in the three input positions and take a flint/wood pickaxe. Its tested
 `tic_materials` list survives save and reload, but derived statistics, traits
