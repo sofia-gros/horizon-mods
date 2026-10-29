@@ -1,10 +1,16 @@
 fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
-    if game.has_shift_down() { return Break(true); }
     let Some(key) = game.container else { return Break(true); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
     let batch = horizon_client::hud::HudBatch::new(size);
+    if game.has_shift_down() {
+        if !station && !right && game.slot_at(&batch, game.cursor.0, game.cursor.1) == Some(322) {
+            if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game); }
+            else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
+        }
+        return Break(true);
+    }
     if !station {
         let (ox, oy) = game.inventory_origin(&batch);
         let (x, y) = ((game.cursor.0 - ox) as i32, (game.cursor.1 - oy) as i32);

@@ -10,6 +10,35 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let builder = block.and_then(|r| r.id("tconstruct:part_builder"));
     let station = block.and_then(|r| r.id("tconstruct:tinker_station"));
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
+    if !is_station && packet.slot == 22 && packet.input == 1 {
+        let mut dropped = Vec::new();
+        if packet.button == 0 && crate::tconstruct_source_builder_world::player_only_quick_move(world, key) {
+            let mut first_item = None;
+            loop {
+                let Ok(Some((plan, output, leftover))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) else { break; };
+                if first_item.as_ref().is_some_and(|item| item != &output.item) { break; }
+                if first_item.is_none() { first_item = Some(output.item.clone()); }
+                let max = rules.max_stack(&output.item);
+                let can_stack = rules.items().get(&output.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && output.damage > 0));
+                let containers = world.block_entities.get(&key).map(|entity| entity.slots()).and_then(|slots| {
+                    let material = crate::tconstruct_source_builder_world::crafting_container(slots.get(1).and_then(Option::as_ref), rules.items()).ok()?;
+                    let pattern = crate::tconstruct_source_builder_world::crafting_container(slots.first().and_then(Option::as_ref), rules.items()).ok()?;
+                    Some((material, pattern))
+                });
+                let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) else { break; };
+                let guest = &mut hub.guests[gi];
+                let Some(give) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &plan, output, leftover, material, pattern, max, can_stack) else { break; };
+                for stack in give {
+                    let max = rules.max_stack(&stack.item);
+                    let stackable = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));
+                    if let Some(rest) = crate::tconstruct_tx::source_give_inventory(&mut guest.inventory, guest.selected, stack, max, stackable) { dropped.push(rest); }
+                }
+                world.modified.insert((key.0 >> 4, key.2 >> 4));
+            }
+        }
+        if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+        return Break(dropped);
+    }
     if packet.input != 0 || (!is_station && (24..=26).contains(&packet.slot)) || ((2..=23).contains(&packet.slot) && (!is_station && packet.slot != 22 || is_station && packet.slot != 2)) {
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(Vec::new());

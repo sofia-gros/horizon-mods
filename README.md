@@ -32,7 +32,7 @@ Station at a crafting table, place both tables, and open them by interacting.
 In the Part Builder, insert a Pattern and material, select a source-recipe
 pattern in the scrolling grid, and take an ordinary part from the result slot.
 For example, an oak log produces a wood tool handle and returns three oak
-planks; this path and save/reload were tested in both game modes. Part recipes
+planks; this path and save/reload were tested in both game modes. A left Shift-click on the result can repeat ordinary crafting into the player inventory when no adjacent block entity is present; the test also covers a full inventory and competing players. Part recipes
 and materials are still incomplete, and unsupported contexts are rejected. In the Tinker Station, put the head, handle
 and binding in the three input positions and take a flint/wood pickaxe. Its tested
 `tic_materials` list survives save and reload, but derived statistics, traits
@@ -59,8 +59,7 @@ recycling, all material and item registrations, original container remainders,
 complete tooltips and side panels are unfinished. Dynamic part names are not
 yet connected to hotbar labels or recipe search. The Tinker Station uses
 separate assembly and repair result icons, and does not yet provide the original
-naming or modifier UI. Shift-click, drag and double-click collection in these
-screens are disabled. Broken-tool visuals and full broken behavior remain
+naming or modifier UI. Shift-click of other slots, right Shift-click, drag and double-click collection remain disabled. Result Shift-click is rejected when an adjacent block entity may supply the original side inventory or a neighboring chunk is unloaded; the original side-inventory behavior is not implemented. Broken-tool visuals and full broken behavior remain
 incomplete. Dedicated servers and arbitrary other item components are not
 verified. A plain Lore entry was tested through repair, display and save/reload
 in both modes, including with the tool material list and unrelated custom data; this does not establish

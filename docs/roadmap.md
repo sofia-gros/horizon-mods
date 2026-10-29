@@ -13,7 +13,7 @@ currently reached; the source-recipe preview below remains an early implementati
 
 | Area | Current status | Next work |
 | --- | --- | --- |
-| Part Builder | Source-recipe selection and ordinary pickup for tested materials | Recycling, shift-click, full source container remainders, detailed tooltips, other materials and variants |
+| Part Builder | Source-recipe selection and ordinary pickup for tested materials | Recycling, full shift-click and side inventories, source container remainders, detailed tooltips, other materials and variants |
 | Tinker Station | Fixed pickaxe assembly and flint repair | Naming UI, all combinations, component replacement and modifiers |
 | Durability | Wear, slow broken mining and repair for fixed pickaxe | Full original broken behavior and original broken textures |
 | Models and tooltips | Original textures for the fixed tool and parts; static table models | All material combinations, orientation, tooltips and traits |

@@ -856,3 +856,9 @@ id = "host-source-builder-take"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_builder_take"
 source = "source-builder-take-host.rs"
+
+[[module]]
+id = "host-source-quick-packet"
+file = "crates/horizon-client/src/game/remote.rs"
+name = "tconstruct_source_quick_packet"
+source = "source-quick-packet.rs"

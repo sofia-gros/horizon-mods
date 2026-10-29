@@ -2,6 +2,13 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     use std::ops::ControlFlow::{Break, Continue};
     let Some(key) = game.container else { return Continue(()); };
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
+    if input == horizon_client::menu::Input::QuickMove && !station && slot == Some(322) {
+        if button == 0 {
+            if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game); }
+            else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
+        }
+        return Break(true);
+    }
     if input != horizon_client::menu::Input::Pickup { return Break(true); }
     if !station && slot.is_some_and(|s| (324..=326).contains(&s)) {
         if button == 0 {

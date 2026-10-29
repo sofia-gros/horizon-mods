@@ -1361,6 +1361,28 @@ pub(super) fn source_quick_move_player(
     }
     Some(stack)
 }
+/// Prepare and commit a player-only quick move without touching the real
+/// inventory or inputs if the output cannot move. The caller must first
+/// establish that no source side-inventory module participates.
+#[allow(dead_code)]
+pub(super) fn source_quick_take_part_plan(
+    slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>],
+    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>,
+    material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
+    output_max: u32, stackable: bool,
+) -> Option<Vec<ItemStack>> {
+    let mut staged_inventory = inventory.to_vec();
+    let remainder = source_quick_move_player(&mut staged_inventory, output.clone(), output_max, stackable);
+    let moved = output.count.checked_sub(remainder.as_ref().map_or(0, |s| s.count))?;
+    if moved == 0 { return None; }
+    let mut staged_slots = slots.to_vec();
+    let mut carried = None;
+    let give = source_take_part_plan(&mut staged_slots, &mut carried, plan,
+        ItemStack { count: moved, ..output }, leftover, material_container, pattern_container, output_max)?;
+    inventory.clone_from_slice(&staged_inventory);
+    slots.clone_from_slice(&staged_slots);
+    Some(give)
+}
 #[allow(dead_code)]
 pub(super) fn source_part_plan(
     recipe: &SourcePartRecipe,
@@ -2456,6 +2478,15 @@ mod tests {
         assert_eq!(slots[1].as_ref().unwrap().count, 1);
         assert_eq!(cursor.as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
         assert_eq!((&*gave[0].item, gave[0].count), ("minecraft:oak_planks", 2));
+        let mut quick_slots = original.clone();
+        let mut quick_inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
+        let (quick_output, quick_leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output.clone(), quick_leftover.clone(), None, None, 64, true).is_none());
+        assert_eq!(quick_slots, original);
+        quick_inventory[8] = None;
+        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output, quick_leftover, None, None, 64, true).is_some());
+        assert_eq!(quick_inventory[8].as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
+        assert!(quick_slots[0].is_none());
         let after = slots.clone();
         let (second, leftover) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
         assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, second, leftover, None, None, 64).is_none());

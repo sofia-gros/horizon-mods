@@ -185,3 +185,13 @@ pub(super) fn crafting_container(stack: Option<&ItemStack>, items: &horizon_item
     let item = items.get(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
     Ok(item.remainder.as_deref().map(|id| ItemStack::new(id, 1)))
 }
+
+/// Until the original adjacent inventory modules are available, do not run a
+/// player-only quick move if a neighbor might supply one, or is not loaded.
+pub(super) fn player_only_quick_move(world: &super::tconstruct_world::World, pos: (i32, i32, i32)) -> bool {
+    [(0, -1), (1, 0), (0, 1), (-1, 0)].into_iter().all(|(dx, dz)| {
+        let neighbor = (pos.0 + dx, pos.1, pos.2 + dz);
+        world.chunks.contains_key(&(neighbor.0 >> 4, neighbor.2 >> 4))
+            && !world.block_entities.contains_key(&neighbor)
+    })
+}
