@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate 1.20.1 vanilla tier-tool durability facts from the pinned client.
+"""Generate 1.20.1 vanilla item durability facts from the pinned client.
 
 Uses the JDK's javap module to read bytecode; it does not execute Minecraft.
 Unrecognized items are deliberately omitted, not assigned guessed values.
@@ -35,6 +35,7 @@ def generate(jar):
     if len(tiers) != 6:
         raise ValueError('expected six original tool tiers')
     items = {}
+    direct_items = 0
     text = javap(jar, 'cgc')
     for block in re.split(r'(?m)^\s*\d+: ldc(?:_w)?\s+#\d+\s+// String ', text)[1:]:
         name = re.match(r'([a-z0-9_]+)\n', block)
@@ -42,15 +43,19 @@ def generate(jar):
         if not name or end < 0:
             continue
         tier = re.search(r'// Field cho\.([a-f]):Lcho;', block[:end])
-        if tier:
+        direct = re.search(r'(?m)^\s*\d+: (iconst_[0-5]|bipush\s+\d+|sipush\s+\d+)\s*\n\s*\d+: invokevirtual\s+#\d+\s+// Method cfu\$a\.c:\(I\)Lcfu\$a;', block[:end])
+        if tier and direct:
+            raise ValueError('ambiguous durability construction')
+        if tier or direct:
             item = 'minecraft:' + name.group(1)
             if item in items:
-                raise ValueError('duplicate original tier item')
-            items[item] = tiers[tier.group(1)]
-    if len(items) != 30:
-        raise ValueError('expected 30 original tier tools')
+                raise ValueError('duplicate original damageable item')
+            items[item] = tiers[tier.group(1)] if tier else number(direct.group(1))
+            direct_items += int(direct is not None)
+    if len(items) != 41 or direct_items != 11:
+        raise ValueError('expected 30 tier tools and 11 direct durability items')
     rows = ['// Generated from pinned Minecraft 1.20.1 bytecode by',
-            '// tools/extract_original_tier_durability.py. Unknown items remain unknown.',
+            '// tools/extract_original_item_durability.py. Unknown items remain unknown.',
             'pub(super) fn max_damage(item: &str) -> Option<i32> {', '    match item {']
     rows.extend(f'        "{item}" => Some({value}),' for item, value in sorted(items.items()))
     rows.extend(['        _ => None,', '    }', '}', ''])

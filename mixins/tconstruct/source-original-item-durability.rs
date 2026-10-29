@@ -1,12 +1,19 @@
 // Generated from pinned Minecraft 1.20.1 bytecode by
-// tools/extract_original_tier_durability.py. Unknown items remain unknown.
+// tools/extract_original_item_durability.py. Unknown items remain unknown.
 pub(super) fn max_damage(item: &str) -> Option<i32> {
     match item {
+        "minecraft:bow" => Some(384),
+        "minecraft:brush" => Some(64),
+        "minecraft:carrot_on_a_stick" => Some(25),
+        "minecraft:crossbow" => Some(465),
         "minecraft:diamond_axe" => Some(1561),
         "minecraft:diamond_hoe" => Some(1561),
         "minecraft:diamond_pickaxe" => Some(1561),
         "minecraft:diamond_shovel" => Some(1561),
         "minecraft:diamond_sword" => Some(1561),
+        "minecraft:elytra" => Some(432),
+        "minecraft:fishing_rod" => Some(64),
+        "minecraft:flint_and_steel" => Some(64),
         "minecraft:golden_axe" => Some(32),
         "minecraft:golden_hoe" => Some(32),
         "minecraft:golden_pickaxe" => Some(32),
@@ -22,11 +29,15 @@ pub(super) fn max_damage(item: &str) -> Option<i32> {
         "minecraft:netherite_pickaxe" => Some(2031),
         "minecraft:netherite_shovel" => Some(2031),
         "minecraft:netherite_sword" => Some(2031),
+        "minecraft:shears" => Some(238),
+        "minecraft:shield" => Some(336),
         "minecraft:stone_axe" => Some(131),
         "minecraft:stone_hoe" => Some(131),
         "minecraft:stone_pickaxe" => Some(131),
         "minecraft:stone_shovel" => Some(131),
         "minecraft:stone_sword" => Some(131),
+        "minecraft:trident" => Some(250),
+        "minecraft:warped_fungus_on_a_stick" => Some(100),
         "minecraft:wooden_axe" => Some(59),
         "minecraft:wooden_hoe" => Some(59),
         "minecraft:wooden_pickaxe" => Some(59),

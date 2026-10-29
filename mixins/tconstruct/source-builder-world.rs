@@ -63,7 +63,7 @@ pub(super) fn choices(
 }
 
 /// Compute one source result from the current authoritative world. Ordinary
-/// parts and supported single-result recycling are handled; inventory mutation
+/// parts and recycling without random leftovers are handled; inventory mutation
 /// and unsupported recycling cases remain separate.
 pub(super) fn plan(
     world: &super::tconstruct_world::World,
@@ -85,7 +85,7 @@ pub(super) fn plan(
     if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_recycling") {
         let recipe = tx::SourceRecyclingRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
         let Some(stack) = material else { return Ok(None); };
-        let max_damage = super::tconstruct_source_original_tier_durability::max_damage(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
+        let max_damage = super::tconstruct_source_original_item_durability::max_damage(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
         let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
         // The original applies different checks to modifiable items. Do not
         // infer non-membership from an unresolved world tag.
