@@ -43,8 +43,12 @@ try:
   recipe=json.loads((Path(__file__).resolve().parents[2]/'content/data/tconstruct/recipes/tools/parts/builder/pick_head.json').read_text())
   recipe['cost']=1
   (pack/'data/tconstruct/recipes/tools/parts/builder/pick_head.json').write_text(json.dumps(recipe))
-  h.call('command','reload')
-  wait('guest receives changed source order',lambda:'tconstruct:pick_head' in guest_patterns() and guest_patterns().index('tconstruct:pick_head')<previous)
+  h.call('command','reload');h.call('wait','40');q.call('wait','40')
+  assert guest_patterns().index('tconstruct:pick_head') == previous, 'source keeps cached buttons across reload'
+  click(h,300);click(h,3)
+  wait('pattern removed before rebuilding candidates',lambda:300 not in slots(q))
+  click(h,3);click(h,300)
+  wait('guest receives changed source order after input change',lambda:'tconstruct:pick_head' in guest_patterns() and guest_patterns().index('tconstruct:pick_head')<previous)
  if a.source_gui_test: pattern(h,'Pick Head')
  else: click(h,324)
  assert not (h.call('menu').get('carried') or {})

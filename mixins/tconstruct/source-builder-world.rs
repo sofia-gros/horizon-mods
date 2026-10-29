@@ -10,9 +10,19 @@ pub(super) fn choices(
     pattern: Option<&ItemStack>,
     material: Option<&ItemStack>,
 ) -> Result<Vec<SourceAllPartChoice>, SourceLookupError> {
+    if pattern.is_none() { return Ok(Vec::new()); }
+    let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+    choices_from(world, pattern, material, recipes)
+}
+
+fn choices_from(
+    world: &super::tconstruct_world::World,
+    pattern: Option<&ItemStack>,
+    material: Option<&ItemStack>,
+    recipes: &std::collections::BTreeMap<String, Vec<u8>>,
+) -> Result<Vec<SourceAllPartChoice>, SourceLookupError> {
     let Some(pattern) = pattern else { return Ok(Vec::new()); };
     let chunks = &world.chunks;
-    let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
@@ -63,7 +73,7 @@ pub(super) fn choices(
 }
 
 /// Compute one source result from the current authoritative world. Ordinary
-/// parts and recycling without random leftovers are handled; inventory mutation
+/// parts and supported damageable-item recycling are handled; inventory mutation
 /// and unsupported recycling cases remain separate.
 pub(super) fn plan(
     world: &super::tconstruct_world::World,
@@ -73,18 +83,26 @@ pub(super) fn plan(
     selected: &str,
 ) -> Result<Option<tx::SourcePartPlan>, SourceLookupError> {
     let Some(pattern) = pattern else { return Ok(None); };
-    let Some(choice) = choices(world, Some(pattern), material)?.into_iter().find(|c| c.pattern == selected) else { return Ok(None); };
     let chunks = &world.chunks;
-    let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+    let context = chunks.__horizon_mixins_tconstruct_builder_recipe_context().get(&pos);
+    let recipes = context.map(|(_, recipes, _)| recipes.as_ref())
+        .or_else(|| chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref())
+        .ok_or(SourceLookupError::IncompleteContext)?;
+    let choice_id = if let Some((_, _, entries)) = context {
+        entries.iter().find(|(pattern, _)| pattern == selected).map(|(_, id)| id.clone())
+    } else {
+        choices_from(world, Some(pattern), material, recipes)?.into_iter().find(|c| c.pattern == selected).map(|c| c.id)
+    };
+    let Some(choice_id) = choice_id else { return Ok(None); };
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let (definitions, _, _) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let bytes = recipes.get(&choice.id).ok_or(SourceLookupError::IncompleteContext)?;
+    let bytes = recipes.get(&choice_id).ok_or(SourceLookupError::IncompleteContext)?;
     let value: serde_json::Value = serde_json::from_slice(bytes).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
     if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_recycling") {
-        let recipe = tx::SourceRecyclingRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let recipe = tx::SourceRecyclingRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
         let Some(stack) = material else { return Ok(None); };
         let max_damage = super::tconstruct_source_original_item_durability::max_damage(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
         let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
@@ -104,7 +122,7 @@ pub(super) fn plan(
         let original_count = recipe.results.get(selected).ok_or(SourceLookupError::IncompleteContext)?.count;
         let mut alternatives = Vec::new();
         if recipe.results.len() > 1 && recipe.maximum_amount(max_damage, damage)? > original_count {
-            let epoch = *chunks.__horizon_mixins_tconstruct_source_recipe_generation();
+            let epoch = context.map_or(*chunks.__horizon_mixins_tconstruct_source_recipe_generation(), |(epoch, _, _)| *epoch);
             if chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
                 != Some(&(selected.to_owned(), recipe.id.clone(), epoch)) {
                 return Err(SourceLookupError::IncompleteContext);
@@ -130,7 +148,7 @@ pub(super) fn plan(
             pattern_used: i32::from(!reusable), leftover: None, random_alternatives: alternatives,
         }));
     }
-    let recipe = tx::SourcePartRecipe::parse(choice.id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+    let recipe = tx::SourcePartRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
     let registries: HashMap<_, _> = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
     let instruments = HashSet::new();
     let instrument_tags = HashMap::new();
@@ -173,17 +191,26 @@ pub(super) fn plan(
 /// input changes, so a later recipe with the same Pattern may be a new object.
 pub(super) fn select(world: &mut super::tconstruct_world::World, pos: (i32, i32, i32), selected: String) -> bool {
     let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else { return false; };
-    let Ok(candidates) = choices(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref)) else { return false; };
-    let Some(choice) = candidates.into_iter().find(|choice| choice.pattern == selected) else { return false; };
-    let epoch = *world.chunks.__horizon_mixins_tconstruct_source_recipe_generation();
-    world.chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().insert(pos, (selected.clone(), choice.id, epoch));
+    let context = world.chunks.__horizon_mixins_tconstruct_builder_recipe_context().get(&pos);
+    let Some(recipes) = context.map(|(_, recipes, _)| recipes.as_ref())
+        .or_else(|| world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()) else { return false; };
+    let choice_id = if let Some((_, _, entries)) = context {
+        entries.iter().find(|(pattern, _)| pattern == &selected).map(|(_, id)| id.clone())
+    } else {
+        let Ok(candidates) = choices_from(world, slots.first().and_then(Option::as_ref), slots.get(1).and_then(Option::as_ref), recipes) else { return false; };
+        candidates.into_iter().find(|choice| choice.pattern == selected).map(|choice| choice.id)
+    };
+    let Some(choice_id) = choice_id else { return false; };
+    let epoch = context.map_or(*world.chunks.__horizon_mixins_tconstruct_source_recipe_generation(), |(epoch, _, _)| *epoch);
+    world.chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().insert(pos, (selected.clone(), choice_id, epoch));
     world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(pos, selected);
     world.chunks.__horizon_mixins_tconstruct_builder_preview_mut().remove(&pos);
     true
 }
 
 /// Cache source candidates per world and table, recomputing only after either
-/// input changes. Pack reload and block/chunk removal clear the cache.
+/// input changes. Block/chunk removal clears the table cache; recipe reload
+/// retains the source recipe objects already held by an active table.
 pub(super) fn refresh(world: &mut super::tconstruct_world::World, pos: (i32, i32, i32)) -> Option<Vec<String>> {
     let Some(slots) = world.block_entities.get(&pos).map(|entity| entity.slots()) else {
         world.chunks.__horizon_mixins_tconstruct_builder_choices_mut().remove(&pos);
@@ -192,10 +219,18 @@ pub(super) fn refresh(world: &mut super::tconstruct_world::World, pos: (i32, i32
     let pattern = slots.first().cloned().flatten();
     let material = slots.get(1).cloned().flatten();
     if let Some((old_pattern, old_material, result)) = world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&pos) {
-        if old_pattern == &pattern && old_material == &material { return result.clone(); }
+        if tx::source_candidate_inputs_equal(old_pattern.as_ref(), pattern.as_ref(), old_material.as_ref(), material.as_ref()) { return result.clone(); }
     }
-    let result = choices(world, pattern.as_ref(), material.as_ref()).ok()
-        .map(|candidates| candidates.into_iter().map(|c| c.pattern).collect());
+    let epoch = *world.chunks.__horizon_mixins_tconstruct_source_recipe_generation();
+    let recipes = world.chunks.__horizon_mixins_tconstruct_source_shared_recipes().clone();
+    let candidates = recipes.as_ref().and_then(|recipes| choices_from(world, pattern.as_ref(), material.as_ref(), recipes).ok());
+    let result = candidates.as_ref().map(|items| items.iter().map(|c| c.pattern.clone()).collect());
+    if let (Some(recipes), Some(candidates)) = (recipes, candidates) {
+        let entries = candidates.into_iter().map(|c| (c.pattern, c.id)).collect();
+        world.chunks.__horizon_mixins_tconstruct_builder_recipe_context_mut().insert(pos, (epoch, recipes, entries));
+    } else {
+        world.chunks.__horizon_mixins_tconstruct_builder_recipe_context_mut().remove(&pos);
+    }
     world.chunks.__horizon_mixins_tconstruct_builder_choices_mut().insert(pos, (pattern, material, result.clone()));
     result
 }

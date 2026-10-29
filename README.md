@@ -57,9 +57,7 @@ the other craftable parts cannot yet be assembled into tools. A command-supplied
 tools and traits are not supported. The Part Builder has a source-recipe selection grid and ordinary pickup, but
 recycling with unknown selection identity, modifiable and unsupported input items, all material and item registrations, original container remainders,
 complete tooltips and side panels are unfinished. Dynamic part names are not
-yet connected to hotbar labels or recipe search. The recycling path conservatively rejects a stale selection after a
-recipe reload until it is selected again; original Pattern identity and reload
-behavior are not fully ported. The Java-compatible random state is shared in
+yet connected to hotbar labels or recipe search. A table retains its cached recipe across reload until its input changes; both game modes verified the old cost and a subsequent input change. The recycling path conservatively rejects a stale Pattern identity after an input change until it is selected again. The separate material-recipe cache and tag reload behavior are not fully ported. The Java-compatible random state is shared in
 the process and advances only after a successful transaction, but initialization
 is lazy, the JVM-wide seed uniquifier is not mirrored, and other original uses
 of the shared RNG are not yet connected; exact

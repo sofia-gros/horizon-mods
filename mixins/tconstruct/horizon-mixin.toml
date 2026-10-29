@@ -891,6 +891,28 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+# Source recipe objects remain alive in each loaded table until its input
+# changes, even if the world's recipe manager reloads.
+[[state]]
+id = "builder-recipe-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(u64,std::sync::Arc<std::collections::BTreeMap<String,Vec<u8>>>,Vec<(String,String)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "source-shared-recipes"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::sync::Arc<std::collections::BTreeMap<String,Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[state]]
 id = "source-selection-origin"
 target = "horizon_client::chunk_map::ChunkMap"

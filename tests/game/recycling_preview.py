@@ -51,7 +51,7 @@ try:
             g.call('click',fresh['id']);g.call('wait','20')
     g.call('screenshot',str(run/'recycling-choice.png'))
     original_count = 6 * (465 - a.damage) // 465 if a.crossbow else 2 * (64 - a.damage) // 64 if a.flint_steel else 3 * (131 - a.damage) // 131
-    unsupported_random = (a.flint_steel and original_count > 1 and a.reload_after_select) and not a.reselect_after_reload
+    unsupported_random = False
     expected = 0 if a.enchanted or unsupported_random else min(3, original_count) if a.crossbow else min(1, original_count) if a.flint_steel else original_count
     if a.quick:
         g.call('click-slot','322','shift');g.call('wait','10')

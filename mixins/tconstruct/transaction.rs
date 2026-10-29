@@ -1217,6 +1217,25 @@ pub(super) struct SourcePartPlan {
     pub random_alternatives: Vec<(SourceItemOutput, i32)>,
 }
 
+/// The source table rebuilds candidate buttons on a pattern item change or
+/// a material item/tag change, but count-only changes only refresh the result.
+pub(super) fn source_candidate_inputs_equal(
+    old_pattern: Option<&ItemStack>, pattern: Option<&ItemStack>,
+    old_material: Option<&ItemStack>, material: Option<&ItemStack>,
+) -> bool {
+    let same_pattern = match (old_pattern, pattern) {
+        (None, None) => true,
+        (Some(a), Some(b)) => a.item == b.item,
+        _ => false,
+    };
+    let same_material = match (old_material, material) {
+        (None, None) => true,
+        (Some(a), Some(b)) => a.same_item_same_components(b),
+        _ => false,
+    };
+    same_pattern && same_material
+}
+
 /// Resolve a planned source result and leftover against the live item/tag
 /// registry. An absent preference or an unsupported NBT form is not guessed.
 /// This does not mutate slots or deliver leftovers to the player.
@@ -2637,6 +2656,18 @@ mod tests {
             let give = source_take_part_plan(&mut slots, &mut cursor, &plan, ItemStack::new("tconstruct:pick_head", 1), None, alternatives.clone(), None, None, 64, |bound| { assert_eq!(bound, 3); Some(chosen) }).unwrap();
             assert_eq!(give, vec![alternatives[chosen].clone()]);
         }
+    }
+
+    #[test]
+    fn source_candidate_inputs_ignore_counts_but_not_material_components() {
+        let pattern = ItemStack::new("tconstruct:pattern", 1);
+        let mut more_patterns = pattern.clone(); more_patterns.count = 2;
+        let material = ItemStack::new("minecraft:oak_log", 1);
+        let mut more_material = material.clone(); more_material.count = 2;
+        assert!(source_candidate_inputs_equal(Some(&pattern), Some(&more_patterns), Some(&material), Some(&more_material)));
+        more_material.damage = 1;
+        assert!(!source_candidate_inputs_equal(Some(&pattern), Some(&more_patterns), Some(&material), Some(&more_material)));
+        assert!(!source_candidate_inputs_equal(Some(&pattern), None, Some(&material), Some(&material)));
     }
 
     #[test]
