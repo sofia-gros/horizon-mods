@@ -25,3 +25,18 @@ class SourceStorageVisuals(unittest.TestCase):
         self.assertEqual(model['parent'], 'block/cube_all')
         self.assertEqual(model['material'], 'all')
         self.assertEqual(model['textures']['all'], 'tconstruct:block/storage/fallback')
+
+    def test_registered_fallback_uses_source_textures(self):
+        source = VISUALS / 'assets/tconstruct/textures/block/storage'
+        target = ROOT / 'content/assets/tconstruct/textures/block/storage'
+        self.assertEqual({p.name: p.read_bytes() for p in source.glob('*.png')},
+                         {p.name: p.read_bytes() for p in target.glob('*.png')})
+        block = json.loads((ROOT / 'content/data/tconstruct/horizon/block/fake_storage_block.json').read_text())
+        self.assertEqual(block['template'], 'minecraft:iron_block')
+        self.assertEqual(block['properties']['hardness'], 5.0)
+        self.assertEqual(block['properties']['explosion_resistance'], 5.0)
+        model = json.loads((ROOT / 'content/assets/tconstruct/models/block/storage/fake.json').read_text())
+        self.assertEqual(model['textures']['all'], 'tconstruct:block/storage/fallback')
+        for name in ('mineable/pickaxe', 'needs_iron_tool'):
+            tag = json.loads((ROOT / f'content/data/minecraft/tags/block/{name}.json').read_text())
+            self.assertIn('tconstruct:fake_storage_block', tag['values'])

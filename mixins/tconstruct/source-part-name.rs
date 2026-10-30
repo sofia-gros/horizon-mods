@@ -7,7 +7,8 @@ pub(super) fn source_part_name(
     format: &dyn Fn(&str, &[String]) -> String,
 ) -> Option<String> {
     let (item_namespace, item_path) = item.split_once(':')?;
-    let item_key = format!("item.{item_namespace}.{item_path}");
+    let prefix = if item == "tconstruct:fake_storage_block" { "block" } else { "item" };
+    let item_key = format!("{prefix}.{item_namespace}.{item_path}");
     let part_name = translate(&item_key).unwrap_or_else(|| item_key.clone());
     let (base, variant) = material.split_once('#').unwrap_or((material, ""));
     let (namespace, path) = base.split_once(':').unwrap_or(("minecraft", base));

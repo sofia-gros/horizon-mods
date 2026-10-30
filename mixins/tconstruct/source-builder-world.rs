@@ -358,3 +358,20 @@ fn source_random_seed() -> i64 {
 pub(super) fn source_random_draw(items: &horizon_items::items::Items, bound: usize) -> Option<usize> {
     items.__horizon_mixins_tconstruct_recycling_draw(source_random_seed, bound)
 }
+
+/// The fake block item accepts only compatibility materials that do not have
+/// a visible nine-unit material recipe, as in the source item.
+pub(super) fn fake_storage_can_use(world: &super::tconstruct_world::World, items: &horizon_items::items::Items, material: &str) -> Result<bool, SourceLookupError> {
+    let chunks = &world.chunks;
+    let (definitions, _, material_tags) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let item_tags = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let fluid_tags = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+    let base = material.split_once('#').map_or(material, |(base, _)| base);
+    let visible = definitions.iter().filter(|(_, value)| !value.1).map(|(id, _)| id.clone()).collect();
+    let known = items.registry_order.iter().map(|id| id.to_string()).collect();
+    let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+    let values = tx::source_visible_base_recipe_values(base, recipes, &visible, &known, &registries, config, true)?;
+    Ok(tx::source_supported_fake_items(base, material_tags, &values, true)?.contains("tconstruct:fake_storage_block"))
+}

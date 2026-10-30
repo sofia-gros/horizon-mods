@@ -1019,3 +1019,75 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[injection]]
+id = "storage-atlas"
+target = "horizon_client::assets::Assets::reload"
+kind = "HEAD"
+cancellable = true
+helper = "storage-atlas.rs"
+bindings = [
+  { name = "assets", ty = "&Assets", value = "self" },
+  { name = "root", ty = "&Path", value = "root" },
+]
+
+[[injection]]
+id = "storage-mesh-face"
+target = "horizon_client::mesher::Mesher<'_>::face"
+kind = "HEAD"
+cancellable = true
+helper = "storage-mesh-face.rs"
+bindings = [
+  { name = "mesher", ty = "&Mesher<'_>", value = "self" },
+  { name = "pad", ty = "&Padded", value = "pad" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "tints" },
+  { name = "out", ty = "&mut SectionMesh", value = "out" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "origin", ty = "[f32; 3]", value = "origin" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+  { name = "ao", ty = "bool", value = "ao" },
+  { name = "state", ty = "&Info", value = "state" },
+]
+
+[[injection]]
+id = "storage-pick-local"
+target = "horizon_client::game::Game<'_>::play_mouse"
+kind = "HEAD"
+cancellable = true
+helper = "storage-pick-local.rs"
+bindings = [
+  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
+  { name = "button", ty = "MouseButton", value = "button" },
+  { name = "pressed", ty = "bool", value = "pressed" },
+]
+
+[[injection]]
+id = "storage-render-init"
+target = "horizon_client::game::Game<'_>::prepare_lod"
+kind = "HEAD"
+helper = "storage-render-init.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "storage-render-info-streaming"
+file = "crates/horizon-client/src/streaming.rs"
+name = "tconstruct_storage_render_info"
+source = "source-render-info.rs"
+
+[[module]]
+id = "storage-render-info-mesher"
+file = "crates/horizon-client/src/mesher.rs"
+name = "tconstruct_storage_render_info"
+source = "source-render-info.rs"
+
+[[injection]]
+id = "storage-region"
+target = "horizon_client::streaming::Streaming::region"
+kind = "HEAD"
+cancellable = true
+helper = "storage-region.rs"
+bindings = [
+  { name = "world", ty = "&World", value = "world" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+]

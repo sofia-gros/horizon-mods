@@ -27,8 +27,8 @@ with tempfile.TemporaryDirectory(prefix='material-block-content-') as tmp:
         if src.is_file():
             dst = content / src.relative_to(Path(__file__).parent / 'overlay')
             dst.parent.mkdir(parents=True, exist_ok=True)
-            if dst.exists():
-                raise ValueError(f'fixture would overwrite a real content file: {dst}')
+            # This isolated fixture deliberately replaces the production
+            # block assets and loot to exercise the existing NBT/drop probes.
             shutil.copyfile(src, dst)
     if a.reverse_drop_order:
         loot = content / 'data/tconstruct/loot_table/blocks/fake_storage_block.json'

@@ -23,6 +23,9 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 /give @s minecraft:calcite 16
 /give @s tconstruct:tool_handle_cast 1
 /give @s tconstruct:blank_sand_cast 1
+/give @s tconstruct:fake_storage_block[minecraft:custom_data={Material:"tconstruct:bronze"}] 1
 ```
 
 金型を Pattern 位置に入れると、金の Tool Handle Cast は部品取得時に残り、空の砂金型は成形時に消費されます。砂または赤砂 1 個を通常クラフトに置くと、それぞれ空の砂金型 4 個を作れます。Windows での画面と操作は未検証です。詳細な進捗は [README](../README.md) と [ロードマップ](roadmap.md) を参照してください。
+
+素材付き収納ブロックは Linux の試験ビルドで表示・保存・採掘を確認しています。Pick Block の素材引継ぎは in-frame のみ検証済みで、通常のネットワーク方式は未対応です。自然な入手と Windows 実機は未検証です。

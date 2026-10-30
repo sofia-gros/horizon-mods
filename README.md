@@ -29,6 +29,13 @@ on its own; v1.0 targets the complete TConstruct port on Horizon's Minecraft 26.
 
 In single-player worlds, craft a Pattern and the Part Builder and Tinker
 Station at a crafting table, place both tables, and open them by interacting.
+The material storage block is registered with its source textures. In a Linux
+test build, command-supplied bronze and unknown blocks displayed their material,
+survived save/reload, and dropped with Material when mined in both game modes.
+Pick Block preserved bronze in in-frame mode; networked Pick Block and normal
+acquisition are not implemented. The official Mixins build passed the in-frame
+display and Pick Block check; Windows remains unverified. See the
+[storage display](docs/fake-storage-preview.png).
 In the Part Builder, insert a Pattern and material, select a source-recipe
 pattern in the scrolling grid, and take an ordinary part from the result slot.
 For example, an oak log produces a wood tool handle and returns three oak
