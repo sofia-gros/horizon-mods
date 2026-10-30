@@ -50,3 +50,6 @@ The Part Builder information panel uses the upstream `panel.png`. Its displayed
 recipe cost and input value come from the active recipe data, including on LAN.
 Material statistics, traits and the source's complete recipe descriptions still
 need to be connected; the panel is not yet a complete original implementation.
+The Station's panels show the selected source layout and components, or the
+current result's recorded durability, melee values, and supported upgrade
+progress. Other tool statistics and modifier descriptions remain incomplete.

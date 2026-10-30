@@ -34,23 +34,29 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
     lines
 }
 
-pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
+pub(super) fn panel(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32, height: f32) {
     let atlas = &game.gui.atlas;
     let Some(sprite) = atlas.sprites.get("gui/tconstruct_panel").copied() else { return; };
     let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
         let mut r = sprite;
         let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
         r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
-        batch.rect_uv(ox + 180.0 + x, oy + y, w, h, r, u32::MAX);
+        batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
     };
-    region(batch, 4.0, 4.0, 118.0, 75.0, 4.0, 4.0, 118.0, 176.0);
-    for (sx, sy, x, y) in [(0.0,0.0,0.0,0.0),(122.0,0.0,122.0,0.0),(0.0,79.0,0.0,180.0),(122.0,79.0,122.0,180.0)] {
+    let inner = height - 8.0;
+    region(batch, 4.0, 4.0, 118.0, 75.0, 4.0, 4.0, 118.0, inner);
+    for (sx, sy, x, y) in [(0.0,0.0,0.0,0.0),(122.0,0.0,122.0,0.0),(0.0,79.0,0.0,height - 4.0),(122.0,79.0,122.0,height - 4.0)] {
         region(batch, sx, sy, 4.0, 4.0, x, y, 4.0, 4.0);
     }
     region(batch, 4.0, 0.0, 118.0, 4.0, 4.0, 0.0, 118.0, 4.0);
-    region(batch, 4.0, 79.0, 118.0, 4.0, 4.0, 180.0, 118.0, 4.0);
-    region(batch, 0.0, 4.0, 4.0, 75.0, 0.0, 4.0, 4.0, 176.0);
-    region(batch, 122.0, 4.0, 4.0, 75.0, 122.0, 4.0, 4.0, 176.0);
+    region(batch, 4.0, 79.0, 118.0, 4.0, 4.0, height - 4.0, 118.0, 4.0);
+    region(batch, 0.0, 4.0, 4.0, 75.0, 0.0, 4.0, 4.0, inner);
+    region(batch, 122.0, 4.0, 4.0, 75.0, 122.0, 4.0, 4.0, inner);
+}
+
+pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
+    let atlas = &game.gui.atlas;
+    panel(game, batch, ox + 180.0, oy, 184.0);
     let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0);
     for (index, (text, color)) in lines(game, atlas).iter().skip(scroll).take(17).enumerate() {
         batch.text(atlas, text, ox + 185.0, oy + 5.0 + index as f32 * 10.0, *color, true);

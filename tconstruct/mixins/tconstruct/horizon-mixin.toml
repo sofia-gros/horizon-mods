@@ -775,6 +775,12 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_builder_info_ui"
 source = "builder-info-ui.rs"
 
+[[module]]
+id = "station-info-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_station_info_ui"
+source = "station-info-ui.rs"
+
 [[state]]
 id = "builder-info-recv"
 target = "horizon_client::chunk_map::ChunkMap"
