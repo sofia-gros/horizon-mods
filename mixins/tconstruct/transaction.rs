@@ -1735,6 +1735,12 @@ mod tests {
         assert_eq!(&*side[0].as_ref().unwrap().item, "minecraft:flint");
         assert!(source_quick_move_to_builder(&mut inputs, &mut side, ItemStack::new("tconstruct:pattern", 1), 64, true, true).is_none());
         assert_eq!(&*inputs[0].as_ref().unwrap().item, "tconstruct:pattern");
+        inputs[1] = Some(ItemStack::new("minecraft:stick", 63));
+        side[1] = Some(ItemStack::new("minecraft:stick", 63));
+        assert!(source_quick_move_to_builder(&mut inputs, &mut side, ItemStack::new("minecraft:stick", 3), 64, true, false).is_none());
+        assert_eq!(inputs[1].as_ref().unwrap().count, 64);
+        assert_eq!(side[1].as_ref().unwrap().count, 64);
+        assert_eq!(side[2].as_ref().unwrap().count, 1);
     }
     #[test]
     fn material_block_preserves_original_unknown_identity_and_load_rules() {
