@@ -45,6 +45,7 @@ try:
         'setblock 0 72 1 minecraft:air', 'setblock 0 71 1 minecraft:air',
         'setblock 0 71 2 tconstruct:seared_heater',
     ): host.call('command', command)
+    host.call('wait', '20')
     host.call('interact', '0', '71', '2'); host.call('wait', '5')
     assert host.call('status')['screen'] == 'inventory', 'heater menu did not open'
     host.call('close')
