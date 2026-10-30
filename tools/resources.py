@@ -137,6 +137,33 @@ entries = [
 # recipe-driven crafting remain incomplete, as documented.
 source_names = json.loads((repository / 'content/assets/tconstruct/lang/en_us.json').read_text())
 existing = {name for name, _, _ in entries}
+# Register three-part tools that share the implemented material/stat path.
+# Additional actions and modifiers remain separate gameplay work.
+tool_templates = {'pickaxe_dig': 'minecraft:stone_pickaxe', 'axe_dig': 'minecraft:stone_axe',
+                  'shovel_dig': 'minecraft:stone_shovel', 'hoe_dig': 'minecraft:stone_hoe'}
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-recipes.zip') as archive:
+    tool_results = set()
+    for name in archive.namelist():
+        if not name.endswith('.json'): continue
+        recipe = json.loads(archive.read(name))
+        if recipe.get('type') == 'tconstruct:tool_building' and isinstance(recipe.get('result'), str):
+            tool_results.add(recipe['result'])
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-definitions.zip') as archive:
+    for name in sorted(archive.namelist()):
+        if '/tool_definitions/' not in name or not name.endswith('.json'): continue
+        short = name.rsplit('/', 1)[-1].removesuffix('.json')
+        item_id = 'tconstruct:' + short
+        if item_id in existing or item_id not in tool_results: continue
+        modules = json.loads(archive.read(name)).get('modules', [])
+        part_modules = [module for module in modules if module.get('type') == 'tconstruct:part_stats']
+        actions = next((module.get('tool_actions', []) for module in modules if module.get('type') == 'tconstruct:tool_actions'), [])
+        if len(part_modules) != 1 or len(part_modules[0].get('parts', [])) != 3: continue
+        parts = [part if isinstance(part, str) else part.get('item', '') for part in part_modules[0]['parts']]
+        if not all(part.startswith('tconstruct:') and part.split(':', 1)[1] in MATERIAL_MODELS for part in parts): continue
+        template = next((tool_templates[action] for action in actions if action in tool_templates), None)
+        if template is None: continue
+        entries.append((item_id, template, source_names['item.tconstruct.' + short]))
+        existing.add(item_id)
 for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
     if name not in existing:
@@ -171,6 +198,8 @@ for name, template, title in entries:
         original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
         texture = original_model['textures']['texture']
         native_model = {'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': texture, 'particle': texture}}
+    elif template in tool_templates.values() and short not in ('flint_pickaxe', 'pickaxe'):
+        native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'minecraft:item/' + template.split(':', 1)[1]}}
     else:
         layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
         native_model = {'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}

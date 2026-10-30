@@ -12,6 +12,14 @@ pub(super) struct BaseStats {
 
 #[derive(Clone, Copy)]
 struct Accumulator { base: f32, add: f32, percent: f32, multiply: f32 }
+pub(super) fn part_kind(id: &str) -> Option<&'static str> {
+    Some(match id.strip_prefix("tconstruct:")? {
+        "pick_head" | "hammer_head" | "small_axe_head" | "broad_axe_head" | "small_blade" | "broad_blade" | "adze_head" | "large_plate" => "head",
+        "tool_handle" | "tough_handle" => "handle",
+        "tool_binding" | "tough_binding" => "binding",
+        _ => return None,
+    })
+}
 impl Accumulator {
     fn new(base: f32) -> Self { Self { base, add: 0.0, percent: 0.0, multiply: 1.0 } }
     fn update(&mut self, value: f32) { self.base = 0.0; self.add += value; }
@@ -32,12 +40,7 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
                 for (part, material) in parts.iter().zip(materials) {
                     let id = part.as_str().or_else(|| part.get("item").and_then(Value::as_str))?;
                     let scale = match part.get("scale") { Some(value) => value.as_f64()? as f32, None => 1.0 };
-                    let kind = match id.strip_prefix("tconstruct:")? {
-                        "pick_head" | "hammer_head" | "small_axe_head" | "broad_axe_head" | "small_blade" | "broad_blade" | "adze_head" | "large_plate" => "head",
-                        "tool_handle" | "tough_handle" => "handle",
-                        "tool_binding" | "tough_binding" => "binding",
-                        _ => return None,
-                    };
+                    let kind = part_kind(id)?;
                     if kind == "binding" { continue; }
                     let fields = material.get(&format!("tconstruct:{kind}"))?.as_object()?;
                     let number = |key: &str, default: f32| -> Option<f32> {
