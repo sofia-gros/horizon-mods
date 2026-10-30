@@ -5,6 +5,7 @@ The source revision matches the existing block asset snapshot.
 """
 import io
 import json
+import re
 import subprocess
 import sys
 import zipfile
@@ -52,6 +53,24 @@ def snapshot(repo):
         add('models/item/' + name + '.json')
     for name in ('textures/gui/melter.png', 'textures/gui/icons.png', 'textures/fluid/molten/still.png', 'textures/fluid/molten/still.png.mcmeta'):
         add(name)
+    # Source FluidTextureProvider selects textures by category. Preserve the
+    # unanimated first frame as supplied by the source; do not invent colors.
+    def java(path):
+        return subprocess.check_output(['git', '-C', str(repo), 'show', f'{REVISION}:{path}'], text=True)
+    fluids = java('src/main/java/slimeknights/tconstruct/fluids/TinkerFluids.java')
+    provider = java('src/main/java/slimeknights/tconstruct/fluids/data/FluidTextureProvider.java')
+    ids = dict(re.findall(r'\b(\w+)\s*=\s*FLUIDS\.register(?:Metal)?\("([^"\n]+)"', fluids))
+    categories = {'ore': 'ore', 'alloy': 'alloy', 'compatOre': 'compat_ore', 'compatAlloy': 'compat_alloy', 'stone': 'stone'}
+    texture_map = {}
+    for category, variable in re.findall(r'\b(ore|alloy|compatOre|compatAlloy|stone)\(TinkerFluids\.(\w+)\)', provider):
+        fluid_id = ids.get(variable)
+        if not fluid_id or not fluid_id.startswith('molten_'):
+            continue
+        texture = f'textures/fluid/molten/{categories[category]}/{fluid_id.removeprefix("molten_")}/still.png'
+        if texture in available:
+            add(texture)
+            texture_map['tconstruct:' + fluid_id] = texture
+    found['melter-fluid-textures.json'] = (json.dumps(texture_map, sort_keys=True, indent=2) + '\n').encode()
     result = io.BytesIO()
     with zipfile.ZipFile(result, 'w', compression=zipfile.ZIP_DEFLATED) as out:
         for path, data in sorted(found.items()):
