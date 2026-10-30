@@ -4,6 +4,7 @@ import argparse, copy, hashlib, json, shutil, sys, zipfile
 from pathlib import Path
 from import_part_visuals import MATERIAL_MODELS
 from creative_materials import build_variants
+from creative_blocks import add_block_items
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pluto-lib'))
 from pluto_lib.creative import register_item_groups
 
@@ -318,4 +319,5 @@ creative = src / 'creative-inventory.json'
 if creative.is_file():
     tabs = json.loads((repository / 'content/creative-tabs.json').read_text())
     tabs = build_variants(tabs, repository / 'content/reference/tconstruct-tool-definitions.zip', repository / 'content/reference/tconstruct-materials.zip')
+    tabs = add_block_items(tabs, repository / 'content/data/tconstruct/horizon/block')
     (out / 'creative-inventory.json').write_text(json.dumps(register_item_groups(json.loads(creative.read_text()), tabs)))
