@@ -1734,3 +1734,22 @@ id = "source-melter-store"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_store"
 source = "source-melter-store.rs"
+
+[[injection]]
+id = "source-machine-encode-id"
+target = "horizon_client::save::block_entity_id"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-encode-id.rs"
+bindings = [
+  { name = "entity", ty = "&crate::containers::BlockEntity", value = "e" },
+  { name = "block", ty = "&str", value = "block" },
+]
+
+[[injection]]
+id = "source-machine-decode"
+target = "horizon_client::save::decode_block_entity"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-decode.rs"
+bindings = [{ name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]

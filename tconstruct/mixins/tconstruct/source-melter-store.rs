@@ -1,20 +1,20 @@
-// Store machine metadata in the existing chest block entity's preserved NBT.
-// Horizon merges unknown fields from block_entity_sources when saving a live
-// chest, and the normal chest path continues to own the actual inventory.
+// Store machine metadata beside the live chest-like inventory. Machine block
+// entities use custom IDs, so Horizon preserves their extra fields instead of
+// applying the vanilla chest canonicalizer during save.
 use horizon_world::nbt::{Compound, Tag};
 use super::tconstruct_world::World;
 
 type Pos = (i32, i32, i32);
 
 fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) -> bool {
-    if !matches!(key, "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:casting") { return false; }
+    if !matches!(key, "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin") { return false; }
     if let Some((_, tag)) = sources.iter_mut().find(|(at, _)| *at == pos) {
-        if tag.get("id") != Some(&Tag::String("minecraft:chest".into())) { return false; }
+        if tag.get("id") != Some(&Tag::String(key.into())) { return false; }
         let Tag::Compound(map) = tag else { return false; };
         map.insert(key.into(), value);
     } else {
         let mut map = Compound::new();
-        map.insert("id".into(), Tag::String("minecraft:chest".into()));
+        map.insert("id".into(), Tag::String(key.into()));
         for (name, value) in [("x", pos.0), ("y", pos.1), ("z", pos.2)] { map.insert(name.into(), Tag::Int(value)); }
         map.insert(key.into(), value);
         sources.push((pos, Tag::Compound(map)));
@@ -44,7 +44,7 @@ mod tests {
     fn metadata_preserves_inventory_source_and_rejects_other_entities() {
         let pos = (1, 70, -1); let mut sources = Vec::new();
         assert!(set_metadata(&mut sources, pos, "tconstruct:melter", Tag::Int(7)));
-        assert_eq!(sources[0].1.get("id"), Some(&Tag::String("minecraft:chest".into())));
+        assert_eq!(sources[0].1.get("id"), Some(&Tag::String("tconstruct:melter".into())));
         assert!(set_metadata(&mut sources, pos, "tconstruct:melter", Tag::Int(8)));
         assert_eq!(sources.len(), 1); assert_eq!(sources[0].1.get("tconstruct:melter"), Some(&Tag::Int(8)));
         assert!(!set_metadata(&mut sources, pos, "other:field", Tag::Int(9)));
