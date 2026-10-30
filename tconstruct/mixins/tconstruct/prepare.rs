@@ -268,6 +268,11 @@ fn prepare_tconstruct_resources() {
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }
         }
+        for name in ["tconstruct:seared_melter", "tconstruct:seared_faucet", "tconstruct:seared_table", "tconstruct:seared_basin"] {
+            if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
+                row.insert("can_occlude".into(), serde_json::Value::Bool(false));
+            }
+        }
         let temp = out.join("render-definitions.json.tmp");
         std::fs::write(&temp, serde_json::to_vec(&render)?)?;
         std::fs::rename(temp, path)?;
