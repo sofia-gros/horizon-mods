@@ -1728,3 +1728,9 @@ id = "source-melter-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_world"
 source = "source-melter-world.rs"
+
+[[module]]
+id = "source-melter-store"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_store"
+source = "source-melter-store.rs"
