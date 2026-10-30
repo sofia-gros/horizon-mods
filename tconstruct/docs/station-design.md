@@ -21,9 +21,25 @@ Horizon network stacks; arbitrary other components remain outside this slice.
 The previous attempt to add state directly to `Game<'_>` failed Mixins planning
 with `E_BRIDGE_TARGET`. The current implementation avoids that restriction by
 using existing per-world block storage and per-player cursor state. Dedicated
-server and every possible container action are not yet validated. The GUI
-supports ordinary pickup; shift-click, drag and pickup-all are deliberately
-blocked to avoid bypassing the transaction. Three fixed part selections now
-use a preview and the separate result slot, with per-world selection state and
-a virtual menu synchronization slot. Recipe-derived selection, complete
-material variants, detailed material/trait tooltips and naming UI remain future work.
+server and every possible container action are not yet validated. The Part
+Builder uses source-derived pattern selection, and the Tinker Station uses
+source-derived layouts for supported three-part tools. Both use previews and
+authoritative result transactions. Some click modes, detailed information and
+the naming UI remain incomplete.
+
+## Workstation interface improvements
+
+This work covers the existing Part Builder and Tinker Station interfaces. It
+aims to match their source layouts and images while keeping drawn slots, pointer
+targets and synchronized container slots aligned. The Part Builder needs its
+part cost and material information and its nearby inventory panel. The Tinker
+Station needs the source selection layout, supported two- and three-input
+layouts, a tool slot with three repair inputs, tool naming and information
+panels. The same ordinary actions must work for the host and LAN guests.
+
+Completion requires representative source-asset and coordinate checks, plus
+gameplay checks for selection, inputs, naming, information, nearby storage and
+existing crafting, repair and upgrade transactions. Four-input tools belong to
+the later workstation that supports them; displaying an inoperable layout is
+not completion. The smeltery and foundry interfaces are separate work. When an
+original screenshot is unavailable, comparisons use the source and assets.
