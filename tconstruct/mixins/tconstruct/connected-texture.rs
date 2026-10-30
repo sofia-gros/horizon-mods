@@ -122,3 +122,41 @@ mod baked_tests {
         assert_eq!(baked_uv_directions(p, [[0., 0.]; 4]), None);
     }
 }
+
+impl Direction {
+    pub(crate) fn normal(self) -> [i32; 3] {
+        use Direction::*;
+        match self { Down => [0, -1, 0], Up => [0, 1, 0], North => [0, 0, -1], South => [0, 0, 1], West => [-1, 0, 0], East => [1, 0, 0] }
+    }
+}
+
+// Colors are the source model's constant RGB values; other IDs must never
+// enter the connected-glass rendering path.
+pub(crate) fn glass_kind(name: &str) -> Option<(bool, u32)> {
+    let name = name.strip_prefix("tconstruct:")?;
+    let (name, pane) = name.strip_suffix("_pane").map_or((name, false), |name| (name, true));
+    let color = match name {
+        "clear_glass" | "seared_glass" | "seared_soul_glass" | "scorched_glass" | "scorched_soul_glass" | "white_clear_stained_glass" => 0xffffff,
+        _ => match name.strip_suffix("_clear_stained_glass")? {
+            "black" => 0x191919, "blue" => 0x334cb2, "brown" => 0x664c33,
+            "cyan" => 0x4c7f99, "gray" => 0x4c4c4c, "green" => 0x667f33,
+            "light_blue" => 0x6699d8, "light_gray" => 0x999999, "lime" => 0x7fcc19,
+            "magenta" => 0xb24cd8, "orange" => 0xd87f33, "pink" => 0xf27fa5,
+            "purple" => 0x7f3fb2, "red" => 0x993333, "yellow" => 0xe5e533,
+            _ => return None,
+        },
+    };
+    Some((pane, color))
+}
+
+#[cfg(test)]
+mod glass_tests {
+    use super::glass_kind;
+    #[test]
+    fn recognises_only_original_glass_families() {
+        assert_eq!(glass_kind("tconstruct:red_clear_stained_glass_pane"), Some((true, 0x993333)));
+        assert_eq!(glass_kind("tconstruct:scorched_soul_glass"), Some((false, 0xffffff)));
+        assert_eq!(glass_kind("minecraft:red_stained_glass"), None);
+        assert_eq!(glass_kind("tconstruct:seared_glass_fake"), None);
+    }
+}
