@@ -23,7 +23,7 @@ pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_s
         if !id.contains(":tinkering/station_layouts/") { continue; }
         let Some(layout) = layers.last().and_then(|bytes| super::tconstruct_source_station_layout::StationLayout::parse(id.clone(), bytes)) else { continue; };
         let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) else { continue; };
-        if layout.input_slots.len() == 3 && rest.items.items.contains_key(item) { layouts.push(layout); }
+        if (1..=3).contains(&layout.input_slots.len()) && rest.items.items.contains_key(item) { layouts.push(layout); }
     }
     layouts.sort_by(|a, b| (a.sort_index, &a.id).cmp(&(b.sort_index, &b.id)));
     layouts

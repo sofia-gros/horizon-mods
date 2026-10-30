@@ -12,7 +12,7 @@ pub(super) fn has_operation_tool(slots: &[Option<ItemStack>]) -> bool {
     })
 }
 
-/// Resolve registered three-part tools against source recipes and material stats.
+/// Resolve supported tools against source recipes and material stats.
 pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(BuildingMatch, ItemStack)> {
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;

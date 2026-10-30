@@ -1,0 +1,48 @@
+"""Build a two-part tool using the source Station layout."""
+import argparse
+from pathlib import Path
+from harness import Game
+
+parser = argparse.ArgumentParser()
+for name in ('game', 'ctl', 'resources'):
+    parser.add_argument('--' + name, type=Path, required=True)
+parser.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
+args = parser.parse_args()
+run = args.run_dir.resolve()
+game = Game(args, run, 'Player', resume=True)
+
+def cmd(text):
+    game.call('command', text)
+    game.call('wait', '8')
+
+def click(slot):
+    game.call('click-slot', str(slot))
+    game.call('wait', '8')
+
+def hotbar(item):
+    return next(s['slot'] for s in game.call('inventory')['hotbar'] if s.get('item') == item)
+
+try:
+    game.ready()
+    for text in ('gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',
+                 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
+                 'give @s tconstruct:small_blade[minecraft:custom_data={Material:"tconstruct:flint"}] 1',
+                 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+        cmd(text)
+    game.call('interact', '0', '71', '2')
+    game.call('wait', '15')
+    # The dagger is the first currently supported source layout, in the first grid cell.
+    game.call('click-gui', '-121', '18')
+    game.call('wait', '8')
+    click(hotbar('tconstruct:small_blade'))
+    click(300)
+    click(hotbar('tconstruct:tool_handle'))
+    click(301)
+    game.call('screenshot', str(run / 'station-dagger.png'))
+    click(324)
+    result = game.call('menu')['carried'] or {}
+    assert result.get('item') == 'tconstruct:dagger', result
+    game.stop()
+finally:
+    game.cleanup()
+print('PASS two-input Station recipe')
