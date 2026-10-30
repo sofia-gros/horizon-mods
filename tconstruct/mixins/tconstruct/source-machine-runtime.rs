@@ -31,6 +31,7 @@ pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool 
     let Some(kind) = kind(block) else { return false; };
     if !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4)) { return false; }
     if game.world.block_entities.get(&pos).is_some_and(|entity| !matches!(entity, BlockEntity::Chest(_))) { return false; }
+    if game.world.block_entities.get(&pos).is_none() { store::clear_different(&mut game.world, pos, kind); }
     if store::read(&game.world, pos, kind).is_none() {
         let Some(data) = initial(kind) else { return false; };
         if !store::write(&mut game.world, pos, kind, data) { return false; }

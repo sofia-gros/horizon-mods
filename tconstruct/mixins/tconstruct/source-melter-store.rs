@@ -22,6 +22,27 @@ fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) 
     true
 }
 
+/// Remove metadata belonging to a block entity that was actually removed.
+pub(super) fn clear(world: &mut World, pos: Pos) {
+    let Some(chunk) = world.chunks.get_mut(&(pos.0 >> 4, pos.2 >> 4)) else { return; };
+    let chunk = std::sync::Arc::make_mut(chunk);
+    let Some(saved) = chunk.saved.as_mut() else { return; };
+    let saved = std::sync::Arc::make_mut(saved);
+    let before = saved.block_entity_sources.len();
+    saved.block_entity_sources.retain(|(at, _)| *at != pos);
+    if saved.block_entity_sources.len() != before { world.modified.insert((pos.0 >> 4, pos.2 >> 4)); }
+}
+
+/// A replaced vanilla block can leave its old source tag in chunk extras.
+/// Never replace an unknown or malformed tag: only a distinct known ID.
+pub(super) fn clear_different(world: &mut World, pos: Pos, key: &str) {
+    let old = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))
+        .and_then(|chunk| chunk.saved.as_deref())
+        .and_then(|saved| saved.block_entity_sources.iter().find(|(at, _)| *at == pos))
+        .and_then(|(_, tag)| tag.get("id"));
+    if matches!(old, Some(Tag::String(id)) if id.to_string_lossy() != key) { clear(world, pos); }
+}
+
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
     let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
     let saved = chunk.saved.as_deref()?;
