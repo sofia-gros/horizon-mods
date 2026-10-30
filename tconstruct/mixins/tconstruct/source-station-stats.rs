@@ -5,6 +5,7 @@ use serde_json::{Map, Value};
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(super) struct BaseStats {
     pub durability: f32,
+    pub durability_multiplier: f32,
     pub mining_speed: f32,
     pub attack_damage: f32,
     pub attack_speed: f32,
@@ -221,6 +222,7 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
     }
     Some(BaseStats {
         durability: stats[0].result(),
+        durability_multiplier: (1.0 + stats[0].percent) * stats[0].multiply,
         mining_speed: stats[1].result(),
         attack_damage: stats[2].result(),
         attack_speed: stats[3].result(),
@@ -243,6 +245,7 @@ mod tests {
         let grip = serde_json::json!({"tconstruct:grip":{"durability":0.5,"accuracy":0.05,"melee_damage":2}}).as_object().unwrap().clone();
         let stats = base_stats(definition, &[limb, grip]).unwrap();
         assert_eq!(stats.durability, 150.0);
+        assert_eq!(stats.durability_multiplier, 1.5);
         assert!((stats.draw_speed - 1.2).abs() < 0.0001);
         assert!((stats.velocity - 1.3).abs() < 0.0001);
         assert!((stats.accuracy - 0.9).abs() < 0.0001);
@@ -282,6 +285,7 @@ mod tests {
             stats,
             BaseStats {
                 durability: 85.0,
+                durability_multiplier: 1.0,
                 mining_speed: 3.5,
                 attack_damage: 1.75,
                 attack_speed: 1.2,

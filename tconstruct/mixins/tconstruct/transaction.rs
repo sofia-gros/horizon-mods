@@ -482,7 +482,7 @@ pub(super) fn source_merge_material_stats(files: &[Vec<u8>]) -> Result<std::coll
 }
 
 /// Preserve the source trait loader's layer operations. Modifier entries and
-/// per-stat fallback rules are not yet deserialized or connected to gameplay.
+/// per-stat fallback and supported gameplay effects are resolved separately.
 #[allow(dead_code)]
 #[derive(Debug, PartialEq)]
 pub(super) struct SourceRawTraits {

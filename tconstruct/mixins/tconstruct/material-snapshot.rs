@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 // Keep material and tool-definition data in pack order. Material definitions
 // and tool definitions select the highest layer; stats and traits merge fields
-// across layers. Parsing and gameplay remain unfinished.
+// across layers. Supported material effects resolve against this snapshot.
 pub(super) fn merge_pack(
     materials: &mut BTreeMap<String, Vec<Vec<u8>>>,
     tags: &mut BTreeMap<String, Vec<Vec<u8>>>,

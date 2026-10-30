@@ -1374,3 +1374,39 @@ kind = "HEAD"
 cancellable = true
 helper = "material-crossbow-charge.rs"
 bindings = [{ name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "host-source-material-traits"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_material_traits"
+source = "source-material-traits.rs"
+
+[[module]]
+id = "server-source-material-traits"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_material_traits"
+source = "source-material-traits.rs"
+
+[[module]]
+id = "host-source-material-trait-select"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_material_trait_select"
+source = "source-material-trait-select.rs"
+
+[[module]]
+id = "server-source-material-trait-select"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_material_trait_select"
+source = "source-material-trait-select.rs"
+
+[[module]]
+id = "host-source-material-effects"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_material_effects"
+source = "source-material-effects.rs"
+
+[[module]]
+id = "server-source-material-effects"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_material_effects"
+source = "source-material-effects.rs"
