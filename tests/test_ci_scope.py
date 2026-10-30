@@ -21,6 +21,24 @@ class Scope(unittest.TestCase):
                       ['README.md', 'tools/stage.py']):
             self.assertFalse(documentation_only(paths), paths)
 
+    def test_renaming_code_into_docs_still_requires_checks(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repo = Path(directory)
+            def git(*args):
+                return subprocess.check_output(['git', '-C', directory, *args])
+            git('init', '-q')
+            git('config', 'user.name', 'Fixture')
+            git('config', 'user.email', 'fixture@example.invalid')
+            (repo / 'code.py').write_text('unchanged content\n')
+            git('add', 'code.py')
+            git('commit', '-qm', 'code')
+            (repo / 'docs').mkdir()
+            (repo / 'code.py').rename(repo / 'docs/code.md')
+            git('add', '-A')
+            git('commit', '-qm', 'rename')
+            changed = git('diff', '--no-renames', '--name-only', '-z', 'HEAD^', 'HEAD')
+            self.assertFalse(documentation_only([path.decode() for path in changed.split(b'\0') if path]))
+
     def test_prior_success_is_required_and_only_docs_skip(self):
         event = {'pull_request': {'number': 13, 'head': {'sha': 'head', 'ref': 'branch', 'repo': {'full_name': 'a/b'}}, 'base': {'sha': 'base'}}}
         runs = {'workflow_runs': [{'id': 3, 'head_sha': 'old', 'pull_requests': [{'number': 13}]}]}
