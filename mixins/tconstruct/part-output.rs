@@ -41,8 +41,17 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let action = if station { slot.filter(|s| (324..=325).contains(s)).map(|s| (s - 300) as i16) } else { None };
     let Some(action) = action else { return Continue(()); };
     if button != 0 { return Break(true); }
+    let build = if action == 24 {
+        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots()))
+    } else { None };
+    let operation = if action == 25 {
+        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
+    } else { None };
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
-    if crate::game::tconstruct_tx::take(stacks, &mut game.carried, station, action) {
+    let taken = if action == 24 {
+        build.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))
+    } else { operation.is_some_and(|(output, consumed)| crate::game::tconstruct_source_station_world::take_repair(stacks, &mut game.carried, output, &consumed)) };
+    if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));
     }
     Break(true)

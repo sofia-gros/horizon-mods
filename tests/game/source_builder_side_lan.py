@@ -11,7 +11,7 @@ p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
 p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
-p.add_argument('--side-block', choices=('minecraft:chest', 'minecraft:dispenser', 'minecraft:dropper', 'minecraft:hopper'), default='minecraft:chest')
+p.add_argument('--side-block', choices=('minecraft:chest', 'minecraft:dispenser', 'minecraft:dropper', 'minecraft:hopper', 'minecraft:shulker_box'), default='minecraft:chest')
 a = p.parse_args()
 run = a.run_dir.resolve()
 run.mkdir(parents=True, exist_ok=True)
@@ -34,9 +34,15 @@ try:
                     'setblock 0 71 2 tconstruct:part_builder', f'setblock 1 71 2 {a.side_block}',
                     'give @s tconstruct:pattern 1', 'give @s minecraft:oak_log 1', 'give Guest minecraft:stick 1'):
         host.call('command', command)
+    if a.side_block == 'minecraft:shulker_box': host.call('command', 'give Guest minecraft:shulker_box 1')
     for g in games:
         wait(g.label+' builder', lambda g=g: g.call('block','0','71','2').get('block') == 'tconstruct:part_builder')
         g.call('interact', '0', '71', '2'); g.call('wait', '10')
+    if a.side_block == 'minecraft:shulker_box':
+        nested = next(s['slot'] for s in guest.call('inventory')['hotbar'] if s.get('item') == 'minecraft:shulker_box')
+        click(guest, nested); click(guest, 327)
+        assert (guest.call('menu')['carried'] or {}).get('item') == 'minecraft:shulker_box'
+        click(guest, nested)
     guest_stick = next(s['slot'] for s in guest.call('inventory')['hotbar'] if s.get('item') == 'minecraft:stick')
     if a.side_block == 'minecraft:hopper':
         click(guest, guest_stick, 'shift')

@@ -11,7 +11,7 @@ p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
 p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
-p.add_argument('--side-block', choices=('minecraft:chest', 'minecraft:dispenser', 'minecraft:dropper', 'minecraft:hopper'), default='minecraft:chest')
+p.add_argument('--side-block', choices=('minecraft:chest', 'minecraft:dispenser', 'minecraft:dropper', 'minecraft:hopper', 'minecraft:shulker_box'), default='minecraft:chest')
 a = p.parse_args()
 run = a.run_dir.resolve()
 run.mkdir(parents=True, exist_ok=True)
@@ -34,6 +34,12 @@ try:
                     'give @s tconstruct:pattern 2', 'give @s minecraft:oak_log 1', 'give @s minecraft:stick 1'):
         g.call('command', command)
     g.call('interact', '0', '71', '2'); g.call('wait', '10')
+    if a.side_block == 'minecraft:shulker_box':
+        g.call('command', 'give @s minecraft:shulker_box 1')
+        nested = next(s['slot'] for s in g.call('inventory')['hotbar'] if s.get('item') == 'minecraft:shulker_box')
+        click(nested); click(327)
+        assert (g.call('menu')['carried'] or {}).get('item') == 'minecraft:shulker_box'
+        click(nested)
     click(2); click(327)
     wait('side input', lambda: slots().get(327, {}).get('item') == 'minecraft:stick')
     g.call('screenshot', str(run / 'builder-side.png'))
