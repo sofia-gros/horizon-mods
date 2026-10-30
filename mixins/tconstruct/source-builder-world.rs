@@ -327,17 +327,17 @@ pub(super) fn prepare_take(
     Ok(Some((plan, output, leftover, alternatives)))
 }
 
-/// Obtain an original vanilla crafting container, rejecting item-specific
-/// component overrides. Non-vanilla original container types remain incomplete.
+/// Obtain the crafting container from Horizon item data. Item-specific
+/// component overrides and non-vanilla custom container behavior remain incomplete.
 pub(super) fn crafting_container(stack: Option<&ItemStack>, items: &horizon_items::items::Items) -> Result<Option<ItemStack>, SourceLookupError> {
     let Some(stack) = stack else { return Ok(None); };
     if stack.data().and_then(|data| data.other("minecraft:crafting_remainder")).is_some() { return Err(SourceLookupError::IncompleteContext); }
     let item = items.get(&stack.item).ok_or(SourceLookupError::IncompleteContext)?;
-    // Vanilla 1.20.1 uses Item.Properties.craftRemainder, not the newer
-    // consumption remainder component. Other original item types remain open.
+    // Crafting remainder and use remainder have distinct meanings in Horizon.
+    // TConstruct items can currently provide their container through use remainder.
     let remainder = if stack.item.starts_with("minecraft:") {
-        super::tconstruct_source_original_crafting_remainders::vanilla_remainder(&stack.item)
-    } else { item.remainder.as_deref() };
+        item.crafting_remainder.as_deref()
+    } else { item.crafting_remainder.as_deref().or(item.remainder.as_deref()) };
     Ok(remainder.map(|id| ItemStack::new(id, 1)))
 }
 

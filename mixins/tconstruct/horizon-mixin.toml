@@ -950,18 +950,6 @@ name = "tconstruct_source_original_item_durability"
 source = "source-original-item-durability.rs"
 
 [[module]]
-id = "host-original-crafting-remainders"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_original_crafting_remainders"
-source = "source-original-crafting-remainders.rs"
-
-[[module]]
-id = "server-original-crafting-remainders"
-file = "crates/horizon-client/src/lib.rs"
-name = "tconstruct_source_original_crafting_remainders"
-source = "source-original-crafting-remainders.rs"
-
-[[module]]
 id = "source-recycling-rng"
 file = "crates/horizon-items/src/items.rs"
 name = "tconstruct_recycling_rng"
