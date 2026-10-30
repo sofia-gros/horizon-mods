@@ -51,6 +51,7 @@ fn prepare_tconstruct_resources() {
         unpack_pack(&content_path.join("reference/tconstruct-recipes.zip"), &original_pack, &["data/tconstruct/recipes"])?;
         unpack_pack(&content_path.join("reference/tconstruct-materials.zip"), &original_pack, &["data/tconstruct/tinkering/materials", "data/tconstruct/tinkering/tags/materials"])?;
         unpack_pack(&content_path.join("reference/tconstruct-tool-definitions.zip"), &original_pack, &["data/tconstruct/tinkering/tool_definitions"])?;
+        unpack_pack(&content_path.join("reference/tconstruct-station-layouts.zip"), &original_pack, &["data/tconstruct/tinkering/station_layouts"])?;
         unpack_pack(&content_path.join("reference/tconstruct-fluid-tags.zip"), &original_pack, &["data/c/tags/fluids", "data/forge/tags/fluids", "data/mantle/tags/fluids", "data/tconstruct/tags/fluids"])?;
         // Horizon 26.3 already has the copper nugget and its ordinary
         // crafting recipes. Adapt source-pack references to the native item.

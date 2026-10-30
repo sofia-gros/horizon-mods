@@ -1114,3 +1114,27 @@ target = "horizon_client::game::Game<'_>::tick"
 kind = "HEAD"
 helper = "source-builder-crafted.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "host-source-station-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_layout"
+source = "source-station-layout.rs"
+
+[[module]]
+id = "server-source-station-layout"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_layout"
+source = "source-station-layout.rs"
+
+[[module]]
+id = "host-source-station-recipes"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_recipes"
+source = "source-station-recipes.rs"
+
+[[module]]
+id = "server-source-station-recipes"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_recipes"
+source = "source-station-recipes.rs"
