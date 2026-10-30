@@ -34,6 +34,7 @@ try:
                'scorched_bricks_fence', 'cobalt_block', 'slimesteel_block', 'earth_congealed_slime',
                'crafting_station', 'modifier_worktable')
     for name in samples:
+        command(host, 'setblock 0 72 2 minecraft:air')
         command(host, 'setblock 0 71 2 minecraft:air')
         command(host, 'clear @s')
         command(host, f'give @s tconstruct:{name} 1')
