@@ -12,7 +12,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
     if !is_station && packet.slot == 22 && packet.input == 1 {
         let mut dropped = Vec::new();
-        if packet.button == 0 && crate::tconstruct_source_builder_world::player_only_quick_move(world, key) {
+        if (packet.button == 0 || packet.button == 1) && crate::tconstruct_source_builder_world::player_only_quick_move(world, key) {
             let mut first_item = None;
             loop {
                 let Ok(Some((plan, output, leftover, alternatives))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) else { break; };
@@ -45,7 +45,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     }
     if !is_station && packet.slot == 22 {
         let mut dropped = Vec::new();
-        if packet.button == 0 {
+        if packet.button == 0 || packet.button == 1 {
             if let Ok(Some((plan, output, leftover, alternatives))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) {
                 let containers = world.block_entities.get(&key).map(|entity| entity.slots()).and_then(|slots| {
                     let material = crate::tconstruct_source_builder_world::crafting_container(slots.get(1).and_then(Option::as_ref), rules.items()).ok()?;

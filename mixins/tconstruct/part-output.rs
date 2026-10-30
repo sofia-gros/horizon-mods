@@ -3,8 +3,8 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let Some(key) = game.container else { return Continue(()); };
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     if input == horizon_client::menu::Input::QuickMove && !station && slot == Some(322) {
-        if button == 0 {
-            if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game); }
+        if button == 0 || button == 1 {
+            if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, button, 1); }
             else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
         }
         return Break(true);
@@ -26,10 +26,16 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         }
         return Break(true);
     }
-    if game.remote.is_some() { return Continue(()); }
+    if game.remote.is_some() {
+        if !station && slot == Some(322) && button == 1 {
+            crate::game::remote::tconstruct_source_quick_packet::send(game, button, 0);
+            return Break(true);
+        }
+        return Continue(());
+    }
     if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && slot != Some(302)) { return Break(true); }
     if !station && slot == Some(322) {
-        if button == 0 { crate::game::tconstruct_source_builder_take::take(game, key); }
+        if button == 0 || button == 1 { crate::game::tconstruct_source_builder_take::take(game, key); }
         return Break(true);
     }
     let action = if station { slot.filter(|s| (324..=325).contains(s)).map(|s| (s - 300) as i16) } else { None };

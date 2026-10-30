@@ -12,6 +12,7 @@ p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
 p.add_argument('--compat', action='store_true')
+p.add_argument('--right', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 a.output_parent.mkdir(parents=True, exist_ok=True)
@@ -61,12 +62,18 @@ try:
     g.call('click', pattern_node('Tool Handle')['id'])
     g.call('wait', '20')
     g.call('screenshot', str(run / 'source-builder.png'))
-    click_slot(322)
+    if a.right:
+        g.call('click-slot', '322', 'right')
+        g.call('wait', '3')
+    else:
+        click_slot(322)
     carried = g.call('menu').get('carried') or {}
     assert carried.get('item') == 'tconstruct:tool_handle' and carried.get('count') == 2, carried
     slots = {s['slot']: s['stack'] for s in g.call('menu')['slots'] if s.get('stack')}
     assert slots.get(300, {}).get('item') == 'tconstruct:pattern' and slots[300]['count'] == 1, slots
     assert 301 not in slots, slots
+    if a.right:
+        g.call('screenshot', str(run / 'right-result.png'))
     inventory = g.call('inventory')['hotbar']
     empty = next(s['slot'] for s in inventory if not s.get('item'))
     click_slot(empty)

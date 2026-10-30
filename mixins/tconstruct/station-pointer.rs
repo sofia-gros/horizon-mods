@@ -5,8 +5,8 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
     let batch = horizon_client::hud::HudBatch::new(size);
     if game.has_shift_down() {
-        if !station && !right && game.slot_at(&batch, game.cursor.0, game.cursor.1) == Some(322) {
-            if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game); }
+        if !station && game.slot_at(&batch, game.cursor.0, game.cursor.1) == Some(322) {
+            if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, i32::from(right), 1); }
             else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
         }
         return Break(true);
@@ -36,10 +36,16 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     }
     let Some(slot) = game.slot_at(&batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if !station && (324..=326).contains(&slot) { return Break(true); }
-    if game.remote.is_some() { return Continue(()); }
+    if game.remote.is_some() {
+        if !station && slot == 322 && right {
+            crate::game::remote::tconstruct_source_quick_packet::send(game, 1, 0);
+            return Break(true);
+        }
+        return Continue(());
+    }
     if (302..=323).contains(&slot) && (!station && slot != 322 || station && slot != 302) { return Break(true); }
     if !station && slot == 322 {
-        if !right { crate::game::tconstruct_source_builder_take::take(game, key); }
+        crate::game::tconstruct_source_builder_take::take(game, key);
         return Break(true);
     }
     let action = if station && (324..=325).contains(&slot) { Some((slot - 300) as i16) } else { None };

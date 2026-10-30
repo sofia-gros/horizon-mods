@@ -10,6 +10,7 @@ p.add_argument('--game', type=Path, required=True)
 p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--right', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 a.output_parent.mkdir(parents=True, exist_ok=True)
@@ -32,6 +33,9 @@ def click_slot(slot):
 def hotbar(item):
     return next(s['slot'] for s in g.call('inventory')['hotbar'] if s.get('item') == item)
 
+def quick_result():
+    g.call('click-slot', '322', *(['right'] if a.right else []), 'shift')
+
 def pattern_node(label):
     return next((node for node in g.call('ui')['widgets'] if node.get('label') == label and node.get('enabled')), None)
 
@@ -53,7 +57,7 @@ try:
     g.call('command', 'setblock 1 71 2 minecraft:chest')
     g.call('wait', '10')
     before_side = g.call('menu')['slots']
-    g.call('click-slot', '322', 'shift')
+    quick_result()
     g.call('wait', '10')
     after_side = g.call('menu')['slots']
     side_inputs = lambda rows: {r['slot']: r['stack'] for r in rows if r.get('slot') in (300,301) and r.get('stack')}
@@ -65,14 +69,14 @@ try:
     g.call('wait', '20')
     before = g.call('menu')['slots']
     assert sum((r.get('stack') or {}).get('count', 0) for r in before if 0 <= r.get('slot', -1) < 36 and (r.get('stack') or {}).get('item') == 'minecraft:stone') == 2304, before
-    g.call('click-slot', '322', 'shift')
+    quick_result()
     g.call('wait', '10')
     after = g.call('menu')['slots']
     inputs = lambda rows: {r['slot']: r['stack'] for r in rows if r.get('slot') in (300,301) and r.get('stack')}
     assert inputs(after) == inputs(before), (before, after)
     g.call('command', 'clear @s')
     g.call('wait', '10')
-    g.call('click-slot', '322', 'shift')
+    quick_result()
     g.call('wait', '20')
     inventory = g.call('inventory')['hotbar']
     print('quick inventory', inventory, 'slots', g.call('menu')['slots'], flush=True)
