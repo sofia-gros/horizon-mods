@@ -10,6 +10,6 @@ This repository contains mods for [Horizon](https://github.com/horizon-rust/hori
 
 ## Get started
 
-To try the current mod on Windows, follow the [Windows playtest guide](tconstruct/docs/windows-playtest.md). The Windows launcher has not yet been verified on a Windows PC, and a reported startup error remains under investigation.
+To try the current mod, follow the [Windows guide](tconstruct/docs/windows-playtest.md) or [Linux guide](tconstruct/docs/linux.md). The Windows launcher has not yet been verified on a Windows PC, and a reported startup error remains under investigation.
 
 To work on a mod, start with the [development guide](docs/development.md).

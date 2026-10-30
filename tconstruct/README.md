@@ -4,7 +4,7 @@ This work-in-progress port brings Tinkers' Construct's parts and tool stations t
 
 ## Try it
 
-Follow the [Windows playtest guide](docs/windows-playtest.md) to start the mod and create a separate test world. Windows has not been tested on a PC, and a reported launch error is unresolved.
+Choose the [Windows guide](docs/windows-playtest.md) or [Linux guide](docs/linux.md) to prepare the mod and use a separate test world. Windows has not been tested on a PC, and a reported launch error is unresolved.
 
 ## Make a part
 

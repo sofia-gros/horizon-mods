@@ -31,6 +31,23 @@ class ResourceOverlay(unittest.TestCase):
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']
             self.assertTrue(all(name in items and name in ids for name in names))
             self.assertTrue(all('tconstruct:' + name in items for name in ('mattock', 'pickadze', 'kama')))
+            equipment = {'slimy_chestplate', 'crystalshot'}
+            with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-tool-definitions.zip') as archive:
+                equipment.update(('slimy_chestplate' if Path(name).stem == 'slime_chestplate' else Path(name).stem)
+                                 for name in archive.namelist() if name.endswith('.json') and Path(name).stem != 'minotaur_axe')
+            self.assertEqual(len(equipment), 45)
+            self.assertTrue(all('tconstruct:' + name in items and 'tconstruct:' + name in ids for name in equipment))
+            for name in equipment - {'pickaxe'}:
+                model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
+                self.assertTrue(model.get('textures'), name)
+                for texture in model['textures'].values():
+                    self.assertTrue((out / 'assets/tconstruct/textures' / (texture.removeprefix('tconstruct:') + '.png')).is_file(), (name, texture))
+            for suffix, slot in (('helmet', 'head'), ('chestplate', 'chest'), ('leggings', 'legs'), ('boots', 'feet')):
+                for prefix in ('slime' if suffix != 'chestplate' else 'slimy', 'plate', 'travelers'):
+                    self.assertEqual(items[f'tconstruct:{prefix}_{suffix}']['minecraft:equippable']['slot'], slot)
+            self.assertEqual(items['tconstruct:slime_wings']['minecraft:equippable']['slot'], 'chest')
+            for name, limit in (('dagger', 2), ('shuriken', 16), ('throwing_axe', 16), ('arrow', 64)):
+                self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], limit)
             bottle = items['tconstruct:venom_bottle']
             self.assertEqual(bottle['minecraft:max_stack_size'], 16)
             self.assertEqual(bottle['minecraft:food'], {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0})

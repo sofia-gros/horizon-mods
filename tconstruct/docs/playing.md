@@ -27,3 +27,23 @@ At a Tinker Station, select a supported tool and place its required parts in the
 *Select a tool to see its part layout. This example shows a mattock in a Linux LAN test.*
 
 Tool-specific behavior, material traits, modifiers, and many recipes are still incomplete. Some test materials shown in development screenshots were supplied by commands or test data and may not yet be obtainable through normal gameplay.
+
+## Repair or replace a part
+
+Open a Tinker Station and place a damaged supported tool and its repair material in the input slots. Take the repaired result. To replace a part, put the tool and a compatible replacement part in the station and take the result. A flint pickaxe repaired with flint and then given a wooden head has been tested on Linux.
+
+![A Tinker Station showing a tool result in a multiplayer test](station-preview-lan.png)
+
+*In this Linux LAN example, the station previews a pickaxe assembled from parts.*
+
+## Use nearby storage
+
+A Part Builder can show a connected container alongside its own slots. You can move items between the displayed storage and the station. A single chest, hopper, dispenser, and double chest were tested on Linux; the exact available operations depend on the container.
+
+![A Part Builder with a hopper displayed beside it](builder-hopper-lan.png)
+
+*The hopper's five slots appear beside the Part Builder inputs in this LAN example.*
+
+## Other equipment
+
+The resource preparation now registers additional source equipment IDs. Their individual behavior, acquisition, appearance, and armour rendering have not yet been verified in the game. Materials, traits, modifiers, and tool-specific actions are still in development.

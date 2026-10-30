@@ -11,6 +11,8 @@ import zipfile
 
 REV = 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2'
 PREFIXES = ('src/main/resources/assets/tconstruct/models/item/',
+            'src/main/resources/assets/tconstruct/textures/item/tool/',
+            'src/main/resources/assets/tconstruct/textures/item/arrow/',
             'src/generated/resources/assets/tconstruct/models/item/tool/',
             'src/generated/resources/assets/tconstruct/textures/item/tool/')
 p = argparse.ArgumentParser(description=__doc__)
