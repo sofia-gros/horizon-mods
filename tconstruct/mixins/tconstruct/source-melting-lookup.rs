@@ -101,3 +101,39 @@ mod tests {
         assert!(catalog.casting(false, Some("tconstruct:ingot_cast"), "tconstruct:molten_copper", &|_| true).is_none());
     }
 }
+
+/// Resolve the source pack's tank-fluid tags without registering flowing
+/// world fluids. These IDs describe contents held by the melter; world-fluid
+/// placement remains separate. Only source TConstruct IDs and the native
+/// water/lava families are admitted; unrelated mods are not assumed present.
+pub(super) fn tank_fluid_tags(
+    raw: &BTreeMap<String, Vec<Vec<u8>>>,
+    source_fluids: &HashSet<String>,
+) -> Result<(HashSet<String>, HashMap<String, HashSet<String>>), String> {
+    let mut fluids: HashSet<String> = ["minecraft:empty", "minecraft:water", "minecraft:flowing_water", "minecraft:lava", "minecraft:flowing_lava"]
+        .into_iter().map(str::to_owned).collect();
+    // Only IDs from the retained upstream catalog are virtual tank contents;
+    // a datapack tag cannot invent a registered fluid by itself.
+    fluids.extend(source_fluids.iter().filter(|id| id.starts_with("tconstruct:")).cloned());
+    let tags = super::tconstruct_source_tags::resolve_registry(raw, &fluids)?;
+    Ok((fluids, tags))
+}
+
+#[cfg(test)]
+mod fluid_tag_tests {
+    use super::*;
+    #[test]
+    fn resolves_source_copper_without_assuming_other_mod_fluids() {
+        let raw = [
+            ("forge:molten_copper".into(), vec![br##"{"values":["#tconstruct:molten_copper"]}"##.to_vec()]),
+            ("tconstruct:molten_copper".into(), vec![br#"{"values":["tconstruct:molten_copper","tconstruct:flowing_molten_copper"]}"#.to_vec()]),
+            ("forge:external".into(), vec![br#"{"values":["other:fluid"]}"#.to_vec()]),
+        ].into_iter().collect();
+        let source_fluids = ["tconstruct:molten_copper".into(), "tconstruct:flowing_molten_copper".into()].into_iter().collect();
+        let (fluids, tags) = tank_fluid_tags(&raw, &source_fluids).unwrap();
+        assert!(fluids.contains("tconstruct:molten_copper"));
+        assert!(!fluids.contains("other:fluid"));
+        assert!(tags["forge:molten_copper"].contains("tconstruct:molten_copper"));
+        assert!(!tags.contains_key("forge:external"));
+    }
+}
