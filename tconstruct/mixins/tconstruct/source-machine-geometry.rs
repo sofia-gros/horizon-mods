@@ -10,18 +10,23 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
             if id == "tconstruct:melter" {
                 if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:seared_melter" {
                     if let Some(melter) = raw.get("tconstruct:melter").and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt) {
-                        tconstruct_melter_fluid_geometry(game, camera, out, *pos, &melter);
+                        tconstruct_fluid_geometry(game, camera, out, *pos, &melter.tank, [0.08, 8.08, 0.08, 15.92, 15.92, 15.92], true);
                     }
                 }
                 continue;
             }
-            let (block, height) = match id.as_str() {
-                "tconstruct:table" => ("tconstruct:seared_table", 0.95),
-                "tconstruct:basin" => ("tconstruct:seared_basin", 0.80),
+            let (block, height, scale, flat) = match id.as_str() {
+                "tconstruct:table" => ("tconstruct:seared_table", 15.5 / 16.0, 14.0 / 16.0, true),
+                "tconstruct:basin" => ("tconstruct:seared_basin", 10.0 / 16.0, 12.0 / 16.0, false),
                 _ => continue,
             };
             if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name != block { continue; }
             let Some(casting) = raw.get(id.as_str()).and_then(crate::game::tconstruct_source_melter_state::Casting::from_nbt) else { continue; };
+            if id == "tconstruct:table" {
+                tconstruct_fluid_geometry(game, camera, out, *pos, &casting.tank, [1.0, 15.0, 1.0, 15.0, 15.9, 15.0], false);
+            } else {
+                tconstruct_fluid_geometry(game, camera, out, *pos, &casting.tank, [2.1, 4.0, 2.1, 13.9, 15.9, 13.9], true);
+            }
             let Some(stack) = casting.output.as_ref().or(casting.input.as_ref()) else { continue; };
             let at = glam::DVec3::new(f64::from(pos.0), f64::from(pos.1), f64::from(pos.2));
             if at.distance_squared(camera) >= 64.0 * 64.0 { continue; }
@@ -29,35 +34,36 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
             let item = game.resolve_item(stack, DisplayContext::Fixed, None, seed);
             if item.is_empty() { continue; }
             let light = horizon_client::block_entity_render::vertex_light(game.world.light(pos.0, pos.1, pos.2));
+            let rotation = if flat { glam::Mat4::from_rotation_y(180f32.to_radians()) * glam::Mat4::from_rotation_x(270f32.to_radians()) } else { glam::Mat4::IDENTITY };
             let pose = glam::Mat4::from_translation((at - camera).as_vec3() + glam::Vec3::new(0.5, height, 0.5))
-                * glam::Mat4::from_rotation_x(90f32.to_radians()) * glam::Mat4::from_scale(glam::Vec3::splat(0.5));
+                * rotation * glam::Mat4::from_scale(glam::Vec3::splat(scale));
             game.submit_item_world(&item, pose, light, out);
         }
     }
 }
 
-// The source half_tank model specifies the inner fluid bounds in sixteenths.
-// Use its still texture and stored fill fraction for the five visible faces.
-fn tconstruct_melter_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>, pos: (i32, i32, i32), melter: &crate::game::tconstruct_source_melter_state::Melter) {
-    let Some(fluid) = melter.tank.fluid.as_deref().and_then(|id| id.strip_prefix("tconstruct:")) else { return; };
+// Fluid cuboid bounds and visible faces come from the source render provider.
+fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>, pos: (i32, i32, i32), tank: &crate::game::tconstruct_source_melter_state::Tank, bounds: [f32; 6], sides: bool) {
+    let Some(fluid) = tank.fluid.as_deref().and_then(|id| id.strip_prefix("tconstruct:")) else { return; };
     let Some(sprite) = game.gui.atlas.sprites.get(&format!("gui/tconstruct_fluid_{fluid}")).copied() else { return; };
     let at = glam::DVec3::new(f64::from(pos.0), f64::from(pos.1), f64::from(pos.2));
     if at.distance_squared(camera) >= 64.0 * 64.0 { return; }
     let origin = (at - camera).as_vec3();
-    let (lo, hi, bottom) = (0.08_f32 / 16.0, 15.92_f32 / 16.0, 8.08_f32 / 16.0);
-    let top = bottom + (15.92_f32 / 16.0 - bottom) * (melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 1.0);
+    let [x0, y0, z0, x1, y1, z1] = bounds.map(|n| n / 16.0);
+    let bottom = y0;
+    let top = bottom + (y1 - bottom) * (tank.amount as f32 / tank.capacity as f32).clamp(0.0, 1.0);
     let light = horizon_client::block_entity_render::vertex_light(game.world.light(pos.0, pos.1, pos.2));
     let u0 = sprite.u0; let u1 = sprite.u0 + (sprite.u1 - sprite.u0) * (16.0 / sprite.w as f32);
     let v0 = sprite.v0; let v1 = sprite.v0 + (sprite.v1 - sprite.v0) * (16.0 / sprite.h as f32);
     let uv = [[u0,v0], [u1,v0], [u1,v1], [u0,v1]];
     let faces = [
-        [[lo,top,lo], [hi,top,lo], [hi,top,hi], [lo,top,hi]],
-        [[lo,top,lo], [lo,top,hi], [lo,bottom,hi], [lo,bottom,lo]],
-        [[hi,top,hi], [hi,top,lo], [hi,bottom,lo], [hi,bottom,hi]],
-        [[hi,top,lo], [lo,top,lo], [lo,bottom,lo], [hi,bottom,lo]],
-        [[lo,top,hi], [hi,top,hi], [hi,bottom,hi], [lo,bottom,hi]],
+        [[x0,top,z0], [x1,top,z0], [x1,top,z1], [x0,top,z1]],
+        [[x0,top,z0], [x0,top,z1], [x0,bottom,z1], [x0,bottom,z0]],
+        [[x1,top,z1], [x1,top,z0], [x1,bottom,z0], [x1,bottom,z1]],
+        [[x1,top,z0], [x0,top,z0], [x0,bottom,z0], [x1,bottom,z0]],
+        [[x0,top,z1], [x1,top,z1], [x1,bottom,z1], [x0,bottom,z1]],
     ];
-    for face in faces {
+    for face in faces.into_iter().take(if sides { 5 } else { 1 }) {
         for (p, uv) in face.into_iter().zip(uv) {
             out.push(Vertex { pos: (origin + glam::Vec3::from_array(p)).to_array(), uv, layer: 0,
                 color: u32::MAX, light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
