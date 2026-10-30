@@ -21,6 +21,14 @@ print('run', run, flush=True)
 games = []
 def slots(g): return {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}
 def click(g, slot, *flags): g.call('click-slot', str(slot), *flags); g.call('wait', '3')
+def visible_click(g, slot):
+    ui = g.call('ui')
+    node = next(w for w in ui['widgets'] if w['id'] == f'slot-{slot}')
+    x, y, w, h = node['bounds']
+    width, height = ui['gui_size']
+    assert 0 <= x and x + w <= width and 0 <= y and y + h <= height, (ui['gui_size'], node)
+    g.call('click', node['id']); g.call('wait', '3')
+
 def wait(label, predicate):
     for _ in range(120):
         if predicate(): return
@@ -54,7 +62,7 @@ try:
         click(guest, 301)
     else:
         click(guest, guest_stick)
-    click(guest, 327)
+    visible_click(guest, 327)
     wait('side synchronization', lambda: all(slots(g).get(327, {}).get('item') == 'minecraft:stick' for g in games))
     if a.double_chest:
         click(guest, 327); click(guest, 354)
@@ -63,7 +71,7 @@ try:
         # its menu ID stays the same on both viewers.
         click(guest, 354)
         guest.call('click-gui', '-12', '155'); guest.call('wait', '3')
-        click(guest, 380)
+        visible_click(guest, 380)
         wait('scrolled last slot synchronization', lambda: all(slots(g).get(380, {}).get('item') == 'minecraft:stick' for g in games))
     guest.call('screenshot', str(run / 'guest-side.png'))
     click(host, 0); click(host, 300); click(host, 1); click(host, 301)
