@@ -4,7 +4,7 @@ on:
     branches: [main]
   pull_request:
 concurrency:
-  group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
@@ -41,9 +41,9 @@ jobs:
             ~/.cargo/git
             target/mixins-cli-build
             target/ci-build
-          key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json', '.github/workflows/mixins.yml') }}-${{ github.sha }}
+          key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json', '.github/workflows/mixins.yml') }}-
+            ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json') }}-
       - name: Test resource preparation and command transactions
         if: steps.scope.outputs.docs_only != 'true'
         run: |

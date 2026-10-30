@@ -30,7 +30,18 @@ class Scope(unittest.TestCase):
             env = {'GITHUB_EVENT_PATH': str(path), 'GITHUB_REPOSITORY': 'a/b'}
             for changed, expected in ((b'docs/readme.md\0', True), (b'tools/stage.py\0', False)):
                 responses = [subprocess.CompletedProcess([], 0, json.dumps(runs)), subprocess.CompletedProcess([], 0, changed)]
-                with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True), patch.object(subprocess, 'run', side_effect=responses):
+                with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True), patch.object(subprocess, 'run', side_effect=responses) as run:
                     self.assertEqual(ci_scope.main(), expected)
+                    self.assertIn('--no-renames', run.call_args.args[0])
             with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=False), patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(runs))):
                 self.assertFalse(ci_scope.main())
+            unrelated = {'workflow_runs': [{'id': 4, 'head_sha': 'old', 'pull_requests': [{'number': 14}]}]}
+            with patch.dict(os.environ, env), patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(unrelated))):
+                self.assertFalse(ci_scope.main())
+            with patch.dict(os.environ, env), patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 1, '')):
+                self.assertFalse(ci_scope.main())
+            event['pull_request']['head']['repo']['full_name'] = 'other/fork'
+            path.write_text(json.dumps(event))
+            with patch.dict(os.environ, env), patch.object(subprocess, 'run') as run:
+                self.assertFalse(ci_scope.main())
+                run.assert_not_called()

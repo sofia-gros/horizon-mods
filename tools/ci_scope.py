@@ -40,7 +40,7 @@ def main():
             continue
         if not ancestor(base, old) or not ancestor(old, head):
             continue
-        diff = subprocess.run(['git', 'diff', '--name-only', '-z', old, head], capture_output=True, check=True).stdout
+        diff = subprocess.run(['git', 'diff', '--no-renames', '--name-only', '-z', old, head], capture_output=True, check=True).stdout
         paths = [path.decode() for path in diff.split(b'\0') if path]
         if documentation_only(paths):
             print(f"Documentation-only changes since successful run {run['id']} ({old}).")
