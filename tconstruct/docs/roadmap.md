@@ -17,6 +17,8 @@ content from the original definitions. Investigate and test separately where a
 source definition introduces distinct behavior or conditions; do not treat
 untested content as complete merely because it uses the same framework.
 
+The equipment behavior work has source-based head, handle, bow limb/grip, and plating stat calculations in progress. Material attack speed has a Mixins hook but has not been tested in a game. Material-based melee damage, armor protection, bow draw and projectile behavior are not yet connected. The current Mixins version rejects the tested return and after-call hooks in the existing attack and equipment functions; other supported boundaries still need investigation.
+
 ## Implementation order
 
 1. Register the original tools, weapons, and armor using the shared source data.
