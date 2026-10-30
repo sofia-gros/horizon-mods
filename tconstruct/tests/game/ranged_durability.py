@@ -1,6 +1,7 @@
 """Exercise material bow wear, broken retention and limb-material repair."""
 import argparse
 import json
+import re
 from pathlib import Path
 from harness import Game
 
@@ -43,6 +44,10 @@ def held():
 def arrows():
     return game.call('inventory')['counts'].get('minecraft:arrow', 0)
 
+def damage(stack):
+    match = re.search(r'"minecraft:damage":(\d+)', stack.get('components', ''))
+    return int(match.group(1)) if match else 0
+
 try:
     game.ready()
     if game.call('status')['screen'] == 'dead':
@@ -62,19 +67,19 @@ try:
             cmd(text)
         before = arrows()
         shoot(kind)
-        assert held()['damage'] == 58 and arrows() == before, (kind, 'creative', held(), before, arrows())
+        assert damage(held()) == 58 and arrows() == before, (kind, 'creative', held(), before, arrows())
         cmd('gamemode survival @s')
         for expected in (59, 60):
             before = arrows()
             shoot(kind)
             game.call('wait', '20')
             item = held()
-            assert item['item'] == 'tconstruct:' + kind and item['damage'] == expected, (kind, expected, item)
+            assert item['item'] == 'tconstruct:' + kind and damage(item) == expected, (kind, expected, item)
             assert arrows() == before - 1, (kind, before, arrows())
         assert 'tic_broken:1b' in held().get('components', ''), held()
         before = arrows()
         shoot(kind)
-        assert arrows() == before and held()['damage'] == 60, (kind, 'broken use', held())
+        assert arrows() == before and damage(held()) == 60, (kind, 'broken use', held())
         cmd('give @s minecraft:oak_planks 1')
         game.call('interact', '0', '71', '2')
         game.call('wait', '20')
@@ -95,7 +100,7 @@ try:
         game.cleanup()
         game = Game(args, run, 'Player', resume=True)
         game.ready()
-        assert held()['item'] == 'tconstruct:' + kind and held()['damage'] < 60, held()
+        assert held()['item'] == 'tconstruct:' + kind and damage(held()) < 60, held()
         print('PASS', kind, 'creative exemption, survival wear, retention, repair and reload', flush=True)
     game.stop()
 finally:
