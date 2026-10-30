@@ -7,12 +7,29 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size() - 27)
         } else { game.container_size() - 27 };
         let columns = if count > 27 { 6 } else { 3 };
-        let left = if columns == 6 { -171.0 } else { -117.0 };
-        batch.fill(atlas, ox + left, oy + 5.0, (columns as f32 * 18.0) + 6.0, (count.div_ceil(columns) as f32 * 18.0) + 6.0, horizon_client::hud::rgba(198, 198, 198, 255));
-        for i in 0..count {
-            let x = ox + left + 2.0 + (i % columns) as f32 * 18.0;
-            let y = oy + 7.0 + (i / columns) as f32 * 18.0;
-            batch.sprite(atlas, "gui/sprites/container/slot", x, y);
+        let left = if columns == 6 { -176.0 } else { -122.0 };
+        let width = columns as f32 * 18.0;
+        let height = count.div_ceil(columns) as f32 * 18.0;
+        if let Some(sprite) = atlas.sprites.get("gui/tconstruct_generic").copied() {
+            let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
+                let mut r = sprite;
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.u0 += sx * du; r.v0 += sy * dv;
+                r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
+                batch.rect_uv(ox + left + x, oy + y, w, h, r, u32::MAX);
+            };
+            for (sx, sy, x, y) in [(0.0, 0.0, 0.0, 0.0), (57.0, 0.0, width + 7.0, 0.0),
+                (0.0, 57.0, 0.0, height + 7.0), (57.0, 57.0, width + 7.0, height + 7.0)] {
+                region(batch, sx, sy, 7.0, 7.0, x, y, 7.0, 7.0);
+            }
+            region(batch, 7.0, 0.0, 50.0, 7.0, 7.0, 0.0, width, 7.0);
+            region(batch, 7.0, 57.0, 50.0, 7.0, 7.0, height + 7.0, width, 7.0);
+            region(batch, 0.0, 7.0, 7.0, 50.0, 0.0, 7.0, 7.0, height);
+            region(batch, 57.0, 7.0, 7.0, 50.0, width + 7.0, 7.0, 7.0, height);
+            for i in 0..count {
+                region(batch, 7.0, 7.0, 18.0, 18.0,
+                    7.0 + (i % columns) as f32 * 18.0, 7.0 + (i / columns) as f32 * 18.0, 18.0, 18.0);
+            }
         }
     }
     let texture = if station { "gui/tconstruct_tinker_station" } else { "gui/tconstruct_part_builder" };
