@@ -19,7 +19,8 @@ fn render_source_tool_gui(
             if path.extension().and_then(|x| x.to_str()) != Some("json") { continue; }
             let name = path.file_stem().and_then(|x| x.to_str()).ok_or("invalid tool model name")?.to_owned();
             let bytes = std::fs::read(&path).map_err(|e| e.to_string())?;
-            let model = crate::game::tconstruct_source_tool_model::ToolModel::parse(&bytes).ok_or("invalid source tool model")?;
+            let Some(model) = crate::game::tconstruct_source_tool_model::ToolModel::parse(&bytes) else { continue; };
+            if model.layers.is_empty() { continue; }
             result.insert(name, model.layers.into_iter().map(|v| (v.texture, v.material_index)).collect());
         }
         Ok(result)
