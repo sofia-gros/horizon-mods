@@ -12,13 +12,13 @@ documentation_only = ci_scope.documentation_only
 
 class Scope(unittest.TestCase):
     def test_documentation_and_images(self):
-        self.assertTrue(documentation_only(['README.md', 'docs/roadmap.md', 'docs/preview.png']))
+        self.assertTrue(documentation_only(['README.md', 'docs/roadmap.md', 'docs/preview.png', 'tconstruct/README.md', 'tconstruct/docs/playing.md', 'tconstruct/docs/preview.png']))
 
     def test_runtime_tests_configuration_and_empty_are_not_docs_only(self):
         for paths in ([], ['mixins/tconstruct/transaction.rs'], ['tests/test_ci_scope.py'],
                       ['compatibility.json'], ['.github/workflows/mixins.yml'],
                       ['docs/upstream-tags.sha256'], ['docs/example.py'],
-                      ['README.md', 'tools/stage.py']):
+                      ['README.md', 'tools/stage.py'], ['tconstruct/docs/example.py'], ['tconstruct/mixins/example.rs']):
             self.assertFalse(documentation_only(paths), paths)
 
     def test_renaming_code_into_docs_still_requires_checks(self):
