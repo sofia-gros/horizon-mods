@@ -37,6 +37,7 @@ try:
     g.call('open-inventory'); g.call('wait', '10')
     # Bottom-row column 5, at the standard 960x540 test resolution.
     screen_click(596, 420); g.call('wait', '10')
+    g.call('wait', '240')  # Let setup messages fade before the guide image.
     g.call('screenshot', str(run / 'creative-blocks.png'))
     screen_click(319, 188); g.call('wait', '5')
     carried = g.call('inventory')['carried'] or {}
