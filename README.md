@@ -94,7 +94,7 @@ revisions. This project does not distribute Minecraft game files or resources.
 git clone https://github.com/horizon-rust/horizon.git ../horizon-official
 git -C ../horizon-official checkout b6c936f82b08798057161bdfa577e3aac53fb91e
 git clone https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
-git -C ../horizon-mixins checkout 0500ff24aa5933fca95a877ef41125353c4b4fe3
+git -C ../horizon-mixins checkout cb1ad23022392d88f006cf94cbf6552a73f5df12
 python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
 cargo fetch --locked --manifest-path target/modded/Cargo.toml
 cargo build --locked --offline --manifest-path target/modded/Cargo.toml \

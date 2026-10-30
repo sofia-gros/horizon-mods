@@ -31,13 +31,12 @@ try:
     g.call('wait', '80')
     g.call('look-at', 'block', '0', '71', '2')
     g.call('screenshot', str(run / 'bronze.png'))
-    if a.in_frame:
-        g.call('command', 'clear @s')
-        g.call('mouse', 'middle', 'click')
-        g.call('wait', '20')
-        slots = g.call('inventory')['hotbar']
-        assert any(s.get('item') == 'tconstruct:fake_storage_block' and 'tconstruct:bronze' in s.get('components', '') for s in slots), slots
-        print('PASS local Pick Block preserved bronze', flush=True)
+    g.call('command', 'clear @s')
+    g.call('mouse', 'middle', 'click')
+    g.call('wait', '20')
+    slots = g.call('inventory')['hotbar']
+    assert any(s.get('item') == 'tconstruct:fake_storage_block' and 'tconstruct:bronze' in s.get('components', '') for s in slots), slots
+    print('PASS Pick Block preserved bronze', flush=True)
     g.call('save')
     g.stop()
 finally:

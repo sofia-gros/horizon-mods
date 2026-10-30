@@ -1050,15 +1050,15 @@ bindings = [
 ]
 
 [[injection]]
-id = "storage-pick-local"
-target = "horizon_client::game::Game<'_>::play_mouse"
+id = "storage-pick"
+target = "horizon_client::game::block_items::Game<'_>::picked_stack"
 kind = "HEAD"
 cancellable = true
-helper = "storage-pick-local.rs"
+helper = "storage-pick.rs"
 bindings = [
-  { name = "game", ty = "&mut Game<'_>", value = "&mut *self" },
-  { name = "button", ty = "MouseButton", value = "button" },
-  { name = "pressed", ty = "bool", value = "pressed" },
+  { name = "game", ty = "&Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "include_data", ty = "bool", value = "include_data" },
 ]
 
 [[injection]]
