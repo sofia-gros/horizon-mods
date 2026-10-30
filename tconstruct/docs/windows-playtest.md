@@ -6,6 +6,8 @@ The launcher prepares a separate test world and starts Horizon with Tinkers' Con
 
 You need a working Horizon 26.3 resource folder, Git, Python 3.12 or later, the Rust stable MSVC toolchain, Visual Studio Build Tools with Desktop development with C++, and a Vulkan-capable GPU. The launcher does not install these tools for you.
 
+The launcher checks available Python interpreters and uses a working Python 3.12 or newer. If you use mise, it checks the Python selected by `mise exec` first. To select a specific interpreter, set the `HORIZON_PYTHON` environment variable to its executable before launching.
+
 Java and Forge do not need to run. The launcher uses your existing Horizon resources and bundled mod data; it does not fetch a Minecraft 1.20.1 client.
 
 ## Start the game

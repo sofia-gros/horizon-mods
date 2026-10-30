@@ -6,6 +6,37 @@ function Run([string]$Command, [string[]]$Arguments) {
     & $Command @Arguments
     if ($LASTEXITCODE -ne 0) { throw "$Command failed with exit code $LASTEXITCODE" }
 }
+function Find-Python {
+    $candidates = [System.Collections.Generic.List[string]]::new()
+    if ($env:HORIZON_PYTHON) { $candidates.Add($env:HORIZON_PYTHON) }
+    # Ask mise for the interpreter it would actually execute in this checkout.
+    $mise = Get-Command mise -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($mise) {
+        Push-Location (Split-Path -Parent $Repo)
+        try {
+            $resolved = & $mise.Source exec -- python -c 'import sys; print(sys.executable)' 2>$null
+            if ($LASTEXITCODE -eq 0 -and $resolved) { $candidates.Add([string]($resolved | Select-Object -Last 1)) }
+        } catch { } finally { Pop-Location }
+    }
+    foreach ($command in @(Get-Command python, python3 -All -CommandType Application -ErrorAction SilentlyContinue)) {
+        if ($command.Source) { $candidates.Add($command.Source) }
+    }
+    # The Windows Python launcher may exist but have a broken registration.
+    $py = Get-Command py -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($py) {
+        try {
+            $resolved = & $py.Source -3 -c 'import sys; print(sys.executable)' 2>$null
+            if ($LASTEXITCODE -eq 0 -and $resolved) { $candidates.Add([string]($resolved | Select-Object -Last 1)) }
+        } catch { }
+    }
+    foreach ($candidate in $candidates | Select-Object -Unique) {
+        try {
+            & $candidate -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' *> $null
+            if ($LASTEXITCODE -eq 0) { return $candidate }
+        } catch { }
+    }
+    throw 'No usable Python 3.12 or newer was found. Install or activate Python, or set HORIZON_PYTHON to its executable and retry.'
+}
 function Pick-Folder([string]$Title) {
     Add-Type -AssemblyName System.Windows.Forms
     $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
@@ -22,10 +53,11 @@ function Checkout-Pinned([string]$Path, [string]$Url, [string]$Revision) {
     if ($LASTEXITCODE -ne 0 -or $actual -ne $Revision) { throw "Pinned source checkout is incomplete or differs: $Path. Preserve any edits and fix this checkout before retrying." }
 }
 try {
-    foreach ($name in @('git', 'cargo', 'py')) {
+    foreach ($name in @('git', 'cargo')) {
         if (-not (Get-Command $name -ErrorAction SilentlyContinue)) { throw "$name is missing. Install Git, Python 3.12 and Rust stable MSVC with Visual Studio C++ Build Tools, then try again. Nothing was installed automatically." }
     }
-    Run py @('-3', '-c', 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)')
+    $python = Find-Python
+    Write-Host "Using Python: $python"
     $compat = Get-Content -LiteralPath (Join-Path $Repo 'compatibility.json') -Raw | ConvertFrom-Json
     $settingsPath = Join-Path $HomeDir 'launcher-settings.json'
     $settings = $null
@@ -70,15 +102,15 @@ try {
         New-Item -ItemType Directory -Force -Path $build | Out-Null
         Push-Location $Repo
         try {
-            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--output-dir', $build)
+            Run $python @('tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--output-dir', $build)
             $cargoTarget = Join-Path $HomeDir 'cargo-cache'
             Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
             Copy-Item -LiteralPath (Join-Path $cargoTarget 'fast\horizon-client.exe') -Destination $game
             $overlay = Join-Path $build 'item-resources'
-            Run py @('-3', 'tools/resources.py', $resources, $overlay)
+            Run $python @('tools/resources.py', $resources, $overlay)
             Run $game @('--tconstruct-prepare', $overlay, (Join-Path $Repo 'content'), $gameResources)
-            Run py @('-3', 'tools/prepare_horizon_source_data.py', $resources, (Join-Path $gameResources 'minecraft-original-pack'))
-            Run py @('-3', 'tools/prepare_bundled_forge.py', (Join-Path $gameResources 'forge-original-pack'))
+            Run $python @('tools/prepare_horizon_source_data.py', $resources, (Join-Path $gameResources 'minecraft-original-pack'))
+            Run $python @('tools/prepare_bundled_forge.py', (Join-Path $gameResources 'forge-original-pack'))
             Set-Content -LiteralPath $ready -Value $head
         } finally { Pop-Location }
     }
@@ -91,6 +123,6 @@ try {
     try { Run $game @('--resources', $gameResources, '--world', 'TConstruct-Playtest', '--seed', '42', '--creative') } finally { Pop-Location }
 } catch {
     Write-Host "`nCould not start the Mixins playtest: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host 'Existing saves and original resources were not changed. See docs/windows-playtest.md for prerequisites and troubleshooting.'
+    Write-Host 'Existing saves and original resources were not changed. See tconstruct/docs/windows-playtest.md for prerequisites and troubleshooting.'
     exit 1
 }
