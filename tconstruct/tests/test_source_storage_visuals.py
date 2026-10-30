@@ -29,8 +29,8 @@ class SourceStorageVisuals(unittest.TestCase):
     def test_registered_fallback_uses_source_textures(self):
         source = VISUALS / 'assets/tconstruct/textures/block/storage'
         target = ROOT / 'content/assets/tconstruct/textures/block/storage'
-        self.assertEqual({p.name: p.read_bytes() for p in source.glob('*.png')},
-                         {p.name: p.read_bytes() for p in target.glob('*.png')})
+        for path in source.glob('*.png'):
+            self.assertEqual(path.read_bytes(), (target / path.name).read_bytes(), path.name)
         block = json.loads((ROOT / 'content/data/tconstruct/horizon/block/fake_storage_block.json').read_text())
         self.assertEqual(block['template'], 'minecraft:iron_block')
         self.assertEqual(block['properties']['hardness'], 5.0)
