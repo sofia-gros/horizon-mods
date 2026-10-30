@@ -45,5 +45,16 @@ class BlockRegistrationTests(unittest.TestCase):
                 self.assertIn(f'tconstruct:{name}', loot)
                 json.loads(loot)
 
+    def test_cobalt_ore_drops_raw_cobalt_or_itself_with_silk_touch(self):
+        loot = json.loads((CONTENT / 'data/tconstruct/loot_table/blocks/cobalt_ore.json').read_text())
+        children = loot['pools'][0]['entries'][0]['children']
+        self.assertEqual(children[0]['name'], 'tconstruct:cobalt_ore')
+        self.assertEqual(children[0]['condition'], 'minecraft:tool/can_silk_touch')
+        self.assertEqual(children[1]['name'], 'tconstruct:raw_cobalt')
+        self.assertTrue(any(modifier.get('type') == 'minecraft:apply_bonus' and modifier.get('enchantment') == 'minecraft:fortune'
+                            for modifier in children[1]['modifier']))
+        raw = json.loads((CONTENT / 'data/tconstruct/horizon/item/raw_cobalt.json').read_text())
+        self.assertEqual(raw['template'], 'minecraft:raw_iron')
+
 if __name__ == '__main__':
     unittest.main()
