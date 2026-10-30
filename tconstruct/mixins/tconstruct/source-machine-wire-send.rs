@@ -22,7 +22,13 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             let state = ctx.world.block(pos.0, pos.1, pos.2).0 as usize;
             if hub.encoder.block_ids.get(state).copied() != Some(block_id) { continue; }
             let Some(value) = raw.get(id.as_str()) else { continue; };
-            let mut data = Compound::new(); data.insert(id.into(), value.clone());
+            let mut value = value.clone();
+            // Phase is only the server's scheduling cursor. Sending it would
+            // broadcast an otherwise unchanged Melter every tick.
+            if id == "tconstruct:melter" {
+                if let Tag::Compound(fields) = &mut value { fields.insert("phase".into(), Tag::Byte(0)); }
+            }
+            let mut data = Compound::new(); data.insert(id.into(), value);
             live.insert([pos.0, pos.1, pos.2], (kind, Tag::Compound(data)));
         }
     }
