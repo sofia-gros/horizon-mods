@@ -36,16 +36,19 @@ def select_empty():
 try:
     g.ready()
     for command in (
-        'gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',
-        'setblock 0 71 2 minecraft:air', 'setblock 0 70 2 minecraft:air',
-        'setblock 0 71 1 minecraft:air', 'setblock 0 70 1 minecraft:air',
-        'setblock 0 70 2 tconstruct:seared_heater', 'setblock 0 71 2 tconstruct:seared_melter',
-        'setblock 0 71 1 tconstruct:seared_faucet[facing=north]', 'setblock 0 70 1 tconstruct:seared_table',
+        'gamemode creative @s', 'clear @s', 'tp @s 2.5 71 1.5',
+        'setblock 0 72 2 minecraft:air', 'setblock 0 71 2 minecraft:air',
+        'setblock 0 72 1 minecraft:air', 'setblock 0 71 1 minecraft:air',
+        'setblock 0 71 2 tconstruct:seared_heater',
+    ): g.call('command', command)
+    select_empty(); g.call('interact', '0', '71', '2'); g.call('wait', '5'); g.call('close')
+    for command in (
+        'setblock 0 72 2 tconstruct:seared_melter',
+        'setblock 0 72 1 tconstruct:seared_faucet[facing=north]', 'setblock 0 71 1 tconstruct:seared_table',
         'give @s minecraft:coal 2', 'give @s minecraft:copper_ingot 25', 'give @s tconstruct:ingot_cast 1',
     ):
         g.call('command', command)
-    select_empty(); g.call('interact', '0', '70', '2'); g.call('wait', '5'); g.call('close')
-    g.call('interact', '0', '71', '2'); g.call('wait', '10')
+    g.call('interact', '0', '72', '2'); g.call('wait', '10')
     click(hotbar('minecraft:coal')); click(327)
     click(hotbar('minecraft:copper_ingot'))
     for slot in (300, 301):
@@ -60,9 +63,9 @@ try:
     values = {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}
     assert values.get(327, {}).get('item') == 'minecraft:coal', values
     g.call('close'); g.call('hotbar', str(hotbar('tconstruct:ingot_cast') + 1))
-    g.call('interact', '0', '70', '1'); select_empty(); g.call('interact', '0', '71', '1')
+    g.call('interact', '0', '71', '1'); select_empty(); g.call('interact', '0', '72', '1')
     g.call('wait', '120', timeout=25)
-    g.call('interact', '0', '71', '2'); g.call('wait', '10')
+    g.call('interact', '0', '72', '2'); g.call('wait', '10')
     values = {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}
     assert values.get(327, {}).get('item') == 'minecraft:coal', values
     assert not any(slot in values for slot in (300, 301, 302)), values
