@@ -59,6 +59,12 @@ try:
     if a.double_chest:
         click(guest, 327); click(guest, 354)
         wait('second chest half synchronization', lambda: all(slots(g).get(354, {}).get('item') == 'minecraft:stick' for g in games))
+        # The final row is initially hidden. Scroll and move the item there;
+        # its menu ID stays the same on both viewers.
+        click(guest, 354)
+        guest.call('click-gui', '-66', '145'); guest.call('wait', '3')
+        click(guest, 380)
+        wait('scrolled last slot synchronization', lambda: all(slots(g).get(380, {}).get('item') == 'minecraft:stick' for g in games))
     guest.call('screenshot', str(run / 'guest-side.png'))
     click(host, 0); click(host, 300); click(host, 1); click(host, 301)
     wait('shared inputs', lambda: all(slots(g).get(300, {}).get('item') == 'tconstruct:pattern' and slots(g).get(301, {}).get('item') == 'minecraft:oak_log' for g in games))

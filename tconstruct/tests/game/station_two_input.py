@@ -2,14 +2,16 @@
 import argparse
 from pathlib import Path
 from harness import Game
+from x11_text import type_text
 
 parser = argparse.ArgumentParser()
 for name in ('game', 'ctl', 'resources'):
     parser.add_argument('--' + name, type=Path, required=True)
 parser.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
+parser.add_argument('--in-frame', action='store_true')
 args = parser.parse_args()
 run = args.run_dir.resolve()
-game = Game(args, run, 'Player', resume=True)
+game = Game(args, run, 'Player', in_frame=args.in_frame, resume=True)
 
 def cmd(text):
     game.call('command', text)
@@ -38,10 +40,21 @@ try:
     click(300)
     click(hotbar('tconstruct:tool_handle'))
     click(301)
+    game.call('click-gui', '85', '10')
+    type_text(game, 'mossy')
+    game.call('wait', '15')
     game.call('screenshot', str(run / 'station-dagger.png'))
     click(324)
     result = game.call('menu')['carried'] or {}
     assert result.get('item') == 'tconstruct:dagger', result
+    assert result.get('custom_name') == 'mossy', result
+    click(0)
+    game.call('close')
+    game.stop()
+    game = Game(args, run, 'Player', in_frame=args.in_frame, resume=True)
+    game.ready()
+    inventory = game.call('inventory')
+    assert any(stack.get('item') == 'tconstruct:dagger' and 'mossy' in stack.get('components', '') for stack in inventory['hotbar']), inventory
     game.stop()
 finally:
     game.cleanup()
