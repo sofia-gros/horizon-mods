@@ -75,6 +75,10 @@ try:
     wait('guest sees colored glass', lambda: guest.call('block', '2', '71', '2').get('block') == 'tconstruct:red_clear_stained_glass')
     host.call('look-at', 'block', '1', '71', '2'); host.call('wait', '80')
     host.call('screenshot', str(run / 'connected-glass.png'))
+    command(host, 'setblock 1 71 2 minecraft:air')
+    wait('guest sees removed glass', lambda: guest.call('block', '1', '71', '2').get('block') == 'minecraft:air')
+    host.call('wait', '40'); host.call('screenshot', str(run / 'connected-glass-removed.png'))
+    command(host, 'setblock 1 71 2 tconstruct:clear_glass')
     # Neighbors cross the x=15/16 chunk boundary; source panes use four state
     # properties and must update them on both host and guest.
     for text in ('fill 14 70 1 17 70 3 minecraft:stone', 'fill 15 71 2 16 72 2 minecraft:air',
@@ -85,6 +89,23 @@ try:
     wait('guest sees pane connection', lambda: 'west=true' in guest.call('block', '16', '71', '2')['state'])
     host.call('look-at', 'block', '15', '71', '2'); host.call('wait', '80')
     host.call('screenshot', str(run / 'connected-pane-boundary.png'))
+    # Compare walking across the same short path with and without Soul Glass.
+    # The path is inside the dedicated fixed test-world area.
+    for text in ('tp @s 0.5 71 0.5', 'fill -1 71 1 1 72 5 minecraft:air', 'gamemode survival @s'):
+        command(host, text)
+    host.call('look', '0', '0'); host.call('wait', '10')
+    baseline_start = host.call('state')['player']['position'][2]
+    host.call('move', 'forward', '1')
+    baseline_distance = host.call('state')['player']['position'][2] - baseline_start
+    for text in ('tp @s 0.5 71 0.5', 'fill -1 71 1 1 72 5 tconstruct:soul_glass'):
+        command(host, text)
+    host.call('look', '0', '0'); host.call('wait', '10')
+    soul_start = host.call('state')['player']['position'][2]
+    host.call('move', 'forward', '1')
+    soul_distance = host.call('state')['player']['position'][2] - soul_start
+    assert soul_distance > 0.55 and soul_distance < baseline_distance * .9, (baseline_distance, soul_distance)
+    print('Soul Glass walking distance: empty=', baseline_distance, 'glass=', soul_distance, flush=True)
+    command(host, 'fill -1 71 1 1 72 5 minecraft:air')
     guest.stop(); host.call('save'); host.stop(); guest.cleanup(); host.cleanup(); games.clear()
     host = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); games.append(host); host.ready()
     assert host.call('block', '15', '71', '2')['block'] == 'tconstruct:clear_glass_pane'
