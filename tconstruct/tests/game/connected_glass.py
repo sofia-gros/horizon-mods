@@ -96,6 +96,17 @@ try:
     host.call('screenshot', str(run / 'connected-pane-lower-arm.png'))
     host.call('look', '-26.6', '-20'); host.call('wait', '40')
     host.call('screenshot', str(run / 'connected-pane-upper-center.png'))
+    # Look down onto the lower pane's arm and up at the upper pane's underside.
+    # A short spectator observation avoids intersecting the narrow geometry.
+    for text in ('tp Guest 16.5 71 -1.5', 'gamemode spectator @s', 'tp @s 14.5 74.5 0.5'):
+        command(host, text)
+    host.call('look', '-26.6', '38'); host.call('wait', '30')
+    host.call('screenshot', str(run / 'connected-pane-exposed-top.png'))
+    command(host, 'fill 13 70 -2 17 70 1 minecraft:air')
+    command(host, 'tp @s 14.5 69.1 0.5')
+    host.call('look', '-26.6', '-30'); host.call('wait', '30')
+    host.call('screenshot', str(run / 'connected-pane-underside.png'))
+    command(host, 'gamemode creative @s')
     # Compare walking across the same short path with and without Soul Glass.
     # The path is inside the dedicated fixed test-world area.
     for text in ('tp @s 0.5 71 0.5', 'fill -1 71 1 1 72 5 minecraft:air', 'gamemode survival @s'):
