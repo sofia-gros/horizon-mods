@@ -1261,7 +1261,7 @@ source = "source-tool-model.rs"
 [[state]]
 id = "tool-models"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,usize)>>,String>>"
+ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,Option<usize>)>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
