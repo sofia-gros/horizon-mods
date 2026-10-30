@@ -1328,3 +1328,27 @@ kind = "HEAD"
 cancellable = true
 helper = "material-bow-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "ticks", ty = "u32", value = "ticks" }, { name = "hand_changed", ty = "bool", value = "hand_changed" }]
+
+[[injection]]
+id = "material-bow-remote-start"
+target = "horizon_client::game::remote::Game<'_>::remote_start_held_use"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-remote-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "held", ty = "&horizon_client::items::ItemStack", value = "held" }]
+
+[[injection]]
+id = "material-bow-remote-held"
+target = "horizon_client::game::remote::Game<'_>::held_until_released"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-remote-held.rs"
+bindings = [{ name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "material-bow-remote-use"
+target = "horizon_client::game::remote::item_has_use"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-remote-use.rs"
+bindings = [{ name = "info", ty = "&horizon_client::items::ItemInfo", value = "info" }]
