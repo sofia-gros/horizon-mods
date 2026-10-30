@@ -22,15 +22,6 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let position = if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container };
         let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
         let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
-        if std::env::var_os("HORIZON_MELTER_TRACE").is_some() {
-            static MISSING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-            static PRESENT: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-            let amount = parsed.as_ref().map_or(0, |m| m.tank.amount);
-            let log = if parsed.is_none() { Some(&MISSING) } else if amount > 0 { Some(&PRESENT) } else { None };
-            if log.is_some_and(|log| !log.swap(true, std::sync::atomic::Ordering::Relaxed)) {
-                eprintln!("melter-trace draw container={:?} saved={} parsed={} amount={amount}", position, saved.is_some(), parsed.is_some());
-            }
-        }
         if let Some(melter) = parsed {
             if let Some(fluid) = &melter.tank.fluid {
                 // Tile the first frame of the original still-fluid texture in

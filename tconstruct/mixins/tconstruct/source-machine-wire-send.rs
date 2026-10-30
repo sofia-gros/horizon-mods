@@ -41,10 +41,6 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             if !guest.sent_chunks.contains(&(pos[0] >> 4, pos[2] >> 4)) { continue; }
             let key = (guest.conn, guest.placed_at, *pos);
             if cache.get(&key) == Some(tag) { continue; }
-            if std::env::var_os("HORIZON_MELTER_TRACE").is_some() {
-                static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
-                if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) { eprintln!("melter-trace wire-send pos={pos:?} kind={kind}"); }
-            }
             guest.send(&C::BlockEntityData(play::BlockEntityData { pos: *pos, kind: *kind, tag: tag.clone() }));
             cache.insert(key, tag.clone());
         }

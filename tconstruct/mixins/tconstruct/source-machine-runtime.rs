@@ -29,9 +29,6 @@ fn initial(kind: &str) -> Option<Tag> {
 
 pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     let Some(kind) = kind(block) else { return false; };
-    if std::env::var_os("HORIZON_MELTER_TRACE").is_some() {
-        eprintln!("melter-trace ensure pos={pos:?} kind={kind} entity={} saved={}", game.world.block_entities.get(&pos).is_some(), store::read(&game.world, pos, kind).is_some());
-    }
     if !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4)) { return false; }
     if game.world.block_entities.get(&pos).is_some_and(|entity| !matches!(entity, BlockEntity::Chest(_))) { return false; }
     if game.world.block_entities.get(&pos).is_none() { store::clear_different(&mut game.world, pos, kind); }
@@ -153,11 +150,7 @@ fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting
 /// when empty, otherwise take the result first and then the cast.
 pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     if !ensure(game, pos, block) { return false; }
-    let Some((kind, mut casting)) = casting_at(game, pos) else {
-        if std::env::var_os("HORIZON_MELTER_TRACE").is_some() { eprintln!("melter-trace casting-read failed pos={pos:?}"); }
-        return false;
-    };
-    if std::env::var_os("HORIZON_MELTER_TRACE").is_some() { eprintln!("melter-trace casting pos={pos:?} amount={} recipe={} input={} output={}", casting.tank.amount, casting.recipe.is_some(), casting.input.is_some(), casting.output.is_some()); }
+    let Some((kind, mut casting)) = casting_at(game, pos) else { return false; };
     if casting.tank.amount != 0 || casting.recipe.is_some() { return true; }
     let held = game.held().cloned();
     let mut taken = None;
