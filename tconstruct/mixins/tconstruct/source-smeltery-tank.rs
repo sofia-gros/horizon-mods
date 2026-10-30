@@ -2,6 +2,7 @@
 //
 // Recipe tags and conditions are resolved by the caller against loaded data.
 // This module does not select recipes or alter a world by itself.
+use horizon_world::nbt::Tag;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct FluidAmount {
@@ -55,6 +56,27 @@ impl SmelteryTank {
         *self = next;
         true
     }
+
+    pub(super) fn to_nbt(&self) -> Tag {
+        let fluids = self.fluids.iter().map(|fluid| Tag::compound([
+            ("id", Tag::String(fluid.id.as_str().into())),
+            ("amount", Tag::Long(i64::from(fluid.amount))),
+        ])).collect();
+        Tag::compound([("capacity", Tag::Long(i64::from(self.capacity))), ("fluids", Tag::List(fluids))])
+    }
+
+    pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
+        let Tag::Long(capacity) = tag.get("capacity")? else { return None; };
+        let mut tank = Self::new(u32::try_from(*capacity).ok()?);
+        let Tag::List(fluids) = tag.get("fluids")? else { return None; };
+        for fluid in fluids {
+            let Tag::String(id) = fluid.get("id")? else { return None; };
+            let Tag::Long(amount) = fluid.get("amount")? else { return None; };
+            let id = id.to_string_lossy();
+            if tank.amount(&id) != 0 || !tank.insert(&id, u32::try_from(*amount).ok()?) { return None; }
+        }
+        Some(tank)
+    }
 }
 
 #[cfg(test)]
@@ -84,5 +106,12 @@ mod tests {
         let before = tank.clone();
         assert!(!tank.alloy(&[fluid("copper", 60), fluid("copper", 60)], &fluid("result", 90)));
         assert_eq!(tank, before);
+    }
+    #[test]
+    fn multiple_fluids_survive_nbt_round_trip() {
+        let mut tank = SmelteryTank::new(2160);
+        assert!(tank.insert("tconstruct:molten_copper", 270));
+        assert!(tank.insert("tconstruct:molten_tin", 90));
+        assert_eq!(SmelteryTank::from_nbt(&tank.to_nbt()), Some(tank));
     }
 }
