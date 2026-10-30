@@ -9,8 +9,8 @@ This repository contains mods for [Horizon](https://github.com/horizon-rust/hori
 | Tinkers' Construct | Work in progress | [Tinkers' Construct](tconstruct/README.md) |
 
 In the current Linux build, you can browse equipment in Creative, make parts,
-assemble and repair supported tools, and apply Sharpness and Swiftstrike at a
-Tinker Station. Other equipment actions and upgrades are still in development.
+assemble and repair supported tools, apply Sharpness and Swiftstrike, and place a
+selection of Tinkers blocks. Many block and equipment behaviors are still in development.
 
 ![A pickaxe and quartz in the Tinker Station](tconstruct/docs/station-upgrade-preview.png)
 

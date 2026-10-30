@@ -12,6 +12,16 @@ Open your Creative inventory and select the pickaxe tab at the top. Choose an it
 
 A wood pickaxe obtained here was tested for mining on Linux; a Plate Helmet was obtained and placed in the head slot. Many other tools and armor variants are registered for display, but their material stats and individual actions are still incomplete. Windows remains unverified.
 
+## Browse blocks in Creative
+
+Open the Creative inventory and select **Tinkers' Construct Blocks** in the bottom row. Click a block to take it, then place it in your inventory. Scroll the grid to see more registered blocks.
+
+![The Tinkers' Construct Blocks Creative tab](block-creative.png)
+
+*The block tab is selected in this Linux test. Click a block in the grid to take it.*
+
+The selection includes building blocks, slimewood shapes, and some workstation appearances. Some source behaviors are still missing; see [block registration](block-registration.md) for details.
+
 ## Place a workstation
 
 Place a Part Builder or Tinker Station on the ground and open it to work with parts. The space between its legs stays open, so you can see the floor beneath it.
