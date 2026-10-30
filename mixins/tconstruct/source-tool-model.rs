@@ -1,4 +1,4 @@
-//! Source item-model layers and material indices for dynamic tool rendering.
+// Source item-model layers and material indices for dynamic tool rendering.
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq)]

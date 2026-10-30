@@ -1,5 +1,5 @@
-//! Shared base-stat aggregation for tool definitions using head/handle parts.
-//! Traits, modifiers, tier and final stat clamps are applied separately.
+// Shared base-stat aggregation for tool definitions using head/handle parts.
+// Traits, modifiers, tier and final stat clamps are applied separately.
 use serde_json::{Map, Value};
 
 #[derive(Clone, Copy, Debug, PartialEq)]

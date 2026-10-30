@@ -1,4 +1,4 @@
-//! Source tool-building recipe data used by the station's shared transaction.
+// Source tool-building recipe data used by the station's shared transaction.
 use horizon_items::items::ItemStack;
 use serde_json::Value;
 

@@ -1,4 +1,4 @@
-//! Station recipe selection using the current world's source data.
+// Station recipe selection using the current world's source data.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_station_recipes::{BuildingMatch, BuildingRecipe};

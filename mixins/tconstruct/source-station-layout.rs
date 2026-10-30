@@ -1,4 +1,4 @@
-//! Station layouts loaded from the active data packs, in their UI order.
+// Station layouts loaded from the active data packs, in their UI order.
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq)]
