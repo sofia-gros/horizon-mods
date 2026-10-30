@@ -10,7 +10,7 @@ Java and Forge do not need to run. The launcher uses your existing Horizon resou
 
 ## Start the game
 
-1. [Download the playtest branch](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/windows-all-usertest.zip) and extract it, or use an existing checkout of `windows-all-usertest`.
+1. [Download main](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/main.zip) and extract it, or use an existing checkout of `main`.
 2. Open the `tconstruct` folder and double-click **Play-TConstruct.cmd**.
 3. On the first run, wait while the launcher prepares and builds the game. If it cannot find your Horizon resources, select the prepared resource folder when prompted.
 
