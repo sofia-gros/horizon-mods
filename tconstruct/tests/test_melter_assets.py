@@ -43,6 +43,10 @@ class MelterAssets(unittest.TestCase):
                 self.assertIn('assets/tconstruct/' + fluids[fluid], files)
             self.assertEqual(colors['tconstruct:seared_stone'], 0xff4f4a47)
             self.assertTrue(set(colors) <= set(fluids))
+            render = (ARCHIVE.parents[2] / 'mixins/tconstruct/source-melter-render.rs').read_text()
+            for fluid, argb in colors.items():
+                rgba = (argb & 0xff00ff00) | ((argb & 0x00ff0000) >> 16) | ((argb & 0xff) << 16)
+                self.assertIn(f'"{fluid}" => 0x{rgba:08x}', render)
 
 
 if __name__ == '__main__':
