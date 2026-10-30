@@ -144,6 +144,10 @@ fn prepare_tconstruct_resources() {
             let id = facts["defaults"][name].as_u64().ok_or("missing station block state")? as usize;
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id)).ok_or("missing station gameplay row")?;
             row["block_entity"] = serde_json::Value::Bool(true);
+            // The table has legs and a top rather than a full opaque cube.
+            // Its vanilla template must not hide the ground between its legs.
+            row["solid_render"] = serde_json::Value::Bool(false);
+            row["can_occlude"] = serde_json::Value::Bool(false);
         }
         if let Some(id) = facts["defaults"]["tconstruct:fake_storage_block"].as_u64() {
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id as usize)).ok_or("missing material block gameplay row")?;
@@ -151,6 +155,15 @@ fn prepare_tconstruct_resources() {
         }
         let temp = out.join("gameplay-facts.json.tmp");
         std::fs::write(&temp, serde_json::to_vec(&gameplay)?)?;
+        std::fs::rename(temp, path)?;
+        let path = out.join("render-definitions.json");
+        let mut render: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+        for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
+            let row = render.get_mut(name).and_then(serde_json::Value::as_object_mut).ok_or("missing station render definition")?;
+            row.insert("can_occlude".into(), serde_json::Value::Bool(false));
+        }
+        let temp = out.join("render-definitions.json.tmp");
+        std::fs::write(&temp, serde_json::to_vec(&render)?)?;
         std::fs::rename(temp, path)?;
         Ok(())
     })();
