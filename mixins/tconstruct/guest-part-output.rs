@@ -97,10 +97,13 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         let building = if action == 24 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan(world, entity.slots()))
         } else { None };
+        let repair = if action == 25 {
+            world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::repair_plan(world, entity.slots()))
+        } else { None };
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let taken = if action == 24 {
                 building.is_some_and(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1))
-            } else { crate::tconstruct_tx::take(stacks, &mut hub.guests[gi].carried, is_station, action) };
+            } else { repair.is_some_and(|(output, consumed)| crate::tconstruct_source_station_world::take_repair(stacks, &mut hub.guests[gi].carried, output, &consumed)) };
             if taken {
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
             }

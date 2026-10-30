@@ -26,10 +26,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     let result = if station && slot == 324 {
         crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
     } else if station {
-        let mut copy = slots.clone();
-        let mut output = None;
-        let _ = crate::game::tconstruct_tx::take(&mut copy, &mut output, true, (slot - 300) as i16);
-        output
+        crate::game::tconstruct_source_station_world::repair_plan(&game.world, slots).map(|(output, _)| output)
     } else {
         if game.remote.is_some() { slots.get(22).cloned().flatten() }
         else { game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_preview().get(&key).and_then(|(_, _, _, result)| result.clone())) }

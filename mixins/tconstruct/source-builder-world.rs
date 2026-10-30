@@ -63,7 +63,7 @@ fn cached_material(world: &super::tconstruct_world::World, pos: (i32, i32, i32),
     serde_json::from_slice(bytes).ok()
 }
 
-fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack) -> Result<Option<tx::SourceMaterialMatch>, SourceLookupError> {
+pub(super) fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack) -> Result<Option<tx::SourceMaterialMatch>, SourceLookupError> {
     let chunks = &world.chunks;
     let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;

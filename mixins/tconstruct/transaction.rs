@@ -1541,7 +1541,7 @@ pub(super) fn source_part_plan_value(
 /// `TinkerStationRepairRecipe.repairFromSlot`: Java performs the division and
 /// multiplication as floats, rounds the item count up, then truncates the
 /// repaired durability. The caller supplies the material/modifier-derived rate.
-fn repair_from_slot(needed: i32, stack: i32, durability_per_item: f32) -> (i32, i32) {
+pub(super) fn repair_from_slot(needed: i32, stack: i32, durability_per_item: f32) -> (i32, i32) {
     if needed <= 0 || stack <= 0 || !(durability_per_item > 0.0) { return (0, 0); }
     let applied = stack.min(((needed as f32) / durability_per_item).ceil() as i32);
     (applied, (applied as f32 * durability_per_item) as i32)
