@@ -13,6 +13,10 @@ fn tconstruct_machine_wire_receive(game: &mut crate::game::Game<'_>, pos: [i32; 
     let Some(value) = name.and_then(|name| tag.get(name)).cloned() else { return Break(()); };
     crate::game::tconstruct_source_melter_store::clear_different(&mut game.world, (pos[0], pos[1], pos[2]), name.unwrap());
     if crate::game::tconstruct_source_melter_store::write(&mut game.world, (pos[0], pos[1], pos[2]), name.unwrap(), value) {
+        if std::env::var_os("HORIZON_MELTER_TRACE").is_some() {
+            static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+            if !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) { eprintln!("melter-trace wire-receive pos={pos:?} kind={kind}"); }
+        }
         let sy = (pos[1] - horizon_client::chunk::MIN_Y) >> 4;
         if (0..horizon_client::chunk::SECTIONS as i32).contains(&sy) {
             game.world.dirty_sections.insert((pos[0] >> 4, sy, pos[2] >> 4));
