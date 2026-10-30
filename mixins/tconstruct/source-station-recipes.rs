@@ -77,6 +77,14 @@ mod tests {
         let result = recipe.match_inputs(&parts, 2, &slots, |_| Some("tconstruct:wood".into()), |_, _| true, |_, _| false).unwrap();
         assert_eq!(result.consumed_slots, [0, 1]);
         assert_eq!(result.materials, ["tconstruct:wood", "tconstruct:wood"]);
+        let before = slots.clone();
+        let mut carried = Some(ItemStack::new("minecraft:stone", 1));
+        assert!(!take_built_tool(&mut slots, &mut carried, &result, ItemStack::new("tconstruct:pickaxe", 1), 1));
+        assert_eq!(slots, before);
+        carried = None;
+        assert!(take_built_tool(&mut slots, &mut carried, &result, ItemStack::new("tconstruct:pickaxe", 1), 1));
+        assert!(slots.iter().all(Option::is_none));
+        assert_eq!(&*carried.unwrap().item, "tconstruct:pickaxe");
         let arrow = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:arrow","result_count":4,"parts_override":[],"extra_requirements":[{"item":"minecraft:arrow"}],"extra_materials":["tconstruct:flint"]}"#).unwrap();
         let inputs = vec![None, Some(ItemStack::new("minecraft:arrow", 1)), None];
         let result = arrow.match_inputs(&[], 1, &inputs, |_| None, |_, _| false, |_, item| &*item.item == "minecraft:arrow").unwrap();
@@ -92,6 +100,35 @@ pub(super) struct BuildingMatch {
     pub result_count: u32,
     pub materials: Vec<String>,
     pub consumed_slots: Vec<usize>,
+}
+
+/// Commit an already validated recipe and fully built output to the cursor.
+/// Preview callers can use the same match without mutating the input slots.
+pub(super) fn take_built_tool(
+    inputs: &mut [Option<ItemStack>],
+    carried: &mut Option<ItemStack>,
+    matched: &BuildingMatch,
+    output: ItemStack,
+    max_stack: u32,
+) -> bool {
+    if output.item.as_ref() != matched.result || output.count != matched.result_count || output.count > max_stack {
+        return false;
+    }
+    if matched.consumed_slots.iter().any(|&slot| inputs.get(slot).and_then(Option::as_ref).is_none_or(|stack| stack.count == 0)) {
+        return false;
+    }
+    if let Some(existing) = carried.as_ref() {
+        let mut compare = existing.clone();
+        compare.count = output.count;
+        if compare != output || existing.count.saturating_add(output.count) > max_stack { return false; }
+    }
+    for &slot in &matched.consumed_slots {
+        let stack = inputs[slot].as_mut().unwrap();
+        stack.count -= 1;
+        if stack.count == 0 { inputs[slot] = None; }
+    }
+    if let Some(existing) = carried.as_mut() { existing.count += output.count; } else { *carried = Some(output); }
+    true
 }
 
 impl BuildingRecipe {
