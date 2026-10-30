@@ -18,7 +18,7 @@ fn tconstruct_connected_mesh_face(
         let adjacent = directions.map(|direction| {
             let [dx, dy, dz] = direction.normal();
             let other = pad.blocks[pi(pos[0] + dx, pos[1] + dy, pos[2] + dz)];
-            registry.state(BlockStateId(other)).is_some_and(|other| current.name == other.name && (!pane || has_connections(current) == has_connections(other)))
+            registry.state(BlockStateId(other)).is_some_and(|other| tconstruct_connected_texture::connects(current.name == other.name, pane, has_connections(current), has_connections(other)))
         });
         let suffix = tconstruct_connected_texture::cornerless_suffix(adjacent[0], adjacent[1], adjacent[2], adjacent[3]);
         if !suffix.is_empty() {

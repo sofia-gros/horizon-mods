@@ -160,3 +160,23 @@ mod glass_tests {
         assert_eq!(glass_kind("tconstruct:seared_glass_fake"), None);
     }
 }
+
+// Mantle's pane predicate also requires both panes to be either center-only
+// or horizontally connected; cubes only compare block identity.
+pub(crate) fn connects(same_block: bool, pane: bool, current_has_arms: bool, other_has_arms: bool) -> bool {
+    same_block && (!pane || current_has_arms == other_has_arms)
+}
+
+#[cfg(test)]
+mod predicate_tests {
+    use super::connects;
+    #[test]
+    fn pane_connections_match_source_center_and_arm_rule() {
+        assert!(connects(true, true, false, false));
+        assert!(connects(true, true, true, true));
+        assert!(!connects(true, true, false, true));
+        assert!(!connects(false, true, true, true));
+        assert!(connects(true, false, false, true));
+        assert!(!connects(false, false, false, false));
+    }
+}
