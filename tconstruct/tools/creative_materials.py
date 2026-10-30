@@ -40,3 +40,53 @@ def single_material_variants(requirements, materials):
         if all(selected):
             variants.append(selected)
     return variants
+
+
+def build_variants(tabs, definitions, materials):
+    """Expand tool stacks using pinned definitions and visible material stats.
+
+    Each generated stack carries the selected source identities. Material-derived
+    tool stats and traits are not synthesized here.
+    """
+    import copy
+    import json
+    import zipfile
+
+    with zipfile.ZipFile(materials) as archive:
+        visible = []
+        prefix = 'data/tconstruct/tinkering/materials/'
+        for path in archive.namelist():
+            if not path.startswith(prefix + 'definition/') or not path.endswith('.json'):
+                continue
+            material = path.removeprefix(prefix + 'definition/').removesuffix('.json')
+            definition = json.loads(archive.read(path))
+            stat_path = prefix + 'stats/' + material + '.json'
+            if definition.get('hidden', False) or stat_path not in archive.namelist():
+                continue
+            stats = set(json.loads(archive.read(stat_path)).get('stats', {}))
+            visible.append((definition.get('tier', 0), definition.get('sortOrder', 0),
+                            'tconstruct:' + material, stats))
+        visible.sort(key=lambda row: (row[0], row[1], row[2]))
+        ordered = [(name, stats) for _, _, name, stats in visible]
+    result = copy.deepcopy(tabs)
+    with zipfile.ZipFile(definitions) as archive:
+        for tab in result:
+            expanded = []
+            for raw in tab['items']:
+                # The source tab file contains only simple, registered item IDs.
+                name = raw.split('id:"', 1)[1].split('"', 1)[0]
+                short = name.split(':', 1)[1]
+                definition_name = 'slime_chestplate' if short == 'slimy_chestplate' else short
+                path = 'data/tconstruct/tinkering/tool_definitions/' + definition_name + '.json'
+                if path not in archive.namelist():
+                    expanded.append(raw)
+                    continue
+                required = required_stats(json.loads(archive.read(path)))
+                if required is None:
+                    expanded.append(raw)
+                    continue
+                for identities in single_material_variants(required, ordered):
+                    expanded.append(json.dumps({'count': 1, 'id': name,
+                        'components': {'minecraft:custom_data': {'tic_materials': identities}}}, separators=(',', ':')))
+            tab['items'] = expanded
+    return result
