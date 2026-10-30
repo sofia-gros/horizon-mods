@@ -19,12 +19,13 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
         batch.text(atlas, &inventory, ox + 8.0, oy + 72.0, color, false);
         // The same saved state is synchronized to guests for this menu.
-        let saved = game.container.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
+        let position = if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container };
+        let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
         let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
         if std::env::var_os("HORIZON_MELTER_TRACE").is_some() {
             static LOGGED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
             if (parsed.is_none() || parsed.as_ref().is_some_and(|m| m.tank.amount > 0)) && !LOGGED.swap(true, std::sync::atomic::Ordering::Relaxed) {
-                eprintln!("melter-trace draw container={:?} saved={} parsed={} amount={}", game.container, saved.is_some(), parsed.is_some(), parsed.as_ref().map_or(0, |m| m.tank.amount));
+                eprintln!("melter-trace draw container={:?} saved={} parsed={} amount={}", position, saved.is_some(), parsed.is_some(), parsed.as_ref().map_or(0, |m| m.tank.amount));
             }
         }
         if let Some(melter) = parsed {

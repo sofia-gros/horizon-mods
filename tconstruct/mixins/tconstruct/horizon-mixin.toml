@@ -1868,3 +1868,20 @@ kind = "HEAD"
 cancellable = true
 helper = "source-melter-height.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "source-machine-remote"
+file = "crates/horizon-client/src/game/remote.rs"
+name = "tconstruct_source_machine_remote"
+source = "source-machine-remote.rs"
+
+[[injection]]
+id = "source-machine-reacts"
+target = "horizon_client::game::remote::Game<'_>::remote_block_reacts"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-reacts.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "hit", ty = "&crate::game::Hit", value = "hit" },
+]
