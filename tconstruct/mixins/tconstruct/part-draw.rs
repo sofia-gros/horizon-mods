@@ -7,6 +7,22 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let color = horizon_client::hud::rgba(64, 64, 64, 255);
         batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
         batch.text(atlas, &inventory, ox + 8.0, oy + 72.0, color, false);
+        // The same saved state is synchronized to guests for this menu.
+        if let Some(melter) = game.container.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
+            .and_then(|tag| crate::game::tconstruct_source_melter_state::Melter::from_nbt(&tag)) {
+            if let Some(fluid) = &melter.tank.fluid {
+                let translation = format!("fluid.{}", fluid.replace(':', "."));
+                let name = game.pack.names.display_get(&translation).unwrap_or_else(|| fluid.clone());
+                batch.text(atlas, &name, ox + 90.0, oy + 24.0, color, false);
+                batch.text(atlas, &format!("{} mB", melter.tank.amount), ox + 90.0, oy + 36.0, color, false);
+            }
+            for (slot, progress) in melter.progress.iter().enumerate() {
+                if *progress != 0 {
+                    let text = if *progress < 0 { "Full".to_owned() } else { progress.to_string() };
+                    batch.text(atlas, &text, ox + 44.0, oy + 19.0 + slot as f32 * 18.0, color, false);
+                }
+            }
+        }
         return std::ops::ControlFlow::Break(());
     }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
