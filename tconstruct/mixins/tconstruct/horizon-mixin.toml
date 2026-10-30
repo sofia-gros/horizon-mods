@@ -1648,3 +1648,39 @@ kind = "HEAD"
 cancellable = true
 helper = "station-guest-rename.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "name", ty = "&str", value = "name" }]
+
+[[module]]
+id = "connected-texture"
+file = "crates/horizon-client/src/mesher.rs"
+name = "tconstruct_connected_texture"
+source = "connected-texture.rs"
+
+[[injection]]
+id = "connected-mesh-face"
+target = "horizon_client::mesher::Mesher<'_>::face"
+kind = "HEAD"
+cancellable = true
+helper = "connected-mesh-face.rs"
+bindings = [
+  { name = "mesher", ty = "&Mesher<'_>", value = "self" },
+  { name = "pad", ty = "&Padded", value = "pad" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "tints" },
+  { name = "out", ty = "&mut SectionMesh", value = "out" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "origin", ty = "[f32; 3]", value = "origin" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+  { name = "ao", ty = "bool", value = "ao" },
+  { name = "state", ty = "&Info", value = "state" },
+]
+
+[[injection]]
+id = "connected-pane-face"
+target = "horizon_world::block_render::FaceVisibility::skips"
+kind = "HEAD"
+cancellable = true
+helper = "connected-pane-face.rs"
+bindings = [
+  { name = "a", ty = "State", value = "a" },
+  { name = "b", ty = "State", value = "b" },
+  { name = "direction", ty = "Direction", value = "direction" },
+]
