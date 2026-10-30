@@ -1281,3 +1281,11 @@ bindings = [
   { name = "x", ty = "f32", value = "x" },
   { name = "y", ty = "f32", value = "y" },
 ]
+
+[[injection]]
+id = "material-attack-speed"
+target = "horizon_client::game::hand::Game<'_>::main_hand_attack_speed"
+kind = "HEAD"
+cancellable = true
+helper = "material-attack-speed.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
