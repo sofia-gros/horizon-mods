@@ -1696,3 +1696,9 @@ id = "source-melter-state"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_state"
 source = "source-melter-state.rs"
+
+[[module]]
+id = "source-melting-lookup"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melting_lookup"
+source = "source-melting-lookup.rs"
