@@ -1,6 +1,5 @@
-// Resolve ordinary Part Builder candidates against the current world's
-// snapshots. This is preparation for gameplay integration; it fails closed
-// when the original reuse or fake-material context is unavailable.
+// Resolve Part Builder candidates against the current world's snapshots.
+// Unavailable fake-material context cannot be inferred from an incomplete tag.
 use super::tconstruct_tx::{self as tx, SourceAllPartChoice, SourceLookupError, SourcePartInput};
 use horizon_items::items::ItemStack;
 use std::collections::{HashMap, HashSet};
@@ -34,13 +33,6 @@ fn choices_from(
     let instrument_tags = HashMap::new();
     let id = material.map_or("", |s| &*s.item);
     let count = material.and_then(|s| i32::try_from(s.count).ok()).unwrap_or(0);
-    // The original takes a distinct route for tagged material-bearing parts.
-    // Until that tag and casting costs are complete, do not silently use a
-    // material recipe for them.
-    if cached_material.is_none() && material.is_some() && (items.get("tconstruct:parts").is_some_and(|tag| tag.contains(id))
-        || !items.contains_key("tconstruct:parts") && id.starts_with("tconstruct:")) {
-        return Err(SourceLookupError::IncompleteContext);
-    }
     // Instrument-based ingredient matches require the instrument component and
     // its registry, which are not present in the snapshot yet.
     if cached_material.is_none() && material.is_some() && (id == "minecraft:goat_horn" || items.get("minecraft:goat_horns").is_some_and(|tag| tag.contains(id))) {
@@ -48,8 +40,8 @@ fn choices_from(
     }
     let found = if let Some(cached) = cached_material {
         cached.clone()
-    } else if material.is_some() {
-        tx::source_material_lookup(recipes, id, None, items, &instruments, &instrument_tags, &registries, config, true)?
+    } else if let Some(material) = material {
+        lookup_material(world, material)?
     } else { None };
     let mut supported = HashSet::new();
     let mut craftable = false;
@@ -91,12 +83,26 @@ fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack)
     let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let id = &*material.item;
-    if items.get("tconstruct:parts").is_some_and(|tag| tag.contains(id))
-        || !items.contains_key("tconstruct:parts") && id.starts_with("tconstruct:")
+    if !items.contains_key("tconstruct:parts") && id.starts_with("tconstruct:")
         || id == "minecraft:goat_horn" || items.get("minecraft:goat_horns").is_some_and(|tag| tag.contains(id)) {
         return Err(SourceLookupError::IncompleteContext);
     }
     let registries = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
+    if items.get("tconstruct:parts").is_some_and(|tag| tag.contains(id)) {
+        let registered = [id.to_owned()].into_iter().collect();
+        let relevant = recipes.iter().filter_map(|(recipe_id, bytes)| {
+            let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+            (value.get("result").and_then(serde_json::Value::as_str) == Some(id)).then(|| (recipe_id.clone(), bytes.clone()))
+        }).collect();
+        let costs = tx::source_material_casting_costs(&relevant, &registered, &registries, config, true)?;
+        let material_id = material.data().and_then(|data| data.other("minecraft:custom_data"))
+            .and_then(|tag| tag.get("Material"))
+            .and_then(|tag| match tag { horizon_world::nbt::Tag::String(value) => Some(value.to_string_lossy()), _ => None });
+        return match tx::source_reused_part_material(true, true, material_id.as_deref(), costs.get(id).copied(), true)? {
+            tx::SourceReusedPart::Material { material, value, needed } => Ok(Some(tx::SourceMaterialMatch { id: id.to_owned(), material, value, needed, leftover: None })),
+            _ => Ok(None),
+        };
+    }
     tx::source_material_lookup(recipes, id, None, items, &HashSet::new(), &HashMap::new(), &registries, config, true)
 }
 
@@ -123,8 +129,6 @@ pub(super) fn plan(
     };
     let Some(choice_id) = choice_id else { return Ok(None); };
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let (definitions, _, _) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let bytes = recipes.get(&choice_id).ok_or(SourceLookupError::IncompleteContext)?;
@@ -173,14 +177,11 @@ pub(super) fn plan(
         }));
     }
     let recipe = tx::SourcePartRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
-    let registries: HashMap<_, _> = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
-    let instruments = HashSet::new();
-    let instrument_tags = HashMap::new();
     let id = material.map_or("", |s| &*s.item);
     let found = if let Some(cached) = cached_material(world, pos, material) {
         cached
-    } else if material.is_some() {
-        tx::source_material_lookup(recipes, id, None, items, &instruments, &instrument_tags, &registries, config, true)?
+    } else if let Some(material) = material {
+        lookup_material(world, material)?
     } else { None };
     let mut supported = HashSet::new();
     let mut craftable = false;

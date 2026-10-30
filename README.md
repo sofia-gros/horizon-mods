@@ -36,6 +36,12 @@ Pick Block preserved bronze in in-frame mode; networked Pick Block and normal
 acquisition are not implemented. The official Mixins build passed the in-frame
 display and Pick Block check; Windows remains unverified. See the
 [storage display](docs/fake-storage-preview.png).
+The shared Part Builder material path also accepts registered material-bearing
+parts for reuse using their world casting cost. A Linux test build converted a
+wood pick head into two wood handles and saved the result in both game modes.
+The official Mixins build passed the same normal-mode operation, including input
+and Pattern consumption. Other part and material combinations and Windows
+remain unverified.
 In the Part Builder, insert a Pattern and material, select a source-recipe
 pattern in the scrolling grid, and take an ordinary part from the result slot.
 For example, an oak log produces a wood tool handle and returns three oak
