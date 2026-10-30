@@ -31,7 +31,7 @@ try:
         cmd(text)
     game.call('interact', '0', '71', '2')
     game.call('wait', '15')
-    # The dagger is the first currently supported source layout, in the first grid cell.
+    # The repair button occupies the first cell; dagger is the next source layout.
     game.call('click-gui', '-99', '18')
     game.call('wait', '8')
     click(hotbar('tconstruct:small_blade'))

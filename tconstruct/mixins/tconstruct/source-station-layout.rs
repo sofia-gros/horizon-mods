@@ -81,6 +81,15 @@ mod tests {
     }
 
     #[test]
+    fn repair_layout_keeps_pattern_and_all_three_material_slots() {
+        let bytes = br#"{"icon":{"pattern":"tconstruct:button_repair"},"translation_key":"gui.tconstruct.tinker_station.repair_limited","tool_slot":{"x":53,"y":41},"input_slots":[{"x":11,"y":41},{"x":31,"y":30},{"x":31,"y":50}]}"#;
+        let layout = StationLayout::parse("tconstruct:tinkering/station_layouts/tinker_station".into(), bytes).unwrap();
+        assert_eq!(layout.icon["pattern"], "tconstruct:button_repair");
+        assert_eq!(layout.tool_slot.as_ref().map(|slot| (slot.x, slot.y)), Some((53, 41)));
+        assert_eq!(layout.input_slots.iter().map(|slot| (slot.x, slot.y)).collect::<Vec<_>>(), [(11, 41), (31, 30), (31, 50)]);
+    }
+
+    #[test]
     fn button_hit_test_matches_source_grid_and_gaps() {
         assert_eq!(button_position(0), Some((-130, 9)));
         assert_eq!(button_position(5), Some((-20, 9)));
