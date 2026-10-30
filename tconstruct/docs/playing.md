@@ -40,9 +40,9 @@ Place and open the Part Builder. Put a pattern and the log in the two input slot
 
 At a Tinker Station, select a supported tool and place its required parts in the input slots. Take the result from the output slot. A pickaxe made with a flint head and wooden parts has been tested through use, repair, head replacement, and saving on Linux.
 
-![A Tinker Station showing a mattock layout and its required parts](station-mattock-lan.png)
+![A Tinker Station with a named dagger ready to take](station-dagger-gui.png)
 
-*Select a tool to see its part layout. This example shows a mattock in a Linux LAN test.*
+*Select a tool on the left and place its parts in the shown slots. For a new tool, enter an optional name above the result. This Linux example makes two daggers.*
 
 Tool-specific behavior, material traits, modifiers, and many recipes are still incomplete. Some test materials shown in development screenshots were supplied by commands or test data and may not yet be obtainable through normal gameplay.
 
@@ -58,9 +58,13 @@ Open a Tinker Station and place a damaged supported tool and its repair material
 
 A Part Builder can show a connected container alongside its own slots. You can move items between the displayed storage and the station. A single chest, hopper, dispenser, and double chest were tested on Linux; the exact available operations depend on the container.
 
-![A Part Builder with a hopper displayed beside it](builder-hopper-lan.png)
+![A Part Builder with a hopper displayed beside it](builder-hopper-gui.png)
 
-*The hopper's five slots appear beside the Part Builder inputs in this LAN example.*
+*The hopper's five slots appear beside the Part Builder in this Linux LAN example.*
+
+![A Part Builder with the last row of a double chest visible](builder-double-chest-gui.png)
+
+*Use the scrollbar beside a double chest to reach its last row. The panel on the right explains the selected part or material.*
 
 ## Other equipment
 
