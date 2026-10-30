@@ -217,8 +217,9 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     let input = casting.input.as_ref().map(|stack| &*stack.item);
     let valid = super::tconstruct_source_melter_world::casting(&game.world, kind == "tconstruct:basin", input, fluid)
         .is_some_and(|(id, _, _)| casting.recipe.as_deref() == Some(&id));
+    let previous_timer = casting.timer;
     if !casting.tick(valid) {
-        if casting.timer > 0 { let _ = store::write(&mut game.world, pos, kind, casting.to_nbt()); }
+        if casting.timer != previous_timer { let _ = store::write(&mut game.world, pos, kind, casting.to_nbt()); }
         return;
     }
     if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return; }
