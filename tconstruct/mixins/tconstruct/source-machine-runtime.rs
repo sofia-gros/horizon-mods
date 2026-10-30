@@ -2,7 +2,7 @@
 // fields preserved by the source-machine save hooks.
 use horizon_client::containers::BlockEntity;
 use horizon_world::nbt::Tag;
-use super::{tconstruct_source_melter_state::{Casting, Faucet, Melter}, tconstruct_source_melter_store as store};
+use super::{tconstruct_source_melter_state::{Casting, Faucet, Melter, Tank}, tconstruct_source_melter_store as store};
 
 type Pos = (i32, i32, i32);
 
@@ -210,14 +210,20 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
-    let Some(mut melter) = store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag)) else { return; };
+    let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
+    let mut melter = (&*source_name == "tconstruct:seared_melter").then(||
+        store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag))).flatten();
+    let mut empty = Tank::new(0);
+    let input = melter.as_mut().map_or(&mut empty, |melter| &mut melter.tank);
     let Some((kind, mut casting)) = casting_at(game, target) else {
-        faucet.tick(&mut melter.tank, None);
+        faucet.tick(input, None);
         let _ = store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
         return;
     };
-    faucet.tick(&mut melter.tank, Some(&mut casting.tank));
-    let _ = store::write_many(&mut game.world, &[(source, "tconstruct:melter", melter.to_nbt()), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())]);
+    faucet.tick(input, Some(&mut casting.tank));
+    let mut updates = vec![(target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())];
+    if let Some(melter) = melter { updates.push((source, "tconstruct:melter", melter.to_nbt())); }
+    let _ = store::write_many(&mut game.world, &updates);
 }
 
 pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
