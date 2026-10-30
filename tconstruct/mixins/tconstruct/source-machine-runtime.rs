@@ -80,8 +80,13 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     let below = (pos.0, pos.1 - 1, pos.2);
     let heater_state = game.world.block(below.0, below.1, below.2);
     let has_heater = &*game.res.facts().get(heater_state).name == "tconstruct:seared_heater";
-    let recipes: Vec<_> = melter.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
-        super::tconstruct_source_melter_world::melting(&game.world, &stack.item))).collect();
+    // Recipe matches are only used on the fuel and heat phases of the
+    // source's four-tick cycle. Avoid scanning the source recipe snapshot on
+    // the intervening ticks.
+    let recipes: Vec<_> = if melter.phase == 0 || melter.phase == 2 {
+        melter.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
+            super::tconstruct_source_melter_world::melting(&game.world, &stack.item))).collect()
+    } else { vec![None; melter.slots.len()] };
     if melter.phase == 0 && has_heater && melter.fuel == 0 {
         if let Some((temperature, rate)) = solid_fuel_rule(game) {
             if recipes.iter().flatten().any(|(_, recipe, _)| recipe.temperature <= temperature) {
