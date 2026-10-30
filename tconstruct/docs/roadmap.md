@@ -17,6 +17,18 @@ content from the original definitions. Investigate and test separately where a
 source definition introduces distinct behavior or conditions; do not treat
 untested content as complete merely because it uses the same framework.
 
+## Implementation order
+
+1. Register the original tools, weapons, and armor using the shared source data.
+2. Add a shared Creative tab library and use it for Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR.
+3. Implement tool-specific actions and material traits.
+4. Complete the tool station interfaces.
+5. Add the remaining blocks.
+6. Implement melting, casting, alloys, and their interfaces.
+7. Complete acquisition, world generation, and progression.
+
+Each PR updates the relevant user and developer documentation. `main` is the official branch for both Windows and Linux; platform behavior must be verified before claiming it works.
+
 | Area | Current status | Next work |
 | --- | --- | --- |
 | Part Builder | Source-derived recipes drive a scrolling selection grid, preview and ordinary result pickup for supported inputs. Tested examples include an oak log yielding a wood handle and three planks, an oak plank yielding a wood handle, and limited damageable-item recycling. | Complete material and item support, recycling and Pattern identity; complete material-recipe caching and tag behavior across remaining inputs and reload cases; finish side inventories, remaining click modes, item-specific and non-vanilla custom container behavior, callbacks and detailed information panels. |
@@ -49,7 +61,7 @@ same base can reuse that result; if the earlier result cannot be established,
 CI runs the full checks. Main-branch pushes always run the full checks.
 Related implementation changes should be developed in a batch with lightweight
 checks first, then share the required full transform and representative game
-validation before the verified work is synced to the playtest branch.
+validation before the verified work is merged to main.
 
 On 2026-10-30, a cold-cache CI run took 23m02s and a subsequent
 code-change run with the restored cache took 12m33s. The first client test
