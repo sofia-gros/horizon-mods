@@ -47,7 +47,7 @@ try {
         Get-ChildItem -LiteralPath (Join-Path $Repo $dir) -Recurse -File |
             Where-Object { $_.FullName -notmatch '[\\/]__pycache__[\\/]' -and $_.Extension -ne '.pyc' }
     }
-    $sharedCreative = Join-Path (Split-Path -Parent $Repo) 'pluto_lib\creative.py'
+    $sharedCreative = Join-Path (Split-Path -Parent $Repo) 'pluto-lib\pluto_lib\creative.py'
     $lines = @($resources, (Get-FileHash -LiteralPath $sharedCreative -Algorithm SHA256).Hash) + @($inputs | Sort-Object FullName | ForEach-Object {
         $_.FullName.Substring($Repo.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
     }) + @((Get-FileHash -LiteralPath (Join-Path $Repo 'compatibility.json') -Algorithm SHA256).Hash)

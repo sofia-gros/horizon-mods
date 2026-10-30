@@ -13,3 +13,7 @@ This repository contains mods for [Horizon](https://github.com/horizon-rust/hori
 To try the current mod, follow the [Windows guide](tconstruct/docs/windows-playtest.md) or [Linux guide](tconstruct/docs/linux.md). The Windows launcher has not yet been verified on a Windows PC, and a reported startup error remains under investigation.
 
 To work on a mod, start with the [development guide](docs/development.md).
+
+## Shared library
+
+[pluto lib](pluto-lib/README.md) provides shared mod functionality, starting with Creative tab registration.

@@ -41,6 +41,11 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         let merged = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
+    assemble_with_stats(definition, item, identities, &stat_maps, original)
+}
+
+/// Build supported tools from resolved source stats, shared by the station and Creative.
+pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>) -> Option<ItemStack> {
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }

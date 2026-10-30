@@ -4,7 +4,7 @@ import argparse, copy, hashlib, json, shutil, sys, zipfile
 from pathlib import Path
 from import_part_visuals import MATERIAL_MODELS
 from creative_materials import build_variants
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pluto-lib'))
 from pluto_lib.creative import add_tabs
 
 def link_or_copy(source, destination):

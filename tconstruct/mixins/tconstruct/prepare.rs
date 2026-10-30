@@ -73,6 +73,40 @@ fn prepare_tconstruct_resources() {
                 }
             }
         }
+        // Give supported Creative tool variants the same source-derived base
+        // stats and mining rules as a tool assembled in the station. Other tool
+        // categories keep their material identities until their stats are ported.
+        let creative_path = out.join("creative-inventory.json");
+        if creative_path.is_file() {
+            let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
+            if let Some(tabs) = creative.get_mut("tabs").and_then(serde_json::Value::as_array_mut) {
+                for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
+                    if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
+                        for value in stacks {
+                            let Some(raw) = value.as_str() else { continue; };
+                            let Ok(raw) = serde_json::from_str::<serde_json::Value>(raw) else { continue; };
+                            let Some(item) = raw.get("id").and_then(serde_json::Value::as_str) else { continue; };
+                            let Some(short) = item.strip_prefix("tconstruct:") else { continue; };
+                            let Some(ids) = raw.pointer("/components/minecraft:custom_data/tic_materials").and_then(serde_json::Value::as_array) else { continue; };
+                            let Some(ids) = ids.iter().map(|id| id.as_str().map(str::to_owned)).collect::<Option<Vec<_>>>() else { continue; };
+                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{short}.json"))) else { continue; };
+                            let mut maps = Vec::new();
+                            for id in &ids {
+                                let Some(name) = id.strip_prefix("tconstruct:") else { maps.clear(); break; };
+                                let Ok(bytes) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/materials/stats/{name}.json"))) else { maps.clear(); break; };
+                                let Ok(merged) = crate::tconstruct_tx::source_merge_material_stats(&[bytes]) else { maps.clear(); break; };
+                                maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
+                            }
+                            if maps.len() != ids.len() { continue; }
+                            if let Some(stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
+                                *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
+                            }
+                        }
+                    }
+                }
+            }
+            std::fs::write(creative_path, serde_json::to_vec(&creative)?)?;
+        }
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.

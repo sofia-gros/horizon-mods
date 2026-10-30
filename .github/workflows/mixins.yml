@@ -39,7 +39,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            tconstruct/target/mixins-cli-build
+            target/mixins-cli-build
             target/ci-build
           key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
           restore-keys: |
