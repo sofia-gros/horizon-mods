@@ -1826,3 +1826,9 @@ kind = "HEAD"
 cancellable = true
 helper = "source-machine-wire-receive.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "kind", ty = "i32", value = "kind" }, { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[module]]
+id = "source-melter-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_layout"
+source = "source-melter-layout.rs"
