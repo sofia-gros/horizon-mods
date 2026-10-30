@@ -1704,6 +1704,12 @@ name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
 
 [[module]]
+id = "source-smeltery-structure"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_structure"
+source = "source-smeltery-structure.rs"
+
+[[module]]
 id = "source-melting-lookup"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melting_lookup"
