@@ -18,7 +18,7 @@ class ResourceOverlay(unittest.TestCase):
             src.mkdir()
             raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:honey_bottle': {},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
-                   'minecraft:stone_axe': {}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {}}
+                   'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
             creative = {'tabs': [{'id': 'minecraft:hotbar', 'type': 'HOTBAR', 'row': 'TOP', 'column': 5}]}
             (src / 'creative-inventory.json').write_text(json.dumps(creative))
@@ -43,6 +43,9 @@ class ResourceOverlay(unittest.TestCase):
                                  for name in archive.namelist() if name.endswith('.json') and Path(name).stem != 'minotaur_axe')
             self.assertEqual(len(equipment), 45)
             self.assertTrue(all('tconstruct:' + name in items and 'tconstruct:' + name in ids for name in equipment))
+            self.assertEqual(items['tconstruct:mattock']['minecraft:weapon'], {'item_damage_per_attack': 2})
+            for name in ('mattock', 'hand_axe', 'kama', 'pickadze'):
+                self.assertIn('minecraft:tool', items['tconstruct:' + name])
             for name in equipment - {'pickaxe'}:
                 model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
                 self.assertTrue(model.get('textures'), name)
