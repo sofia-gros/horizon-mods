@@ -150,7 +150,7 @@ impl Faucet {
     }
     pub(super) fn tick(&mut self, input: &mut Tank, output: Option<&mut Tank>) {
         if !self.active { return; }
-        let Some(output) = output else { self.pending = Tank::new(90); self.active = false; return; };
+        let Some(output) = output else { self.pending = Tank::new(90); self.active = false; self.stop_after_packet = false; return; };
         if self.pending.amount > 0 {
             let Some(fluid) = self.pending.fluid.as_deref() else { self.active = false; return; };
             if output.fluid.as_deref().is_some_and(|other| other != fluid) { return; }

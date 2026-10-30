@@ -206,7 +206,11 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
     let Some(mut melter) = store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag)) else { return; };
-    let Some((kind, mut casting)) = casting_at(game, target) else { return; };
+    let Some((kind, mut casting)) = casting_at(game, target) else {
+        faucet.tick(&mut melter.tank, None);
+        let _ = store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
+        return;
+    };
     faucet.tick(&mut melter.tank, Some(&mut casting.tank));
     let _ = store::write_many(&mut game.world, &[(source, "tconstruct:melter", melter.to_nbt()), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())]);
 }
