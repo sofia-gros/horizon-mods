@@ -12,7 +12,9 @@ p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
 p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
 p.add_argument('--side-block', choices=('minecraft:chest', 'minecraft:dispenser', 'minecraft:dropper', 'minecraft:hopper', 'minecraft:shulker_box'), default='minecraft:chest')
+p.add_argument('--double-chest', action='store_true', help='test both halves of a double chest')
 a = p.parse_args()
+if a.double_chest and a.side_block != 'minecraft:chest': p.error('--double-chest requires a chest')
 run = a.run_dir.resolve()
 run.mkdir(parents=True, exist_ok=True)
 print('run', run, flush=True)
@@ -30,8 +32,10 @@ try:
     guest = Game(a, run, 'Guest', server='127.0.0.1:'+str(port), resume=(run / 'Guest').exists()); games.append(guest); guest.ready()
     for command in ('fill -2 70 -2 3 70 3 minecraft:stone', 'clear @a',
                     'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5',
-                    'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
-                    'setblock 0 71 2 tconstruct:part_builder', f'setblock 1 71 2 {a.side_block}',
+                    'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air', 'setblock 2 71 2 minecraft:air',
+                    'setblock 0 71 2 tconstruct:part_builder',
+                    ('setblock 1 71 2 minecraft:chest[facing=north,type=left]' if a.double_chest else f'setblock 1 71 2 {a.side_block}'),
+                    ('setblock 2 71 2 minecraft:chest[facing=north,type=right]' if a.double_chest else 'setblock 2 71 2 minecraft:air'),
                     'give @s tconstruct:pattern 1', 'give @s minecraft:oak_log 1', 'give Guest minecraft:stick 1'):
         host.call('command', command)
     if a.side_block == 'minecraft:shulker_box': host.call('command', 'give Guest minecraft:shulker_box 1')
@@ -52,6 +56,9 @@ try:
         click(guest, guest_stick)
     click(guest, 327)
     wait('side synchronization', lambda: all(slots(g).get(327, {}).get('item') == 'minecraft:stick' for g in games))
+    if a.double_chest:
+        click(guest, 327); click(guest, 354)
+        wait('second chest half synchronization', lambda: all(slots(g).get(354, {}).get('item') == 'minecraft:stick' for g in games))
     guest.call('screenshot', str(run / 'guest-side.png'))
     click(host, 0); click(host, 300); click(host, 1); click(host, 301)
     wait('shared inputs', lambda: all(slots(g).get(300, {}).get('item') == 'tconstruct:pattern' and slots(g).get(301, {}).get('item') == 'minecraft:oak_log' for g in games))
@@ -62,7 +69,7 @@ try:
     with ThreadPoolExecutor(max_workers=2) as pool:
         for f in [pool.submit(take, g) for g in games]: f.result()
     total = sum(sum(s.get('count', 0) for s in g.call('inventory')['hotbar'] if s.get('item') == 'tconstruct:tool_handle') for g in games)
-    total += sum(row.get('stack', {}).get('count', 0) for row in host.call('menu')['slots'] if 327 <= row['slot'] < 354 and row.get('stack', {}).get('item') == 'tconstruct:tool_handle')
+    total += sum(row.get('stack', {}).get('count', 0) for row in host.call('menu')['slots'] if 327 <= row['slot'] < (381 if a.double_chest else 354) and row.get('stack', {}).get('item') == 'tconstruct:tool_handle')
     assert total == 1, total
     for g in reversed(games): g.stop()
     print('PASS side synchronization and concurrent result', flush=True)
