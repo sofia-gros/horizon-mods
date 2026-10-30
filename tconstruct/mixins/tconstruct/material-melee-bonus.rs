@@ -28,7 +28,7 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
         .attack_item_info()
         .map_or(0.0, |item| item.attack_damage);
     let damage = f32::from_bits(*bits);
-    let trait_bonus = crate::game::tconstruct_source_material_traits::levels(&*game.world, stack)
+    let trait_bonus = crate::game::tconstruct_source_material_traits::levels(&game.world, stack)
         .map(|traits| {
             let jagged = traits.levels.get("tconstruct:jagged").copied().unwrap_or(0);
             let stonebound = traits
