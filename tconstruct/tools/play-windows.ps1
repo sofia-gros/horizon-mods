@@ -93,7 +93,15 @@ try {
     $mixins = Join-Path $sources ('mixins-' + $compat.mixins_revision)
     Checkout-Pinned $horizon $compat.horizon_repository $compat.horizon_revision
     Checkout-Pinned $mixins $compat.mixins_repository $compat.mixins_revision
-    $build = Join-Path $HomeDir ('builds\' + $head)
+    $buildBase = Join-Path $HomeDir ('builds\' + $head)
+    $build = $buildBase
+    $retry = 0
+    # Keep interrupted outputs intact. Reuse a completed retry if one exists.
+    while ((Test-Path -LiteralPath $build) -and -not (Test-Path -LiteralPath (Join-Path $build '.ready'))) {
+        $retry++
+        $build = $buildBase + '-retry-' + $retry
+    }
+    if ($retry -gt 0) { Write-Host "Earlier incomplete build preserved; using $build" }
     $ready = Join-Path $build '.ready'
     $game = Join-Path $build 'horizon-client.exe'
     $gameResources = Join-Path $build 'resources'

@@ -23,19 +23,25 @@ original = output / 'original'
 source = output / 'mixins-source'
 if original.exists() or (output / 'modded').exists() or source.exists():
     p.error(f'{output}: original, modded or mixins-source already exists; choose a fresh output directory')
+print('Preparing Horizon source...', flush=True)
 original.mkdir(parents=True)
 proc = subprocess.Popen(['git', '-C', str(a.horizon), 'archive', '--format=tar', compat['horizon_revision']], stdout=subprocess.PIPE)
 extract_git_tar(proc.stdout, original)
 if proc.wait():
     raise SystemExit('git archive failed')
 (original / '.horizon-revision').write_text(compat['horizon_revision'] + '\n')
+print('Horizon source ready. Preparing Mixins source...', flush=True)
 # Build only exported committed source, never a possibly modified working tree.
 source.mkdir()
 proc = subprocess.Popen(['git', '-C', str(a.mixins), 'archive', '--format=tar', compat['mixins_revision']], stdout=subprocess.PIPE)
 extract_git_tar(proc.stdout, source)
 if proc.wait():
     raise SystemExit('Mixins git archive failed')
+print('Mixins source ready. Building Mixins CLI...', flush=True)
 cli_target = root / 'target/mixins-cli-build'
 subprocess.run(['cargo', 'build', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
 cli = cli_target / 'debug' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
+print('Applying Mixins; this step can take several minutes...', flush=True)
 subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(mods), '--out', str(output / 'modded')], check=True)
+
+print('Mixins transformation complete.', flush=True)
