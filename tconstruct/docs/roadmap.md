@@ -17,7 +17,7 @@ content from the original definitions. Investigate and test separately where a
 source definition introduces distinct behavior or conditions; do not treat
 untested content as complete merely because it uses the same framework.
 
-Material attack damage, attack speed, and armor attributes have been tested with representative equipment on Linux. A longbow can be drawn and fired using the existing bow behavior; switching hands cancels its shot. Material draw speed, projectile velocity and accuracy, crossbows, and full modifier effects remain unimplemented. Vanilla weapons can currently heal targets under sufficiently strong Weakness in the underlying game; material weapons clamp their basic damage to zero.
+Material attack damage, attack speed, and armor attributes have been tested with representative equipment on Linux. A longbow can be drawn and fired using the existing bow behavior; switching hands cancels its shot. A follow-up connects longbow draw speed and basic crossbow charging and firing to existing game paths, but has not yet been built or tested in a game. Projectile velocity and accuracy are not connected: the current Mixins planner rejects the shot argument site because the host function contains unsupported control flow. Crossbow material draw speed and full modifier effects remain unimplemented. Vanilla weapons can currently heal targets under sufficiently strong Weakness in the underlying game; material weapons clamp their basic damage to zero.
 
 ## Implementation order
 
