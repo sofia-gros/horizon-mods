@@ -40,6 +40,7 @@ class StageExport(unittest.TestCase):
             cargo = bindir / 'cargo'
             cargo.write_text('''#!/bin/sh
 set -eu
+case " $* " in *" --release "*) ;; *) exit 1 ;; esac
 [ "$(cat marker)" = committed ]
 while [ "$1" != "--target-dir" ]; do shift; done
 mkdir -p "$2/release"
