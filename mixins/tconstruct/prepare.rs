@@ -56,14 +56,20 @@ fn prepare_tconstruct_resources() {
         // crafting recipes. Adapt source-pack references to the native item.
         let items: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("items.json"))?)?;
         if items.get("minecraft:copper_nugget").is_some() {
-            for relative in [
-                "data/forge/tags/items/nuggets/copper.json",
-                "data/tconstruct/recipes/common/materials/copper_ingot_from_nuggets.json",
-                "data/tconstruct/recipes/common/materials/copper_nugget_from_ingot.json",
+            let tag = original_pack.join("data/forge/tags/items/nuggets/copper.json");
+            let source = std::fs::read_to_string(&tag)?;
+            std::fs::write(tag, source.replace("tconstruct:copper_nugget", "minecraft:copper_nugget"))?;
+            for (original, native) in [
+                ("copper_ingot_from_nuggets", "copper_ingot_from_nuggets"),
+                ("copper_nugget_from_ingot", "copper_nugget"),
             ] {
-                let path = original_pack.join(relative);
-                let source = std::fs::read_to_string(&path)?;
-                std::fs::write(path, source.replace("tconstruct:copper_nugget", "minecraft:copper_nugget"))?;
+                let path = original_pack.join(format!("data/tconstruct/recipes/common/materials/{original}.json"));
+                if base.join(format!("data/minecraft/recipe/{native}.json")).is_file() {
+                    std::fs::remove_file(path)?;
+                } else {
+                    let source = std::fs::read_to_string(&path)?;
+                    std::fs::write(path, source.replace("tconstruct:copper_nugget", "minecraft:copper_nugget"))?;
+                }
             }
         }
         for warning in warnings { eprintln!("{warning}"); }

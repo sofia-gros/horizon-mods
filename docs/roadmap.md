@@ -58,3 +58,5 @@ On 2026-10-30, a cold-cache CI run took 23m02s and a subsequent
 code-change run with the restored cache took 12m33s. The first client test
 build changed from 6m02s to 24.79s. Both runs performed the full Mixins
 transformation; timings vary with runner load.
+
+Minecraft’s existing materials, recipes and progression remain unchanged; missing TConstruct content is added alongside them. The scope of full parity and balance will be decided after v0.5.

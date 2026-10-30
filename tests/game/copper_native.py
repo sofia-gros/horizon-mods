@@ -16,8 +16,9 @@ tag = json.loads((source / 'forge/tags/items/nuggets/copper.json').read_text())
 assert 'minecraft:copper_nugget' in tag['values'] and 'tconstruct:copper_nugget' not in tag['values']
 recipe_dir = source / 'tconstruct/recipes/common/materials'
 for name in ('copper_ingot_from_nuggets.json', 'copper_nugget_from_ingot.json'):
-    text = (recipe_dir / name).read_text()
-    assert 'minecraft:copper_nugget' in text and 'tconstruct:copper_nugget' not in text
+    assert not (recipe_dir / name).exists(), name
+for name in ('copper_ingot_from_nuggets.json', 'copper_nugget.json'):
+    assert (a.resources / 'data/minecraft/recipe' / name).exists(), name
 run = Path(tempfile.mkdtemp(prefix='native-copper-', dir=Path('target').resolve()))
 print('run', run, flush=True)
 g = Game(a, run, 'Player', in_frame=a.in_frame)

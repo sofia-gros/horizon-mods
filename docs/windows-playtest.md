@@ -39,3 +39,4 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 
 Part Builder の Minecraft 材料の容器返却は Horizon 26.3 のアイテム登録情報を使います。個別アイテムの component による上書きや独自の容器処理は未対応です。
 銅塊は Horizon 26.3 にある Minecraft のアイテムを使います。bronze は銅とは別の素材です。
+Minecraft に既にあるレシピや入手経路は維持し、足りない TConstruct 要素を追加する方針です。
