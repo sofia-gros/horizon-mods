@@ -7,3 +7,9 @@ The source pack has separate blockstate files for some fluids, wall-mounted form
 The scope includes decorative and storage blocks; wood shapes such as slabs, stairs, fences and doors; glass and panes; and the appearance and placement of workstations and machines. Original assets and current Horizon shapes are used where they support the source block. Representative tests will cover placement and orientation, appearance and collision, drops, save and reload, and LAN synchronization.
 
 A registered machine is not necessarily functional. Smelting, casting, alloying, their interfaces, fluid behavior, plant growth and world generation are separate work. Any shape or action that Horizon cannot yet represent will be identified rather than presented as working.
+
+## Current work
+
+The registration data currently covers grout, selected seared and scorched building shapes, slimy wood shapes and logs, several solid metal storage blocks, nahuatl, blazewood, and two lamps. Their registration and asset references have been checked, but placement, rendering, drops and multiplayer still need game validation. In particular, stripped logs do not yet establish that axe stripping works.
+
+Clear glass uses the original Mantle connected-texture model. That loader is not yet connected to Horizon, so clear-glass rendering is still to be implemented. Other blocks and machine appearances are also still in progress.
