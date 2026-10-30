@@ -11,6 +11,7 @@ fn builder_close(game: &mut crate::game::Game<'_>) {
     if let Some(pos) = game.container {
         game.world.chunks.__horizon_mixins_tconstruct_builder_side_mut().remove(&pos);
         game.world.chunks.__horizon_mixins_tconstruct_builder_side_size_mut().remove(&pos);
+        game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().remove(&pos);
         game.world.chunks.__horizon_mixins_tconstruct_builder_scroll_mut().remove(&pos);
         game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll_mut().remove(&pos);
         if game.remote.is_some() {

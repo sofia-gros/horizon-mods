@@ -15,6 +15,12 @@ pub(super) fn kind(game: &Game<'_>) -> Option<bool> {
     }
 }
 
+pub(super) fn side_count(game: &Game<'_>) -> usize {
+    if game.remote.is_some() {
+        game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
+    } else { game.container_size().saturating_sub(27) }
+}
+
 pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_station_layout::StationLayout> {
     let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() else { return Vec::new(); };
     let Some(rest) = game.res.rest.get() else { return Vec::new(); };

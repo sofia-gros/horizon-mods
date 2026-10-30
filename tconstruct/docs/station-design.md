@@ -45,7 +45,8 @@ not completion. The smeltery and foundry interfaces are separate work. When an
 original screenshot is unavailable, comparisons use the source and assets.
 The adjacent inventory panel uses `textures/gui/generic.png` from the same
 upstream revision as the other station textures; the resource test checks its
-hash and includes it in the prepared GUI atlas.
+hash and includes it in the prepared GUI atlas. Its scroll position changes
+which existing storage slots are visible without changing their menu IDs.
 The Part Builder information panel uses the upstream `panel.png`. Its displayed
 recipe cost and input value come from the active recipe data, including on LAN.
 The same data frame carries the material's source statistics and traits for

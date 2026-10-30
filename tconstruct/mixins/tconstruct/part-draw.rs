@@ -6,10 +6,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let count = if game.remote.is_some() {
             game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size() - 27)
         } else { game.container_size() - 27 };
-        let columns = if count > 27 { 6 } else { 3 };
-        let left = if columns == 6 { -176.0 } else { -122.0 };
-        let width = columns as f32 * 18.0;
-        let height = count.div_ceil(columns) as f32 * 18.0;
+        let columns = crate::game::tconstruct_source_side_layout::columns(count);
+        let left = crate::game::tconstruct_source_side_layout::left(count);
+        let scrollable = crate::game::tconstruct_source_side_layout::max_offset(count) > 0;
+        let width = columns as f32 * 18.0 + if scrollable { 10.0 } else { 0.0 };
+        let height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0;
+        let offset = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos)).map_or(0, |state| state.0);
         if let Some(sprite) = atlas.sprites.get("gui/tconstruct_generic").copied() {
             let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
                 let mut r = sprite;
@@ -26,9 +28,17 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             region(batch, 7.0, 57.0, 50.0, 7.0, 7.0, height + 7.0, width, 7.0);
             region(batch, 0.0, 7.0, 7.0, 50.0, 0.0, 7.0, 7.0, height);
             region(batch, 57.0, 7.0, 7.0, 50.0, width + 7.0, 7.0, 7.0, height);
-            for i in 0..count {
+            let first = offset.min(crate::game::tconstruct_source_side_layout::max_offset(count)) * columns;
+            for i in 0..count.saturating_sub(first).min(crate::game::tconstruct_source_side_layout::visible_rows(count) * columns) {
                 region(batch, 7.0, 7.0, 18.0, 18.0,
                     7.0 + (i % columns) as f32 * 18.0, 7.0 + (i / columns) as f32 * 18.0, 18.0, 18.0);
+            }
+            if scrollable {
+                let x = 7.0 + columns as f32 * 18.0;
+                region(batch, 43.0, 8.0, 12.0, 30.0, x, 7.0, 10.0, height);
+                let progress = offset.min(crate::game::tconstruct_source_side_layout::max_offset(count)) as f32
+                    / crate::game::tconstruct_source_side_layout::max_offset(count) as f32;
+                region(batch, 7.0, 25.0, 10.0, 15.0, x, 7.0 + progress * (height - 15.0), 10.0, 15.0);
             }
         }
     }

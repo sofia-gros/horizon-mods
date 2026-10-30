@@ -37,6 +37,17 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     if !station {
         let (ox, oy) = game.inventory_origin(&batch);
         let (x, y) = ((game.cursor.0 - ox) as i32, (game.cursor.1 - oy) as i32);
+        let side_count = crate::game::tconstruct_ui::side_count(game);
+        let side = crate::game::tconstruct_source_side_layout::left(side_count);
+        let slider_x = side + 7.0 + crate::game::tconstruct_source_side_layout::columns(side_count) as f32 * 18.0;
+        let slider_h = crate::game::tconstruct_source_side_layout::visible_rows(side_count) as f32 * 18.0;
+        if !right && crate::game::tconstruct_source_side_layout::max_offset(side_count) > 0
+            && (slider_x..slider_x + 10.0).contains(&(x as f32)) && (7.0..7.0 + slider_h).contains(&(y as f32)) {
+            let state = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(key).or_default();
+            state.0 = crate::game::tconstruct_source_side_layout::drag_offset(side_count, y as f32);
+            state.1 = true;
+            return Break(true);
+        }
         let patterns = game.world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&key)
             .and_then(|(_, _, patterns)| patterns.as_ref());
         let count = patterns.map_or(0, Vec::len);

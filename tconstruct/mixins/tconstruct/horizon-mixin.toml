@@ -769,6 +769,22 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[state]]
+id = "builder-side-scroll"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(usize,bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "builder-side-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_side_layout"
+source = "source-side-layout.rs"
+
 [[module]]
 id = "builder-info-ui"
 file = "crates/horizon-client/src/game.rs"
