@@ -98,4 +98,4 @@ Place a tool in the Tinker Station. Add quartz shards or quartz blocks for Sharp
 
 Put the tool and material in the input slots, then take the result on the right.
 
-Sharpness needs 36 quartz per level; Swiftstrike needs 72 amethyst shards per level. Partial additions count toward the level. This has been tested in a Linux single-player game; LAN use is still being checked. Modifier crystals and other upgrades are not supported by this path.
+Sharpness needs 36 quartz per level; Swiftstrike needs 72 amethyst shards per level. Partial additions count toward the level. This has been tested in a Linux single-player game and with a LAN guest. Modifier crystals and other upgrades are not supported by this path.
