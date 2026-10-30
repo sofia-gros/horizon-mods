@@ -1,8 +1,5 @@
 name: Mixins validation
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 concurrency:
   group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
