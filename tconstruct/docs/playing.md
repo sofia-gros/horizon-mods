@@ -80,8 +80,12 @@ Loading and firing were tested on Linux. Material-specific projectile speed and 
 
 ## Material traits
 
-The materials used for a tool affect its traits. Wood's Cultivated trait and treated wood's Preserved trait increase material repair. Flint's Jagged trait increases melee damage as the tool wears; stone's Stonebound trait reduces it as the tool wears. Replace a part at the Tinker Station to change the traits contributed by that part.
+The materials used for a tool affect its traits. Wood's Cultivated trait increases material repair; treated wood's Preserved trait increases repair and maximum durability. Steel's Ductile trait increases durability, melee damage, and armor toughness. Flint's Jagged trait increases melee damage as the tool wears; stone's Stonebound trait reduces it as the tool wears. Replace a part at the Tinker Station to change the traits contributed by that part.
 
 ![A repaired pickaxe held on the cursor at the Tinker Station](material-traits-repair.png)
 
-These repair and melee effects were tested on Linux. The mining effects of Jagged and Stonebound and other material traits remain incomplete. Preserved and Ductile durability changes for newly generated tools are in development; existing saved tools do not yet update automatically.
+These effects were tested on Linux; some station tests used temporary test data. Previously saved tools do not automatically update their maximum durability or stat bonuses: rebuild the tool or replace a part to recalculate them. The mining effects of Jagged and Stonebound, Ductile projectile damage, and other material traits remain incomplete.
+
+![Material variants in the Tinkers Creative tab](trait-stat-creative.png)
+
+The Creative tab offers material variants for inspection. Some materials may not yet be obtainable during normal play.
