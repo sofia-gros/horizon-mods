@@ -8,12 +8,16 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
     let state = game.world.block(hit.pos[0], hit.pos[1], hit.pos[2]);
     let name = game.res.facts().get(state).name.clone();
     let pos = (hit.pos[0], hit.pos[1], hit.pos[2]);
+    if std::env::var_os("HORIZON_MELTER_TRACE").is_some() && matches!(&*name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin") {
+        eprintln!("melter-trace use pos={pos:?} block={name} held={:?}", game.held().map(|stack| &stack.item));
+    }
     let handled = match &*name {
         "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:seared_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
         "tconstruct:seared_table" | "tconstruct:seared_basin" => crate::game::tconstruct_source_machine_runtime::interact_casting(game, pos, &name),
         _ => return Continue(()),
     };
+    if std::env::var_os("HORIZON_MELTER_TRACE").is_some() { eprintln!("melter-trace use-result pos={pos:?} handled={handled}"); }
     if handled { game.swing_arm(); }
     Break(Ok(handled))
 }
