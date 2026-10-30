@@ -1790,3 +1790,14 @@ target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entitie
 kind = "HEAD"
 helper = "source-machine-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-machine-use"
+target = "horizon_client::game::Game<'_>::use_hand"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "hit", ty = "Option<&Hit>", value = "block_hit" },
+]
