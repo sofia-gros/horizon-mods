@@ -2,22 +2,6 @@
 use horizon_items::items::ItemStack;
 use serde_json::Value;
 
-/// Emit only the part kinds and known test materials needed to compare paths.
-pub(super) fn trace_test_parts(inputs: &[Option<ItemStack>]) {
-    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_none() { return; }
-    for (index, stack) in inputs.iter().take(3).enumerate() {
-        let Some(stack) = stack else { eprintln!("station trace part index={index} empty=true"); continue; };
-        let kind = match stack.item.as_ref() { "tconstruct:pick_head" => "pick_head", "tconstruct:tool_handle" => "tool_handle", "tconstruct:tool_binding" => "tool_binding", _ => "other" };
-        let material = match stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("Material")) {
-            Some(horizon_world::nbt::Tag::String(id)) if id.to_string_lossy() == "tconstruct:flint" => "flint",
-            Some(horizon_world::nbt::Tag::String(id)) if id.to_string_lossy() == "tconstruct:wood" => "wood",
-            Some(_) => "other", None => "missing",
-        };
-        let model = stack.data().and_then(|data| data.other("minecraft:item_model")).is_some();
-        eprintln!("station trace part index={index} kind={kind} material={material} count={} item_model={model}", stack.count);
-    }
-}
-
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct BuildingRecipe {
     pub result: String,
@@ -127,11 +111,6 @@ pub(super) fn take_built_tool(
     output: ItemStack,
     max_stack: u32,
 ) -> bool {
-    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
-        eprintln!("tconstruct station take checks same_item={} output_count={} recipe_count={} max={} inputs_available={} carried_empty={}",
-            output.item.as_ref() == matched.result, output.count, matched.result_count, max_stack,
-            matched.consumed_slots.iter().all(|&slot| inputs.get(slot).and_then(Option::as_ref).is_some_and(|stack| stack.count > 0)), carried.is_none());
-    }
     if output.item.as_ref() != matched.result || output.count != matched.result_count || output.count > max_stack {
         return false;
     }

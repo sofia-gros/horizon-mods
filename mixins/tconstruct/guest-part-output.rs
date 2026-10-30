@@ -1,9 +1,5 @@
 fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play::ContainerClick, world: &mut World, rules: &dyn Rules) -> std::ops::ControlFlow<Vec<ItemStack>> {
     use std::ops::ControlFlow::{Break, Continue};
-    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() && packet.slot == 24 {
-        let menu = hub.guests.iter().find(|g| g.conn == conn).and_then(|guest| guest.menu.as_ref().map(|menu| (guest, menu)));
-        eprintln!("station trace server_entry window={} slot={} menu={} window_match={} valid={} spectator={} pos={}", packet.container, packet.slot, menu.is_some(), menu.is_some_and(|(_, menu)| menu.window == packet.container), menu.is_some_and(|(guest, menu)| menu.slots.still_valid(world, guest, menu.pos)), menu.is_some_and(|(guest, _)| guest.spectator()), menu.is_some_and(|(_, menu)| menu.pos.is_some()));
-    }
     let Some(gi) = hub.guests.iter().position(|g| g.conn == conn) else { return Continue(()); };
     let Some(menu) = hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if packet.container == 0 || menu.window != packet.container || hub.guests[gi].spectator() || !menu.slots.still_valid(world, &hub.guests[gi], menu.pos) { return Continue(()); }
@@ -13,13 +9,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let block = hub.sync.builtin.get("minecraft:block");
     let builder = block.and_then(|r| r.id("tconstruct:part_builder"));
     let station = block.and_then(|r| r.id("tconstruct:tinker_station"));
-    if packet.slot == 24 && std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
-        eprintln!("station trace server_block station_match={} builder_match={} button={} input={}", station.is_some() && actual == station, builder.is_some() && actual == builder, packet.button, packet.input);
-    }
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
-    if is_station && packet.slot == 24 && std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
-        if let Some(entity) = world.block_entities.get(&key) { crate::tconstruct_source_station_recipes::trace_test_parts(entity.slots()); }
-    }
     let side_shulker = if let crate::lan::menu::Slots::Double(_, side) = menu.slots {
         let side_state = world.block(side.0, side.1, side.2).0 as usize;
         hub.encoder.block_ids.get(side_state).and_then(|id| usize::try_from(*id).ok())
@@ -169,7 +159,6 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     }
     let action = if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
     let Some(action) = action else { return Continue(()); };
-    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() { eprintln!("tconstruct station guest click slot={} button={} input={}", packet.slot, packet.button, packet.input); }
     if packet.button == 0 {
         let building = if action == 24 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan(world, entity.slots()))
@@ -177,12 +166,10 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         let repair = if action == 25 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan(world, entity.slots()))
         } else { None };
-        if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() { eprintln!("tconstruct station guest plan action={action} build={} operation={}", building.is_some(), repair.is_some()); }
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let taken = if action == 24 {
                 building.is_some_and(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1))
             } else { repair.is_some_and(|(output, consumed)| crate::tconstruct_source_station_world::take_repair(stacks, &mut hub.guests[gi].carried, output, &consumed)) };
-            if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() { eprintln!("tconstruct station guest take action={action} taken={taken}"); }
             if taken {
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
             }

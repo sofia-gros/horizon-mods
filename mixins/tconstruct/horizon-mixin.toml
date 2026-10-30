@@ -1180,17 +1180,6 @@ bindings = [
 ]
 
 [[injection]]
-id = "station-trace-send-clicks"
-target = "horizon_client::game::remote::Game<'_>::send_clicks"
-kind = "HEAD"
-helper = "source-station-trace-send.rs"
-bindings = [
-  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
-  { name = "container", ty = "i32", value = "container" },
-  { name = "clicks", ty = "&[Predicted]", value = "&clicks" },
-]
-
-[[injection]]
 id = "builder-side-parts"
 target = "horizon_client::game::storage::Game<'_>::container_parts"
 kind = "HEAD"
