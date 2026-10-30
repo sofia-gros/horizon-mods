@@ -26,6 +26,13 @@ pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_s
         if (1..=3).contains(&layout.input_slots.len()) && rest.items.items.contains_key(item) { layouts.push(layout); }
     }
     layouts.sort_by(|a, b| (a.sort_index, &a.id).cmp(&(b.sort_index, &b.id)));
+    // The repair layout is a pattern button, rather than an item icon.
+    if let Some(layout) = snapshot.get("tconstruct:tinkering/station_layouts/tinker_station")
+        .and_then(|layers| layers.last())
+        .and_then(|bytes| super::tconstruct_source_station_layout::StationLayout::parse(
+            "tconstruct:tinkering/station_layouts/tinker_station".into(), bytes)) {
+        layouts.insert(0, layout);
+    }
     layouts
 }
 
@@ -51,7 +58,7 @@ pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source
         });
         if present && matches { candidates.push(layout); }
     }
-    candidates.into_iter().next()
+    candidates.into_iter().next().or_else(|| station_layouts(game).into_iter().next())
 }
 
 pub(super) fn station_accepts_output(game: &Game<'_>, stack: &horizon_items::items::ItemStack) -> bool {

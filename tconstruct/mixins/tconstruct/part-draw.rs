@@ -46,6 +46,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             }
             if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
                 game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox + x + 1.0, oy + y + 1.0);
+            } else if let Some(pattern) = layout.icon.get("pattern").and_then(serde_json::Value::as_str) {
+                if let Some(("tconstruct", name)) = pattern.split_once(':') {
+                    batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), ox + x + 1.0, oy + y + 1.0);
+                }
             }
         }
         // Match the background to the same source positions used for clicks.
