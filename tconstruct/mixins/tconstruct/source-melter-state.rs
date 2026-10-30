@@ -193,6 +193,21 @@ mod faucet_tests {
         assert!(!restored.active); assert_eq!(source.amount, 90);
     }
     #[test]
+    fn removed_destination_clears_pending_and_stop_state() {
+        let mut source = Tank::new(2160);
+        assert!(source.insert("tconstruct:molten_copper", 180));
+        let output = Tank::new(90);
+        let mut faucet = Faucet::new();
+        assert!(faucet.activate(&mut source, &output));
+        faucet.stop_after_packet = true;
+        faucet.tick(&mut source, None);
+        let restored = Faucet::from_nbt(&faucet.to_nbt()).unwrap();
+        assert!(!restored.active);
+        assert!(!restored.stop_after_packet);
+        assert_eq!(restored.pending.amount, 0);
+        assert_eq!(source.amount, 90);
+    }
+    #[test]
     fn incompatible_or_full_output_cannot_drain_source() {
         let mut source = Tank::new(2160); assert!(source.insert("tconstruct:molten_copper", 90));
         let mut output = Tank::new(90); assert!(output.insert("tconstruct:molten_iron", 90));
