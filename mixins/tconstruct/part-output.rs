@@ -9,6 +9,7 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         }
         return Break(true);
     }
+    if input == horizon_client::menu::Input::QuickMove && !station && game.remote.is_some() && slot.is_some_and(|slot| slot < 36) { return Continue(()); }
     if input != horizon_client::menu::Input::Pickup { return Break(true); }
     if !station && slot.is_some_and(|s| (324..=326).contains(&s)) {
         if button == 0 {

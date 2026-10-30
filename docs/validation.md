@@ -32,6 +32,15 @@ server and arbitrary unrelated item components are not verified.
 
 ## Reproducing game checks
 
+In the managed Linux workspace, the installed Rust toolchain and dependency
+cache are under `/workspace`. For each Cargo or Mixins command, use the same
+command-local settings so offline builds find the existing cache:
+
+```sh
+env PATH="/workspace/.cargo/bin:$PATH" RUSTUP_HOME=/workspace/.rustup \
+  CARGO_HOME=/workspace/.cargo <command and arguments>
+```
+
 For current development, reuse the existing `target/build` Cargo cache and one
 prepared resource root for a batch. Group related gameplay checks into a
 single run and reuse its test world for save/reload; keep any screenshots needed

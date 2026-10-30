@@ -1144,6 +1144,18 @@ bindings = [
 ]
 
 [[injection]]
+id = "builder-double-menu-get"
+target = "horizon_client::lan::menu::Slots::get"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-menu-get.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+  { name = "index", ty = "usize", value = "n" },
+]
+
+[[injection]]
 id = "builder-double-client-slot"
 target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
 kind = "HEAD"

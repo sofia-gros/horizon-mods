@@ -20,6 +20,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
             if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, i32::from(right), 1); }
             else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
         }
+        if !station && game.remote.is_some() && game.slot_at(&batch, game.cursor.0, game.cursor.1).is_some_and(|slot| slot < 36) { return Continue(()); }
         return Break(true);
     }
     if !station {
