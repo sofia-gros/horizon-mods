@@ -62,6 +62,24 @@ pub(super) fn write(world: &mut World, pos: Pos, key: &str, value: Tag) -> bool 
 mod tests {
     use super::*;
     #[test]
+    fn replacement_clears_only_stale_metadata_and_removal_preserves_neighbors() {
+        use horizon_world::registry::BlockStateId;
+        use std::sync::Arc;
+        let mut world = World::new(BlockStateId(0), 0);
+        world.chunks.insert((0, 0), Arc::new(horizon_client::chunk::Chunk::empty(0, 0)));
+        let a = (1, 70, 1); let b = (2, 70, 1);
+        assert!(write(&mut world, a, "tconstruct:melter", Tag::Int(7)));
+        assert!(write(&mut world, b, "tconstruct:melter", Tag::Int(9)));
+        clear_different(&mut world, a, "tconstruct:melter");
+        assert_eq!(read(&world, a, "tconstruct:melter"), Some(Tag::Int(7)));
+        clear_different(&mut world, a, "tconstruct:table");
+        assert!(read(&world, a, "tconstruct:melter").is_none());
+        assert!(write(&mut world, a, "tconstruct:table", Tag::Int(3)));
+        clear(&mut world, a);
+        assert!(read(&world, a, "tconstruct:table").is_none());
+        assert_eq!(read(&world, b, "tconstruct:melter"), Some(Tag::Int(9)));
+    }
+    #[test]
     fn metadata_preserves_inventory_source_and_rejects_other_entities() {
         let pos = (1, 70, -1); let mut sources = Vec::new();
         assert!(set_metadata(&mut sources, pos, "tconstruct:melter", Tag::Int(7)));
