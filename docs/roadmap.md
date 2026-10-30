@@ -53,3 +53,8 @@ CI runs the full checks. Main-branch pushes always run the full checks.
 Related implementation changes should be developed in a batch with lightweight
 checks first, then share the required full transform and representative game
 validation before the verified work is synced to the playtest branch.
+
+On 2026-10-30, a cold-cache CI run took 23m02s and a subsequent
+code-change run with the restored cache took 12m33s. The first client test
+build changed from 6m02s to 24.79s. Both runs performed the full Mixins
+transformation; timings vary with runner load.
