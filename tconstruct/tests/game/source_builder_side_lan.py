@@ -62,7 +62,7 @@ try:
         # The final row is initially hidden. Scroll and move the item there;
         # its menu ID stays the same on both viewers.
         click(guest, 354)
-        guest.call('click-gui', '-66', '145'); guest.call('wait', '3')
+        guest.call('click-gui', '-12', '155'); guest.call('wait', '3')
         click(guest, 380)
         wait('scrolled last slot synchronization', lambda: all(slots(g).get(380, {}).get('item') == 'minecraft:stick' for g in games))
     guest.call('screenshot', str(run / 'guest-side.png'))

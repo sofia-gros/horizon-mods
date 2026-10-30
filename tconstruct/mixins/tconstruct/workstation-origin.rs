@@ -6,6 +6,8 @@ fn workstation_origin(game: &crate::game::Game<'_>, batch: &horizon_client::hud:
         let count = crate::game::tconstruct_ui::side_count(game);
         if count == 0 { 0.0 } else { crate::game::tconstruct_source_side_layout::left(count) }
     };
-    let right = if station { 308.0 } else { 306.0 };
+    let count = crate::game::tconstruct_ui::side_count(game);
+    let width = crate::game::tconstruct_source_side_layout::panel_width(batch.width, count, station);
+    let right = if station { 182.0 + width } else { 180.0 + width };
     Break((crate::game::tconstruct_source_side_layout::adjusted_origin(batch.width, base, left, right), y))
 }

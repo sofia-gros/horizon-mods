@@ -44,6 +44,10 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
         }
         return Break(());
     }
+    if id == 30001 {
+        if let Some(key) = game.container { game.world.chunks.__horizon_mixins_tconstruct_builder_side_title_mut().insert(key, value); }
+        return Break(());
+    }
     if id == 30000 {
         if let Some(key) = game.container {
             if let Ok(size) = usize::try_from(value) { game.world.chunks.__horizon_mixins_tconstruct_builder_side_size_mut().insert(key, size); }

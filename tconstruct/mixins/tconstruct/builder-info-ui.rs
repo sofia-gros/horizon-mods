@@ -11,6 +11,12 @@ pub(super) fn visible_index(entries: &[(String, u32, Option<String>)], scroll: u
     (index < entries.len()).then_some(index)
 }
 
+pub(super) fn panel_width(game: &Game<'_>, station: bool) -> f32 {
+    let Some(renderer) = game.renderer.as_ref() else { return 126.0; };
+    let batch = horizon_client::hud::HudBatch::new([renderer.config.width, renderer.config.height]);
+    super::tconstruct_source_side_layout::panel_width(batch.width, super::tconstruct_ui::side_count(game), station)
+}
+
 /// Text uses the authoritative local recipe or the server's menu data.
 pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> Vec<(String, u32, Option<String>)> {
     let Some(pos) = game.container else { return Vec::new(); };
@@ -86,15 +92,15 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
     if let Some(title) = title {
         let key = title.split_once(':').map(|(namespace, path)| format!("recipe.{namespace}.{}.info", path.replace('/', ".")));
         let text = key.and_then(|key| game.pack.names.display_get(&key)).unwrap_or_default();
-        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0 / TEXT_SCALE, atlas).into_iter().map(|line| (line, u32::MAX, None)));
+        lines.extend(horizon_client::multiplayer::wrap(&text, (panel_width(game, false) - 14.0) / TEXT_SCALE, atlas).into_iter().map(|line| (line, u32::MAX, None)));
     } else if material.is_none() {
         let text = game.pack.names.display_get("gui.tconstruct.part_builder.info").unwrap_or_default();
-        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0 / TEXT_SCALE, atlas).into_iter().map(|line| (line, u32::MAX, None)));
+        lines.extend(horizon_client::multiplayer::wrap(&text, (panel_width(game, false) - 14.0) / TEXT_SCALE, atlas).into_iter().map(|line| (line, u32::MAX, None)));
     }
     lines
 }
 
-pub(super) fn panel(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32, height: f32) {
+pub(super) fn panel(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32, width: f32, height: f32) {
     let atlas = &game.gui.atlas;
     let Some(sprite) = atlas.sprites.get("gui/tconstruct_panel").copied() else { return; };
     let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
@@ -104,27 +110,28 @@ pub(super) fn panel(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, 
         batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
     };
     let inner = height - 8.0;
-    region(batch, 4.0, 4.0, 118.0, 75.0, 4.0, 4.0, 118.0, inner);
-    for (sx, sy, x, y) in [(0.0,0.0,0.0,0.0),(122.0,0.0,122.0,0.0),(0.0,79.0,0.0,height - 4.0),(122.0,79.0,122.0,height - 4.0)] {
+    region(batch, 4.0, 4.0, 118.0, 75.0, 4.0, 4.0, width - 8.0, inner);
+    for (sx, sy, x, y) in [(0.0,0.0,0.0,0.0),(122.0,0.0,width - 4.0,0.0),(0.0,79.0,0.0,height - 4.0),(122.0,79.0,width - 4.0,height - 4.0)] {
         region(batch, sx, sy, 4.0, 4.0, x, y, 4.0, 4.0);
     }
-    region(batch, 4.0, 0.0, 118.0, 4.0, 4.0, 0.0, 118.0, 4.0);
-    region(batch, 4.0, 79.0, 118.0, 4.0, 4.0, height - 4.0, 118.0, 4.0);
+    region(batch, 4.0, 0.0, 118.0, 4.0, 4.0, 0.0, width - 8.0, 4.0);
+    region(batch, 4.0, 79.0, 118.0, 4.0, 4.0, height - 4.0, width - 8.0, 4.0);
     region(batch, 0.0, 4.0, 4.0, 75.0, 0.0, 4.0, 4.0, inner);
-    region(batch, 122.0, 4.0, 4.0, 75.0, 122.0, 4.0, 4.0, inner);
+    region(batch, 122.0, 4.0, 4.0, 75.0, width - 4.0, 4.0, 4.0, inner);
 }
 
 pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
     let atlas = &game.gui.atlas;
-    panel(game, batch, ox + 180.0, oy, 184.0);
+    let width = panel_width(game, false);
+    panel(game, batch, ox + 180.0, oy, width, 184.0);
     let entries = lines(game, atlas);
     let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(VISIBLE_LINES));
-    if entries.iter().any(|(_, _, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 297.0, oy + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
+    if entries.iter().any(|(_, _, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 180.0 + width - 9.0, oy + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
     for index in 0..VISIBLE_LINES {
         let Some(entry_index) = visible_index(&entries, scroll, index) else { break; };
         let (text, color, _) = &entries[entry_index];
         let centered = entry_index == 0 || *color == horizon_client::hud::rgba(255, 170, 0, 255) || *color == horizon_client::hud::rgba(127, 255, 255, 255);
-        let x = if centered { ox + 243.0 - horizon_client::hud::HudBatch::text_width(atlas, text) * TEXT_SCALE / 2.0 } else { ox + 185.0 };
+        let x = if centered { ox + 180.0 + width / 2.0 - horizon_client::hud::HudBatch::text_width(atlas, text) * TEXT_SCALE / 2.0 } else { ox + 185.0 };
         let y = oy + 5.0 + index as f32 * LINE_HEIGHT;
         let start = batch.vertices.len();
         batch.text(atlas, text, x, y, *color, true);

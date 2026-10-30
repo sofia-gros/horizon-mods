@@ -20,6 +20,7 @@ fn clear_part_selection_on_block_change(world: &mut crate::world::World, x: i32,
         world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_info_scroll_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().remove(&(x,y,z));
+        world.chunks.__horizon_mixins_tconstruct_builder_side_title_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_station_info_scroll_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().retain(|(_, _, pos), _| *pos != (x,y,z));

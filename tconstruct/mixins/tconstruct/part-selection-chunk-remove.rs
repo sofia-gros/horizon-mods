@@ -13,6 +13,7 @@ fn clear_part_selection_on_unload(chunks: &mut crate::chunk_map::ChunkMap, chunk
     chunks.__horizon_mixins_tconstruct_builder_recipe_context_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_choices_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_side_size_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
+    chunks.__horizon_mixins_tconstruct_builder_side_title_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_double_partner_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_builder_preview_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);

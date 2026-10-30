@@ -79,7 +79,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
         top.push((game.pack.names.display_get(&layout.translation).unwrap_or_else(|| layout.translation.clone()), None));
         let description = format!("{}.description", layout.translation);
         if let Some(description) = game.pack.names.display_get(&description) {
-            top.extend(horizon_client::multiplayer::wrap(&description, 112.0 / TOP_SCALE, atlas).into_iter().map(|line| (line, None)));
+            top.extend(horizon_client::multiplayer::wrap(&description, (super::tconstruct_builder_info_ui::panel_width(game, true) - 14.0) / TOP_SCALE, atlas).into_iter().map(|line| (line, None)));
         }
         bottom.push((game.pack.names.display_get("gui.tconstruct.tinker_station.components").unwrap_or_else(|| "Components".into()), None));
         for (index, spec) in layout.input_slots.iter().enumerate() {
@@ -98,15 +98,16 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
 pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
     let Some((top, bottom)) = lines(game) else { return; };
     let atlas = &game.gui.atlas;
+    let width = super::tconstruct_builder_info_ui::panel_width(game, true);
     let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll().get(&pos)).copied().unwrap_or_default();
     for (offset, lines, scroll, scale, line_height, visible) in [(5.0, top, scroll.0, TOP_SCALE, TOP_LINE_HEIGHT, TOP_VISIBLE), (94.0, bottom, scroll.1, BOTTOM_SCALE, BOTTOM_LINE_HEIGHT, BOTTOM_VISIBLE)] {
-        super::tconstruct_builder_info_ui::panel(game, batch, ox + 182.0, oy + offset, 83.0);
+        super::tconstruct_builder_info_ui::panel(game, batch, ox + 182.0, oy + offset, width, 83.0);
         let scroll = scroll.min(lines.len().saturating_sub(visible));
-        if lines.iter().any(|(_, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 299.0, oy + offset + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
+        if lines.iter().any(|(_, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 182.0 + width - 9.0, oy + offset + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
         for index in 0..visible {
             let entry = if index == 0 { 0 } else { index + scroll };
             let Some((line, _)) = lines.get(entry) else { break; };
-            let x = if index == 0 { ox + 245.0 - horizon_client::hud::HudBatch::text_width(atlas, line) * scale / 2.0 } else { ox + 187.0 };
+            let x = if index == 0 { ox + 182.0 + width / 2.0 - horizon_client::hud::HudBatch::text_width(atlas, line) * scale / 2.0 } else { ox + 187.0 };
             let y = oy + offset + 5.0 + index as f32 * line_height;
             let start = batch.vertices.len();
             batch.text(atlas, line, x, y, u32::MAX, true);

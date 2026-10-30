@@ -21,6 +21,16 @@ pub(super) fn side_count(game: &Game<'_>) -> usize {
     } else { game.container_size().saturating_sub(27) }
 }
 
+pub(super) fn side_title(game: &Game<'_>) -> &'static str {
+    let code = if game.remote.is_some() {
+        game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_title().get(&pos).copied()).unwrap_or(0)
+    } else {
+        game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&pos).copied())
+            .map(|pos| super::tconstruct_source_side_layout::title_code(&game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name)).unwrap_or(0)
+    };
+    super::tconstruct_source_side_layout::title_key(code)
+}
+
 pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_station_layout::StationLayout> {
     let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() else { return Vec::new(); };
     let Some(rest) = game.res.rest.get() else { return Vec::new(); };

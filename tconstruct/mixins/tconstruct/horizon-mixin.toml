@@ -800,6 +800,16 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[state]]
+id = "builder-side-title"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),i16>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[module]]
 id = "builder-side-layout"
 file = "crates/horizon-client/src/game.rs"
@@ -889,6 +899,20 @@ kind = "HEAD"
 cancellable = true
 helper = "station-name-typing.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "station-name-remote-sync"
+target = "horizon_client::game::remote::Game<'_>::remote_synced"
+kind = "HEAD"
+helper = "station-name-remote-sync.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "station-name-click-return"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "RETURN"
+helper = "station-name-click-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]
 id = "station-name-text"

@@ -24,6 +24,8 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         if let Some(guest) = host.hub.guest(conn) {
             if let Some(window) = guest.menu.as_ref().map(|menu| menu.window) {
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30000, value: count as i16 }));
+                let title = side.map_or(0, |side| crate::game::tconstruct_source_side_layout::title_code(&game.res.facts().get(game.world.block(side.0, side.1, side.2)).name));
+                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30001, value: title }));
             }
         }
     }
