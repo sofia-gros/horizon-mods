@@ -15,8 +15,10 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
         300 => (8.0, 43.0),
         301 => (29.0, 43.0),
         322 if !station => (148.0, 42.0),
-        324 if station => (114.0, 38.0),
-        325 if station => (134.0, 38.0),
+        324..=325 if station => {
+            let operation = game.container_kind().is_some_and(|entity| crate::game::tconstruct_source_station_world::has_operation_tool(entity.slots()));
+            if crate::game::tconstruct_source_station_layout::result_visible(slot, operation) { (114.0, 38.0) } else { (-10000.0, -10000.0) }
+        },
         302..=326 => (-10000.0, -10000.0),
         327..=380 if !station => {
             let count = if game.remote.is_some() {

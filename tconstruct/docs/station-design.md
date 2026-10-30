@@ -57,3 +57,5 @@ details and visual parity remain to be verified in game.
 The Station's panels show the selected source layout and components, or the
 current result's recorded durability, melee values, and supported upgrade
 progress. Other tool statistics and modifier descriptions remain incomplete.
+Building and repair use the same visible result position; their separate
+internal transaction slots remain distinct.

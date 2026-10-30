@@ -9,6 +9,11 @@ const BUTTON_STEP: i32 = 22;
 const BUTTON_LEFT: i32 = -130;
 const BUTTON_TOP: i32 = 9;
 
+/// The source Station has one result position for either kind of operation.
+pub(super) fn result_visible(slot: usize, operation: bool) -> bool {
+    slot == if operation { 325 } else { 324 }
+}
+
 pub(super) fn button_position(index: usize) -> Option<(i32, i32)> {
     if index >= BUTTON_COLUMNS * BUTTON_ROWS { return None; }
     Some((BUTTON_LEFT + (index % BUTTON_COLUMNS) as i32 * BUTTON_STEP,
@@ -99,5 +104,13 @@ mod tests {
         assert_eq!(button_at(7, -112, 9), None);
         assert_eq!(button_at(7, -130, 31), Some(6));
         assert_eq!(button_at(6, -130, 31), None);
+    }
+
+    #[test]
+    fn only_one_result_slot_is_visible() {
+        assert!(result_visible(324, false));
+        assert!(!result_visible(325, false));
+        assert!(!result_visible(324, true));
+        assert!(result_visible(325, true));
     }
 }

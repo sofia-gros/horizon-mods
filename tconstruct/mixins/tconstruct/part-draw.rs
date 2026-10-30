@@ -118,7 +118,8 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             }
         }
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
-            for (x, action) in [(114.0, 24), (134.0, 25)] {
+            let action = if crate::game::tconstruct_source_station_world::has_operation_tool(slots) { 25 } else { 24 };
+            for (x, action) in [(114.0, action)] {
                 let output = if game.remote.is_some() {
                     slots.get(action as usize).cloned().flatten()
                 } else if action == 24 {
