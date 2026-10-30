@@ -51,10 +51,10 @@ def upgrade(item, ingredient):
 def attackpair():
     cmd('gamemode creative @s')
     cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_damage",function:"minecraft:set_damage",damage:1.0}')
-    cmd('kill @e[type=minecraft:zombie]')
+    cmd('kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]')
     cmd('tp @s 0.5 71 0.5')
     cmd('gamemode survival @s')
-    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b}')
+    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b,Tags:["tconstruct_upgrade_test"]}')
     g.call('wait', '35')
     g.call('hurtlog')
     id = g.call('entities', '8', 'minecraft:zombie')['entities'][0]['id']
@@ -67,7 +67,7 @@ try:
     if g.call('status')['screen'] == 'dead':
         g.call('respawn')
         g.call('wait', '20')
-    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie]', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'clear @s', 'kill @e[type=minecraft:item]', 'tp @s 0.5 71 0.5', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1', 'give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'clear @s', 'tp @s 0.5 71 0.5', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1', 'give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
         cmd(x)
     g.call('hotbar', '1')
     g.call('interact', '0', '71', '2')
@@ -107,6 +107,7 @@ try:
     print('upgraded hits', json.dumps(hits), flush=True)
     assert abs(hits[0]['amount'] - 4.25) < 0.001
     assert hits[-1]['scale'] > base_hits[-1]['scale']
+    cmd('kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]')
     cmd('gamemode creative @s')
     for invalid in ('minecraft:amethyst_shard', 'minecraft:dirt'):
         cmd('give @s ' + invalid + ' 1')

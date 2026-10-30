@@ -41,7 +41,7 @@ try:
     q = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=(run / 'Guest').exists())
     games.append(q)
     q.ready()
-    for x in ('gamemode creative @a', 'kill @e[type=minecraft:zombie]', 'clear @a', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'give Guest tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85,tic_attack_damage:1.75f,tic_attack_speed:1.2f},minecraft:max_damage=85] 1', 'give Guest minecraft:quartz 1'):
+    for x in ('gamemode creative @a', 'kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]', 'clear @a', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'give Guest tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85,tic_attack_damage:1.75f,tic_attack_speed:1.2f},minecraft:max_damage=85] 1', 'give Guest minecraft:quartz 1'):
         cmd(h, x)
     wait(lambda: q.call('block', '0', '71', '2').get('block') == 'tconstruct:tinker_station')
     print('interact', q.call('interact', '0', '71', '2'), flush=True)
