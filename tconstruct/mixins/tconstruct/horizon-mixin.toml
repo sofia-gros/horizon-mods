@@ -44,6 +44,12 @@ cancellable = true
 helper = "broken-harvest.rs"
 bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
 
+[[module]]
+id = "source-block-shapes"
+file = "crates/horizon-client/src/logging.rs"
+name = "tconstruct_block_shapes"
+source = "source-block-shapes.rs"
+
 [[injection]]
 id = "prepare-station-resources"
 target = "horizon_client::logging::game_home"

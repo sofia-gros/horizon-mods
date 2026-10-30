@@ -30,8 +30,10 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(json.loads((src / 'items.json').read_text()), raw)
             self.assertEqual(json.loads((src / 'creative-inventory.json').read_text()), creative)
             tabs = json.loads((out / 'creative-inventory.json').read_text())['tabs']
-            self.assertEqual(tabs[-1]['id'], 'tconstruct:tools')
-            self.assertEqual(tabs[-1]['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
+            tools = next(tab for tab in tabs if tab['id'] == 'tconstruct:tools')
+            blocks = next(tab for tab in tabs if tab['id'] == 'tconstruct:blocks')
+            self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
+            self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             items = json.loads((out / 'items.json').read_text())
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']

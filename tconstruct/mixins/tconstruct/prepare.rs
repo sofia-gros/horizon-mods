@@ -138,6 +138,20 @@ fn prepare_tconstruct_resources() {
             std::fs::write(&temp, serde_json::to_vec(&registries)?)?;
             std::fs::rename(temp, path)?;
         }
+        // Vanilla honey has the same 1/16 inset collision box as source
+        // congealed slime. Copy only its shape, never its movement behavior.
+        let shape_targets = ["earth", "sky", "ichor", "ender"].map(|kind| format!("tconstruct:{kind}_congealed_slime"));
+        let targets: Vec<usize> = shape_targets.iter().filter_map(|name| facts["defaults"][name.as_str()].as_u64().map(|id| id as usize)).collect();
+        if !targets.is_empty() {
+            let honey = facts["defaults"]["minecraft:honey_block"].as_u64().ok_or("missing honey block")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                tconstruct_block_shapes::apply_congealed_shape(&mut named.tag, honey, &targets)?;
+                let bytes = horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?;
+                std::fs::write(path, bytes)?;
+            }
+        }
         let path = out.join("gameplay-facts.json");
         let mut gameplay: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
@@ -148,6 +162,17 @@ fn prepare_tconstruct_resources() {
             // Its vanilla template must not hide the ground between its legs.
             row["solid_render"] = serde_json::Value::Bool(false);
             row["can_occlude"] = serde_json::Value::Bool(false);
+        }
+        // Source tables have legs and slime-metal blocks declare no occlusion.
+        // Apply this to every state of those blocks.
+        if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
+            for (id, state) in states.iter().enumerate() {
+                if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:soulsteel_block" | "tconstruct:slimesteel_block" | "tconstruct:cinderslime_block" | "tconstruct:knightslime_block")) {
+                    let row = rows.get_mut(id).ok_or("missing table gameplay row")?;
+                    row["solid_render"] = serde_json::Value::Bool(false);
+                    row["can_occlude"] = serde_json::Value::Bool(false);
+                }
+            }
         }
         if let Some(id) = facts["defaults"]["tconstruct:fake_storage_block"].as_u64() {
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id as usize)).ok_or("missing material block gameplay row")?;
@@ -161,6 +186,11 @@ fn prepare_tconstruct_resources() {
         for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
             let row = render.get_mut(name).and_then(serde_json::Value::as_object_mut).ok_or("missing station render definition")?;
             row.insert("can_occlude".into(), serde_json::Value::Bool(false));
+        }
+        for name in ["tconstruct:crafting_station", "tconstruct:modifier_worktable", "tconstruct:soulsteel_block", "tconstruct:slimesteel_block", "tconstruct:cinderslime_block", "tconstruct:knightslime_block"] {
+            if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
+                row.insert("can_occlude".into(), serde_json::Value::Bool(false));
+            }
         }
         let temp = out.join("render-definitions.json.tmp");
         std::fs::write(&temp, serde_json::to_vec(&render)?)?;

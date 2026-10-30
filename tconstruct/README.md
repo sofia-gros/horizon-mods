@@ -10,6 +10,8 @@ Choose the [Windows guide](docs/windows-playtest.md) or [Linux guide](docs/linux
 
 The Part Builder can turn materials and patterns into tool parts. The Tinker Station can assemble and repair supported tools. See [Making parts and tools](docs/playing.md) for an illustrated example.
 
+In Creative, the Tinkers blocks tab also offers registered building blocks. See [the block guide](docs/block-registration.md) for the tested selection and its limits.
+
 The mod is still in development. Smeltery and casting are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
 
 ## Develop

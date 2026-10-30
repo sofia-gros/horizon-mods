@@ -19,6 +19,8 @@ untested content as complete merely because it uses the same framework.
 
 Material attack damage, attack speed, and armor attributes have been tested with representative equipment on Linux. A longbow can be drawn and fired using the existing bow behavior; switching hands cancels its shot. Material draw speed for longbows and crossbows, along with crossbow charging and firing, has been tested with representative values on Linux. Command-supplied wood-material bows were tested for survival wear, broken retention and use rejection, limb-material repair, save/reload, and Creative wear exemption. Projectile velocity and accuracy are not connected; an earlier Mixins planner rejected the shot argument site, and the current revision has not yet been checked for that use. Most modifier effects remain unimplemented. Vanilla weapons can currently heal targets under sufficiently strong Weakness in the underlying game; material weapons clamp their basic damage to zero.
 
+A Creative block tab now lists the registered block items. Linux tests covered representative placement and LAN synchronization, a slimewood door, a seared brick drop and save/reload, and the appearance of the three layered slime-metal blocks. Connected glass, source slime bounce and piston behavior, machine operation, and remaining blocks are still incomplete. The [block registration guide](block-registration.md) describes the limits.
+
 ## Implementation order
 
 1. Register the original tools, weapons, and armor using the shared source data.
