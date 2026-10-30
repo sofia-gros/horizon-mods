@@ -11,6 +11,7 @@ fn tconstruct_remote_bow_start(
         "tconstruct:crossbow" => return Break(()),
         _ => return Continue(()),
     };
+    if crate::game::tconstruct_source_ranged_wear::is_broken(held) { return Break(()); }
     if game.using.is_none() && (game.creative || game.projectile_slot(weapon).is_some()) {
         game.using = Some((game.held_slot(), 0));
     }

@@ -6,6 +6,7 @@ fn tconstruct_crossbow_use(
     if &*stack.item != "tconstruct:crossbow" {
         return Continue(());
     }
+    if crate::game::tconstruct_source_ranged_wear::is_broken(stack) { return Break(true); }
     if game.using.is_some() {
         return Break(true);
     }
