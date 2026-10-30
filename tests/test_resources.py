@@ -17,7 +17,8 @@ class ResourceOverlay(unittest.TestCase):
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
             raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:honey_bottle': {},
-                   'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}}}
+                   'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
+                   'minecraft:stone_axe': {}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
             (src / 'items.json').write_text(json.dumps(raw))
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
@@ -29,6 +30,7 @@ class ResourceOverlay(unittest.TestCase):
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']
             self.assertTrue(all(name in items and name in ids for name in names))
+            self.assertTrue(all('tconstruct:' + name in items for name in ('mattock', 'pickadze', 'kama')))
             bottle = items['tconstruct:venom_bottle']
             self.assertEqual(bottle['minecraft:max_stack_size'], 16)
             self.assertEqual(bottle['minecraft:food'], {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0})
