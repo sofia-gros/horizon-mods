@@ -56,11 +56,10 @@ additional implementation and test details.
 
 The playtest now derives Minecraft recipe and item/fluid tag data from prepared Horizon 26.3 resources rather than requiring a 1.20.1 client. Ordinary sand and red sand each craft four blank casts. These two native inputs are a 26.3 adaptation, not a claim that every original Forge tag or datapack override is supported. Other materials, world reload interactions, official production-binary gameplay and Windows remain to be validated.
 
-CI reuses Cargo dependency and build caches. Runtime, test, configuration and
-workflow changes still run the full Mixins transformation and checks. A PR
-containing only documentation or image changes since a successful run on the
-same base can reuse that result; if the earlier result cannot be established,
-CI runs the full checks. Main-branch pushes always run the full checks.
+CI reuses Cargo dependency and build caches. Run the Mixins validation workflow
+manually for the final commit of a change; it performs the full checks. Verify
+the run's head SHA and successful result before merging. Ordinary pushes do not
+start a build. See the [development guide](../../docs/development.md).
 Related implementation changes should be developed in a batch with lightweight
 checks first, then share the required full transform and representative game
 validation before the verified work is merged to main.
