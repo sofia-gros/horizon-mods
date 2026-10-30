@@ -25,6 +25,13 @@ pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecip
     })?
 }
 
+pub(super) fn alloy(world: &World, fluids: &[(String, u32)], temperature: u32)
+    -> Option<(String, Vec<(String, u32)>, String, u32)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.alloy(fluids, temperature, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
 pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &str) -> Option<(String, CastingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.casting(basin, input, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
