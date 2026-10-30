@@ -56,8 +56,9 @@ the supported stat types. Item-part recipes with a source
 details and visual parity remain to be verified in game.
 The Station's panels show the selected source layout and components, or the
 current result's recorded statistics, resolved material traits, and supported
-upgrade progress. Modifier descriptions remain incomplete. The panels can be
-scrolled when their text exceeds the available height.
+upgrade progress. Available source descriptions are shown when hovering over
+statistics and modifiers. The panels can be scrolled when their text exceeds
+the available height.
 Building and repair use the same visible result position; their separate
 internal transaction slots remain distinct.
 The source's two-input pattern layouts are selectable alongside item layouts.

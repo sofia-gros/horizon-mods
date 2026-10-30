@@ -1,6 +1,29 @@
 fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
+    if station {
+        let (ox, oy) = game.inventory_origin(batch);
+        if (ox + 182.0..ox + 308.0).contains(&game.cursor.0) {
+            if let Some((top, bottom)) = crate::game::tconstruct_station_info_ui::lines(game) {
+                let offsets = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll().get(&pos)).copied().unwrap_or_default();
+                let selected = if (oy + 10.0..oy + 80.0).contains(&game.cursor.1) { Some((&top, offsets.0, oy + 10.0)) }
+                    else if (oy + 99.0..oy + 169.0).contains(&game.cursor.1) { Some((&bottom, offsets.1, oy + 99.0)) }
+                    else { None };
+                if let Some((lines, scroll, start)) = selected {
+                    let scroll = scroll.min(lines.len().saturating_sub(7));
+                    let row = ((game.cursor.1 - start) / 10.0) as usize;
+                    let tip = if row == 0 && game.cursor.0 >= ox + 296.0 && lines.iter().any(|(_, tip)| tip.is_some()) {
+                        game.pack.names.display_get("gui.tconstruct.general.hover")
+                    } else { lines.get(scroll + row).and_then(|(_, tip)| tip.clone()) };
+                    if let Some(tip) = tip {
+                        let lines = horizon_client::multiplayer::wrap(&tip, 200.0, &game.gui.atlas).into_iter().map(|line| (line, u32::MAX)).collect::<Vec<_>>();
+                        game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+                    }
+                    return Break(());
+                }
+            }
+        }
+    }
     if !station {
         let (ox, oy) = game.inventory_origin(batch);
         if (ox + 180.0..ox + 306.0).contains(&game.cursor.0) && (oy + 5.0..oy + 175.0).contains(&game.cursor.1) {

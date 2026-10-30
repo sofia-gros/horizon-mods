@@ -1,7 +1,7 @@
 use super::*;
 use horizon_world::nbt::Tag;
 
-pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<String>, Vec<String>)> {
+pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, Vec<(String, Option<String>)>)> {
     let atlas = &game.gui.atlas;
     let layout = super::tconstruct_ui::station_layout(game)?;
     let entity = game.container_kind()?;
@@ -24,7 +24,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<String>, Vec<String>)> {
     if let Some(tool) = tool {
         let id = tool.item.split_once(':').map(|(namespace, path)| format!("item.{namespace}.{path}"));
         let title = tool.custom_name().map(str::to_owned).or_else(|| id.map(|key| game.pack.names.display_get(&key).unwrap_or(key))).unwrap_or_default();
-        top.push(title);
+        top.push((title, None));
         if let Some(data) = tool.data().and_then(|data| data.other("minecraft:custom_data")) {
             for (field, key) in [("tic_max_damage", "tool_stat.tconstruct.durability"), ("tic_attack_damage", "tool_stat.tconstruct.attack_damage"), ("tic_attack_speed", "tool_stat.tconstruct.attack_speed"), ("tic_draw_speed", "tool_stat.tconstruct.draw_speed"), ("tic_velocity", "tool_stat.tconstruct.velocity"), ("tic_accuracy", "tool_stat.tconstruct.accuracy"), ("tic_armor", "tool_stat.tconstruct.armor"), ("tic_armor_toughness", "tool_stat.tconstruct.armor_toughness"), ("tic_knockback_resistance", "tool_stat.tconstruct.knockback_resistance")] {
                 let number = match data.get(field) {
@@ -35,7 +35,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<String>, Vec<String>)> {
                 };
                 if let Some(number) = number {
                     let label = game.pack.names.display_get(key).unwrap_or_else(|| key.to_owned());
-                    top.push(format!("{label}{number}"));
+                    top.push((format!("{label}{number}"), game.pack.names.display_get(&format!("{key}.description"))));
                 }
             }
             let traits = if game.remote.is_some() {
@@ -46,8 +46,9 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<String>, Vec<String>)> {
                 for (id, level) in traits {
                     if let Some((namespace, name)) = id.split_once(':') {
                         let key = format!("modifier.{namespace}.{name}");
-                        let label = game.pack.names.display_get(&key).unwrap_or(key);
-                        bottom.push(format!("{label} {level}"));
+                        let label = game.pack.names.display_get(&key).unwrap_or_else(|| key.clone());
+                        let tip = game.pack.names.display_get(&format!("{key}.description"));
+                        bottom.push((format!("{label} {level}"), tip));
                     }
                 }
             }
@@ -56,27 +57,28 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<String>, Vec<String>)> {
                     if let Tag::Int(amount) = value {
                         let id = id.to_string_lossy();
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
-                        let label = key.map(|key| game.pack.names.display_get(&key).unwrap_or(key)).unwrap_or_else(|| id.to_string());
+                        let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
+                        let tip = key.and_then(|key| game.pack.names.display_get(&format!("{key}.description")));
                         let needed = match id.as_ref() { "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72, _ => continue };
-                        bottom.push(format!("{label}: {amount}/{needed}"));
+                        bottom.push((format!("{label}: {amount}/{needed}"), tip));
                     }
                 }
             }
         }
     } else {
-        top.push(game.pack.names.display_get(&layout.translation).unwrap_or_else(|| layout.translation.clone()));
+        top.push((game.pack.names.display_get(&layout.translation).unwrap_or_else(|| layout.translation.clone()), None));
         let description = format!("{}.description", layout.translation);
         if let Some(description) = game.pack.names.display_get(&description) {
-            top.extend(horizon_client::multiplayer::wrap(&description, 112.0, atlas));
+            top.extend(horizon_client::multiplayer::wrap(&description, 112.0, atlas).into_iter().map(|line| (line, None)));
         }
-        bottom.push(game.pack.names.display_get("gui.tconstruct.tinker_station.components").unwrap_or_else(|| "Components".into()));
+        bottom.push((game.pack.names.display_get("gui.tconstruct.tinker_station.components").unwrap_or_else(|| "Components".into()), None));
         for (index, spec) in layout.input_slots.iter().enumerate() {
             if let Some(key) = spec.translation.as_deref() {
                 let slot_index = index + usize::from(layout.tool_slot.is_some());
                 let stack = slots.get(slot_index).and_then(Option::as_ref);
                 let valid = stack.is_some_and(|stack| spec.accepts_item(stack.item.as_ref()));
                 let label = game.pack.names.display_get(key).unwrap_or_else(|| key.to_owned());
-                bottom.push(format!("{} {label}", if valid { "✓" } else { "•" }));
+                bottom.push((format!("{} {label}", if valid { "✓" } else { "•" }), None));
             }
         }
     }
@@ -90,7 +92,8 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
     for (offset, lines, scroll) in [(5.0, top, scroll.0), (94.0, bottom, scroll.1)] {
         super::tconstruct_builder_info_ui::panel(game, batch, ox + 182.0, oy + offset, 83.0);
         let scroll = scroll.min(lines.len().saturating_sub(7));
-        for (index, line) in lines.iter().skip(scroll).take(7).enumerate() {
+        if lines.iter().any(|(_, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 299.0, oy + offset + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
+        for (index, (line, _)) in lines.iter().skip(scroll).take(7).enumerate() {
             batch.text(atlas, line, ox + 187.0, oy + offset + 5.0 + index as f32 * 10.0, u32::MAX, true);
         }
     }
