@@ -45,7 +45,8 @@ fn render_source_tool_gui(
         let alias = format!("tconstruct_tool/{sprite_path}");
         if !game.options.resources.join("assets/tconstruct/items").join(format!("{alias}.json")).is_file() { return Continue(()); }
         let mut rendered = stack.clone();
-        rendered.data_mut().set_other("minecraft:item_model", Some(Tag::String(format!("tconstruct:{alias}").into())));
+        let model_id = format!("tconstruct:{alias}");
+        rendered.data_mut().set_other("minecraft:item_model", Some(Tag::String(model_id.as_str().into())));
         let mut state = game.pack.item_renderer.resolve(&item_render::stack_view(&rendered), DisplayContext::Gui, Some(&owner), Some(&level), 0, &game.item_env());
         if state.is_empty() { return Continue(()); }
         let Ok(mut frame_cache) = game.world.chunks.__horizon_mixins_tconstruct_render_sprite_frames().lock() else { return Continue(()); };
