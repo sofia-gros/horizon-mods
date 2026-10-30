@@ -10,6 +10,10 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let builder = block.and_then(|r| r.id("tconstruct:part_builder"));
     let station = block.and_then(|r| r.id("tconstruct:tinker_station"));
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
+    if !is_station && (32..36).contains(&packet.slot) && matches!(menu.slots, crate::lan::menu::Slots::Double(_, side) if world.block_entities.get(&side).is_some_and(|entity| entity.slots().len() == 5)) {
+        if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+        return Break(Vec::new());
+    }
     if !is_station && packet.slot == 22 && packet.input == 1 {
         let mut dropped = Vec::new();
         let mut crafted = Vec::new();

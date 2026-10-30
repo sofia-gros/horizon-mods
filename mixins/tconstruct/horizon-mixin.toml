@@ -1091,6 +1091,17 @@ selector = "Self"
 require = 1
 
 [[injection]]
+id = "builder-hopper-menu-read"
+target = "horizon_client::lan::menu::Slots::read"
+kind = "HEAD"
+cancellable = true
+helper = "source-side-menu-read.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+]
+
+[[injection]]
 id = "builder-side-parts"
 target = "horizon_client::game::storage::Game<'_>::container_parts"
 kind = "HEAD"

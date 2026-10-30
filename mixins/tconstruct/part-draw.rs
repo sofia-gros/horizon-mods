@@ -3,7 +3,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     let atlas = &game.gui.atlas;
     if !station && game.container_size() > 27 {
         let atlas = &game.gui.atlas;
-        let count = game.container_size() - 27;
+        let count = if game.remote.is_some() {
+            game.container.and_then(|key| crate::game::tconstruct_ui::side_inventory(game, key))
+                .and_then(|side| game.world.block_entities.get(&side)).map_or(game.container_size() - 27, |entity| entity.slots().len())
+        } else { game.container_size() - 27 };
         batch.fill(atlas, ox - 117.0, oy + 5.0, 60.0, (count.div_ceil(3) as f32 * 18.0) + 6.0, horizon_client::hud::rgba(198, 198, 198, 255));
         for i in 0..count {
             let x = ox - 115.0 + (i % 3) as f32 * 18.0;

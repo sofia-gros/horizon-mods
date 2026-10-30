@@ -23,7 +23,7 @@ pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32)) -> Option<(i
         if matches!(&**name, "tconstruct:part_builder" | "tconstruct:tinker_station") || name.ends_with("shulker_box")
             || game.chest_partner(pos).is_some() { return None; }
         match game.world.block_entities.get(&pos) {
-            Some(BlockEntity::Chest(items)) if matches!(items.len(), 9 | 27) => Some(pos),
+            Some(BlockEntity::Chest(items)) if matches!(items.len(), 5 | 9 | 27) => Some(pos),
             _ => None,
         }
     })
