@@ -12,6 +12,14 @@ Open your Creative inventory and select the pickaxe tab at the top. Choose an it
 
 A wood pickaxe obtained here was tested for mining on Linux; a Plate Helmet was obtained and placed in the head slot. Many other tools and armor variants are registered for display, but their material stats and individual actions are still incomplete. Windows remains unverified.
 
+## Place a workstation
+
+Place a Part Builder or Tinker Station on the ground and open it to work with parts. The space between its legs stays open, so you can see the floor beneath it.
+
+![A Tinker Station standing on stone beside a stone block](station-ground.png)
+
+*The Tinker Station on a stone floor in a Linux test.*
+
 ## Make a tool handle
 
 In a creative test world, use the chat to get a Part Builder, patterns, and wood:
