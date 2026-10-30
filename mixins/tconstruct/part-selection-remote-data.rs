@@ -1,6 +1,30 @@
 fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value: i16) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
+    let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
+    if station {
+        let Some(key) = game.container else { return Break(()); };
+        if id == 10000 && value == -1 {
+            game.world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().insert(key, Vec::new());
+        } else if id == 10000 && value == -2 {
+            game.world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().remove(&key);
+            if let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut().as_mut() {
+                snapshot.retain(|id, _| !id.contains(":tinkering/station_layouts/"));
+            }
+        } else if id == 10000 && value >= 0 {
+            let frame = game.world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().remove(&key);
+            let pairs = frame.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words));
+            if let Some(pairs) = pairs.filter(|pairs| pairs.len() % 2 == 0 && pairs.chunks_exact(2).all(|pair| pair[0].contains(":tinkering/station_layouts/") && crate::game::tconstruct_source_station_layout::StationLayout::parse(pair[0].clone(), pair[1].as_bytes()).is_some())) {
+                let snapshot = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut().get_or_insert_with(Default::default);
+                snapshot.retain(|id, _| !id.contains(":tinkering/station_layouts/"));
+                for pair in pairs.chunks_exact(2) { snapshot.insert(pair[0].clone(), vec![pair[1].as_bytes().to_vec()]); }
+            }
+        } else if id > 10000 {
+            if let Some(words) = game.world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().get_mut(&key) {
+                if words.len() == id - 10001 { words.push(value); } else { game.world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().remove(&key); }
+            }
+        }
+        return Break(());
+    }
     if id == 30000 {
         if let Some(key) = game.container {
             if let Ok(size) = usize::try_from(value) { game.world.chunks.__horizon_mixins_tconstruct_builder_side_size_mut().insert(key, size); }
