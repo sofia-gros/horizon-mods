@@ -98,7 +98,14 @@ fn prepare_tconstruct_resources() {
                                 maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
                             }
                             if maps.len() != ids.len() { continue; }
-                            if let Some(stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
+                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
+                                let traits = crate::tconstruct_source_material_traits::levels_from_definition(&definition, &ids, |id| {
+                                    let (namespace, path) = id.split_once(':')?;
+                                    std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
+                                });
+                                if let (Some(traits), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
+                                    if crate::tconstruct_source_material_effects::apply_durability_traits(&mut stack, &stats, &traits).is_none() { continue; }
+                                }
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }
                         }

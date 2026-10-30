@@ -6,6 +6,8 @@ use serde_json::{Map, Value};
 pub(super) struct BaseStats {
     pub durability: f32,
     pub durability_multiplier: f32,
+    pub durability_boost_unit: f32,
+    pub durability_multiplier_unit: f32,
     pub mining_speed: f32,
     pub attack_damage: f32,
     pub attack_speed: f32,
@@ -223,6 +225,8 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
     Some(BaseStats {
         durability: stats[0].result(),
         durability_multiplier: (1.0 + stats[0].percent) * stats[0].multiply,
+        durability_boost_unit: (stats[0].base + stats[0].add) * stats[0].multiply,
+        durability_multiplier_unit: stats[0].multiply,
         mining_speed: stats[1].result(),
         attack_damage: stats[2].result(),
         attack_speed: stats[3].result(),
@@ -286,6 +290,8 @@ mod tests {
             BaseStats {
                 durability: 85.0,
                 durability_multiplier: 1.0,
+                durability_boost_unit: 85.0,
+                durability_multiplier_unit: 1.0,
                 mining_speed: 3.5,
                 attack_damage: 1.75,
                 attack_speed: 1.2,

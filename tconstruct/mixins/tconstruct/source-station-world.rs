@@ -41,7 +41,12 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         let merged = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
-    assemble_with_stats(definition, item, identities, &stat_maps, original)
+    let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
+    if let Some(traits) = super::tconstruct_source_material_traits::levels(world, &output) {
+        let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
+        super::tconstruct_source_material_effects::apply_durability_traits(&mut output, &stats, &traits.levels)?;
+    }
+    Some(output)
 }
 
 /// Build supported tools from resolved source stats, shared by the station and Creative.

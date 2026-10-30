@@ -84,4 +84,4 @@ The materials used for a tool affect its traits. Wood's Cultivated trait and tre
 
 ![A repaired pickaxe held on the cursor at the Tinker Station](material-traits-repair.png)
 
-These repair and melee effects were tested on Linux. The mining effects of Jagged and Stonebound, Preserved's durability effect, and other material traits are not implemented yet.
+These repair and melee effects were tested on Linux. The mining effects of Jagged and Stonebound and other material traits remain incomplete. Preserved and Ductile durability changes for newly generated tools are in development; existing saved tools do not yet update automatically.
