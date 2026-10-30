@@ -25,6 +25,25 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
         if material.is_some() {
             let label = game.pack.names.display_get("gui.tconstruct.part_builder.material_value").unwrap_or_else(|| "Material value: %s".into());
             lines.push((label.replace("%s", &info[2]), horizon_client::hud::rgba(127, 255, 255, 255)));
+            if let Some(fields) = info.get(3).and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok()).and_then(|value| value.as_object().cloned()) {
+                for (field, value) in fields {
+                    let field = match field.as_str() { "melee_attack" => "attack_damage", "mining_tier" => "harvest_tier", other => other };
+                    let key = format!("tool_stat.tconstruct.{field}");
+                    if let Some(label) = game.pack.names.display_get(&key) {
+                        let value = value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string());
+                        lines.push((format!("{label}{value}"), u32::MAX));
+                    }
+                }
+            }
+            if let Some(traits) = info.get(4).and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok()).and_then(|value| value.as_object().cloned()) {
+                for (id, level) in traits {
+                    if let Some((namespace, name)) = id.split_once(':') {
+                        let key = format!("modifier.{namespace}.{name}");
+                        let label = game.pack.names.display_get(&key).unwrap_or(key);
+                        lines.push((format!("{label} {level}"), u32::MAX));
+                    }
+                }
+            }
         }
     }
     if selected.is_none() && material.is_none() {

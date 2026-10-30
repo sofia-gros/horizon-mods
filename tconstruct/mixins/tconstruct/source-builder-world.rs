@@ -67,19 +67,39 @@ fn cached_material(world: &super::tconstruct_world::World, pos: (i32, i32, i32),
 /// Values are sent to LAN viewers from the authoritative recipe snapshot.
 pub(super) fn display_info(world: &super::tconstruct_world::World, pos: (i32, i32, i32)) -> Vec<String> {
     let chunks = &world.chunks;
-    let cost = chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
+    let recipe = chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
         .and_then(|(_, id, _)| chunks.__horizon_mixins_tconstruct_builder_recipe_context().get(&pos)
             .and_then(|(_, recipes, _)| recipes.get(id)))
         .and_then(|bytes| serde_json::from_slice(bytes).ok())
-        .and_then(|value| tx::SourcePartRecipe::parse(String::new(), &value))
-        .map_or(0, |recipe| recipe.cost);
+        .and_then(|value| tx::SourcePartRecipe::parse(String::new(), &value));
+    let cost = recipe.as_ref().map_or(0, |recipe| recipe.cost);
     let material = world.block_entities.get(&pos).and_then(|entity| entity.slots().get(1)).and_then(Option::as_ref);
     let found = cached_material(world, pos, material).flatten();
     let (id, value) = if let (Some(stack), Some(found)) = (material, found) {
         if found.needed > 0 { (found.material, stack.count as f64 * f64::from(found.value) / f64::from(found.needed)) }
         else { (String::new(), 0.0) }
     } else { (String::new(), 0.0) };
-    vec![cost.to_string(), if id.is_empty() { "-".into() } else { id }, value.to_string()]
+    let mut stats = serde_json::Map::new();
+    let mut traits = std::collections::BTreeMap::new();
+    let kind = recipe.as_ref().and_then(|recipe| match &recipe.kind {
+        tx::SourcePartKind::MaterialItem { item, .. } => super::tconstruct_source_station_stats::part_kind(item),
+        _ => None,
+    });
+    if let (Some((namespace, material)), Some(kind), Some(snapshot)) = (id.split_once(':'), kind, chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()) {
+        let material = material.split('#').next().unwrap_or(material);
+        if let Some(layers) = snapshot.get(&format!("{namespace}:tinkering/materials/stats/{material}")) {
+            if let Ok(merged) = tx::source_merge_material_stats(layers) {
+                if let Some(fields) = merged.get(&format!("tconstruct:{kind}")) { stats = fields.clone(); }
+            }
+        }
+        if let Some(layers) = snapshot.get(&format!("{namespace}:tinkering/materials/traits/{material}")) {
+            if let Ok(raw) = tx::source_merge_material_traits(layers) {
+                super::tconstruct_source_material_trait_select::add_traits(&mut traits, raw.default.as_ref(), &raw.per_stat, kind);
+            }
+        }
+    }
+    vec![cost.to_string(), if id.is_empty() { "-".into() } else { id }, value.to_string(),
+        serde_json::to_string(&stats).unwrap_or_else(|_| "{}".into()), serde_json::to_string(&traits).unwrap_or_else(|_| "{}".into())]
 }
 
 pub(super) fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack) -> Result<Option<tx::SourceMaterialMatch>, SourceLookupError> {

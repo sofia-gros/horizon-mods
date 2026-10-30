@@ -42,7 +42,7 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
             } else if id == 31000 && value >= 0 {
                 let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
                 let info = pending.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words));
-                if let Some(info) = info.filter(|info| info.len() == 3) {
+                if let Some(info) = info.filter(|info| info.len() == 5) {
                     game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().insert(key, info);
                 }
             } else if id > 31000 {
