@@ -52,6 +52,20 @@ fn prepare_tconstruct_resources() {
         unpack_pack(&content_path.join("reference/tconstruct-materials.zip"), &original_pack, &["data/tconstruct/tinkering/materials", "data/tconstruct/tinkering/tags/materials"])?;
         unpack_pack(&content_path.join("reference/tconstruct-tool-definitions.zip"), &original_pack, &["data/tconstruct/tinkering/tool_definitions"])?;
         unpack_pack(&content_path.join("reference/tconstruct-fluid-tags.zip"), &original_pack, &["data/c/tags/fluids", "data/forge/tags/fluids", "data/mantle/tags/fluids", "data/tconstruct/tags/fluids"])?;
+        // Horizon 26.3 already has the copper nugget and its ordinary
+        // crafting recipes. Adapt source-pack references to the native item.
+        let items: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("items.json"))?)?;
+        if items.get("minecraft:copper_nugget").is_some() {
+            for relative in [
+                "data/forge/tags/items/nuggets/copper.json",
+                "data/tconstruct/recipes/common/materials/copper_ingot_from_nuggets.json",
+                "data/tconstruct/recipes/common/materials/copper_nugget_from_ingot.json",
+            ] {
+                let path = original_pack.join(relative);
+                let source = std::fs::read_to_string(&path)?;
+                std::fs::write(path, source.replace("tconstruct:copper_nugget", "minecraft:copper_nugget"))?;
+            }
+        }
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.

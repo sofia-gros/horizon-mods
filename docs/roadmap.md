@@ -32,7 +32,7 @@ The Part Builder uses the original background and a source-recipe 4×4 pattern
 list with scrolling, selection and a separate result slot. In both game modes,
 representative ordinary crafting, recycling, saving and two-player contention
 have been tested. An open table retains its cached recipe across reload until
-an input changes; material-recipe caching was tested with a flint value change and an oak-log tag change; other material and tag interactions remain incomplete. Minecraft crafting containers use the Horizon 26.3 item registry; item-specific component overrides remain unsupported. Unsupported recipe contexts are rejected. Result Shift-click
+an input changes; material-recipe caching was tested with a flint value change and an oak-log tag change; other material and tag interactions remain incomplete. Minecraft copper nugget references use the native 26.3 item when present. Minecraft crafting containers use the Horizon 26.3 item registry; item-specific component overrides remain unsupported. Unsupported recipe contexts are rejected. Result Shift-click
 works for supported cases with either mouse button when no adjacent block entity may supply a side
 inventory; original side-inventory behavior, other Shift-click paths, drag and
 pickup-all remain incomplete. The information panels and full visual parity

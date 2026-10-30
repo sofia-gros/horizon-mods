@@ -38,3 +38,4 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 対応金属の素材も共通のタグ・レシピから判定します。bronze を制作可能にする試験 datapack と Linux の正式 Mixins ビルドでは、bronze の Pick Head から柄を作れました。bronze の通常入手と Windows 実機は未検証です。
 
 Part Builder の Minecraft 材料の容器返却は Horizon 26.3 のアイテム登録情報を使います。個別アイテムの component による上書きや独自の容器処理は未対応です。
+銅塊は Horizon 26.3 にある Minecraft のアイテムを使います。bronze は銅とは別の素材です。
