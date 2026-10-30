@@ -28,7 +28,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             if id == "tconstruct:melter" {
                 if let Tag::Compound(fields) = &mut value { fields.insert("phase".into(), Tag::Int(0)); }
             }
-            let mut data = Compound::new(); data.insert(id.into(), value);
+            let mut data = Compound::new(); data.insert(id.as_str().into(), value);
             live.insert([pos.0, pos.1, pos.2], (kind, Tag::Compound(data)));
         }
     }
