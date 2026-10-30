@@ -7,8 +7,13 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
     if game.keys.contains(&KeyCode::ShiftLeft) && (game.stack_in(game.selected).is_some() || game.offhand.is_some()) { return Continue(()); }
     let state = game.world.block(hit.pos[0], hit.pos[1], hit.pos[2]);
     let name = game.res.facts().get(state).name.clone();
-    if !matches!(&*name, "tconstruct:seared_melter" | "tconstruct:seared_heater") { return Continue(()); }
-    game.open_menu(hit.pos);
-    game.swing_arm();
-    Break(Ok(true))
+    let pos = (hit.pos[0], hit.pos[1], hit.pos[2]);
+    let handled = match &*name {
+        "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
+        "tconstruct:seared_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
+        "tconstruct:seared_table" | "tconstruct:seared_basin" => crate::game::tconstruct_source_machine_runtime::interact_casting(game, pos, &name),
+        _ => return Continue(()),
+    };
+    if handled { game.swing_arm(); }
+    Break(Ok(handled))
 }
