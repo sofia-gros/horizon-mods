@@ -45,7 +45,9 @@ try:
         'setblock 0 72 1 minecraft:air', 'setblock 0 71 1 minecraft:air',
         'setblock 0 71 2 tconstruct:seared_heater',
     ): host.call('command', command)
-    host.call('interact', '0', '71', '2'); host.call('wait', '5'); host.call('close')
+    host.call('interact', '0', '71', '2'); host.call('wait', '5')
+    assert host.call('status')['screen'] == 'inventory', 'heater menu did not open'
+    host.call('close')
     for command in (
         'setblock 0 72 2 tconstruct:seared_melter',
         'setblock 0 72 1 tconstruct:seared_faucet[facing=north]', 'setblock 0 71 1 tconstruct:seared_table',
@@ -55,6 +57,7 @@ try:
     for game in games:
         wait(game.label + ' melter', lambda game=game: game.call('block', '0', '72', '2').get('block') == 'tconstruct:seared_melter')
         game.call('interact', '0', '72', '2'); game.call('wait', '10')
+        assert any(w.get('id') == 'slot-327' for w in game.call('ui')['widgets']), game.label + ' heater slot is missing'
     click(guest, hotbar(guest, 'minecraft:coal')); click(guest, 327)
     click(guest, hotbar(guest, 'minecraft:copper_ingot')); click(guest, 300)
     wait('shared input', lambda: all(slots(game).get(300, {}).get('item') == 'minecraft:copper_ingot' for game in games))

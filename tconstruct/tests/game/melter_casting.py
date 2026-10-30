@@ -41,7 +41,9 @@ try:
         'setblock 0 72 1 minecraft:air', 'setblock 0 71 1 minecraft:air',
         'setblock 0 71 2 tconstruct:seared_heater',
     ): g.call('command', command)
-    select_empty(); g.call('interact', '0', '71', '2'); g.call('wait', '5'); g.call('close')
+    select_empty(); g.call('interact', '0', '71', '2'); g.call('wait', '5')
+    assert g.call('status')['screen'] == 'inventory', 'heater menu did not open'
+    g.call('close')
     for command in (
         'setblock 0 72 2 tconstruct:seared_melter',
         'setblock 0 72 1 tconstruct:seared_faucet[facing=north]',
@@ -53,6 +55,7 @@ try:
     # /setblock does not create custom entities, so exercise the normal
     # interaction that initializes the heater before opening the melter.
     g.call('interact', '0', '72', '2'); g.call('wait', '10')
+    assert any(w.get('id') == 'slot-327' for w in g.call('ui')['widgets']), 'heater slot is missing'
     click(hotbar('minecraft:coal')); click(327)
     click(hotbar('minecraft:copper_ingot')); click(300)
     for _ in range(7): g.call('wait', '400', timeout=45)
