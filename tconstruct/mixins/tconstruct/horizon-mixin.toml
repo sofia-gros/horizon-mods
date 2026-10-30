@@ -96,6 +96,17 @@ name = "tconstruct_ui"
 source = "station-ui.rs"
 
 [[injection]]
+id = "workstation-origin"
+target = "horizon_client::game::Game<'_>::inventory_origin"
+kind = "HEAD"
+cancellable = true
+helper = "workstation-origin.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
+]
+
+[[injection]]
 id = "part-layout"
 target = "horizon_client::game::Game<'_>::slot_position"
 kind = "HEAD"

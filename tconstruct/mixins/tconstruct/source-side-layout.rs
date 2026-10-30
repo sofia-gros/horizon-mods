@@ -20,6 +20,13 @@ pub(super) fn drag_offset(count: usize, y: f32) -> usize {
     (((y - 7.0 - 7.5) / travel).clamp(0.0, 1.0) * max as f32).round() as usize
 }
 
+/// Keep both modules as visible as possible when their combined width exceeds
+/// the centered table's available margins.
+pub(super) fn adjusted_origin(width: f32, base: f32, left: f32, right: f32) -> f32 {
+    if base + left >= 0.0 && base + right <= width { base }
+    else { ((width - (right - left)) / 2.0 - left).round() }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -37,5 +44,8 @@ mod tests {
         assert_eq!(max_offset(27), 1);
         assert_eq!(max_offset(9), 0);
         assert_eq!(max_offset(5), 0);
+        let x = adjusted_origin(480.0, 152.0, left(54), 306.0);
+        assert_eq!(x, 180.0);
+        assert!(x + slot_position(54, 0, 0).unwrap().0 >= 0.0);
     }
 }
