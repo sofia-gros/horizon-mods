@@ -14,7 +14,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                     let row = ((game.cursor.1 - start) / line_height) as usize;
                     let tip = if row == 0 && game.cursor.0 >= ox + 296.0 && lines.iter().any(|(_, tip)| tip.is_some()) {
                         game.pack.names.display_get("gui.tconstruct.general.hover")
-                    } else { lines.get(scroll + row).and_then(|(_, tip)| tip.clone()) };
+                    } else { lines.get(if row == 0 { 0 } else { scroll + row }).and_then(|(_, tip)| tip.clone()) };
                     if let Some(tip) = tip {
                         let lines = horizon_client::multiplayer::wrap(&tip, 200.0, &game.gui.atlas).into_iter().map(|line| (line, u32::MAX)).collect::<Vec<_>>();
                         game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
@@ -32,7 +32,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             let row = ((game.cursor.1 - oy - 5.0) / crate::game::tconstruct_builder_info_ui::LINE_HEIGHT) as usize;
             let tip = if row == 0 && game.cursor.0 >= ox + 294.0 && entries.iter().any(|(_, _, tip)| tip.is_some()) {
                 game.pack.names.display_get("gui.tconstruct.general.hover")
-            } else { entries.get(scroll + row).and_then(|(_, _, tip)| tip.clone()) };
+            } else { crate::game::tconstruct_builder_info_ui::visible_index(&entries, scroll, row).and_then(|index| entries.get(index)).and_then(|(_, _, tip)| tip.clone()) };
             if let Some(tip) = tip {
                 let lines = horizon_client::multiplayer::wrap(&tip, 200.0, &game.gui.atlas).into_iter().map(|line| (line, u32::MAX)).collect::<Vec<_>>();
                 game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);

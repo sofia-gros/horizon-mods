@@ -4,6 +4,13 @@ pub(super) const TEXT_SCALE: f32 = 7.0 / 9.0;
 pub(super) const LINE_HEIGHT: f32 = 7.5;
 pub(super) const VISIBLE_LINES: usize = 23;
 
+pub(super) fn visible_index(entries: &[(String, u32, Option<String>)], scroll: usize, row: usize) -> Option<usize> {
+    let headers = entries.iter().enumerate().take_while(|(index, (_, color, _))|
+        *index == 0 || *color == horizon_client::hud::rgba(255, 170, 0, 255) || *color == horizon_client::hud::rgba(127, 255, 255, 255)).count();
+    let index = if row < headers { row } else { row + scroll.min(entries.len().saturating_sub(VISIBLE_LINES)) };
+    (index < entries.len()).then_some(index)
+}
+
 /// Text uses the authoritative local recipe or the server's menu data.
 pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> Vec<(String, u32, Option<String>)> {
     let Some(pos) = game.container else { return Vec::new(); };
@@ -100,8 +107,12 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
     let entries = lines(game, atlas);
     let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(VISIBLE_LINES));
     if entries.iter().any(|(_, _, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 297.0, oy + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
-    for (index, (text, color, _)) in entries.iter().skip(scroll).take(VISIBLE_LINES).enumerate() {
-        let (x, y) = (ox + 185.0, oy + 5.0 + index as f32 * LINE_HEIGHT);
+    for index in 0..VISIBLE_LINES {
+        let Some(entry_index) = visible_index(&entries, scroll, index) else { break; };
+        let (text, color, _) = &entries[entry_index];
+        let centered = entry_index == 0 || *color == horizon_client::hud::rgba(255, 170, 0, 255) || *color == horizon_client::hud::rgba(127, 255, 255, 255);
+        let x = if centered { ox + 243.0 - horizon_client::hud::HudBatch::text_width(atlas, text) * TEXT_SCALE / 2.0 } else { ox + 185.0 };
+        let y = oy + 5.0 + index as f32 * LINE_HEIGHT;
         let start = batch.vertices.len();
         batch.text(atlas, text, x, y, *color, true);
         batch.scale_since(start, x, y, TEXT_SCALE, TEXT_SCALE);

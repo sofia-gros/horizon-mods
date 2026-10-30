@@ -32,6 +32,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
         let id = tool.item.split_once(':').map(|(namespace, path)| format!("item.{namespace}.{path}"));
         let title = tool.custom_name().map(str::to_owned).or_else(|| id.map(|key| game.pack.names.display_get(&key).unwrap_or(key))).unwrap_or_default();
         top.push((title, None));
+        bottom.push((game.pack.names.display_get("gui.tconstruct.tinker_station.modifiers").unwrap_or_else(|| "Modifiers".into()), None));
         if let Some(data) = tool.data().and_then(|data| data.other("minecraft:custom_data")) {
             for (field, key) in [("tic_max_damage", "tool_stat.tconstruct.durability"), ("tic_attack_damage", "tool_stat.tconstruct.attack_damage"), ("tic_attack_speed", "tool_stat.tconstruct.attack_speed"), ("tic_draw_speed", "tool_stat.tconstruct.draw_speed"), ("tic_velocity", "tool_stat.tconstruct.velocity"), ("tic_accuracy", "tool_stat.tconstruct.accuracy"), ("tic_armor", "tool_stat.tconstruct.armor"), ("tic_armor_toughness", "tool_stat.tconstruct.armor_toughness"), ("tic_knockback_resistance", "tool_stat.tconstruct.knockback_resistance")] {
                 if matches!(field, "tic_draw_speed" | "tic_velocity" | "tic_accuracy")
@@ -102,8 +103,11 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
         super::tconstruct_builder_info_ui::panel(game, batch, ox + 182.0, oy + offset, 83.0);
         let scroll = scroll.min(lines.len().saturating_sub(visible));
         if lines.iter().any(|(_, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 299.0, oy + offset + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
-        for (index, (line, _)) in lines.iter().skip(scroll).take(visible).enumerate() {
-            let (x, y) = (ox + 187.0, oy + offset + 5.0 + index as f32 * line_height);
+        for index in 0..visible {
+            let entry = if index == 0 { 0 } else { index + scroll };
+            let Some((line, _)) = lines.get(entry) else { break; };
+            let x = if index == 0 { ox + 245.0 - horizon_client::hud::HudBatch::text_width(atlas, line) * scale / 2.0 } else { ox + 187.0 };
+            let y = oy + offset + 5.0 + index as f32 * line_height;
             let start = batch.vertices.len();
             batch.text(atlas, line, x, y, u32::MAX, true);
             batch.scale_since(start, x, y, scale, scale);
