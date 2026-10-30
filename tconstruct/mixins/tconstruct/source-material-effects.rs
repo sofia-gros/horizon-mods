@@ -22,8 +22,8 @@ pub(super) fn wear_damage_bonus(
     damage * ((1.0 + jagged as f32 * wear) * (1.0 - stonebound as f32 * wear) - 1.0)
 }
 
-/// Apply durability stat traits to an assembled or Creative stack.
-pub(super) fn apply_durability_traits(
+/// Apply the supported source stat traits to an assembled or Creative stack.
+pub(super) fn apply_stat_traits(
     stack: &mut horizon_items::items::ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &std::collections::BTreeMap<String, i32>,
@@ -51,6 +51,18 @@ pub(super) fn apply_durability_traits(
         "tic_max_damage".into(),
         horizon_world::nbt::Tag::Int(durability),
     );
+    if ductile > 0 {
+        let attack = stats.attack_damage + stats.attack_damage_boost_unit * 0.05 * ductile as f32;
+        let toughness = stats.armor_toughness + ductile as f32;
+        fields.insert(
+            "tic_attack_damage".into(),
+            horizon_world::nbt::Tag::Float(attack.to_bits()),
+        );
+        fields.insert(
+            "tic_armor_toughness".into(),
+            horizon_world::nbt::Tag::Float(toughness.to_bits()),
+        );
+    }
     stack
         .data_mut()
         .set_other("minecraft:custom_data", Some(custom));
@@ -95,7 +107,7 @@ mod tests {
         let levels = [("tconstruct:preserved".to_owned(), 1)]
             .into_iter()
             .collect();
-        apply_durability_traits(&mut stack, &stats, &levels).unwrap();
+        apply_stat_traits(&mut stack, &stats, &levels).unwrap();
         assert_eq!(stack.damage, 10);
         assert!(matches!(
             stack.data().unwrap().other("minecraft:max_damage"),
@@ -108,6 +120,46 @@ mod tests {
             .unwrap();
         assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(97))));
         assert!(matches!(custom.get("keep"), Some(Tag::Int(42))));
+    }
+
+    #[test]
+    fn ductile_updates_attack_and_toughness_once_from_base_stats() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let definition = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:pick_head","tconstruct:tool_handle"]}]}"#;
+        let head = serde_json::json!({"tconstruct:head":{"durability":100,"melee_attack":4}})
+            .as_object()
+            .unwrap()
+            .clone();
+        let handle = serde_json::json!({"tconstruct:handle":{"durability":0,"melee_damage":0.25}})
+            .as_object()
+            .unwrap()
+            .clone();
+        let stats =
+            super::super::tconstruct_source_station_stats::base_stats(definition, &[head, handle])
+                .unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other(
+            "minecraft:custom_data",
+            Some(Tag::compound([("tic_max_damage", Tag::Int(100))])),
+        );
+        let levels = [("tconstruct:ductile".to_owned(), 2)].into_iter().collect();
+        apply_stat_traits(&mut stack, &stats, &levels).unwrap();
+        apply_stat_traits(&mut stack, &stats, &levels).unwrap();
+        let custom = stack
+            .data()
+            .unwrap()
+            .other("minecraft:custom_data")
+            .unwrap();
+        let Some(Tag::Float(attack)) = custom.get("tic_attack_damage") else {
+            panic!("missing attack")
+        };
+        let Some(Tag::Float(toughness)) = custom.get("tic_armor_toughness") else {
+            panic!("missing toughness")
+        };
+        assert!((f32::from_bits(*attack) - 5.4).abs() < 0.00001);
+        assert_eq!(f32::from_bits(*toughness), 2.0);
+        assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(120))));
     }
 
     #[test]
