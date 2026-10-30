@@ -1883,5 +1883,5 @@ cancellable = true
 helper = "source-machine-reacts.rs"
 bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
-  { name = "hit", ty = "&crate::game::Hit", value = "hit" },
+  { name = "hit", ty = "&super::Hit", value = "hit" },
 ]
