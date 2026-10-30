@@ -802,6 +802,12 @@ name = "tconstruct_builder_info_ui"
 source = "builder-info-ui.rs"
 
 [[module]]
+id = "builder-display"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_display"
+source = "source-builder-display.rs"
+
+[[module]]
 id = "station-info-ui"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_station_info_ui"

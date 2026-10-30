@@ -47,12 +47,25 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
                         let key = format!("stat.{namespace}.{name}");
                         lines.push((game.pack.names.display_get(&key).unwrap_or(key), u32::MAX, None));
                     }
-                    for (field, value) in fields {
-                        let field = match field.as_str() { "melee_attack" => "attack_damage", "mining_tier" => "harvest_tier", other => other };
+                    if fields.is_empty() {
+                        if let Some(label) = game.pack.names.display_get("tool_stat.tconstruct.extra.no_stats") { lines.push((label, u32::MAX, None)); }
+                    }
+                    let mut ordered: Vec<_> = fields.iter().collect();
+                    let order = super::tconstruct_source_builder_display::field_order(stat);
+                    ordered.sort_by_key(|(field, _)| order.iter().position(|known| *known == field.as_str()).unwrap_or(usize::MAX));
+                    for (field, value) in ordered {
+                        let raw_field = field.as_str();
+                        let field = match raw_field { "melee_attack" | "melee_damage" => "attack_damage", "melee_speed" => "attack_speed", "mining_tier" => "harvest_tier", other => other };
                         let key = format!("tool_stat.tconstruct.{field}");
                         if let Some(label) = game.pack.names.display_get(&key) {
-                            let value = value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string());
-                            let tip = game.pack.names.display_get(&format!("{key}.description"));
+                            let Some(mut value) = super::tconstruct_source_builder_display::value(stat, raw_field, value) else { continue; };
+                            if raw_field == "mining_tier" {
+                                if let Some((namespace, tier)) = value.split_once(':') {
+                                    value = game.pack.names.display_get(&format!("stat.tconstruct.harvest_tier.{namespace}.{tier}")).unwrap_or(value.clone());
+                                }
+                            }
+                            let tip_key = if stat == "tconstruct:handle" { format!("tool_stat.tconstruct.handle.{field}.description") } else { format!("{key}.description") };
+                            let tip = game.pack.names.display_get(&tip_key);
                             lines.push((format!("{label}{value}"), u32::MAX, tip));
                         }
                     }
