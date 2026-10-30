@@ -123,3 +123,80 @@ mod tests {
         assert_eq!(copy.to_nbt(), m.to_nbt());
     }
 }
+
+/// A source faucet reserves up to one ingot and pours a nugget each tick.
+/// The in-flight fluid is kept separately so save/reload does not duplicate it.
+#[derive(Clone, Debug)]
+pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank }
+impl Faucet {
+    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90) } }
+    pub(super) fn activate(&mut self, input: &mut Tank, output: &Tank) -> bool {
+        if self.active { self.stop_after_packet = true; return true; }
+        self.stop_after_packet = false;
+        self.active = self.begin_packet(input, output);
+        self.active
+    }
+    fn begin_packet(&mut self, input: &mut Tank, output: &Tank) -> bool {
+        if self.pending.amount != 0 { return false; }
+        let Some(fluid) = input.fluid.as_deref() else { return false; };
+        if output.fluid.as_deref().is_some_and(|other| other != fluid) { return false; }
+        let amount = input.amount.min(90).min(output.capacity.saturating_sub(output.amount));
+        if amount == 0 { return false; }
+        let Some(fluid) = input.take(amount) else { return false; };
+        // An empty buffer with capacity 90 always accepts this validated amount.
+        debug_assert!(self.pending.amount == 0 && amount <= self.pending.capacity);
+        self.pending.fluid = Some(fluid); self.pending.amount = amount;
+        true
+    }
+    pub(super) fn tick(&mut self, input: &mut Tank, output: Option<&mut Tank>) {
+        if !self.active { return; }
+        let Some(output) = output else { self.pending = Tank::new(90); self.active = false; return; };
+        if self.pending.amount > 0 {
+            let Some(fluid) = self.pending.fluid.as_deref() else { self.active = false; return; };
+            if output.fluid.as_deref().is_some_and(|other| other != fluid) { return; }
+            let amount = self.pending.amount.min(10).min(output.capacity.saturating_sub(output.amount));
+            if amount == 0 { return; }
+            let Some(fluid) = self.pending.take(amount) else { return; };
+            let inserted = output.insert(&fluid, amount);
+            debug_assert!(inserted);
+        } else if self.stop_after_packet || !self.begin_packet(input, output) {
+            self.active = false; self.stop_after_packet = false;
+        }
+    }
+    pub(super) fn to_nbt(&self) -> Tag {
+        Tag::compound([("active", Tag::Byte(self.active as i8)), ("stop", Tag::Byte(self.stop_after_packet as i8)), ("pending", self.pending.to_nbt())])
+    }
+    pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
+        let boolean = |key| match tag.get(key)? { Tag::Byte(0) => Some(false), Tag::Byte(1) => Some(true), _ => None };
+        let active = boolean("active")?; let stop_after_packet = boolean("stop")?;
+        let pending = Tank::from_nbt(tag.get("pending")?, 90)?;
+        if !active && (stop_after_packet || pending.amount != 0) { return None; }
+        Some(Self { active, stop_after_packet, pending })
+    }
+}
+
+#[cfg(test)]
+mod faucet_tests {
+    use super::*;
+    #[test]
+    fn faucet_reserves_and_pours_without_overfill_or_duplicate_after_save() {
+        let mut source = Tank::new(2160); assert!(source.insert("tconstruct:molten_copper", 180));
+        let mut output = Tank::new(90); let mut faucet = Faucet::new();
+        assert!(faucet.activate(&mut source, &output));
+        assert_eq!((source.amount, faucet.pending.amount), (90, 90));
+        for _ in 0..4 { faucet.tick(&mut source, Some(&mut output)); }
+        assert_eq!((source.amount, faucet.pending.amount, output.amount), (90, 50, 40));
+        let mut restored = Faucet::from_nbt(&faucet.to_nbt()).unwrap();
+        for _ in 0..5 { restored.tick(&mut source, Some(&mut output)); }
+        assert_eq!((source.amount, restored.pending.amount, output.amount), (90, 0, 90));
+        restored.tick(&mut source, Some(&mut output));
+        assert!(!restored.active); assert_eq!(source.amount, 90);
+    }
+    #[test]
+    fn incompatible_or_full_output_cannot_drain_source() {
+        let mut source = Tank::new(2160); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut output = Tank::new(90); assert!(output.insert("tconstruct:molten_iron", 90));
+        assert!(!Faucet::new().activate(&mut source, &output));
+        assert_eq!(source.amount, 90);
+    }
+}
