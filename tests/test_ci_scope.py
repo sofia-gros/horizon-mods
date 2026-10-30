@@ -11,6 +11,14 @@ documentation_only = ci_scope.documentation_only
 
 
 class Scope(unittest.TestCase):
+    def test_manual_dispatch_runs_full_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            event = Path(directory) / 'event.json'
+            event.write_text('{}')
+            with patch.dict(os.environ, {'GITHUB_EVENT_PATH': str(event)}), patch.object(subprocess, 'run') as run:
+                self.assertFalse(ci_scope.main())
+                run.assert_not_called()
+
     def test_documentation_and_images(self):
         self.assertTrue(documentation_only(['README.md', 'docs/roadmap.md', 'docs/preview.png', 'tconstruct/README.md', 'tconstruct/docs/playing.md', 'tconstruct/docs/preview.png']))
 
