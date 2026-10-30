@@ -12,7 +12,7 @@ class ConnectedGlassSourceTests(unittest.TestCase):
         with zipfile.ZipFile(SNAPSHOT) as archive:
             files = {path.split('/assets/tconstruct/', 1)[1]: path for path in archive.namelist()}
             states = [name for name in files if name.startswith('blockstates/')]
-            self.assertEqual(len(states), 42)
+            self.assertEqual(len(states), 44)
             models = [json.loads(archive.read(path)) for name, path in files.items()
                       if name.startswith('models/') and name.endswith('.json')]
             textures = {name[len('textures/'): -4] for name in files

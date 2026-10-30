@@ -7,7 +7,7 @@ fn tconstruct_connected_mesh_face(
     let Some(current) = registry.state(BlockStateId(pad.blocks[pi(pos[0], pos[1], pos[2])])) else { return Continue(()); };
     let Some((pane, color)) = tconstruct_connected_texture::glass_kind(&current.name) else { return Continue(()); };
     let sprite = face.quad.material.sprite.as_str();
-    let connected = matches!(sprite, "tconstruct:block/clear_glass" | "tconstruct:block/clear_stained_glass" | "tconstruct:block/smeltery/seared_glass" | "tconstruct:block/smeltery/soul_glass" | "tconstruct:block/foundry/glass" | "tconstruct:block/foundry/soul_glass");
+    let connected = matches!(sprite, "tconstruct:block/clear_glass" | "tconstruct:block/clear_stained_glass" | "tconstruct:block/soul_glass" | "tconstruct:block/smeltery/seared_glass" | "tconstruct:block/smeltery/soul_glass" | "tconstruct:block/foundry/glass" | "tconstruct:block/foundry/soul_glass");
     if !connected && color == 0xffffff { return Continue(()); }
     let mut layer = face.layer;
     if connected {

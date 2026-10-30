@@ -19,15 +19,18 @@ def selected(path):
     resource = path.split('/assets/tconstruct/', 1)[1]
     if resource.startswith('blockstates/'):
         name = Path(resource).stem
-        return name in {'clear_glass', 'clear_glass_pane'} or name.endswith(('_clear_stained_glass', '_clear_stained_glass_pane')) or name in {
+        return name in {'clear_glass', 'clear_glass_pane', 'soul_glass', 'soul_glass_pane'} or name.endswith(('_clear_stained_glass', '_clear_stained_glass_pane')) or name in {
             f'{kind}_{soul}glass{pane}' for kind in ('seared', 'scorched') for soul in ('', 'soul_') for pane in ('', '_pane')
         }
-    if resource.startswith('models/block/'):
+    if resource.startswith('models/item/'):
+        name = Path(resource).stem
+        return selected('src/generated/resources/assets/tconstruct/blockstates/' + name + '.json')
+    if resource.startswith('models/block/'): 
         name = resource[len('models/block/'):]
-        return name.startswith(('clear_glass/', 'template/pane/', 'smeltery/glass/', 'smeltery/soul_glass/', 'foundry/glass/', 'foundry/soul_glass/'))
+        return name.startswith(('clear_glass/', 'soul_glass/', 'template/pane/', 'smeltery/glass/', 'smeltery/soul_glass/', 'foundry/glass/', 'foundry/soul_glass/'))
     if resource.startswith('textures/block/'):
         name = resource[len('textures/block/'):]
-        return name.startswith(('clear_glass', 'clear_stained_glass', 'smeltery/seared_glass', 'smeltery/soul_glass', 'foundry/glass', 'foundry/soul_glass'))
+        return name.startswith(('clear_glass', 'clear_stained_glass', 'soul_glass', 'smeltery/seared_glass', 'smeltery/soul_glass', 'foundry/glass', 'foundry/soul_glass'))
     return False
 
 
