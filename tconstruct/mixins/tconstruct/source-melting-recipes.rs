@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>) }
+pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
 
 impl Ingredient {
     fn parse(value: &Value) -> Option<Self> {
@@ -13,6 +13,10 @@ impl Ingredient {
             return (!choices.is_empty()).then_some(Self::Any(choices));
         }
         let obj = value.as_object()?;
+        if obj.get("type").and_then(Value::as_str) == Some("forge:difference") {
+            if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
+            return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
+        }
         // NBT/custom ingredients need their own semantics; do not silently
         // accept them as a plain item or tag.
         if obj.keys().any(|key| key != "item" && key != "tag") { return None; }
@@ -27,6 +31,7 @@ impl Ingredient {
             Self::Item(id) => id == item,
             Self::Tag(tag) => in_tag(tag, item),
             Self::Any(choices) => choices.iter().any(|choice| choice.matches(item, in_tag)),
+            Self::Difference(base, removed) => base.matches(item, in_tag) && !removed.matches(item, in_tag),
         }
     }
 }
@@ -54,13 +59,25 @@ pub(super) struct MeltingRecipe {
 impl MeltingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        if v.get("type")?.as_str()? != "tconstruct:melting" || !enabled(&v, conditions) { return None; }
-        // Byproducts require additional tank capacity and must not be discarded.
-        if v.get("byproducts").and_then(Value::as_array).is_some_and(|items| !items.is_empty()) { return None; }
+        let recipe_type = v.get("type")?.as_str()?;
+        if !matches!(recipe_type, "tconstruct:melting" | "tconstruct:ore_melting") || !enabled(&v, conditions) { return None; }
+        // The source Melter uses MeltingModuleInventory, not its foundry
+        // subclass: byproducts are not collected. Ore rates are the source
+        // default Melter settings (12 nuggets / 8 gem shards).
+        let mut output = FluidSpec::parse(v.get("result")?)?;
+        if recipe_type == "tconstruct:ore_melting" {
+            output.amount = match v.get("rate")?.as_str()? {
+                "metal" => output.amount.checked_mul(12)? / 9,
+                "gem" => output.amount.checked_mul(8)? / 4,
+                "none" | "default" => output.amount,
+                _ => return None,
+            };
+            if output.amount == 0 { return None; }
+        }
         let time = u32::try_from(v.get("time")?.as_u64()?).ok()?;
         let temperature = u32::try_from(v.get("temperature")?.as_u64()?).ok()?;
         if time == 0 { return None; }
-        Some(Self { input: Ingredient::parse(v.get("ingredient")?)?, output: FluidSpec::parse(v.get("result")?)?, temperature, time })
+        Some(Self { input: Ingredient::parse(v.get("ingredient")?)?, output, temperature, time })
     }
 }
 
@@ -112,9 +129,17 @@ mod tests {
         assert_eq!(c.output, Output::Tag("forge:ingots/copper".into()));
     }
     #[test]
-    fn rejects_unsupported_conditions_nbt_and_byproducts() {
+    fn original_ore_rates_and_difference_ingredients_apply() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"type":"forge:difference","base":{"tag":"forge:ores/copper"},"subtracted":{"tag":"tconstruct:non_singular_ore_rates"}},"result":{"amount":180,"tag":"forge:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"tag":"forge:molten_gold","amount":60,"rate":"metal"}]}"#;
+        let recipe = MeltingRecipe::parse(ore, &|_| true).unwrap();
+        assert_eq!(recipe.output.amount, 240);
+        assert!(recipe.input.matches("minecraft:copper_ore", &|tag, _| tag == "forge:ores/copper"));
+        assert!(!recipe.input.matches("minecraft:copper_ore", &|_, _| true));
+    }
+    #[test]
+    fn melter_omits_foundry_byproducts_but_rejects_unknown_conditions_and_nbt() {
         let m = br#"{"type":"tconstruct:melting","ingredient":{"item":"minecraft:iron_ingot"},"result":{"amount":90,"fluid":"tconstruct:molten_iron"},"temperature":800,"time":60,"byproducts":[{"amount":10,"fluid":"tconstruct:molten_gold"}]}"#;
-        assert!(MeltingRecipe::parse(m, &|_| true).is_none());
+        assert_eq!(MeltingRecipe::parse(m, &|_| true).unwrap().output.amount, 90);
         let c = br#"{"type":"tconstruct:casting_basin","conditions":[{"type":"forge:mod_loaded","modid":"unknown"}],"cooling_time":40,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"item":"minecraft:stone","nbt":{}}}"#;
         assert!(CastingRecipe::parse(c, &|_| false).is_none());
         assert!(CastingRecipe::parse(c, &|_| true).is_none());
