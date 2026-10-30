@@ -1702,3 +1702,23 @@ id = "source-melting-lookup"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melting_lookup"
 source = "source-melting-lookup.rs"
+
+[[state]]
+id = "tank-fluid-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<(std::collections::HashSet<String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "melter-known-items"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::HashSet<String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

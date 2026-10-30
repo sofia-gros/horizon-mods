@@ -30,6 +30,9 @@ fn prepare_tconstruct_resources() {
             }
             Ok(())
         }
+        // The melter stores fluid IDs in tanks, without registering those
+        // fluids as placeable vanilla world fluids.
+        std::fs::copy(content_path.join("reference/tconstruct-melter-fluids.json"), out.join("tconstruct-melter-fluids.json"))?;
         let original_pack = out.join("tconstruct-original-pack");
         if std::fs::symlink_metadata(&original_pack).is_ok() { return Err("original pack output already exists".into()); }
         copy_pack_dir(&content_path.join("reference/tconstruct-tags/data"), &original_pack.join("data"))?;
