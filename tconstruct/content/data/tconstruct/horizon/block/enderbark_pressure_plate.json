@@ -1,1 +1,1 @@
-{"template":"minecraft:crimson_pressure_plate","properties":{"hardness":2.0,"explosion_resistance":3.0,"requires_tool":false,"sounds":"minecraft:slime_block","map_color":29}}
+{"template":"minecraft:crimson_pressure_plate","properties":{"hardness":0.5,"explosion_resistance":0.5,"requires_tool":false,"sounds":"minecraft:slime_block","map_color":29}}
