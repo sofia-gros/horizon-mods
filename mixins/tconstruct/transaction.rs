@@ -1604,20 +1604,24 @@ fn fixed_pickaxe_with_materials() -> ItemStack {
 /// Preserve all unrelated custom data while writing the source broken flag.
 pub(super) fn fixed_set_damage(stack: &mut ItemStack, damage: u32) {
     use horizon_world::nbt::Tag;
+    let max_damage = stack.data().and_then(|data| data.other("minecraft:custom_data"))
+        .and_then(|tag| tag.get("tic_max_damage")).and_then(|tag| match tag { Tag::Int(value) if *value > 0 => Some(*value as u32), _ => None }).unwrap_or(85);
     let mut custom = stack.data().and_then(|data| data.other("minecraft:custom_data"))
         .cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
     if let Tag::Compound(ref mut entries) = custom {
-        entries.insert("tic_broken".into(), Tag::Byte(i8::from(damage >= 85)));
+        entries.insert("tic_broken".into(), Tag::Byte(i8::from(damage >= max_damage)));
         stack.data_mut().set_other("minecraft:custom_data", Some(custom));
     }
-    stack.damage = damage.min(85);
+    stack.damage = damage.min(max_damage);
 }
 
 /// No damage is applied to an already broken or source-unbreakable tool.
 pub(super) fn fixed_damage(stack: &mut ItemStack, amount: u32) {
     use horizon_world::nbt::Tag;
     let flag = |name: &str| matches!(stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get(name)), Some(Tag::Byte(value)) if *value != 0);
-    if amount == 0 || stack.damage >= 85 || flag("tic_broken") || flag("Unbreakable") { return; }
+    let max_damage = stack.data().and_then(|data| data.other("minecraft:custom_data"))
+        .and_then(|tag| tag.get("tic_max_damage")).and_then(|tag| match tag { Tag::Int(value) if *value > 0 => Some(*value as u32), _ => None }).unwrap_or(85);
+    if amount == 0 || stack.damage >= max_damage || flag("tic_broken") || flag("Unbreakable") { return; }
     fixed_set_damage(stack, stack.damage.saturating_add(amount));
 }
 
