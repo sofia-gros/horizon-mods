@@ -77,3 +77,11 @@ Hold the use button to load an arrow, release the button, then press it again to
 ![A crossbow loaded with an arrow](equipment-crossbow.png)
 
 Loading and firing were tested on Linux. Material-specific projectile speed and accuracy are not implemented yet.
+
+## Material traits
+
+The materials used for a tool affect its traits. Wood's Cultivated trait and treated wood's Preserved trait increase material repair. Flint's Jagged trait increases melee damage as the tool wears; stone's Stonebound trait reduces it as the tool wears. Replace a part at the Tinker Station to change the traits contributed by that part.
+
+![A repaired pickaxe held on the cursor at the Tinker Station](material-traits-repair.png)
+
+These repair and melee effects were tested on Linux. The mining effects of Jagged and Stonebound, Preserved's durability effect, and other material traits are not implemented yet.
