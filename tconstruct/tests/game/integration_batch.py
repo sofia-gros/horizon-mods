@@ -39,7 +39,7 @@ def slot_values():
 
 try:
     g.ready()
-    for command in ('gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',
+    for command in ('gamemode creative @s', 'kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]', 'clear @s', 'tp @s 0.5 71 0.5',
                     'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
                     'setblock 2 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:part_builder',
                     'setblock 1 71 2 minecraft:chest', 'setblock 2 71 2 tconstruct:tinker_station',
