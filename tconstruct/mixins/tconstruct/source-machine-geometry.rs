@@ -1,5 +1,5 @@
 // Draw the item held by a casting block through Horizon's existing item
-// renderer. Fluid surfaces and the source cooling fade are separate work.
+// renderer, with source fluid bounds. Cooling fade is separate work.
 fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>) {
     use horizon_assets::item_model::DisplayContext;
     for (_, chunk) in &game.world.chunks {
@@ -40,9 +40,8 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
             game.submit_item_world(&item, pose, light, out);
         }
     }
-}
 
-// Fluid cuboid bounds and visible faces come from the source render provider.
+    // Fluid cuboid bounds and visible faces come from the source render provider.
 fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>, pos: (i32, i32, i32), tank: &crate::game::tconstruct_source_melter_state::Tank, bounds: [f32; 6], sides: bool) {
     let Some(fluid) = tank.fluid.as_deref().and_then(|id| id.strip_prefix("tconstruct:")) else { return; };
     let Some(sprite) = game.gui.atlas.sprites.get(&format!("gui/tconstruct_fluid_{fluid}")).copied() else { return; };
@@ -69,4 +68,6 @@ fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, 
                 color: u32::MAX, light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
         }
     }
+}
+
 }
