@@ -1,6 +1,5 @@
 """Check adjacent side slots and transactions across two players."""
 import argparse
-import tempfile
 import time
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -11,8 +10,10 @@ p.add_argument('--game', type=Path, required=True)
 p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
 a = p.parse_args()
-run = Path(tempfile.mkdtemp(prefix='builder-side-lan-', dir=Path('target').resolve()))
+run = a.run_dir.resolve()
+run.mkdir(parents=True, exist_ok=True)
 print('run', run, flush=True)
 games = []
 def slots(g): return {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}
@@ -23,11 +24,12 @@ def wait(label, predicate):
         time.sleep(.2)
     raise AssertionError(label)
 try:
-    host = Game(a, run, 'Host', in_frame=a.in_frame); games.append(host); host.ready()
+    host = Game(a, run, 'Player', in_frame=a.in_frame, resume=(run / 'Player').exists()); games.append(host); host.ready()
     port = host.call('lan', 'open', '0', 'commands')['port']
-    guest = Game(a, run, 'Guest', server='127.0.0.1:'+str(port)); games.append(guest); guest.ready()
+    guest = Game(a, run, 'Guest', server='127.0.0.1:'+str(port), resume=(run / 'Guest').exists()); games.append(guest); guest.ready()
     for command in ('fill -2 70 -2 3 70 3 minecraft:stone', 'clear @a',
                     'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5',
+                    'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
                     'setblock 0 71 2 tconstruct:part_builder', 'setblock 1 71 2 minecraft:chest',
                     'give @s tconstruct:pattern 1', 'give @s minecraft:oak_log 1', 'give Guest minecraft:stick 1'):
         host.call('command', command)

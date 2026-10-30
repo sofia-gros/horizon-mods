@@ -42,9 +42,10 @@ The older standalone scripts below create a fresh temporary directory on every
 invocation and do not clean it up themselves. Their printed run directories
 must be inspected and removed when no longer needed; running the whole loop
 also creates multiple worlds. Prefer the grouped batch check when available.
-The current adjacent-builder check reuses `target/pb-station-batch/Player` by
-default (or the explicit `--run-dir`). It does not remove the world between
-runs. Save needed screenshots before rerunning, since their filenames are reused.
+The adjacent-builder checks, including LAN, reuse
+`target/pb-station-batch/Player` for the host world by default (or use the
+explicit `--run-dir`). They do not remove the world between runs. Save needed
+screenshots before rerunning, since their filenames are reused.
 
 Build and prepare the resource root as in the README. Under X11/Vulkan (or
 Xvfb with software Vulkan), run each script with a fresh world; add `--in-frame`

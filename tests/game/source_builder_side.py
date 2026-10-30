@@ -28,6 +28,7 @@ def wait(label, predicate):
 try:
     g.ready()
     for command in ('fill -2 70 -2 3 70 3 minecraft:stone', 'clear @s', 'tp @s 0.5 71 0.5',
+                    'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
                     'setblock 0 71 2 tconstruct:part_builder', 'setblock 1 71 2 minecraft:chest',
                     'give @s tconstruct:pattern 2', 'give @s minecraft:oak_log 1', 'give @s minecraft:stick 1'):
         g.call('command', command)
