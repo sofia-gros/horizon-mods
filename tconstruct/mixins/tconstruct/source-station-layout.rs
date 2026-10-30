@@ -38,6 +38,16 @@ pub(super) struct LayoutSlot {
     pub translation: Option<String>,
 }
 
+impl LayoutSlot {
+    pub(super) fn accepts_item(&self, item: &str) -> bool {
+        fn matches(value: &Value, item: &str) -> bool {
+            if let Some(options) = value.as_array() { return options.iter().any(|value| matches(value, item)); }
+            value.get("item").and_then(Value::as_str) == Some(item)
+        }
+        self.filter.as_ref().is_none_or(|filter| matches(filter, item))
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct StationLayout {
     pub id: String,
@@ -92,6 +102,15 @@ mod tests {
         assert_eq!(layout.icon["pattern"], "tconstruct:button_repair");
         assert_eq!(layout.tool_slot.as_ref().map(|slot| (slot.x, slot.y)), Some((53, 41)));
         assert_eq!(layout.input_slots.iter().map(|slot| (slot.x, slot.y)).collect::<Vec<_>>(), [(11, 41), (31, 30), (31, 50)]);
+    }
+
+    #[test]
+    fn layout_filters_support_source_alternative_parts() {
+        let bytes = br#"{"icon":{"pattern":"tconstruct:plate_armor"},"translation_key":"gui.tconstruct.plate_armor","input_slots":[{"filter":[{"item":"tconstruct:helmet_plating"},{"item":"tconstruct:boots_plating"}],"x":33,"y":29}]}"#;
+        let layout = StationLayout::parse("test".into(), bytes).unwrap();
+        assert!(layout.input_slots[0].accepts_item("tconstruct:helmet_plating"));
+        assert!(layout.input_slots[0].accepts_item("tconstruct:boots_plating"));
+        assert!(!layout.input_slots[0].accepts_item("tconstruct:maille"));
     }
 
     #[test]

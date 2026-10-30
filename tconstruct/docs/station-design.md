@@ -60,3 +60,5 @@ upgrade progress. Modifier descriptions remain incomplete. The panels can be
 scrolled when their text exceeds the available height.
 Building and repair use the same visible result position; their separate
 internal transaction slots remain distinct.
+The source's two-input pattern layouts are selectable alongside item layouts.
+Selecting a layout does not add a recipe or make unsupported equipment craftable.

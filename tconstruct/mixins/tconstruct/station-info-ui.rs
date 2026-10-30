@@ -74,7 +74,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<String>, Vec<String>)> {
             if let Some(key) = spec.translation.as_deref() {
                 let slot_index = index + usize::from(layout.tool_slot.is_some());
                 let stack = slots.get(slot_index).and_then(Option::as_ref);
-                let valid = stack.is_some_and(|stack| spec.filter.as_ref().and_then(|filter| filter.get("item")).and_then(serde_json::Value::as_str).is_none_or(|item| item == stack.item.as_ref()));
+                let valid = stack.is_some_and(|stack| spec.accepts_item(stack.item.as_ref()));
                 let label = game.pack.names.display_get(key).unwrap_or_else(|| key.to_owned());
                 bottom.push(format!("{} {label}", if valid { "✓" } else { "•" }));
             }
