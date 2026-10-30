@@ -38,6 +38,9 @@ try:
         wait(g.label+' builder', lambda g=g: g.call('block','0','71','2').get('block') == 'tconstruct:part_builder')
         g.call('interact', '0', '71', '2'); g.call('wait', '10')
     guest_stick = next(s['slot'] for s in guest.call('inventory')['hotbar'] if s.get('item') == 'minecraft:stick')
+    if a.side_block == 'minecraft:hopper':
+        click(guest, guest_stick, 'shift')
+        assert any(s.get('item') == 'minecraft:stick' for s in guest.call('inventory')['hotbar'])
     click(guest, guest_stick); click(guest, 327)
     wait('side synchronization', lambda: all(slots(g).get(327, {}).get('item') == 'minecraft:stick' for g in games))
     guest.call('screenshot', str(run / 'guest-side.png'))

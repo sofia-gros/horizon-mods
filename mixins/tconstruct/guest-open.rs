@@ -14,5 +14,13 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     game.lan_station_closed(host, conn, None);
     let menu = match items.len() { 36 => "minecraft:generic_9x4", 54 => "minecraft:generic_9x6", _ => "minecraft:generic_9x3" };
     host.hub.open_container(conn, menu, horizon_protocol::text::literal(title), pos, slots, items);
+    if title == "TConstruct Part Builder" {
+        let count = side.and_then(|side| game.world.block_entities.get(&side)).map_or(0, |entity| entity.slots().len());
+        if let Some(guest) = host.hub.guest(conn) {
+            if let Some(window) = guest.menu.as_ref().map(|menu| menu.window) {
+                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30000, value: count as i16 }));
+            }
+        }
+    }
     Break(true)
 }

@@ -1,6 +1,12 @@
 fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value: i16) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
+    if id == 30000 {
+        if let Some(key) = game.container {
+            if let Ok(size) = usize::try_from(value) { game.world.chunks.__horizon_mixins_tconstruct_builder_side_size_mut().insert(key, size); }
+        }
+        return Break(());
+    }
     // Reserved ids are above the maximum Pattern-frame data-slot range.
     if id >= 20000 {
         if let Some(key) = game.container {
