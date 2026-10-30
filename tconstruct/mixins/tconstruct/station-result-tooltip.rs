@@ -5,7 +5,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
         let (ox, oy) = game.inventory_origin(batch);
         if (ox + 180.0..ox + 306.0).contains(&game.cursor.0) && (oy + 5.0..oy + 175.0).contains(&game.cursor.1) {
             let entries = crate::game::tconstruct_builder_info_ui::lines(game, &game.gui.atlas);
-            let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0);
+            let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(17));
             let row = ((game.cursor.1 - oy - 5.0) / 10.0) as usize;
             let tip = if row == 0 && game.cursor.0 >= ox + 294.0 && entries.iter().any(|(_, _, tip)| tip.is_some()) {
                 game.pack.names.display_get("gui.tconstruct.general.hover")

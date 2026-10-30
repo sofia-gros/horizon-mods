@@ -55,7 +55,8 @@ the supported stat types. Item-part recipes with a source
 `title_key` also provide their translated title and description. Full tooltip
 details and visual parity remain to be verified in game.
 The Station's panels show the selected source layout and components, or the
-current result's recorded durability, melee values, and supported upgrade
-progress. Other tool statistics and modifier descriptions remain incomplete.
+current result's recorded statistics, resolved material traits, and supported
+upgrade progress. Modifier descriptions remain incomplete. The panels can be
+scrolled when their text exceeds the available height.
 Building and repair use the same visible result position; their separate
 internal transaction slots remain distinct.

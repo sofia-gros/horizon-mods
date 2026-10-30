@@ -1,5 +1,19 @@
 fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_ui::kind(game) == Some(true) {
+        let Some(pos) = game.container else { return Continue(()); };
+        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
+        let batch = horizon_client::hud::HudBatch::new(size);
+        let (ox, oy) = game.inventory_origin(&batch);
+        if !(ox + 182.0..ox + 308.0).contains(&game.cursor.0) { return Continue(()); }
+        let Some((top, bottom)) = crate::game::tconstruct_station_info_ui::lines(game) else { return Continue(()); };
+        let state = game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll_mut().entry(pos).or_default();
+        let (offset, count) = if (oy + 5.0..oy + 88.0).contains(&game.cursor.1) { (&mut state.0, top.len()) }
+            else if (oy + 94.0..oy + 177.0).contains(&game.cursor.1) { (&mut state.1, bottom.len()) }
+            else { return Continue(()); };
+        *offset = (*offset as i32 - delta.signum() as i32).clamp(0, count.saturating_sub(7) as i32) as usize;
+        return Break(());
+    }
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
     let Some(pos) = game.container else { return Break(()); };
     if let Some(size) = game.renderer.as_ref().map(|renderer| [renderer.config.width, renderer.config.height]) {

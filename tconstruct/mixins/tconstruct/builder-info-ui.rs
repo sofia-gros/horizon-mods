@@ -93,8 +93,8 @@ pub(super) fn panel(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, 
 pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
     let atlas = &game.gui.atlas;
     panel(game, batch, ox + 180.0, oy, 184.0);
-    let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0);
     let entries = lines(game, atlas);
+    let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(17));
     if entries.iter().any(|(_, _, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 297.0, oy + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
     for (index, (text, color, _)) in entries.iter().skip(scroll).take(17).enumerate() {
         batch.text(atlas, text, ox + 185.0, oy + 5.0 + index as f32 * 10.0, *color, true);

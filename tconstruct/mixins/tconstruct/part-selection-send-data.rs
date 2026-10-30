@@ -45,6 +45,10 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
                 .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);
             if changed {
+                let tool = build.as_ref().or(operation.as_ref()).or_else(|| slots.first().and_then(Option::as_ref));
+                let traits = tool.and_then(|tool| crate::tconstruct_source_material_traits::levels(world, tool))
+                    .and_then(|traits| serde_json::to_string(&traits.levels).ok()).unwrap_or_else(|| "{}".to_owned());
+                let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits]).filter(|frame| frame.len() < 1767);
                 let build_net = hub.stack(&build);
                 let operation_net = hub.stack(&operation);
                 let guest = &mut hub.guests[i];
@@ -53,6 +57,15 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 let (window, state) = (menu.window, menu.state);
                 guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 24, item: build_net }));
                 guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 25, item: operation_net }));
+                if let Some(frame) = trait_frame {
+                    guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: -1 }));
+                    for (index, &word) in frame[1..].iter().enumerate() {
+                        guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31001 + index as i16, value: word }));
+                    }
+                    guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: frame[0] }));
+                } else {
+                    guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: -2 }));
+                }
                 world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().insert(key, (state, build, operation));
             }
             continue;
