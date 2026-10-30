@@ -1,4 +1,14 @@
 fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) -> std::ops::ControlFlow<()> {
+    if crate::game::tconstruct_ui::is_melter(game) {
+        let atlas = &game.gui.atlas;
+        batch.sprite_region(atlas, "gui/tconstruct_melter", [ox, oy, 176.0, 166.0], 256.0, 256.0);
+        let title = game.pack.names.display_get("container.tconstruct.melter").unwrap_or_else(|| "Melter".to_owned());
+        let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
+        let color = horizon_client::hud::rgba(64, 64, 64, 255);
+        batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
+        batch.text(atlas, &inventory, ox + 8.0, oy + 72.0, color, false);
+        return std::ops::ControlFlow::Break(());
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
     let atlas = &game.gui.atlas;
     if !station && game.container_size() > 27 {
