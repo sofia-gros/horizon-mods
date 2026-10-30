@@ -7,7 +7,7 @@ links to original sources and records the wider scope. The
 mismatches. Archived Wasm work is not evidence of coverage in this port.
 
 The intended v0.5 milestone is a playable prerelease that reproduces almost all
-of the original mod's content and behavior on its own. v1.0 targets the complete TConstruct port on Horizon's Minecraft 26.3 data. Minecraft-side material classifications and recipes may follow 26.3; TConstruct-specific mechanics remain in scope. Neither milestone has been reached.
+of the original mod's content and behavior on its own. The scope of full parity and balance will be decided after v0.5. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. v0.5 has not been reached.
 Broad compatibility testing with other mods, including hypothetical ID changes,
 is not a prerequisite for v0.5. The mod's own saving, synchronization and
 transaction integrity remain part of the work.

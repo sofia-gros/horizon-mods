@@ -23,7 +23,7 @@ then expand content through its source definitions and check separately only
 where the original has distinct behavior.
 
 The planned v0.5 is a playable preview that nearly reproduces the original mod
-on its own; v1.0 targets the complete TConstruct port on Horizon's Minecraft 26.3 data. Minecraft-side materials and recipes may follow 26.3. Neither milestone has been reached.
+on its own. The scope of full parity and balance will be decided after v0.5. Existing Horizon 26.3 Minecraft materials and recipes remain unchanged. v0.5 has not been reached.
 
 ## What works today
 
