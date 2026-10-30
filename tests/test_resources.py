@@ -66,6 +66,10 @@ class ResourceOverlay(unittest.TestCase):
                     name = f'assets/tconstruct/lang/{code}.json'
                     self.assertEqual((out / name).read_bytes(), archive.read(name))
             self.assertTrue((out / 'assets/tconstruct/tinkering/source_part_models/pick_head.json').is_file())
+            tool_model = json.loads((out / 'assets/tconstruct/tinkering/source_tool_models/pickaxe.json').read_text())
+            self.assertEqual([part['index'] for part in tool_model['parts']], [1, 0, 2])
+            self.assertTrue((out / 'assets/tconstruct/textures/item/tool/pickaxe/head_tconstruct_flint.png').is_file())
+            self.assertTrue((out / 'assets/tconstruct/items/tconstruct_tool/item/tool/pickaxe/head_tconstruct_flint.json').is_file())
             self.assertTrue((out / 'assets/tconstruct/items/tconstruct_part/item/tool/pickaxe/head_tconstruct_flint.json').is_file())
             native = json.loads((out / 'assets/tconstruct/models/item/tconstruct_part/item/tool/pickaxe/head_tconstruct_flint.json').read_text())
             source = json.loads((Path(__file__).resolve().parents[1] / 'content/reference/forge-default-item-model.json').read_text())

@@ -1138,3 +1138,33 @@ id = "server-source-station-recipes"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_station_recipes"
 source = "source-station-recipes.rs"
+
+[[module]]
+id = "host-source-tool-model"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_tool_model"
+source = "source-tool-model.rs"
+
+[[state]]
+id = "tool-models"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,usize)>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "render-source-tool-gui"
+target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
+kind = "HEAD"
+cancellable = true
+helper = "render-source-tool.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]

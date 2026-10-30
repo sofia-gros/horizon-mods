@@ -192,6 +192,55 @@ for name, template, title in entries:
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5
     items[name] = item
+# Prepare source tool models and material sprites for the registered tools.
+# The shared renderer can add other tools as their real item registrations land.
+tool_manifest = {}
+for row in (repository / 'docs/upstream-tool-visuals.sha256').read_text().splitlines():
+    digest, name = row.split('  ', 1)
+    tool_manifest[name] = digest
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-visuals.zip') as archive:
+    if set(archive.namelist()) != set(tool_manifest) or len(archive.namelist()) != len(tool_manifest):
+        raise ValueError('tool visual archive does not match manifest')
+    models = {}
+    prefixes = set()
+    for name in archive.namelist():
+        prefix = 'assets/tconstruct/models/item/'
+        if name.startswith(prefix) and '/' not in name.removeprefix(prefix) and name.endswith('.json'):
+            short = name.removeprefix(prefix).removesuffix('.json')
+            if 'tconstruct:' + short in items:
+                payload = archive.read(name)
+                if hashlib.sha256(payload).hexdigest() != tool_manifest[name]:
+                    raise ValueError('tool model hash mismatch')
+                model = json.loads(payload)
+                models[name] = payload
+                for texture in model.get('textures', {}).values():
+                    if isinstance(texture, str) and texture.startswith('tconstruct:item/tool/'):
+                        prefixes.add('assets/tconstruct/textures/' + texture.removeprefix('tconstruct:'))
+    for name, payload in models.items():
+        destination = mod_assets / 'tinkering/source_tool_models' / Path(name).name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(payload)
+    for name in archive.namelist():
+        if not name.endswith('.png') or not any(name == prefix + '.png' or name.startswith(prefix + '_') for prefix in prefixes):
+            continue
+        payload = archive.read(name)
+        if hashlib.sha256(payload).hexdigest() != tool_manifest[name]:
+            raise ValueError('tool sprite hash mismatch')
+        relative = name.removeprefix('assets/tconstruct/')
+        destination = mod_assets / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        if destination.exists() and destination.read_bytes() != payload:
+            raise ValueError(f'conflicting tool sprite: {destination}')
+        if not destination.exists():
+            destination.write_bytes(payload)
+        sprite = relative.removeprefix('textures/').removesuffix('.png')
+        alias = 'tconstruct_tool/' + sprite
+        model = mod_assets / 'models/item' / (alias + '.json')
+        item = mod_assets / 'items' / (alias + '.json')
+        model.parent.mkdir(parents=True, exist_ok=True)
+        item.parent.mkdir(parents=True, exist_ok=True)
+        model.write_text(json.dumps({'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': 'tconstruct:' + sprite, 'particle': 'tconstruct:' + sprite}}))
+        item.write_text(json.dumps({'model': {'type': 'minecraft:model', 'model': 'tconstruct:item/' + alias}}))
 # Material-specific visual models for shared original item IDs.
 for short in ('wood_pick_head', 'flint_handle', 'flint_binding'):
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type': 'minecraft:model', 'model': 'tconstruct:item/' + short}}))
