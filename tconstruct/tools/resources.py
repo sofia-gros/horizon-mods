@@ -64,6 +64,9 @@ for child in (src / 'assets/minecraft/textures/gui').iterdir():
     link_or_copy(child, gui / child.name)
 for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
+# Use the original Melter screen in the shared GUI atlas.
+with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as source_melter:
+    (gui / 'tconstruct_melter.png').write_bytes(source_melter.read('assets/tconstruct/textures/gui/melter.png'))
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.
 pattern_source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
 pattern_dest = gui / 'tconstruct_patterns'

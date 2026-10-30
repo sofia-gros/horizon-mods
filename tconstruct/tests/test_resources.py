@@ -121,6 +121,8 @@ class ResourceOverlay(unittest.TestCase):
             panel = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/panel.png').read_bytes()
             self.assertEqual(hashlib.sha256(panel).hexdigest(), '6dce4d43b21133c75d774dfb3043bec34f9b326b9b3dd9475ff6973a8b329916')
             self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_panel.png').read_bytes(), panel)
+            with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as melter_assets:
+                self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_melter.png').read_bytes(), melter_assets.read('assets/tconstruct/textures/gui/melter.png'))
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-station-layouts.zip') as layouts:
                 for name in layouts.namelist():
