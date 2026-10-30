@@ -138,6 +138,20 @@ fn prepare_tconstruct_resources() {
             std::fs::write(&temp, serde_json::to_vec(&registries)?)?;
             std::fs::rename(temp, path)?;
         }
+        // Vanilla honey has the same 1/16 inset collision box as source
+        // congealed slime. Copy only its shape, never its movement behavior.
+        let shape_targets = ["earth", "sky", "ichor", "ender"].map(|kind| format!("tconstruct:{kind}_congealed_slime"));
+        let targets: Vec<usize> = shape_targets.iter().filter_map(|name| facts["defaults"][name.as_str()].as_u64().map(|id| id as usize)).collect();
+        if !targets.is_empty() {
+            let honey = facts["defaults"]["minecraft:honey_block"].as_u64().ok_or("missing honey block")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                tconstruct_block_shapes::apply_congealed_shape(&mut named.tag, honey, &targets)?;
+                let bytes = horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?;
+                std::fs::write(path, bytes)?;
+            }
+        }
         let path = out.join("gameplay-facts.json");
         let mut gameplay: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
