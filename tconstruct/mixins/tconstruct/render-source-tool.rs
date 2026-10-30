@@ -27,21 +27,25 @@ fn render_source_tool_gui(
     });
     let Ok(models) = models else { return Continue(()); };
     let Some(layers) = models.get(name) else { return Continue(()); };
-    let Some(Tag::List(materials)) = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_materials")) else { return Continue(()); };
+    let materials = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_materials"));
     let Ok((records, _)) = game.world.chunks.__horizon_mixins_tconstruct_render_assets()
         .get_or_init(|| crate::game::tconstruct_source_render_info::load_render_assets(&game.options.resources)) else { return Continue(()); };
     let owner = game.player_owner(Some(stack));
     let level = game.item_level();
     let mut states = Vec::with_capacity(layers.len());
     for (base, index) in layers {
-        let Some(Tag::String(raw)) = materials.get(*index) else { return Continue(()); };
-        let Some(material_id) = crate::game::tconstruct_source_render_info::material_id(&raw.to_string_lossy()) else { return Continue(()); };
-        let info = match crate::game::tconstruct_source_render_info::render_info(records, &material_id) {
-            Ok(Some(info)) => info,
-            Ok(None) => crate::game::tconstruct_source_render_info::RenderInfo { texture: None, fallbacks: Vec::new(), color: u32::MAX, luminosity: 0 },
-            Err(_) => return Continue(()),
-        };
-        let Ok((sprite, color, luminosity)) = crate::game::tconstruct_source_render_info::select_sprite_by(base, &info, |id| game.gui.atlas.sprites.contains_key(id)) else { return Continue(()); };
+        let (sprite, color, luminosity) = if let Some(index) = index {
+            let Some(Tag::List(materials)) = materials else { return Continue(()); };
+            let Some(Tag::String(raw)) = materials.get(*index) else { return Continue(()); };
+            let Some(material_id) = crate::game::tconstruct_source_render_info::material_id(&raw.to_string_lossy()) else { return Continue(()); };
+            let info = match crate::game::tconstruct_source_render_info::render_info(records, &material_id) {
+                Ok(Some(info)) => info,
+                Ok(None) => crate::game::tconstruct_source_render_info::RenderInfo { texture: None, fallbacks: Vec::new(), color: u32::MAX, luminosity: 0 },
+                Err(_) => return Continue(()),
+            };
+            let Ok(sprite) = crate::game::tconstruct_source_render_info::select_sprite_by(base, &info, |id| game.gui.atlas.sprites.contains_key(id)) else { return Continue(()); };
+            sprite
+        } else { (base.clone(), u32::MAX, 0) };
         let Some(sprite_path) = sprite.strip_prefix("tconstruct:") else { return Continue(()); };
         let alias = format!("tconstruct_tool/{sprite_path}");
         if !game.options.resources.join("assets/tconstruct/items").join(format!("{alias}.json")).is_file() { return Continue(()); }
