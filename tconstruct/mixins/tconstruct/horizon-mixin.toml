@@ -1783,3 +1783,10 @@ bindings = [
   { name = "pos", ty = "[i32; 3]", value = "pos" },
   { name = "name", ty = "&str", value = "name" },
 ]
+
+[[injection]]
+id = "source-machine-tick"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+kind = "HEAD"
+helper = "source-machine-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
