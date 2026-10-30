@@ -192,7 +192,10 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
                     let id = kind
                         .as_str()
                         .or_else(|| kind.get("stat").and_then(Value::as_str))?;
-                    let scale = kind.get("scale").and_then(Value::as_f64).unwrap_or(1.0) as f32;
+                    let scale = match kind.get("scale") {
+                        Some(value) => value.as_f64()? as f32,
+                        None => 1.0,
+                    };
                     apply_material(&mut stats, id.strip_prefix("tconstruct:")?, material, scale)?;
                 }
             }
