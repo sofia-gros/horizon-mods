@@ -19,6 +19,10 @@ inventory = add_tabs(inventory, [{
 
 The item IDs must already be registered by your mod. `icon` and `items` are SNBT item stacks; item components can be included in a stack. Items appear in the supplied order. Choose a position not used by a visible tab: the current Horizon screen has seven columns in each row. Duplicate IDs and positions are rejected.
 
-Tinkers' Construct supplies its tab data in `tconstruct/content/creative-tabs.json`. Its resource preparation adds the tab without changing the original Horizon resource file. The Creative screen integration is not yet verified in-game.
+Tinkers' Construct supplies its tab data in `tconstruct/content/creative-tabs.json`. Its resource preparation adds the tab without changing the original Horizon resource file. A Linux game test selected this tab and obtained a material-bearing pickaxe and helmet. Other platforms remain unverified.
 
 For playing Tinkers' Construct, see its [player guide](../../tconstruct/docs/playing.md). For the shared library overview, see [pluto lib](../README.md).
+
+![The Tinkers Creative tab selected in a Linux game](../../tconstruct/docs/pluto-creative-tab.png)
+
+*The pickaxe tab opens the registered Tinkers equipment list.*

@@ -21,6 +21,6 @@ updated = add_tabs(prepared_inventory, [{
 
 `add_tabs` returns a copy; it does not edit the input. IDs, icons and stacks must refer to items registered by the mod. A stack may include components in its SNBT. The current Horizon screen provides a fixed set of tab positions; choose an unused one. The function rejects duplicate IDs or positions.
 
-Tinkers' Construct uses its own tab data in `tconstruct/content/creative-tabs.json`. This resource path and the Creative screen have not yet been verified together in a game build.
+Tinkers' Construct uses its own tab data in `tconstruct/content/creative-tabs.json`. The resource path and Creative screen were tested together on Linux; Windows remains unverified.
 
 For the complete tab format and integration details, see [Register a Creative tab](docs/creative-tabs.md).

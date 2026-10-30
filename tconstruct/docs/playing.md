@@ -2,6 +2,16 @@
 
 Use a Part Builder to make parts, then assemble supported tools at a Tinker Station. The examples below were tested on Linux; the Windows launcher and gameplay remain unverified.
 
+## Browse equipment in Creative
+
+Open your Creative inventory and select the pickaxe tab at the top. Choose an item from the grid to put it on your cursor, then place it in your inventory. Scroll the grid to see more equipment and material variants.
+
+![The Tinkers' Construct Tools tab open in the Creative inventory](pluto-creative-tab.png)
+
+*Select the pickaxe tab, then click an item in the grid. This image is from a Linux test.*
+
+A wood pickaxe obtained here was tested for mining on Linux; a Plate Helmet was obtained and placed in the head slot. Many other tools and armor variants are registered for display, but their material stats and individual actions are still incomplete. Windows remains unverified.
+
 ## Make a tool handle
 
 In a creative test world, use the chat to get a Part Builder, patterns, and wood:
