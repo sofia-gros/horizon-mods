@@ -1684,3 +1684,15 @@ bindings = [
   { name = "b", ty = "State", value = "b" },
   { name = "direction", ty = "Direction", value = "direction" },
 ]
+
+[[module]]
+id = "source-melting-recipes"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melting_recipes"
+source = "source-melting-recipes.rs"
+
+[[module]]
+id = "source-melter-state"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_state"
+source = "source-melter-state.rs"
