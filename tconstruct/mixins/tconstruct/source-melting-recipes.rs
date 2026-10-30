@@ -53,6 +53,35 @@ impl FluidSpec {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct AlloyRecipe {
+    pub inputs: Vec<FluidSpec>, pub output: FluidSpec, pub temperature: u32,
+}
+impl AlloyRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.get("type")?.as_str()? != "tconstruct:alloy" || !enabled(&v, conditions) { return None; }
+        let inputs: Vec<_> = v.get("inputs")?.as_array()?.iter().map(FluidSpec::parse).collect::<Option<_>>()?;
+        if inputs.len() < 2 { return None; }
+        let temperature = u32::try_from(v.get("temperature")?.as_u64()?).ok()?;
+        if temperature == 0 { return None; }
+        Some(Self { inputs, output: FluidSpec::parse(v.get("result")?)?, temperature })
+    }
+}
+
+#[cfg(test)]
+mod alloy_tests {
+    use super::*;
+    #[test]
+    fn parses_source_bronze_and_honors_conditions() {
+        let source = br#"{"type":"tconstruct:alloy","conditions":[{"type":"mantle:tag_filled","tag":"forge:ingots/tin"}],"inputs":[{"amount":270,"tag":"forge:molten_copper"},{"amount":90,"tag":"forge:molten_tin"}],"result":{"amount":360,"tag":"forge:molten_bronze"},"temperature":700}"#;
+        let recipe = AlloyRecipe::parse(source, &|_| true).unwrap();
+        assert_eq!(recipe.inputs.iter().map(|input| input.amount).collect::<Vec<_>>(), [270, 90]);
+        assert_eq!((recipe.output.amount, recipe.temperature), (360, 700));
+        assert!(AlloyRecipe::parse(source, &|_| false).is_none());
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MeltingRecipe {
     pub input: Ingredient, pub output: FluidSpec, pub temperature: u32, pub time: u32,
 }
