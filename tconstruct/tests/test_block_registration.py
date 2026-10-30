@@ -45,6 +45,17 @@ class BlockRegistrationTests(unittest.TestCase):
                 self.assertIn(f'tconstruct:{name}', loot)
                 json.loads(loot)
 
+    def test_source_wood_uses_nonfuel_templates(self):
+        for wood in ('greenheart', 'skyroot', 'bloodshroom', 'enderbark'):
+            for prefix in ('', 'stripped_'):
+                for shape, suffix in (('log', 'stem'), ('wood', 'hyphae')):
+                    path = BLOCKS / f'{prefix}{wood}_{shape}.json'
+                    self.assertEqual(json.loads(path.read_text())['template'], f'minecraft:{prefix}crimson_{suffix}')
+        for wood in ('nahuatl', 'blazewood'):
+            for suffix, shape in (('', 'planks'), ('_slab', 'slab'), ('_stairs', 'stairs'), ('_fence', 'fence')):
+                path = BLOCKS / f'{wood}{suffix}.json'
+                self.assertEqual(json.loads(path.read_text())['template'], f'minecraft:crimson_{shape}')
+
     def test_cobalt_ore_drops_raw_cobalt_or_itself_with_silk_touch(self):
         loot = json.loads((CONTENT / 'data/tconstruct/loot_table/blocks/cobalt_ore.json').read_text())
         children = loot['pools'][0]['entries'][0]['children']
