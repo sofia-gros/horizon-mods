@@ -78,3 +78,47 @@ mod direction_tests {
         assert_eq!(face_directions(Up, 45, false, false), None);
     }
 }
+
+// Resolve a baked axis-aligned quad's UV axes in world space. This handles
+// blockstate rotations and UV flips without relying on the original JSON after
+// baking. Returns None for a degenerate or non-axis-aligned mapping.
+pub(crate) fn baked_uv_directions(positions: [[f32; 3]; 4], uv: [[f32; 2]; 4]) -> Option<[Direction; 4]> {
+    fn axis(positions: [[f32; 3]; 4], uv: [[f32; 2]; 4], component: usize) -> Option<Direction> {
+        const EPS: f32 = 0.0001;
+        for a in 0..4 {
+            for b in a + 1..4 {
+                let du = uv[b][component] - uv[a][component];
+                if du.abs() <= EPS || (uv[b][1 - component] - uv[a][1 - component]).abs() > EPS { continue; }
+                let delta = [0, 1, 2].map(|i| (positions[b][i] - positions[a][i]) / du);
+                let axes: Vec<_> = (0..3).filter(|&i| delta[i].abs() > EPS).collect();
+                if axes.len() != 1 { continue; }
+                return Some(match (axes[0], delta[axes[0]] > 0.0) {
+                    (0, true) => Direction::East, (0, false) => Direction::West,
+                    (1, true) => Direction::Up, (1, false) => Direction::Down,
+                    (2, true) => Direction::South, (2, false) => Direction::North,
+                    _ => unreachable!(),
+                });
+            }
+        }
+        None
+    }
+    let right = axis(positions, uv, 0)?;
+    let down = axis(positions, uv, 1)?;
+    Some([down.opposite(), down, right.opposite(), right])
+}
+
+#[cfg(test)]
+mod baked_tests {
+    use super::{baked_uv_directions, Direction::*};
+    #[test]
+    fn baked_axes_follow_uv_flip_and_rotation() {
+        let p = [[0., 0., 0.], [1., 0., 0.], [1., 1., 0.], [0., 1., 0.]];
+        let uv = [[0., 1.], [1., 1.], [1., 0.], [0., 0.]];
+        assert_eq!(baked_uv_directions(p, uv), Some([Up, Down, West, East]));
+        let flipped = uv.map(|[u, v]| [1. - u, v]);
+        assert_eq!(baked_uv_directions(p, flipped), Some([Up, Down, East, West]));
+        let rotated = uv.map(|[u, v]| [v, 1. - u]);
+        assert_eq!(baked_uv_directions(p, rotated), Some([East, West, Up, Down]));
+        assert_eq!(baked_uv_directions(p, [[0., 0.]; 4]), None);
+    }
+}
