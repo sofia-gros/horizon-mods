@@ -1289,3 +1289,42 @@ kind = "HEAD"
 cancellable = true
 helper = "material-attack-speed.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "material-armor-attributes"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "HEAD"
+helper = "material-armor-attributes.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "material-melee-bonus"
+target = "horizon_client::game::enchant_effects::Game<'_>::effect_attack_bonus"
+kind = "HEAD"
+cancellable = true
+helper = "material-melee-bonus.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "material-bow-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "material-bow-tick"
+target = "horizon_client::game::Game<'_>::tick_used_item"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "material-bow-release"
+target = "horizon_client::game::Game<'_>::release_used_item"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "ticks", ty = "u32", value = "ticks" }, { name = "hand_changed", ty = "bool", value = "hand_changed" }]
