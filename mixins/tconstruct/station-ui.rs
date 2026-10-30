@@ -15,17 +15,29 @@ pub(super) fn kind(game: &Game<'_>) -> Option<bool> {
     }
 }
 
-/// Resolve a source layout from the ordered items visible in this menu.
-/// Selection controls and synchronization of an explicitly selected layout are
-/// separate from this input-driven fallback.
-pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source_station_layout::StationLayout> {
-    let BlockEntity::Chest(slots) = game.container_kind()? else { return None; };
-    let snapshot = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
-    let mut candidates = Vec::new();
+pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_station_layout::StationLayout> {
+    let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() else { return Vec::new(); };
+    let Some(rest) = game.res.rest.get() else { return Vec::new(); };
+    let mut layouts = Vec::new();
     for (id, layers) in snapshot {
         if !id.contains(":tinkering/station_layouts/") { continue; }
         let Some(layout) = layers.last().and_then(|bytes| super::tconstruct_source_station_layout::StationLayout::parse(id.clone(), bytes)) else { continue; };
-        if layout.input_slots.len() != 3 { continue; }
+        let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) else { continue; };
+        if layout.input_slots.len() == 3 && rest.items.items.contains_key(item) { layouts.push(layout); }
+    }
+    layouts.sort_by(|a, b| (a.sort_index, &a.id).cmp(&(b.sort_index, &b.id)));
+    layouts
+}
+
+/// Prefer this player's selected source layout, then infer it from inputs.
+pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source_station_layout::StationLayout> {
+    let BlockEntity::Chest(slots) = game.container_kind()? else { return None; };
+    let layouts = station_layouts(game);
+    if let Some(selected) = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key)) {
+        if let Some(layout) = layouts.iter().find(|layout| &layout.id == selected) { return Some(layout.clone()); }
+    }
+    let mut candidates = Vec::new();
+    for layout in layouts {
         let mut present = false;
         let matches = layout.input_slots.iter().zip(slots.iter()).all(|(spec, stack)| {
             let Some(stack) = stack else { return true; };
@@ -34,8 +46,14 @@ pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source
         });
         if present && matches { candidates.push(layout); }
     }
-    candidates.sort_by(|a, b| (a.sort_index, &a.id).cmp(&(b.sort_index, &b.id)));
     candidates.into_iter().next()
+}
+
+pub(super) fn station_accepts_output(game: &Game<'_>, stack: &horizon_items::items::ItemStack) -> bool {
+    let Some(key) = game.container else { return false; };
+    let Some(selected) = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key) else { return true; };
+    station_layouts(game).iter().find(|layout| &layout.id == selected)
+        .and_then(|layout| layout.icon.get("item")).and_then(serde_json::Value::as_str) == Some(stack.item.as_ref())
 }
 
 /// Select the first adjacent container that fits the existing menu protocol.

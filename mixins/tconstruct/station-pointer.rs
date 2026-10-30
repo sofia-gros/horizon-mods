@@ -4,6 +4,17 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let Some(key) = game.container else { return Break(true); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
     let batch = horizon_client::hud::HudBatch::new(size);
+    if station && !right {
+        let (ox, oy) = game.inventory_origin(&batch);
+        let (x, y) = (game.cursor.0 - ox, game.cursor.1 - oy);
+        if (-22.0..-4.0).contains(&x) && y >= 8.0 {
+            let index = ((y - 8.0) / 18.0) as usize;
+            if let Some(layout) = crate::game::tconstruct_ui::station_layouts(game).get(index) {
+                game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, layout.id.clone());
+                return Break(true);
+            }
+        }
+    }
     if game.has_shift_down() {
         if !station && game.slot_at(&batch, game.cursor.0, game.cursor.1) == Some(322) {
             if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, i32::from(right), 1); }
@@ -37,6 +48,10 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let Some(slot) = game.slot_at(&batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if !station && (324..=326).contains(&slot) { return Break(true); }
     if game.remote.is_some() {
+        if station && slot == 324 {
+            let output = game.container_kind().and_then(|entity| entity.slots().get(24)).and_then(Option::as_ref);
+            if output.is_some_and(|stack| !crate::game::tconstruct_ui::station_accepts_output(game, stack)) { return Break(true); }
+        }
         if !station && slot == 322 && right {
             crate::game::remote::tconstruct_source_quick_packet::send(game, 1, 0);
             return Break(true);
@@ -59,6 +74,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let repair = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
     } else { None };
+    if building.as_ref().is_some_and(|(_, output)| !crate::game::tconstruct_ui::station_accepts_output(game, output)) { return Break(true); }
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
     let taken = if action == 24 {
         building.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))

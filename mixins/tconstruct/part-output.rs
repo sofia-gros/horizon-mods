@@ -27,6 +27,10 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         return Break(true);
     }
     if game.remote.is_some() {
+        if station && slot == Some(324) {
+            let output = game.container_kind().and_then(|entity| entity.slots().get(24)).and_then(Option::as_ref);
+            if output.is_some_and(|stack| !crate::game::tconstruct_ui::station_accepts_output(game, stack)) { return Break(true); }
+        }
         if !station && slot == Some(322) && button == 1 {
             crate::game::remote::tconstruct_source_quick_packet::send(game, button, 0);
             return Break(true);
@@ -47,6 +51,7 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let operation = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
     } else { None };
+    if build.as_ref().is_some_and(|(_, output)| !crate::game::tconstruct_ui::station_accepts_output(game, output)) { return Break(true); }
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
     let taken = if action == 24 {
         build.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))

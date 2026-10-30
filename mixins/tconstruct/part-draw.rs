@@ -30,6 +30,13 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
+        for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
+            let y = 8.0 + index as f32 * 18.0;
+            part(batch, 194.0, 0.0, -22.0, y, u32::MAX);
+            if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
+                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox - 21.0, oy + y + 1.0);
+            }
+        }
         // Match the background to the same source positions used for clicks.
         let layout = crate::game::tconstruct_ui::station_layout(game);
         let positions = layout.as_ref().map(|layout| layout.input_slots.iter().map(|slot| (slot.x as f32 - 1.0, slot.y as f32 - 1.0)).collect::<Vec<_>>())
@@ -45,7 +52,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 } else if action == 24 {
                     crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
                 } else { crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|(output, _)| output) };
-                if let Some(stack) = output { game.draw_item(batch, &stack, ox + x, oy + 38.0); }
+                if let Some(stack) = output {
+                    if action != 24 || crate::game::tconstruct_ui::station_accepts_output(game, &stack) {
+                        game.draw_item(batch, &stack, ox + x, oy + 38.0);
+                    }
+                }
             }
         }
     } else {
