@@ -89,6 +89,13 @@ try:
     wait('guest sees pane connection', lambda: 'west=true' in guest.call('block', '16', '71', '2')['state'])
     host.call('look-at', 'block', '15', '71', '2'); host.call('wait', '80')
     host.call('screenshot', str(run / 'connected-pane-boundary.png'))
+    command(host, 'setblock 15 72 2 tconstruct:clear_glass_pane')
+    wait('upper pane has no east arm', lambda: 'east=false' in host.call('block', '15', '72', '2')['state'])
+    assert 'east=true' in host.call('block', '15', '71', '2')['state']
+    host.call('look-at', 'block', '15', '71', '2'); host.call('wait', '40')
+    host.call('screenshot', str(run / 'connected-pane-lower-arm.png'))
+    host.call('look-at', 'block', '15', '72', '2'); host.call('wait', '40')
+    host.call('screenshot', str(run / 'connected-pane-upper-center.png'))
     # Compare walking across the same short path with and without Soul Glass.
     # The path is inside the dedicated fixed test-world area.
     for text in ('tp @s 0.5 71 0.5', 'fill -1 71 1 1 72 5 minecraft:air', 'gamemode survival @s'):
