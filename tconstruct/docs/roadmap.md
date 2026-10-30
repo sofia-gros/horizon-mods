@@ -20,7 +20,7 @@ untested content as complete merely because it uses the same framework.
 ## Implementation order
 
 1. Register the original tools, weapons, and armor using the shared source data.
-2. Add a shared Creative tab library and use it for Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR.
+2. Add **pluto lib** as a shared library, initially implementing only Creative tab registration and use by Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR. Item, block, armor, effect, GUI, and inventory APIs are future library scope after Tinkers is complete; do not add placeholder APIs now.
 3. Implement tool-specific actions and material traits.
 4. Complete the tool station interfaces.
 5. Add the remaining blocks.
