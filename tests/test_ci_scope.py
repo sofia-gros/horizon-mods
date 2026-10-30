@@ -48,9 +48,14 @@ class Scope(unittest.TestCase):
             env = {'GITHUB_EVENT_PATH': str(path), 'GITHUB_REPOSITORY': 'a/b'}
             for changed, expected in ((b'docs/readme.md\0', True), (b'tools/stage.py\0', False)):
                 responses = [subprocess.CompletedProcess([], 0, json.dumps(runs)), subprocess.CompletedProcess([], 0, changed)]
+                if expected:
+                    responses.append(subprocess.CompletedProcess([], 0, 'test\tDetermine validation scope\ttime CI_VERIFIED_BASE=base\n'))
                 with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True), patch.object(subprocess, 'run', side_effect=responses) as run:
                     self.assertEqual(ci_scope.main(), expected)
-                    self.assertIn('--no-renames', run.call_args.args[0])
+                    self.assertIn('--no-renames', run.call_args_list[1].args[0])
+            responses = [subprocess.CompletedProcess([], 0, json.dumps(runs)), subprocess.CompletedProcess([], 0, b'docs/readme.md\0'), subprocess.CompletedProcess([], 0, 'test\tDetermine validation scope\ttime CI_VERIFIED_BASE=other\n')]
+            with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True), patch.object(subprocess, 'run', side_effect=responses):
+                self.assertFalse(ci_scope.main())
             with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=False), patch.object(subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, json.dumps(runs))):
                 self.assertFalse(ci_scope.main())
             unrelated = {'workflow_runs': [{'id': 4, 'head_sha': 'old', 'pull_requests': [{'number': 14}]}]}

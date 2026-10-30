@@ -25,6 +25,7 @@ def main():
     if not pr or pr['head']['repo']['full_name'] != os.environ['GITHUB_REPOSITORY']:
         return False
     head, base = pr['head']['sha'], pr['base']['sha']
+    print(f'CI_VERIFIED_BASE={base}')
     result = subprocess.run(
         ['gh', 'api', '--method', 'GET', f"repos/{os.environ['GITHUB_REPOSITORY']}/actions/workflows/mixins.yml/runs",
          '-f', f"branch={pr['head']['ref']}", '-f', 'event=pull_request', '-f', 'status=success', '-f', 'per_page=100'],
@@ -43,8 +44,11 @@ def main():
         diff = subprocess.run(['git', 'diff', '--no-renames', '--name-only', '-z', old, head], capture_output=True, check=True).stdout
         paths = [path.decode() for path in diff.split(b'\0') if path]
         if documentation_only(paths):
-            print(f"Documentation-only changes since successful run {run['id']} ({old}).")
-            return True
+            log = subprocess.run(['gh', 'run', 'view', str(run['id']), '--repo', os.environ['GITHUB_REPOSITORY'], '--log'], capture_output=True, text=True)
+            marker = f'CI_VERIFIED_BASE={base}'
+            if log.returncode == 0 and any('\tDetermine validation scope\t' in line and line.endswith(marker) for line in log.stdout.splitlines()):
+                print(f"Documentation-only changes since successful run {run['id']} ({old}).")
+                return True
     print('No applicable successful ancestor run; running full validation.')
     return False
 
