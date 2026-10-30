@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidSpec, MeltingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidSpec, MeltingRecipe, Output};
 
 pub(super) struct Catalog<'a> {
     pub recipes: &'a BTreeMap<String, Vec<u8>>,
@@ -36,6 +36,29 @@ impl Catalog<'_> {
                 values.next().is_none().then_some(value)
             }
         }
+    }
+    /// Match source ingredients in order, using each stored fluid at most once.
+    /// Conditions and tags are evaluated against this world's snapshots.
+    pub(super) fn alloy(&self, fluids: &[(String, u32)], temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, Vec<(String, u32)>, String, u32)> {
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
+            if recipe.temperature > temperature { continue; }
+            let Some(output) = self.resolved_fluid(&recipe.output) else { continue; };
+            let mut used = HashSet::new();
+            let mut inputs = Vec::with_capacity(recipe.inputs.len());
+            for ingredient in &recipe.inputs {
+                let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
+                    !used.contains(index) && *amount >= ingredient.amount && self.matches_fluid(ingredient, fluid));
+                let Some((index, (fluid, _))) = matched else { break; };
+                used.insert(index);
+                inputs.push((fluid.clone(), ingredient.amount));
+            }
+            if inputs.len() == recipe.inputs.len() {
+                return Some((id.clone(), inputs, output, recipe.output.amount));
+            }
+        }
+        None
     }
     pub(super) fn melting(&self, item: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MeltingRecipe, String)> {
         if !self.known_items.contains(item) { return None; }
@@ -78,6 +101,19 @@ impl Catalog<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn alloy_resolves_source_tags_and_temperature() {
+        let recipes = [("bronze".into(), br#"{"type":"tconstruct:alloy","inputs":[{"amount":270,"tag":"forge:copper"},{"amount":90,"tag":"forge:tin"}],"result":{"amount":360,"tag":"forge:bronze"},"temperature":700}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let items = HashSet::new();
+        let fluids = ["tconstruct:copper".into(), "tconstruct:tin".into(), "tconstruct:bronze".into()].into_iter().collect();
+        let tags = [("forge:copper".into(), ["tconstruct:copper".into()].into_iter().collect()), ("forge:tin".into(), ["tconstruct:tin".into()].into_iter().collect()), ("forge:bronze".into(), ["tconstruct:bronze".into()].into_iter().collect())].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let stored = [("tconstruct:copper".into(), 270), ("tconstruct:tin".into(), 90)];
+        assert!(catalog.alloy(&stored, 699, &|_| true).is_none());
+        let (_, inputs, output, amount) = catalog.alloy(&stored, 700, &|_| true).unwrap();
+        assert_eq!((inputs.len(), output.as_str(), amount), (2, "tconstruct:bronze", 360));
+        assert!(catalog.alloy(&stored[..1], 700, &|_| true).is_none());
+    }
     #[test]
     fn copper_round_trip_uses_resolved_tags_and_rejects_ambiguous_outputs() {
         let recipes = [
