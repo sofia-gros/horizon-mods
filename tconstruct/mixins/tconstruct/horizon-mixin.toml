@@ -1753,3 +1753,33 @@ kind = "HEAD"
 cancellable = true
 helper = "source-machine-decode.rs"
 bindings = [{ name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[module]]
+id = "source-machine-runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_machine_runtime"
+source = "source-machine-runtime.rs"
+
+[[injection]]
+id = "source-machine-place"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+kind = "HEAD"
+helper = "source-machine-place.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "source-machine-open"
+target = "horizon_client::game::stations::Game<'_>::open_station"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
