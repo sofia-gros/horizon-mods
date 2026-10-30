@@ -22,6 +22,25 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         if let Some(melter) = game.container.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
             .and_then(|tag| crate::game::tconstruct_source_melter_state::Melter::from_nbt(&tag)) {
             if let Some(fluid) = &melter.tank.fluid {
+                // Tile the first frame of the original still-fluid texture in
+                // the source tank's 52x52 area, scaled by the stored amount.
+                let sprite_name = format!("gui/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or(""));
+                if let Some(sprite) = atlas.sprites.get(&sprite_name).copied() {
+                    let height = (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0);
+                    let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                    let mut y = 0.0;
+                    while y < height {
+                        let h = (height - y).min(16.0);
+                        let mut x = 0.0;
+                        while x < 52.0 {
+                            let w = (52.0_f32 - x).min(16.0);
+                            let mut part = sprite; part.u1 = part.u0 + w * du; part.v1 = part.v0 + h * dv;
+                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, u32::MAX);
+                            x += w;
+                        }
+                        y += h;
+                    }
+                }
                 let translation = format!("fluid.{}", fluid.replace(':', "."));
                 let name = game.pack.names.display_get(&translation).unwrap_or_else(|| fluid.clone());
                 batch.text(atlas, &name, ox + 90.0, oy + 24.0, color, false);
