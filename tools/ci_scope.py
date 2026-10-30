@@ -16,7 +16,7 @@ def documentation_only(paths):
 
 
 def ancestor(older, newer):
-    return subprocess.run(['git', 'merge-base', '--is-ancestor', older, newer], check=False).returncode == 0
+    return subprocess.run(['git', 'merge-base', '--is-ancestor', older, newer], check=False, stderr=subprocess.DEVNULL).returncode == 0
 
 
 def main():
@@ -39,7 +39,7 @@ def main():
         old = run['head_sha']
         if not any(item['number'] == pr['number'] for item in run.get('pull_requests', [])):
             continue
-        if not ancestor(base, old) or not ancestor(old, head):
+        if not ancestor(old, head):
             continue
         diff = subprocess.run(['git', 'diff', '--no-renames', '--name-only', '-z', old, head], capture_output=True, check=True).stdout
         paths = [path.decode() for path in diff.split(b'\0') if path]

@@ -50,8 +50,9 @@ class Scope(unittest.TestCase):
                 responses = [subprocess.CompletedProcess([], 0, json.dumps(runs)), subprocess.CompletedProcess([], 0, changed)]
                 if expected:
                     responses.append(subprocess.CompletedProcess([], 0, 'test\tDetermine validation scope\ttime CI_VERIFIED_BASE=base\n'))
-                with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True), patch.object(subprocess, 'run', side_effect=responses) as run:
+                with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True) as ancestry, patch.object(subprocess, 'run', side_effect=responses) as run:
                     self.assertEqual(ci_scope.main(), expected)
+                    ancestry.assert_called_once_with('old', 'head')
                     self.assertIn('--no-renames', run.call_args_list[1].args[0])
             responses = [subprocess.CompletedProcess([], 0, json.dumps(runs)), subprocess.CompletedProcess([], 0, b'docs/readme.md\0'), subprocess.CompletedProcess([], 0, 'test\tDetermine validation scope\ttime CI_VERIFIED_BASE=other\n')]
             with patch.dict(os.environ, env), patch.object(ci_scope, 'ancestor', return_value=True), patch.object(subprocess, 'run', side_effect=responses):
