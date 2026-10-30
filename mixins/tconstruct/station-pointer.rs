@@ -51,8 +51,16 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let action = if station && (324..=325).contains(&slot) { Some((slot - 300) as i16) } else { None };
     let Some(action) = action else { return Continue(()); };
     if right { return Break(true); }
+    let building = if action == 24 {
+        game.world.block_entities.get(&key).and_then(|entity| {
+            crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots())
+        })
+    } else { None };
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
-    if crate::game::tconstruct_tx::take(stacks, &mut game.carried, station, action) {
+    let taken = if action == 24 {
+        building.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))
+    } else { crate::game::tconstruct_tx::take(stacks, &mut game.carried, station, action) };
+    if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));
     }
     Break(true)

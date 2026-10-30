@@ -1140,6 +1140,18 @@ name = "tconstruct_source_station_recipes"
 source = "source-station-recipes.rs"
 
 [[module]]
+id = "host-source-station-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_world"
+source = "source-station-world.rs"
+
+[[module]]
+id = "server-source-station-world"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_world"
+source = "source-station-world.rs"
+
+[[module]]
 id = "host-source-tool-model"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_tool_model"

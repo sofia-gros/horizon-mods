@@ -93,7 +93,7 @@ fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack)
     tx::source_material_lookup(recipes, id, None, items, &HashSet::new(), &HashMap::new(), &registries, config, true)
 }
 
-fn supported_material(world: &super::tconstruct_world::World, material: &str) -> Result<(bool, HashSet<String>), SourceLookupError> {
+pub(super) fn supported_material(world: &super::tconstruct_world::World, material: &str) -> Result<(bool, HashSet<String>), SourceLookupError> {
     let chunks = &world.chunks;
     let (definitions, _, tags) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
