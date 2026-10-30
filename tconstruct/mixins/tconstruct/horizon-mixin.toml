@@ -1832,3 +1832,14 @@ id = "source-melter-layout"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_layout"
 source = "source-melter-layout.rs"
+
+[[injection]]
+id = "source-machine-geometry"
+target = "horizon_client::game::Game<'_>::entity_geometry"
+kind = "HEAD"
+helper = "source-machine-geometry.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<Vertex>", value = "&mut out" },
+]
