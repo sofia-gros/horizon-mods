@@ -61,6 +61,7 @@ try:
     values = {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}
     assert 327 not in values and sum(values.get(slot, {}).get('count', 0) for slot in (300, 301, 302)) == 1, values
     g.call('command', 'give @s minecraft:coal 1')
+    g.call('wait', '10')
     click(hotbar('minecraft:coal')); click(327)
     g.call('wait', '100', timeout=20)
     values = {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}

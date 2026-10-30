@@ -83,6 +83,7 @@ try:
     g.call('interact', '0', '72', '2'); g.call('wait', '5')
     click(hotbar('minecraft:raw_copper')); click(300); g.call('close')
     g.call('command', 'give @s minecraft:iron_pickaxe 1')
+    g.call('wait', '10')
     g.call('hotbar', str(hotbar('minecraft:iron_pickaxe') + 1)); g.call('wait', '10')
     g.call('command', 'gamemode survival @s')
     g.call('break', '0', '72', '2', '--timeout', '40', timeout=45)
