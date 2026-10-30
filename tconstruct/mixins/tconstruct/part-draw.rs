@@ -41,7 +41,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             if let Some(mut r) = atlas.sprites.get("gui/tconstruct_icons").copied() {
                 let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
                 r.u0 += (if selected { 144.0 } else if hovered { 216.0 } else { 180.0 }) * du;
-                r.v0 += 180.0 * dv;
+                r.v0 += 216.0 * dv;
                 r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
                 batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, u32::MAX);
             }
