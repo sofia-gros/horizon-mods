@@ -1101,6 +1101,16 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "builder-double-partner"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "station-preview-sent"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i32,Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>)>"
@@ -1119,6 +1129,18 @@ helper = "source-side-menu-read.rs"
 bindings = [
   { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
   { name = "world", ty = "&crate::world::World", value = "world" },
+]
+
+[[injection]]
+id = "builder-double-menu-write"
+target = "horizon_client::lan::menu::Slots::write"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-menu-write.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&mut crate::world::World", value = "&mut *world" },
+  { name = "items", ty = "&[Option<ItemStack>]", value = "&items" },
 ]
 
 [[injection]]
