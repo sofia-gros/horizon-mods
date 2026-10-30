@@ -30,9 +30,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
-        // These three locations come from the upstream pickaxe layout. The
-        // default repair layout and layout selection still need to be ported.
-        for (x, y) in [(52.0, 21.0), (14.0, 59.0), (32.0, 41.0)] {
+        // Match the background to the same source positions used for clicks.
+        let layout = crate::game::tconstruct_ui::station_layout(game);
+        let positions = layout.as_ref().map(|layout| layout.input_slots.iter().map(|slot| (slot.x as f32 - 1.0, slot.y as f32 - 1.0)).collect::<Vec<_>>())
+            .unwrap_or_else(|| vec![(52.0, 21.0), (14.0, 59.0), (32.0, 41.0)]);
+        for (x, y) in positions {
             part(batch, 176.0, 0.0, x, y, horizon_client::hud::rgba(255, 255, 255, 71));
             part(batch, 194.0, 0.0, x, y, u32::MAX);
         }
