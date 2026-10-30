@@ -90,8 +90,12 @@ These effects were tested on Linux; some station tests used temporary test data.
 
 The Creative tab offers material variants for inspection. Some materials may not yet be obtainable during normal play.
 
-## Upgrade a tool (in development)
+## Upgrade a tool
 
 Place a tool in the Tinker Station. Add quartz shards or quartz blocks for Sharpness, or amethyst shards or amethyst blocks for Swiftstrike, then take the result. A partial set of materials makes partial progress and uses an upgrade slot. A new level needs another slot. Excess material from a block is returned as shards.
 
-This upgrade path is still under development and has not yet been tested in a game. Modifier crystals and other upgrades are not supported by this path.
+![A pickaxe and quartz in the Tinker Station, with the upgraded pickaxe shown as the result](station-upgrade-preview.png)
+
+Put the tool and material in the input slots, then take the result on the right.
+
+Sharpness needs 36 quartz per level; Swiftstrike needs 72 amethyst shards per level. Partial additions count toward the level. This has been tested in a Linux single-player game; LAN use is still being checked. Modifier crystals and other upgrades are not supported by this path.
