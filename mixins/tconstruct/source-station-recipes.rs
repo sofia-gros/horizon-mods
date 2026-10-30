@@ -32,6 +32,28 @@ impl BuildingRecipe {
     }
 
 
+    /// Resolve the tool-parts hook or the recipe's explicit override.
+    /// Other modules still require validation before producing a tool.
+    pub(super) fn parts(&self, definition: &[u8]) -> Option<Vec<String>> {
+        if let Some(parts) = &self.parts_override { return Some(parts.clone()); }
+        let value: Value = serde_json::from_slice(definition).ok()?;
+        let mut result = None;
+        for module in value.get("modules")?.as_array()? {
+            let kind = module.get("type")?.as_str()?;
+            let hooks = match module.get("hooks") {
+                None => None,
+                Some(value) => Some(value.as_array()?.iter().map(Value::as_str).collect::<Option<Vec<_>>>()?),
+            };
+            let supplies = hooks.as_ref().map_or(matches!(kind, "tconstruct:part_stats" | "tconstruct:tool_parts"), |hooks| hooks.contains(&"tconstruct:tool_parts"));
+            if !supplies { continue; }
+            if !matches!(kind, "tconstruct:part_stats" | "tconstruct:tool_parts") || result.is_some() { return None; }
+            let parts = module.get("parts")?.as_array()?.iter().map(|value| {
+                value.as_str().or_else(|| value.get("item").and_then(Value::as_str)).map(str::to_owned)
+            }).collect::<Option<Vec<_>>>()?;
+            result = Some(parts);
+        }
+        Some(result.unwrap_or_default())
+    }
 }
 
 #[cfg(test)]
@@ -40,7 +62,9 @@ mod tests {
     #[test]
     fn ordered_parts_follow_recipe_and_reject_extra_inputs() {
         let recipe = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:pickaxe"}"#).unwrap();
-        let parts = vec!["tconstruct:pick_head".to_owned(), "tconstruct:tool_handle".to_owned()];
+        let definition = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:pick_head","tconstruct:tool_handle"]},{"type":"tconstruct:base_stats","stats":{}}]}"#;
+        let parts = recipe.parts(definition).unwrap();
+        assert_eq!(parts, ["tconstruct:pick_head", "tconstruct:tool_handle"]);
         let mut slots = vec![Some(ItemStack::new(&parts[0], 1)), Some(ItemStack::new(&parts[1], 1)), None];
         let matched = |inputs: &[Option<ItemStack>]| recipe.match_inputs(&parts, 2, inputs, |_| Some("tconstruct:wood".into()), |_, _| true, |_, _| false);
         assert!(matched(&slots).is_some());
