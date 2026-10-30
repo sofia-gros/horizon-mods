@@ -149,11 +149,11 @@ fn prepare_tconstruct_resources() {
             row["solid_render"] = serde_json::Value::Bool(false);
             row["can_occlude"] = serde_json::Value::Bool(false);
         }
-        // Source tables have a top and legs, while soulsteel also declares
-        // no occlusion. Apply this to every state of those blocks.
+        // Source tables have legs and slime-metal blocks declare no occlusion.
+        // Apply this to every state of those blocks.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
-                if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:soulsteel_block")) {
+                if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:soulsteel_block" | "tconstruct:slimesteel_block" | "tconstruct:cinderslime_block" | "tconstruct:knightslime_block")) {
                     let row = rows.get_mut(id).ok_or("missing table gameplay row")?;
                     row["solid_render"] = serde_json::Value::Bool(false);
                     row["can_occlude"] = serde_json::Value::Bool(false);
@@ -173,7 +173,7 @@ fn prepare_tconstruct_resources() {
             let row = render.get_mut(name).and_then(serde_json::Value::as_object_mut).ok_or("missing station render definition")?;
             row.insert("can_occlude".into(), serde_json::Value::Bool(false));
         }
-        for name in ["tconstruct:crafting_station", "tconstruct:modifier_worktable", "tconstruct:soulsteel_block"] {
+        for name in ["tconstruct:crafting_station", "tconstruct:modifier_worktable", "tconstruct:soulsteel_block", "tconstruct:slimesteel_block", "tconstruct:cinderslime_block", "tconstruct:knightslime_block"] {
             if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }
