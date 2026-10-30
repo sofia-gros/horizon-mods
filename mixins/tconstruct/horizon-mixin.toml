@@ -1079,3 +1079,21 @@ bindings = [
   { name = "x", ty = "i32", value = "x" },
   { name = "z", ty = "i32", value = "z" },
 ]
+
+[[state]]
+id = "builder-side"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "builder-side-parts"
+target = "horizon_client::game::storage::Game<'_>::container_parts"
+kind = "HEAD"
+cancellable = true
+helper = "source-side-parts.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]

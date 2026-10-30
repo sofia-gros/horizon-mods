@@ -27,7 +27,8 @@ pub(super) fn take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
 /// Quick-move the source result only where no adjacent inventory can take
 /// precedence. Recheck the recipe for every iteration, as the source menu does.
 pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
-    if !super::tconstruct_source_builder_world::player_only_quick_move(&game.world, pos) { return false; }
+    let side_pos = game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&pos).copied();
+    if side_pos.is_none() && !super::tconstruct_source_builder_world::player_only_quick_move(&game.world, pos) { return false; }
     let Some(eye) = game.eye_position() else { return false; };
     let Some(rest) = game.res.rest.get() else { return false; };
     let items = &rest.items;
@@ -44,9 +45,17 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
         let Some(slots) = game.world.block_entities.get(&pos).map(|entity| entity.slots()) else { break; };
         let Ok(material) = super::tconstruct_source_builder_world::crafting_container(slots.get(1).and_then(Option::as_ref), items) else { break; };
         let Ok(pattern) = super::tconstruct_source_builder_world::crafting_container(slots.first().and_then(Option::as_ref), items) else { break; };
+        let mut side = match side_pos {
+            Some(side_pos) => match game.world.block_entities.get(&side_pos) { Some(BlockEntity::Chest(items)) => items.clone(), _ => break },
+            None => Vec::new(),
+        };
         let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) else { break; };
-        let Some(give) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut [], &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
+        let Some(give) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
         changed = true;
+        if let Some(side_pos) = side_pos {
+            if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&side_pos) { *items = side; }
+            game.world.modified.insert((side_pos.0 >> 4, side_pos.2 >> 4));
+        }
         for stack in give {
             let Some(info) = items.get(&stack.item) else { dropped.push(stack); continue; };
             let can_stack = info.max_stack > 1 && !(info.max_damage > 0 && stack.damage > 0);

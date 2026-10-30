@@ -1,6 +1,15 @@
 fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) -> std::ops::ControlFlow<()> {
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
     let atlas = &game.gui.atlas;
+    if !station && game.container_size() == 54 {
+        let atlas = &game.gui.atlas;
+        batch.fill(atlas, ox - 117.0, oy + 5.0, 60.0, 168.0, horizon_client::hud::rgba(198, 198, 198, 255));
+        for i in 0..27 {
+            let x = ox - 115.0 + (i % 3) as f32 * 18.0;
+            let y = oy + 7.0 + (i / 3) as f32 * 18.0;
+            batch.sprite(atlas, "gui/sprites/container/slot", x, y);
+        }
+    }
     let texture = if station { "gui/tconstruct_tinker_station" } else { "gui/tconstruct_part_builder" };
     batch.sprite_region(atlas, texture, [ox, oy, 176.0, 184.0], 256.0, 256.0);
     // The atlas contains reusable elements outside the 176x184 background.

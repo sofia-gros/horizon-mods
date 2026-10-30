@@ -10,6 +10,7 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
         324 if station => (114.0, 38.0),
         325 if station => (134.0, 38.0),
         302..=326 => (-10000.0, -10000.0),
+        327..=353 if !station => (-114.0 + ((slot - 327) % 3) as f32 * 18.0, 8.0 + ((slot - 327) / 3) as f32 * 18.0),
         _ => return std::ops::ControlFlow::Continue(()),
     };
     std::ops::ControlFlow::Break(position)

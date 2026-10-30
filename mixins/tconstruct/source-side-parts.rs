@@ -1,0 +1,8 @@
+fn tconstruct_side_parts(game: &crate::game::Game<'_>) -> std::ops::ControlFlow<Vec<((i32, i32, i32), usize)>> {
+    use std::ops::ControlFlow::{Break, Continue};
+    if game.remote.is_some() || crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
+    let Some(key) = game.container else { return Continue(()); };
+    let Some(&side) = game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&key) else { return Continue(()); };
+    if !game.world.block_entities.contains_key(&side) { return Continue(()); }
+    Break(vec![(key, 27), (side, 27)])
+}

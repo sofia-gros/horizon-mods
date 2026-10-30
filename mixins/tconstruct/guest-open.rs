@@ -7,10 +7,11 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         _ => return Continue(()),
     };
     if title == "TConstruct Part Builder" { game.ensure_datapacks(); }
-    let slots = horizon_client::lan::menu::Slots::Block(pos);
+    let side = if title == "TConstruct Part Builder" { crate::game::tconstruct_ui::side_inventory(game, pos) } else { None };
+    let slots = side.map_or(horizon_client::lan::menu::Slots::Block(pos), |side| horizon_client::lan::menu::Slots::Double(pos, side));
     let Some(items) = host.hub.guest(conn).and_then(|g| slots.read(&game.world, g)) else { return Break(false); };
     game.guest_container_closed(host, conn);
     game.lan_station_closed(host, conn, None);
-    host.hub.open_container(conn, "minecraft:generic_9x3", horizon_protocol::text::literal(title), pos, slots, items);
+    host.hub.open_container(conn, if side.is_some() { "minecraft:generic_9x6" } else { "minecraft:generic_9x3" }, horizon_protocol::text::literal(title), pos, slots, items);
     Break(true)
 }
