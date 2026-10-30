@@ -61,6 +61,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     if station {
         crate::game::tconstruct_station_info_ui::draw(game, batch, ox, oy);
         if crate::game::tconstruct_name_ui::available(game) {
+            if let Some(mut r) = atlas.sprites.get(texture).copied() {
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.v0 += 244.0 * dv; r.u1 = r.u0 + 90.0 * du; r.v1 = r.v0 + 12.0 * dv;
+                batch.rect_uv(ox + 79.0, oy + 5.0, 90.0, 12.0, r, u32::MAX);
+            }
             let mut edit = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key)).cloned()
                 .unwrap_or_else(|| crate::game::tconstruct_name_ui::new_box(ox, oy));
             edit.x = ox + 80.0; edit.y = oy + 7.0;
@@ -100,6 +105,17 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         for (x, y) in positions {
             part(batch, 176.0, 0.0, x, y, horizon_client::hud::rgba(255, 255, 255, 71));
             part(batch, 194.0, 0.0, x, y, u32::MAX);
+        }
+        if let (Some(layout), Some(entity)) = (active_layout.as_ref(), game.container_kind()) {
+            let specs: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() {
+                std::iter::once(tool).chain(layout.input_slots.iter()).collect()
+            } else { layout.input_slots.iter().collect() };
+            for (index, spec) in specs.into_iter().enumerate() {
+                if entity.slots().get(index).and_then(Option::as_ref).is_some() { continue; }
+                if let Some(("tconstruct", name)) = spec.icon.as_deref().and_then(|icon| icon.split_once(':')) {
+                    batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), ox + spec.x as f32, oy + spec.y as f32);
+                }
+            }
         }
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
             for (x, action) in [(114.0, 24), (134.0, 25)] {
