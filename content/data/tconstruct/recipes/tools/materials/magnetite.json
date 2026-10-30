@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "tag": "forge:raw_nuggets/steel"
+  },
+  "material": "tconstruct:magnetite",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

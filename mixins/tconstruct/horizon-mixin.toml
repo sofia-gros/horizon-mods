@@ -1,0 +1,1283 @@
+[mod]
+id = "tconstruct"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "command"
+target = "horizon_client::game::commands::Game<'_>::run_command"
+kind = "HEAD"
+cancellable = true
+helper = "command.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "command", ty = "&str", value = "command" },
+]
+
+[[injection]]
+id = "wear"
+target = "horizon_client::game::Game<'_>::mine_block_with_held"
+kind = "HEAD"
+cancellable = true
+helper = "wear.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "hardness", ty = "f32", value = "hardness" },
+]
+
+[[injection]]
+id = "broken-speed"
+target = "horizon_items::items::Items::mining_speed"
+kind = "HEAD"
+cancellable = true
+helper = "broken-speed.rs"
+bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
+
+[[injection]]
+id = "broken-harvest"
+target = "horizon_items::items::Items::correct_for_drops"
+kind = "HEAD"
+cancellable = true
+helper = "broken-harvest.rs"
+bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
+
+[[injection]]
+id = "prepare-station-resources"
+target = "horizon_client::logging::game_home"
+kind = "HEAD"
+helper = "prepare.rs"
+
+[[injection]]
+id = "station-storage-open"
+target = "horizon_client::game::stations::Game<'_>::open_station"
+kind = "HEAD"
+cancellable = true
+helper = "station-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+[[injection]]
+id = "part-builder-output"
+target = "horizon_client::game::Game<'_>::menu_click"
+kind = "HEAD"
+cancellable = true
+helper = "part-output.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]
+
+[[injection]]
+id = "guest-part-output"
+target = "horizon_client::lan::containers::Hub::container_click"
+kind = "HEAD"
+cancellable = true
+helper = "guest-part-output.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&play::ContainerClick", value = "p" },
+  { name = "world", ty = "&mut World", value = "&mut *world" },
+  { name = "rules", ty = "&dyn Rules", value = "rules" },
+]
+
+[[module]]
+id = "station-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_ui"
+source = "station-ui.rs"
+
+[[injection]]
+id = "part-layout"
+target = "horizon_client::game::Game<'_>::slot_position"
+kind = "HEAD"
+cancellable = true
+helper = "part-layout.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "slot", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "part-draw"
+target = "horizon_client::game::storage::Game<'_>::draw_chest_screen"
+kind = "HEAD"
+cancellable = true
+helper = "part-draw.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]
+
+[[injection]]
+id = "guest-station-open"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_open_container"
+kind = "HEAD"
+cancellable = true
+helper = "guest-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+]
+
+[[module]]
+id = "host-transactions"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_tx"
+source = "transaction.rs"
+
+[[module]]
+id = "server-transactions"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_tx"
+source = "transaction.rs"
+
+[[injection]]
+id = "station-pointer-output"
+target = "horizon_client::game::stations::Game<'_>::station_click"
+kind = "HEAD"
+cancellable = true
+helper = "station-pointer.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
+id = "station-drag-guard"
+target = "horizon_client::game::Game<'_>::menu_ops"
+kind = "HEAD"
+cancellable = true
+helper = "station-drag-guard.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+[[injection]]
+id = "station-spill"
+target = "horizon_world::level::removal::pre_remove"
+kind = "HEAD"
+cancellable = true
+helper = "station-spill.rs"
+bindings = [{ name = "name", ty = "&str", value = "name" }]
+
+[[injection]]
+id = "network-custom-data"
+target = "horizon_client::lan::hub::Hub::stack"
+kind = "HEAD"
+cancellable = true
+helper = "network-custom-data.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
+
+[[injection]]
+id = "client-network-custom-data"
+target = "horizon_client::game::remote::Game<'_>::to_network"
+kind = "HEAD"
+cancellable = true
+helper = "client-network-custom-data.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
+
+[[injection]]
+id = "station-screen-height"
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+kind = "HEAD"
+cancellable = true
+helper = "station-height.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[state]]
+id = "part-selections"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "part-select-server"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_button"
+kind = "HEAD"
+cancellable = true
+helper = "part-select-server.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "i32", value = "window" },
+  { name = "id", ty = "i32", value = "id" },
+]
+
+[[injection]]
+id = "part-selection-send-data"
+target = "horizon_client::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "part-selection-send-data.rs"
+bindings = [
+  { name = "hub", ty = "&mut Hub", value = "&mut *self" },
+  { name = "ctx", ty = "&mut TickCtx<'_>", value = "&mut *ctx" },
+]
+
+[[injection]]
+id = "part-selection-remote-open"
+target = "horizon_client::game::remote_stations::Game<'_>::remote_station_open"
+kind = "HEAD"
+cancellable = true
+helper = "part-selection-remote-open.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "container", ty = "i32", value = "container" },
+]
+
+[[injection]]
+id = "part-selection-remote-data"
+target = "horizon_client::game::remote_stations::Game<'_>::remote_station_data"
+kind = "HEAD"
+cancellable = true
+helper = "part-selection-remote-data.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "id", ty = "usize", value = "id" },
+  { name = "value", ty = "i16", value = "value" },
+]
+
+[[injection]]
+id = "part-selection-block-change"
+target = "horizon_client::world::World::set"
+kind = "HEAD"
+helper = "part-selection-block-change.rs"
+bindings = [
+  { name = "world", ty = "&mut crate::world::World", value = "&mut *self" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "y", ty = "i32", value = "y" },
+  { name = "z", ty = "i32", value = "z" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+]
+
+[[injection]]
+id = "part-selection-chunk-remove"
+target = "horizon_client::chunk_map::ChunkMap::remove"
+kind = "HEAD"
+helper = "part-selection-chunk-remove.rs"
+bindings = [
+  { name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" },
+  { name = "chunk", ty = "&(i32,i32)", value = "key" },
+]
+
+[[injection]]
+id = "part-selection-chunk-clear"
+target = "horizon_client::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "part-selection-chunk-clear.rs"
+bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
+[[injection]]
+id = "station-result-tooltip"
+target = "horizon_client::game::stations::Game<'_>::draw_slot_tooltip"
+kind = "HEAD"
+cancellable = true
+helper = "station-result-tooltip.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "melee-wear"
+target = "horizon_client::game::mace::Game<'_>::weapon_wear"
+kind = "HEAD"
+cancellable = true
+helper = "melee-wear.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+[[bridge]]
+id = "recipe-files"
+kind = "INVOKE"
+target = "horizon_client::datapack::DataPack::list_kinds"
+
+[[bridge]]
+id = "recipe-read"
+kind = "INVOKE"
+target = "horizon_client::datapack::DataPack::read"
+
+[[module]]
+id = "world-recipe-loader"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_recipes"
+source = "recipe-snapshot.rs"
+
+[[module]]
+id = "source-tags"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_tags"
+source = "source-tags.rs"
+
+[[module]]
+id = "source-tags-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_tags"
+source = "source-tags.rs"
+
+[[module]]
+id = "source-stat-types"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_stat_types"
+source = "source-stat-types.rs"
+
+[[module]]
+id = "source-stat-types-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_stat_types"
+source = "source-stat-types.rs"
+
+[[module]]
+id = "source-render-info"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_render_info"
+source = "source-render-info.rs"
+
+[[module]]
+id = "source-render-info-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_render_info"
+source = "source-render-info.rs"
+
+[[module]]
+id = "source-mantle-layer"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_mantle_layer"
+source = "source-mantle-layer.rs"
+
+[[module]]
+id = "source-mantle-layer-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_mantle_layer"
+source = "source-mantle-layer.rs"
+
+[[module]]
+id = "source-sprite-frames"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_sprite_frames"
+source = "source-sprite-frames.rs"
+
+[[state]]
+id = "recipe-tag-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-recipe-order"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_recipe_order"
+source = "recipe-order.rs"
+
+[[module]]
+id = "source-recipe-order-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_recipe_order"
+source = "recipe-order.rs"
+
+[[module]]
+id = "world-material-loader"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_materials"
+source = "material-snapshot.rs"
+
+[[state]]
+id = "material-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "material-tag-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "resolved-item-tags"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "fluid-tag-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "resolved-fluid-tags"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "resolved-material-definitions"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<(std::collections::HashMap<String,(bool,bool,i32,i32,String)>,std::collections::HashMap<String,String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "resolved-material-stats"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashMap<String,bool>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "render-assets"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::sync::OnceLock<Result<(std::collections::HashMap<String,serde_json::Value>,std::collections::HashMap<String,(String,[f32;2])>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "render-sprite-frames"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::sync::Mutex<std::collections::HashMap<String,(usize,usize,Vec<Vec<u8>>)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "render-source-part-gui"
+target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
+kind = "HEAD"
+cancellable = true
+helper = "render-source-part.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]
+
+[[module]]
+id = "source-config"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_config"
+source = "source-config.rs"
+
+[[state]]
+id = "source-config-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,bool>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "recipe-snapshot"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::BTreeMap<String,Vec<u8>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "recipe-reload-helper"
+file = "crates/horizon-client/src/game/functions.rs"
+name = "tconstruct_recipe_reload"
+source = "recipe-reload.rs"
+
+[[injection]]
+id = "recipe-initial-load"
+target = "horizon_client::game::functions::Game<'_>::ensure_datapacks"
+kind = "RETURN"
+helper = "recipe-ensure.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "recipe-reload-command"
+target = "horizon_client::game::functions::Game<'_>::cmd_reload"
+kind = "RETURN"
+helper = "recipe-command.rs"
+bindings = [{ name = "value", ty = "R<i32>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "recipe-pack-change"
+target = "horizon_client::game::functions::Game<'_>::apply_pack_change"
+kind = "RETURN"
+helper = "recipe-pack.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-part-names"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_part_name"
+source = "source-part-name.rs"
+
+[[injection]]
+id = "source-part-name-line"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+kind = "RETURN"
+helper = "part-name-injection.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[module]]
+id = "source-part-names-tests"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_part_name"
+source = "source-part-name.rs"
+
+[[injection]]
+id = "nonfuel-inframe"
+target = "horizon_client::game::storage::Game<'_>::refuses"
+kind = "HEAD"
+cancellable = true
+helper = "nonfuel-inframe.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "source-material-block-place"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+kind = "HEAD"
+helper = "material-block-place.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "material-block-record-drop"
+target = "horizon_client::game::spill::Pending::record_saved"
+kind = "HEAD"
+helper = "material-block-record-drop.rs"
+bindings = [
+  { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" },
+]
+
+[[injection]]
+id = "material-block-attach-drop"
+target = "horizon_client::game::spill::Pending::attach"
+kind = "HEAD"
+helper = "material-block-attach-drop.rs"
+bindings = [
+  { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&mut horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[state]]
+id = "material-wire-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32, u64, [i32; 3]), horizon_world::nbt::Tag>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "material-block-wire-type"
+target = "horizon_client::lan::chunks::block_entity_type"
+kind = "HEAD"
+cancellable = true
+helper = "material-block-wire-type.rs"
+bindings = [{ name = "name", ty = "&str", value = "name" }]
+
+[[injection]]
+id = "material-block-wire-send"
+target = "horizon_client::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "material-block-wire-send.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[injection]]
+id = "material-block-wire-receive"
+target = "horizon_client::game::remote::Game<'_>::remote_block_entity_data"
+kind = "HEAD"
+cancellable = true
+helper = "material-block-wire-receive.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "kind", ty = "i32", value = "kind" }, { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[injection]]
+id = "material-block-wire-prune"
+target = "horizon_client::lan::hub::Hub::tick_level"
+kind = "HEAD"
+helper = "material-block-wire-prune.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[state]]
+id = "material-wire-client"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "bool"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "material-wire-ids"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<(i32, i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "material-wire-before"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32, u64), std::collections::HashSet<(i32, i32)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "material-block-wire-chunk"
+target = "horizon_client::lan::chunks::ChunkEncoder::body_in"
+kind = "HEAD"
+cancellable = true
+helper = "material-block-wire-chunk.rs"
+bindings = [{ name = "encoder", ty = "&crate::lan::chunks::ChunkEncoder", value = "&*self" }, { name = "chunk", ty = "&crate::chunk::Chunk", value = "chunk" }, { name = "world", ty = "&crate::world::World", value = "world" }]
+
+[[module]]
+id = "host-source-builder-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_world"
+source = "source-builder-world.rs"
+
+[[module]]
+id = "server-source-builder-world"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_builder_world"
+source = "source-builder-world.rs"
+
+[[module]]
+id = "host-source-world-type"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_world"
+source = "source-world-type-game.rs"
+
+[[module]]
+id = "server-source-world-type"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_world"
+source = "source-world-type-server.rs"
+
+[[state]]
+id = "builder-choices"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>,Option<Vec<String>>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "refresh-local-builder-choices"
+target = "horizon_client::game::storage::Game<'_>::tick_container_reach"
+kind = "HEAD"
+helper = "source-builder-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "host-source-builder-wire"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_wire"
+source = "source-builder-wire.rs"
+
+[[module]]
+id = "server-source-builder-wire"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_builder_wire"
+source = "source-builder-wire.rs"
+
+[[state]]
+id = "builder-wire-recv"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-preview"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>,Option<String>,Option<horizon_items::items::ItemStack>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "source-native-durability"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::HashMap<String,u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "host-source-native-durability"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_native_durability"
+source = "source-native-durability.rs"
+
+[[module]]
+id = "server-source-native-durability"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_native_durability"
+source = "source-native-durability.rs"
+
+[[module]]
+id = "host-source-cast-info"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_cast_info"
+source = "source-cast-info.rs"
+
+[[module]]
+id = "server-source-cast-info"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_cast_info"
+source = "source-cast-info.rs"
+
+[[state]]
+id = "source-cast-costs"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Vec<i32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-cast-costs"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),Vec<i32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-cast-wire-recv"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-cast-wire-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),Vec<i16>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "host-source-builder-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_layout"
+source = "source-builder-layout.rs"
+
+[[state]]
+id = "builder-scroll"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(f32,usize,bool,Vec<String>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-preview-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i32,Option<horizon_items::items::ItemStack>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "builder-scroll-input"
+target = "horizon_client::game::stations::Game<'_>::station_scroll"
+kind = "HEAD"
+cancellable = true
+helper = "source-builder-scroll.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "delta", ty = "f32", value = "d" }]
+
+[[injection]]
+id = "builder-drag"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+kind = "HEAD"
+cancellable = true
+helper = "source-builder-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "builder-release"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+kind = "HEAD"
+helper = "source-builder-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "builder-close"
+target = "horizon_client::game::Game<'_>::close_container"
+kind = "HEAD"
+helper = "source-builder-close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "builder-remote-close"
+target = "horizon_client::game::remote::Game<'_>::remote_close_local"
+kind = "HEAD"
+helper = "source-builder-close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "host-source-builder-take"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_builder_take"
+source = "source-builder-take-host.rs"
+
+[[module]]
+id = "host-source-quick-packet"
+file = "crates/horizon-client/src/game/remote.rs"
+name = "tconstruct_source_quick_packet"
+source = "source-quick-packet.rs"
+
+[[module]]
+id = "host-source-original-item-durability"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_original_item_durability"
+source = "source-original-item-durability.rs"
+
+[[module]]
+id = "server-source-original-item-durability"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_original_item_durability"
+source = "source-original-item-durability.rs"
+
+[[module]]
+id = "source-recycling-rng"
+file = "crates/horizon-items/src/items.rs"
+name = "tconstruct_recycling_rng"
+source = "source-recycling-rng.rs"
+
+[[state]]
+id = "source-recipe-generation"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "u64"
+initial = "0"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+# Source recipe objects remain alive in each loaded table until its input
+# changes, even if the world's recipe manager reloads.
+[[state]]
+id = "builder-recipe-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(u64,std::sync::Arc<std::collections::BTreeMap<String,Vec<u8>>>,Vec<(String,String)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "source-shared-recipes"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::sync::Arc<std::collections::BTreeMap<String,Vec<u8>>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+# Material lookup is cached independently of the recipe-button list.
+[[state]]
+id = "builder-material-cache"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(horizon_items::items::ItemStack,Vec<u8>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "source-selection-origin"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(String,String,u64)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "storage-atlas"
+target = "horizon_client::assets::Assets::reload"
+kind = "HEAD"
+cancellable = true
+helper = "storage-atlas.rs"
+bindings = [
+  { name = "assets", ty = "&Assets", value = "self" },
+  { name = "root", ty = "&Path", value = "root" },
+]
+
+[[injection]]
+id = "storage-mesh-face"
+target = "horizon_client::mesher::Mesher<'_>::face"
+kind = "HEAD"
+cancellable = true
+helper = "storage-mesh-face.rs"
+bindings = [
+  { name = "mesher", ty = "&Mesher<'_>", value = "self" },
+  { name = "pad", ty = "&Padded", value = "pad" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "tints" },
+  { name = "out", ty = "&mut SectionMesh", value = "out" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "origin", ty = "[f32; 3]", value = "origin" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+  { name = "ao", ty = "bool", value = "ao" },
+  { name = "state", ty = "&Info", value = "state" },
+]
+
+[[injection]]
+id = "storage-pick"
+target = "horizon_client::game::block_items::Game<'_>::picked_stack"
+kind = "HEAD"
+cancellable = true
+helper = "storage-pick.rs"
+bindings = [
+  { name = "game", ty = "&Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "include_data", ty = "bool", value = "include_data" },
+]
+
+[[injection]]
+id = "storage-render-init"
+target = "horizon_client::game::Game<'_>::prepare_lod"
+kind = "HEAD"
+helper = "storage-render-init.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "storage-render-info-streaming"
+file = "crates/horizon-client/src/streaming.rs"
+name = "tconstruct_storage_render_info"
+source = "source-render-info.rs"
+
+[[module]]
+id = "storage-render-info-mesher"
+file = "crates/horizon-client/src/mesher.rs"
+name = "tconstruct_storage_render_info"
+source = "source-render-info.rs"
+
+[[injection]]
+id = "storage-region"
+target = "horizon_client::streaming::Streaming::region"
+kind = "HEAD"
+cancellable = true
+helper = "storage-region.rs"
+bindings = [
+  { name = "world", ty = "&World", value = "world" },
+  { name = "x", ty = "i32", value = "x" },
+  { name = "z", ty = "i32", value = "z" },
+]
+
+[[state]]
+id = "builder-side"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-side-size"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),usize>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "builder-double-partner"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "station-preview-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i32,Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "builder-hopper-menu-read"
+target = "horizon_client::lan::menu::Slots::read"
+kind = "HEAD"
+cancellable = true
+helper = "source-side-menu-read.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+]
+
+[[injection]]
+id = "builder-double-menu-write"
+target = "horizon_client::lan::menu::Slots::write"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-menu-write.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&mut crate::world::World", value = "&mut *world" },
+  { name = "items", ty = "&[Option<ItemStack>]", value = "&items" },
+]
+
+[[injection]]
+id = "builder-double-menu-get"
+target = "horizon_client::lan::menu::Slots::get"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-menu-get.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+  { name = "index", ty = "usize", value = "n" },
+]
+
+[[injection]]
+id = "builder-double-client-slot"
+target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-client-slot.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "container", ty = "i32", value = "container" },
+  { name = "slot", ty = "i32", value = "slot" },
+  { name = "item", ty = "&Option<ItemStack>", value = "&item" },
+]
+
+[[injection]]
+id = "builder-double-client-click"
+target = "horizon_client::game::remote::Game<'_>::remote_menu_ops"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-client-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+[[injection]]
+id = "builder-side-parts"
+target = "horizon_client::game::storage::Game<'_>::container_parts"
+kind = "HEAD"
+cancellable = true
+helper = "source-side-parts.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[state]]
+id = "builder-crafted"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Vec<(u32,String,u32,[f64;3])>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "builder-crafted-event"
+target = "horizon_client::game::Game<'_>::tick"
+kind = "HEAD"
+helper = "source-builder-crafted.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "host-source-station-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_layout"
+source = "source-station-layout.rs"
+
+[[module]]
+id = "server-source-station-layout"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_layout"
+source = "source-station-layout.rs"
+
+[[module]]
+id = "host-source-station-recipes"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_recipes"
+source = "source-station-recipes.rs"
+
+[[module]]
+id = "server-source-station-recipes"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_recipes"
+source = "source-station-recipes.rs"
+
+[[module]]
+id = "host-source-station-stats"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_stats"
+source = "source-station-stats.rs"
+
+[[module]]
+id = "server-source-station-stats"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_stats"
+source = "source-station-stats.rs"
+
+[[module]]
+id = "host-source-station-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_world"
+source = "source-station-world.rs"
+
+[[module]]
+id = "server-source-station-world"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_world"
+source = "source-station-world.rs"
+
+[[module]]
+id = "host-source-tool-model"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_tool_model"
+source = "source-tool-model.rs"
+
+[[state]]
+id = "tool-models"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,usize)>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "render-source-tool-gui"
+target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
+kind = "HEAD"
+cancellable = true
+helper = "render-source-tool.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]

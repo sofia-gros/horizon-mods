@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "tag": "forge:normal_stone"
+  },
+  "material": "tconstruct:rock#stone",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

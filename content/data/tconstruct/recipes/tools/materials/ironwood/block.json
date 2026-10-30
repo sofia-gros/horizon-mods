@@ -1,0 +1,19 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:storage_blocks/ironwood",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:storage_blocks/ironwood"
+  },
+  "leftover": {
+    "count": 1,
+    "tag": "forge:ingots/ironwood"
+  },
+  "material": "tconstruct:ironwood",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 9
+}

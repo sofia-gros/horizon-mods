@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "tag": "forge:gunpowder"
+  },
+  "material": "tconstruct:gunpowder",
+  "needed": 4,
+  "type": "tconstruct:material",
+  "value": 1
+}

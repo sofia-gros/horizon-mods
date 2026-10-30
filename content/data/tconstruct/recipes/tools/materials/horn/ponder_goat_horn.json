@@ -1,0 +1,11 @@
+{
+  "ingredient": {
+    "instrument": "minecraft:ponder_goat_horn",
+    "item": "minecraft:goat_horn",
+    "type": "tconstruct:instrument"
+  },
+  "material": "tconstruct:horn#minecraft.ponder_goat_horn",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 4
+}

@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "item": "minecraft:nautilus_shell"
+  },
+  "material": "tconstruct:nautilus",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 4
+}

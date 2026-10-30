@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "tag": "forge:basalt"
+  },
+  "material": "tconstruct:flint#basalt",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

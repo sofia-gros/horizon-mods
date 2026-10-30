@@ -1,89 +1,176 @@
-# Horizon Mixins mod development
+# Tinkers' Construct for Horizon — Mixins migration
 
-This repository is the development foundation for a Tinkers’ Construct port to
-[Horizon](https://github.com/horizon-rust/horizon) using
-[Horizon Mixins](https://github.com/horizon-rust/horizon-mixins). It exports
-pinned source commits and builds a separate native Horizon client. It does not
-use the former fork's Wasm host API. Native Mixins code runs with the user's
-privileges; this repository does not claim Wasm-equivalent isolation.
+> Draft preview on the unmerged `codex/tconstruct-stations` branch. This README
+> does not describe the current `main` branch.
 
-The adoption of Mixins as the project's chosen approach is a user direction,
-not a claim that Horizon's public documentation mandates an exclusive mod
-system.
+This is an early native source-mixin port of selected Tinkers' Construct
+mechanics. It is not a complete port. It builds a separate Horizon executable;
+it does not use the former fork's Wasm host API. The native code runs with the
+user's privileges. The user's adoption decision is not a claim that current
+Horizon documentation describes Mixins as its official exclusive mod system.
+
+The proposed first completion unit is the original Part Builder: recipe-driven
+selection, preview, exact material consumption and leftovers, result handling,
+presentation, persistence and multiplayer behavior. The Tinker Station supports a growing source-driven tool path and remains incomplete. The
+current branch does not yet meet Part Builder acceptance; see the
+[source-to-port record](docs/original-parity.md) and [roadmap](docs/roadmap.md).
+
+The source recipes, material definitions, tags and tool definitions are
+prepared as shared data. Shared selection and material-cost calculations are connected to normal GUI
+crafting for supported ordinary parts and limited source recycling. Recycling selects uniformly among available alternate results when the selected source recipe identity is known. We will connect and verify each common behavior once,
+then expand content through its source definitions and check separately only
+where the original has distinct behavior.
+
+The planned v0.5 is a playable preview that nearly reproduces the original mod
+on its own. The scope of full parity and balance will be decided after v0.5. Existing Horizon 26.3 Minecraft materials and recipes remain unchanged. v0.5 has not been reached.
 
 ## What works today
 
-The independent fixture can be applied to the pinned official Horizon source,
-compiled and run. Clicking a vanilla crafting table exercises its hook and
-writes `independent fixture station-click hook executed` to the game log. This
-is a development check, not Tinkers’ Construct gameplay.
+In single-player worlds, craft a Pattern and the Part Builder and Tinker
+Station at a crafting table, place both tables, and open them by interacting.
+The material storage block is registered with its source textures. In a Linux
+test build, command-supplied bronze and unknown blocks displayed their material,
+survived save/reload, and dropped with Material when mined in both game modes.
+Pick Block preserved bronze for hosts and LAN guests in both Linux game modes,
+with and without Ctrl; normal acquisition is not implemented. Windows remains
+unverified. See the
+[storage display](docs/fake-storage-preview.png).
+The shared Part Builder material path also accepts registered material-bearing
+parts for reuse using their world casting cost. A Linux test build converted a
+wood pick head into two wood handles and saved the result in both game modes.
+The official Mixins build passed the same normal-mode operation, including input
+and Pattern consumption. Other part and material combinations and Windows
+remain unverified.
+Compatibility materials are resolved from the world's material tags and
+visible recipes. With a test datapack making bronze craftable, the official Linux Mixins
+build reused a bronze pick head into two bronze handles; normal bronze
+acquisition and other compatibility materials remain unverified.
+In the Part Builder, insert a Pattern and material, select a source-recipe
+pattern in the scrolling grid, and take an ordinary part from the result slot.
+For example, an oak log produces a wood tool handle and returns three oak
+planks; an oak plank can also produce a wood handle. Both paths and save/reload were tested in both game modes. All 29 original gold cast IDs are registered using their source models and sprites. A command-supplied Tool Handle Cast was reused without consumption while crafting a wood handle in a Linux test-generated build; normal casting acquisition, cast cost tooltip outside the supported Part Builder context, other casts and Windows remain incomplete. The shared part-cast tooltip uses world casting recipes; an official Linux build showed a pick-head cost changing from 2 to 3 after datapack reload in both game modes. Remote clients receive costs while the Part Builder is open; other remote screens remain unsupported. The original sand and red-sand cast IDs are also registered. In a Linux test-generated build, a command-supplied blank sand cast was consumed to create an Adze Head sand cast through the source item-part recipe and survived save/reload. Red sand, other shapes and Windows remain unverified. One native 26.3 sand or red sand can also be crafted into four corresponding blank casts; both recipes and save/reload were checked in a test-generated Linux build. The native recipes use those two item IDs; arbitrary datapack sand categories are not yet supported. Four original stone armor-plating dummy items now use the shared item-part recipe path. A test-generated Linux build crafted a stone helmet dummy from three calcite in the normal GUI and retained it after save/reload; the other three are unverified. The shared hook adds the original dummy tooltip; the English helmet tooltip was visually checked in a Linux official build. The other three and other languages remain unverified. A left or right Shift-click on the result can repeat ordinary crafting into the player inventory when no adjacent block entity is present; the test also covers a full inventory and competing players. Part recipes
+and materials are still incomplete, and unsupported contexts are rejected. In the Tinker Station, put the head, handle
+and binding in the three input positions and take a flint/wood pickaxe. Its tested
+`tic_materials` list survives save and reload, but derived statistics, traits
+and modifiers are not fully ported. Put a worn pickaxe and flint in the inputs and take a repaired copy. Repair retains
+the tool's existing name and custom data.
 
-The Part Builder, Tinker Station and tool work is an **unmerged preview** in
-[draft PR #13](https://github.com/sofia-gros/horizon-mods/pull/13); its images
-show that branch, not this foundation or current main. The original Mod is
-not yet fully ported. See the [roadmap](docs/roadmap.md) for scope and the
-[reference inventory](docs/upstream-inventory.json) for original source data.
+Station inputs survive closing and saving the world. Breaking a table returns
+its inputs. The pickaxe wears while mining or hitting a living mob, stays when broken, and
+mines slowly. The fixed flint/wood parts and tool use original Tinkers textures. In GUI slots, the tested flint and wood parts select their original material sprites; a command-supplied oxidized copper head was also checked, but is not yet craftable. Part tooltips display tested material names in English and Japanese; existing explicit names are preserved.
+A tested vanilla diamond with custom data also keeps that data when two players
+move it through a shared chest and save/reload the world. This check covers
+custom data, not every item component.
+
+Two players can use the same table; the tested competing result pickups consume
+inputs once. In both game modes, a guest can reopen the table and see the
+shared source-pattern selection after the Pattern is removed and restored. See the
+[Part Builder source-recipe preview](docs/part-builder-source-preview.png) and
+[stone-axe recycling](docs/recycling-preview.png), [flint-and-steel result](docs/recycling-flint-result.png), [crossbow recycling result](docs/recycling-crossbow-result.png), [Pattern identity example](docs/recycling-pattern-identity.png), [material cache example](docs/part-builder-material-cache.png), [oak-plank crafting](docs/oak-plank-builder.png), and [Tinker Station](docs/tinker-station.png) screenshots. The [material display diagnostic](docs/source-part-visuals.png) includes a command-supplied copper variant. The [registered part diagnostic](docs/source-parts-command.png) and [fake ingot diagnostic](docs/fake-ingot-command.png) use commands, including combinations that are not valid crafting recipes.
+
+This is a narrow prototype, not complete Tinkers' Construct. The Station uses source recipes, layouts and partial base stats for registered three-part tools. A Linux official build tested the full flint/wood pickaxe lifecycle and head replacement in both execution modes. LAN tests covered a guest switching from the Part Builder to Station and taking a pickaxe; a guest selected and assembled a mattock from command-supplied parts, with its 106-point base maximum durability verified. A separately crafted mattock was damaged to 105/106, kept at its broken limit after a melee hit, repaired and saved/reloaded in normal Linux gameplay; other tool lifecycles, material traits and modifiers remain unverified or incomplete. A command-supplied venom bottle can be drunk, giving Strength and poison and returning a glass bottle in the tested cases. A venom bottle and stone axe can also be used in the Part Builder: the tested undamaged axe returns three cobblestone and an empty glass bottle; durability affects the quantity. An undamaged flint-and-steel can return flint and an iron ingot along with the empty bottle when its source selection is current. A command-supplied undamaged crossbow can return three sticks and either two string or one iron ingot. The venom bottle's fluid-container capability, detailed tooltip and normal acquisition remain unimplemented. The 28 original part and repair-kit item IDs and the fake ingot ID are registered; command-supplied examples retain their material data, but most cannot yet be crafted or used as original parts. The shared recycling path now reads Minecraft durability from the Horizon 26.3 item registry rather than the old 1.20.1 fixed list. Part Builder also reads Minecraft crafting containers from the Horizon 26.3 item registry; item-specific component overrides remain unsupported. The source-pack copper nugget tag uses the native 26.3 item, and the native copper crafting recipes take precedence when present; an official Linux build checked the tag and crafted nine native nuggets from one ingot, including save/reload. The material storage block remains shared for distinct materials such as bronze. Stack-specific max-damage overrides and non-Minecraft item durability remain unsupported; the official Mixins build passed a Linux GUI test using a test datapack that recycles a 26.3 mace at half of its 500 durability, including consumption and save/reload. The original mod does not include a mace recycling recipe. A test-generated build recycled undamaged leather boots into four leather and damaged boots into two leather in the two game modes, with the empty bottle and save/reload; the official Mixins build and other armor remain unverified. Other material combinations, tool behaviors and traits remain incomplete. The Part Builder has a source-recipe selection grid and ordinary pickup, but
+recycling with unknown selection identity, modifiable and unsupported input items, all material and item registrations, item-specific and non-vanilla custom crafting-container behavior,
+complete tooltips and side panels are unfinished. Dynamic part names are not
+yet connected to hotbar labels or recipe search. A table retains its cached recipe across reload until its input changes; both game modes verified the old cost and a subsequent input change. For supported recycling, a selection retained across an input change is compared by its source recipe identity: an equal Pattern from a different recipe or reload generation remains an alternative, as in the original. Both game modes tested this path; unavailable selection origins are still rejected. The table also retains a cached material recipe until the material item or its data changes. Both game modes tested a material-value reload and an oak-log tag change, including invalidation on material reinsertion; other materials and tag interactions remain incomplete. The four source slimewood plank blocks are registered with their original textures; a command-supplied greenheart plank was placed, saved, mined and rejected as fuel in both modes. Their normal acquisition and explosion-drop random sequence remain incomplete or unverified. A Rust random generator is shared in the process and advances only after a successful transaction; its bounded draw preserves the source's uniform choice. The official Linux build passed a representative crossbow recycling transaction and save/reload in both modes; Windows execution remains unverified. The Tinker Station uses
+separate assembly and repair result icons, and does not yet provide the original
+naming or modifier UI. Left and right Part Builder result clicks and result Shift-clicks work in tested cases. Other Shift-click paths, drag and double-click collection are incomplete. A preliminary side inventory supports single 27-slot containers, 9-slot dispensers/droppers, 5-slot hoppers and shulker boxes. Linux tests covered LAN synchronization and result contention; the hopper guest displayed five slots, and host and guest checks rejected nesting a shulker box. A Linux LAN check covered player-to-hopper Shift move, and another covered clicks and synchronization for both double-chest halves plus a competing result pickup. Other slot operations and the original side-panel appearance remain incomplete. Broken-tool visuals and full broken behavior remain
+incomplete. Dedicated servers and arbitrary other item components are not
+verified. A plain Lore entry was tested through repair, display and save/reload
+in both modes, including with the tool material list and unrelated custom data; this does not establish
+preservation of arbitrary other components or all styled text.
 
 ## Requirements and setup
 
-Use Linux, Git, Python 3.12+, Rust/Cargo, and your own prepared Horizon 26.3
-resource directory. Horizon and Mixins are fixed in [compatibility.json](compatibility.json):
+[Windows double-click playtest instructions](docs/windows-playtest.md) (native Windows build and play are not yet verified).
 
-- Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e`
-- Horizon Mixins `0500ff24aa5933fca95a877ef41125353c4b4fe3`
-- Tinkers’ Construct reference `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` (1.20.1)
+Linux, Python 3.12+, Git, Rust and Cargo, and your own prepared Horizon 26.3
+resources are required. The playtest derives Minecraft reference recipes and tags from the prepared 26.3 resources; pinned Forge reference data is bundled. `compatibility.json` pins the source
+revisions. This project does not distribute Minecraft game files or resources.
 
 ```sh
 git clone https://github.com/horizon-rust/horizon.git ../horizon-official
-git -C ../horizon-official checkout --detach b6c936f82b08798057161bdfa577e3aac53fb91e
+git -C ../horizon-official checkout b6c936f82b08798057161bdfa577e3aac53fb91e
 git clone https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
-git -C ../horizon-mixins checkout --detach 0500ff24aa5933fca95a877ef41125353c4b4fe3
+git -C ../horizon-mixins checkout cb1ad23022392d88f006cf94cbf6552a73f5df12
 python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
 cargo fetch --locked --manifest-path target/modded/Cargo.toml
 cargo build --locked --offline --manifest-path target/modded/Cargo.toml \
-  -p horizon-client --bin horizon-client --bin horizon-ctl --no-default-features \
-  --profile fast --target-dir "$PWD/target/build"
+  -p horizon-client --bin horizon-client --bin horizon-ctl --no-default-features --profile fast \
+  --target-dir "$PWD/target/build"
 python3 -m unittest discover -s tests -v
-./target/build/fast/horizon-client --resources /path/to/prepared/26.3
+python3 tools/resources.py /path/to/prepared/26.3 target/item-resources
+./target/build/fast/horizon-client --tconstruct-prepare \
+  target/item-resources content target/resources
+python3 tools/prepare_horizon_source_data.py /path/to/prepared/26.3 \
+  target/resources/minecraft-original-pack
+python3 tools/prepare_bundled_forge.py target/resources/forge-original-pack
+./target/build/fast/horizon-client --resources "$PWD/target/resources"
 ```
 
-`stage.py` checks both checkout commits and exports those commits rather than
-building dirty working-tree contents. By default it stages the independent
-fixture; use `--mods /path/to/bundle-directory` for other Mixins bundles.
-`--output-dir` selects a fresh output directory. Existing `original` or
-`modded` directories are refused; the script does not delete them.
+`stage.py` verifies both checkout HEADs and exports their pinned commits; local working-tree changes are not included. It exports a separate source tree,
+and runs the Mixins CLI. It refuses an existing export; remove only your own
+generated `target/original` when deliberately regenerating. Resource preparation
+creates a separate overlay with links to the supplied base resources, or copies when links are unavailable; keep the base available. Both preparation commands refuse an existing destination.
+Prepared Horizon 26.3 Minecraft recipe and tag data and the bundled Forge data prepare source data for the partially implemented Part Builder. `--tconstruct-prepare` uses a Mixins-injected entry point
+and official Horizon's native data-table builder; it does not start a Wasm engine. Generated trees and worlds
+are not distributed. The prototype uses original Tinkers textures; attribution and the MIT license
+are included in the repository and the generated resource overlay under
+`THIRD_PARTY_LICENSES/`.
 
-Under X11/Vulkan or Xvfb with software rendering, run the fixture in both game
-modes against the same prepared resources:
+To regenerate the original 1.20.1 item durability table (30 tier tools, 11 directly specified items and 25 armor items), use a JDK and the
+pinned local client jar:
 
 ```sh
-python3 tests/game/fixture_smoke.py --game target/build/fast/horizon-client \
-  --ctl target/build/fast/horizon-ctl --resources /path/to/prepared/26.3
-python3 tests/game/fixture_smoke.py --game target/build/fast/horizon-client \
-  --ctl target/build/fast/horizon-ctl --resources /path/to/prepared/26.3 --in-frame
+python3 tools/extract_original_item_durability.py /path/to/minecraft-1.20.1-client.jar /tmp/original-item-durability.rs
+cmp /tmp/original-item-durability.rs mixins/tconstruct/source-original-item-durability.rs
 ```
 
-See [validation](docs/validation.md) for tested versions and limits. CI checks
-export, fixture transformation and compilation; it does not run the game.
+To repeat the source-recipe ordering comparison, install a JDK and run:
 
-## Reference and recovery
+```sh
+python3 tools/verify_recipe_order.py /path/to/minecraft-1.20.1-client.jar \
+  /path/to/forge-1.20.1-47.4.0-universal.jar /path/to/TinkersConstruct
+```
 
-The earlier `main` was preserved at remote branch `backup/pre-mixins-92f696b`,
+The checkout needs the pinned TConstruct commit locally; the command reads the
+commit object without changing the checkout. This compares the unconnected recipe
+ordering prototype with Java for the fixed source data. Separate unit tests
+cover its explicit rejection of unsupported tree bins.
+
+For the automated single-player game smoke test, run the following under a working
+X11/Vulkan display (software Vulkan and Xvfb also work):
+
+```sh
+python3 tools/game_smoke.py --game target/build/fast/horizon-client \
+  --ctl target/build/fast/horizon-ctl --resources target/resources
+# Add --in-frame to test the alternate single-player path.
+# Add --split-sticks to test one stick in each of two slots.
+```
+
+The script creates a fresh world under `target/`, checks consumption and
+mining wear, saves, and writes a screenshot there. The station, recipe,
+spill and two-player tests are described in [validation](docs/validation.md).
+
+See the [feature matrix](docs/feature-matrix.md) and [roadmap](docs/roadmap.md) for scope and validation status.
+
+## Provenance and recovery
+
+The prior `main` was preserved at remote branch `backup/pre-mixins-92f696b`,
 commit `92f696b475799403120330f6ad9c45c423de4ab7`. To inspect or restore it
-without rewriting history:
+without rewriting history, fetch that branch and create a new branch from it:
 
 ```sh
 git fetch origin backup/pre-mixins-92f696b
 git switch -c restore-pre-mixins FETCH_HEAD
 ```
 
-The uncommitted chest work in the older environment was not transferred into
-this environment. It remains in that older environment and is not represented
-by the backup branch.
+Tinkers' Construct data is referenced at the revision in `compatibility.json`;
+its MIT license and notice are included in [third_party/tconstruct/LICENSE](third_party/tconstruct/LICENSE).
+The old environment's uncommitted chest work was not transferred to this checkout.
 
-The source reference is [SlimeKnights/TinkersConstruct](https://github.com/SlimeKnights/TinkersConstruct)
-at the pinned commit. Its MIT license and attribution are included in
-[third_party/tconstruct/LICENSE](third_party/tconstruct/LICENSE). The complete
-source tree index and recipe catalog are reference inventories, not claims of
-implemented features. The user's own prepared Horizon and game resources are
-not distributed here.
+The material-condition reference work also follows Mantle 1.11.115 and Forge
+47.4.0. Their license notices are included at
+[third_party/mantle/LICENSE](third_party/mantle/LICENSE) and
+[third_party/forge/LICENSE](third_party/forge/LICENSE).
+
+Minecraft’s existing materials, recipes and progression remain unchanged; missing TConstruct content is added alongside them. The exact scope of full parity and balance will be decided after v0.5.

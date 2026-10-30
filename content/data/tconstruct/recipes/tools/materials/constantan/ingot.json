@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/constantan",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/constantan"
+  },
+  "material": "tconstruct:constantan",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

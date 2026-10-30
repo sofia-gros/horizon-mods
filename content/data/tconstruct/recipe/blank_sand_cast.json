@@ -1,0 +1,6 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": ["minecraft:sand"],
+  "result": {"id": "tconstruct:blank_sand_cast", "count": 4}
+}

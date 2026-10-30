@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/electrum",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/electrum"
+  },
+  "material": "tconstruct:electrum",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

@@ -1,0 +1,15 @@
+{
+  "conditions": [
+    {
+      "tag": "forge:ingots/ironwood",
+      "type": "mantle:tag_filled"
+    }
+  ],
+  "ingredient": {
+    "tag": "forge:ingots/ironwood"
+  },
+  "material": "tconstruct:ironwood",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

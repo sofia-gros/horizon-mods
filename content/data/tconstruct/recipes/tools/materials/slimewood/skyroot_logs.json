@@ -1,0 +1,10 @@
+{
+  "ingredient": {
+    "tag": "tconstruct:skyroot_logs"
+  },
+  "leftover": "tconstruct:skyroot_planks",
+  "material": "tconstruct:slimewood#skyroot",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 4
+}

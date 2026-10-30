@@ -1,0 +1,28 @@
+[mod]
+id = "material_wire_observer"
+version = "0.1.0"
+priority = 300
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[injection]]
+id = "observe-client-material"
+target = "horizon_client::game::remote::Game<'_>::remote_block_entity_data"
+kind = "HEAD"
+helper = "observe.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "kind", ty = "i32", value = "kind" }, { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[injection]]
+id = "observe-client-stored-material"
+target = "horizon_client::game::storage::Game<'_>::draw_chest_screen"
+kind = "HEAD"
+helper = "stored.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "observe-initial-chunk-material"
+target = "horizon_client::game::remote_chunks::ChunkFormat::column"
+kind = "HEAD"
+helper = "chunk.rs"
+bindings = [{ name = "packet", ty = "&horizon_protocol::packets::play::LevelChunkWithLight", value = "p" }]

@@ -3,29 +3,88 @@ on:
   push:
     branches: [main]
   pull_request:
+concurrency:
+  group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 permissions:
   contents: read
+  actions: read
+  pull-requests: read
 jobs:
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/target/ci-build
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Determine validation scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 tools/ci_scope.py
       - name: Install build prerequisites
+        if: steps.scope.outputs.docs_only != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libasound2-dev libudev-dev
           rustup toolchain install 1.95.0 --profile minimal
           rustup default 1.95.0
-      - name: Test pinned source export
-        run: python3 -m unittest discover -s tests -v
+      - name: Restore Cargo cache
+        if: steps.scope.outputs.docs_only != 'true'
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target/mixins-cli-build
+            target/ci-build
+          key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json') }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json') }}-
+      - name: Test resource preparation and command transactions
+        if: steps.scope.outputs.docs_only != 'true'
+        run: |
+          python3 -m unittest discover -s tests -v
+          rustc --test tests/rust/command.rs -o /tmp/tconstruct-command-test
+          /tmp/tconstruct-command-test
+          rustc --test tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
+          /tmp/tconstruct-recipe-snapshot-test
+          rustc --test tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
+          /tmp/tconstruct-material-snapshot-test
+          rustc --test tests/rust/source_config.rs -o /tmp/tconstruct-source-config-test
+          /tmp/tconstruct-source-config-test
+          rustc --test tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
+          /tmp/tconstruct-source-builder-wire-test
+          rustc --test tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
+          /tmp/tconstruct-source-builder-layout-test
+          rustc --edition=2021 --test tests/rust/source_cast_info.rs -o /tmp/tconstruct-cast-info-test
+          /tmp/tconstruct-cast-info-test
+          rustc --edition=2021 --test tests/rust/native_item_durability.rs -o /tmp/tconstruct-native-item-test
+          /tmp/tconstruct-native-item-test
+          rustc --test tests/rust/original_item_durability.rs -o /tmp/tconstruct-original-item-test
+          /tmp/tconstruct-original-item-test
+          rustc --test tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test
+          /tmp/tconstruct-original-remainder-test
       - name: Fetch pinned upstream sources
+        if: steps.scope.outputs.docs_only != 'true'
         run: |
           git clone https://github.com/horizon-rust/horizon.git ../horizon-official
           git -C ../horizon-official checkout --detach b6c936f82b08798057161bdfa577e3aac53fb91e
           git clone https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
-          git -C ../horizon-mixins checkout --detach 0500ff24aa5933fca95a877ef41125353c4b4fe3
+          git -C ../horizon-mixins checkout --detach cb1ad23022392d88f006cf94cbf6552a73f5df12
       - name: Apply Mixins and check client
+        if: steps.scope.outputs.docs_only != 'true'
         run: |
           python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
           cargo check --locked --manifest-path target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_recipe_order::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_stat_types::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_render_info::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
+          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests

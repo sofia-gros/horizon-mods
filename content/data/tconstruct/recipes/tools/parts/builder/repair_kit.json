@@ -1,0 +1,16 @@
+{
+  "cost": 2,
+  "pattern": "tconstruct:repair_kit",
+  "pattern_item": [
+    {
+      "tag": "tconstruct:patterns/default"
+    },
+    {
+      "item": "tconstruct:repair_kit_cast"
+    }
+  ],
+  "result": {
+    "item": "tconstruct:repair_kit"
+  },
+  "type": "tconstruct:part_builder"
+}

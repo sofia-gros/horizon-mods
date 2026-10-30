@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "item": "minecraft:cactus"
+  },
+  "material": "tconstruct:cactus",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}

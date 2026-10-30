@@ -1,0 +1,9 @@
+{
+  "ingredient": {
+    "item": "minecraft:packed_ice"
+  },
+  "material": "tconstruct:ice",
+  "needed": 1,
+  "type": "tconstruct:material",
+  "value": 1
+}
