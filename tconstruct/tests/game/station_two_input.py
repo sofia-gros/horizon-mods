@@ -41,12 +41,15 @@ try:
     click(hotbar('tconstruct:tool_handle'))
     click(301)
     game.call('click-gui', '85', '10')
-    type_text(game, 'mossy')
+    type_text(game, 'mossyy')
     game.call('wait', '15')
+    game.call('type-back')
+    game.call('wait', '5')
     game.call('screenshot', str(run / 'station-dagger.png'))
     click(324)
     result = game.call('menu')['carried'] or {}
     assert result.get('item') == 'tconstruct:dagger', result
+    assert result.get('count') == 2, result
     assert result.get('custom_name') == 'mossy', result
     click(0)
     game.call('close')

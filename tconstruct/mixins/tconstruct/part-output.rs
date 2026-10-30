@@ -62,9 +62,10 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         return Break(true);
     }
     if build.as_ref().is_some_and(|(_, output)| !crate::game::tconstruct_ui::station_accepts_output(game, output)) { return Break(true); }
+    let max_stack = build.as_ref().and_then(|(_, output)| game.res.rest.get()?.items.get(&output.item).map(|info| info.max_stack)).unwrap_or(0);
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
     let taken = if action == 24 {
-        build.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))
+        build.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, max_stack))
     } else { false };
     if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));

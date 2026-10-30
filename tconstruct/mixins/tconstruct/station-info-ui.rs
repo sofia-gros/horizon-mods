@@ -27,6 +27,8 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
         top.push((title, None));
         if let Some(data) = tool.data().and_then(|data| data.other("minecraft:custom_data")) {
             for (field, key) in [("tic_max_damage", "tool_stat.tconstruct.durability"), ("tic_attack_damage", "tool_stat.tconstruct.attack_damage"), ("tic_attack_speed", "tool_stat.tconstruct.attack_speed"), ("tic_draw_speed", "tool_stat.tconstruct.draw_speed"), ("tic_velocity", "tool_stat.tconstruct.velocity"), ("tic_accuracy", "tool_stat.tconstruct.accuracy"), ("tic_armor", "tool_stat.tconstruct.armor"), ("tic_armor_toughness", "tool_stat.tconstruct.armor_toughness"), ("tic_knockback_resistance", "tool_stat.tconstruct.knockback_resistance")] {
+                if matches!(field, "tic_draw_speed" | "tic_velocity" | "tic_accuracy")
+                    && !matches!(tool.item.as_ref(), "tconstruct:longbow" | "tconstruct:crossbow") { continue; }
                 let number = match data.get(field) {
                     Some(Tag::Int(value)) if field == "tic_max_damage" => Some(format!("{}/{}", value.saturating_sub(tool.damage as i32), value)),
                     Some(Tag::Int(value)) if *value != 0 => Some(value.to_string()),

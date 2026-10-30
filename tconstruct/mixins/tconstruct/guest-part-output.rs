@@ -176,7 +176,10 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         } else { None };
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let give = if action == 24 {
-                building.and_then(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1).then(Vec::new))
+                building.and_then(|(matched, output)| {
+                    let max_stack = rules.max_stack(&output.item);
+                    crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, max_stack).then(Vec::new)
+                })
             } else { repair.and_then(|plan| crate::tconstruct_source_station_world::take_operation(stacks, &mut hub.guests[gi].carried, plan)) };
             if let Some(give) = give {
                 if action == 24 { world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(conn, packet.container, key)); }

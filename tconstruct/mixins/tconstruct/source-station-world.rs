@@ -33,8 +33,8 @@ pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Opt
             super::tconstruct_source_builder_world::supported_material(world, material)
                 .is_ok_and(|(_, supported)| supported.contains(part))
         }, |_, _| false) else { continue; };
-        if matched.result_count != 1 { return None; }
-        let output = assemble(world, definition, &matched.result, &matched.materials, None)?;
+        let mut output = assemble(world, definition, &matched.result, &matched.materials, None)?;
+        output.count = matched.result_count;
         return Some((matched, output));
     }
     None
