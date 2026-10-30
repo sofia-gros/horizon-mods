@@ -36,19 +36,19 @@ try:
     assert 'east=true' in g.call('block', '15', '71', '2')['state']
     assert 'east=false' in g.call('block', '15', '72', '2')['state']
     command('gamemode spectator @s')
-    capture('pane-unmatched-top.png', '14.5 74.5 0.5', -26.6, 38)
+    capture('pane-unmatched-top.png', '14.5 74.5 0.5', -26.6, 58)
     capture('pane-unmatched-bottom.png', '14.5 69.1 0.5', -26.6, -30)
     command('gamemode creative @s')
     command('setblock 16 72 2 tconstruct:clear_glass_pane')
     assert 'east=true' in g.call('block', '15', '72', '2')['state']
     command('gamemode spectator @s')
-    capture('pane-matching-top.png', '14.5 74.5 0.5', -26.6, 38)
+    capture('pane-matching-top.png', '14.5 74.5 0.5', -26.6, 58)
     command('gamemode creative @s')
     for text in ('setblock 15 71 2 minecraft:glass', 'setblock 16 71 2 minecraft:glass',
                  'setblock 15 72 2 minecraft:air', 'setblock 16 72 2 minecraft:air'):
         command(text)
     command('gamemode spectator @s')
-    capture('pane-vanilla-glass.png', '14.5 74.5 0.5', -26.6, 38)
+    capture('pane-vanilla-glass.png', '14.5 74.5 0.5', -26.6, 58)
     command('gamemode creative @s')
     g.stop()
     print('PASS pane states and vanilla glass; inspect the four screenshots', flush=True)
