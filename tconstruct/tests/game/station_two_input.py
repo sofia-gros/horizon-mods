@@ -29,7 +29,8 @@ try:
     for text in ('gamemode creative @s', 'kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]', 'clear @s', 'tp @s 0.5 71 0.5',
                  'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
                  'give @s tconstruct:small_blade[minecraft:custom_data={Material:"tconstruct:flint"}] 1',
-                 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+                 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1',
+                 'give @s minecraft:stick 1'):
         cmd(text)
     game.call('interact', '0', '71', '2')
     game.call('wait', '15')
@@ -40,6 +41,14 @@ try:
     click(300)
     click(hotbar('tconstruct:tool_handle'))
     click(301)
+    stick = hotbar('minecraft:stick')
+    click(stick)
+    click(324)
+    rejected = game.call('menu')
+    assert (rejected['carried'] or {}).get('item') == 'minecraft:stick', rejected
+    inputs = {slot['slot']: slot['stack']['item'] for slot in rejected['slots']}
+    assert inputs.get(300) == 'tconstruct:small_blade' and inputs.get(301) == 'tconstruct:tool_handle', inputs
+    click(stick)
     game.call('click-gui', '85', '10')
     type_text(game, 'mossyy')
     game.call('wait', '15')

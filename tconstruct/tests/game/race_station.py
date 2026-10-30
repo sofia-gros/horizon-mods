@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from harness import Game
 from x11_text import type_text
-p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--guest-only',action='store_true');p.add_argument('--builder-transition',action='store_true');p.add_argument('--mattock',action='store_true');p.add_argument('--name',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
+p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--guest-only',action='store_true');p.add_argument('--builder-transition',action='store_true');p.add_argument('--mattock',action='store_true');p.add_argument('--dagger',action='store_true');p.add_argument('--name',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
 a=p.parse_args();run=a.run_dir.resolve();run.mkdir(parents=True,exist_ok=True)
 print('run',run,flush=True)
 games=[]
@@ -28,9 +28,9 @@ try:
   click(q,guest_hotbar('tconstruct:pattern'));click(q,300);click(q,guest_hotbar('minecraft:flint'));click(q,301)
   wait('guest pattern choice',lambda:any(w.get('label')=='Pick Head' and w.get('enabled') for w in q.call('ui')['widgets']))
   q.call('click',next(w['id'] for w in q.call('ui')['widgets'] if w.get('label')=='Pick Head' and w.get('enabled')));q.call('wait','5');q.call('close')
- part_ids=('tconstruct:small_axe_head','tconstruct:tool_handle','tconstruct:adze_head') if a.mattock else ('tconstruct:pick_head','tconstruct:tool_handle','tconstruct:tool_binding')
- materials=('flint','wood','flint') if a.mattock else ('flint','wood','wood')
- result='tconstruct:mattock' if a.mattock else 'tconstruct:pickaxe'
+ part_ids=('tconstruct:small_blade','tconstruct:tool_handle') if a.dagger else ('tconstruct:small_axe_head','tconstruct:tool_handle','tconstruct:adze_head') if a.mattock else ('tconstruct:pick_head','tconstruct:tool_handle','tconstruct:tool_binding')
+ materials=('flint','wood') if a.dagger else ('flint','wood','flint') if a.mattock else ('flint','wood','wood')
+ result='tconstruct:dagger' if a.dagger else 'tconstruct:mattock' if a.mattock else 'tconstruct:pickaxe'
  commands=('gamemode creative @a','kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 minecraft:air','setblock 0 71 2 tconstruct:tinker_station')
  commands += tuple(f'give @s {part}[minecraft:custom_data={{Material:"tconstruct:{material}"}}] 1' for part,material in zip(part_ids,materials))
  for cmd in commands:
@@ -39,7 +39,8 @@ try:
   wait(g.label+' block',lambda:g.call('block','0','71','2').get('block')=='tconstruct:tinker_station')
   print(g.label,'interact',g.call('interact','0','71','2'),flush=True)
  if a.mattock: q.call('click-gui','-11','18');q.call('wait','5')
- click(h,0);click(h,300);click(h,1);click(h,301);click(h,2);click(h,302)
+ if a.dagger: q.call('click-gui','-99','18');q.call('wait','5')
+ for i in range(len(part_ids)): click(h,i);click(h,300+i)
  wait('inputs shared',lambda:all(all(slots(g).get(300+i,{}).get('item')==part for i,part in enumerate(part_ids)) for g in games))
  wait('guest result preview',lambda:slots(q).get(324,{}).get('item')==result)
  if a.mattock:
@@ -58,6 +59,7 @@ try:
  print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')==result),flush=True)
  assert sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')==result)==1
  winner=next(g for g in games if (g.call('menu').get('carried') or {}).get('item')==result)
+ if a.dagger: assert (winner.call('menu').get('carried') or {}).get('count')==2
  if a.name: assert (winner.call('menu').get('carried') or {}).get('custom_name')=='mossy'
  if a.mattock:
   empty=next(s['slot'] for s in winner.call('inventory')['hotbar'] if not s.get('item'));click(winner,empty)
