@@ -31,7 +31,7 @@ try:
  part_ids=('tconstruct:small_axe_head','tconstruct:tool_handle','tconstruct:adze_head') if a.mattock else ('tconstruct:pick_head','tconstruct:tool_handle','tconstruct:tool_binding')
  materials=('flint','wood','flint') if a.mattock else ('flint','wood','wood')
  result='tconstruct:mattock' if a.mattock else 'tconstruct:pickaxe'
- commands=('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 minecraft:air','setblock 0 71 2 tconstruct:tinker_station')
+ commands=('gamemode creative @a','kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 minecraft:air','setblock 0 71 2 tconstruct:tinker_station')
  commands += tuple(f'give @s {part}[minecraft:custom_data={{Material:"tconstruct:{material}"}}] 1' for part,material in zip(part_ids,materials))
  for cmd in commands:
   print('command',cmd,h.call('command',cmd),flush=True)
