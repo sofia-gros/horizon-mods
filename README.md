@@ -42,6 +42,10 @@ wood pick head into two wood handles and saved the result in both game modes.
 The official Mixins build passed the same normal-mode operation, including input
 and Pattern consumption. Other part and material combinations and Windows
 remain unverified.
+Compatibility materials are resolved from the world's material tags and
+visible recipes. With a test datapack making bronze craftable, the official Linux Mixins
+build reused a bronze pick head into two bronze handles; normal bronze
+acquisition and other compatibility materials remain unverified.
 In the Part Builder, insert a Pattern and material, select a source-recipe
 pattern in the scrolling grid, and take an ordinary part from the result slot.
 For example, an oak log produces a wood tool handle and returns three oak

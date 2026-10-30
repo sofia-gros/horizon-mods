@@ -32,3 +32,5 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 素材付き収納ブロックは Linux の試験ビルドで表示・保存・採掘を確認しています。Pick Block の素材引継ぎは in-frame のみ検証済みで、通常のネットワーク方式は未対応です。自然な入手と Windows 実機は未検証です。
 
 部品の再利用は Linux の試験ビルドで、木の Pick Head 1個から木の Tool Handle 2個を作り、材料と Pattern の消費・保存再開を確認しています。正式 Mixins ビルドでも通常方式の同じ操作を確認しました。Windows 実機は未検証です。
+
+対応金属の素材も共通のタグ・レシピから判定します。bronze を制作可能にする試験 datapack と Linux の正式 Mixins ビルドでは、bronze の Pick Head から柄を作れました。bronze の通常入手と Windows 実機は未検証です。

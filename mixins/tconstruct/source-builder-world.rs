@@ -26,8 +26,6 @@ fn choices_from(
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let (definitions, _, material_tags) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let registries: HashMap<_, _> = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
     let instruments = HashSet::new();
     let instrument_tags = HashMap::new();
@@ -46,18 +44,7 @@ fn choices_from(
     let mut supported = HashSet::new();
     let mut craftable = false;
     if let Some(found) = found.as_ref() {
-        let base = found.material.split_once('#').map_or(found.material.as_str(), |(base, _)| base);
-        let definition = definitions.get(base).ok_or(SourceLookupError::IncompleteContext)?;
-        craftable = definition.0;
-        if let Some(stats) = stats.get(base) {
-            supported = tx::source_supported_original_parts(&stats.keys().cloned().collect(), stats.values().any(|v| *v));
-        }
-        // Fake ingot/storage eligibility also depends on the full item registry
-        // and original visible material recipes, not only material membership.
-        for tag in ["tconstruct:compatibility_metals", "tconstruct:compatibility_metals/blocks"] {
-            let ids = material_tags.get(tag).ok_or(SourceLookupError::IncompleteContext)?;
-            if ids.contains(base) { return Err(SourceLookupError::IncompleteContext); }
-        }
+        (craftable, supported) = supported_material(world, &found.material)?;
     }
     let input = match (material, found.as_ref()) {
         (None, _) => SourcePartInput::Empty,
@@ -106,6 +93,29 @@ fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack)
     tx::source_material_lookup(recipes, id, None, items, &HashSet::new(), &HashMap::new(), &registries, config, true)
 }
 
+fn supported_material(world: &super::tconstruct_world::World, material: &str) -> Result<(bool, HashSet<String>), SourceLookupError> {
+    let chunks = &world.chunks;
+    let (definitions, _, tags) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+    let base = material.split_once('#').map_or(material, |(base, _)| base);
+    let craftable = definitions.get(base).ok_or(SourceLookupError::IncompleteContext)?.0;
+    let mut supported = stats.get(base).map_or_else(HashSet::new, |stats| tx::source_supported_original_parts(&stats.keys().cloned().collect(), stats.values().any(|v| *v)));
+    let ingots = tags.get("tconstruct:compatibility_metals").ok_or(SourceLookupError::IncompleteContext)?;
+    let blocks = tags.get("tconstruct:compatibility_metals/blocks").ok_or(SourceLookupError::IncompleteContext)?;
+    if ingots.contains(base) || blocks.contains(base) {
+        let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+        let item_tags = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+        let fluid_tags = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+        let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+        let known = chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref().ok_or(SourceLookupError::IncompleteContext)?.keys().cloned().collect();
+        let visible = definitions.iter().filter(|(_, value)| !value.1).map(|(id, _)| id.clone()).collect();
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        let values = tx::source_visible_base_recipe_values(base, recipes, &visible, &known, &registries, config, true)?;
+        supported.extend(tx::source_supported_fake_items(base, tags, &values, true)?);
+    }
+    Ok((craftable, supported))
+}
+
 /// Compute one source result from the current authoritative world. Ordinary
 /// parts and supported damageable-item recycling are handled; inventory mutation
 /// and unsupported recycling cases remain separate.
@@ -129,8 +139,6 @@ pub(super) fn plan(
     };
     let Some(choice_id) = choice_id else { return Ok(None); };
     let items = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let (definitions, _, _) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
-    let stats = chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let bytes = recipes.get(&choice_id).ok_or(SourceLookupError::IncompleteContext)?;
     let value: serde_json::Value = serde_json::from_slice(bytes).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
     if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_recycling") {
@@ -186,12 +194,7 @@ pub(super) fn plan(
     let mut supported = HashSet::new();
     let mut craftable = false;
     if let Some(found) = found.as_ref() {
-        let base = found.material.split_once('#').map_or(found.material.as_str(), |(base, _)| base);
-        let definition = definitions.get(base).ok_or(SourceLookupError::IncompleteContext)?;
-        craftable = definition.0;
-        if let Some(stats) = stats.get(base) {
-            supported = tx::source_supported_original_parts(&stats.keys().cloned().collect(), stats.values().any(|v| *v));
-        }
+        (craftable, supported) = supported_material(world, &found.material)?;
     }
     let input = match (material, found.as_ref()) {
         (None, _) => SourcePartInput::Empty,

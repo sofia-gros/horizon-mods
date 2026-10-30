@@ -1,5 +1,6 @@
 """Exercise one source-recipe Part Builder path with part reuse through ordinary GUI interaction."""
 import argparse
+import json
 import tempfile
 import time
 from pathlib import Path
@@ -10,6 +11,7 @@ p.add_argument('--game', type=Path, required=True)
 p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--compat', action='store_true')
 p.add_argument('--output-parent', type=Path, default=Path('target'))
 a = p.parse_args()
 a.output_parent.mkdir(parents=True, exist_ok=True)
@@ -37,8 +39,17 @@ def pattern_node(label):
 
 try:
     g.ready()
+    material = 'tconstruct:bronze' if a.compat else 'tconstruct:wood'
+    if a.compat:
+        pack = g.root / 'saves/Probe/datapacks/compat-test'
+        definition = pack / 'data/tconstruct/tinkering/materials/definition/bronze.json'
+        definition.parent.mkdir(parents=True)
+        definition.write_text(json.dumps({'craftable': True}))
+        (pack / 'pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"compatibility material test"}}')
+        g.call('command', 'reload')
+        g.call('wait', '40')
     for command in ('clear @s', 'tp @s 0.5 71 0.5', 'setblock 0 71 2 tconstruct:part_builder',
-                    'give @s tconstruct:pattern 2', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+                    'give @s tconstruct:pattern 2', f'give @s tconstruct:pick_head[minecraft:custom_data={{Material:"{material}"}}] 1'):
         g.call('command', command)
     g.call('interact', '0', '71', '2')
     g.call('wait', '10'); g.call('screenshot', str(run / 'empty-builder.png'))
@@ -61,12 +72,12 @@ try:
     click_slot(empty)
     inventory = g.call('inventory')['hotbar']
     handle = next(s for s in inventory if s.get('item') == 'tconstruct:tool_handle')
-    assert 'tconstruct:wood' in handle.get('components', ''), handle
+    assert material in handle.get('components', ''), handle
     assert handle.get('count') == 2, handle
     g.call('close'); g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
     inventory = g.call('inventory')['hotbar']
-    assert any(s.get('item') == 'tconstruct:tool_handle' and 'tconstruct:wood' in s.get('components', '') for s in inventory), inventory
+    assert any(s.get('item') == 'tconstruct:tool_handle' and material in s.get('components', '') for s in inventory), inventory
     assert any(s.get('item') == 'tconstruct:tool_handle' and s.get('count') == 2 for s in inventory), inventory
     g.stop()
     print('PASS source part reuse and save/reload', flush=True)
