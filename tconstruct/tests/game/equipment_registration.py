@@ -20,9 +20,15 @@ try:
     equipment = ('tconstruct:broad_axe', 'tconstruct:dagger', 'tconstruct:plate_helmet', 'tconstruct:sky_staff')
     for item in equipment:
         g.call('command', f'give @s {item} 1')
-    inventory = g.call('inventory')
+    for _ in range(40):
+        inventory = g.call('inventory')
+        if all(inventory['counts'].get(item) == 1 for item in equipment):
+            break
+        g.call('wait', '5')
     for item in equipment:
         assert inventory['counts'].get(item) == 1, (item, inventory)
+    g.call('command', 'gamemode survival @s')
+    g.call('wait', '10')
     g.call('open-inventory')
     g.call('wait', '10')
     g.call('screenshot', str(run / 'equipment-inventory.png'))
