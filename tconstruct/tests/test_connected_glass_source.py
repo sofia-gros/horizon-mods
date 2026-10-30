@@ -49,8 +49,8 @@ class GeneratedGlassTests(unittest.TestCase):
                 root = Path(temp)
                 generate(root)
                 blocks = root / 'data/tconstruct/horizon/block'
-                self.assertEqual(len(list(blocks.glob('*.json'))), 38)
-                self.assertFalse((blocks / 'soul_glass.json').exists())
+                self.assertEqual(len(list(blocks.glob('*.json'))), 44)
+                self.assertTrue((blocks / 'soul_glass.json').exists())
                 assets = root / 'assets/tconstruct'
                 model = json.loads((assets / 'models/block/clear_glass/red/block.json').read_text())
                 self.assertEqual(model['parent'], 'tconstruct:block/template/tinted_connected_cube')

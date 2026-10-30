@@ -33,3 +33,26 @@ mod tests {
         assert_eq!(table, old);
     }
 }
+
+/// Soul glass uses an empty collision shape and slows movement inside the block.
+pub(super) fn apply_empty_shape(table: &mut Tag, air: usize, targets: &[usize]) -> Result<(), &'static str> {
+    let Tag::IntArray(indices) = table.get("cached_shapes").ok_or("missing cached shapes")? else { return Err("invalid cached shapes"); };
+    let index = *indices.get(air).ok_or("missing air state")?;
+    let Tag::List(shapes) = table.get("shapes").ok_or("missing collision shapes")? else { return Err("invalid collision shapes"); };
+    let shape = shapes.get(usize::try_from(index).map_err(|_| "invalid air shape")?).ok_or("missing air shape")?;
+    if shape.get("occupied") != Some(&Tag::ByteArray(vec![])) { return Err("air collision shape is not empty"); }
+    if targets.iter().any(|target| *target >= indices.len()) { return Err("missing soul glass state"); }
+    let Some(Tag::IntArray(indices)) = table.get_mut("cached_shapes") else { return Err("invalid cached shapes"); };
+    for target in targets { indices[*target] = index; }
+    Ok(())
+}
+
+pub(super) fn apply_soul_speed(table: &mut Tag, targets: &[(&str, f32)]) -> Result<(), &'static str> {
+    let blocks = table.get_mut("blocks").ok_or("missing movement definitions")?;
+    for (name, factor) in targets {
+        let entry = blocks.get_mut(name).ok_or("missing soul glass movement definition")?;
+        let Some(Tag::Float(bits)) = entry.get_mut("speedFactor") else { return Err("invalid speed factor"); };
+        *bits = factor.to_bits();
+    }
+    Ok(())
+}

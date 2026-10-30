@@ -67,10 +67,6 @@ def generate(root=CONTENT):
         if not name.startswith('blockstates/'):
             continue
         block = Path(name).stem
-        # Soul glass has different collision and movement rules; it needs those
-        # rules wired before it can safely be added to the playable inventory.
-        if 'soul_glass' in block:
-            continue
         emit(assets / name, json.loads(data))
         item_name = f'models/item/{block}.json'
         item = json.loads(source[item_name])

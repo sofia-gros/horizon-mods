@@ -152,6 +152,29 @@ fn prepare_tconstruct_resources() {
                 std::fs::write(path, bytes)?;
             }
         }
+        // Source soul glass has no collision and slows entities while inside.
+        let soul_names = ["soul_glass", "soul_glass_pane", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane"];
+        let soul_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
+            .filter_map(|(id, row)| row.get(0).and_then(serde_json::Value::as_str)
+                .and_then(|name| name.strip_prefix("tconstruct:"))
+                .filter(|name| soul_names.contains(name)).map(|_| id)).collect();
+        if !soul_ids.is_empty() {
+            let air = facts["defaults"]["minecraft:air"].as_u64().ok_or("missing air state")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                tconstruct_block_shapes::apply_empty_shape(&mut named.tag, air, &soul_ids)?;
+                std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+            }
+            let path = out.join("movement-properties.nbt");
+            let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+            let targets: Vec<(String, f32)> = soul_names.iter().map(|name|
+                (format!("tconstruct:{name}"), if name.starts_with("soul_") { 0.2 } else { 0.1 })).collect();
+            let targets: Vec<(&str, f32)> = targets.iter().filter(|(name, _)| facts["defaults"][name.as_str()].as_u64().is_some())
+                .map(|(name, speed)| (name.as_str(), *speed)).collect();
+            tconstruct_block_shapes::apply_soul_speed(&mut named.tag, &targets)?;
+            std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+        }
         let path = out.join("gameplay-facts.json");
         let mut gameplay: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
