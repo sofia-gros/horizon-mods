@@ -17,7 +17,7 @@ content from the original definitions. Investigate and test separately where a
 source definition introduces distinct behavior or conditions; do not treat
 untested content as complete merely because it uses the same framework.
 
-The equipment behavior work has source-based head, handle, bow limb/grip, and plating stat calculations in progress. Material attack speed has a Mixins hook but has not been tested in a game. Material melee damage and armor attributes now have HEAD hooks at existing effect and equipment boundaries, and a longbow has a basic use, tick, and release path through the existing bow logic. These changes have only passed lightweight planning and type checks, not a game build. Material draw speed, projectile velocity and accuracy, crossbows, and full modifier effects remain unimplemented.
+Material attack damage, attack speed, and armor attributes have been tested with representative equipment on Linux. A longbow can be drawn and fired using the existing bow behavior; switching hands cancels its shot. Material draw speed, projectile velocity and accuracy, crossbows, and full modifier effects remain unimplemented. Vanilla weapons can currently heal targets under sufficiently strong Weakness in the underlying game; material weapons clamp their basic damage to zero.
 
 ## Implementation order
 

@@ -61,3 +61,11 @@ The resource preparation now registers additional source equipment IDs. A Linux 
 ![A Plate Helmet in the head slot with equipment icons in the hotbar](equipment-registration.png)
 
 *In this Linux test, the Plate Helmet is in the head slot. The axe, dagger, and staff icons are in the hotbar.*
+
+## Use a longbow
+
+Hold the use button to draw a longbow, then release it to fire an arrow. Keep arrows in your inventory. Switching to another item before releasing cancels the shot.
+
+![A longbow drawn with arrows in the hotbar](equipment-longbow.png)
+
+Basic firing was tested on Linux. Material-specific draw speed, arrow speed and accuracy are not implemented yet.
