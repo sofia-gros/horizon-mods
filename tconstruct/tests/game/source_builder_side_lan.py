@@ -71,6 +71,7 @@ try:
     wait('choice', lambda: any(n.get('label') == 'Tool Handle' and n.get('enabled') for n in guest.call('ui')['widgets']))
     guest.call('click', next(n['id'] for n in guest.call('ui')['widgets'] if n.get('label') == 'Tool Handle' and n.get('enabled')))
     host.call('wait', '15'); guest.call('wait', '15')
+    guest.call('screenshot', str(run / 'builder-info.png'))
     def take(g): click(g, 322, 'shift')
     with ThreadPoolExecutor(max_workers=2) as pool:
         for f in [pool.submit(take, g) for g in games]: f.result()
