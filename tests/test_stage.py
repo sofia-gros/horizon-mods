@@ -52,6 +52,7 @@ chmod +x "$2/debug/horizon-mixins"
             self.assertEqual((repos[0] / 'marker').read_text(), 'dirty horizon')
             self.assertEqual((repos[1] / 'marker').read_text(), 'dirty')
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
+            self.assertEqual((project / 'target/mixins-source/marker').read_text(), 'committed')
             failed = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
             self.assertNotEqual(failed.returncode, 0)
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
