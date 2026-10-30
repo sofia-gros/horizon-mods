@@ -76,7 +76,22 @@ try:
     g.call('screenshot', str(run / 'casting-basin.png'))
     g.call('interact', '0', '71', '1'); g.call('wait', '5')
     assert g.call('inventory')['counts'].get('minecraft:copper_block', 0) == 1
-    g.call('save'); g.stop()
+    # Breaking the machine must return its live contents. Replacing it at the
+    # same position must not revive the old tank or inputs.
+    g.call('command', 'give @s minecraft:raw_copper 3')
+    g.call('interact', '0', '72', '2'); g.call('wait', '5')
+    click(hotbar('minecraft:raw_copper')); click(300); g.call('close')
+    g.call('command', 'give @s minecraft:iron_pickaxe 1')
+    g.call('hotbar', str(hotbar('minecraft:iron_pickaxe') + 1))
+    g.call('command', 'gamemode survival @s')
+    g.call('break', '0', '72', '2', '--timeout', '40', timeout=45)
+    g.call('command', 'tp @s 0.5 72 2.5'); g.call('wait', '80')
+    assert g.call('inventory')['counts'].get('minecraft:raw_copper', 0) == 3
+    g.call('command', 'gamemode creative @s'); g.call('command', 'tp @s 2.5 71 1.5')
+    g.call('command', 'setblock 0 72 2 tconstruct:seared_melter')
+    select_empty(); g.call('interact', '0', '72', '2'); g.call('wait', '10')
+    assert not any(row.get('slot') in (300, 301, 302) and row.get('stack') for row in g.call('menu')['slots'])
+    g.call('close'); g.call('save'); g.stop()
     print('PASS melter fuel, save/reload, faucet, ingot cast and basin block', flush=True)
 finally:
     g.cleanup()
