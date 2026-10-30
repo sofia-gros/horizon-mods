@@ -1,11 +1,22 @@
-fn tconstruct_connected_pane_face(
-    visibility: &FaceVisibility, state: BlockStateId, neighbor: BlockStateId, direction: Direction,
-) -> std::ops::ControlFlow<std::io::Result<bool>> {
+// The prepared render table marks TConstruct panes as (SameBlock, bars_tag).
+// This pair is otherwise absent from the vanilla table; it lets this hook
+// recognize them without global state or changing the visibility struct.
+fn tconstruct_connected_pane_face(a: State, b: State, direction: Direction) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
-    if !matches!(direction, Direction::Up | Direction::Down) { return Continue(()); }
-    let Ok(current) = visibility.state(state) else { return Continue(()); };
-    if !visibility.__horizon_mixins_tconstruct_connected_pane_ids().contains(&current.block) { return Continue(()); }
-    let Ok(other) = visibility.state(neighbor) else { return Continue(()); };
-    if current.block != other.block { return Continue(()); }
-    Break(Ok(tconstruct_pane_culling::uncovered(current.connections, other.connections)))
+    let marked = |state: State| state.definition.skip == SkipRendering::SameBlock
+        && state.definition.bars_tag && state.connection_properties == 0b111100;
+    if marked(a) {
+        if a.block != b.block { return Break(false); }
+        if matches!(direction, Direction::Up | Direction::Down) {
+            // BetterPaneBlock: skip only when every arm is also in the neighbor.
+            return Break(a.connections & !b.connections == 0);
+        }
+        let bit = 1 << direction as u8;
+        let opposite = 1 << direction.opposite() as u8;
+        return Break(a.connections & bit != 0 && b.connections & opposite != 0);
+    }
+    // bars_tag is an internal marker here, not a real iron-bars tag. Keep
+    // ordinary vanilla bars from treating a marked glass pane as iron bars.
+    if a.definition.skip == SkipRendering::Bars && marked(b) { return Break(false); }
+    Continue(())
 }

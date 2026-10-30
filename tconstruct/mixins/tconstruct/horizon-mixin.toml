@@ -1673,38 +1673,14 @@ bindings = [
   { name = "state", ty = "&Info", value = "state" },
 ]
 
-[[module]]
-id = "connected-pane-culling"
-file = "crates/horizon-world/src/block_render.rs"
-name = "tconstruct_pane_culling"
-source = "connected-pane-culling.rs"
-
-[[state]]
-id = "connected-pane-ids"
-target = "horizon_world::block_render::FaceVisibility"
-ty = "std::collections::BTreeSet<crate::registry::BlockStateId>"
-initial = "crate::block_render::tconstruct_pane_culling::initial()"
-[[state.constructor]]
-target = "horizon_world::block_render::FaceVisibility::new"
-selector = "Self"
-require = 1
-
-[[injection]]
-id = "connected-pane-collect"
-target = "horizon_world::block_render::FaceVisibility::new"
-kind = "HEAD"
-helper = "connected-pane-collect.rs"
-bindings = [{ name = "occlusion", ty = "&CachedCollisionRegistry<'_>", value = "occlusion" }]
-
 [[injection]]
 id = "connected-pane-face"
-target = "horizon_world::block_render::FaceVisibility::should_render_face"
+target = "horizon_world::block_render::FaceVisibility::skips"
 kind = "HEAD"
 cancellable = true
 helper = "connected-pane-face.rs"
 bindings = [
-  { name = "visibility", ty = "&FaceVisibility", value = "&*self" },
-  { name = "state", ty = "BlockStateId", value = "state" },
-  { name = "neighbor", ty = "BlockStateId", value = "neighbor" },
+  { name = "a", ty = "State", value = "a" },
+  { name = "b", ty = "State", value = "b" },
   { name = "direction", ty = "Direction", value = "direction" },
 ]

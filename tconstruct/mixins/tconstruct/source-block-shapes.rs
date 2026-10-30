@@ -56,3 +56,11 @@ pub(super) fn apply_soul_speed(table: &mut Tag, targets: &[(&str, f32)]) -> Resu
     }
     Ok(())
 }
+
+/// Exact source-connected pane IDs, used only when preparing render metadata.
+pub(super) fn is_source_connected_pane(name: &str) -> bool {
+    let Some(name) = name.strip_prefix("tconstruct:") else { return false; };
+    if matches!(name, "clear_glass_pane" | "soul_glass_pane" | "seared_glass_pane" | "seared_soul_glass_pane" | "scorched_glass_pane" | "scorched_soul_glass_pane") { return true; }
+    let Some(color) = name.strip_suffix("_clear_stained_glass_pane") else { return false; };
+    matches!(color, "white" | "orange" | "magenta" | "light_blue" | "yellow" | "lime" | "pink" | "gray" | "light_gray" | "cyan" | "purple" | "blue" | "brown" | "green" | "red" | "black")
+}
