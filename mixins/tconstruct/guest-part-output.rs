@@ -12,7 +12,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
     if !is_station && packet.slot == 22 && packet.input == 1 {
         let mut dropped = Vec::new();
-        let mut crafted_total = 0;
+        let mut crafted = Vec::new();
         let mut first_item = None;
         let side_pos = match menu.slots {
             crate::lan::menu::Slots::Double(first, side) if first == key => Some(side),
@@ -36,8 +36,9 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 };
                 let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) else { break; };
                 let guest = &mut hub.guests[gi];
+                let crafted_item = output.item.to_string();
                 let Some((give, crafted_count)) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) else { break; };
-                crafted_total += crafted_count;
+                crafted.push((crafted_item, crafted_count));
                 if let Some(side_pos) = side_pos {
                     if let Some(BlockEntity::Chest(items)) = world.block_entities.get_mut(&side_pos) { *items = side; }
                     world.modified.insert((side_pos.0 >> 4, side_pos.2 >> 4));
@@ -50,10 +51,8 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
             }
         }
-        if crafted_total > 0 {
-            if let Some(item) = first_item {
-                world.chunks.__horizon_mixins_tconstruct_builder_crafted_mut().push((conn, item.to_string(), crafted_total, hub.guests[gi].position));
-            }
+        for (item, count) in crafted {
+            world.chunks.__horizon_mixins_tconstruct_builder_crafted_mut().push((conn, item, count, hub.guests[gi].position));
         }
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(dropped);
