@@ -1,5 +1,9 @@
 use super::*;
 
+pub(super) const TEXT_SCALE: f32 = 7.0 / 9.0;
+pub(super) const LINE_HEIGHT: f32 = 7.5;
+pub(super) const VISIBLE_LINES: usize = 23;
+
 /// Text uses the authoritative local recipe or the server's menu data.
 pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> Vec<(String, u32, Option<String>)> {
     let Some(pos) = game.container else { return Vec::new(); };
@@ -62,10 +66,10 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
     if let Some(title) = title {
         let key = title.split_once(':').map(|(namespace, path)| format!("recipe.{namespace}.{}.info", path.replace('/', ".")));
         let text = key.and_then(|key| game.pack.names.display_get(&key)).unwrap_or_default();
-        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0, atlas).into_iter().map(|line| (line, u32::MAX, None)));
+        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0 / TEXT_SCALE, atlas).into_iter().map(|line| (line, u32::MAX, None)));
     } else if material.is_none() {
         let text = game.pack.names.display_get("gui.tconstruct.part_builder.info").unwrap_or_default();
-        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0, atlas).into_iter().map(|line| (line, u32::MAX, None)));
+        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0 / TEXT_SCALE, atlas).into_iter().map(|line| (line, u32::MAX, None)));
     }
     lines
 }
@@ -94,9 +98,12 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
     let atlas = &game.gui.atlas;
     panel(game, batch, ox + 180.0, oy, 184.0);
     let entries = lines(game, atlas);
-    let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(17));
+    let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(VISIBLE_LINES));
     if entries.iter().any(|(_, _, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 297.0, oy + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
-    for (index, (text, color, _)) in entries.iter().skip(scroll).take(17).enumerate() {
-        batch.text(atlas, text, ox + 185.0, oy + 5.0 + index as f32 * 10.0, *color, true);
+    for (index, (text, color, _)) in entries.iter().skip(scroll).take(VISIBLE_LINES).enumerate() {
+        let (x, y) = (ox + 185.0, oy + 5.0 + index as f32 * LINE_HEIGHT);
+        let start = batch.vertices.len();
+        batch.text(atlas, text, x, y, *color, true);
+        batch.scale_since(start, x, y, TEXT_SCALE, TEXT_SCALE);
     }
 }

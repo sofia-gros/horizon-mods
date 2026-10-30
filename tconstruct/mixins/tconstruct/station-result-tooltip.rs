@@ -6,12 +6,12 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
         if (ox + 182.0..ox + 308.0).contains(&game.cursor.0) {
             if let Some((top, bottom)) = crate::game::tconstruct_station_info_ui::lines(game) {
                 let offsets = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll().get(&pos)).copied().unwrap_or_default();
-                let selected = if (oy + 10.0..oy + 80.0).contains(&game.cursor.1) { Some((&top, offsets.0, oy + 10.0)) }
-                    else if (oy + 99.0..oy + 169.0).contains(&game.cursor.1) { Some((&bottom, offsets.1, oy + 99.0)) }
+                let selected = if (oy + 10.0..oy + 78.0).contains(&game.cursor.1) { Some((&top, offsets.0, oy + 10.0, crate::game::tconstruct_station_info_ui::TOP_LINE_HEIGHT, crate::game::tconstruct_station_info_ui::TOP_VISIBLE)) }
+                    else if (oy + 99.0..oy + 166.5).contains(&game.cursor.1) { Some((&bottom, offsets.1, oy + 99.0, crate::game::tconstruct_station_info_ui::BOTTOM_LINE_HEIGHT, crate::game::tconstruct_station_info_ui::BOTTOM_VISIBLE)) }
                     else { None };
-                if let Some((lines, scroll, start)) = selected {
-                    let scroll = scroll.min(lines.len().saturating_sub(7));
-                    let row = ((game.cursor.1 - start) / 10.0) as usize;
+                if let Some((lines, scroll, start, line_height, visible)) = selected {
+                    let scroll = scroll.min(lines.len().saturating_sub(visible));
+                    let row = ((game.cursor.1 - start) / line_height) as usize;
                     let tip = if row == 0 && game.cursor.0 >= ox + 296.0 && lines.iter().any(|(_, tip)| tip.is_some()) {
                         game.pack.names.display_get("gui.tconstruct.general.hover")
                     } else { lines.get(scroll + row).and_then(|(_, tip)| tip.clone()) };
@@ -26,10 +26,10 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     }
     if !station {
         let (ox, oy) = game.inventory_origin(batch);
-        if (ox + 180.0..ox + 306.0).contains(&game.cursor.0) && (oy + 5.0..oy + 175.0).contains(&game.cursor.1) {
+        if (ox + 180.0..ox + 306.0).contains(&game.cursor.0) && (oy + 5.0..oy + 178.0).contains(&game.cursor.1) {
             let entries = crate::game::tconstruct_builder_info_ui::lines(game, &game.gui.atlas);
-            let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(17));
-            let row = ((game.cursor.1 - oy - 5.0) / 10.0) as usize;
+            let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(crate::game::tconstruct_builder_info_ui::VISIBLE_LINES));
+            let row = ((game.cursor.1 - oy - 5.0) / crate::game::tconstruct_builder_info_ui::LINE_HEIGHT) as usize;
             let tip = if row == 0 && game.cursor.0 >= ox + 294.0 && entries.iter().any(|(_, _, tip)| tip.is_some()) {
                 game.pack.names.display_get("gui.tconstruct.general.hover")
             } else { entries.get(scroll + row).and_then(|(_, _, tip)| tip.clone()) };

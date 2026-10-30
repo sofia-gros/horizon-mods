@@ -1,6 +1,13 @@
 use super::*;
 use horizon_world::nbt::Tag;
 
+pub(super) const TOP_SCALE: f32 = 8.0 / 9.0;
+pub(super) const BOTTOM_SCALE: f32 = 7.0 / 9.0;
+pub(super) const TOP_LINE_HEIGHT: f32 = 8.5;
+pub(super) const BOTTOM_LINE_HEIGHT: f32 = 7.5;
+pub(super) const TOP_VISIBLE: usize = 8;
+pub(super) const BOTTOM_VISIBLE: usize = 9;
+
 pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, Vec<(String, Option<String>)>)> {
     let atlas = &game.gui.atlas;
     let layout = super::tconstruct_ui::station_layout(game)?;
@@ -71,7 +78,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
         top.push((game.pack.names.display_get(&layout.translation).unwrap_or_else(|| layout.translation.clone()), None));
         let description = format!("{}.description", layout.translation);
         if let Some(description) = game.pack.names.display_get(&description) {
-            top.extend(horizon_client::multiplayer::wrap(&description, 112.0, atlas).into_iter().map(|line| (line, None)));
+            top.extend(horizon_client::multiplayer::wrap(&description, 112.0 / TOP_SCALE, atlas).into_iter().map(|line| (line, None)));
         }
         bottom.push((game.pack.names.display_get("gui.tconstruct.tinker_station.components").unwrap_or_else(|| "Components".into()), None));
         for (index, spec) in layout.input_slots.iter().enumerate() {
@@ -91,12 +98,15 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
     let Some((top, bottom)) = lines(game) else { return; };
     let atlas = &game.gui.atlas;
     let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll().get(&pos)).copied().unwrap_or_default();
-    for (offset, lines, scroll) in [(5.0, top, scroll.0), (94.0, bottom, scroll.1)] {
+    for (offset, lines, scroll, scale, line_height, visible) in [(5.0, top, scroll.0, TOP_SCALE, TOP_LINE_HEIGHT, TOP_VISIBLE), (94.0, bottom, scroll.1, BOTTOM_SCALE, BOTTOM_LINE_HEIGHT, BOTTOM_VISIBLE)] {
         super::tconstruct_builder_info_ui::panel(game, batch, ox + 182.0, oy + offset, 83.0);
-        let scroll = scroll.min(lines.len().saturating_sub(7));
+        let scroll = scroll.min(lines.len().saturating_sub(visible));
         if lines.iter().any(|(_, tip)| tip.is_some()) { batch.text(atlas, "?", ox + 299.0, oy + offset + 5.0, horizon_client::hud::rgba(95, 95, 95, 255), false); }
-        for (index, (line, _)) in lines.iter().skip(scroll).take(7).enumerate() {
-            batch.text(atlas, line, ox + 187.0, oy + offset + 5.0 + index as f32 * 10.0, u32::MAX, true);
+        for (index, (line, _)) in lines.iter().skip(scroll).take(visible).enumerate() {
+            let (x, y) = (ox + 187.0, oy + offset + 5.0 + index as f32 * line_height);
+            let start = batch.vertices.len();
+            batch.text(atlas, line, x, y, u32::MAX, true);
+            batch.scale_since(start, x, y, scale, scale);
         }
     }
 }

@@ -33,6 +33,13 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 region(batch, 7.0, 7.0, 18.0, 18.0,
                     7.0 + (i % columns) as f32 * 18.0, 7.0 + (i / columns) as f32 * 18.0, 18.0, 18.0);
             }
+            let shown = count.saturating_sub(first).min(crate::game::tconstruct_source_side_layout::visible_rows(count) * columns);
+            if shown % columns != 0 {
+                for i in shown..shown.div_ceil(columns) * columns {
+                    region(batch, 25.0, 7.0, 18.0, 18.0,
+                        7.0 + (i % columns) as f32 * 18.0, 7.0 + (i / columns) as f32 * 18.0, 18.0, 18.0);
+                }
+            }
             if scrollable {
                 let x = 7.0 + columns as f32 * 18.0;
                 region(batch, 43.0, 8.0, 12.0, 30.0, x, 7.0, 10.0, height);

@@ -8,10 +8,10 @@ fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::Con
         if !(ox + 182.0..ox + 308.0).contains(&game.cursor.0) { return Continue(()); }
         let Some((top, bottom)) = crate::game::tconstruct_station_info_ui::lines(game) else { return Continue(()); };
         let state = game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll_mut().entry(pos).or_default();
-        let (offset, count) = if (oy + 5.0..oy + 88.0).contains(&game.cursor.1) { (&mut state.0, top.len()) }
-            else if (oy + 94.0..oy + 177.0).contains(&game.cursor.1) { (&mut state.1, bottom.len()) }
+        let (offset, count, visible) = if (oy + 5.0..oy + 88.0).contains(&game.cursor.1) { (&mut state.0, top.len(), crate::game::tconstruct_station_info_ui::TOP_VISIBLE) }
+            else if (oy + 94.0..oy + 177.0).contains(&game.cursor.1) { (&mut state.1, bottom.len(), crate::game::tconstruct_station_info_ui::BOTTOM_VISIBLE) }
             else { return Continue(()); };
-        *offset = (*offset as i32 - delta.signum() as i32).clamp(0, count.saturating_sub(7) as i32) as usize;
+        *offset = (*offset as i32 - delta.signum() as i32).clamp(0, count.saturating_sub(visible) as i32) as usize;
         return Break(());
     }
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
@@ -33,7 +33,7 @@ fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::Con
         if (ox + 180.0..ox + 306.0).contains(&game.cursor.0) && (oy..oy + 184.0).contains(&game.cursor.1) {
             let count = crate::game::tconstruct_builder_info_ui::lines(game, &game.gui.atlas).len();
             let scroll = game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll_mut().entry(pos).or_default();
-            *scroll = (*scroll as i32 - delta.signum() as i32).clamp(0, count.saturating_sub(17) as i32) as usize;
+            *scroll = (*scroll as i32 - delta.signum() as i32).clamp(0, count.saturating_sub(crate::game::tconstruct_builder_info_ui::VISIBLE_LINES) as i32) as usize;
             return Break(());
         }
     }
