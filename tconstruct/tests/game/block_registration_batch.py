@@ -31,7 +31,8 @@ try:
                  'fill -2 70 -1 4 70 5 minecraft:stone', 'time set day', 'setblock 1 71 2 minecraft:stone', 'setblock -1 71 2 minecraft:air', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'clear @a'):
         command(host, text)
     samples = ('grout', 'seared_bricks_slab', 'greenheart_planks_stairs', 'greenheart_door',
-               'scorched_bricks_fence', 'cobalt_block', 'slimesteel_block', 'cinderslime_block', 'knightslime_block', 'earth_congealed_slime',
+               'scorched_bricks_fence', 'greenheart_log', 'stripped_greenheart_log', 'nahuatl', 'blazewood_slab',
+               'cobalt_block', 'slimesteel_block', 'cinderslime_block', 'knightslime_block', 'earth_congealed_slime',
                'crafting_station', 'modifier_worktable')
     for name in samples:
         command(host, 'setblock 0 72 2 minecraft:air')
@@ -41,6 +42,16 @@ try:
         host.call('place', '0', '71', '2', '--item', f'tconstruct:{name}')
         wait('host placed ' + name, lambda: host.call('block', '0', '71', '2').get('block') == 'tconstruct:' + name)
         wait('guest saw ' + name, lambda: guest.call('block', '0', '71', '2').get('block') == 'tconstruct:' + name)
+        if name == 'greenheart_door':
+            before = host.call('block', '0', '71', '2')['state']
+            host.call('interact', '0', '71', '2')
+            wait('door opened', lambda: 'open=true' in host.call('block', '0', '71', '2')['state'])
+            wait('guest saw open door', lambda: 'open=true' in guest.call('block', '0', '71', '2')['state'])
+            assert 'open=false' in before, before
+        if name in ('greenheart_log', 'stripped_greenheart_log'):
+            assert 'axis=' in host.call('block', '0', '71', '2')['state']
+        if name in ('crafting_station', 'modifier_worktable'):
+            assert 'facing=' in host.call('block', '0', '71', '2')['state']
         if name in ('slimesteel_block', 'cinderslime_block', 'knightslime_block', 'earth_congealed_slime', 'crafting_station', 'modifier_worktable'):
             host.call('look-at', 'block', '0', '71', '2'); host.call('wait', '40')
             host.call('screenshot', str(run / ('block-registration-' + name + '.png')))
