@@ -37,7 +37,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             for (x, action) in [(114.0, 24), (134.0, 25)] {
                 let output = if action == 24 {
                     crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
-                } else { crate::game::tconstruct_source_station_world::repair_plan(&game.world, slots).map(|(output, _)| output) };
+                } else { crate::game::tconstruct_source_station_world::swap_plan(&game.world, slots).or_else(|| crate::game::tconstruct_source_station_world::repair_plan(&game.world, slots)).map(|(output, _)| output) };
                 if let Some(stack) = output { game.draw_item(batch, &stack, ox + x, oy + 38.0); }
             }
         }

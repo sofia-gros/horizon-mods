@@ -57,7 +57,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         })
     } else { None };
     let repair = if action == 25 {
-        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::repair_plan(&game.world, entity.slots()))
+        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::swap_plan(&game.world, entity.slots()).or_else(|| crate::game::tconstruct_source_station_world::repair_plan(&game.world, entity.slots())))
     } else { None };
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
     let taken = if action == 24 {
