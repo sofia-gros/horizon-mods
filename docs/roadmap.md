@@ -19,9 +19,9 @@ untested content as complete merely because it uses the same framework.
 
 | Area | Current status | Next work |
 | --- | --- | --- |
-| Part Builder | Source-derived recipes drive a scrolling selection grid, preview and ordinary result pickup for supported inputs. Tested examples include an oak log yielding a wood handle and three planks, an oak plank yielding a wood handle, and limited damageable-item recycling. | Complete material and item support, recycling and Pattern identity; complete material-recipe caching and tag behavior across the remaining inputs and reload cases; add side inventories, remaining click modes, item-specific and non-vanilla custom container behavior, callbacks and detailed information panels. |
-| Tinker Station | A fixed flint/wood pickaxe can be assembled and repaired in a simplified preview. | Port original dynamic layouts, naming, part combinations, component replacement and modifiers. |
-| Durability | The fixed pickaxe wears, remains when broken, mines slowly and can be repaired. | Complete original broken behavior, visuals and the remaining tool interactions. |
+| Part Builder | Source-derived recipes drive a scrolling selection grid, preview and ordinary result pickup for supported inputs. Tested examples include an oak log yielding a wood handle and three planks, an oak plank yielding a wood handle, and limited damageable-item recycling. | Complete material and item support, recycling and Pattern identity; complete material-recipe caching and tag behavior across remaining inputs and reload cases; finish side inventories, remaining click modes, item-specific and non-vanilla custom container behavior, callbacks and detailed information panels. |
+| Tinker Station | A simplified source-recipe pickaxe path derives base stats and supports repair and part replacement. A Linux official build tested creation, mining, repair, head replacement and save/reload in both modes. | Add other tools, complete traits/modifiers and combat behavior, dynamic layouts and naming; verify the remaining material combinations and multiplayer. |
+| Durability | Pickaxe maximum durability is derived from its selected materials; a representative Linux lifecycle passed in both modes. | Complete traits, original broken behavior, visuals and other tool interactions. |
 | Models and tooltips | Tested parts use source material sprites in GUI slots, and tested part tooltips display material names. Original tool textures and static table models are present. | Complete material and variant rendering, 3D models, resource reload, orientation, names, traits and detailed tooltips. |
 | Other tools, armor, materials and modifiers | Source definitions, some part IDs and four slimewood plank blocks are present, but complete equipment, material behavior and modifiers are not implemented. | Connect shared stat aggregation, traits, equipment and actions, and expand the supported original definitions. |
 | Smeltery and foundry | Not implemented. | Port fluids, melting, casting, alloys and multiblocks. |
@@ -33,12 +33,10 @@ list with scrolling, selection and a separate result slot. In both game modes,
 representative ordinary crafting, recycling, saving and two-player contention
 have been tested. An open table retains its cached recipe across reload until
 an input changes; material-recipe caching was tested with a flint value change and an oak-log tag change; other material and tag interactions remain incomplete. Minecraft copper nugget references use the native 26.3 item when present. Minecraft crafting containers use the Horizon 26.3 item registry; item-specific component overrides remain unsupported. Unsupported recipe contexts are rejected. Result Shift-click
-works for supported cases with either mouse button when no adjacent block entity may supply a side
-inventory; original side-inventory behavior, other Shift-click paths, drag and
-pickup-all remain incomplete. The information panels and full visual parity
+works for supported cases with either mouse button. Single 27-slot and 9-slot side containers and 5-slot hoppers have a preliminary shared path; Linux LAN checks covered hopper and dispenser synchronization and contention. Hopper LAN player-inventory Shift move is rejected; the guest five-slot display fix is not yet verified. Double chests, shulker boxes, other Shift-click paths, drag and pickup-all remain incomplete. The information panels and full visual parity
 are also unfinished.
 
-The Tinker Station still uses separate assembly and repair icons and a fixed
+The Tinker Station still uses separate assembly and repair/part-swap icons and a fixed
 layout rather than the original dynamic interface. See the
 [station design](station-design.md) and [validation notes](validation.md) for
 additional implementation and test details.
