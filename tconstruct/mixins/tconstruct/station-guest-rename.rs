@@ -3,9 +3,8 @@ fn station_guest_rename(game: &mut crate::game::Game<'_>, host: &mut crate::game
     let Some(guest) = host.hub.guests.iter().find(|guest| guest.conn == conn) else { return Continue(()); };
     let Some(menu) = guest.menu.as_ref() else { return Continue(()); };
     let Some(pos) = menu.pos else { return Continue(()); };
-    let state = game.world.block(pos.0, pos.1, pos.2).0 as usize;
-    let station = host.hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:tinker_station"));
-    if station.is_none() || host.hub.encoder.block_ids.get(state).copied() != station { return Continue(()); }
+    let block = game.world.block(pos.0, pos.1, pos.2);
+    if &*game.res.facts().get(block).name != "tconstruct:tinker_station" { return Continue(()); }
     if guest.spectator() || !menu.slots.still_valid(&game.world, guest, menu.pos) { return Break(()); }
     let can_name = game.world.block_entities.get(&pos).is_some_and(|entity| {
         !crate::game::tconstruct_source_station_world::has_operation_tool(entity.slots())
