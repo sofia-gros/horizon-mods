@@ -126,7 +126,7 @@ class ResourceOverlay(unittest.TestCase):
                 fluids = json.loads(melter_assets.read('assets/tconstruct/melter-fluid-textures.json'))
                 self.assertIn('tconstruct:molten_copper', fluids)
                 for fluid, texture in fluids.items():
-                    self.assertEqual((out / 'assets/minecraft/textures/gui' / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).read_bytes(), melter_assets.read('assets/tconstruct/' + texture))
+                    self.assertEqual((out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).read_bytes(), melter_assets.read('assets/tconstruct/' + texture))
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-station-layouts.zip') as layouts:
                 for name in layouts.namelist():
