@@ -36,3 +36,31 @@ class ConnectedGlassSourceTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class GeneratedGlassTests(unittest.TestCase):
+    def test_generates_ordinary_models_and_preserves_source_shapes(self):
+        import sys
+        import tempfile
+        tools = Path(__file__).resolve().parents[1] / 'tools'
+        sys.path.insert(0, str(tools))
+        try:
+            from generate_connected_glass import generate
+            with tempfile.TemporaryDirectory() as temp:
+                root = Path(temp)
+                generate(root)
+                blocks = root / 'data/tconstruct/horizon/block'
+                self.assertEqual(len(list(blocks.glob('*.json'))), 38)
+                self.assertFalse((blocks / 'soul_glass.json').exists())
+                assets = root / 'assets/tconstruct'
+                model = json.loads((assets / 'models/block/clear_glass/red/block.json').read_text())
+                self.assertEqual(model['parent'], 'tconstruct:block/template/tinted_connected_cube')
+                self.assertNotIn('loader', model)
+                item = json.loads((assets / 'items/red_clear_stained_glass.json').read_text())
+                self.assertEqual(item['model']['tints'][0]['value'], 0x993333)
+                pane = json.loads((assets / 'models/block/template/tinted_pane/side.json').read_text())
+                self.assertTrue(all(face['tintindex'] == 0 for face in pane['elements'][0]['faces'].values()))
+                for block in blocks.glob('*.json'):
+                    self.assertTrue((assets / 'blockstates' / block.name).exists())
+                    self.assertTrue((assets / 'items' / block.name).exists())
+        finally:
+            sys.path.remove(str(tools))
