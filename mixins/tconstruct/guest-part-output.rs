@@ -1,5 +1,9 @@
 fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play::ContainerClick, world: &mut World, rules: &dyn Rules) -> std::ops::ControlFlow<Vec<ItemStack>> {
     use std::ops::ControlFlow::{Break, Continue};
+    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() && packet.slot == 24 {
+        let menu = hub.guests.iter().find(|g| g.conn == conn).and_then(|guest| guest.menu.as_ref().map(|menu| (guest, menu)));
+        eprintln!("tconstruct station server entry menu={} window={} valid={}", menu.is_some(), menu.is_some_and(|(_, menu)| menu.window == packet.container), menu.is_some_and(|(guest, menu)| menu.slots.still_valid(world, guest, menu.pos)));
+    }
     let Some(gi) = hub.guests.iter().position(|g| g.conn == conn) else { return Continue(()); };
     let Some(menu) = hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if packet.container == 0 || menu.window != packet.container || hub.guests[gi].spectator() || !menu.slots.still_valid(world, &hub.guests[gi], menu.pos) { return Continue(()); }

@@ -54,6 +54,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     if game.remote.is_some() {
         if station && slot == 324 {
             let output = game.container_kind().and_then(|entity| entity.slots().get(24)).and_then(Option::as_ref);
+            if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
+                eprintln!("tconstruct station remote guard output={} allowed={}", output.is_some(), output.is_none_or(|stack| crate::game::tconstruct_ui::station_accepts_output(game, stack)));
+            }
             if output.is_some_and(|stack| !crate::game::tconstruct_ui::station_accepts_output(game, stack)) { return Break(true); }
         }
         if !station && slot == 322 && right {

@@ -1,5 +1,8 @@
 fn tconstruct_double_client_click(game: &mut crate::game::Game<'_>, ops: &[(Option<usize>, i32, horizon_client::menu::Input)]) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_ui::kind(game) == Some(true) && std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
+        eprintln!("tconstruct station remote menu ops={:?}", ops.iter().map(|(slot, _, _)| *slot).collect::<Vec<_>>());
+    }
     if game.remote_menu_title().map(|title| title.plain()).as_deref() != Some("TConstruct Part Builder Double") { return Continue(()); }
     let mut clicks = Vec::with_capacity(ops.len());
     for &(slot, button, input) in ops {
