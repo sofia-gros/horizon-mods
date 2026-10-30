@@ -1,7 +1,44 @@
 fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
+    if station {
+        let (ox, oy) = game.inventory_origin(batch);
+        if (ox + 182.0..ox + 182.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, true)).contains(&game.cursor.0) {
+            if let Some((top, bottom)) = crate::game::tconstruct_station_info_ui::lines(game) {
+                let offsets = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll().get(&pos)).copied().unwrap_or_default();
+                let selected = if (oy + 10.0..oy + 78.0).contains(&game.cursor.1) { Some((&top, offsets.0, oy + 10.0, crate::game::tconstruct_station_info_ui::TOP_LINE_HEIGHT, crate::game::tconstruct_station_info_ui::TOP_VISIBLE)) }
+                    else if (oy + 99.0..oy + 166.5).contains(&game.cursor.1) { Some((&bottom, offsets.1, oy + 99.0, crate::game::tconstruct_station_info_ui::BOTTOM_LINE_HEIGHT, crate::game::tconstruct_station_info_ui::BOTTOM_VISIBLE)) }
+                    else { None };
+                if let Some((lines, scroll, start, line_height, visible)) = selected {
+                    let scroll = scroll.min(lines.len().saturating_sub(visible));
+                    let row = ((game.cursor.1 - start) / line_height) as usize;
+                    let tip = if row == 0 && game.cursor.0 >= ox + 182.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, true) - 12.0 && lines.iter().any(|(_, tip)| tip.is_some()) {
+                        game.pack.names.display_get("gui.tconstruct.general.hover")
+                    } else { lines.get(if row == 0 { 0 } else { scroll + row }).and_then(|(_, tip)| tip.clone()) };
+                    if let Some(tip) = tip {
+                        let lines = horizon_client::multiplayer::wrap(&tip, 200.0, &game.gui.atlas).into_iter().map(|line| (line, u32::MAX)).collect::<Vec<_>>();
+                        game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+                    }
+                    return Break(());
+                }
+            }
+        }
+    }
     if !station {
+        let (ox, oy) = game.inventory_origin(batch);
+        if (ox + 180.0..ox + 180.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, false)).contains(&game.cursor.0) && (oy + 5.0..oy + 178.0).contains(&game.cursor.1) {
+            let entries = crate::game::tconstruct_builder_info_ui::lines(game, &game.gui.atlas);
+            let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0).min(entries.len().saturating_sub(crate::game::tconstruct_builder_info_ui::VISIBLE_LINES));
+            let row = ((game.cursor.1 - oy - 5.0) / crate::game::tconstruct_builder_info_ui::LINE_HEIGHT) as usize;
+            let tip = if row == 0 && game.cursor.0 >= ox + 180.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, false) - 12.0 && entries.iter().any(|(_, _, tip)| tip.is_some()) {
+                game.pack.names.display_get("gui.tconstruct.general.hover")
+            } else { crate::game::tconstruct_builder_info_ui::visible_index(&entries, scroll, row).and_then(|index| entries.get(index)).and_then(|(_, _, tip)| tip.clone()) };
+            if let Some(tip) = tip {
+                let lines = horizon_client::multiplayer::wrap(&tip, 200.0, &game.gui.atlas).into_iter().map(|line| (line, u32::MAX)).collect::<Vec<_>>();
+                game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+            }
+            return Break(());
+        }
         if let Some(key) = game.container {
             let patterns = game.world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&key)
                 .and_then(|(_, _, patterns)| patterns.as_ref());
@@ -23,7 +60,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     let Some(slot) = game.slot_at(batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if !(if station { (324..=325).contains(&slot) } else { slot == 322 }) { return Continue(()); }
     let Some(BlockEntity::Chest(slots)) = game.container_kind() else { return Break(()); };
-    let result = if station && game.remote.is_some() {
+    let mut result = if station && game.remote.is_some() {
         slots.get(slot - 300).cloned().flatten()
     } else if station && slot == 324 {
         crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
@@ -33,6 +70,12 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
         if game.remote.is_some() { slots.get(22).cloned().flatten() }
         else { game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_preview().get(&key).and_then(|(_, _, _, result)| result.clone())) }
     };
+    if station && slot == 324 && game.remote.is_none() {
+        if let Some(output) = result.as_mut() {
+            let name = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&pos)).map(|edit| edit.value.as_str());
+            crate::game::tconstruct_source_station_name::name_result(output, name);
+        }
+    }
     if let Some(result) = result { game.draw_stack_tooltip(batch, &result, game.cursor.0, game.cursor.1); }
     Break(())
 }

@@ -3,6 +3,25 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     if station {
         let Some(key) = game.container else { return Break(()); };
+        if id >= 31000 {
+            if id == 31000 && value == -1 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().insert(key, Vec::new());
+            } else if id == 31000 && value == -2 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
+            } else if id == 31000 && value >= 0 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
+                let info = pending.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words));
+                if let Some(info) = info.filter(|info| info.len() == 1) { game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().insert(key, info); }
+            } else if id > 31000 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut();
+                if let Some(words) = pending.get_mut(&key) {
+                    if words.len() == id - 31001 { words.push(value); } else { pending.remove(&key); }
+                }
+            }
+            return Break(());
+        }
         if id == 10000 && value == -1 {
             game.world.chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().insert(key, Vec::new());
         } else if id == 10000 && value == -2 {
@@ -25,9 +44,36 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
         }
         return Break(());
     }
+    if id == 30001 {
+        if let Some(key) = game.container { game.world.chunks.__horizon_mixins_tconstruct_builder_side_title_mut().insert(key, value); }
+        return Break(());
+    }
     if id == 30000 {
         if let Some(key) = game.container {
             if let Ok(size) = usize::try_from(value) { game.world.chunks.__horizon_mixins_tconstruct_builder_side_size_mut().insert(key, size); }
+        }
+        return Break(());
+    }
+    if id >= 31000 {
+        if let Some(key) = game.container {
+            if id == 31000 && value == -1 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().insert(key, Vec::new());
+            } else if id == 31000 && value == -2 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
+            } else if id == 31000 && value >= 0 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
+                let info = pending.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words));
+                if let Some(info) = info.filter(|info| info.len() == 6) {
+                    game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().insert(key, info);
+                }
+            } else if id > 31000 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut();
+                if let Some(words) = pending.get_mut(&key) {
+                    if words.len() == id - 31001 { words.push(value); } else { pending.remove(&key); }
+                }
+            }
         }
         return Break(());
     }

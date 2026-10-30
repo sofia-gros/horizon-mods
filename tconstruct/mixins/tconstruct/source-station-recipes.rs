@@ -90,6 +90,22 @@ mod tests {
         let result = arrow.match_inputs(&[], 1, &inputs, |_| None, |_, _| false, |_, item| &*item.item == "minecraft:arrow").unwrap();
         assert_eq!((result.result_count, result.consumed_slots, result.materials), (4, vec![1], vec!["tconstruct:flint".to_owned()]));
     }
+
+    #[test]
+    fn multi_item_results_obey_capacity_before_consuming_parts() {
+        let recipe = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:dagger","result_count":2}"#).unwrap();
+        let parts = vec!["tconstruct:small_blade".to_owned(), "tconstruct:tool_handle".to_owned()];
+        let mut slots = vec![Some(ItemStack::new(&parts[0], 1)), Some(ItemStack::new(&parts[1], 1)), None];
+        let matched = recipe.match_inputs(&parts, 2, &slots, |_| Some("tconstruct:wood".into()), |_, _| true, |_, _| false).unwrap();
+        let original = slots.clone();
+        let mut carried = Some(ItemStack::new("tconstruct:dagger", 1));
+        assert!(!take_built_tool(&mut slots, &mut carried, &matched, ItemStack::new("tconstruct:dagger", 2), 2));
+        assert_eq!(slots, original);
+        carried = None;
+        assert!(take_built_tool(&mut slots, &mut carried, &matched, ItemStack::new("tconstruct:dagger", 2), 2));
+        assert_eq!(carried.unwrap().count, 2);
+        assert!(slots.iter().all(Option::is_none));
+    }
 }
 
 /// Inputs selected for one authoritative tool-building transaction. A caller

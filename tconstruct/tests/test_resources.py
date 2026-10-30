@@ -113,7 +113,22 @@ class ResourceOverlay(unittest.TestCase):
             icons = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/icons.png').read_bytes()
             self.assertEqual(hashlib.sha256(icons).hexdigest(), 'cb793955c7da6330162a32353d432e5236e0162ef12240ea1ca78858fcbc4b4a')
             self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_icons.png').read_bytes(), icons)
+            generic = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/generic.png').read_bytes()
+            self.assertEqual(hashlib.sha256(generic).hexdigest(), '3f0f7b1e4df1111d40589d29258a740973bc8351a79a3ba2e62a937e1f41c3aa')
+            self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_generic.png').read_bytes(), generic)
+            panel = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/panel.png').read_bytes()
+            self.assertEqual(hashlib.sha256(panel).hexdigest(), '6dce4d43b21133c75d774dfb3043bec34f9b326b9b3dd9475ff6973a8b329916')
+            self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_panel.png').read_bytes(), panel)
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
+            with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-station-layouts.zip') as layouts:
+                for name in layouts.namelist():
+                    if not name.endswith('.json'):
+                        continue
+                    layout = json.loads(layouts.read(name))
+                    for slot in [layout.get('tool_slot', {})] + layout.get('input_slots', []):
+                        icon = slot.get('icon', '')
+                        if icon.startswith('tconstruct:'):
+                            self.assertTrue((pattern_root / (icon.split(':', 1)[1] + '.png')).is_file(), (name, icon))
             manifest = Path(__file__).resolve().parents[1] / 'docs/upstream-patterns.sha256'
             rows = manifest.read_text().splitlines()
             self.assertEqual(len(rows), 62)

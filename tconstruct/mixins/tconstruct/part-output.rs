@@ -38,7 +38,8 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         }
         return Continue(());
     }
-    if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && slot != Some(302)) { return Break(true); }
+    let repair_slot = station && slot == Some(303) && crate::game::tconstruct_ui::station_layout(game).is_some_and(|layout| layout.tool_slot.is_some());
+    if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && slot != Some(302) && !repair_slot) { return Break(true); }
     if !station && slot == Some(322) {
         if button == 0 || button == 1 { crate::game::tconstruct_source_builder_take::take(game, key); }
         return Break(true);
@@ -46,9 +47,13 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let action = if station { slot.filter(|s| (324..=325).contains(s)).map(|s| (s - 300) as i16) } else { None };
     let Some(action) = action else { return Continue(()); };
     if button != 0 { return Break(true); }
-    let build = if action == 24 {
+    let mut build = if action == 24 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots()))
     } else { None };
+    if let Some((_, output)) = build.as_mut() {
+        let name = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key).map(|edit| edit.value.as_str());
+        crate::game::tconstruct_source_station_name::name_result(output, name);
+    }
     let operation = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
     } else { None };
@@ -57,12 +62,14 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         return Break(true);
     }
     if build.as_ref().is_some_and(|(_, output)| !crate::game::tconstruct_ui::station_accepts_output(game, output)) { return Break(true); }
+    let max_stack = build.as_ref().and_then(|(_, output)| game.res.rest.get()?.items.get(&output.item).map(|info| info.max_stack)).unwrap_or(0);
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
     let taken = if action == 24 {
-        build.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))
+        build.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, max_stack))
     } else { false };
     if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));
+        game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
     }
     Break(true)
 }

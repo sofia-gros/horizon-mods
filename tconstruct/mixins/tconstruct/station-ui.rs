@@ -15,6 +15,22 @@ pub(super) fn kind(game: &Game<'_>) -> Option<bool> {
     }
 }
 
+pub(super) fn side_count(game: &Game<'_>) -> usize {
+    if game.remote.is_some() {
+        game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
+    } else { game.container_size().saturating_sub(27) }
+}
+
+pub(super) fn side_title(game: &Game<'_>) -> &'static str {
+    let code = if game.remote.is_some() {
+        game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_title().get(&pos).copied()).unwrap_or(0)
+    } else {
+        game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&pos).copied())
+            .map(|pos| super::tconstruct_source_side_layout::title_code(&game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name)).unwrap_or(0)
+    };
+    super::tconstruct_source_side_layout::title_key(code)
+}
+
 pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_station_layout::StationLayout> {
     let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() else { return Vec::new(); };
     let Some(rest) = game.res.rest.get() else { return Vec::new(); };
@@ -22,17 +38,26 @@ pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_s
     for (id, layers) in snapshot {
         if !id.contains(":tinkering/station_layouts/") { continue; }
         let Some(layout) = layers.last().and_then(|bytes| super::tconstruct_source_station_layout::StationLayout::parse(id.clone(), bytes)) else { continue; };
-        let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) else { continue; };
-        if layout.input_slots.len() == 3 && rest.items.items.contains_key(item) { layouts.push(layout); }
+        let item = layout.icon.get("item").and_then(serde_json::Value::as_str);
+        let pattern = layout.icon.get("pattern").and_then(serde_json::Value::as_str);
+        if (1..=3).contains(&layout.input_slots.len()) && layout.tool_slot.is_none()
+            && (item.is_some_and(|item| rest.items.items.contains_key(item)) || pattern.is_some()) { layouts.push(layout); }
     }
     layouts.sort_by(|a, b| (a.sort_index, &a.id).cmp(&(b.sort_index, &b.id)));
+    // The repair layout is a pattern button, rather than an item icon.
+    if let Some(layout) = snapshot.get("tconstruct:tinkering/station_layouts/tinker_station")
+        .and_then(|layers| layers.last())
+        .and_then(|bytes| super::tconstruct_source_station_layout::StationLayout::parse(
+            "tconstruct:tinkering/station_layouts/tinker_station".into(), bytes)) {
+        layouts.insert(0, layout);
+    }
     layouts
 }
 
 /// Prefer this player's selected source layout, then infer it from inputs.
 pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source_station_layout::StationLayout> {
     let BlockEntity::Chest(slots) = game.container_kind()? else { return None; };
-    if slots.first().and_then(Option::as_ref).is_some_and(|stack| stack.item.as_ref() == "tconstruct:flint_pickaxe" || stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_max_damage")).is_some()) {
+    if super::tconstruct_source_station_world::has_operation_tool(slots) {
         let snapshot = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
         let bytes = snapshot.get("tconstruct:tinkering/station_layouts/tinker_station")?.last()?;
         return super::tconstruct_source_station_layout::StationLayout::parse("tconstruct:tinkering/station_layouts/tinker_station".into(), bytes);
@@ -47,18 +72,21 @@ pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source
         let matches = layout.input_slots.iter().zip(slots.iter()).all(|(spec, stack)| {
             let Some(stack) = stack else { return true; };
             present = true;
-            spec.filter.as_ref().and_then(|filter| filter.get("item")).and_then(serde_json::Value::as_str) == Some(stack.item.as_ref())
+            spec.accepts_item(stack.item.as_ref())
         });
         if present && matches { candidates.push(layout); }
     }
-    candidates.into_iter().next()
+    candidates.into_iter().next().or_else(|| station_layouts(game).into_iter().next())
 }
 
 pub(super) fn station_accepts_output(game: &Game<'_>, stack: &horizon_items::items::ItemStack) -> bool {
     let Some(key) = game.container else { return false; };
     let Some(selected) = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key) else { return true; };
-    station_layouts(game).iter().find(|layout| &layout.id == selected)
-        .and_then(|layout| layout.icon.get("item")).and_then(serde_json::Value::as_str) == Some(stack.item.as_ref())
+    let Some(layout) = station_layouts(game).into_iter().find(|layout| &layout.id == selected) else { return false; };
+    if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) { return item == stack.item.as_ref(); }
+    if layout.tool_slot.is_some() || layout.icon.get("pattern").is_none() { return false; }
+    let Some(entity) = game.container_kind() else { return false; };
+    layout.input_slots.iter().enumerate().all(|(index, spec)| entity.slots().get(index).and_then(Option::as_ref).is_some_and(|stack| spec.accepts_item(stack.item.as_ref())))
 }
 
 /// Select the first adjacent container that fits the existing menu protocol.

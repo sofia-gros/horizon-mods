@@ -124,7 +124,10 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(dropped);
     }
-    if packet.input != 0 || (!is_station && (24..=26).contains(&packet.slot)) || ((2..=23).contains(&packet.slot) && (!is_station && packet.slot != 22 || is_station && packet.slot != 2)) {
+    // The slot belongs to the underlying Station inventory even before the
+    // tool is inserted. Layout selection only controls whether it is visible.
+    let repair_slot = is_station && packet.slot == 3;
+    if packet.input != 0 || (!is_station && (24..=26).contains(&packet.slot)) || ((2..=23).contains(&packet.slot) && (!is_station && packet.slot != 22 || is_station && packet.slot != 2 && !repair_slot)) {
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(Vec::new());
     }
@@ -161,17 +164,25 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let action = if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
     let Some(action) = action else { return Continue(()); };
     if packet.button == 0 {
-        let building = if action == 24 {
+        let mut building = if action == 24 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan(world, entity.slots()))
         } else { None };
+        if let Some((_, output)) = building.as_mut() {
+            let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(conn, packet.container, key)).map(String::as_str);
+            crate::tconstruct_source_station_name::name_result(output, name);
+        }
         let repair = if action == 25 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan(world, entity.slots()))
         } else { None };
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let give = if action == 24 {
-                building.and_then(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1).then(Vec::new))
+                building.and_then(|(matched, output)| {
+                    let max_stack = rules.max_stack(&output.item);
+                    crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, max_stack).then(Vec::new)
+                })
             } else { repair.and_then(|plan| crate::tconstruct_source_station_world::take_operation(stacks, &mut hub.guests[gi].carried, plan)) };
             if let Some(give) = give {
+                if action == 24 { world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(conn, packet.container, key)); }
                 for stack in give {
                     let max = rules.max_stack(&stack.item);
                     let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));

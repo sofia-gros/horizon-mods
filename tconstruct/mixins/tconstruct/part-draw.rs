@@ -6,13 +6,52 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let count = if game.remote.is_some() {
             game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size() - 27)
         } else { game.container_size() - 27 };
-        let columns = if count > 27 { 6 } else { 3 };
-        let left = if columns == 6 { -171.0 } else { -117.0 };
-        batch.fill(atlas, ox + left, oy + 5.0, (columns as f32 * 18.0) + 6.0, (count.div_ceil(columns) as f32 * 18.0) + 6.0, horizon_client::hud::rgba(198, 198, 198, 255));
-        for i in 0..count {
-            let x = ox + left + 2.0 + (i % columns) as f32 * 18.0;
-            let y = oy + 7.0 + (i / columns) as f32 * 18.0;
-            batch.sprite(atlas, "gui/sprites/container/slot", x, y);
+        let columns = crate::game::tconstruct_source_side_layout::columns(count);
+        let left = crate::game::tconstruct_source_side_layout::left(count);
+        let scrollable = crate::game::tconstruct_source_side_layout::max_offset(count) > 0;
+        let width = columns as f32 * 18.0 + if scrollable { 10.0 } else { 0.0 };
+        let slots_height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0;
+        let height = slots_height + 10.0;
+        let offset = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos)).map_or(0, |state| state.0);
+        if let Some(sprite) = atlas.sprites.get("gui/tconstruct_generic").copied() {
+            let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
+                let mut r = sprite;
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.u0 += sx * du; r.v0 += sy * dv;
+                r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
+                batch.rect_uv(ox + left + x, oy + y, w, h, r, u32::MAX);
+            };
+            for (sx, sy, x, y) in [(0.0, 0.0, 0.0, 0.0), (57.0, 0.0, width + 7.0, 0.0),
+                (0.0, 57.0, 0.0, height + 7.0), (57.0, 57.0, width + 7.0, height + 7.0)] {
+                region(batch, sx, sy, 7.0, 7.0, x, y, 7.0, 7.0);
+            }
+            region(batch, 7.0, 0.0, 50.0, 7.0, 7.0, 0.0, width, 7.0);
+            region(batch, 7.0, 57.0, 50.0, 7.0, 7.0, height + 7.0, width, 7.0);
+            region(batch, 0.0, 7.0, 7.0, 50.0, 0.0, 7.0, 7.0, height);
+            region(batch, 57.0, 7.0, 7.0, 50.0, width + 7.0, 7.0, 7.0, height);
+            region(batch, 25.0, 7.0, 18.0, 10.0, 7.0, 7.0, width, 10.0);
+            let title_key = crate::game::tconstruct_ui::side_title(game);
+            let title = game.pack.names.display_get(title_key).unwrap_or_else(|| "Inventory".to_owned());
+            batch.text(atlas, &title, ox + left + 7.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
+            let first = offset.min(crate::game::tconstruct_source_side_layout::max_offset(count)) * columns;
+            for i in 0..count.saturating_sub(first).min(crate::game::tconstruct_source_side_layout::visible_rows(count) * columns) {
+                region(batch, 7.0, 7.0, 18.0, 18.0,
+                    7.0 + (i % columns) as f32 * 18.0, 17.0 + (i / columns) as f32 * 18.0, 18.0, 18.0);
+            }
+            let shown = count.saturating_sub(first).min(crate::game::tconstruct_source_side_layout::visible_rows(count) * columns);
+            if shown % columns != 0 {
+                for i in shown..shown.div_ceil(columns) * columns {
+                    region(batch, 25.0, 7.0, 18.0, 18.0,
+                        7.0 + (i % columns) as f32 * 18.0, 17.0 + (i / columns) as f32 * 18.0, 18.0, 18.0);
+                }
+            }
+            if scrollable {
+                let x = 7.0 + columns as f32 * 18.0;
+                region(batch, 43.0, 8.0, 12.0, 30.0, x, 17.0, 10.0, slots_height);
+                let progress = offset.min(crate::game::tconstruct_source_side_layout::max_offset(count)) as f32
+                    / crate::game::tconstruct_source_side_layout::max_offset(count) as f32;
+                region(batch, 7.0, 25.0, 10.0, 15.0, x, 17.0 + progress * (slots_height - 15.0), 10.0, 15.0);
+            }
         }
     }
     let texture = if station { "gui/tconstruct_tinker_station" } else { "gui/tconstruct_part_builder" };
@@ -32,17 +71,78 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
-        for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
-            let y = 8.0 + index as f32 * 18.0;
-            part(batch, 194.0, 0.0, -22.0, y, u32::MAX);
-            if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
-                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox - 21.0, oy + y + 1.0);
+        // Source TinkerStationScreen paints the translucent item cover before
+        // rendering the active layout's slot backgrounds.
+        if let Some(mut r) = atlas.sprites.get(texture).copied() {
+            let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+            r.u0 += 176.0 * du; r.v0 += 18.0 * dv;
+            r.u1 = r.u0 + 70.0 * du; r.v1 = r.v0 + 64.0 * dv;
+            batch.rect_uv(ox + 7.0, oy + 18.0, 70.0, 64.0, r, horizon_client::hud::rgba(255, 255, 255, 209));
+        }
+        if let Some(sprite) = atlas.sprites.get(texture).copied() {
+            let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
+                let mut r = sprite;
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
+                batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
+            };
+            // The original top beams and decorations frame the button and
+            // information modules; they do not create additional slots.
+            for (left, width) in [(-132.0, 128.0), (180.0, 126.0)] {
+                region(batch, 0.0, 202.0, 2.0, 7.0, left, 0.0, 2.0, 7.0);
+                region(batch, 2.0, 202.0, 129.0, 7.0, left + 2.0, 0.0, width, 7.0);
+                region(batch, 131.0, 202.0, 2.0, 7.0, left + width + 2.0, 0.0, 2.0, 7.0);
+            }
+            for y in [1.0, 90.0] {
+                region(batch, 0.0, 196.0, 5.0, 4.0, 187.0, y, 5.0, 4.0);
+                region(batch, 9.0, 196.0, 9.0, 4.0, 294.0, y, 9.0, 4.0);
+            }
+            let count = crate::game::tconstruct_ui::station_layouts(game).len();
+            for index in 0..count {
+                let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
+                region(batch, 0.0, 198.0, 18.0, 2.0, x as f32, y as f32 - 2.0, 18.0, 2.0);
+                if index + 6 < count { region(batch, 0.0, 196.0, 18.0, 2.0, x as f32, y as f32 + 18.0, 18.0, 2.0); }
             }
         }
+        crate::game::tconstruct_station_info_ui::draw(game, batch, ox, oy);
+        if crate::game::tconstruct_name_ui::available(game) {
+            if let Some(mut r) = atlas.sprites.get(texture).copied() {
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.v0 += 244.0 * dv; r.u1 = r.u0 + 90.0 * du; r.v1 = r.v0 + 12.0 * dv;
+                batch.rect_uv(ox + 79.0, oy + 5.0, 90.0, 12.0, r, u32::MAX);
+            }
+            let mut edit = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key)).cloned()
+                .unwrap_or_else(|| crate::game::tconstruct_name_ui::new_box(ox, oy));
+            edit.x = ox + 80.0; edit.y = oy + 7.0;
+            edit.draw(batch, atlas, None);
+        }
+        let active_layout = crate::game::tconstruct_ui::station_layout(game);
+        for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
+            let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
+            let (x, y) = (x as f32, y as f32);
+            let selected = active_layout.as_ref().is_some_and(|active| active.id == layout.id);
+            let hovered = (ox + x..ox + x + 18.0).contains(&game.cursor.0) && (oy + y..oy + y + 18.0).contains(&game.cursor.1);
+            if let Some(mut r) = atlas.sprites.get("gui/tconstruct_icons").copied() {
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.u0 += (if selected { 144.0 } else if hovered { 216.0 } else { 180.0 }) * du;
+                r.v0 += 216.0 * dv;
+                r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
+                batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, u32::MAX);
+            }
+            if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
+                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox + x + 1.0, oy + y + 1.0);
+            } else if let Some(pattern) = layout.icon.get("pattern").and_then(serde_json::Value::as_str) {
+                if let Some(("tconstruct", name)) = pattern.split_once(':') {
+                    batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), ox + x + 1.0, oy + y + 1.0);
+                }
+            }
+            let label = game.pack.names.display_get(&layout.translation).unwrap_or_else(|| layout.translation.clone());
+            horizon_client::widgets::target([ox + x, oy + y, 18.0, 18.0]);
+            horizon_client::widgets::record(&label, [ox + x, oy + y, 18.0, 18.0], true);
+        }
         // Match the background to the same source positions used for clicks.
-        let layout = crate::game::tconstruct_ui::station_layout(game);
-        let positions = layout.as_ref().map(|layout| {
-            let slots: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() { std::iter::once(tool).chain(layout.input_slots.iter().take(2)).collect() }
+        let positions = active_layout.as_ref().map(|layout| {
+            let slots: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() { std::iter::once(tool).chain(layout.input_slots.iter()).collect() }
                 else { layout.input_slots.iter().collect() };
             slots.into_iter().map(|slot| (slot.x as f32 - 1.0, slot.y as f32 - 1.0)).collect::<Vec<_>>()
         })
@@ -51,8 +151,20 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             part(batch, 176.0, 0.0, x, y, horizon_client::hud::rgba(255, 255, 255, 71));
             part(batch, 194.0, 0.0, x, y, u32::MAX);
         }
+        if let (Some(layout), Some(entity)) = (active_layout.as_ref(), game.container_kind()) {
+            let specs: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() {
+                std::iter::once(tool).chain(layout.input_slots.iter()).collect()
+            } else { layout.input_slots.iter().collect() };
+            for (index, spec) in specs.into_iter().enumerate() {
+                if entity.slots().get(index).and_then(Option::as_ref).is_some() { continue; }
+                if let Some(("tconstruct", name)) = spec.icon.as_deref().and_then(|icon| icon.split_once(':')) {
+                    batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), ox + spec.x as f32, oy + spec.y as f32);
+                }
+            }
+        }
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
-            for (x, action) in [(114.0, 24), (134.0, 25)] {
+            let action = if crate::game::tconstruct_source_station_world::has_operation_tool(slots) { 25 } else { 24 };
+            for (x, action) in [(114.0, action)] {
                 let output = if game.remote.is_some() {
                     slots.get(action as usize).cloned().flatten()
                 } else if action == 24 {
@@ -66,6 +178,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             }
         }
     } else {
+        crate::game::tconstruct_builder_info_ui::draw(game, batch, ox, oy);
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
             if let Some(icon) = atlas.sprites.get("gui/tconstruct_icons").copied() {
                 let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);

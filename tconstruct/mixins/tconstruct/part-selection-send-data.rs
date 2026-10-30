@@ -32,12 +32,23 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
-            let build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
+            let mut build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
+            if build.is_none() {
+                world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(hub.guests[i].conn, window, pos));
+            }
+            if let Some(output) = build.as_mut() {
+                let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
+                crate::tconstruct_source_station_name::name_result(output, name);
+            }
             let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|plan| plan.output);
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
                 .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);
             if changed {
+                let tool = build.as_ref().or(operation.as_ref()).or_else(|| slots.first().and_then(Option::as_ref));
+                let traits = tool.and_then(|tool| crate::tconstruct_source_material_traits::levels(world, tool))
+                    .and_then(|traits| serde_json::to_string(&traits.levels).ok()).unwrap_or_else(|| "{}".to_owned());
+                let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits]).filter(|frame| frame.len() < 1767);
                 let build_net = hub.stack(&build);
                 let operation_net = hub.stack(&operation);
                 let guest = &mut hub.guests[i];
@@ -46,6 +57,15 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 let (window, state) = (menu.window, menu.state);
                 guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 24, item: build_net }));
                 guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 25, item: operation_net }));
+                if let Some(frame) = trait_frame {
+                    guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: -1 }));
+                    for (index, &word) in frame[1..].iter().enumerate() {
+                        guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31001 + index as i16, value: word }));
+                    }
+                    guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: frame[0] }));
+                } else {
+                    guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: -2 }));
+                }
                 world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().insert(key, (state, build, operation));
             }
             continue;
@@ -61,6 +81,11 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 || registry.names.iter().filter(|id| !id.is_empty()).cloned().collect())
         });
         let preview_key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
+        let info_frame = crate::tconstruct_source_builder_wire::encode(&crate::tconstruct_source_builder_world::display_info(world, pos));
+        let info_frame = info_frame.filter(|frame| frame.len() < 1767);
+        let info_sent = info_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
+        let info_changed = world.chunks.__horizon_mixins_tconstruct_builder_info_sent().get(&preview_key) != Some(&info_sent);
+        if info_changed { world.chunks.__horizon_mixins_tconstruct_builder_info_sent_mut().insert(preview_key, info_sent); }
         let preview_changed = world.chunks.__horizon_mixins_tconstruct_builder_preview_sent().get(&preview_key)
             .is_none_or(|(old_state, old)| *old_state != menu.state || old != &preview);
         // The original cast cost is world recipe data. Send a complete frame
@@ -84,6 +109,14 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         let selection_changed = menu.sent_data[0] != value;
         menu.sent_data[0] = value;
         let window = menu.window;
+        if info_changed {
+            let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
+            if let Some(frame) = info_frame {
+                send(guest, 31000, -1);
+                for (index, &word) in frame[1..].iter().enumerate() { send(guest, 31001 + index as i16, word); }
+                send(guest, 31000, frame[0]);
+            } else { send(guest, 31000, -2); }
+        }
         if wire_changed {
             let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
             if let Some(encoded) = encoded {

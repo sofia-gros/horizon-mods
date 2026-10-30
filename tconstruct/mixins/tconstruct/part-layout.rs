@@ -4,25 +4,28 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
     let position = match slot {
         0..=8 => (8.0 + slot as f32 * 18.0, 160.0),
         9..=35 => (8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0),
-        300..=302 if station => station_layout.as_ref().and_then(|layout| {
+        300..=303 if station => station_layout.as_ref().and_then(|layout| {
             if layout.tool_slot.is_some() {
                 if slot == 300 { layout.tool_slot.as_ref() } else { layout.input_slots.get(slot - 301) }
             } else { layout.input_slots.get(slot - 300) }
-        }).map(|slot| (slot.x as f32, slot.y as f32)).unwrap_or([(53.0, 22.0), (15.0, 60.0), (33.0, 42.0)][slot - 300]),
+        }).map(|slot| (slot.x as f32, slot.y as f32)).unwrap_or_else(|| {
+            if station_layout.is_none() && slot < 303 { [(53.0, 22.0), (15.0, 60.0), (33.0, 42.0)][slot - 300] }
+            else { (-10000.0, -10000.0) }
+        }),
         300 => (8.0, 43.0),
         301 => (29.0, 43.0),
         322 if !station => (148.0, 42.0),
-        324 if station => (114.0, 38.0),
-        325 if station => (134.0, 38.0),
+        324..=325 if station => {
+            let operation = game.container_kind().is_some_and(|entity| crate::game::tconstruct_source_station_world::has_operation_tool(entity.slots()));
+            if crate::game::tconstruct_source_station_layout::result_visible(slot, operation) { (114.0, 38.0) } else { (-10000.0, -10000.0) }
+        },
         302..=326 => (-10000.0, -10000.0),
         327..=380 if !station => {
             let count = if game.remote.is_some() {
                 game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
             } else { game.container_size().saturating_sub(27) };
-            let columns = if count > 27 { 6 } else { 3 };
-            let left = if columns == 6 { -168.0 } else { -114.0 };
-            if slot - 327 >= count { (-10000.0, -10000.0) }
-            else { (left + ((slot - 327) % columns) as f32 * 18.0, 8.0 + ((slot - 327) / columns) as f32 * 18.0) }
+            let offset = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos)).map_or(0, |state| state.0);
+            crate::game::tconstruct_source_side_layout::slot_position(count, offset, slot - 327).unwrap_or((-10000.0, -10000.0))
         },
         _ => return std::ops::ControlFlow::Continue(()),
     };
