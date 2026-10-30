@@ -16,6 +16,6 @@ The registration data currently covers grout, selected seared and scorched build
 
 *This Linux test shows the translucent outer layer around the inset metal block.*
 
-[Connected glass and panes](connected-glass.md) are being prepared for game testing. Crafting Station and Modifier Worktable have placement and appearance data, but their menus and storage are not implemented. Their current collision uses a full cube and does not yet reproduce the table legs. Slime crystal blocks use an amethyst sound template; their source-specific chimes are not connected.
+[Connected glass and panes](connected-glass.md) connect to matching neighbors; representative shapes and LAN synchronization have been checked on Linux. Crafting Station and Modifier Worktable have placement and appearance data, but their menus and storage are not implemented. Their current collision uses a full cube and does not yet reproduce the table legs. Slime crystal blocks use an amethyst sound template; their source-specific chimes are not connected.
 
 The three layered slime-metal models use ordinary inset and translucent geometry; their bounce and piston behavior are not implemented. Congealed slime uses the matching inset collision shape; its bounce behavior is not implemented. Tinkers' chests and material-dependent anvils need their own storage or material handling.
