@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from harness import Game
-p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
+p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--guest-only',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
 a=p.parse_args();run=a.run_dir.resolve();run.mkdir(parents=True,exist_ok=True)
 print('run',run,flush=True)
 games=[]
@@ -29,7 +29,7 @@ try:
  h.call('wait','20');q.call('wait','20')
  h.call('screenshot',str(run/'host-station.png'));q.call('screenshot',str(run/'guest-station.png'))
  with ThreadPoolExecutor(max_workers=2) as pool:
-  futures=[pool.submit(click,g,324) for g in games]
+  futures=[pool.submit(click,g,324) for g in ([q] if a.guest_only else games)]
   for f in futures:f.result()
  for g in games: print(g.label,'result',g.call('menu'),flush=True)
  print('outputs',sum(1 for g in games if (g.call('menu').get('carried') or {}).get('item')=='tconstruct:pickaxe'),flush=True)
