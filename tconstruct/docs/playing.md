@@ -86,6 +86,8 @@ Hold the use button to load an arrow, release the button, then press it again to
 
 Loading and firing were tested on Linux. Material-specific projectile speed and accuracy are not implemented yet.
 
+Material bows lose durability when fired in survival. A broken bow stays in your inventory and cannot fire until repaired with a matching limb material at a Tinker Station. Creative firing does not consume durability. These behaviors were tested on Linux using command-supplied wood-material bows.
+
 ## Material traits
 
 The materials used for a tool affect its traits. Wood's Cultivated trait increases material repair; treated wood's Preserved trait increases repair and maximum durability. Steel's Ductile trait increases durability, melee damage, and armor toughness. Flint's Jagged trait increases melee damage as the tool wears; stone's Stonebound trait reduces it as the tool wears. Replace a part at the Tinker Station to change the traits contributed by that part.

@@ -65,6 +65,8 @@ try:
                      'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
                      'item replace entity @s weapon.mainhand with ' + weapon, 'give @s minecraft:arrow 8'):
             cmd(text)
+        # Point away from the nearby station before using the bow.
+        game.call('look', '0', '-60')
         before = arrows()
         shoot(kind)
         assert damage(held()) == 58 and arrows() == before, (kind, 'creative', held(), before, arrows())
