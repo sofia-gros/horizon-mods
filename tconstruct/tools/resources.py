@@ -67,6 +67,7 @@ for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
 # Use the original Melter screen in the shared GUI atlas.
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as source_melter:
     (gui / 'tconstruct_melter.png').write_bytes(source_melter.read('assets/tconstruct/textures/gui/melter.png'))
+    (gui / 'tconstruct_fluid_fallback.png').write_bytes(source_melter.read('assets/tconstruct/textures/fluid/molten/still.png'))
     source_fluids = json.loads(source_melter.read('assets/tconstruct/melter-fluid-textures.json'))
     for fluid, texture in source_fluids.items():
         (gui / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).write_bytes(source_melter.read('assets/tconstruct/' + texture))

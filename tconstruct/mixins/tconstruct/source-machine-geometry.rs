@@ -71,8 +71,9 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
 
     // Fluid cuboid bounds and visible faces come from the source render provider.
 fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>, pos: (i32, i32, i32), tank: &crate::game::tconstruct_source_melter_state::Tank, bounds: [f32; 6], sides: bool) {
-    let Some(fluid) = tank.fluid.as_deref().and_then(|id| id.strip_prefix("tconstruct:")) else { return; };
-    let Some(sprite) = game.gui.atlas.sprites.get(&format!("gui/tconstruct_fluid_{fluid}")).copied() else { return; };
+    let Some(fluid) = tank.fluid.as_deref() else { return; };
+    let name = format!("gui/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or(""));
+    let Some(sprite) = game.gui.atlas.sprites.get(&name).or_else(|| game.gui.atlas.sprites.get("gui/tconstruct_fluid_fallback")).copied() else { return; };
     let at = glam::DVec3::new(f64::from(pos.0), f64::from(pos.1), f64::from(pos.2));
     if at.distance_squared(camera) >= 64.0 * 64.0 { return; }
     let origin = (at - camera).as_vec3();
@@ -93,7 +94,7 @@ fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, 
     for face in faces.into_iter().take(if sides { 5 } else { 1 }) {
         for (p, uv) in face.into_iter().zip(uv) {
             out.push(Vertex { pos: (origin + glam::Vec3::from_array(p)).to_array(), uv, layer: 0,
-                color: u32::MAX, light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
+                color: crate::game::tconstruct_source_melter_render::color(fluid), light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
         }
     }
 }

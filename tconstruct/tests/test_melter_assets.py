@@ -36,6 +36,13 @@ class MelterAssets(unittest.TestCase):
             source = json.loads(z.read('assets/tconstruct/models/block/template/half_tank.json'))
             self.assertEqual(source['loader'], 'tconstruct:tank')
             self.assertIn('assets/tconstruct/textures/gui/melter.png', files)
+            fluids = json.loads(z.read('assets/tconstruct/melter-fluid-textures.json'))
+            colors = json.loads(z.read('assets/tconstruct/melter-fluid-colors.json'))
+            for fluid in ('tconstruct:molten_copper', 'tconstruct:molten_glass', 'tconstruct:molten_diamond', 'tconstruct:seared_stone', 'tconstruct:earth_slime'):
+                self.assertIn(fluid, fluids)
+                self.assertIn('assets/tconstruct/' + fluids[fluid], files)
+            self.assertEqual(colors['tconstruct:seared_stone'], 0xff4f4a47)
+            self.assertTrue(set(colors) <= set(fluids))
 
 
 if __name__ == '__main__':

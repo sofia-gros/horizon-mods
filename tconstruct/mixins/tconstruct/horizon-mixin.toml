@@ -1843,3 +1843,9 @@ bindings = [
   { name = "camera", ty = "glam::DVec3", value = "camera" },
   { name = "out", ty = "&mut Vec<Vertex>", value = "&mut out" },
 ]
+
+[[module]]
+id = "source-melter-render"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_render"
+source = "source-melter-render.rs"
