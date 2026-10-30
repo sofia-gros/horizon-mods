@@ -1097,3 +1097,20 @@ kind = "HEAD"
 cancellable = true
 helper = "source-side-parts.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[state]]
+id = "builder-crafted"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Vec<(u32,String,u32,[f64;3])>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "builder-crafted-event"
+target = "horizon_client::game::Game<'_>::tick"
+kind = "HEAD"
+helper = "source-builder-crafted.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

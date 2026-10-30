@@ -12,12 +12,13 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
     if !is_station && packet.slot == 22 && packet.input == 1 {
         let mut dropped = Vec::new();
+        let mut crafted_total = 0;
+        let mut first_item = None;
         let side_pos = match menu.slots {
             crate::lan::menu::Slots::Double(first, side) if first == key => Some(side),
             _ => None,
         };
         if (packet.button == 0 || packet.button == 1) && (side_pos.is_some() || crate::tconstruct_source_builder_world::player_only_quick_move(world, key)) {
-            let mut first_item = None;
             loop {
                 let Ok(Some((plan, output, leftover, alternatives))) = crate::tconstruct_source_builder_world::prepare_take(world, key, rules.items()) else { break; };
                 if first_item.as_ref().is_some_and(|item| item != &output.item) { break; }
@@ -35,7 +36,8 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 };
                 let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) else { break; };
                 let guest = &mut hub.guests[gi];
-                let Some(give) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) else { break; };
+                let Some((give, crafted_count)) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) else { break; };
+                crafted_total += crafted_count;
                 if let Some(side_pos) = side_pos {
                     if let Some(BlockEntity::Chest(items)) = world.block_entities.get_mut(&side_pos) { *items = side; }
                     world.modified.insert((side_pos.0 >> 4, side_pos.2 >> 4));
@@ -46,6 +48,11 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                     if let Some(rest) = crate::tconstruct_tx::source_give_inventory(&mut guest.inventory, guest.selected, stack, max, stackable) { dropped.push(rest); }
                 }
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
+            }
+        }
+        if crafted_total > 0 {
+            if let Some(item) = first_item {
+                world.chunks.__horizon_mixins_tconstruct_builder_crafted_mut().push((conn, item.to_string(), crafted_total, hub.guests[gi].position));
             }
         }
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
@@ -67,7 +74,10 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 if let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) {
                     let max = rules.max_stack(&output.item);
                     let guest = &mut hub.guests[gi];
+                    let crafted_item = output.item.clone();
+                    let crafted_count = output.count;
                     if let Some(give) = crate::tconstruct_tx::source_take_part_plan(slots, &mut guest.carried, &plan, output, leftover, alternatives, material, pattern, max, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) {
+                        world.chunks.__horizon_mixins_tconstruct_builder_crafted_mut().push((conn, crafted_item.to_string(), crafted_count, guest.position));
                         for stack in give {
                             let max = rules.max_stack(&stack.item);
                             let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));

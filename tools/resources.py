@@ -69,6 +69,8 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+shutil.copytree(repository / 'content/assets/tconstruct/sounds', mod_assets / 'sounds')
+shutil.copyfile(repository / 'content/assets/tconstruct/sounds.json', mod_assets / 'sounds.json')
 # Original dummy plating sprites are ordinary generated item textures.
 for part in ('helmet', 'chestplate', 'leggings', 'boots'):
     relative = Path('item/tool/parts') / ('plating_' + part + '.png')

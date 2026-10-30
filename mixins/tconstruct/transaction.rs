@@ -1440,7 +1440,7 @@ pub(super) fn source_quick_take_part_plan(
     plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
     output_max: u32, stackable: bool, random: impl FnOnce(usize) -> Option<usize>,
-) -> Option<Vec<ItemStack>> {
+) -> Option<(Vec<ItemStack>, u32)> {
     let mut staged_inventory = inventory.to_vec();
     let mut staged_side = side.to_vec();
     let mut remaining = output.clone();
@@ -1476,7 +1476,7 @@ pub(super) fn source_quick_take_part_plan(
     inventory.clone_from_slice(&staged_inventory);
     side.clone_from_slice(&staged_side);
     slots.clone_from_slice(&staged_slots);
-    Some(give)
+    Some((give, moved))
 }
 #[allow(dead_code)]
 pub(super) fn source_part_plan(

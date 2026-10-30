@@ -12,6 +12,8 @@ pub(super) fn take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
     let Ok(material_container) = super::tconstruct_source_builder_world::crafting_container(slots.get(1).and_then(Option::as_ref), items) else { return false; };
     let Ok(pattern_container) = super::tconstruct_source_builder_world::crafting_container(slots.first().and_then(Option::as_ref), items) else { return false; };
     let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) else { return false; };
+    let crafted_item = output.item.clone();
+    let crafted_count = output.count;
     let Some(give) = super::tconstruct_tx::source_take_part_plan(slots, &mut game.carried, &plan, output, leftover, alternatives, material_container, pattern_container, max, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { return false; };
     let mut dropped = Vec::new();
     for stack in give {
@@ -20,6 +22,8 @@ pub(super) fn take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
         if let Some(left) = super::tconstruct_tx::source_give_inventory(&mut game.inventory, game.selected, stack, info.max_stack, can_stack) { dropped.push(left); }
     }
     game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));
+    game.stats.add("crafted", &crafted_item, crafted_count as i32);
+    game.player_menu_sound("tconstruct:little_saw");
     for stack in dropped { game.throw_from_eyes(stack, eye, false); }
     true
 }
@@ -50,8 +54,10 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
             None => Vec::new(),
         };
         let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) else { break; };
-        let Some(give) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
+        let crafted_item = output.item.clone();
+        let Some((give, crafted_count)) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
         changed = true;
+        game.stats.add("crafted", &crafted_item, crafted_count as i32);
         if let Some(side_pos) = side_pos {
             if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&side_pos) { *items = side; }
             game.world.modified.insert((side_pos.0 >> 4, side_pos.2 >> 4));
@@ -62,7 +68,10 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
             if let Some(left) = super::tconstruct_tx::source_give_inventory(&mut game.inventory, game.selected, stack, info.max_stack, can_stack) { dropped.push(left); }
         }
     }
-    if changed { game.world.modified.insert((pos.0 >> 4, pos.2 >> 4)); }
+    if changed {
+        game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));
+        game.player_menu_sound("tconstruct:little_saw");
+    }
     for stack in dropped { game.throw_from_eyes(stack, eye, false); }
     changed
 }
