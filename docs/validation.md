@@ -32,6 +32,17 @@ server and arbitrary unrelated item components are not verified.
 
 ## Reproducing game checks
 
+For current development, reuse the existing `target/build` Cargo cache and one
+prepared resource root for a batch. Group related gameplay checks into a
+single run and reuse its test world for save/reload; keep any screenshots needed
+as evidence under `docs/` before removing the disposable run directory. Do not
+remove user worlds, the current batch's world, or the active build cache.
+
+The older standalone scripts below create a fresh temporary directory on every
+invocation and do not clean it up themselves. Their printed run directories
+must be inspected and removed when no longer needed; running the whole loop
+also creates multiple worlds. Prefer the grouped batch check when available.
+
 Build and prepare the resource root as in the README. Under X11/Vulkan (or
 Xvfb with software Vulkan), run each script with a fresh world; add `--in-frame`
 for the alternate single-player path:
