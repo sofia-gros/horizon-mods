@@ -15,6 +15,34 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
                 }
                 continue;
             }
+            if id == "tconstruct:faucet" {
+                if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:seared_faucet" {
+                    if let Some(faucet) = raw.get("tconstruct:faucet").and_then(crate::game::tconstruct_source_melter_state::Faucet::from_nbt) {
+                        if faucet.pending.fluid.is_some() && faucet.pending.amount > 0 {
+                            let mut stream = faucet.pending.clone(); stream.amount = stream.capacity;
+                            let state = game.pack.assets.registry.state(game.world.block(pos.0, pos.1, pos.2));
+                            let facing = state.and_then(|state| state.properties.get("facing")).map(String::as_str).unwrap_or("north");
+                            if facing == "down" {
+                                tconstruct_fluid_geometry(game, camera, out, *pos, &stream, [6.0, 0.0, 6.0, 10.0, 16.0, 10.0], true);
+                            } else {
+                                let rotate = |bounds: [f32; 6]| -> [f32; 6] {
+                                    let [x0,y0,z0,x1,y1,z1] = bounds;
+                                    match facing {
+                                        "south" => [16.0-x1,y0,16.0-z1,16.0-x0,y1,16.0-z0],
+                                        "east" => [16.0-z1,y0,x0,16.0-z0,y1,x1],
+                                        "west" => [z0,y0,16.0-x1,z1,y1,16.0-x0],
+                                        _ => bounds,
+                                    }
+                                };
+                                for bounds in [[6.0,6.0,0.0,10.0,9.0,6.0], [6.0,0.0,6.0,10.0,9.0,8.0]] {
+                                    tconstruct_fluid_geometry(game, camera, out, *pos, &stream, rotate(bounds), true);
+                                }
+                            }
+                        }
+                    }
+                }
+                continue;
+            }
             let (block, height, scale, flat) = match id.as_str() {
                 "tconstruct:table" => ("tconstruct:seared_table", 15.5 / 16.0, 14.0 / 16.0, true),
                 "tconstruct:basin" => ("tconstruct:seared_basin", 10.0 / 16.0, 12.0 / 16.0, false),
