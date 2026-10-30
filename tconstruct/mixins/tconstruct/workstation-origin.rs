@@ -1,5 +1,6 @@
 fn workstation_origin(game: &crate::game::Game<'_>, batch: &horizon_client::hud::HudBatch) -> std::ops::ControlFlow<(f32, f32)> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_ui::is_melter(game) { return Break(batch.centered_origin(176.0, 166.0)); }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     let (base, y) = batch.centered_origin(176.0, game.screen_height());
     let left = if station { -132.0 } else {
