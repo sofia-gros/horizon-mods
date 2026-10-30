@@ -72,4 +72,4 @@ transformation; timings vary with runner load.
 
 Minecraft’s existing materials, recipes and progression remain unchanged; missing TConstruct content is added alongside them. The scope of full parity and balance will be decided after v0.5.
 
-The material trait prototype resolves part traits from the active world data. Cultivated affects material repair, and the melee portion of Jagged affects attack damage. These paths have only been checked with focused tests and have not yet been tested in a game. Jagged mining speed, other traits, applied modifiers, and material-based ranged velocity and accuracy remain unfinished.
+The material trait prototype resolves part traits from the active world data. Cultivated and the repair portion of Preserved affect material repair; the melee portions of Jagged and Stonebound affect attack damage. These paths have only been checked with focused tests and have not yet been tested in a game. The mining portions of Jagged and Stonebound, the durability portion of Preserved, other traits, applied modifiers, and material-based ranged velocity and accuracy remain unfinished.
