@@ -81,7 +81,7 @@ try:
     command(host, 'setblock 1 71 2 tconstruct:clear_glass')
     # Neighbors cross the x=15/16 chunk boundary; source panes use four state
     # properties and must update them on both host and guest.
-    for text in ('fill 14 70 1 17 70 3 minecraft:stone', 'fill 15 71 2 16 72 2 minecraft:air',
+    for text in ('fill 13 70 -2 17 70 3 minecraft:stone', 'fill 13 71 -2 17 74 3 minecraft:air',
                  'setblock 15 71 2 tconstruct:clear_glass_pane', 'setblock 16 71 2 tconstruct:clear_glass_pane',
                  'tp @s 14.5 71 0.5', 'tp Guest 16.5 71 0.5'):
         command(host, text)
@@ -117,7 +117,7 @@ try:
     host = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); games.append(host); host.ready()
     assert host.call('block', '15', '71', '2')['block'] == 'tconstruct:clear_glass_pane'
     assert 'east=true' in host.call('block', '15', '71', '2')['state']
-    for text in ('gamemode survival @s', 'clear @s'):
+    for text in ('gamemode survival @s', 'clear @s', 'tp @s 14.5 71 0.5'):
         command(host, text)
     host.call('break', '15', '71', '2', '--timeout', '30', timeout=35)
     command(host, 'tp @s 15.5 71 2.5'); host.call('wait', '60')
