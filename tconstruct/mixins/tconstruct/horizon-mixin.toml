@@ -1410,3 +1410,21 @@ id = "server-source-material-effects"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_material_effects"
 source = "source-material-effects.rs"
+
+[[module]]
+id = "host-source-upgrade-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_upgrade_rules"
+source = "source-upgrade-rules.rs"
+
+[[module]]
+id = "server-source-upgrade-rules"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_upgrade_rules"
+source = "source-upgrade-rules.rs"
+
+[[module]]
+id = "host-source-station-take"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_take_host"
+source = "source-station-take-host.rs"

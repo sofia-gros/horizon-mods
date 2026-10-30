@@ -75,11 +75,15 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let repair = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
     } else { None };
+    if action == 25 {
+        if let Some(plan) = repair { crate::game::tconstruct_source_station_take_host::take(game, key, plan); }
+        return Break(true);
+    }
     if building.as_ref().is_some_and(|(_, output)| !crate::game::tconstruct_ui::station_accepts_output(game, output)) { return Break(true); }
     let Some(BlockEntity::Chest(stacks)) = game.world.block_entities.get_mut(&key) else { return Break(true); };
     let taken = if action == 24 {
         building.is_some_and(|(matched, output)| crate::game::tconstruct_source_station_recipes::take_built_tool(stacks, &mut game.carried, &matched, output, 1))
-    } else { repair.is_some_and(|(output, consumed)| crate::game::tconstruct_source_station_world::take_repair(stacks, &mut game.carried, output, &consumed)) };
+    } else { false };
     if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));
     }

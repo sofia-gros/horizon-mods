@@ -57,7 +57,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                     slots.get(action as usize).cloned().flatten()
                 } else if action == 24 {
                     crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
-                } else { crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|(output, _)| output) };
+                } else { crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output) };
                 if let Some(stack) = output {
                     if action != 24 || crate::game::tconstruct_ui::station_accepts_output(game, &stack) {
                         game.draw_item(batch, &stack, ox + x, oy + 38.0);

@@ -89,3 +89,9 @@ These effects were tested on Linux; some station tests used temporary test data.
 ![Material variants in the Tinkers Creative tab](trait-stat-creative.png)
 
 The Creative tab offers material variants for inspection. Some materials may not yet be obtainable during normal play.
+
+## Upgrade a tool (in development)
+
+Place a tool in the Tinker Station. Add quartz shards or quartz blocks for Sharpness, or amethyst shards or amethyst blocks for Swiftstrike, then take the result. A partial set of materials makes partial progress and uses an upgrade slot. A new level needs another slot. Excess material from a block is returned as shards.
+
+This upgrade path is still under development and has not yet been tested in a game. Modifier crystals and other upgrades are not supported by this path.

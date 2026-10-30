@@ -42,10 +42,13 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
     let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
+    let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
+    let mut ductile = 0;
     if let Some(traits) = super::tconstruct_source_material_traits::levels(world, &output) {
-        let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
+        ductile = traits.levels.get("tconstruct:ductile").copied().unwrap_or(0);
         super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &traits.levels)?;
     }
+    super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, ductile)?;
     Some(output)
 }
 
@@ -188,9 +191,54 @@ pub(super) fn take_repair(slots: &mut [Option<ItemStack>], carried: &mut Option<
     true
 }
 
-/// Preserve repairs for tools made by the earlier fixed pickaxe implementation.
-pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
-    if let Some(plan) = swap_plan(world, slots).or_else(|| repair_plan(world, slots)) { return Some(plan); }
+pub(super) struct StationOperation {
+    pub output: ItemStack,
+    pub consumed: Vec<(usize, u32)>,
+    pub leftover: Option<ItemStack>,
+}
+
+fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<StationOperation> {
+    let tool = slots.first()?.as_ref()?;
+    if tool.count != 1 { return None; }
+    let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
+    let identities = materials.iter().map(|value| match value {
+        Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None,
+    }).collect::<Option<Vec<_>>>()?;
+    let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+    let (namespace, name) = tool.item.split_once(':')?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+    let slots_available = parsed.get("modules")?.as_array()?.iter()
+        .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+        .filter_map(|module| module.pointer("/slots/upgrades").and_then(serde_json::Value::as_i64))
+        .sum::<i64>();
+    let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..3)?, i32::try_from(slots_available).ok()?)?;
+    let mut upgraded = tool.clone();
+    let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
+    let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
+    let Tag::Compound(ref mut fields) = custom else { return None; };
+    let Tag::Compound(ref mut entries) = upgrades else { return None; };
+    entries.insert(plan.id.as_str().into(), Tag::Int(plan.amount));
+    fields.insert("tic_upgrades".into(), upgrades);
+    upgraded.data_mut().set_other("minecraft:custom_data", Some(custom));
+    let output = assemble(world, definition, &tool.item, &identities, Some(&upgraded))?;
+    Some(StationOperation { output, consumed: plan.consumed, leftover: plan.leftover })
+}
+
+/// Revalidate and commit a planned operation; return any item to give to the player.
+pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, plan: StationOperation) -> Option<Vec<ItemStack>> {
+    if !take_repair(slots, carried, plan.output, &plan.consumed) { return None; }
+    Some(plan.leftover.into_iter().collect())
+}
+
+/// Plan an upgrade, replacement or repair without consuming inputs.
+pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<StationOperation> {
+    if let Some(plan) = upgrade_plan(world, slots) { return Some(plan); }
+    if let Some((output, consumed)) = swap_plan(world, slots).or_else(|| repair_plan(world, slots)) {
+        return Some(StationOperation { output, consumed, leftover: None });
+    }
     let tool = slots.first()?.as_ref()?;
     if tool.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_max_damage")).is_some() { return None; }
     let mut preview = slots.to_vec();
@@ -201,5 +249,5 @@ pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Op
         let after = after.as_ref().map_or(0, |stack| stack.count);
         (before > after).then_some((index, before - after))
     }).collect();
-    Some((output?, consumed))
+    Some(StationOperation { output: output?, consumed, leftover: None })
 }

@@ -33,7 +33,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
             let build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
-            let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|(output, _)| output);
+            let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|plan| plan.output);
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
                 .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);

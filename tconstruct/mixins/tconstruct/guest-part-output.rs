@@ -157,6 +157,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(dropped);
     }
+    let mut dropped = Vec::new();
     let action = if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
     let Some(action) = action else { return Continue(()); };
     if packet.button == 0 {
@@ -167,14 +168,20 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan(world, entity.slots()))
         } else { None };
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
-            let taken = if action == 24 {
-                building.is_some_and(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1))
-            } else { repair.is_some_and(|(output, consumed)| crate::tconstruct_source_station_world::take_repair(stacks, &mut hub.guests[gi].carried, output, &consumed)) };
-            if taken {
+            let give = if action == 24 {
+                building.and_then(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1).then(Vec::new))
+            } else { repair.and_then(|plan| crate::tconstruct_source_station_world::take_operation(stacks, &mut hub.guests[gi].carried, plan)) };
+            if let Some(give) = give {
+                for stack in give {
+                    let max = rules.max_stack(&stack.item);
+                    let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));
+                    let guest = &mut hub.guests[gi];
+                    if let Some(rest) = crate::tconstruct_tx::source_give_inventory(&mut guest.inventory, guest.selected, stack, max, can_stack) { dropped.push(rest); }
+                }
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
             }
         }
     }
     if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
-    Break(Vec::new())
+    Break(dropped)
 }
