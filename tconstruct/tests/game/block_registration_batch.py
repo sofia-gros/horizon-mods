@@ -28,10 +28,10 @@ try:
     port = host.call('lan', 'open', '0', 'commands')['port']
     guest = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=True); games.append(guest); guest.ready()
     for text in ('gamemode creative @a', 'kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]',
-                 'fill -2 70 -1 4 70 5 minecraft:stone', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'clear @a'):
+                 'fill -2 70 -1 4 70 5 minecraft:stone', 'time set day', 'setblock 1 71 2 minecraft:stone', 'setblock -1 71 2 minecraft:air', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'clear @a'):
         command(host, text)
     samples = ('grout', 'seared_bricks_slab', 'greenheart_planks_stairs', 'greenheart_door',
-               'scorched_bricks_fence', 'cobalt_block', 'slimesteel_block', 'earth_congealed_slime',
+               'scorched_bricks_fence', 'cobalt_block', 'slimesteel_block', 'cinderslime_block', 'knightslime_block', 'earth_congealed_slime',
                'crafting_station', 'modifier_worktable')
     for name in samples:
         command(host, 'setblock 0 72 2 minecraft:air')
@@ -41,7 +41,7 @@ try:
         host.call('place', '0', '71', '2', '--item', f'tconstruct:{name}')
         wait('host placed ' + name, lambda: host.call('block', '0', '71', '2').get('block') == 'tconstruct:' + name)
         wait('guest saw ' + name, lambda: guest.call('block', '0', '71', '2').get('block') == 'tconstruct:' + name)
-        if name in ('slimesteel_block', 'earth_congealed_slime', 'crafting_station', 'modifier_worktable'):
+        if name in ('slimesteel_block', 'cinderslime_block', 'knightslime_block', 'earth_congealed_slime', 'crafting_station', 'modifier_worktable'):
             host.call('look-at', 'block', '0', '71', '2'); host.call('wait', '40')
             host.call('screenshot', str(run / ('block-registration-' + name + '.png')))
     # Save a placed source block, then reopen the same world.
