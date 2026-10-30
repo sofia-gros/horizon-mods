@@ -54,16 +54,20 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
         .filter_map(|tier| match tier { "minecraft:wood" => Some((0, "wooden")), "minecraft:gold" => Some((0, "gold")),
             "minecraft:stone" => Some((1, "stone")), "minecraft:iron" => Some((2, "iron")),
             "minecraft:diamond" => Some((3, "diamond")), "minecraft:netherite" => Some((4, "netherite")), _ => None })
-        .max_by_key(|(level, _)| *level)?.1;
+        .max_by_key(|(level, _)| *level).map(|(_, tier)| tier);
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
-    let mut rules = vec![Tag::compound([("blocks", Tag::String(format!("#minecraft:incorrect_for_{tier}_tool").as_str().into())), ("correct_for_drops", Tag::Byte(0))])];
+    let mut rules = Vec::new();
+    if let Some(tier) = tier {
+        rules.push(Tag::compound([("blocks", Tag::String(format!("#minecraft:incorrect_for_{tier}_tool").as_str().into())), ("correct_for_drops", Tag::Byte(0))]));
+    }
     for action in definition_json.get("modules")?.as_array()?.iter()
         .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:tool_actions"))
         .flat_map(|module| module.get("tool_actions").and_then(serde_json::Value::as_array).into_iter().flatten()) {
         let tag = match action.as_str()? { "pickaxe_dig" => "pickaxe", "axe_dig" => "axe", "shovel_dig" => "shovel", "hoe_dig" => "hoe", _ => continue };
+        if tier.is_none() { return None; }
         rules.push(Tag::compound([("blocks", Tag::String(format!("#minecraft:mineable/{tag}").as_str().into())), ("speed", Tag::Float(stats.mining_speed.to_bits())), ("correct_for_drops", Tag::Byte(1))]));
     }
-    if rules.len() == 1 { return None; }
+    if rules.len() == 1 { rules.clear(); }
     let mut output = original.cloned().unwrap_or_else(|| ItemStack::new(item, 1));
     let mut custom = output.data().and_then(|data| data.other("minecraft:custom_data")).cloned()
         .unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
@@ -72,13 +76,21 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
     fields.insert("tic_max_damage".into(), Tag::Int(durability));
     fields.insert("tic_attack_damage".into(), Tag::Float(stats.attack_damage.to_bits()));
     fields.insert("tic_attack_speed".into(), Tag::Float(stats.attack_speed.to_bits()));
+    fields.insert("tic_draw_speed".into(), Tag::Float(stats.draw_speed.to_bits()));
+    fields.insert("tic_velocity".into(), Tag::Float(stats.velocity.to_bits()));
+    fields.insert("tic_accuracy".into(), Tag::Float(stats.accuracy.to_bits()));
+    fields.insert("tic_armor".into(), Tag::Float(stats.armor.to_bits()));
+    fields.insert("tic_armor_toughness".into(), Tag::Float(stats.armor_toughness.to_bits()));
+    fields.insert("tic_knockback_resistance".into(), Tag::Float(stats.knockback_resistance.to_bits()));
     output.data_mut().set_other("minecraft:custom_data", Some(custom));
     output.data_mut().set_other("minecraft:max_damage", Some(Tag::Int(durability)));
-    output.data_mut().set_other("minecraft:tool", Some(Tag::compound([
-        ("rules", Tag::List(rules)),
-        ("default_mining_speed", Tag::Float(1.0f32.to_bits())),
-        ("damage_per_block", Tag::Int(1)),
-    ])));
+    if !rules.is_empty() {
+        output.data_mut().set_other("minecraft:tool", Some(Tag::compound([
+            ("rules", Tag::List(rules)),
+            ("default_mining_speed", Tag::Float(1.0f32.to_bits())),
+            ("damage_per_block", Tag::Int(1)),
+        ])));
+    }
     Some(output)
 }
 
