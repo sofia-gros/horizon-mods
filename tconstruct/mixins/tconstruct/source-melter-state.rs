@@ -200,3 +200,93 @@ mod faucet_tests {
         assert_eq!(source.amount, 90);
     }
 }
+
+/// Two source casting slots and their in-progress recipe. Callers select the
+/// recipe against the loaded source data before filling the tank.
+#[derive(Clone, Debug)]
+pub(super) struct Casting {
+    pub input: Option<ItemStack>, pub output: Option<ItemStack>,
+    pub tank: Tank, pub timer: u32, pub recipe: Option<String>,
+    pub result: Option<ItemStack>, pub cooling_time: u32,
+    pub consumes_cast: bool, pub switch_slots: bool, pub redstone: bool,
+}
+impl Casting {
+    pub(super) fn new() -> Self {
+        Self { input: None, output: None, tank: Tank::new(0), timer: 0, recipe: None, result: None,
+            cooling_time: 0, consumes_cast: false, switch_slots: false, redstone: false }
+    }
+    /// Begin only after the caller has matched the cast, fluid and recipe.
+    pub(super) fn prepare(&mut self, recipe: &str, amount: u32, cooling_time: u32, result: ItemStack, consumes_cast: bool, switch_slots: bool) -> bool {
+        if self.recipe.is_some() || self.tank.amount != 0 || self.output.is_some() || recipe.is_empty()
+            || amount == 0 || cooling_time == 0 || result.count == 0 { return false; }
+        self.tank = Tank::new(amount); self.timer = 0; self.recipe = Some(recipe.to_owned()); self.result = Some(result);
+        self.cooling_time = cooling_time; self.consumes_cast = consumes_cast; self.switch_slots = switch_slots;
+        true
+    }
+    /// Cooling starts only after the precise amount is present. Revalidate the
+    /// selected recipe against the current cast/fluid before consuming either.
+    pub(super) fn tick(&mut self, valid: bool) -> bool {
+        if self.recipe.is_none() || self.result.is_none() || self.tank.amount != self.tank.capacity || self.tank.amount == 0 { return false; }
+        if !valid { self.timer = 0; return false; }
+        self.timer = self.timer.saturating_add(1);
+        if self.timer < self.cooling_time { return false; }
+        let Some(result) = self.result.take() else { return false; };
+        if self.switch_slots != self.redstone {
+            self.output = if self.consumes_cast { None } else { self.input.take() };
+            self.input = Some(result);
+        } else {
+            if self.consumes_cast { self.input = None; }
+            self.output = Some(result);
+        }
+        self.tank = Tank::new(0); self.timer = 0; self.recipe = None; self.cooling_time = 0;
+        true
+    }
+    pub(super) fn to_nbt(&self) -> Tag {
+        let mut data = Compound::new();
+        for (name, stack) in [("input", &self.input), ("output", &self.output), ("result", &self.result)] {
+            if let Some(stack) = stack { data.insert(name.into(), item_to_nbt(stack)); }
+        }
+        if let Some(recipe) = &self.recipe { data.insert("recipe".into(), Tag::String(recipe.as_str().into())); }
+        data.insert("tank".into(), self.tank.to_nbt()); data.insert("capacity".into(), Tag::Long(self.tank.capacity as i64));
+        data.insert("timer".into(), Tag::Long(self.timer as i64)); data.insert("cooling".into(), Tag::Long(self.cooling_time as i64));
+        data.insert("consume".into(), Tag::Byte(self.consumes_cast as i8)); data.insert("switch".into(), Tag::Byte(self.switch_slots as i8));
+        data.insert("redstone".into(), Tag::Byte(self.redstone as i8)); Tag::Compound(data)
+    }
+    pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
+        let item = |key| match tag.get(key) { Some(value) => Some(Some(item_from_nbt(value)?)), None => Some(None) };
+        let number = |key| match tag.get(key)? { Tag::Long(n) => u32::try_from(*n).ok(), _ => None };
+        let boolean = |key| match tag.get(key)? { Tag::Byte(0) => Some(false), Tag::Byte(1) => Some(true), _ => None };
+        let recipe = match tag.get("recipe") { Some(Tag::String(id)) => Some(id.to_string_lossy()), None => None, _ => return None };
+        let result = item("result")?; let cooling_time = number("cooling")?;
+        let tank = Tank::from_nbt(tag.get("tank")?, number("capacity")?)?;
+        if recipe.is_some() != result.is_some() || recipe.is_some() != (cooling_time > 0) || recipe.is_some() != (tank.capacity > 0) { return None; }
+        Some(Self { input: item("input")?, output: item("output")?, tank, timer: number("timer")?, recipe, result, cooling_time,
+            consumes_cast: boolean("consume")?, switch_slots: boolean("switch")?, redstone: boolean("redstone")? })
+    }
+}
+
+#[cfg(test)]
+mod casting_tests {
+    use super::*;
+    #[test]
+    fn partially_filled_cast_resumes_and_preserves_reusable_cast() {
+        let mut c = Casting::new(); c.input = Some(ItemStack::new("tconstruct:ingot_cast", 1));
+        assert!(c.prepare("tconstruct:copper_ingot", 90, 2, ItemStack::new("minecraft:copper_ingot", 1), false, false));
+        assert!(c.tank.insert("tconstruct:molten_copper", 40)); assert!(!c.tick(true));
+        let mut c = Casting::from_nbt(&c.to_nbt()).unwrap();
+        assert!(c.tank.insert("tconstruct:molten_copper", 50)); assert!(!c.tick(true)); assert!(c.tick(true));
+        assert_eq!(c.input.as_ref().unwrap().item.as_ref(), "tconstruct:ingot_cast");
+        assert_eq!(c.output.as_ref().unwrap().item.as_ref(), "minecraft:copper_ingot");
+        assert_eq!(c.tank.amount, 0);
+    }
+    #[test]
+    fn occupied_output_and_invalid_recipe_do_not_consume_inputs_or_fluid() {
+        let mut c = Casting::new(); c.output = Some(ItemStack::new("minecraft:stone", 1));
+        assert!(!c.prepare("tconstruct:cast", 90, 1, ItemStack::new("minecraft:copper_ingot", 1), true, false));
+        c.output = None; c.input = Some(ItemStack::new("tconstruct:ingot_sand_cast", 1));
+        assert!(c.prepare("tconstruct:cast", 90, 1, ItemStack::new("minecraft:copper_ingot", 1), true, false));
+        assert!(c.tank.insert("tconstruct:molten_copper", 90)); assert!(!c.tick(false));
+        assert_eq!(c.tank.amount, 90); assert!(c.input.is_some()); assert!(c.output.is_none());
+        assert!(c.tick(true)); assert!(c.input.is_none()); assert!(c.output.is_some());
+    }
+}
