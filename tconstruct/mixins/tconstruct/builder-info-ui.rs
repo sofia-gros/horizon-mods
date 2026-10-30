@@ -10,8 +10,9 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
     };
     let selected = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos);
     let material = info.as_ref().and_then(|info| info.get(1)).filter(|id| id.as_str() != "-");
-    let caption_key = if let Some(pattern) = selected {
-        pattern.split_once(':').map(|(namespace, path)| format!("pattern.{namespace}.{}", path.replace('/', ".")))
+    let title = info.as_ref().and_then(|info| info.get(5)).filter(|title| title.as_str() != "-");
+    let caption_key = if let Some(title) = title {
+        title.split_once(':').map(|(namespace, path)| format!("recipe.{namespace}.{}", path.replace('/', ".")))
     } else if let Some(material) = material {
         material.split_once(':').map(|(namespace, path)| format!("material.{namespace}.{}", path.split('#').next().unwrap_or(path).replace('/', ".")))
     } else { Some("gui.tconstruct.part_builder".to_owned()) };
@@ -25,28 +26,42 @@ pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> V
         if material.is_some() {
             let label = game.pack.names.display_get("gui.tconstruct.part_builder.material_value").unwrap_or_else(|| "Material value: %s".into());
             lines.push((label.replace("%s", &info[2]), horizon_client::hud::rgba(127, 255, 255, 255)));
-            if let Some(fields) = info.get(3).and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok()).and_then(|value| value.as_object().cloned()) {
-                for (field, value) in fields {
-                    let field = match field.as_str() { "melee_attack" => "attack_damage", "mining_tier" => "harvest_tier", other => other };
-                    let key = format!("tool_stat.tconstruct.{field}");
-                    if let Some(label) = game.pack.names.display_get(&key) {
-                        let value = value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string());
-                        lines.push((format!("{label}{value}"), u32::MAX));
+            let stats = info.get(3).and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok());
+            let traits = info.get(4).and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok());
+            if let Some(stats) = stats.as_ref().and_then(serde_json::Value::as_object) {
+                for (stat, fields) in stats {
+                    if stat == "tconstruct:repair_kit" { continue; }
+                    let Some(fields) = fields.as_object() else { continue; };
+                    if let Some((namespace, name)) = stat.split_once(':') {
+                        let key = format!("stat.{namespace}.{name}");
+                        lines.push((game.pack.names.display_get(&key).unwrap_or(key), u32::MAX));
                     }
-                }
-            }
-            if let Some(traits) = info.get(4).and_then(|json| serde_json::from_str::<serde_json::Value>(json).ok()).and_then(|value| value.as_object().cloned()) {
-                for (id, level) in traits {
-                    if let Some((namespace, name)) = id.split_once(':') {
-                        let key = format!("modifier.{namespace}.{name}");
-                        let label = game.pack.names.display_get(&key).unwrap_or(key);
-                        lines.push((format!("{label} {level}"), u32::MAX));
+                    for (field, value) in fields {
+                        let field = match field.as_str() { "melee_attack" => "attack_damage", "mining_tier" => "harvest_tier", other => other };
+                        let key = format!("tool_stat.tconstruct.{field}");
+                        if let Some(label) = game.pack.names.display_get(&key) {
+                            let value = value.as_str().map(str::to_owned).unwrap_or_else(|| value.to_string());
+                            lines.push((format!("{label}{value}"), u32::MAX));
+                        }
+                    }
+                    if let Some(traits) = traits.as_ref().and_then(|traits| traits.get(stat)).and_then(serde_json::Value::as_object) {
+                        for (id, level) in traits {
+                            if let Some((namespace, name)) = id.split_once(':') {
+                                let key = format!("modifier.{namespace}.{name}");
+                                let label = game.pack.names.display_get(&key).unwrap_or(key);
+                                lines.push((format!("{label} {level}"), u32::MAX));
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    if selected.is_none() && material.is_none() {
+    if let Some(title) = title {
+        let key = title.split_once(':').map(|(namespace, path)| format!("recipe.{namespace}.{}.info", path.replace('/', ".")));
+        let text = key.and_then(|key| game.pack.names.display_get(&key)).unwrap_or_default();
+        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0, atlas).into_iter().map(|line| (line, u32::MAX)));
+    } else if material.is_none() {
         let text = game.pack.names.display_get("gui.tconstruct.part_builder.info").unwrap_or_default();
         lines.extend(horizon_client::multiplayer::wrap(&text, 112.0, atlas).into_iter().map(|line| (line, u32::MAX)));
     }

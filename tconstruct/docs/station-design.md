@@ -48,10 +48,10 @@ upstream revision as the other station textures; the resource test checks its
 hash and includes it in the prepared GUI atlas.
 The Part Builder information panel uses the upstream `panel.png`. Its displayed
 recipe cost and input value come from the active recipe data, including on LAN.
-For supported material parts, the same data frame also carries the selected
-part's source material statistics and traits. Complete recipe descriptions
-still need to be connected; the panel is not yet a complete original
-implementation.
+The same data frame carries the material's source statistics and traits for
+the supported stat types. Item-part recipes with a source
+`title_key` also provide their translated title and description. Full tooltip
+details and visual parity remain to be verified in game.
 The Station's panels show the selected source layout and components, or the
 current result's recorded durability, melee values, and supported upgrade
 progress. Other tool statistics and modifier descriptions remain incomplete.

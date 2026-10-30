@@ -64,7 +64,7 @@ mod tests {
 
     #[test]
     fn material_information_round_trips_with_json_and_unicode() {
-        let info = ["2", "tconstruct:flint", "1.5", r#"{"durability":100}"#, r#"{"test:éclat":1}"#].map(str::to_owned);
+        let info = ["2", "tconstruct:flint", "1.5", r#"{"tconstruct:head":{"durability":100}}"#, r#"{"tconstruct:head":{"test:éclat":1}}"#, "tconstruct:example"].map(str::to_owned);
         let encoded = encode(&info).unwrap();
         assert_eq!(decode(encoded[0], &encoded[1..]), Some(info.to_vec()));
     }
