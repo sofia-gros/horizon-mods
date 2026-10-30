@@ -17,13 +17,27 @@ content from the original definitions. Investigate and test separately where a
 source definition introduces distinct behavior or conditions; do not treat
 untested content as complete merely because it uses the same framework.
 
+Material attack damage, attack speed, and armor attributes have been tested with representative equipment on Linux. A longbow can be drawn and fired using the existing bow behavior; switching hands cancels its shot. Material draw speed for longbows and crossbows, along with crossbow charging and firing, has been tested with representative values on Linux. Command-supplied wood-material bows were tested for survival wear, broken retention and use rejection, limb-material repair, save/reload, and Creative wear exemption. Projectile velocity and accuracy are not connected; an earlier Mixins planner rejected the shot argument site, and the current revision has not yet been checked for that use. Most modifier effects remain unimplemented. Vanilla weapons can currently heal targets under sufficiently strong Weakness in the underlying game; material weapons clamp their basic damage to zero.
+
+## Implementation order
+
+1. Register the original tools, weapons, and armor using the shared source data.
+2. Add **pluto lib** as a shared library, initially implementing only Creative tab registration and use by Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR. Item, block, armor, effect, GUI, and inventory APIs are future library scope after Tinkers is complete; do not add placeholder APIs now.
+3. Implement tool-specific actions and material traits.
+4. Complete the tool station interfaces.
+5. Add the remaining blocks.
+6. Implement melting, casting, alloys, and their interfaces.
+7. Complete acquisition, world generation, and progression.
+
+Each PR updates the relevant user and developer documentation. `main` is the official branch for both Windows and Linux; platform behavior must be verified before claiming it works.
+
 | Area | Current status | Next work |
 | --- | --- | --- |
 | Part Builder | Source-derived recipes drive a scrolling selection grid, preview and ordinary result pickup for supported inputs. Tested examples include an oak log yielding a wood handle and three planks, an oak plank yielding a wood handle, and limited damageable-item recycling. | Complete material and item support, recycling and Pattern identity; complete material-recipe caching and tag behavior across remaining inputs and reload cases; finish side inventories, remaining click modes, item-specific and non-vanilla custom container behavior, callbacks and detailed information panels. |
 | Tinker Station | A shared source-recipe path derives partial base stats and supports three-part tool creation, repair and part replacement. A Linux official build tested the pickaxe lifecycle in both modes and a guest’s Part Builder-to-Station transition; a LAN guest selected and assembled a mattock from command-supplied parts, with its 106-point base maximum durability verified. A crafted mattock was also tested through melee break, repair and save/reload in normal Linux gameplay. | Complete traits/modifiers, combat behavior, layout interactions and naming; verify other tool lifecycles, material combinations and multiplayer. |
 | Durability | Pickaxe maximum durability is derived from its selected materials; a representative Linux lifecycle passed in both modes. | Complete traits, original broken behavior, visuals and other tool interactions. |
 | Models and tooltips | Tested parts use source material sprites in GUI slots, and tested part tooltips display material names. Original tool textures and static table models are present. | Complete material and variant rendering, 3D models, resource reload, orientation, names, traits and detailed tooltips. |
-| Other tools, armor, materials and modifiers | Source definitions, some part IDs and four slimewood plank blocks are present, but complete equipment, material behavior and modifiers are not implemented. | Connect shared stat aggregation, traits, equipment and actions, and expand the supported original definitions. |
+| Other tools, armor, materials and modifiers | The 45 equipment IDs are registered; representative icons and armor placement were tested. Some shared material stats and traits work, but equipment actions and most modifiers remain incomplete. | Expand shared stats and traits, then implement tool-specific actions and the remaining modifiers. |
 | Smeltery and foundry | Not implemented. | Port fluids, melting, casting, alloys and multiblocks. |
 | Progression and world content | Not implemented. | Port ores, mobs, books, advancements, recipes and gadgets. |
 | Persistence and multiplayer | Tested table inputs, tool name and custom data survive save/reload; representative two-player result races consume inputs once. | Complete original state and component handling, click modes, synchronization and dedicated-server validation. |
@@ -49,7 +63,7 @@ same base can reuse that result; if the earlier result cannot be established,
 CI runs the full checks. Main-branch pushes always run the full checks.
 Related implementation changes should be developed in a batch with lightweight
 checks first, then share the required full transform and representative game
-validation before the verified work is synced to the playtest branch.
+validation before the verified work is merged to main.
 
 On 2026-10-30, a cold-cache CI run took 23m02s and a subsequent
 code-change run with the restored cache took 12m33s. The first client test
@@ -57,3 +71,7 @@ build changed from 6m02s to 24.79s. Both runs performed the full Mixins
 transformation; timings vary with runner load.
 
 Minecraft’s existing materials, recipes and progression remain unchanged; missing TConstruct content is added alongside them. The scope of full parity and balance will be decided after v0.5.
+
+The material trait prototype resolves part traits from the active world data. Cultivated and the repair portion of Preserved affect material repair; the melee portions of Jagged and Stonebound affect attack damage. These effects were tested with representative materials on Linux, including a part replacement and save/reload. Preserved durability and Ductile durability, melee damage, and armor toughness were tested on Linux for newly generated tools. The station test used a temporary datapack to isolate the traits. Previously saved tools do not yet refresh their maximum durability automatically. The mining portions of Jagged and Stonebound, Ductile projectile damage, other traits, applied modifiers beyond Sharpness and Swiftstrike, and material-based ranged velocity and accuracy remain unfinished.
+
+The Station supports partial Sharpness and Swiftstrike recipes, upgrade slots, and melee stat changes. Linux single-player tests covered partial and completed upgrades, leftover delivery, slot and ingredient rejection, combat, part replacement, and save/reload. A LAN guest also completed a partial and full Sharpness upgrade, including leftover delivery. Modifier crystals and other applied modifiers remain unfinished.

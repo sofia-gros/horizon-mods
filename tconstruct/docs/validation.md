@@ -1,5 +1,7 @@
 # Validation
 
+A successful Mixins plan checks injection structure, not Rust types. Check new hook bindings against the original function signatures and compile the generated code before treating a change as validated.
+
 Linux, Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e`, Mixins
 `0500ff24aa5933fca95a877ef41125353c4b4fe3`, with prepared 26.3 resources:
 

@@ -40,7 +40,11 @@ try:
     assert 'tic_max_damage:106' in held.get('components', ''), held
     # set_damage operates on the registered maximum (131): 0.194 leaves 105 damage.
     g.call('command', 'item modify entity @s weapon.mainhand {type:"minecraft:set_damage",function:"minecraft:set_damage",damage:0.194}')
-    held = g.call('inventory')['held']; assert held.get('damage') == 105, held
+    for _ in range(40):
+        held = g.call('inventory')['held']
+        if held.get('damage') == 105: break
+        g.call('wait', '3')
+    assert held.get('damage') == 105, held
     g.call('command', 'gamemode survival @s'); g.call('command', 'summon minecraft:zombie 1.5 71 0.5')
     zombie = None
     for _ in range(30):

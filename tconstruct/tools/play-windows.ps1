@@ -41,13 +41,18 @@ try {
     $resources = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'horizon-resources.json') -PathType Leaf } | Select-Object -First 1
     if (-not $resources) { $resources = Pick-Folder 'Select your prepared Horizon 26.3 resource folder' }
     if (-not (Test-Path -LiteralPath (Join-Path $resources 'horizon-resources.json') -PathType Leaf)) { throw 'The selected folder is not a prepared Horizon 26.3 resource folder. Prepare it with Horizon Launcher first.' }
+    $mixinsHead = @(& git ls-remote $compat.mixins_repository HEAD)
+    if ($LASTEXITCODE -ne 0 -or $mixinsHead.Count -ne 1 -or -not ($mixinsHead[0] -match '^([0-9a-f]{40})\s+HEAD$')) { throw 'Could not resolve the latest official Horizon Mixins revision.' }
+    $mixinsRevision = $Matches[1].ToLowerInvariant()
+    Write-Host "Horizon Mixins revision: $mixinsRevision"
     # Key the generated build by actual input bytes, so a ZIP download and local
     # modifications work without writing to or resetting the user's checkout.
     $inputs = foreach ($dir in @('mixins', 'content', 'assets', 'tools', 'third_party')) {
         Get-ChildItem -LiteralPath (Join-Path $Repo $dir) -Recurse -File |
             Where-Object { $_.FullName -notmatch '[\\/]__pycache__[\\/]' -and $_.Extension -ne '.pyc' }
     }
-    $lines = @($resources) + @($inputs | Sort-Object FullName | ForEach-Object {
+    $sharedCreative = Join-Path (Split-Path -Parent $Repo) 'pluto-lib\pluto_lib\creative.py'
+    $lines = @($resources, $mixinsRevision, (Get-FileHash -LiteralPath $sharedCreative -Algorithm SHA256).Hash) + @($inputs | Sort-Object FullName | ForEach-Object {
         $_.FullName.Substring($Repo.Length) + ':' + (Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash
     }) + @((Get-FileHash -LiteralPath (Join-Path $Repo 'compatibility.json') -Algorithm SHA256).Hash)
     $hasher = [System.Security.Cryptography.SHA256]::Create()
@@ -58,9 +63,9 @@ try {
     $sources = Join-Path $HomeDir 'sources'
     New-Item -ItemType Directory -Force -Path $sources | Out-Null
     $horizon = Join-Path $sources ('horizon-' + $compat.horizon_revision)
-    $mixins = Join-Path $sources ('mixins-' + $compat.mixins_revision)
+    $mixins = Join-Path $sources ('mixins-' + $mixinsRevision)
     Checkout-Pinned $horizon $compat.horizon_repository $compat.horizon_revision
-    Checkout-Pinned $mixins $compat.mixins_repository $compat.mixins_revision
+    Checkout-Pinned $mixins $compat.mixins_repository $mixinsRevision
     $build = Join-Path $HomeDir ('builds\' + $head)
     $ready = Join-Path $build '.ready'
     $game = Join-Path $build 'horizon-client.exe'
@@ -70,7 +75,7 @@ try {
         New-Item -ItemType Directory -Force -Path $build | Out-Null
         Push-Location $Repo
         try {
-            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--output-dir', $build)
+            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--output-dir', $build)
             $cargoTarget = Join-Path $HomeDir 'cargo-cache'
             Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
             Copy-Item -LiteralPath (Join-Path $cargoTarget 'fast\horizon-client.exe') -Destination $game

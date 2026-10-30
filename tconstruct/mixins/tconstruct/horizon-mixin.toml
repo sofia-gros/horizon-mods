@@ -1261,7 +1261,7 @@ source = "source-tool-model.rs"
 [[state]]
 id = "tool-models"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,usize)>>,String>>"
+ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,Option<usize>)>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
@@ -1280,4 +1280,168 @@ bindings = [
   { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
   { name = "x", ty = "f32", value = "x" },
   { name = "y", ty = "f32", value = "y" },
+]
+
+[[injection]]
+id = "material-attack-speed"
+target = "horizon_client::game::hand::Game<'_>::main_hand_attack_speed"
+kind = "HEAD"
+cancellable = true
+helper = "material-attack-speed.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "material-armor-attributes"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "HEAD"
+helper = "material-armor-attributes.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "material-melee-bonus"
+target = "horizon_client::game::enchant_effects::Game<'_>::effect_attack_bonus"
+kind = "HEAD"
+cancellable = true
+helper = "material-melee-bonus.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "material-bow-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "material-bow-tick"
+target = "horizon_client::game::Game<'_>::tick_used_item"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "material-bow-release"
+target = "horizon_client::game::Game<'_>::release_used_item"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "ticks", ty = "u32", value = "ticks" }, { name = "hand_changed", ty = "bool", value = "hand_changed" }]
+
+[[injection]]
+id = "material-bow-remote-start"
+target = "horizon_client::game::remote::Game<'_>::remote_start_held_use"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-remote-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "held", ty = "&horizon_client::items::ItemStack", value = "held" }]
+
+[[injection]]
+id = "material-bow-remote-held"
+target = "horizon_client::game::remote::Game<'_>::held_until_released"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-remote-held.rs"
+bindings = [{ name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "material-bow-remote-use"
+target = "horizon_client::game::remote::item_has_use"
+kind = "HEAD"
+cancellable = true
+helper = "material-bow-remote-use.rs"
+bindings = [{ name = "info", ty = "&horizon_client::items::ItemInfo", value = "info" }]
+
+[[injection]]
+id = "material-crossbow-use"
+target = "horizon_client::game::crossbow::Game<'_>::use_crossbow"
+kind = "HEAD"
+cancellable = true
+helper = "material-crossbow-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "host-source-ranged-draw"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_ranged_draw"
+source = "source-ranged-draw.rs"
+
+[[injection]]
+id = "material-crossbow-charge"
+target = "horizon_client::game::crossbow::Game<'_>::charge_ticks"
+kind = "HEAD"
+cancellable = true
+helper = "material-crossbow-charge.rs"
+bindings = [{ name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "host-source-material-traits"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_material_traits"
+source = "source-material-traits.rs"
+
+[[module]]
+id = "server-source-material-traits"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_material_traits"
+source = "source-material-traits.rs"
+
+[[module]]
+id = "host-source-material-trait-select"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_material_trait_select"
+source = "source-material-trait-select.rs"
+
+[[module]]
+id = "server-source-material-trait-select"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_material_trait_select"
+source = "source-material-trait-select.rs"
+
+[[module]]
+id = "host-source-material-effects"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_material_effects"
+source = "source-material-effects.rs"
+
+[[module]]
+id = "server-source-material-effects"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_material_effects"
+source = "source-material-effects.rs"
+
+[[module]]
+id = "host-source-upgrade-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_upgrade_rules"
+source = "source-upgrade-rules.rs"
+
+[[module]]
+id = "server-source-upgrade-rules"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_upgrade_rules"
+source = "source-upgrade-rules.rs"
+
+[[module]]
+id = "host-source-station-take"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_take_host"
+source = "source-station-take-host.rs"
+
+[[module]]
+id = "host-source-ranged-wear"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_ranged_wear"
+source = "source-ranged-wear.rs"
+
+[[injection]]
+id = "ranged-retained-wear"
+target = "horizon_client::game::Game<'_>::damage_held"
+kind = "HEAD"
+cancellable = true
+helper = "ranged-wear.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "amount", ty = "u32", value = "amount" },
 ]

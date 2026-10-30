@@ -43,6 +43,24 @@ fn tconstruct_part_name(
         }
         return value;
     }
+    // Show applied incremental upgrades on the item itself, including partial progress.
+    let hidden = stack.data().and_then(|data| data.other("minecraft:tooltip_display"))
+        .and_then(|display| display.get("hide_tooltip"))
+        .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Byte(n) if *n != 0));
+    if !hidden {
+        let upgrades = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_upgrades"));
+        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72)] {
+            let key = format!("tconstruct:{id}");
+            let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
+            let level = (amount + needed - 1) / needed;
+            let base_key = format!("modifier.tconstruct.{id}");
+            let level_key = format!("{base_key}.{level}");
+            let name = game.pack.names.display_get(&level_key).or_else(|| game.pack.names.display_get(&base_key)).unwrap_or(base_key);
+            let remainder = amount % needed;
+            let text = if remainder == 0 { name } else { format!("{name} {remainder}/{needed}") };
+            value.push((horizon_client::text::Text::literal(text), horizon_client::hud::rgba(170, 170, 170, 255)));
+        }
+    }
     if stack.custom_name().is_some()
         || !horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative) {
         return value;

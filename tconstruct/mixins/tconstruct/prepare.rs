@@ -73,6 +73,52 @@ fn prepare_tconstruct_resources() {
                 }
             }
         }
+        // Give supported Creative tool variants the same source-derived base
+        // stats and mining rules as a tool assembled in the station. Other tool
+        // categories keep their material identities until their stats are ported.
+        let creative_path = out.join("creative-inventory.json");
+        if creative_path.is_file() {
+            let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
+            if let Some(tabs) = creative.get_mut("tabs").and_then(serde_json::Value::as_array_mut) {
+                for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
+                    if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
+                        for value in stacks {
+                            let Some(raw) = value.as_str() else { continue; };
+                            let Ok(raw) = serde_json::from_str::<serde_json::Value>(raw) else { continue; };
+                            let Some(item) = raw.get("id").and_then(serde_json::Value::as_str) else { continue; };
+                            let Some(short) = item.strip_prefix("tconstruct:") else { continue; };
+                            let Some(ids) = raw.pointer("/components/minecraft:custom_data/tic_materials").and_then(serde_json::Value::as_array) else { continue; };
+                            let Some(ids) = ids.iter().map(|id| id.as_str().map(str::to_owned)).collect::<Option<Vec<_>>>() else { continue; };
+                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{short}.json"))) else { continue; };
+                            let mut maps = Vec::new();
+                            for id in &ids {
+                                let Some(name) = id.strip_prefix("tconstruct:") else { maps.clear(); break; };
+                                let Ok(bytes) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/materials/stats/{name}.json"))) else { maps.clear(); break; };
+                                let Ok(merged) = crate::tconstruct_tx::source_merge_material_stats(&[bytes]) else { maps.clear(); break; };
+                                maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
+                            }
+                            if maps.len() != ids.len() { continue; }
+                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
+                                let traits = crate::tconstruct_source_material_traits::levels_from_definition(&definition, &ids, |id| {
+                                    let (namespace, path) = id.split_once(':')?;
+                                    std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
+                                });
+                                if let (Some(traits), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
+                                    if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
+                                }
+                                *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
+                            }
+                        }
+                    }
+                }
+            }
+            // The prepared output initially links to the input overlay. Replace
+            // the link itself so the original creative data stays untouched.
+            let temp = out.join("creative-inventory.json.tmp");
+            std::fs::write(&temp, serde_json::to_vec(&creative)?)?;
+            std::fs::remove_file(&creative_path)?;
+            std::fs::rename(temp, creative_path)?;
+        }
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.
@@ -98,6 +144,10 @@ fn prepare_tconstruct_resources() {
             let id = facts["defaults"][name].as_u64().ok_or("missing station block state")? as usize;
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id)).ok_or("missing station gameplay row")?;
             row["block_entity"] = serde_json::Value::Bool(true);
+            // The table has legs and a top rather than a full opaque cube.
+            // Its vanilla template must not hide the ground between its legs.
+            row["solid_render"] = serde_json::Value::Bool(false);
+            row["can_occlude"] = serde_json::Value::Bool(false);
         }
         if let Some(id) = facts["defaults"]["tconstruct:fake_storage_block"].as_u64() {
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id as usize)).ok_or("missing material block gameplay row")?;
@@ -105,6 +155,15 @@ fn prepare_tconstruct_resources() {
         }
         let temp = out.join("gameplay-facts.json.tmp");
         std::fs::write(&temp, serde_json::to_vec(&gameplay)?)?;
+        std::fs::rename(temp, path)?;
+        let path = out.join("render-definitions.json");
+        let mut render: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+        for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
+            let row = render.get_mut(name).and_then(serde_json::Value::as_object_mut).ok_or("missing station render definition")?;
+            row.insert("can_occlude".into(), serde_json::Value::Bool(false));
+        }
+        let temp = out.join("render-definitions.json.tmp");
+        std::fs::write(&temp, serde_json::to_vec(&render)?)?;
         std::fs::rename(temp, path)?;
         Ok(())
     })();

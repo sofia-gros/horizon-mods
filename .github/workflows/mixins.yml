@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 concurrency:
   group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -39,7 +40,7 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            tconstruct/target/mixins-cli-build
+            target/mixins-cli-build
             target/ci-build
           key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
           restore-keys: |
@@ -69,17 +70,19 @@ jobs:
           /tmp/tconstruct-original-item-test
           rustc --test tconstruct/tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test
           /tmp/tconstruct-original-remainder-test
-      - name: Fetch pinned upstream sources
+      - name: Fetch upstream sources
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          git clone https://github.com/horizon-rust/horizon.git ../horizon-official
-          git -C ../horizon-official checkout --detach b6c936f82b08798057161bdfa577e3aac53fb91e
-          git clone https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
-          git -C ../horizon-mixins checkout --detach cb1ad23022392d88f006cf94cbf6552a73f5df12
+          git init ../horizon-official
+          git -C ../horizon-official remote add origin https://github.com/horizon-rust/horizon.git
+          git -C ../horizon-official fetch --depth 1 origin b6c936f82b08798057161bdfa577e3aac53fb91e
+          git -C ../horizon-official checkout --detach FETCH_HEAD
+          git clone --depth 1 https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
+          git -C ../horizon-mixins rev-parse HEAD
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
+          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)"
           cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests

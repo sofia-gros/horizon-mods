@@ -18,19 +18,45 @@ class ResourceOverlay(unittest.TestCase):
             src.mkdir()
             raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:honey_bottle': {},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
-                   'minecraft:stone_axe': {}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {}}
+                   'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
+            creative = {'tabs': [{'id': 'minecraft:hotbar', 'type': 'HOTBAR', 'row': 'TOP', 'column': 5}]}
+            (src / 'creative-inventory.json').write_text(json.dumps(creative))
             (src / 'items.json').write_text(json.dumps(raw))
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
             (src / 'assets/minecraft/textures/gui').mkdir(parents=True)
             subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], check=True)
             self.assertEqual(json.loads((src / 'items.json').read_text()), raw)
+            self.assertEqual(json.loads((src / 'creative-inventory.json').read_text()), creative)
+            tabs = json.loads((out / 'creative-inventory.json').read_text())['tabs']
+            self.assertEqual(tabs[-1]['id'], 'tconstruct:tools')
+            self.assertEqual(tabs[-1]['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             items = json.loads((out / 'items.json').read_text())
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']
             self.assertTrue(all(name in items and name in ids for name in names))
             self.assertTrue(all('tconstruct:' + name in items for name in ('mattock', 'pickadze', 'kama')))
+            equipment = {'slimy_chestplate', 'crystalshot'}
+            with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-tool-definitions.zip') as archive:
+                equipment.update(('slimy_chestplate' if Path(name).stem == 'slime_chestplate' else Path(name).stem)
+                                 for name in archive.namelist() if name.endswith('.json') and Path(name).stem != 'minotaur_axe')
+            self.assertEqual(len(equipment), 45)
+            self.assertTrue(all('tconstruct:' + name in items and 'tconstruct:' + name in ids for name in equipment))
+            self.assertEqual(items['tconstruct:mattock']['minecraft:weapon'], {'item_damage_per_attack': 2})
+            for name in ('mattock', 'hand_axe', 'kama', 'pickadze'):
+                self.assertIn('minecraft:tool', items['tconstruct:' + name])
+            for name in equipment - {'pickaxe'}:
+                model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
+                self.assertTrue(model.get('textures'), name)
+                for texture in model['textures'].values():
+                    self.assertTrue((out / 'assets/tconstruct/textures' / (texture.removeprefix('tconstruct:') + '.png')).is_file(), (name, texture))
+            for suffix, slot in (('helmet', 'head'), ('chestplate', 'chest'), ('leggings', 'legs'), ('boots', 'feet')):
+                for prefix in ('slime' if suffix != 'chestplate' else 'slimy', 'plate', 'travelers'):
+                    self.assertEqual(items[f'tconstruct:{prefix}_{suffix}']['minecraft:equippable']['slot'], slot)
+            self.assertEqual(items['tconstruct:slime_wings']['minecraft:equippable']['slot'], 'chest')
+            for name, limit in (('dagger', 2), ('shuriken', 16), ('throwing_axe', 16), ('arrow', 64)):
+                self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], limit)
             bottle = items['tconstruct:venom_bottle']
             self.assertEqual(bottle['minecraft:max_stack_size'], 16)
             self.assertEqual(bottle['minecraft:food'], {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0})

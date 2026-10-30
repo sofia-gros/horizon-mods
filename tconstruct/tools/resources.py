@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Create a separate, disposable resource overlay for the prototype."""
-import argparse, copy, hashlib, json, shutil, zipfile
+import argparse, copy, hashlib, json, shutil, sys, zipfile
 from pathlib import Path
 from import_part_visuals import MATERIAL_MODELS
+from creative_materials import build_variants
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pluto-lib'))
+from pluto_lib.creative import register_item_groups
 
 def link_or_copy(source, destination):
     """Preserve the source; Windows may deny symlink creation without developer mode."""
@@ -31,7 +34,7 @@ if (src / 'assets/tconstruct').exists():
     p.error('source already contains a tconstruct asset namespace')
 out.mkdir(parents=True)
 for path in src.iterdir():
-    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'assets'}:
+    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'creative-inventory.json', 'assets'}:
         link_or_copy(path, out / path.name)
 # Keep the source notices in the generated resource distribution as well.
 licenses = out / 'THIRD_PARTY_LICENSES'
@@ -137,32 +140,26 @@ entries = [
 # recipe-driven crafting remain incomplete, as documented.
 source_names = json.loads((repository / 'content/assets/tconstruct/lang/en_us.json').read_text())
 existing = {name for name, _, _ in entries}
-# Register three-part tools that share the implemented material/stat path.
-# Additional actions and modifiers remain separate gameplay work.
-tool_templates = {'pickaxe_dig': 'minecraft:stone_pickaxe', 'axe_dig': 'minecraft:stone_axe',
-                  'shovel_dig': 'minecraft:stone_shovel', 'hoe_dig': 'minecraft:stone_hoe'}
-with zipfile.ZipFile(repository / 'content/reference/tconstruct-recipes.zip') as archive:
-    tool_results = set()
-    for name in archive.namelist():
-        if not name.endswith('.json'): continue
-        recipe = json.loads(archive.read(name))
-        if recipe.get('type') == 'tconstruct:tool_building' and isinstance(recipe.get('result'), str):
-            tool_results.add(recipe['result'])
+# Register source equipment independently of its recipe, part count, or actions.
+# Minotaur Axe is registered by the source only when Twilight Forest is present.
+# Individual equipment behavior and material-dependent stats are separate work.
+equipment_names = set()
 with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-definitions.zip') as archive:
     for name in sorted(archive.namelist()):
-        if '/tool_definitions/' not in name or not name.endswith('.json'): continue
+        if '/tool_definitions/' not in name or not name.endswith('.json'):
+            continue
         short = name.rsplit('/', 1)[-1].removesuffix('.json')
-        item_id = 'tconstruct:' + short
-        if item_id in existing or item_id not in tool_results: continue
-        modules = json.loads(archive.read(name)).get('modules', [])
-        part_modules = [module for module in modules if module.get('type') == 'tconstruct:part_stats']
-        actions = next((module.get('tool_actions', []) for module in modules if module.get('type') == 'tconstruct:tool_actions'), [])
-        if len(part_modules) != 1 or len(part_modules[0].get('parts', [])) != 3: continue
-        parts = [part if isinstance(part, str) else part.get('item', '') for part in part_modules[0]['parts']]
-        if not all(part.startswith('tconstruct:') and part.split(':', 1)[1] in MATERIAL_MODELS for part in parts): continue
-        template = next((tool_templates[action] for action in actions if action in tool_templates), None)
-        if template is None: continue
-        entries.append((item_id, template, source_names['item.tconstruct.' + short]))
+        if short == 'minotaur_axe':
+            continue
+        equipment_names.add('slimy_chestplate' if short == 'slime_chestplate' else short)
+equipment_names.add('crystalshot')
+# Preserve the previously supported tools' native mining and melee components.
+existing_tool_templates = {'hand_axe': 'minecraft:stone_axe', 'mattock': 'minecraft:stone_axe',
+                           'kama': 'minecraft:stone_hoe', 'pickadze': 'minecraft:stone_pickaxe'}
+for short in sorted(equipment_names):
+    item_id = 'tconstruct:' + short
+    if item_id not in existing:
+        entries.append((item_id, existing_tool_templates.get(short, 'minecraft:flint'), source_names['item.tconstruct.' + short]))
         existing.add(item_id)
 for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
@@ -198,7 +195,27 @@ for name, template, title in entries:
         original_model = json.loads((mod_assets / 'tinkering/source_part_models' / (short + '.json')).read_text())
         texture = original_model['textures']['texture']
         native_model = {'parent': 'minecraft:builtin/generated', 'gui_light': forge_model['gui_light'], 'display': forge_model['display'], 'textures': {'layer0': texture, 'particle': texture}}
-    elif template in tool_templates.values() and short not in ('flint_pickaxe', 'pickaxe'):
+    elif short in equipment_names and short != 'pickaxe':
+        # Use source sprites for the basic item icon; material-bearing stacks
+        # are rendered from the source model by the shared GUI renderer.
+        with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-visuals.zip') as archive:
+            source_model = json.loads(archive.read('assets/tconstruct/models/item/' + short + '.json'))
+            textures = source_model.get('textures', {})
+            parts = source_model.get('parts') or [{'name': 'default' if short == 'crystalshot' else 'tool'}]
+            layers = []
+            for part in parts:
+                texture = textures.get(part.get('name'), '')
+                if not texture.startswith('tconstruct:item/'):
+                    continue
+                prefix = 'assets/tconstruct/textures/' + texture.removeprefix('tconstruct:')
+                names = archive.namelist()
+                candidates = [prefix + '.png', prefix + '_tconstruct_flint.png', prefix + '_tconstruct_wood.png']
+                candidates.extend(sorted(name for name in names if name.startswith(prefix + '_tconstruct_') and name.endswith('.png') and '_broken_' not in name))
+                chosen = next((name for name in candidates if name in names), None)
+                if chosen:
+                    layers.append('tconstruct:' + chosen.removeprefix('assets/tconstruct/textures/').removesuffix('.png'))
+            native_model = {'parent': 'minecraft:item/generated', 'textures': {f'layer{i}': texture for i, texture in enumerate(layers)}}
+    elif template in ('minecraft:stone_pickaxe', 'minecraft:stone_axe', 'minecraft:stone_shovel', 'minecraft:stone_hoe') and short not in ('flint_pickaxe', 'pickaxe'):
         native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'minecraft:item/' + template.split(':', 1)[1]}}
     else:
         layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
@@ -217,6 +234,14 @@ for name, template, title in entries:
             ]}]}
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
+    if short in equipment_names and short != 'pickaxe':
+        item.pop('minecraft:cooking_fuel', None)
+        item['minecraft:max_stack_size'] = 64 if short in ('arrow', 'crystalshot') else 16 if short in ('shuriken', 'throwing_axe') else 2 if short == 'dagger' else 1
+        armor_slot = next((slot for suffix, slot in (('_helmet', 'head'), ('_chestplate', 'chest'), ('_leggings', 'legs'), ('_boots', 'feet')) if short.endswith(suffix)), None)
+        if short == 'slime_wings':
+            armor_slot = 'chest'
+        if armor_slot:
+            item['minecraft:equippable'] = {'slot': armor_slot, 'equip_sound': 'minecraft:item.armor.equip_generic'}
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5
@@ -243,7 +268,7 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-visuals.zip
                 model = json.loads(payload)
                 models[name] = payload
                 for texture in model.get('textures', {}).values():
-                    if isinstance(texture, str) and texture.startswith('tconstruct:item/tool/'):
+                    if isinstance(texture, str) and texture.startswith('tconstruct:item/'):
                         prefixes.add('assets/tconstruct/textures/' + texture.removeprefix('tconstruct:'))
     for name, payload in models.items():
         destination = mod_assets / 'tinkering/source_tool_models' / Path(name).name
@@ -287,3 +312,10 @@ next_id = max(v['protocol_id'] for v in ids.values()) + 1
 for index, (name, _, _) in enumerate(entries):
     ids[name] = {'protocol_id': next_id + index}
 (out / 'registries.json').write_text(json.dumps(registries))
+
+# Keep the prepared vanilla data untouched and append mod tabs to the overlay.
+creative = src / 'creative-inventory.json'
+if creative.is_file():
+    tabs = json.loads((repository / 'content/creative-tabs.json').read_text())
+    tabs = build_variants(tabs, repository / 'content/reference/tconstruct-tool-definitions.zip', repository / 'content/reference/tconstruct-materials.zip')
+    (out / 'creative-inventory.json').write_text(json.dumps(register_item_groups(json.loads(creative.read_text()), tabs)))

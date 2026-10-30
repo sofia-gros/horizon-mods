@@ -7,13 +7,13 @@ TConstruct behavior. The fixture output must not be used as a release resource
 pack or as evidence of original block rendering or networking.
 
 From the repository root, with a Mixins-transformed game binary and an existing
-base item resource overlay from `tools/resources.py`:
+base item resource overlay from `tconstruct/tools/resources.py`:
 
 ```sh
-python3 tests/fixtures/material-block-place/prepare.py \
+python3 tconstruct/tests/fixtures/material-block-place/prepare.py \
   --game target/build/fast/horizon-client --base target/item-resources \
   --output target/material-block-fixture
-python3 tests/game/material_block_place.py \
+python3 tconstruct/tests/game/material_block_place.py \
   --game target/build/fast/horizon-client --ctl target/build/fast/horizon-ctl \
   --resources target/material-block-fixture
 # Repeat with --in-frame for the other single-player execution mode.
@@ -50,14 +50,14 @@ in a fresh directory, then build that generated tree and run the game test:
 
 ```sh
 mkdir -p target/material-wire-mods
-cp -a mixins/tconstruct target/material-wire-mods/
-cp -a tests/fixtures/material-wire-observer target/material-wire-mods/
-python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins \
+cp -a tconstruct/mixins/tconstruct target/material-wire-mods/
+cp -a tconstruct/tests/fixtures/material-wire-observer target/material-wire-mods/
+python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins \
   --mods target/material-wire-mods --output-dir target/material-wire-stage
 cargo build --locked --offline --manifest-path target/material-wire-stage/modded/Cargo.toml \
   -p horizon-client --bin horizon-client --bin horizon-ctl --no-default-features \
   --profile fast --target-dir "$PWD/target/build"
-python3 tests/game/material_block_sync.py \
+python3 tconstruct/tests/game/material_block_sync.py \
   --game target/build/fast/horizon-client --ctl target/build/fast/horizon-ctl \
   --resources target/material-block-fixture
 # Repeat with --in-frame.
