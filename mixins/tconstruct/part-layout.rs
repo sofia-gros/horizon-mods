@@ -4,7 +4,11 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
     let position = match slot {
         0..=8 => (8.0 + slot as f32 * 18.0, 160.0),
         9..=35 => (8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0),
-        300..=302 if station => station_layout.as_ref().and_then(|layout| layout.input_slots.get(slot - 300)).map(|slot| (slot.x as f32, slot.y as f32)).unwrap_or([(53.0, 22.0), (15.0, 60.0), (33.0, 42.0)][slot - 300]),
+        300..=302 if station => station_layout.as_ref().and_then(|layout| {
+            if layout.tool_slot.is_some() {
+                if slot == 300 { layout.tool_slot.as_ref() } else { layout.input_slots.get(slot - 301) }
+            } else { layout.input_slots.get(slot - 300) }
+        }).map(|slot| (slot.x as f32, slot.y as f32)).unwrap_or([(53.0, 22.0), (15.0, 60.0), (33.0, 42.0)][slot - 300]),
         300 => (8.0, 43.0),
         301 => (29.0, 43.0),
         322 if !station => (148.0, 42.0),
