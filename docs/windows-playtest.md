@@ -35,6 +35,8 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 
 結果スロットの右クリックと右 Shift-click は Linux の両方式で確認しました。隣接収納はチェスト・9枠収納・hopper の試作があり、hopper と dispenser の LAN 同期・同時取得を Linux で確認しました。hopper の LAN プレイヤー所持品からの Shift 移動は拒否し、5枠表示の修正は未検証です。ダブルチェスト、シュルカー、その他のスロット操作、詳細 callback は未完成です。Station ではフリント・木のピッケルを制作して採掘、修理、木の頭へ交換し保存再開する一連の操作を Linux の両方式で確認しました。その他の工具・特性と Windows 実機は未検証です。
 
+現在のランチャーは音声機能を含めずにビルドするため、ゲーム内の音は出ません。
+
 対応金属の素材も共通のタグ・レシピから判定します。bronze を制作可能にする試験 datapack と Linux の正式 Mixins ビルドでは、bronze の Pick Head から柄を作れました。bronze の通常入手と Windows 実機は未検証です。
 
 Part Builder の Minecraft 材料の容器返却は Horizon 26.3 のアイテム登録情報を使います。個別アイテムの component による上書きや独自の容器処理は未対応です。
