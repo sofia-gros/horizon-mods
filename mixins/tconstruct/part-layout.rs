@@ -11,7 +11,7 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
         324 if station => (114.0, 38.0),
         325 if station => (134.0, 38.0),
         302..=326 => (-10000.0, -10000.0),
-        327..=353 if !station => {
+        327..=380 if !station => {
             let count = if game.remote.is_some() {
                 game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
             } else { game.container_size().saturating_sub(27) };

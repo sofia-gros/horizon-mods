@@ -32,6 +32,7 @@ pub(super) fn take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
 /// precedence. Recheck the recipe for every iteration, as the source menu does.
 pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
     let side_pos = game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&pos).copied();
+    let partner_pos = side_pos.and_then(|side| game.chest_partner(side).map(|(partner, _)| partner));
     if side_pos.is_none() && !super::tconstruct_source_builder_world::player_only_quick_move(&game.world, pos) { return false; }
     let Some(eye) = game.eye_position() else { return false; };
     let Some(rest) = game.res.rest.get() else { return false; };
@@ -54,6 +55,11 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
             Some(side_pos) => match game.world.block_entities.get(&side_pos) { Some(BlockEntity::Chest(items)) => items.clone(), _ => break },
             None => Vec::new(),
         };
+        let first_side_len = side.len();
+        if let Some(partner) = partner_pos {
+            let Some(BlockEntity::Chest(items)) = game.world.block_entities.get(&partner) else { break; };
+            side.extend_from_slice(items);
+        }
         let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) else { break; };
         let crafted_item = output.item.clone();
         let Some((give, crafted_count)) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
@@ -61,8 +67,12 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
         crafts += 1;
         game.stats.add("crafted", &crafted_item, crafted_count as i32);
         if let Some(side_pos) = side_pos {
-            if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&side_pos) { *items = side; }
+            if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&side_pos) { *items = side[..first_side_len].to_vec(); }
             game.world.modified.insert((side_pos.0 >> 4, side_pos.2 >> 4));
+        }
+        if let Some(partner) = partner_pos {
+            if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&partner) { *items = side[first_side_len..].to_vec(); }
+            game.world.modified.insert((partner.0 >> 4, partner.2 >> 4));
         }
         for stack in give {
             let Some(info) = items.get(&stack.item) else { dropped.push(stack); continue; };

@@ -39,11 +39,11 @@ pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source
 }
 
 /// Select the first adjacent container that fits the existing menu protocol.
-pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32)) -> Option<(i32, i32, i32)> {
+pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32), allow_double: bool) -> Option<(i32, i32, i32)> {
     [(0, -1), (1, 0), (0, 1), (-1, 0)].into_iter().find_map(|(dx, dz)| {
         let pos = (key.0 + dx, key.1, key.2 + dz);
         let name = &game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
-        if matches!(&**name, "tconstruct:part_builder" | "tconstruct:tinker_station") || game.chest_partner(pos).is_some() { return None; }
+        if matches!(&**name, "tconstruct:part_builder" | "tconstruct:tinker_station") || (!allow_double && game.chest_partner(pos).is_some()) { return None; }
         match game.world.block_entities.get(&pos) {
             Some(BlockEntity::Chest(items)) if matches!(items.len(), 5 | 9 | 27) => Some(pos),
             _ => None,
