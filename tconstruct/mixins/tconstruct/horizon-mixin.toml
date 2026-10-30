@@ -843,6 +843,18 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_name_ui"
 source = "station-name-ui.rs"
 
+[[module]]
+id = "host-station-name"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_station_name"
+source = "source-station-name.rs"
+
+[[module]]
+id = "server-station-name"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_station_name"
+source = "source-station-name.rs"
+
 [[injection]]
 id = "station-name-typing"
 target = "horizon_client::game::stations::Game<'_>::station_typing"

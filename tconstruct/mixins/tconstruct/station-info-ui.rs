@@ -15,7 +15,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
     if game.remote.is_none() && !super::tconstruct_source_station_world::has_operation_tool(slots) {
         if let Some(output) = tool.as_mut() {
             let name = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&pos)).map(|edit| edit.value.as_str());
-            super::tconstruct_source_station_world::name_result(output, name);
+            super::tconstruct_source_station_name::name_result(output, name);
         }
     }
     if tool.is_none() && super::tconstruct_source_station_world::has_operation_tool(slots) { tool = slots.first().cloned().flatten(); }

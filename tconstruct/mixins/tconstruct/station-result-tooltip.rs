@@ -36,7 +36,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     if station && slot == 324 && game.remote.is_none() {
         if let Some(output) = result.as_mut() {
             let name = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&pos)).map(|edit| edit.value.as_str());
-            crate::game::tconstruct_source_station_world::name_result(output, name);
+            crate::game::tconstruct_source_station_name::name_result(output, name);
         }
     }
     if let Some(result) = result { game.draw_stack_tooltip(batch, &result, game.cursor.0, game.cursor.1); }

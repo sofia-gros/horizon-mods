@@ -23,9 +23,10 @@ with `E_BRIDGE_TARGET`. The current implementation avoids that restriction by
 using existing per-world block storage and per-player cursor state. Dedicated
 server and every possible container action are not yet validated. The Part
 Builder uses source-derived pattern selection, and the Tinker Station uses
-source-derived layouts for supported three-part tools. Both use previews and
-authoritative result transactions. Some click modes, detailed information and
-the naming UI remain incomplete.
+source-derived layouts for supported two- and three-part tools. Both use
+previews and authoritative result transactions. Some click modes and detailed
+information remain incomplete. The new-tool naming path has not yet been
+verified in a running game.
 
 ## Workstation interface improvements
 

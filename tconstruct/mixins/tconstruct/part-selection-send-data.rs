@@ -38,7 +38,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             if let Some(output) = build.as_mut() {
                 let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
-                crate::tconstruct_source_station_world::name_result(output, name);
+                crate::tconstruct_source_station_name::name_result(output, name);
             }
             let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|plan| plan.output);
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);

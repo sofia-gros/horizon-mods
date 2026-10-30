@@ -98,7 +98,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     } else { None };
     if let Some((_, output)) = building.as_mut() {
         let name = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key).map(|edit| edit.value.as_str());
-        crate::game::tconstruct_source_station_world::name_result(output, name);
+        crate::game::tconstruct_source_station_name::name_result(output, name);
     }
     let repair = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))

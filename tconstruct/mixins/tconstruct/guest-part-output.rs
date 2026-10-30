@@ -168,7 +168,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         } else { None };
         if let Some((_, output)) = building.as_mut() {
             let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(conn, packet.container, key)).map(String::as_str);
-            crate::tconstruct_source_station_world::name_result(output, name);
+            crate::tconstruct_source_station_name::name_result(output, name);
         }
         let repair = if action == 25 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan(world, entity.slots()))
