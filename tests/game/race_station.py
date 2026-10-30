@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from harness import Game
-p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--guest-only',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
+p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--guest-only',action='store_true');p.add_argument('--builder-transition',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
 a=p.parse_args();run=a.run_dir.resolve();run.mkdir(parents=True,exist_ok=True)
 print('run',run,flush=True)
 games=[]
@@ -18,6 +18,15 @@ try:
  h=Game(a,run,'Player',in_frame=a.in_frame,resume=(run/'Player').exists());games.append(h);h.ready()
  port=h.call('lan','open','0','commands')['port']
  q=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());games.append(q);q.ready()
+ if a.builder_transition:
+  for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 minecraft:air','setblock 0 71 2 tconstruct:part_builder','give Guest tconstruct:pattern 1','give Guest minecraft:flint 1'):
+   h.call('command',cmd)
+  wait('guest builder',lambda:q.call('block','0','71','2').get('block')=='tconstruct:part_builder')
+  q.call('interact','0','71','2');q.call('wait','10')
+  def guest_hotbar(item): return next(s['slot'] for s in q.call('inventory')['hotbar'] if s.get('item')==item)
+  click(q,guest_hotbar('tconstruct:pattern'));click(q,300);click(q,guest_hotbar('minecraft:flint'));click(q,301)
+  wait('guest pattern choice',lambda:any(w.get('label')=='Pick Head' and w.get('enabled') for w in q.call('ui')['widgets']))
+  q.call('click',next(w['id'] for w in q.call('ui')['widgets'] if w.get('label')=='Pick Head' and w.get('enabled')));q.call('wait','5');q.call('close')
  for cmd in ('gamemode creative @a','clear @a','tp @s -0.5 71 0.5','tp Guest 1.5 71 0.5','setblock 0 71 2 minecraft:air','setblock 0 71 2 tconstruct:tinker_station','give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"},minecraft:item_model="tconstruct:flint_pick_head"] 1','give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"},minecraft:item_model="tconstruct:wood_handle"] 1','give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"},minecraft:item_model="tconstruct:wood_binding"] 1'):
   print('command',cmd,h.call('command',cmd),flush=True)
  for g in games:
