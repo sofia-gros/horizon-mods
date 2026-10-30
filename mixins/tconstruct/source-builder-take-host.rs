@@ -45,7 +45,7 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
         let Ok(material) = super::tconstruct_source_builder_world::crafting_container(slots.get(1).and_then(Option::as_ref), items) else { break; };
         let Ok(pattern) = super::tconstruct_source_builder_world::crafting_container(slots.first().and_then(Option::as_ref), items) else { break; };
         let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) else { break; };
-        let Some(give) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
+        let Some(give) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut [], &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
         changed = true;
         for stack in give {
             let Some(info) = items.get(&stack.item) else { dropped.push(stack); continue; };

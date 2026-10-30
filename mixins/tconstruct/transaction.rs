@@ -1431,18 +1431,42 @@ pub(super) fn source_quick_move_player(
     }
     Some(stack)
 }
-/// Prepare and commit a player-only quick move without touching the real
-/// inventory or inputs if the output cannot move. The caller must first
-/// establish that no source side-inventory module participates.
+/// Stage the side inventory, player inventory and inputs as one result move.
+/// Existing side stacks are filled first, then the player inventory, then
+/// empty side slots, as in the table menu's quick-move order.
 #[allow(dead_code)]
 pub(super) fn source_quick_take_part_plan(
-    slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>],
+    slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>], side: &mut [Option<ItemStack>],
     plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
     output_max: u32, stackable: bool, random: impl FnOnce(usize) -> Option<usize>,
 ) -> Option<Vec<ItemStack>> {
     let mut staged_inventory = inventory.to_vec();
-    let remainder = source_quick_move_player(&mut staged_inventory, output.clone(), output_max, stackable);
+    let mut staged_side = side.to_vec();
+    let mut remaining = output.clone();
+    if stackable {
+        for existing in staged_side.iter_mut().flatten() {
+            if existing.same_item_same_components(&remaining) && existing.count < output_max {
+                let moved = (output_max - existing.count).min(remaining.count);
+                existing.count += moved;
+                remaining.count -= moved;
+                if remaining.count == 0 { break; }
+            }
+        }
+    }
+    let mut remainder = if remaining.count == 0 { None } else {
+        source_quick_move_player(&mut staged_inventory, remaining, output_max, stackable)
+    };
+    if let Some(stack) = &mut remainder {
+        for slot in &mut staged_side {
+            if slot.is_none() {
+                let moved = stack.count.min(output_max);
+                *slot = Some(ItemStack { count: moved, ..stack.clone() });
+                stack.count -= moved;
+                if stack.count == 0 { break; }
+            }
+        }
+    }
     let moved = output.count.checked_sub(remainder.as_ref().map_or(0, |s| s.count))?;
     if moved == 0 { return None; }
     let mut staged_slots = slots.to_vec();
@@ -1450,6 +1474,7 @@ pub(super) fn source_quick_take_part_plan(
     let give = source_take_part_plan(&mut staged_slots, &mut carried, plan,
         ItemStack { count: moved, ..output }, leftover, alternatives, material_container, pattern_container, output_max, random)?;
     inventory.clone_from_slice(&staged_inventory);
+    side.clone_from_slice(&staged_side);
     slots.clone_from_slice(&staged_slots);
     Some(give)
 }
@@ -2551,12 +2576,24 @@ mod tests {
         let mut quick_slots = original.clone();
         let mut quick_inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
         let (quick_output, quick_leftover, quick_alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
-        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output.clone(), quick_leftover.clone(), quick_alternatives.clone(), None, None, 64, true, |_| Some(0)).is_none());
+        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &mut [], &plan, quick_output.clone(), quick_leftover.clone(), quick_alternatives.clone(), None, None, 64, true, |_| Some(0)).is_none());
         assert_eq!(quick_slots, original);
         quick_inventory[8] = None;
-        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &plan, quick_output, quick_leftover, quick_alternatives, None, None, 64, true, |_| Some(0)).is_some());
+        assert!(source_quick_take_part_plan(&mut quick_slots, &mut quick_inventory, &mut [], &plan, quick_output, quick_leftover, quick_alternatives, None, None, 64, true, |_| Some(0)).is_some());
         assert_eq!(quick_inventory[8].as_ref().unwrap().item.as_ref(), "tconstruct:pick_head");
         assert!(quick_slots[0].is_none());
+        let (side_output, side_leftover, side_alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        let mut side_stack = side_output.clone(); side_stack.count = 63;
+        let mut side = vec![Some(side_stack), None];
+        let mut inventory = vec![None; 36];
+        let mut side_slots = original.clone();
+        assert!(source_quick_take_part_plan(&mut side_slots, &mut inventory, &mut side, &plan, side_output.clone(), side_leftover.clone(), side_alternatives.clone(), None, None, 64, true, |_| Some(0)).is_some());
+        assert_eq!(side[0].as_ref().unwrap().count, 64);
+        assert!(inventory.iter().all(Option::is_none));
+        let mut side_slots = original.clone();
+        let mut inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
+        assert!(source_quick_take_part_plan(&mut side_slots, &mut inventory, &mut side, &plan, side_output, side_leftover, side_alternatives, None, None, 64, true, |_| Some(0)).is_some());
+        assert_eq!(side[1].as_ref().unwrap().count, 1);
         let after = slots.clone();
         let (second, leftover, alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
         assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, second, leftover, alternatives, None, None, 64, |_| Some(0)).is_none());
