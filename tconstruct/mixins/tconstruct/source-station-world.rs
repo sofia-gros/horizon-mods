@@ -152,10 +152,11 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
     let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item)?;
     let parts = recipe.parts(definition)?;
-    let heads: Vec<_> = parts.iter().zip(ids).filter_map(|(part, id)| {
-        if super::tconstruct_source_station_stats::part_kind(part) != Some("head") { return None; }
+    let repair_parts: Vec<_> = parts.iter().zip(ids).filter_map(|(part, id)| {
+        let kind = super::tconstruct_source_station_stats::part_kind(part)?;
+        if !matches!(kind, "head" | "limb") { return None; }
         let Tag::String(id) = id else { return None; };
-        Some(id.to_string_lossy().to_string())
+        Some((id.to_string_lossy().to_string(), kind))
     }).collect();
     let traits = super::tconstruct_source_material_traits::levels(world, &tool);
     let cultivated = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:cultivated").copied()).unwrap_or(0);
@@ -166,11 +167,14 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
     for index in 1..=2 {
         let Some(stack) = slots.get(index).and_then(Option::as_ref) else { continue; };
         let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
-        if !heads.contains(&material.material) || material.needed <= 0 { return None; }
+        if material.needed <= 0 { return None; }
         let (namespace, path) = material.material.split_once(':')?;
         let stat_layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", path.split('#').next()?))?;
         let stats = super::tconstruct_tx::source_merge_material_stats(stat_layers).ok()?;
-        let durability = stats.get("tconstruct:head")?.get("durability")?.as_f64()? as f32;
+        // Original material repair uses the strongest matching repairable stat.
+        let durability = repair_parts.iter().filter(|(id, _)| id == &material.material)
+            .filter_map(|(_, kind)| stats.get(&format!("tconstruct:{kind}"))?.get("durability")?.as_f64())
+            .max_by(f64::total_cmp)? as f32;
         let amount = durability * material.value as f32 * repair_factor / (3.0 * material.needed as f32);
         let (count, repaired) = super::tconstruct_tx::repair_from_slot(remaining, i32::try_from(stack.count).ok()?, amount);
         if count > 0 { consumed.push((index, count as u32)); remaining = (remaining - repaired).max(0); }

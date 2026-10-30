@@ -1428,3 +1428,20 @@ id = "host-source-station-take"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_station_take_host"
 source = "source-station-take-host.rs"
+
+[[module]]
+id = "host-source-ranged-wear"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_ranged_wear"
+source = "source-ranged-wear.rs"
+
+[[injection]]
+id = "ranged-retained-wear"
+target = "horizon_client::game::Game<'_>::damage_held"
+kind = "HEAD"
+cancellable = true
+helper = "ranged-wear.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "amount", ty = "u32", value = "amount" },
+]
