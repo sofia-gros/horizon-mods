@@ -38,7 +38,9 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         }
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
             for (x, action) in [(114.0, 24), (134.0, 25)] {
-                let output = if action == 24 {
+                let output = if game.remote.is_some() {
+                    slots.get(action as usize).cloned().flatten()
+                } else if action == 24 {
                     crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
                 } else { crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|(output, _)| output) };
                 if let Some(stack) = output { game.draw_item(batch, &stack, ox + x, oy + 38.0); }

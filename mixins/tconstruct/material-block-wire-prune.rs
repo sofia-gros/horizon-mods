@@ -4,6 +4,9 @@ fn material_block_wire_prune(hub: &mut crate::lan::hub::Hub, ctx: &mut crate::la
     ctx.world.chunks.__horizon_mixins_tconstruct_builder_preview_sent_mut().retain(|(conn, joined, window, pos), _|
         hub.guests.iter().any(|guest| guest.conn == *conn && guest.placed_at == *joined && hub.here(guest)
             && guest.menu.as_ref().is_some_and(|menu| menu.window == *window && menu.pos == Some(*pos))));
+    ctx.world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().retain(|(conn, joined, window, pos), _|
+        hub.guests.iter().any(|guest| guest.conn == *conn && guest.placed_at == *joined && hub.here(guest)
+            && guest.menu.as_ref().is_some_and(|menu| menu.window == *window && menu.pos == Some(*pos))));
     ctx.world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_sent_mut().retain(|(conn, joined, window, pos), _|
         hub.guests.iter().any(|guest| guest.conn == *conn && guest.placed_at == *joined && hub.here(guest)
             && guest.menu.as_ref().is_some_and(|menu| menu.window == *window && menu.pos == Some(*pos))));

@@ -23,7 +23,9 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     let Some(slot) = game.slot_at(batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if !(if station { (324..=325).contains(&slot) } else { slot == 322 }) { return Continue(()); }
     let Some(BlockEntity::Chest(slots)) = game.container_kind() else { return Break(()); };
-    let result = if station && slot == 324 {
+    let result = if station && game.remote.is_some() {
+        slots.get(slot - 300).cloned().flatten()
+    } else if station && slot == 324 {
         crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
     } else if station {
         crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|(output, _)| output)

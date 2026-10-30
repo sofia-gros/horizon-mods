@@ -7,6 +7,28 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         if !menu.slots.valid(world) { continue; }
         let state = world.block(pos.0, pos.1, pos.2).0 as usize;
         let builder = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:part_builder"));
+        let station = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:tinker_station"));
+        if station.is_some() && hub.encoder.block_ids.get(state).copied() == station {
+            let Some(entity) = world.block_entities.get(&pos) else { continue; };
+            let slots = entity.slots();
+            let build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
+            let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|(output, _)| output);
+            let key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
+            let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
+                .is_none_or(|(old_state, old_build, old_operation)| *old_state != menu.state || old_build != &build || old_operation != &operation);
+            if changed {
+                let build_net = hub.stack(&build);
+                let operation_net = hub.stack(&operation);
+                let guest = &mut hub.guests[i];
+                let Some(menu) = guest.menu.as_mut() else { continue; };
+                menu.state = (menu.state + 1) & 0x7FFF;
+                let (window, state) = (menu.window, menu.state);
+                guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 24, item: build_net }));
+                guest.send(&C::ContainerSetSlot(play::ContainerSetSlot { container: window, state, slot: 25, item: operation_net }));
+                world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().insert(key, (state, build, operation));
+            }
+            continue;
+        }
         if builder.is_none() || hub.encoder.block_ids.get(state).copied() != builder { continue; }
         let patterns = crate::tconstruct_source_builder_world::refresh(world, pos);
         let encoded = patterns.as_ref().and_then(|patterns| crate::tconstruct_source_builder_wire::encode(patterns));

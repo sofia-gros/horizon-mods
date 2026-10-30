@@ -10,6 +10,7 @@ fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     chunks.__horizon_mixins_tconstruct_builder_preview_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_scroll_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_preview_sent_mut().clear();
+    chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_wire_recv_mut().clear();
     chunks.__horizon_mixins_tconstruct_material_wire_sent_mut().clear();
     *chunks.__horizon_mixins_tconstruct_material_wire_ids_mut() = None;
