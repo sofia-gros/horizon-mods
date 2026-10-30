@@ -145,3 +145,19 @@ pub(super) fn take_repair(slots: &mut [Option<ItemStack>], carried: &mut Option<
     *carried = Some(output);
     true
 }
+
+/// Preserve repairs for tools made by the earlier fixed pickaxe implementation.
+pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    if let Some(plan) = swap_plan(world, slots).or_else(|| repair_plan(world, slots)) { return Some(plan); }
+    let tool = slots.first()?.as_ref()?;
+    if tool.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_max_damage")).is_some() { return None; }
+    let mut preview = slots.to_vec();
+    let mut output = None;
+    if !super::tconstruct_tx::take(&mut preview, &mut output, true, 25) { return None; }
+    let consumed = slots.iter().zip(&preview).enumerate().filter_map(|(index, (before, after))| {
+        let before = before.as_ref()?.count;
+        let after = after.as_ref().map_or(0, |stack| stack.count);
+        (before > after).then_some((index, before - after))
+    }).collect();
+    Some((output?, consumed))
+}
