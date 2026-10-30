@@ -76,7 +76,7 @@ impl MeltingRecipe {
         }
         let time = u32::try_from(v.get("time")?.as_u64()?).ok()?;
         let temperature = u32::try_from(v.get("temperature")?.as_u64()?).ok()?;
-        if time == 0 { return None; }
+        if time == 0 || time.checked_mul(10).is_none_or(|required| required > i32::MAX as u32) { return None; }
         Some(Self { input: Ingredient::parse(v.get("ingredient")?)?, output, temperature, time })
     }
 }

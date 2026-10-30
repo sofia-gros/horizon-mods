@@ -43,7 +43,7 @@ try:
         'setblock 0 71 2 tconstruct:seared_melter',
         'setblock 0 71 1 tconstruct:seared_faucet[facing=north]',
         'setblock 0 70 1 tconstruct:seared_table',
-        'give @s minecraft:coal 1', 'give @s minecraft:copper_ingot 10',
+        'give @s minecraft:coal 2', 'give @s minecraft:copper_ingot 10',
         'give @s tconstruct:ingot_cast 1',
     ):
         g.call('command', command)
@@ -53,7 +53,7 @@ try:
     g.call('interact', '0', '71', '2'); g.call('wait', '10')
     click(hotbar('minecraft:coal')); click(327)
     click(hotbar('minecraft:copper_ingot')); click(300)
-    g.call('wait', '500', timeout=45)
+    for _ in range(7): g.call('wait', '400', timeout=45)
     g.call('screenshot', str(run / 'melter-filled.png'))
     assert not any(slot.get('slot') == 300 and slot.get('stack') for slot in g.call('menu')['slots'])
     g.call('close'); g.call('save'); g.stop(); g.cleanup()

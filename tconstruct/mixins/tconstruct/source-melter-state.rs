@@ -53,6 +53,13 @@ impl Melter {
     pub(super) fn new() -> Self {
         Self { slots: [None, None, None], progress: [0; 3], tank: Tank::new(MELTER_CAPACITY), phase: 0, fuel: 0, temperature: 0, rate: 0 }
     }
+    /// A full output tank leaves a completed slot waiting without demanding
+    /// additional fuel. It still retries output when space becomes available.
+    pub(super) fn can_heat_slot(&self, slot: usize, temperature: u32, required_temp: u32) -> bool {
+        self.slots.get(slot).is_some_and(Option::is_some)
+            && self.progress.get(slot).is_some_and(|progress| *progress != -1)
+            && temperature >= required_temp
+    }
     /// Advance one source heat step. A finished item is consumed only after the
     /// entire output fits, and a blocked item stays hot instead of cooling.
     pub(super) fn heat_slot(&mut self, slot: usize, required_temp: u32, required_time: u32, fluid: &str, amount: u32) -> bool {
@@ -112,6 +119,18 @@ mod tests {
         assert_eq!(m.tank.take(90).as_deref(), Some("tconstruct:molten_copper"));
         assert!(m.heat_slot(0, 500, 50, "tconstruct:molten_copper", 90));
         assert_eq!(m.slots[0].as_ref().unwrap().count, 1); assert_eq!(m.tank.amount, MELTER_CAPACITY);
+    }
+    #[test]
+    fn full_output_does_not_request_fuel_and_finishes_after_space_is_freed() {
+        let mut melter = Melter::new();
+        melter.slots[0] = Some(ItemStack::new("minecraft:copper_ingot", 1));
+        melter.progress[0] = -1;
+        assert!(melter.tank.insert("tconstruct:molten_copper", MELTER_CAPACITY));
+        assert!(!melter.can_heat_slot(0, 800, 500));
+        assert_eq!(melter.tank.take(90).as_deref(), Some("tconstruct:molten_copper"));
+        assert!(melter.heat_slot(0, 500, 500, "tconstruct:molten_copper", 90));
+        assert!(melter.slots[0].is_none());
+        assert_eq!(melter.tank.amount, MELTER_CAPACITY);
     }
     #[test]
     fn tank_rejects_mixing_and_state_round_trips() {

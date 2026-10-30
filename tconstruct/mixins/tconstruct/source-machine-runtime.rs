@@ -89,7 +89,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     } else { vec![None; melter.slots.len()] };
     if melter.phase == 0 && has_heater && melter.fuel == 0 {
         if let Some((temperature, rate)) = solid_fuel_rule(game) {
-            if recipes.iter().flatten().any(|(_, recipe, _)| recipe.temperature <= temperature) {
+            if recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
+                melter.can_heat_slot(slot, temperature, recipe.temperature))) {
                 let fuel = match game.world.block_entities.get(&below) {
                     Some(BlockEntity::Chest(slots)) => slots.first().and_then(Clone::clone), _ => None,
                 };
@@ -117,7 +118,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
         for (index, recipe) in recipes.iter().enumerate() {
             if let Some((_, recipe, fluid)) = recipe {
                 if burning || melter.progress[index] == -1 {
-                    melter.heat_slot(index, recipe.temperature, recipe.time, fluid, recipe.output.amount);
+                    // MeltingModule stores recipe time in tenths of a heat step.
+                    melter.heat_slot(index, recipe.temperature, recipe.time * 10, fluid, recipe.output.amount);
                 } else { melter.cool_slot(index); }
             } else { melter.progress[index] = 0; }
         }

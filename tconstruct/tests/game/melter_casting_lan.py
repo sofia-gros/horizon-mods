@@ -55,7 +55,7 @@ try:
     click(guest, hotbar(guest, 'minecraft:coal')); click(guest, 327)
     click(guest, hotbar(guest, 'minecraft:copper_ingot')); click(guest, 300)
     wait('shared input', lambda: all(slots(game).get(300, {}).get('item') == 'minecraft:copper_ingot' for game in games))
-    host.call('wait', '200', timeout=45)
+    host.call('wait', '400', timeout=45)
     wait('melted input', lambda: all(300 not in slots(game) for game in games))
     guest.call('screenshot', str(run / 'melter-lan.png'))
     for game in games: game.call('close')
