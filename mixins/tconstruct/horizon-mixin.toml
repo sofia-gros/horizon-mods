@@ -1144,6 +1144,30 @@ bindings = [
 ]
 
 [[injection]]
+id = "builder-double-client-slot"
+target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-client-slot.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "container", ty = "i32", value = "container" },
+  { name = "slot", ty = "i32", value = "slot" },
+  { name = "item", ty = "&Option<ItemStack>", value = "&item" },
+]
+
+[[injection]]
+id = "builder-double-client-click"
+target = "horizon_client::game::remote::Game<'_>::remote_menu_ops"
+kind = "HEAD"
+cancellable = true
+helper = "source-double-client-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
+
+[[injection]]
 id = "builder-side-parts"
 target = "horizon_client::game::storage::Game<'_>::container_parts"
 kind = "HEAD"

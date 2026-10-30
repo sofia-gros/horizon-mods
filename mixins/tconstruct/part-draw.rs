@@ -6,10 +6,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let count = if game.remote.is_some() {
             game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size() - 27)
         } else { game.container_size() - 27 };
-        batch.fill(atlas, ox - 117.0, oy + 5.0, 60.0, (count.div_ceil(3) as f32 * 18.0) + 6.0, horizon_client::hud::rgba(198, 198, 198, 255));
+        let columns = if count > 27 { 6 } else { 3 };
+        let left = if columns == 6 { -171.0 } else { -117.0 };
+        batch.fill(atlas, ox + left, oy + 5.0, (columns as f32 * 18.0) + 6.0, (count.div_ceil(columns) as f32 * 18.0) + 6.0, horizon_client::hud::rgba(198, 198, 198, 255));
         for i in 0..count {
-            let x = ox - 115.0 + (i % 3) as f32 * 18.0;
-            let y = oy + 7.0 + (i / 3) as f32 * 18.0;
+            let x = ox + left + 2.0 + (i % columns) as f32 * 18.0;
+            let y = oy + 7.0 + (i / columns) as f32 * 18.0;
             batch.sprite(atlas, "gui/sprites/container/slot", x, y);
         }
     }

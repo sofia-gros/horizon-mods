@@ -19,8 +19,10 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
             let count = if game.remote.is_some() {
                 game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
             } else { game.container_size().saturating_sub(27) };
+            let columns = if count > 27 { 6 } else { 3 };
+            let left = if columns == 6 { -168.0 } else { -114.0 };
             if slot - 327 >= count { (-10000.0, -10000.0) }
-            else { (-114.0 + ((slot - 327) % 3) as f32 * 18.0, 8.0 + ((slot - 327) / 3) as f32 * 18.0) }
+            else { (left + ((slot - 327) % columns) as f32 * 18.0, 8.0 + ((slot - 327) / columns) as f32 * 18.0) }
         },
         _ => return std::ops::ControlFlow::Continue(()),
     };

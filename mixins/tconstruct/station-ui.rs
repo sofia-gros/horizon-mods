@@ -2,7 +2,7 @@ use super::*;
 pub(super) fn kind(game: &Game<'_>) -> Option<bool> {
     if game.remote.is_some() {
         return match game.remote_menu_title().map(|t| t.plain()).as_deref() {
-            Some("TConstruct Part Builder") => Some(false),
+            Some("TConstruct Part Builder" | "TConstruct Part Builder Double") => Some(false),
             Some("TConstruct Tinker Station") => Some(true),
             _ => None,
         };
