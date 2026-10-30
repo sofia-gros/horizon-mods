@@ -20,12 +20,18 @@ class ResourceOverlay(unittest.TestCase):
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
                    'minecraft:stone_axe': {}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
+            creative = {'tabs': [{'id': 'minecraft:hotbar', 'type': 'HOTBAR', 'row': 'TOP', 'column': 5}]}
+            (src / 'creative-inventory.json').write_text(json.dumps(creative))
             (src / 'items.json').write_text(json.dumps(raw))
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
             (src / 'assets/minecraft/textures/gui').mkdir(parents=True)
             subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], check=True)
             self.assertEqual(json.loads((src / 'items.json').read_text()), raw)
+            self.assertEqual(json.loads((src / 'creative-inventory.json').read_text()), creative)
+            tabs = json.loads((out / 'creative-inventory.json').read_text())['tabs']
+            self.assertEqual(tabs[-1]['id'], 'tconstruct:tools')
+            self.assertEqual(tabs[-1]['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             items = json.loads((out / 'items.json').read_text())
             ids = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
             names = ['tconstruct:flint_pick_head', 'tconstruct:wood_binding', 'tconstruct:wood_handle', 'tconstruct:flint_pickaxe', 'tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding', 'tconstruct:pickaxe']

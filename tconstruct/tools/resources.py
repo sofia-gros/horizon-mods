@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Create a separate, disposable resource overlay for the prototype."""
-import argparse, copy, hashlib, json, shutil, zipfile
+import argparse, copy, hashlib, json, shutil, sys, zipfile
 from pathlib import Path
 from import_part_visuals import MATERIAL_MODELS
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from pluto_lib.creative import add_tabs
 
 def link_or_copy(source, destination):
     """Preserve the source; Windows may deny symlink creation without developer mode."""
@@ -31,7 +33,7 @@ if (src / 'assets/tconstruct').exists():
     p.error('source already contains a tconstruct asset namespace')
 out.mkdir(parents=True)
 for path in src.iterdir():
-    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'assets'}:
+    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'creative-inventory.json', 'assets'}:
         link_or_copy(path, out / path.name)
 # Keep the source notices in the generated resource distribution as well.
 licenses = out / 'THIRD_PARTY_LICENSES'
@@ -306,3 +308,9 @@ next_id = max(v['protocol_id'] for v in ids.values()) + 1
 for index, (name, _, _) in enumerate(entries):
     ids[name] = {'protocol_id': next_id + index}
 (out / 'registries.json').write_text(json.dumps(registries))
+
+# Keep the prepared vanilla data untouched and append mod tabs to the overlay.
+creative = src / 'creative-inventory.json'
+if creative.is_file():
+    tabs = json.loads((repository / 'content/creative-tabs.json').read_text())
+    (out / 'creative-inventory.json').write_text(json.dumps(add_tabs(json.loads(creative.read_text()), tabs)))
