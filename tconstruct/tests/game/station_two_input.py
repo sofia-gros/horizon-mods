@@ -49,6 +49,19 @@ try:
     inputs = {slot['slot']: slot['stack']['item'] for slot in rejected['slots']}
     assert inputs.get(300) == 'tconstruct:small_blade' and inputs.get(301) == 'tconstruct:tool_handle', inputs
     click(stick)
+    # Removing an ingredient invalidates the result and clears its old name.
+    game.call('click-gui', '85', '10'); type_text(game, 'stale'); game.call('wait', '10')
+    click(300); click(300)
+    click(324)
+    restored = game.call('menu')['carried'] or {}
+    assert restored.get('item') == 'tconstruct:dagger' and restored.get('custom_name') is None, restored
+    empty = next(s['slot'] for s in game.call('inventory')['hotbar'] if not s.get('item'))
+    click(empty)
+    for text in ('give @s tconstruct:small_blade[minecraft:custom_data={Material:"tconstruct:flint"}] 1',
+                 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+        cmd(text)
+    click(hotbar('tconstruct:small_blade')); click(300)
+    click(hotbar('tconstruct:tool_handle')); click(301)
     # Clear an entered name and confirm that the result keeps its default name.
     game.call('click-gui', '85', '10'); type_text(game, 'cancel'); game.call('wait', '10')
     for _ in 'cancel': game.call('type-back')

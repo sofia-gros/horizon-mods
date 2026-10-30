@@ -49,6 +49,9 @@ try:
   q.call('click-gui','-11','18');q.call('wait','5')
  if a.name:
   if not a.guest_only: raise ValueError('--name requires --guest-only')
+  q.call('click-gui','85','10');type_text(q,'stale');q.call('wait','15')
+  click(q,300);wait('guest preview invalidated',lambda:slots(q).get(324,{}).get('item')!=result)
+  click(q,300);wait('guest preview restored',lambda:slots(q).get(324,{}).get('item')==result)
   q.call('click-gui','85','10');type_text(q,'mossy');q.call('wait','15')
  h.call('wait','20');q.call('wait','20')
  h.call('screenshot',str(run/'host-station.png'));q.call('screenshot',str(run/'guest-station.png'))
