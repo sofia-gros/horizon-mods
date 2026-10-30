@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidSpec, MeltingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidFuel, FluidSpec, MeltingRecipe, Output};
 
 pub(super) struct Catalog<'a> {
     pub recipes: &'a BTreeMap<String, Vec<u8>>,
@@ -36,6 +36,13 @@ impl Catalog<'_> {
                 values.next().is_none().then_some(value)
             }
         }
+    }
+    pub(super) fn fluid_fuel(&self, fluid: &str, available: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<FluidFuel> {
+        for bytes in self.recipes.values() {
+            let Some(fuel) = FluidFuel::parse(bytes, conditions) else { continue; };
+            if available >= fuel.fluid.amount && self.matches_fluid(&fuel.fluid, fluid) { return Some(fuel); }
+        }
+        None
     }
     /// Match source ingredients in order, using each stored fluid at most once.
     /// Conditions and tags are evaluated against this world's snapshots.
@@ -113,6 +120,16 @@ mod tests {
         let (_, inputs, output, amount) = catalog.alloy(&stored, 700, &|_| true).unwrap();
         assert_eq!((inputs.len(), output.as_str(), amount), (2, "tconstruct:bronze", 360));
         assert!(catalog.alloy(&stored[..1], 700, &|_| true).is_none());
+    }
+    #[test]
+    fn fluid_fuel_requires_known_fluid_and_enough_amount() {
+        let recipes = [("lava".into(), br#"{"type":"tconstruct:melting_fuel","duration":100,"fluid":{"amount":50,"fluid":"minecraft:lava"},"rate":10,"temperature":1000}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let items = HashSet::new(); let tags = HashMap::new();
+        let fluids = ["minecraft:lava".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        assert!(catalog.fluid_fuel("minecraft:lava", 49, &|_| true).is_none());
+        assert_eq!(catalog.fluid_fuel("minecraft:lava", 50, &|_| true).unwrap().duration, 100);
+        assert!(catalog.fluid_fuel("minecraft:water", 50, &|_| true).is_none());
     }
     #[test]
     fn copper_round_trip_uses_resolved_tags_and_rejects_ambiguous_outputs() {
