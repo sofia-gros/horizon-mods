@@ -2,6 +2,17 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     if crate::game::tconstruct_ui::is_melter(game) {
         let atlas = &game.gui.atlas;
         batch.sprite_region(atlas, "gui/tconstruct_melter", [ox, oy, 176.0, 166.0], 256.0, 256.0);
+        let has_heater = if game.remote.is_some() {
+            game.remote_chest_menu().is_some_and(|(rows, _)| rows == 6)
+        } else { game.container_size() > 27 };
+        if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_melter").copied() {
+            let du = (sprite.u1 - sprite.u0) / sprite.w as f32;
+            let dv = (sprite.v1 - sprite.v0) / sprite.h as f32;
+            let (x, width, sx) = if has_heater { (150.0, 18.0, 176.0) } else { (152.0, 14.0, 194.0) };
+            sprite.u0 += sx * du; sprite.v0 += 52.0 * dv;
+            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + 36.0 * dv;
+            batch.rect_uv(ox + x, oy + 31.0, width, 36.0, sprite, u32::MAX);
+        }
         let title = game.pack.names.display_get("container.tconstruct.melter").unwrap_or_else(|| "Melter".to_owned());
         let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
         let color = horizon_client::hud::rgba(64, 64, 64, 255);
