@@ -1,7 +1,6 @@
 """Exercise an adjacent inventory and source crafting through the builder GUI."""
 import argparse
 import json
-import tempfile
 import time
 from pathlib import Path
 from harness import Game
@@ -11,10 +10,12 @@ p.add_argument('--game', type=Path, required=True)
 p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
 a = p.parse_args()
-run = Path(tempfile.mkdtemp(prefix='builder-side-', dir=Path('target').resolve()))
+run = a.run_dir.resolve()
+run.mkdir(parents=True, exist_ok=True)
 print('run', run, flush=True)
-g = Game(a, run, 'Player', in_frame=a.in_frame)
+g = Game(a, run, 'Player', in_frame=a.in_frame, resume=(run / 'Player').exists())
 def click(slot, *flags):
     g.call('click-slot', str(slot), *flags); g.call('wait', '3')
 def slots():
