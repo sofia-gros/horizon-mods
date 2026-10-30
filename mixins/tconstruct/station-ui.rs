@@ -57,7 +57,6 @@ pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source
 pub(super) fn station_accepts_output(game: &Game<'_>, stack: &horizon_items::items::ItemStack) -> bool {
     let Some(key) = game.container else { return false; };
     let Some(selected) = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key) else { return true; };
-    if !selected.contains(":tinkering/station_layouts/") { return true; }
     station_layouts(game).iter().find(|layout| &layout.id == selected)
         .and_then(|layout| layout.icon.get("item")).and_then(serde_json::Value::as_str) == Some(stack.item.as_ref())
 }
