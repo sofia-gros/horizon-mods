@@ -48,14 +48,17 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     }
     let Some(slot) = game.slot_at(&batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if station && std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
-        eprintln!("tconstruct station pointer slot={slot} remote={} right={right}", game.remote.is_some());
+        eprintln!("station trace pointer window={} slot={slot} remote={} right={right} shift={}", game.remote_menu_id(), game.remote.is_some(), game.has_shift_down());
+        if slot == 324 {
+            if let Some(entity) = game.container_kind() { crate::game::tconstruct_source_station_recipes::trace_test_parts(entity.slots()); }
+        }
     }
     if !station && (324..=326).contains(&slot) { return Break(true); }
     if game.remote.is_some() {
         if station && slot == 324 {
             let output = game.container_kind().and_then(|entity| entity.slots().get(24)).and_then(Option::as_ref);
             if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
-                eprintln!("tconstruct station remote guard output={} allowed={}", output.is_some(), output.is_none_or(|stack| crate::game::tconstruct_ui::station_accepts_output(game, stack)));
+                eprintln!("station trace guard output={} allowed={} selected={}", output.is_some(), output.is_none_or(|stack| crate::game::tconstruct_ui::station_accepts_output(game, stack)), game.world.chunks.__horizon_mixins_tconstruct_part_selections().contains_key(&key));
             }
             if output.is_some_and(|stack| !crate::game::tconstruct_ui::station_accepts_output(game, stack)) { return Break(true); }
         }
