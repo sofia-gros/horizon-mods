@@ -459,6 +459,16 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "resolved-block-tags"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "fluid-tag-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"

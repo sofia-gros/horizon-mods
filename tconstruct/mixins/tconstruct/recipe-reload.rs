@@ -3,6 +3,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let mut recipes = std::collections::BTreeMap::new();
     let mut tags = std::collections::BTreeMap::new();
     let mut fluid_tags = std::collections::BTreeMap::new();
+    let mut block_tags = std::collections::BTreeMap::new();
     let mut materials = std::collections::BTreeMap::new();
     let mut material_tags = std::collections::BTreeMap::new();
     fn merge(
@@ -10,6 +11,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         recipes: &mut std::collections::BTreeMap<String, Vec<u8>>,
         tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         fluid_tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
+        block_tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         materials: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         material_tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
     ) {
@@ -17,21 +19,22 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         crate::game::tconstruct_recipes::merge_pack(recipes, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_tags(tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_fluid_tags(fluid_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
+        crate::game::tconstruct_source_tags::merge_pack_block_tags(block_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_materials::merge_pack(materials, material_tags, files, |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
     }
     if !game.cmds.vanilla_disabled {
         let builtin = horizon_client::datapack::DataPack::builtin(&game.options.resources);
-        merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut materials, &mut material_tags);
+        merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
-        merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut materials, &mut material_tags);
+        merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
     }
     let forge = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("forge-original-pack"));
-    merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut materials, &mut material_tags);
+    merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
     let original = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("tconstruct-original-pack"));
-    merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut materials, &mut material_tags);
+    merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
     for id in &game.fns.enabled {
         if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) {
-            merge(pack, &mut recipes, &mut tags, &mut fluid_tags, &mut materials, &mut material_tags);
+            merge(pack, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
         }
     }
     let resolved_tags = game.res.rest.get().map(|rest| {
@@ -40,6 +43,14 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     });
     // Resolve against the actual Horizon built-in registry. This may be a
     // strict subset of the original mod's fluids until those are ported.
+    let resolved_blocks = horizon_protocol::registry::Builtin::find(&game.options.resources)
+        .ok_or_else(|| "missing built-in registry report".to_owned())
+        .and_then(|path| horizon_protocol::registry::Builtin::load(&path).map_err(|error| error.to_string()))
+        .and_then(|builtin| {
+            let ids = builtin.get("minecraft:block").ok_or_else(|| "missing block registry".to_owned())?;
+            let registry = ids.names.iter().filter(|id| !id.is_empty()).cloned().collect();
+            crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)
+        });
     let resolved_fluids = horizon_protocol::registry::Builtin::find(&game.options.resources)
         .ok_or_else(|| "missing built-in registry report".to_owned())
         .and_then(|path| horizon_protocol::registry::Builtin::load(&path).map_err(|error| error.to_string()))
@@ -125,6 +136,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_source_native_durability_mut() = durability;
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
+    *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags_mut() = Some(resolved_blocks);
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = Some(resolved_fluids);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = Some(definitions);
