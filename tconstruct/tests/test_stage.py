@@ -42,9 +42,9 @@ class StageExport(unittest.TestCase):
 set -eu
 [ "$(cat marker)" = committed ]
 while [ "$1" != "--target-dir" ]; do shift; done
-mkdir -p "$2/debug"
-printf '#!/bin/sh\\nexit 0\\n' > "$2/debug/horizon-mixins"
-chmod +x "$2/debug/horizon-mixins"
+mkdir -p "$2/release"
+printf '#!/bin/sh\\nexit 0\\n' > "$2/release/horizon-mixins"
+chmod +x "$2/release/horizon-mixins"
 ''')
             cargo.chmod(0o755)
             env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ['PATH'])

@@ -36,6 +36,6 @@ extract_git_tar(proc.stdout, source)
 if proc.wait():
     raise SystemExit('Mixins git archive failed')
 cli_target = root / 'target/mixins-cli-build'
-subprocess.run(['cargo', 'build', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
-cli = cli_target / 'debug' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
+subprocess.run(['cargo', 'build', '--release', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
+cli = cli_target / 'release' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
 subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(mods), '--out', str(output / 'modded')], check=True)
