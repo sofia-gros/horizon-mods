@@ -62,19 +62,21 @@ try:
     click(324)
     assert (g.call('menu')['carried'] or {}).get('item') == 'tconstruct:pickaxe'
     click(empty_hotbar()); g.call('close')
-    pick = hotbar('tconstruct:pickaxe'); g.call('command', f'item replace entity @s weapon.mainhand from entity @s hotbar.{pick}')
+    pick = hotbar('tconstruct:pickaxe'); g.call('hotbar', str(pick + 1))
     g.call('command', 'gamemode survival @s'); g.call('command', 'setblock 0 71 1 minecraft:stone')
     g.call('wait', '10'); g.call('break', '0', '71', '1', '--timeout', '30', timeout=35)
     assert g.call('inventory')['held'].get('damage', 0) > 0
     g.call('command', 'gamemode creative @s'); g.call('interact', '2', '71', '2'); g.call('wait', '10')
-    click(0); click(300); click(hotbar('minecraft:flint')); click(301); click(325)
+    click(pick); click(300); click(hotbar('minecraft:flint')); click(301); click(325)
     assert (g.call('menu')['carried'] or {}).get('item') == 'tconstruct:pickaxe'
-    click(0); g.call('close')
+    click(pick)
+    if 301 in slot_values(): click(301); click(empty_hotbar())
+    g.call('close')
     g.call('interact', '2', '71', '2'); g.call('wait', '10')
-    click(0); click(300); click(hotbar('tconstruct:pick_head')); click(301); click(325)
+    click(pick); click(300); click(hotbar('tconstruct:pick_head')); click(301); click(325)
     out = g.call('menu')['carried'] or {}
     assert out.get('item') == 'tconstruct:pickaxe' and 'tconstruct:wood' in out.get('components', '')
-    click(0); g.call('screenshot', str(run / 'station-replaced.png'))
+    click(pick); g.call('screenshot', str(run / 'station-replaced.png'))
     g.call('close'); g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
     assert any(s.get('item') == 'tconstruct:pickaxe' and 'tconstruct:wood' in s.get('components', '') for s in g.call('inventory')['hotbar'])
