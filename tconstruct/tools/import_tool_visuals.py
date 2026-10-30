@@ -29,6 +29,15 @@ with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tc
             value = json.loads(recipes.read(path))
             if value.get('type') == 'tconstruct:tool_building':
                 names.add(value['result'].split(':', 1)[1] + '.json')
+# The definition ID for the slime chestplate predates its registered item ID.
+# Include every registered definition's original item model, not just tools
+# obtainable from tool-building recipes.
+with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-tool-definitions.zip') as definitions:
+    for path in definitions.namelist():
+        if path.endswith('.json'):
+            short = PurePosixPath(path).stem
+            names.add(('slimy_chestplate' if short == 'slime_chestplate' else short) + '.json')
+names.add('crystalshot.json')
 with tarfile.open(fileobj=io.BytesIO(raw)) as source, zipfile.ZipFile(a.output, 'x', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as target:
     files = sorted((entry for entry in source if entry.isfile()), key=lambda entry: entry.name)
     for entry in files:
