@@ -105,7 +105,12 @@ fn prepare_tconstruct_resources() {
                     }
                 }
             }
-            std::fs::write(creative_path, serde_json::to_vec(&creative)?)?;
+            // The prepared output initially links to the input overlay. Replace
+            // the link itself so the original creative data stays untouched.
+            let temp = out.join("creative-inventory.json.tmp");
+            std::fs::write(&temp, serde_json::to_vec(&creative)?)?;
+            std::fs::remove_file(&creative_path)?;
+            std::fs::rename(temp, creative_path)?;
         }
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
