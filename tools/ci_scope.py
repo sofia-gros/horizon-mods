@@ -22,7 +22,7 @@ def ancestor(older, newer):
 def main():
     event = json.loads(Path(os.environ['GITHUB_EVENT_PATH']).read_text())
     pr = event.get('pull_request')
-    if not pr or pr['head']['repo']['full_name'] != os.environ['GITHUB_REPOSITORY']:
+    if not pr or (pr['head'].get('repo') or {}).get('full_name') != os.environ['GITHUB_REPOSITORY']:
         return False
     head, base = pr['head']['sha'], pr['base']['sha']
     print(f'CI_VERIFIED_BASE={base}')

@@ -69,3 +69,7 @@ class Scope(unittest.TestCase):
             with patch.dict(os.environ, env), patch.object(subprocess, 'run') as run:
                 self.assertFalse(ci_scope.main())
                 run.assert_not_called()
+            event['pull_request']['head']['repo'] = None
+            path.write_text(json.dumps(event))
+            with patch.dict(os.environ, env):
+                self.assertFalse(ci_scope.main())
