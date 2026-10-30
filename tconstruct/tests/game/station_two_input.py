@@ -61,6 +61,20 @@ try:
     assert result.get('count') == 2, result
     assert result.get('custom_name') == 'mossy', result
     click(0)
+    # A second identical pair cannot fit on the full cursor stack; inputs
+    # must remain untouched when the result is clicked.
+    for text in ('give @s tconstruct:small_blade[minecraft:custom_data={Material:"tconstruct:flint"}] 1',
+                 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+        cmd(text)
+    click(hotbar('tconstruct:small_blade')); click(300)
+    click(hotbar('tconstruct:tool_handle')); click(301)
+    game.call('click-gui', '85', '10'); type_text(game, 'mossy'); game.call('wait', '10')
+    click(0); click(324)
+    rejected = game.call('menu')
+    assert (rejected['carried'] or {}).get('count') == 2 and (rejected['carried'] or {}).get('custom_name') == 'mossy', rejected
+    inputs = {slot['slot']: slot['stack']['item'] for slot in rejected['slots']}
+    assert inputs.get(300) == 'tconstruct:small_blade' and inputs.get(301) == 'tconstruct:tool_handle', inputs
+    click(0)
     game.call('close')
     game.stop()
     game = Game(args, run, 'Player', in_frame=args.in_frame, resume=True)
