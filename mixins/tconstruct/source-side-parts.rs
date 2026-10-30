@@ -3,6 +3,6 @@ fn tconstruct_side_parts(game: &crate::game::Game<'_>) -> std::ops::ControlFlow<
     if game.remote.is_some() || crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
     let Some(key) = game.container else { return Continue(()); };
     let Some(&side) = game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&key) else { return Continue(()); };
-    if !game.world.block_entities.contains_key(&side) { return Continue(()); }
-    Break(vec![(key, 27), (side, 27)])
+    let Some(entity) = game.world.block_entities.get(&side) else { return Continue(()); };
+    Break(vec![(key, 27), (side, entity.slots().len())])
 }

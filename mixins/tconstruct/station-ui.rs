@@ -15,7 +15,7 @@ pub(super) fn kind(game: &Game<'_>) -> Option<bool> {
     }
 }
 
-/// Select the first compatible adjacent 27-slot container when the menu opens.
+/// Select the first adjacent container that fits the existing menu protocol.
 pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32)) -> Option<(i32, i32, i32)> {
     [(0, -1), (1, 0), (0, 1), (-1, 0)].into_iter().find_map(|(dx, dz)| {
         let pos = (key.0 + dx, key.1, key.2 + dz);
@@ -23,7 +23,7 @@ pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32)) -> Option<(i
         if matches!(&**name, "tconstruct:part_builder" | "tconstruct:tinker_station") || name.ends_with("shulker_box")
             || game.chest_partner(pos).is_some() { return None; }
         match game.world.block_entities.get(&pos) {
-            Some(BlockEntity::Chest(items)) if items.len() == 27 => Some(pos),
+            Some(BlockEntity::Chest(items)) if matches!(items.len(), 9 | 27) => Some(pos),
             _ => None,
         }
     })

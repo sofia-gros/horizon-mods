@@ -11,6 +11,7 @@ p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
 p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
+p.add_argument('--side-block', choices=('minecraft:chest', 'minecraft:dispenser', 'minecraft:dropper'), default='minecraft:chest')
 a = p.parse_args()
 run = a.run_dir.resolve()
 run.mkdir(parents=True, exist_ok=True)
@@ -30,7 +31,7 @@ try:
     for command in ('fill -2 70 -2 3 70 3 minecraft:stone', 'clear @a',
                     'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5',
                     'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
-                    'setblock 0 71 2 tconstruct:part_builder', 'setblock 1 71 2 minecraft:chest',
+                    'setblock 0 71 2 tconstruct:part_builder', f'setblock 1 71 2 {a.side_block}',
                     'give @s tconstruct:pattern 1', 'give @s minecraft:oak_log 1', 'give Guest minecraft:stick 1'):
         host.call('command', command)
     for g in games:

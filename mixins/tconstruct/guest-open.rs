@@ -12,6 +12,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let Some(items) = host.hub.guest(conn).and_then(|g| slots.read(&game.world, g)) else { return Break(false); };
     game.guest_container_closed(host, conn);
     game.lan_station_closed(host, conn, None);
-    host.hub.open_container(conn, if side.is_some() { "minecraft:generic_9x6" } else { "minecraft:generic_9x3" }, horizon_protocol::text::literal(title), pos, slots, items);
+    let menu = match items.len() { 36 => "minecraft:generic_9x4", 54 => "minecraft:generic_9x6", _ => "minecraft:generic_9x3" };
+    host.hub.open_container(conn, menu, horizon_protocol::text::literal(title), pos, slots, items);
     Break(true)
 }
