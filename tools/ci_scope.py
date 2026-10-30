@@ -10,7 +10,7 @@ DOC_EXTENSIONS = {'.md', '.rst', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp
 
 def documentation_only(paths):
     return bool(paths) and all(
-        path == 'README.md' or path.startswith('docs/') and Path(path).suffix.lower() in DOC_EXTENSIONS
+        path == 'README.md' or (path.startswith('docs/') or (len(Path(path).parts) >= 2 and Path(path).parts[1] == 'docs') or (len(Path(path).parts) == 2 and Path(path).name == 'README.md')) and Path(path).suffix.lower() in DOC_EXTENSIONS
         for path in paths
     )
 

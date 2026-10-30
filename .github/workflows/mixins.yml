@@ -39,34 +39,35 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target/mixins-cli-build
+            tconstruct/target/mixins-cli-build
             target/ci-build
-          key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json') }}-${{ github.sha }}
+          key: ${{ runner.os }}-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-cargo-1.95-${{ hashFiles('compatibility.json') }}-
+            ${{ runner.os }}-cargo-1.95-${{ hashFiles('tconstruct/compatibility.json') }}-
       - name: Test resource preparation and command transactions
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           python3 -m unittest discover -s tests -v
-          rustc --test tests/rust/command.rs -o /tmp/tconstruct-command-test
+          python3 -m unittest discover -s tconstruct/tests -v
+          rustc --test tconstruct/tests/rust/command.rs -o /tmp/tconstruct-command-test
           /tmp/tconstruct-command-test
-          rustc --test tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
+          rustc --test tconstruct/tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
           /tmp/tconstruct-recipe-snapshot-test
-          rustc --test tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
+          rustc --test tconstruct/tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
           /tmp/tconstruct-material-snapshot-test
-          rustc --test tests/rust/source_config.rs -o /tmp/tconstruct-source-config-test
+          rustc --test tconstruct/tests/rust/source_config.rs -o /tmp/tconstruct-source-config-test
           /tmp/tconstruct-source-config-test
-          rustc --test tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
+          rustc --test tconstruct/tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
           /tmp/tconstruct-source-builder-wire-test
-          rustc --test tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
+          rustc --test tconstruct/tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
           /tmp/tconstruct-source-builder-layout-test
-          rustc --edition=2021 --test tests/rust/source_cast_info.rs -o /tmp/tconstruct-cast-info-test
+          rustc --edition=2021 --test tconstruct/tests/rust/source_cast_info.rs -o /tmp/tconstruct-cast-info-test
           /tmp/tconstruct-cast-info-test
-          rustc --edition=2021 --test tests/rust/native_item_durability.rs -o /tmp/tconstruct-native-item-test
+          rustc --edition=2021 --test tconstruct/tests/rust/native_item_durability.rs -o /tmp/tconstruct-native-item-test
           /tmp/tconstruct-native-item-test
-          rustc --test tests/rust/original_item_durability.rs -o /tmp/tconstruct-original-item-test
+          rustc --test tconstruct/tests/rust/original_item_durability.rs -o /tmp/tconstruct-original-item-test
           /tmp/tconstruct-original-item-test
-          rustc --test tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test
+          rustc --test tconstruct/tests/rust/original_crafting_remainders.rs -o /tmp/tconstruct-original-remainder-test
           /tmp/tconstruct-original-remainder-test
       - name: Fetch pinned upstream sources
         if: steps.scope.outputs.docs_only != 'true'
@@ -78,13 +79,13 @@ jobs:
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          python3 tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
-          cargo check --locked --manifest-path target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_recipe_order::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_stat_types::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_render_info::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
-          cargo test --locked --manifest-path target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests
+          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins
+          cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_recipe_order::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_stat_types::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_render_info::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests

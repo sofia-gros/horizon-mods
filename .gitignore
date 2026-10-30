@@ -2,3 +2,5 @@
 /.local/
 /Tinkers' onstruct/
 __pycache__/
+
+/tconstruct/target/
