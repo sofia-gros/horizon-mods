@@ -116,6 +116,9 @@ class ResourceOverlay(unittest.TestCase):
             generic = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/generic.png').read_bytes()
             self.assertEqual(hashlib.sha256(generic).hexdigest(), '3f0f7b1e4df1111d40589d29258a740973bc8351a79a3ba2e62a937e1f41c3aa')
             self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_generic.png').read_bytes(), generic)
+            panel = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/panel.png').read_bytes()
+            self.assertEqual(hashlib.sha256(panel).hexdigest(), '6dce4d43b21133c75d774dfb3043bec34f9b326b9b3dd9475ff6973a8b329916')
+            self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_panel.png').read_bytes(), panel)
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             manifest = Path(__file__).resolve().parents[1] / 'docs/upstream-patterns.sha256'
             rows = manifest.read_text().splitlines()

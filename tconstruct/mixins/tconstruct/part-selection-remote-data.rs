@@ -31,6 +31,29 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
         }
         return Break(());
     }
+    if id >= 31000 {
+        if let Some(key) = game.container {
+            if id == 31000 && value == -1 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().insert(key, Vec::new());
+            } else if id == 31000 && value == -2 {
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);
+                game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
+            } else if id == 31000 && value >= 0 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
+                let info = pending.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words));
+                if let Some(info) = info.filter(|info| info.len() == 3) {
+                    game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().insert(key, info);
+                }
+            } else if id > 31000 {
+                let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut();
+                if let Some(words) = pending.get_mut(&key) {
+                    if words.len() == id - 31001 { words.push(value); } else { pending.remove(&key); }
+                }
+            }
+        }
+        return Break(());
+    }
     // Reserved ids are above the maximum Pattern-frame data-slot range.
     if id >= 20000 {
         if let Some(key) = game.container {

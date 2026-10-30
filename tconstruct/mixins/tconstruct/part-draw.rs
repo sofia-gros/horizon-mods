@@ -105,6 +105,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             }
         }
     } else {
+        crate::game::tconstruct_builder_info_ui::draw(game, batch, ox, oy);
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.container_kind() {
             if let Some(icon) = atlas.sprites.get("gui/tconstruct_icons").copied() {
                 let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);

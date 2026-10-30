@@ -46,3 +46,7 @@ original screenshot is unavailable, comparisons use the source and assets.
 The adjacent inventory panel uses `textures/gui/generic.png` from the same
 upstream revision as the other station textures; the resource test checks its
 hash and includes it in the prepared GUI atlas.
+The Part Builder information panel uses the upstream `panel.png`. Its displayed
+recipe cost and input value come from the active recipe data, including on LAN.
+Material statistics, traits and the source's complete recipe descriptions still
+need to be connected; the panel is not yet a complete original implementation.

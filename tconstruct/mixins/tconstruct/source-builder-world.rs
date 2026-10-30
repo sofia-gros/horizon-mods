@@ -63,6 +63,25 @@ fn cached_material(world: &super::tconstruct_world::World, pos: (i32, i32, i32),
     serde_json::from_slice(bytes).ok()
 }
 
+/// The selected recipe cost and the exact value of the current input stack.
+/// Values are sent to LAN viewers from the authoritative recipe snapshot.
+pub(super) fn display_info(world: &super::tconstruct_world::World, pos: (i32, i32, i32)) -> Vec<String> {
+    let chunks = &world.chunks;
+    let cost = chunks.__horizon_mixins_tconstruct_source_selection_origin().get(&pos)
+        .and_then(|(_, id, _)| chunks.__horizon_mixins_tconstruct_builder_recipe_context().get(&pos)
+            .and_then(|(_, recipes, _)| recipes.get(id)))
+        .and_then(|bytes| serde_json::from_slice(bytes).ok())
+        .and_then(|value| tx::SourcePartRecipe::parse(String::new(), &value))
+        .map_or(0, |recipe| recipe.cost);
+    let material = world.block_entities.get(&pos).and_then(|entity| entity.slots().get(1)).and_then(Option::as_ref);
+    let found = cached_material(world, pos, material).flatten();
+    let (id, value) = if let (Some(stack), Some(found)) = (material, found) {
+        if found.needed > 0 { (found.material, stack.count as f64 * f64::from(found.value) / f64::from(found.needed)) }
+        else { (String::new(), 0.0) }
+    } else { (String::new(), 0.0) };
+    vec![cost.to_string(), if id.is_empty() { "-".into() } else { id }, value.to_string()]
+}
+
 pub(super) fn lookup_material(world: &super::tconstruct_world::World, material: &ItemStack) -> Result<Option<tx::SourceMaterialMatch>, SourceLookupError> {
     let chunks = &world.chunks;
     let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;

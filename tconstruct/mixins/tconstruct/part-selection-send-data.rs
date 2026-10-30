@@ -68,6 +68,11 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 || registry.names.iter().filter(|id| !id.is_empty()).cloned().collect())
         });
         let preview_key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
+        let info_frame = crate::tconstruct_source_builder_wire::encode(&crate::tconstruct_source_builder_world::display_info(world, pos));
+        let info_frame = info_frame.filter(|frame| frame.len() < 1767);
+        let info_sent = info_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
+        let info_changed = world.chunks.__horizon_mixins_tconstruct_builder_info_sent().get(&preview_key) != Some(&info_sent);
+        if info_changed { world.chunks.__horizon_mixins_tconstruct_builder_info_sent_mut().insert(preview_key, info_sent); }
         let preview_changed = world.chunks.__horizon_mixins_tconstruct_builder_preview_sent().get(&preview_key)
             .is_none_or(|(old_state, old)| *old_state != menu.state || old != &preview);
         // The original cast cost is world recipe data. Send a complete frame
@@ -91,6 +96,14 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         let selection_changed = menu.sent_data[0] != value;
         menu.sent_data[0] = value;
         let window = menu.window;
+        if info_changed {
+            let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
+            if let Some(frame) = info_frame {
+                send(guest, 31000, -1);
+                for (index, &word) in frame[1..].iter().enumerate() { send(guest, 31001 + index as i16, word); }
+                send(guest, 31000, frame[0]);
+            } else { send(guest, 31000, -2); }
+        }
         if wire_changed {
             let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
             if let Some(encoded) = encoded {

@@ -1,0 +1,58 @@
+use super::*;
+
+/// Text uses the authoritative local recipe or the server's menu data.
+pub(super) fn lines(game: &Game<'_>, atlas: &horizon_client::hud::HudAtlas) -> Vec<(String, u32)> {
+    let Some(pos) = game.container else { return Vec::new(); };
+    let info = if game.remote.is_some() {
+        game.world.chunks.__horizon_mixins_tconstruct_builder_info().get(&pos).cloned()
+    } else {
+        Some(super::tconstruct_source_builder_world::display_info(&game.world, pos))
+    };
+    let selected = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos);
+    let material = info.as_ref().and_then(|info| info.get(1)).filter(|id| id.as_str() != "-");
+    let caption_key = if let Some(pattern) = selected {
+        pattern.split_once(':').map(|(namespace, path)| format!("pattern.{namespace}.{}", path.replace('/', ".")))
+    } else if let Some(material) = material {
+        material.split_once(':').map(|(namespace, path)| format!("material.{namespace}.{}", path.split('#').next().unwrap_or(path).replace('/', ".")))
+    } else { Some("gui.tconstruct.part_builder".to_owned()) };
+    let caption = caption_key.map(|key| game.pack.names.display_get(&key).unwrap_or(key)).unwrap_or_default();
+    let mut lines = vec![(caption, u32::MAX)];
+    if let Some(info) = info.as_ref() {
+        if selected.is_some() && info.first().is_some_and(|cost| cost != "0") {
+            let label = game.pack.names.display_get("gui.tconstruct.part_builder.cost").unwrap_or_else(|| "Pattern cost: %s".into());
+            lines.push((label.replace("%s", &info[0]), horizon_client::hud::rgba(255, 170, 0, 255)));
+        }
+        if material.is_some() {
+            let label = game.pack.names.display_get("gui.tconstruct.part_builder.material_value").unwrap_or_else(|| "Material value: %s".into());
+            lines.push((label.replace("%s", &info[2]), horizon_client::hud::rgba(127, 255, 255, 255)));
+        }
+    }
+    if selected.is_none() && material.is_none() {
+        let text = game.pack.names.display_get("gui.tconstruct.part_builder.info").unwrap_or_default();
+        lines.extend(horizon_client::multiplayer::wrap(&text, 112.0, atlas).into_iter().map(|line| (line, u32::MAX)));
+    }
+    lines
+}
+
+pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
+    let atlas = &game.gui.atlas;
+    let Some(sprite) = atlas.sprites.get("gui/tconstruct_panel").copied() else { return; };
+    let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
+        let mut r = sprite;
+        let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+        r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
+        batch.rect_uv(ox + 180.0 + x, oy + y, w, h, r, u32::MAX);
+    };
+    region(batch, 4.0, 4.0, 118.0, 75.0, 4.0, 4.0, 118.0, 176.0);
+    for (sx, sy, x, y) in [(0.0,0.0,0.0,0.0),(122.0,0.0,122.0,0.0),(0.0,79.0,0.0,180.0),(122.0,79.0,122.0,180.0)] {
+        region(batch, sx, sy, 4.0, 4.0, x, y, 4.0, 4.0);
+    }
+    region(batch, 4.0, 0.0, 118.0, 4.0, 4.0, 0.0, 118.0, 4.0);
+    region(batch, 4.0, 79.0, 118.0, 4.0, 4.0, 180.0, 118.0, 4.0);
+    region(batch, 0.0, 4.0, 4.0, 75.0, 0.0, 4.0, 4.0, 176.0);
+    region(batch, 122.0, 4.0, 4.0, 75.0, 122.0, 4.0, 4.0, 176.0);
+    let scroll = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info_scroll().get(&pos)).copied().unwrap_or(0);
+    for (index, (text, color)) in lines(game, atlas).iter().skip(scroll).take(17).enumerate() {
+        batch.text(atlas, text, ox + 185.0, oy + 5.0 + index as f32 * 10.0, *color, true);
+    }
+}
