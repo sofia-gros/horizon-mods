@@ -30,7 +30,7 @@ def hotbar(item):
 
 def select_empty():
     slot = next(slot['slot'] for slot in g.call('inventory')['hotbar'] if not slot.get('item'))
-    g.call('hotbar', str(slot + 1))
+    g.call('hotbar', str(slot + 1)); g.call('wait', '10')
 
 
 try:
@@ -65,7 +65,7 @@ try:
     g.call('wait', '100', timeout=20)
     values = {row['slot']: row['stack'] for row in g.call('menu')['slots'] if row.get('stack')}
     assert values.get(327, {}).get('item') == 'minecraft:coal', values
-    g.call('close'); g.call('hotbar', str(hotbar('tconstruct:ingot_cast') + 1))
+    g.call('close'); g.call('hotbar', str(hotbar('tconstruct:ingot_cast') + 1)); g.call('wait', '10')
     g.call('interact', '0', '71', '1'); select_empty(); g.call('interact', '0', '72', '1')
     g.call('wait', '120', timeout=25)
     g.call('interact', '0', '72', '2'); g.call('wait', '10')

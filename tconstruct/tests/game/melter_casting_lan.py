@@ -65,9 +65,9 @@ try:
     wait('melted input', lambda: all(300 not in slots(game) for game in games))
     guest.call('screenshot', str(run / 'melter-lan.png'))
     for game in games: game.call('close')
-    guest.call('hotbar', str(hotbar(guest, 'tconstruct:ingot_cast') + 1)); guest.call('interact', '0', '71', '1')
+    guest.call('hotbar', str(hotbar(guest, 'tconstruct:ingot_cast') + 1)); guest.call('wait', '10'); guest.call('interact', '0', '71', '1')
     empty = next(slot['slot'] for slot in guest.call('inventory')['hotbar'] if not slot.get('item'))
-    guest.call('hotbar', str(empty + 1)); guest.call('interact', '0', '72', '1'); guest.call('wait', '120', timeout=45)
+    guest.call('hotbar', str(empty + 1)); guest.call('wait', '10'); guest.call('interact', '0', '72', '1'); guest.call('wait', '120', timeout=45)
     guest.call('interact', '0', '71', '1'); guest.call('wait', '5')
     assert guest.call('inventory')['counts'].get('minecraft:copper_ingot', 0) == 1
     for game in reversed(games): game.stop()

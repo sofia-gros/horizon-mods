@@ -30,7 +30,7 @@ def hotbar(item):
 
 def select_empty():
     slot = next(slot['slot'] for slot in g.call('inventory')['hotbar'] if not slot.get('item'))
-    g.call('hotbar', str(slot + 1))
+    g.call('hotbar', str(slot + 1)); g.call('wait', '10')
 
 
 try:
@@ -63,7 +63,7 @@ try:
     assert not any(slot.get('slot') == 300 and slot.get('stack') for slot in g.call('menu')['slots'])
     g.call('close'); g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
-    g.call('hotbar', str(hotbar('tconstruct:ingot_cast') + 1))
+    g.call('hotbar', str(hotbar('tconstruct:ingot_cast') + 1)); g.call('wait', '10')
     g.call('interact', '0', '71', '1'); g.call('wait', '5')
     select_empty(); g.call('interact', '0', '72', '1'); g.call('wait', '120', timeout=45)
     g.call('screenshot', str(run / 'casting-table.png'))
@@ -82,7 +82,7 @@ try:
     g.call('interact', '0', '72', '2'); g.call('wait', '5')
     click(hotbar('minecraft:raw_copper')); click(300); g.call('close')
     g.call('command', 'give @s minecraft:iron_pickaxe 1')
-    g.call('hotbar', str(hotbar('minecraft:iron_pickaxe') + 1))
+    g.call('hotbar', str(hotbar('minecraft:iron_pickaxe') + 1)); g.call('wait', '10')
     g.call('command', 'gamemode survival @s')
     g.call('break', '0', '72', '2', '--timeout', '40', timeout=45)
     g.call('command', 'tp @s 0.5 72 2.5'); g.call('wait', '80')
