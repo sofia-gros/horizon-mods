@@ -3,7 +3,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from concurrent.futures import ThreadPoolExecutor
 from harness import Game
-p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--source-choice-wire-test',action='store_true');p.add_argument('--source-gui-test',action='store_true');p.add_argument('--output-parent',type=Path,default=Path('target'))
+p=argparse.ArgumentParser();p.add_argument('--game',type=Path,required=True);p.add_argument('--ctl',type=Path,required=True);p.add_argument('--resources',type=Path,required=True);p.add_argument('--in-frame',action='store_true');p.add_argument('--right',action='store_true');p.add_argument('--source-choice-wire-test',action='store_true');p.add_argument('--source-gui-test',action='store_true');p.add_argument('--output-parent',type=Path,default=Path('target'))
 a=p.parse_args();a.output_parent.mkdir(parents=True,exist_ok=True);run=Path(tempfile.mkdtemp(prefix='source-quickmove-race-',dir=a.output_parent.resolve()))
 print('run',run,flush=True)
 games=[]
@@ -32,7 +32,7 @@ try:
  wait('inputs shared',lambda:all(slots(g).get(300,{}).get('count')==2 and slots(g).get(301,{}).get('count')==1 for g in games))
  pattern(q,'Tool Handle')
  h.call('wait','20');q.call('wait','20');time.sleep(2)
- def quick(g): g.call('click-slot','322','shift');g.call('wait','10')
+ def quick(g): g.call('click-slot','322',*(['right'] if a.right else []),'shift');g.call('wait','10')
  with ThreadPoolExecutor(max_workers=2) as pool:
   futures=[pool.submit(quick,g) for g in games]
   for f in futures: f.result()

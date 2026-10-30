@@ -47,7 +47,12 @@ try:
         guest.call('mouse', 'middle', 'click')
         if ctrl: guest.call('key', 'ctrl', 'up')
         wait('guest material pick ctrl=' + str(ctrl), lambda: any(s.get('item') == 'tconstruct:fake_storage_block' and 'tconstruct:bronze' in s.get('components', '') for s in guest.call('inventory')['hotbar']))
-    guest.call('screenshot', str(run / 'guest-pick.png'))
+    slot = next(s['slot'] for s in guest.call('inventory')['hotbar'] if s.get('item') == 'tconstruct:fake_storage_block')
+    guest.call('open-inventory'); guest.call('wait', '10')
+    node = next(n for n in guest.call('ui')['widgets'] if n['id'] == f'slot-{slot}')
+    x, y, _, _ = node['bounds']
+    guest.call('scroll-at', str(x + 8), str(y + 8), '0'); guest.call('wait', '10')
+    guest.call('screenshot', str(run / 'guest-pick.png')); guest.call('close')
     host.call('command', 'clear Guest'); host.call('command', 'setblock 1 71 2 minecraft:stone')
     wait('guest stone', lambda: guest.call('block', '1', '71', '2').get('block') == 'minecraft:stone')
     guest.call('look-at', 'block', '1', '71', '2'); guest.call('mouse', 'middle', 'click')

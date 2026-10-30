@@ -32,8 +32,8 @@ The Part Builder uses the original background and a source-recipe 4×4 pattern
 list with scrolling, selection and a separate result slot. In both game modes,
 representative ordinary crafting, recycling, saving and two-player contention
 have been tested. An open table retains its cached recipe across reload until
-an input changes; material-recipe caching was tested with a flint value change and an oak-log tag change; other material and tag interactions remain incomplete. Unsupported recipe contexts are rejected. Result left Shift-click
-works for supported cases when no adjacent block entity may supply a side
+an input changes; material-recipe caching was tested with a flint value change and an oak-log tag change; other material and tag interactions remain incomplete. Unsupported recipe contexts are rejected. Result Shift-click
+works for supported cases with either mouse button when no adjacent block entity may supply a side
 inventory; original side-inventory behavior, other Shift-click paths, drag and
 pickup-all remain incomplete. The information panels and full visual parity
 are also unfinished.

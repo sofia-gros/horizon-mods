@@ -1,6 +1,6 @@
 # Windows でダブルクリックして試遊
 
-**Windows 実機ではまだ検証していません。** 現在の Mod は未完成です。ランダムな余りには Windows 対応の Rust 乱数を使いますが、Windows 実機では未検証です。
+**Windows 実機ではまだ検証していません。** 報告された起動エラーの原因調査は保留中です。現在の Mod は未完成です。ランダムな余りには Windows 対応の Rust 乱数を使いますが、Windows 実機では未検証です。
 
 1. [Windows 検証ブランチを ZIP でダウンロード](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/windows-all-usertest.zip)して展開します。既存の検証ブランチの checkout があれば、それを使っても構いません。
 2. 展開したフォルダー内の **`Play-TConstruct.cmd`** をダブルクリックします。
@@ -29,8 +29,10 @@ Part Builder を置いて Pattern と材料を入れ、候補を選んで部品�
 
 金型を Pattern 位置に入れると、金の Tool Handle Cast は部品取得時に残り、空の砂金型は成形時に消費されます。砂または赤砂 1 個を通常クラフトに置くと、それぞれ空の砂金型 4 個を作れます。Windows での画面と操作は未検証です。詳細な進捗は [README](../README.md) と [ロードマップ](roadmap.md) を参照してください。
 
-素材付き収納ブロックは Linux の試験ビルドで表示・保存・採掘を確認しています。Pick Block の素材引継ぎは in-frame のみ検証済みで、通常のネットワーク方式は未対応です。自然な入手と Windows 実機は未検証です。
+素材付き収納ブロックの表示・保存・採掘を Linux で確認しています。Pick Block の素材引継ぎは両ゲーム方式のホストと LAN guest で、通常と Ctrl 付きの両方を確認しました。自然な入手と Windows 実機は未検証です。
 
 部品の再利用は Linux の試験ビルドで、木の Pick Head 1個から木の Tool Handle 2個を作り、材料と Pattern の消費・保存再開を確認しています。正式 Mixins ビルドでも通常方式の同じ操作を確認しました。Windows 実機は未検証です。
+
+結果スロットの右クリックと右 Shift-click も Linux の両方式で確認しました。隣接インベントリとの連携、その他のスロット操作、詳細 callback は未完成です。
 
 対応金属の素材も共通のタグ・レシピから判定します。bronze を制作可能にする試験 datapack と Linux の正式 Mixins ビルドでは、bronze の Pick Head から柄を作れました。bronze の通常入手と Windows 実機は未検証です。
