@@ -68,4 +68,12 @@ Hold the use button to draw a longbow, then release it to fire an arrow. Keep ar
 
 ![A longbow drawn with arrows in the hotbar](equipment-longbow.png)
 
-Basic firing was tested on Linux. Material-specific draw speed, arrow speed and accuracy are not implemented yet.
+Basic firing and material-specific draw speed were tested on Linux. Material-specific arrow speed and accuracy are not implemented yet.
+
+## Use a crossbow
+
+Hold the use button to load an arrow, release the button, then press it again to fire. Different limb materials change how quickly the crossbow loads. Switching items before it is loaded cancels the charge.
+
+![A crossbow loaded with an arrow](equipment-crossbow.png)
+
+Loading and firing were tested on Linux. Material-specific projectile speed and accuracy are not implemented yet.
