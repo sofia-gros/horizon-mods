@@ -22,9 +22,38 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         return Break(Vec::new());
     }
     let hopper_side = !is_station && matches!(menu.slots, crate::lan::menu::Slots::Double(_, side) if world.block_entities.get(&side).is_some_and(|entity| entity.slots().len() == 5));
-    // Padding is not a real inventory. Generic quick-move would otherwise
-    // insert into it and discard the item when Slots::write stores five slots.
-    if hopper_side && ((32..36).contains(&packet.slot) || (packet.input == 1 && packet.slot >= 36)) {
+    // Padding is not a real inventory and cannot receive a click.
+    if hopper_side && (32..36).contains(&packet.slot) {
+        if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+        return Break(Vec::new());
+    }
+    if hopper_side && packet.input == 1 && (36..72).contains(&packet.slot) {
+        let index = (packet.slot - 36) as usize;
+        let inventory_index = if index < 27 { index + 9 } else { index - 27 };
+        let side_pos = match menu.slots { crate::lan::menu::Slots::Double(_, side) => side, _ => unreachable!() };
+        let Some(stack) = hub.guests[gi].inventory.get(inventory_index).cloned().flatten() else {
+            if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+            return Break(Vec::new());
+        };
+        let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|tags| tags.as_ref().ok());
+        let Some(patterns) = tags.and_then(|tags| tags.get("tconstruct:patterns")) else {
+            if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+            return Break(Vec::new());
+        };
+        let pattern = patterns.contains(&*stack.item);
+        let max = rules.max_stack(&stack.item).max(1);
+        let stackable = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));
+        let Some(BlockEntity::Chest(mut inputs)) = world.block_entities.get(&key).cloned() else { return Break(Vec::new()); };
+        let Some(BlockEntity::Chest(mut side)) = world.block_entities.get(&side_pos).cloned() else { return Break(Vec::new()); };
+        let old_count = stack.count;
+        let remaining = crate::tconstruct_tx::source_quick_move_to_builder(&mut inputs, &mut side, stack, max, stackable, pattern);
+        if remaining.as_ref().map_or(0, |item| item.count) != old_count {
+            if let Some(BlockEntity::Chest(value)) = world.block_entities.get_mut(&key) { *value = inputs; }
+            if let Some(BlockEntity::Chest(value)) = world.block_entities.get_mut(&side_pos) { *value = side; }
+            hub.guests[gi].inventory[inventory_index] = remaining;
+            world.modified.insert((key.0 >> 4, key.2 >> 4));
+            world.modified.insert((side_pos.0 >> 4, side_pos.2 >> 4));
+        }
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(Vec::new());
     }

@@ -1400,6 +1400,34 @@ pub(super) fn source_give_inventory(
     }
     Some(stack)
 }
+
+/// A player's quick move first fills the builder's eligible inputs, then its
+/// adjacent inventory. Both stages merge stacks before using empty slots.
+pub(super) fn source_quick_move_to_builder(
+    inputs: &mut [Option<ItemStack>], side: &mut [Option<ItemStack>],
+    mut stack: ItemStack, max: u32, stackable: bool, pattern: bool,
+) -> Option<ItemStack> {
+    for index in 0..2 {
+        if index == 0 && !pattern { continue; }
+        if stackable {
+            if let Some(existing) = &mut inputs[index] {
+                if existing.same_item_same_components(&stack) && existing.count < max {
+                    let moved = (max - existing.count).min(stack.count);
+                    existing.count += moved;
+                    stack.count -= moved;
+                }
+            }
+        }
+    }
+    for index in 0..2 {
+        if stack.count == 0 { return None; }
+        if (index == 0 && !pattern) || inputs[index].is_some() { continue; }
+        let moved = stack.count.min(max);
+        inputs[index] = Some(ItemStack { count: moved, ..stack.clone() });
+        stack.count -= moved;
+    }
+    if stack.count == 0 { None } else { source_give_inventory(side, 0, stack, max, stackable) }
+}
 /// Original Mantle menu moves results into the player slots in reverse menu
 /// order: hotbar 8..0 followed by inventory 35..9. This is only the player
 /// stage; adjacent side inventories are handled separately by the caller.
@@ -1696,6 +1724,18 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn player_quick_move_prefers_builder_inputs_then_side() {
+        use super::*;
+        let mut inputs = vec![None, None];
+        let mut side = vec![None; 5];
+        assert!(source_quick_move_to_builder(&mut inputs, &mut side, ItemStack::new("minecraft:stick", 1), 64, true, false).is_none());
+        assert_eq!(&*inputs[1].as_ref().unwrap().item, "minecraft:stick");
+        assert!(source_quick_move_to_builder(&mut inputs, &mut side, ItemStack::new("minecraft:flint", 1), 64, true, false).is_none());
+        assert_eq!(&*side[0].as_ref().unwrap().item, "minecraft:flint");
+        assert!(source_quick_move_to_builder(&mut inputs, &mut side, ItemStack::new("tconstruct:pattern", 1), 64, true, true).is_none());
+        assert_eq!(&*inputs[0].as_ref().unwrap().item, "tconstruct:pattern");
+    }
     #[test]
     fn material_block_preserves_original_unknown_identity_and_load_rules() {
         use super::SourceBlockMaterial as M;
