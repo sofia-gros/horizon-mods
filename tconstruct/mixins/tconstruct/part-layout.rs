@@ -1,4 +1,8 @@
 fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<(f32, f32)> {
+    if crate::game::tconstruct_ui::is_melter(game) {
+        return crate::game::tconstruct_source_melter_layout::position(slot)
+            .map_or(std::ops::ControlFlow::Continue(()), std::ops::ControlFlow::Break);
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
     let station_layout = if station { crate::game::tconstruct_ui::station_layout(game) } else { None };
     let position = match slot {

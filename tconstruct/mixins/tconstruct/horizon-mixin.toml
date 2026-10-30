@@ -1684,3 +1684,204 @@ bindings = [
   { name = "b", ty = "State", value = "b" },
   { name = "direction", ty = "Direction", value = "direction" },
 ]
+
+[[module]]
+id = "source-melting-recipes"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melting_recipes"
+source = "source-melting-recipes.rs"
+
+[[module]]
+id = "source-melter-state"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_state"
+source = "source-melter-state.rs"
+
+[[module]]
+id = "source-melting-lookup"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melting_lookup"
+source = "source-melting-lookup.rs"
+
+[[state]]
+id = "tank-fluid-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<(std::collections::HashSet<String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "melter-known-items"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<std::collections::HashSet<String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-melter-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_world"
+source = "source-melter-world.rs"
+
+[[module]]
+id = "source-melter-store"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_store"
+source = "source-melter-store.rs"
+
+[[injection]]
+id = "source-machine-encode-id"
+target = "horizon_client::save::block_entity_id"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-encode-id.rs"
+bindings = [
+  { name = "entity", ty = "&crate::containers::BlockEntity", value = "e" },
+  { name = "block", ty = "&str", value = "block" },
+]
+
+[[injection]]
+id = "source-machine-decode"
+target = "horizon_client::save::decode_block_entity"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-decode.rs"
+bindings = [{ name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[module]]
+id = "source-machine-runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_machine_runtime"
+source = "source-machine-runtime.rs"
+
+[[injection]]
+id = "source-machine-place"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+kind = "HEAD"
+helper = "source-machine-place.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "source-machine-open"
+target = "horizon_client::game::stations::Game<'_>::open_station"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "name", ty = "&str", value = "name" },
+]
+
+[[injection]]
+id = "source-machine-tick"
+target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entities"
+kind = "HEAD"
+helper = "source-machine-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-machine-use"
+target = "horizon_client::game::Game<'_>::use_hand"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "hit", ty = "Option<&Hit>", value = "block_hit" },
+]
+
+[[state]]
+id = "machine-wire-sent"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32, u64, [i32; 3]), horizon_world::nbt::Tag>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-machine-wire-send"
+target = "horizon_client::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "source-machine-wire-send.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[injection]]
+id = "source-machine-wire-receive"
+target = "horizon_client::game::remote::Game<'_>::remote_block_entity_data"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-wire-receive.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "kind", ty = "i32", value = "kind" }, { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" }]
+
+[[module]]
+id = "source-melter-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_layout"
+source = "source-melter-layout.rs"
+
+[[injection]]
+id = "source-machine-geometry"
+target = "horizon_client::game::Game<'_>::entity_geometry"
+kind = "HEAD"
+helper = "source-machine-geometry.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "camera", ty = "glam::DVec3", value = "camera" },
+  { name = "out", ty = "&mut Vec<Vertex>", value = "&mut out" },
+]
+
+[[module]]
+id = "source-melter-render"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melter_render"
+source = "source-melter-render.rs"
+
+[[injection]]
+id = "source-machine-remove"
+target = "horizon_client::game::spill::GameLevel<'_>::remove_entity"
+kind = "HEAD"
+helper = "source-machine-remove.rs"
+bindings = [
+  { name = "level", ty = "&mut crate::game::GameLevel<'_>", value = "&mut *self" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "old", ty = "horizon_world::registry::BlockStateId", value = "old" },
+]
+
+[[injection]]
+id = "source-melter-screen-height"
+target = "horizon_client::game::machines::Game<'_>::screen_height"
+kind = "HEAD"
+cancellable = true
+helper = "source-melter-height.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "source-machine-remote"
+file = "crates/horizon-client/src/game/remote.rs"
+name = "tconstruct_source_machine_remote"
+source = "source-machine-remote.rs"
+
+[[injection]]
+id = "source-machine-reacts"
+target = "horizon_client::game::remote::Game<'_>::remote_block_reacts"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-reacts.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "hit", ty = "&super::Hit", value = "hit" },
+]

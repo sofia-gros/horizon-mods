@@ -56,14 +56,28 @@ for child in (src / 'assets/minecraft').iterdir():
 textures = vanilla / 'textures'
 textures.mkdir()
 for child in (src / 'assets/minecraft/textures').iterdir():
-    if child.name != 'gui':
+    if child.name not in ('gui', 'block'):
         link_or_copy(child, textures / child.name)
+# Keep the base block sprites immutable while adding our animated fluid aliases.
+block_textures = textures / 'block'
+block_textures.mkdir()
+source_blocks = src / 'assets/minecraft/textures/block'
+if source_blocks.is_dir():
+    for child in source_blocks.iterdir():
+        link_or_copy(child, block_textures / child.name)
 gui = textures / 'gui'
 gui.mkdir()
 for child in (src / 'assets/minecraft/textures/gui').iterdir():
     link_or_copy(child, gui / child.name)
 for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
+# Use the original Melter screen in the shared GUI atlas.
+with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as source_melter:
+    (gui / 'tconstruct_melter.png').write_bytes(source_melter.read('assets/tconstruct/textures/gui/melter.png'))
+    (block_textures / 'tconstruct_fluid_fallback.png').write_bytes(source_melter.read('assets/tconstruct/textures/fluid/molten/still.png'))
+    source_fluids = json.loads(source_melter.read('assets/tconstruct/melter-fluid-textures.json'))
+    for fluid, texture in source_fluids.items():
+        (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).write_bytes(source_melter.read('assets/tconstruct/' + texture))
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.
 pattern_source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
 pattern_dest = gui / 'tconstruct_patterns'

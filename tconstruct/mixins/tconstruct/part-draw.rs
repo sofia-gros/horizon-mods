@@ -1,4 +1,62 @@
 fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) -> std::ops::ControlFlow<()> {
+    if crate::game::tconstruct_ui::is_melter(game) {
+        let atlas = &game.gui.atlas;
+        batch.sprite_region(atlas, "gui/tconstruct_melter", [ox, oy, 176.0, 166.0], 256.0, 256.0);
+        let has_heater = if game.remote.is_some() {
+            game.remote_chest_menu().is_some_and(|(rows, _)| rows == 6)
+        } else { game.container_size() > 27 };
+        if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_melter").copied() {
+            let du = (sprite.u1 - sprite.u0) / sprite.w as f32;
+            let dv = (sprite.v1 - sprite.v0) / sprite.h as f32;
+            let (x, width, sx) = if has_heater { (150.0, 18.0, 176.0) } else { (152.0, 14.0, 194.0) };
+            sprite.u0 += sx * du; sprite.v0 += 52.0 * dv;
+            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + 36.0 * dv;
+            batch.rect_uv(ox + x, oy + 31.0, width, 36.0, sprite, u32::MAX);
+        }
+        let title = game.pack.names.display_get("container.tconstruct.melter").unwrap_or_else(|| "Melter".to_owned());
+        let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
+        let color = horizon_client::hud::rgba(64, 64, 64, 255);
+        batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
+        batch.text(atlas, &inventory, ox + 8.0, oy + 72.0, color, false);
+        // The same saved state is synchronized to guests for this menu.
+        let position = if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container };
+        let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
+        let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
+        if let Some(melter) = parsed {
+            if let Some(fluid) = &melter.tank.fluid {
+                // Tile the first frame of the original still-fluid texture in
+                // the source tank's 52x52 area, scaled by the stored amount.
+                let sprite_name = format!("block/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or(""));
+                if let Some(sprite) = atlas.sprites.get(&sprite_name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                    let height = (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0);
+                    let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                    let mut y = 0.0;
+                    while y < height {
+                        let h = (height - y).min(16.0);
+                        let mut x = 0.0;
+                        while x < 52.0 {
+                            let w = (52.0_f32 - x).min(16.0);
+                            let mut part = sprite; part.u1 = part.u0 + w * du; part.v1 = part.v0 + h * dv;
+                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                            x += w;
+                        }
+                        y += h;
+                    }
+                }
+                let translation = format!("fluid.{}", fluid.replace(':', "."));
+                let name = game.pack.names.display_get(&translation).unwrap_or_else(|| fluid.clone());
+                batch.text(atlas, &name, ox + 90.0, oy + 24.0, color, false);
+                batch.text(atlas, &format!("{} mB", melter.tank.amount), ox + 90.0, oy + 36.0, color, false);
+            }
+            for (slot, progress) in melter.progress.iter().enumerate() {
+                if *progress != 0 {
+                    let text = if *progress < 0 { "Full".to_owned() } else { progress.to_string() };
+                    batch.text(atlas, &text, ox + 44.0, oy + 19.0 + slot as f32 * 18.0, color, false);
+                }
+            }
+        }
+        return std::ops::ControlFlow::Break(());
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
     let atlas = &game.gui.atlas;
     if !station && game.container_size() > 27 {

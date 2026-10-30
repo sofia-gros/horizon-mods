@@ -101,3 +101,11 @@ pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32), allow_double
         }
     })
 }
+
+/// Identify the Melter menu without changing other container screens.
+pub(super) fn is_melter(game: &Game<'_>) -> bool {
+    if game.remote.is_some() {
+        return game.remote_menu_title().map(|title| title.plain()).as_deref() == Some("TConstruct Melter");
+    }
+    game.container.is_some_and(|pos| &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:seared_melter")
+}

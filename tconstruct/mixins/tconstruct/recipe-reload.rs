@@ -111,6 +111,13 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         let costs = crate::game::tconstruct_tx::source_material_casting_costs(&filtered, &material_items, &registries, config, true).ok()?;
         Some(crate::game::tconstruct_source_cast_info::PARTS.iter().map(|part| costs.get(&format!("tconstruct:{part}")).copied().unwrap_or(0)).collect())
     })();
+    let tank_fluids = std::fs::read(game.options.resources.join("tconstruct-melter-fluids.json"))
+        .map_err(|error| error.to_string())
+        .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
+        .and_then(|source| crate::game::tconstruct_source_melting_lookup::tank_fluid_tags(&fluid_tags, &source));
+    let known_items = game.res.rest.get().map(|rest| rest.items.items.keys().map(|id| id.to_string()).collect());
+    *game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context_mut() = Some(tank_fluids);
+    *game.world.chunks.__horizon_mixins_tconstruct_melter_known_items_mut() = known_items;
     *game.world.chunks.__horizon_mixins_tconstruct_source_cast_costs_mut() = cast_costs;
     let durability = game.res.rest.get().map(|rest| {
         rest.items.items.iter().map(|(id, info)| (id.to_string(), info.max_damage)).collect()

@@ -30,6 +30,9 @@ fn prepare_tconstruct_resources() {
             }
             Ok(())
         }
+        // The melter stores fluid IDs in tanks, without registering those
+        // fluids as placeable vanilla world fluids.
+        std::fs::copy(content_path.join("reference/tconstruct-melter-fluids.json"), out.join("tconstruct-melter-fluids.json"))?;
         let original_pack = out.join("tconstruct-original-pack");
         if std::fs::symlink_metadata(&original_pack).is_ok() { return Err("original pack output already exists".into()); }
         copy_pack_dir(&content_path.join("reference/tconstruct-tags/data"), &original_pack.join("data"))?;
@@ -138,6 +141,24 @@ fn prepare_tconstruct_resources() {
             std::fs::write(&temp, serde_json::to_vec(&registries)?)?;
             std::fs::rename(temp, path)?;
         }
+        // Register the source machine IDs for persisted block entities. The
+        // five machines use chest-like live inventories, but their custom IDs
+        // keep machine metadata outside vanilla chest canonicalization.
+        let machines = [("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
+            ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
+            ("tconstruct:seared_basin", "tconstruct:basin")];
+        let path = out.join("registries.json");
+        let mut registries: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+        let entries = registries["minecraft:block_entity_type"]["entries"].as_object_mut().ok_or("missing block entity registry")?;
+        let mut next = entries.values().filter_map(|value| value["protocol_id"].as_u64()).max().ok_or("empty block entity registry")? + 1;
+        for (block, kind) in machines {
+            if facts["defaults"][block].as_u64().is_some() && !entries.contains_key(kind) {
+                entries.insert(kind.to_owned(), serde_json::json!({"protocol_id": next})); next += 1;
+            }
+        }
+        let temp = out.join("registries.json.tmp");
+        std::fs::write(&temp, serde_json::to_vec(&registries)?)?;
+        std::fs::rename(temp, path)?;
         // Vanilla honey has the same 1/16 inset collision box as source
         // congealed slime. Copy only its shape, never its movement behavior.
         let shape_targets = ["earth", "sky", "ichor", "ender"].map(|kind| format!("tconstruct:{kind}_congealed_slime"));
@@ -204,6 +225,20 @@ fn prepare_tconstruct_resources() {
             row["solid_render"] = serde_json::Value::Bool(false);
             row["can_occlude"] = serde_json::Value::Bool(false);
         }
+        // Each source machine keeps its state in a block entity. All but
+        // the full heater have visible gaps and must not hide neighboring faces.
+        if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
+            for (id, state) in states.iter().enumerate() {
+                let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
+                if !matches!(name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin") { continue; }
+                let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
+                row["block_entity"] = serde_json::Value::Bool(true);
+                if name != "tconstruct:seared_heater" {
+                    row["solid_render"] = serde_json::Value::Bool(false);
+                    row["can_occlude"] = serde_json::Value::Bool(false);
+                }
+            }
+        }
         // Source tables have legs and slime-metal blocks declare no occlusion.
         // Apply this to every state of those blocks.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
@@ -229,6 +264,11 @@ fn prepare_tconstruct_resources() {
             row.insert("can_occlude".into(), serde_json::Value::Bool(false));
         }
         for name in ["tconstruct:crafting_station", "tconstruct:modifier_worktable", "tconstruct:soulsteel_block", "tconstruct:slimesteel_block", "tconstruct:cinderslime_block", "tconstruct:knightslime_block"] {
+            if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
+                row.insert("can_occlude".into(), serde_json::Value::Bool(false));
+            }
+        }
+        for name in ["tconstruct:seared_melter", "tconstruct:seared_faucet", "tconstruct:seared_table", "tconstruct:seared_basin"] {
             if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }

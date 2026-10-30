@@ -271,6 +271,22 @@ impl SourceCondition {
     }
 }
 
+/// Evaluate source conditions against the same registry and config snapshots
+/// used by the existing material recipes. Unsupported conditions stay unknown.
+pub(super) fn source_conditions_match(
+    conditions: &[serde_json::Value],
+    registries: &std::collections::HashMap<String, std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    config: &std::collections::HashMap<String, bool>,
+) -> Option<bool> {
+    for value in conditions {
+        match SourceCondition::parse(value)?.matches(registries, config)? {
+            true => {},
+            false => return Some(false),
+        }
+    }
+    Some(true)
+}
+
 /// Source ItemOutput forms in the pinned material recipes. Tag selection and
 /// NBT decoding are deliberately deferred until the world registry is present.
 #[allow(dead_code)]
