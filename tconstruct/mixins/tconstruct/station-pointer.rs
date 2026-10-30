@@ -7,8 +7,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     if station && !right {
         let (ox, oy) = game.inventory_origin(&batch);
         let (x, y) = (game.cursor.0 - ox, game.cursor.1 - oy);
-        if (-22.0..-4.0).contains(&x) && y >= 8.0 {
-            let index = ((y - 8.0) / 18.0) as usize;
+        if let Some(index) = crate::game::tconstruct_source_station_layout::button_at(
+            crate::game::tconstruct_ui::station_layouts(game).len(), x.floor() as i32, y.floor() as i32,
+        ) {
             if let Some(layout) = crate::game::tconstruct_ui::station_layouts(game).get(index) {
                 game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, layout.id.clone());
                 return Break(true);

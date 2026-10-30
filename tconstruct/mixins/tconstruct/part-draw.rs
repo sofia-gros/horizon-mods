@@ -33,10 +33,19 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
         for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
-            let y = 8.0 + index as f32 * 18.0;
-            part(batch, 194.0, 0.0, -22.0, y, u32::MAX);
+            let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
+            let (x, y) = (x as f32, y as f32);
+            let selected = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key)) == Some(&layout.id);
+            let hovered = (ox + x..ox + x + 18.0).contains(&game.cursor.0) && (oy + y..oy + y + 18.0).contains(&game.cursor.1);
+            if let Some(mut r) = atlas.sprites.get("gui/tconstruct_icons").copied() {
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.u0 += (if selected { 144.0 } else if hovered { 216.0 } else { 180.0 }) * du;
+                r.v0 += 180.0 * dv;
+                r.u1 = r.u0 + 18.0 * du; r.v1 = r.v0 + 18.0 * dv;
+                batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, u32::MAX);
+            }
             if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
-                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox - 21.0, oy + y + 1.0);
+                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), ox + x + 1.0, oy + y + 1.0);
             }
         }
         // Match the background to the same source positions used for clicks.
