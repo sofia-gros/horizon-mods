@@ -1,4 +1,12 @@
 fn refresh_local_builder_choices(game: &mut crate::game::Game<'_>) {
+    if crate::game::tconstruct_ui::kind(game) == Some(true) {
+        if let Some(pos) = game.container {
+            if !crate::game::tconstruct_name_ui::available(game) {
+                game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&pos);
+            }
+        }
+        return;
+    }
     if game.remote.is_some() || crate::game::tconstruct_ui::kind(game) != Some(false) { return; }
     if let Some(pos) = game.container {
         let patterns = crate::game::tconstruct_source_builder_world::refresh(&mut game.world, pos).unwrap_or_default();

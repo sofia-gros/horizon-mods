@@ -48,9 +48,13 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let action = if station { slot.filter(|s| (324..=325).contains(s)).map(|s| (s - 300) as i16) } else { None };
     let Some(action) = action else { return Continue(()); };
     if button != 0 { return Break(true); }
-    let build = if action == 24 {
+    let mut build = if action == 24 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots()))
     } else { None };
+    if let Some((_, output)) = build.as_mut() {
+        let name = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key).map(|edit| edit.value.as_str());
+        crate::game::tconstruct_source_station_world::name_result(output, name);
+    }
     let operation = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
     } else { None };
@@ -65,6 +69,7 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     } else { false };
     if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));
+        game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
     }
     Break(true)
 }

@@ -32,7 +32,14 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
-            let build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
+            let mut build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
+            if build.is_none() {
+                world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(hub.guests[i].conn, window, pos));
+            }
+            if let Some(output) = build.as_mut() {
+                let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
+                crate::tconstruct_source_station_world::name_result(output, name);
+            }
             let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|plan| plan.output);
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)

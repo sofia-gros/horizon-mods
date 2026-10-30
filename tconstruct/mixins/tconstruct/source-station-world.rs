@@ -3,6 +3,14 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_station_recipes::{BuildingMatch, BuildingRecipe};
 
+/// Apply a name only to a newly assembled result. An empty field keeps the
+/// normal material-derived name.
+pub(super) fn name_result(stack: &mut ItemStack, name: Option<&str>) {
+    if let Some(name) = name.filter(|name| !name.is_empty()) {
+        stack.data_mut().custom_name = Some(name.to_owned());
+    }
+}
+
 /// Whether slot zero contains a tool displayed in the station's repair layout.
 pub(super) fn has_operation_tool(slots: &[Option<ItemStack>]) -> bool {
     slots.first().and_then(Option::as_ref).is_some_and(|stack| {

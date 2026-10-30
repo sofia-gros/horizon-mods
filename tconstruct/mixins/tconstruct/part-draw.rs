@@ -49,6 +49,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
+        if crate::game::tconstruct_name_ui::available(game) {
+            let mut edit = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key)).cloned()
+                .unwrap_or_else(|| crate::game::tconstruct_name_ui::new_box(ox, oy));
+            edit.x = ox + 80.0; edit.y = oy + 7.0;
+            edit.draw(batch, atlas, None);
+        }
         let active_layout = crate::game::tconstruct_ui::station_layout(game);
         for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
             let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };

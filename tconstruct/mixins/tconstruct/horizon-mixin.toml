@@ -749,6 +749,64 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[state]]
+id = "station-name-edit"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),horizon_client::ui::EditBox>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "station-guest-names"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,i32,(i32,i32,i32)),String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "station-name-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_name_ui"
+source = "station-name-ui.rs"
+
+[[injection]]
+id = "station-name-typing"
+target = "horizon_client::game::stations::Game<'_>::station_typing"
+kind = "HEAD"
+cancellable = true
+helper = "station-name-typing.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "station-name-text"
+target = "horizon_client::game::stations::Game<'_>::station_text"
+kind = "HEAD"
+cancellable = true
+helper = "station-name-text.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "text", ty = "Option<&str>", value = "text" }, { name = "backspace", ty = "bool", value = "backspace" }]
+
+[[injection]]
+id = "station-name-key"
+target = "horizon_client::game::stations::Game<'_>::station_key"
+kind = "HEAD"
+cancellable = true
+helper = "station-name-key.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "key", ty = "winit::keyboard::KeyCode", value = "key" }]
+
+[[injection]]
+id = "station-name-shortcut"
+target = "horizon_client::game::stations::Game<'_>::station_shortcut"
+kind = "HEAD"
+cancellable = true
+helper = "station-name-shortcut.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "shortcut", ty = "horizon_client::clipboard::EditShortcut", value = "shortcut" }]
+
 [[injection]]
 id = "refresh-local-builder-choices"
 target = "horizon_client::game::storage::Game<'_>::tick_container_reach"
@@ -1445,3 +1503,11 @@ bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "amount", ty = "u32", value = "amount" },
 ]
+
+[[injection]]
+id = "station-guest-rename"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_rename"
+kind = "HEAD"
+cancellable = true
+helper = "station-guest-rename.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "name", ty = "&str", value = "name" }]

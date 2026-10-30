@@ -7,6 +7,16 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     if station && !right {
         let (ox, oy) = game.inventory_origin(&batch);
         let (x, y) = (game.cursor.0 - ox, game.cursor.1 - oy);
+        if crate::game::tconstruct_name_ui::available(game) && (80.0..162.0).contains(&x) && (7.0..16.0).contains(&y) {
+            let shift = game.has_shift_down();
+            let edit = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().entry(key)
+                .or_insert_with(|| crate::game::tconstruct_name_ui::new_box(ox, oy));
+            edit.x = ox + 80.0; edit.y = oy + 7.0;
+            edit.click(&game.gui.atlas, game.cursor.0, shift, false);
+            edit.focused = true;
+            return Break(true);
+        }
+        if let Some(edit) = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().get_mut(&key) { edit.focused = false; }
         if let Some(index) = crate::game::tconstruct_source_station_layout::button_at(
             crate::game::tconstruct_ui::station_layouts(game).len(), x.floor() as i32, y.floor() as i32,
         ) {
@@ -70,11 +80,15 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let action = if station && (324..=325).contains(&slot) { Some((slot - 300) as i16) } else { None };
     let Some(action) = action else { return Continue(()); };
     if right { return Break(true); }
-    let building = if action == 24 {
+    let mut building = if action == 24 {
         game.world.block_entities.get(&key).and_then(|entity| {
             crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots())
         })
     } else { None };
+    if let Some((_, output)) = building.as_mut() {
+        let name = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key).map(|edit| edit.value.as_str());
+        crate::game::tconstruct_source_station_world::name_result(output, name);
+    }
     let repair = if action == 25 {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
     } else { None };
@@ -89,6 +103,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     } else { false };
     if taken {
         game.world.modified.insert((key.0 >> 4, key.2 >> 4));
+        game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
     }
     Break(true)
 }
