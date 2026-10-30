@@ -78,6 +78,7 @@ try:
     assert g.call('inventory')['counts'].get('minecraft:copper_block', 0) == 1
     # Breaking the machine must return its live contents. Replacing it at the
     # same position must not revive the old tank or inputs.
+    g.call('command', 'clear @s')
     g.call('command', 'give @s minecraft:raw_copper 3')
     g.call('interact', '0', '72', '2'); g.call('wait', '5')
     click(hotbar('minecraft:raw_copper')); click(300); g.call('close')

@@ -40,7 +40,7 @@ try:
     port = host.call('lan', 'open', '0', 'commands')['port']
     guest = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=(run / 'Guest').exists()); games.append(guest); guest.ready()
     for command in (
-        'gamemode creative @a', 'clear @a', 'tp @s 2.5 71 1.5', 'tp Guest 2.5 71 2.5',
+        'gamemode creative @a', 'clear @a', 'tp @s 2.5 71 1.5', 'tp Guest 5.5 71 2.5',
         'setblock 0 72 2 minecraft:air', 'setblock 0 71 2 minecraft:air',
         'setblock 0 72 1 minecraft:air', 'setblock 0 71 1 minecraft:air',
         'setblock 0 71 2 tconstruct:seared_heater',
@@ -48,6 +48,7 @@ try:
     host.call('interact', '0', '71', '2'); host.call('wait', '5')
     assert host.call('status')['screen'] == 'inventory', 'heater menu did not open'
     host.call('close')
+    host.call('command', 'tp Guest 2.5 71 2.5')
     for command in (
         'setblock 0 72 2 tconstruct:seared_melter',
         'setblock 0 72 1 tconstruct:seared_faucet[facing=north]', 'setblock 0 71 1 tconstruct:seared_table',
