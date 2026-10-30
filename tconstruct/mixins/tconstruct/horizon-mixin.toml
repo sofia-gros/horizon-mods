@@ -1428,3 +1428,49 @@ id = "host-source-station-take"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_station_take_host"
 source = "source-station-take-host.rs"
+
+[[injection]]
+id = "diagnostic-lan-use"
+target = "horizon_client::game::remote::Game<'_>::remote_use"
+kind = "HEAD"
+helper = "diagnostic-lan-use.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "diagnostic-lan-send"
+target = "horizon_client::game::remote::Game<'_>::send"
+kind = "HEAD"
+helper = "diagnostic-lan-send.rs"
+bindings = [{ name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[injection]]
+id = "diagnostic-lan-receive"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+helper = "diagnostic-lan-receive.rs"
+bindings = [
+  { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" },
+]
+
+[[injection]]
+id = "diagnostic-lan-open"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_open_container"
+kind = "HEAD"
+helper = "diagnostic-lan-open.rs"
+bindings = [ { name = "conn", ty = "u32", value = "conn" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" } ]
+
+[[injection]]
+id = "diagnostic-lan-screen"
+target = "horizon_client::game::remote::Game<'_>::remote_open_screen"
+kind = "HEAD"
+helper = "diagnostic-lan-screen.rs"
+bindings = [{ name = "p", ty = "&horizon_protocol::packets::play::OpenScreen", value = "&p" }]
+
+[[injection]]
+id = "diagnostic-lan-response"
+target = "horizon_client::lan::containers::Hub::open_container"
+kind = "HEAD"
+helper = "diagnostic-lan-response.rs"
+bindings = [ { name = "conn", ty = "u32", value = "conn" }, { name = "menu_kind", ty = "&str", value = "menu_kind" }, { name = "pos", ty = "(i32, i32, i32)", value = "pos" } ]
