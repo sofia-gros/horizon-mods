@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Export pinned Horizon sources and apply the pinned Mixins CLI."""
-import argparse, json, os, subprocess
+"""Export pinned Horizon sources and apply a resolved Mixins revision."""
+import argparse, json, os, re, subprocess
 from portable_archive import extract_git_tar
 from pathlib import Path
 
@@ -9,13 +9,21 @@ compat = json.loads((root / 'compatibility.json').read_text())
 p = argparse.ArgumentParser()
 p.add_argument('--horizon', type=Path, required=True)
 p.add_argument('--mixins', type=Path, required=True)
+p.add_argument('--mixins-revision', help='full Mixins commit SHA for a reproducible build; defaults to the latest official revision')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
 a = p.parse_args()
-for repo, key in [(a.horizon, 'horizon_revision'), (a.mixins, 'mixins_revision')]:
-    head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
-    if head != compat[key]:
-        p.error(f'{repo}: expected {compat[key]}, found {head}')
+head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
+if head != compat['horizon_revision']:
+    p.error(f'{a.horizon}: expected {compat["horizon_revision"]}, found {head}')
+if a.mixins_revision:
+    if not re.fullmatch(r'[0-9a-f]{40}', a.mixins_revision):
+        p.error('--mixins-revision must be a full lowercase commit SHA')
+    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', a.mixins_revision + '^{commit}'], text=True).strip()
+else:
+    subprocess.run(['git', '-C', str(a.mixins), 'fetch', '--no-tags', compat['mixins_repository'], 'HEAD'], check=True)
+    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', 'FETCH_HEAD^{commit}'], text=True).strip()
+print(f'Horizon Mixins revision: {revision}', flush=True)
 output = a.output_dir.resolve()
 output.mkdir(parents=True, exist_ok=True)
 mods = a.mods.resolve(strict=True)
@@ -31,10 +39,11 @@ if proc.wait():
 (original / '.horizon-revision').write_text(compat['horizon_revision'] + '\n')
 # Build only exported committed source, never a possibly modified working tree.
 source.mkdir()
-proc = subprocess.Popen(['git', '-C', str(a.mixins), 'archive', '--format=tar', compat['mixins_revision']], stdout=subprocess.PIPE)
+proc = subprocess.Popen(['git', '-C', str(a.mixins), 'archive', '--format=tar', revision], stdout=subprocess.PIPE)
 extract_git_tar(proc.stdout, source)
 if proc.wait():
     raise SystemExit('Mixins git archive failed')
+(output / 'mixins-revision.txt').write_text(revision + '\n')
 cli_target = root.parent / 'target/mixins-cli-build'
 subprocess.run(['cargo', 'build', '--release', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
 cli = cli_target / 'release' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
