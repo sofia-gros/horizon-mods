@@ -32,7 +32,7 @@ pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_s
 /// Prefer this player's selected source layout, then infer it from inputs.
 pub(super) fn station_layout(game: &Game<'_>) -> Option<super::tconstruct_source_station_layout::StationLayout> {
     let BlockEntity::Chest(slots) = game.container_kind()? else { return None; };
-    if slots.first().and_then(Option::as_ref).is_some_and(|stack| stack.item.as_ref() == "tconstruct:flint_pickaxe" || stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_max_damage")).is_some()) {
+    if super::tconstruct_source_station_world::has_operation_tool(slots) {
         let snapshot = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
         let bytes = snapshot.get("tconstruct:tinkering/station_layouts/tinker_station")?.last()?;
         return super::tconstruct_source_station_layout::StationLayout::parse("tconstruct:tinkering/station_layouts/tinker_station".into(), bytes);

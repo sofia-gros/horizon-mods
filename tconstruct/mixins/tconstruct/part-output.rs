@@ -38,7 +38,9 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         }
         return Continue(());
     }
-    if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && slot != Some(302)) { return Break(true); }
+    let repair_slot = station && slot == Some(303) && game.container_kind().is_some_and(|entity|
+        crate::game::tconstruct_source_station_world::has_operation_tool(entity.slots()));
+    if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && slot != Some(302) && !repair_slot) { return Break(true); }
     if !station && slot == Some(322) {
         if button == 0 || button == 1 { crate::game::tconstruct_source_builder_take::take(game, key); }
         return Break(true);

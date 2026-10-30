@@ -60,7 +60,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         }
         return Continue(());
     }
-    if (302..=323).contains(&slot) && (!station && slot != 322 || station && slot != 302) { return Break(true); }
+    let repair_slot = station && slot == 303 && game.container_kind().is_some_and(|entity|
+        crate::game::tconstruct_source_station_world::has_operation_tool(entity.slots()));
+    if (302..=323).contains(&slot) && (!station && slot != 322 || station && slot != 302 && !repair_slot) { return Break(true); }
     if !station && slot == 322 {
         crate::game::tconstruct_source_builder_take::take(game, key);
         return Break(true);

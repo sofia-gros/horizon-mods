@@ -51,7 +51,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         // Match the background to the same source positions used for clicks.
         let layout = crate::game::tconstruct_ui::station_layout(game);
         let positions = layout.as_ref().map(|layout| {
-            let slots: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() { std::iter::once(tool).chain(layout.input_slots.iter().take(2)).collect() }
+            let slots: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() { std::iter::once(tool).chain(layout.input_slots.iter()).collect() }
                 else { layout.input_slots.iter().collect() };
             slots.into_iter().map(|slot| (slot.x as f32 - 1.0, slot.y as f32 - 1.0)).collect::<Vec<_>>()
         })

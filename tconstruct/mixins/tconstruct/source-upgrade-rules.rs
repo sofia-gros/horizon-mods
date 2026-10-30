@@ -257,6 +257,10 @@ mod tests {
         assert_eq!(output.amount, 72);
         assert_eq!(output.consumed, [(0, 1), (1, 64), (2, 8)]);
         assert!(plan(&recipes, &HashMap::new(), &tool(0), &inputs, 3).is_none());
+        let third = [None, None, Some(ItemStack::new("minecraft:amethyst_shard", 8))];
+        let output = plan(&recipes, &tags, &tool(0), &third, 3).unwrap();
+        assert_eq!(output.amount, 8);
+        assert_eq!(output.consumed, [(0, 1), (3, 8)]);
     }
 
     #[test]

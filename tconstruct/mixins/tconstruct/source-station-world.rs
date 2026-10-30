@@ -3,6 +3,15 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_station_recipes::{BuildingMatch, BuildingRecipe};
 
+/// Whether slot zero contains a tool displayed in the station's repair layout.
+pub(super) fn has_operation_tool(slots: &[Option<ItemStack>]) -> bool {
+    slots.first().and_then(Option::as_ref).is_some_and(|stack| {
+        stack.item.as_ref() == "tconstruct:flint_pickaxe"
+            || stack.data().and_then(|data| data.other("minecraft:custom_data"))
+                .and_then(|tag| tag.get("tic_max_damage")).is_some()
+    })
+}
+
 /// Resolve registered three-part tools against source recipes and material stats.
 pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(BuildingMatch, ItemStack)> {
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
@@ -106,7 +115,7 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
 pub(super) fn swap_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
     let tool = slots.first()?.as_ref()?;
     if !tool.item.starts_with("tconstruct:") || tool.count != 1 { return None; }
-    let mut inputs = (1..=2).filter_map(|index| slots.get(index).and_then(Option::as_ref).map(|stack| (index, stack)));
+    let mut inputs = (1..=3).filter_map(|index| slots.get(index).and_then(Option::as_ref).map(|stack| (index, stack)));
     let (slot, part) = inputs.next()?;
     if inputs.next().is_some() { return None; }
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
@@ -164,7 +173,7 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
     let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved);
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
-    for index in 1..=2 {
+    for index in 1..=3 {
         let Some(stack) = slots.get(index).and_then(Option::as_ref) else { continue; };
         let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
         if material.needed <= 0 { return None; }
@@ -218,7 +227,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .sum::<i64>();
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..3)?, i32::try_from(slots_available).ok()?)?;
+    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..4)?, i32::try_from(slots_available).ok()?)?;
     let mut upgraded = tool.clone();
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));

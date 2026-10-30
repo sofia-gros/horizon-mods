@@ -51,7 +51,8 @@ try:
     click(q, hotbar(q, 'tconstruct:pickaxe'))
     click(q, 300)
     click(q, hotbar(q, 'minecraft:quartz'))
-    click(q, 301)
+    click(q, 303)
+    wait(lambda: slots(q).get(303, {}).get('item') == 'minecraft:quartz')
     wait(lambda: slots(q).get(325, {}).get('item') == 'tconstruct:pickaxe')
     click(q, 325)
     assert (q.call('menu')['carried'] or {}).get('item') == 'tconstruct:pickaxe'
