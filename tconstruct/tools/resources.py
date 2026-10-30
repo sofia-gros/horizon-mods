@@ -150,10 +150,13 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-tool-definitions
             continue
         equipment_names.add('slimy_chestplate' if short == 'slime_chestplate' else short)
 equipment_names.add('crystalshot')
+# Preserve the previously supported tools' native mining and melee components.
+existing_tool_templates = {'hand_axe': 'minecraft:stone_axe', 'mattock': 'minecraft:stone_axe',
+                           'kama': 'minecraft:stone_hoe', 'pickadze': 'minecraft:stone_pickaxe'}
 for short in sorted(equipment_names):
     item_id = 'tconstruct:' + short
     if item_id not in existing:
-        entries.append((item_id, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+        entries.append((item_id, existing_tool_templates.get(short, 'minecraft:flint'), source_names['item.tconstruct.' + short]))
         existing.add(item_id)
 for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
