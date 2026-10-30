@@ -5,7 +5,7 @@ from pathlib import Path
 from import_part_visuals import MATERIAL_MODELS
 from creative_materials import build_variants
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'pluto-lib'))
-from pluto_lib.creative import add_tabs
+from pluto_lib.creative import register_item_groups
 
 def link_or_copy(source, destination):
     """Preserve the source; Windows may deny symlink creation without developer mode."""
@@ -318,4 +318,4 @@ creative = src / 'creative-inventory.json'
 if creative.is_file():
     tabs = json.loads((repository / 'content/creative-tabs.json').read_text())
     tabs = build_variants(tabs, repository / 'content/reference/tconstruct-tool-definitions.zip', repository / 'content/reference/tconstruct-materials.zip')
-    (out / 'creative-inventory.json').write_text(json.dumps(add_tabs(json.loads(creative.read_text()), tabs)))
+    (out / 'creative-inventory.json').write_text(json.dumps(register_item_groups(json.loads(creative.read_text()), tabs)))

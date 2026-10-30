@@ -2,10 +2,10 @@
 import copy
 
 
-def add_tabs(inventory, tabs):
-    """Return a new inventory document containing the ordered mod tabs.
+def register_item_groups(inventory, groups):
+    """Return a new inventory document with the registered item groups.
 
-    Each tab supplies id, title, icon and a list of SNBT item stacks. Row and
+    Each group supplies an id, title, icon and ordered SNBT item stacks. Row and
     column use Horizon's existing Creative screen coordinates.
     """
     result = copy.deepcopy(inventory)
@@ -13,7 +13,7 @@ def add_tabs(inventory, tabs):
     occupied = {(tab.get('row'), tab.get('column')) for tab in existing
                 if tab.get('type') != 'HOTBAR' and tab.get('visible', True)}
     ids = {tab.get('id') for tab in existing}
-    for tab in tabs:
+    for tab in groups:
         row, column = tab['row'], tab['column']
         if row not in ('TOP', 'BOTTOM') or not isinstance(column, int) or not 0 <= column <= 6:
             raise ValueError('Creative tab position is outside the existing screen')
