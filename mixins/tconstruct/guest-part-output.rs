@@ -159,6 +159,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     }
     let action = if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
     let Some(action) = action else { return Continue(()); };
+    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() { eprintln!("tconstruct station guest click slot={} button={} input={}", packet.slot, packet.button, packet.input); }
     if packet.button == 0 {
         let building = if action == 24 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan(world, entity.slots()))
@@ -166,10 +167,12 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         let repair = if action == 25 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan(world, entity.slots()))
         } else { None };
+        if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() { eprintln!("tconstruct station guest plan action={action} build={} operation={}", building.is_some(), repair.is_some()); }
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let taken = if action == 24 {
                 building.is_some_and(|(matched, output)| crate::tconstruct_source_station_recipes::take_built_tool(stacks, &mut hub.guests[gi].carried, &matched, output, 1))
             } else { repair.is_some_and(|(output, consumed)| crate::tconstruct_source_station_world::take_repair(stacks, &mut hub.guests[gi].carried, output, &consumed)) };
+            if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() { eprintln!("tconstruct station guest take action={action} taken={taken}"); }
             if taken {
                 world.modified.insert((key.0 >> 4, key.2 >> 4));
             }

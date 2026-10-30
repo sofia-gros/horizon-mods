@@ -111,6 +111,11 @@ pub(super) fn take_built_tool(
     output: ItemStack,
     max_stack: u32,
 ) -> bool {
+    if std::env::var_os("TCONSTRUCT_STATION_TRACE").is_some() {
+        eprintln!("tconstruct station take checks same_item={} output_count={} recipe_count={} max={} inputs_available={} carried_empty={}",
+            output.item.as_ref() == matched.result, output.count, matched.result_count, max_stack,
+            matched.consumed_slots.iter().all(|&slot| inputs.get(slot).and_then(Option::as_ref).is_some_and(|stack| stack.count > 0)), carried.is_none());
+    }
     if output.item.as_ref() != matched.result || output.count != matched.result_count || output.count > max_stack {
         return false;
     }
