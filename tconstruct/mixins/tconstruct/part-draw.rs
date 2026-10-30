@@ -66,6 +66,39 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
+        // Source TinkerStationScreen paints the translucent item cover before
+        // rendering the active layout's slot backgrounds.
+        if let Some(mut r) = atlas.sprites.get(texture).copied() {
+            let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+            r.u0 += 176.0 * du; r.v0 += 18.0 * dv;
+            r.u1 = r.u0 + 70.0 * du; r.v1 = r.v0 + 64.0 * dv;
+            batch.rect_uv(ox + 7.0, oy + 18.0, 70.0, 64.0, r, horizon_client::hud::rgba(255, 255, 255, 209));
+        }
+        if let Some(sprite) = atlas.sprites.get(texture).copied() {
+            let region = |batch: &mut horizon_client::hud::HudBatch, sx: f32, sy: f32, sw: f32, sh: f32, x: f32, y: f32, w: f32, h: f32| {
+                let mut r = sprite;
+                let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
+                r.u0 += sx * du; r.v0 += sy * dv; r.u1 = r.u0 + sw * du; r.v1 = r.v0 + sh * dv;
+                batch.rect_uv(ox + x, oy + y, w, h, r, u32::MAX);
+            };
+            // The original top beams and decorations frame the button and
+            // information modules; they do not create additional slots.
+            for (left, width) in [(-132.0, 128.0), (180.0, 126.0)] {
+                region(batch, 0.0, 202.0, 2.0, 7.0, left, 0.0, 2.0, 7.0);
+                region(batch, 2.0, 202.0, 129.0, 7.0, left + 2.0, 0.0, width, 7.0);
+                region(batch, 131.0, 202.0, 2.0, 7.0, left + width + 2.0, 0.0, 2.0, 7.0);
+            }
+            for y in [1.0, 90.0] {
+                region(batch, 0.0, 196.0, 5.0, 4.0, 187.0, y, 5.0, 4.0);
+                region(batch, 9.0, 196.0, 9.0, 4.0, 294.0, y, 9.0, 4.0);
+            }
+            let count = crate::game::tconstruct_ui::station_layouts(game).len();
+            for index in 0..count {
+                let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
+                region(batch, 0.0, 198.0, 18.0, 2.0, x as f32, y as f32 - 2.0, 18.0, 2.0);
+                if index + 6 < count { region(batch, 0.0, 196.0, 18.0, 2.0, x as f32, y as f32 + 18.0, 18.0, 2.0); }
+            }
+        }
         crate::game::tconstruct_station_info_ui::draw(game, batch, ox, oy);
         if crate::game::tconstruct_name_ui::available(game) {
             if let Some(mut r) = atlas.sprites.get(texture).copied() {
