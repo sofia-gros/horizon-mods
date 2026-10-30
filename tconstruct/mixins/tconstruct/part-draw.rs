@@ -32,10 +32,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
+        let active_layout = crate::game::tconstruct_ui::station_layout(game);
         for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
             let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
             let (x, y) = (x as f32, y as f32);
-            let selected = game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key)) == Some(&layout.id);
+            let selected = active_layout.as_ref().is_some_and(|active| active.id == layout.id);
             let hovered = (ox + x..ox + x + 18.0).contains(&game.cursor.0) && (oy + y..oy + y + 18.0).contains(&game.cursor.1);
             if let Some(mut r) = atlas.sprites.get("gui/tconstruct_icons").copied() {
                 let (du, dv) = ((r.u1 - r.u0) / r.w as f32, (r.v1 - r.v0) / r.h as f32);
@@ -51,10 +52,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                     batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), ox + x + 1.0, oy + y + 1.0);
                 }
             }
+            let label = game.pack.names.display_get(&layout.translation).unwrap_or_else(|| layout.translation.clone());
+            horizon_client::widgets::target([ox + x, oy + y, 18.0, 18.0]);
+            horizon_client::widgets::record(&label, [ox + x, oy + y, 18.0, 18.0], true);
         }
         // Match the background to the same source positions used for clicks.
-        let layout = crate::game::tconstruct_ui::station_layout(game);
-        let positions = layout.as_ref().map(|layout| {
+        let positions = active_layout.as_ref().map(|layout| {
             let slots: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() { std::iter::once(tool).chain(layout.input_slots.iter()).collect() }
                 else { layout.input_slots.iter().collect() };
             slots.into_iter().map(|slot| (slot.x as f32 - 1.0, slot.y as f32 - 1.0)).collect::<Vec<_>>()
