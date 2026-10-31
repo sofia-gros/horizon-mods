@@ -1,22 +1,12 @@
-# GUI alignment work
+# Existing-screen GUI checklist
 
-This draft covers the existing Part Builder, Tinker Station, Melter, Smeltery and Foundry screens. The original Tinkers' Construct source and assets are the reference for each screen.
+The reference is the fixed Tinkers' Construct source and its original assets. These checks describe the implemented screens; representative checks are not a claim of pixel-perfect parity in every state or language.
 
-For each existing screen, compare its background and sprite crops, slot positions and item rendering, input hit areas, tooltips, text, scrolling and tabs. Check the same operations at 960 × 540 and 1280 × 720, including a representative LAN session. The older Tinker Station upgrade image showed its result item outside the frame; compare the current result and click target against the source position.
+| Screen | Source-backed paths and representative checks | Known gaps or checks still needed |
+| --- | --- | --- |
+| Part Builder | Source background, pattern grid, item slots, information panel and side-inventory layout; shared drawing and hit positions. A chest input, part result and save/reload passed on Linux; chest and hopper scrolling have representative earlier checks. | Custom-named side inventories do not show their custom names. Recheck current pattern, tooltip, side-inventory scrolling and the 960 × 540 / 1280 × 720 layouts after the final changes. |
+| Tinker Station | Source layout coordinates, result location, tab buttons, equipment/offhand slots, name input and information panels. Result rendering and clicks passed at both sizes; representative tab and equipment interactions passed locally and over LAN. | Source dormant input slots containing items should appear in the still-filled row and allow removal only; layout selection must first be synchronized and enforced on the server for safe ordinary and Shift interactions. Source armor-stand preview is absent. The large layout icon and variable-width panel decorations have been added but not yet validated in a game. Verify repair/part swap and representative tooltips after the final build. |
+| Melter | Source background, item and fuel slots, fluid and heat bars, tank/fuel tooltips and held-bucket clicks share the machine code. Liquid-fuel melting and bucket transfers passed locally and over LAN; the Lava temperature tooltip was checked in game. | More source fuel and heat status states and the second screen size need representative checks. Source comments claim empty-space left click inserts a container, but the fixed revision's `ClickableTankModule.tryClick` and `MelterContainerMenu.clickMenuButton` send/interpret left as fill and right as empty even in empty space; the implementation follows that executable source behavior. |
+| Smeltery and Foundry | Source background, slots, fluid layers, heat/fuel indicator, capacity and mode tooltips, scrolling and item hit positions use shared code. Fuel and copper heat displays were seen in the Linux game, including a LAN guest; a Foundry capacity tooltip was seen. | Right-click fluid injection and fuel-gauge bucket transfers were just added: representative normal and LAN tests are in progress. Test pagination/scrolling and heat/tooltips at both requested sizes with representative content. |
 
-This is a work checklist, not a statement that the screens already match. New machine functionality and screens for unimplemented features are outside this change.
-
-## Source comparison
-
-- Station result: the older upgrade screenshot used a separate result coordinate for repairs and upgrades. The original has one result slot at (114, 38); the current layout maps both operations there. A fresh Linux game at 960 × 540 and 1280 × 720 shows the result inside the frame; the result click was exercised.
-- Smeltery and Foundry: the original heating screen supplies an empty-bucket hint, a mode-button hover and a three-line mode tooltip. These are being connected to the existing screen; game verification is pending.
-- Adjacent table tabs use the source six-face scan and order. Part Builder and Tinker Station switching and the Station equipment and offhand slots have passed representative Linux LAN checks. Registered tables without menus remain visibly unavailable.
-- Part Builder, Melter and the remaining screen interactions still need source and runtime comparison.
-- Station armor and offhand frames correspond to five source inventory slots. Representative Linux local and LAN equipment placement and removal use the existing inventory transaction rules.
-- Melter and heating structures use original gauge and heat-bar sprites, fluid hover regions and status text. Burn duration is saved for the source flame indicator; older saves use the remaining burn time as their first displayed total. Runtime and LAN verification are pending.
-
-Still to verify: source fuel-area tooltips and fuel-tank contents, text and click boundaries at both screen sizes, all visible tab states, Part Builder patterns and side inventory, and heat-bar/tooltip behavior while recipes heat or cannot heat. Compare against the source screen code and assets instead of using earlier screenshots as a reference.
-
-The Linux game showed the source fuel gauge and tooltip and an active copper heating bar after the server synchronized the visible heating status. The screenshots cover representative states; they do not establish pixel-perfect parity for every screen, language or scale. Windows remains unverified.
-
-A representative Foundry screen also showed the source fluid gauge and capacity tooltip in the Linux game.
+Only Part Builder and Tinker Station tabs currently open implemented workstation menus; other registered workstations have no corresponding GUI and are shown as unavailable. Unsupported machine recipes, modifiers and blocks are not implied by the GUI. Large multi-viewer combinations, every item/material, all languages and Windows have not been individually verified.
