@@ -11,6 +11,8 @@ pub(super) fn max_offset(count: usize) -> usize { rows(count).saturating_sub(vis
 pub(super) fn panel_width(count: usize) -> f32 {
     (columns(count) * 22 + 14 + if max_offset(count) > 0 { 10 } else { 0 }) as f32
 }
+/// Connected source side panels overlap their parent by the six-pixel border.
+pub(super) fn panel_left(count: usize) -> f32 { 6.0 - panel_width(count) }
 /// Return the source tank layer under a relative screen y coordinate.
 pub(super) fn fluid_heights(amounts: &[u32], capacity: u32) -> Vec<u32> {
     if amounts.is_empty() { return Vec::new(); }
@@ -93,6 +95,9 @@ mod tests {
         assert_eq!((columns(1), columns(7), columns(8), columns(28), columns(29)), (1,1,2,4,4));
         assert_eq!(position(1, 0, 0), Some((125.0, 46.0)));
         assert_eq!(position(1, 0, 1), Some((125.0, 104.0)));
+        // HeatingStructureSideInventoryScreen offsets the item by four pixels
+        // inside the slot and the connected panel by border.w - 1.
+        assert_eq!(position(1, 0, 2).unwrap().0 - (panel_left(1) + 7.0), 5.0);
         assert_eq!(melting_index(1, 0, 2), Some(0));
         assert_eq!(melting_index(1, 0, 3), None);
     }

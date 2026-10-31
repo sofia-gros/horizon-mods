@@ -38,7 +38,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let max = super::tconstruct_source_smeltery_layout::max_offset(count);
     let width = super::tconstruct_source_smeltery_layout::panel_width(count);
     if cols > 0 {
-        let left = -width;
+        let left = super::tconstruct_source_smeltery_layout::panel_left(count);
         let inner_width = width - 14.0;
         let inner_height = rows as f32 * 18.0;
         if let Some(sprite) = atlas.sprites.get("gui/tconstruct_generic").copied() {

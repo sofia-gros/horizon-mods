@@ -51,7 +51,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
     let (count, _) = crate::game::tconstruct_source_smeltery_ui::page(game);
     let columns = crate::game::tconstruct_source_smeltery_layout::columns(count);
     let max = crate::game::tconstruct_source_smeltery_layout::max_offset(count);
-    let left = -crate::game::tconstruct_source_smeltery_layout::panel_width(count);
+    let left = crate::game::tconstruct_source_smeltery_layout::panel_left(count);
     let x = ox + left + 7.0 + columns as f32 * 22.0;
     let height = crate::game::tconstruct_source_smeltery_layout::visible_rows(count) as f32 * 18.0;
     if !right && max > 0 && (x..x+10.0).contains(&game.cursor.0) && (oy+11.0..oy+11.0+height).contains(&game.cursor.1) {
