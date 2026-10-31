@@ -3,6 +3,7 @@
 use horizon_client::containers::BlockEntity;
 use horizon_world::nbt::Tag;
 use super::{tconstruct_source_melter_state::{Casting, Faucet, Melter, Tank}, tconstruct_source_melter_store as store};
+use super::tconstruct_source_smeltery_state::Smeltery;
 
 type Pos = (i32, i32, i32);
 
@@ -13,6 +14,7 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
         "tconstruct:seared_faucet" => Some("tconstruct:faucet"),
         "tconstruct:seared_table" => Some("tconstruct:table"),
         "tconstruct:seared_basin" => Some("tconstruct:basin"),
+        "tconstruct:smeltery_controller" => Some("tconstruct:smeltery"),
         _ => None,
     }
 }
@@ -23,8 +25,24 @@ fn initial(kind: &str) -> Option<Tag> {
         "tconstruct:heater" => Tag::compound(Vec::<(&str, Tag)>::new()),
         "tconstruct:faucet" => Faucet::new().to_nbt(),
         "tconstruct:table" | "tconstruct:basin" => Casting::new().to_nbt(),
+        "tconstruct:smeltery" => Smeltery::new().to_nbt(),
         _ => return None,
     })
+}
+
+/// Update the current candidate and capacity from loaded world blocks.  When
+/// shrinking would evict items, preserve the previous state until the caller's
+/// lossless spill path is connected.
+pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
+    let bounds = super::tconstruct_source_smeltery_world::detect(game, pos);
+    super::tconstruct_source_smeltery_world::claim(game, pos, bounds);
+    let Some((_, _, capacity)) = bounds else { return; };
+    let Some(saved) = store::read(&game.world, pos, "tconstruct:smeltery") else { return; };
+    let Some(mut state) = Smeltery::from_nbt(&saved) else { return; };
+    let volume = (capacity / 1080) as usize;
+    if state.slots.len() == volume && state.tank.capacity == capacity { return; }
+    if !state.resize(volume, capacity).is_empty() { return; }
+    let _ = store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
 }
 
 pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
