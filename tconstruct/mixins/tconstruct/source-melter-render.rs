@@ -82,13 +82,16 @@ pub(super) fn draw_heat_bar(batch: &mut horizon_client::hud::HudBatch, atlas: &h
 
 #[cfg(test)]
 mod heat_tests {
-    use super::{classify_heat, fire_height};
+    use super::{classify_heat, decode_heat, encode_heat, fire_height};
     #[test] fn source_heat_status_and_scaling() {
         assert_eq!(classify_heat(None, 500, 0).0, 185.0);
         assert_eq!(classify_heat(Some((600, 10)), 500, -1).0, 179.0);
         assert_eq!(classify_heat(Some((600, 10)), 600, -1).0, 182.0);
         assert_eq!(classify_heat(Some((600, 10)), 600, 50), (176.0, 8.0, None));
         assert_eq!((fire_height(50, 100), fire_height(1, 0), fire_height(u32::MAX, 1)), (7, 0, 14));
+        assert_eq!(decode_heat(encode_heat(Some((600, 10)), 600, 50)), Some((176.0, 8.0, None)));
+        assert_eq!(decode_heat(encode_heat(None, 0, 0)).unwrap().2, Some("gui.tconstruct.melting.no_recipe"));
+        assert_eq!(decode_heat(-1), None);
     }
 }
 
