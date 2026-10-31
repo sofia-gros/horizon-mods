@@ -45,6 +45,12 @@ impl SmelteryTank {
         true
     }
 
+    pub(super) fn move_to_bottom(&mut self, index: usize) -> bool {
+        if index >= self.fluids.len() { return false; }
+        if index != 0 { let fluid = self.fluids.remove(index); self.fluids.insert(0, fluid); }
+        true
+    }
+
     /// Commit only when every input and the resulting net volume fit.
     pub(super) fn alloy(&mut self, inputs: &[FluidAmount], result: &FluidAmount) -> bool {
         if inputs.is_empty() || result.id.is_empty() || result.amount == 0 { return false; }
@@ -145,5 +151,13 @@ mod tests {
         tank.capacity = 100;
         assert!(tank.alloy(&[fluid("copper", 90), fluid("amethyst", 100)], &fluid("alloy", 90)));
         assert_eq!(tank.total(), 270);
+    }
+    #[test]
+    fn selected_fluid_moves_to_bottom_without_changing_amounts() {
+        let mut tank = SmelteryTank::new(500);
+        assert!(tank.insert("copper", 90)); assert!(tank.insert("amethyst", 100));
+        assert!(tank.move_to_bottom(1));
+        assert_eq!(tank.fluids, vec![fluid("amethyst", 100), fluid("copper", 90)]);
+        assert!(!tank.move_to_bottom(2)); assert_eq!(tank.total(), 190);
     }
 }

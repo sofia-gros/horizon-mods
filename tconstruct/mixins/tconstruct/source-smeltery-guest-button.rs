@@ -1,12 +1,19 @@
 fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, window: i32, id: i32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    if !matches!(id, 32000 | 32001) { return Continue(()); }
+    if id < 4 { return Continue(()); }
     let Some(gi) = host.hub.guests.iter().position(|guest| guest.conn == conn) else { return Continue(()); };
     let Some(menu) = host.hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if menu.window != window || !menu.slots.still_valid(&game.world, &host.hub.guests[gi], menu.pos) { return Continue(()); }
     let Some(pos) = menu.pos else { return Continue(()); };
-    let Some(state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
+    let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Continue(()); };
+    if !matches!(id, 32000 | 32001) {
+        let Some(index) = usize::try_from(id - 4).ok() else { return Break(()); };
+        if host.hub.guests[gi].carried.is_none() && state.tank.move_to_bottom(index) {
+            let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
+        }
+        return Break(());
+    }
     let key = (conn, host.hub.guests[gi].placed_at, pos);
     let max = crate::game::tconstruct_source_smeltery_layout::max_offset(state.slots.len());
     let current = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).map_or(0, |page| page.0);

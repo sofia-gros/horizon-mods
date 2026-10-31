@@ -4,6 +4,8 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     if &*machine == "tconstruct:smeltery_controller" {
         game.ensure_datapacks();
         if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &machine) { return Break(false); }
+        crate::game::tconstruct_source_machine_runtime::refresh_smeltery(game, pos);
+        if crate::game::tconstruct_source_smeltery_world::detect(game, pos).is_none() { return Break(false); }
         let Some(state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
             .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(false); };
         if state.slots.is_empty() { return Break(false); }

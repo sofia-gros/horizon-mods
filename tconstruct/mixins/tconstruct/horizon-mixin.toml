@@ -189,6 +189,17 @@ name = "tconstruct_tx"
 source = "transaction.rs"
 
 [[injection]]
+id = "smeltery-pointer"
+target = "horizon_client::game::stations::Game<'_>::station_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-pointer.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
 id = "station-pointer-output"
 target = "horizon_client::game::stations::Game<'_>::station_click"
 kind = "HEAD"

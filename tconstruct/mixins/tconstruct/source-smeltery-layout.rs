@@ -11,6 +11,19 @@ pub(super) fn max_offset(count: usize) -> usize { rows(count).saturating_sub(vis
 pub(super) fn panel_width(count: usize) -> f32 {
     (columns(count) * 22 + 14 + if max_offset(count) > 0 { 10 } else { 0 }) as f32
 }
+/// Return the source tank layer under a relative screen y coordinate.
+pub(super) fn fluid_at(amounts: &[u32], capacity: u32, y: f32) -> Option<usize> {
+    if capacity == 0 || !(16.0..122.0).contains(&y) { return None; }
+    let from_bottom = 122.0 - y;
+    let mut bottom = 0.0f32;
+    for (index, amount) in amounts.iter().enumerate() {
+        let height = (106.0 * *amount as f32 / capacity as f32).min(106.0-bottom);
+        if height <= 0.0 { break; }
+        if from_bottom <= bottom + height && from_bottom > bottom { return Some(index); }
+        bottom += height;
+    }
+    None
+}
 /// Resolve a visible container slot to the real melting slot. No virtual slot
 /// is ever a destination; callers must reject a None before mutating items.
 pub(super) fn melting_index(count: usize, offset: usize, menu_slot: usize) -> Option<usize> {
@@ -52,5 +65,12 @@ mod tests {
         assert_eq!(melting_index(count, 999, 40), Some(70));
         assert_eq!(melting_index(count, 999, 41), None);
         assert_eq!(position(count, 999, 2), position(count, 0, 2));
+    }
+    #[test]
+    fn fluid_hit_uses_the_same_bottom_up_scale_as_rendering() {
+        assert_eq!(fluid_at(&[90, 90], 180, 110.0), Some(0));
+        assert_eq!(fluid_at(&[90, 90], 180, 20.0), Some(1));
+        assert_eq!(fluid_at(&[90], 180, 20.0), None);
+        assert_eq!(fluid_at(&[90], 0, 110.0), None);
     }
 }
