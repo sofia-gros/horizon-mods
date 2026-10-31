@@ -76,9 +76,40 @@ pub(super) fn validate(min: [i32; 3], max: [i32; 3], mut accepts: impl FnMut([i3
     u32::try_from(dx).ok()?.checked_mul(u32::try_from(dz).ok()?)?.checked_mul(u32::try_from(height).ok()?)?.checked_mul(1080)
 }
 
+/// Foundries also require the vertical frame and the floor perimeter. Unlike
+/// Smelteries, source capacity counts the walls and floor as well as the
+/// interior: eight ingots per block in the enclosed outer volume.
+pub(super) fn validate_foundry(min: [i32; 3], max: [i32; 3], mut accepts: impl FnMut([i32; 3], Part) -> bool) -> Option<u32> {
+    validate(min, max, &mut accepts)?;
+    for x in min[0]..=max[0] {
+        for z in min[2]..=max[2] {
+            if (x == min[0] || x == max[0] || z == min[2] || z == max[2])
+                && !accepts([x, min[1], z], Part::Wall) { return None; }
+        }
+    }
+    for y in min[1]+1..=max[1] {
+        for x in [min[0], max[0]] {
+            for z in [min[2], max[2]] {
+                if !accepts([x, y, z], Part::Wall) { return None; }
+            }
+        }
+    }
+    let x = u32::try_from(max[0].checked_sub(min[0])?.checked_add(1)?).ok()?;
+    let y = u32::try_from(max[1].checked_sub(min[1])?.checked_add(1)?).ok()?;
+    let z = u32::try_from(max[2].checked_sub(min[2])?.checked_add(1)?).ok()?;
+    x.checked_mul(y)?.checked_mul(z)?.checked_mul(720)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn foundry_requires_frame_and_counts_outer_volume() {
+        assert_eq!(validate_foundry([0,0,0], [2,1,2], |_, _| true), Some(3 * 2 * 3 * 720));
+        for missing in [[0,0,0], [1,0,0], [0,1,0]] {
+            assert_eq!(validate_foundry([0,0,0], [2,1,2], |pos, _| pos != missing), None);
+        }
+    }
     #[test]
     fn one_block_interior_requires_floor_four_sides_and_space_not_corners() {
         let mut visited = Vec::new();

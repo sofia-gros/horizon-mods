@@ -9,6 +9,12 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 128.0, color, false);
+    // Keep the original container-slot frames, but make it clear that this
+    // port does not yet accept containers in either slot.
+    for y in [46.0, 104.0] {
+        batch.fill(atlas, ox + 125.0, oy + y, 16.0, 16.0, rgba(32, 32, 32, 150));
+        batch.text(atlas, "X", ox + 130.0, oy + y + 4.0, rgba(255, 255, 255, 255), false);
+    }
     let (count, offset) = super::tconstruct_source_smeltery_ui::page(game);
     let cols = super::tconstruct_source_smeltery_layout::columns(count);
     let rows = super::tconstruct_source_smeltery_layout::visible_rows(count);
