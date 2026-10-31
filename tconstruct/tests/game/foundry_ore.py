@@ -68,6 +68,8 @@ try:
     click(hotbar('minecraft:copper_ore')); click(302)
     assert (input_item() or {}).get('item') == 'minecraft:copper_ore', 'ore input was not accepted'
     g.call('wait', '620', timeout=60)
+    g.call('screenshot', str(run / 'foundry-ore-check.png'))
+    g.call('save')
     assert input_item() is None, 'copper ore did not melt'
     g.call('wait', '20'); g.call('screenshot', str(run / 'foundry-ore.png'))
     # Source minimum-height fluid layers make the small gold byproduct selectable.
