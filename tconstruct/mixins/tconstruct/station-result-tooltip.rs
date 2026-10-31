@@ -17,7 +17,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                     let fuel = position.and_then(|pos| crate::game::tconstruct_source_melter_render::fuel_tank(game, pos));
                     if let Some(tank) = fuel {
                         if let Some(fluid) = tank.fluid.as_deref() {
-                            let name = game.pack.names.display_get(&format!("fluid.{}", fluid.replace(':', "."))).unwrap_or_else(|| fluid.to_owned());
+                            let name = crate::game::tconstruct_source_melter_render::fluid_name(game, fluid);
                             let temperature = crate::game::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, u32::MAX).map_or(0, |recipe| recipe.temperature);
                             let detail = if temperature > 0 {
                                 game.pack.names.display_get("gui.tconstruct.melting.fuel.temperature").unwrap_or_else(|| "Temperature: %s°C".to_owned()).replace("%s", &temperature.to_string())
@@ -38,8 +38,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
                 let mut lines = Vec::new();
                 if let Some(fluid) = state.tank.fluid.as_ref() {
-                    let key = format!("fluid.{}", fluid.replace(':', "."));
-                    lines.push((game.pack.names.display_get(&key).unwrap_or_else(|| fluid.clone()), u32::MAX));
+                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name(game, fluid), u32::MAX));
                     lines.push((format!("{} mB", state.tank.amount), 0xffaaaaaa));
                 } else {
                     let label = game.pack.names.display_get("gui.tconstruct.melting.capacity").unwrap_or_else(|| "Capacity:".to_owned());
@@ -87,8 +86,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                 let view = &view;
                 let mut lines = Vec::new();
                 if let Some(fluid) = view.fluid.as_deref() {
-                    let key = format!("fluid.{}", fluid.replace(':', "."));
-                    lines.push((game.pack.names.display_get(&key).unwrap_or_else(|| fluid.to_owned()), u32::MAX));
+                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name(game, fluid), u32::MAX));
                     if view.temperature > 0 {
                         let format = game.pack.names.display_get("gui.tconstruct.melting.fuel.temperature").unwrap_or_else(|| "Temperature: %s°C".to_owned());
                         lines.push((format.replace("%s", &view.temperature.to_string()), 0xffaaaaaa));
@@ -121,8 +119,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                 let hovered = crate::game::tconstruct_source_smeltery_layout::fluid_at(&amounts, tank.capacity, game.cursor.1 - oy);
                 let mut lines = Vec::new();
                 if let Some(fluid) = hovered.and_then(|index| tank.fluids.get(index)) {
-                    let key = format!("fluid.{}", fluid.id.replace(':', "."));
-                    lines.push((game.pack.names.display_get(&key).unwrap_or_else(|| fluid.id.clone()), u32::MAX));
+                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name(game, &fluid.id), u32::MAX));
                     lines.push((format!("{} mB", fluid.amount), 0xffaaaaaa));
                 } else {
                     for (key, fallback, amount) in [("capacity", "Capacity:", tank.capacity),

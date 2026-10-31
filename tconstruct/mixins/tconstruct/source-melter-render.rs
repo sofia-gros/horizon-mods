@@ -8,6 +8,13 @@ pub(super) fn sprite(fluid: &str) -> String {
     }
 }
 
+pub(super) fn fluid_name(game: &super::Game<'_>, fluid: &str) -> String {
+    let key = format!("fluid.{}", fluid.replace(':', "."));
+    game.pack.names.display_get(&key).or_else(|| {
+        fluid.strip_prefix("minecraft:").and_then(|id| game.pack.names.display_get(&format!("block.minecraft.{id}")))
+    }).unwrap_or_else(|| match fluid { "minecraft:lava" => "Lava".to_owned(), "minecraft:water" => "Water".to_owned(), _ => fluid.to_owned() })
+}
+
 // Generated from the source FluidTextureProvider ARGB colors.
 pub(super) fn color(fluid: &str) -> u32 {
     match fluid {
