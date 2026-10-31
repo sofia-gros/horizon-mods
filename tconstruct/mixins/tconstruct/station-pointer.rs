@@ -4,6 +4,15 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let Some(key) = game.container else { return Break(true); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
     let batch = horizon_client::hud::HudBatch::new(size);
+    if !right && station && crate::game::tconstruct_ui::station_layouts(game).len() <= 36 {
+        let (ox, oy) = game.inventory_origin(&batch);
+        let (cx, cy) = (ox - 55.0, oy + 195.0);
+        if (cx - 32.5..cx + 32.5).contains(&game.cursor.0) && (cy - 65.0..cy + 5.0).contains(&game.cursor.1) {
+            let preview = game.world.chunks.__horizon_mixins_tconstruct_station_armor_preview_mut().entry(key).or_insert((0.0, None));
+            preview.1 = Some(game.cursor.0);
+            return Break(true);
+        }
+    }
     if !right {
         let (ox, oy) = game.inventory_origin(&batch);
         let start = crate::game::tconstruct_source_workstation_tabs::start(game).unwrap_or(key);

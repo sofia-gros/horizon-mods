@@ -2330,3 +2330,28 @@ require = 1
 id = "preview-stand-items"
 kind = "INVOKE"
 target = "horizon_client::game::Game::armor_stand_items"
+
+[[state]]
+id = "station-armor-preview"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(f32,Option<f32>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "station-armor-drag"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+kind = "HEAD"
+cancellable = true
+helper = "station-armor-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "station-armor-release"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+kind = "HEAD"
+helper = "station-armor-release.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

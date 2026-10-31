@@ -28,7 +28,8 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
         let slot = match layer { Some("helmet") => 5, Some("chestplate") => 4, Some("leggings") => 3, Some("boots") => 2, _ => 1 };
         stand.equipment[slot] = Some(stack);
     }
-    let base = glam::Mat4::from_rotation_y((-30.0f32).to_radians())
+    let angle = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_station_armor_preview().get(&pos)).map_or(0.0, |state| state.0);
+    let base = glam::Mat4::from_rotation_y((-30.0f32).to_radians() + angle)
         * glam::Mat4::from_scale(glam::Vec3::new(-1.0, -1.0, 1.0))
         * glam::Mat4::from_translation(glam::Vec3::new(0.0, -1.501, 0.0));
     let mut poses = Poses::new(model);
@@ -66,4 +67,9 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
     let start = batch.vertices.len();
     for (_, vertices, tex, color) in player_preview_quads(verts, matrix, None, sprites) { batch.quad_3d(vertices, tex, color); }
     batch.depth_since(start, [cx - 35.0, cy - 70.0, cx + 35.0, cy]);
+    if let Some(mut icon) = sprites.get("gui/tconstruct_icons").copied() {
+        let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);
+        icon.v0 += 184.0 * dv; icon.u1 = icon.u0 + 32.0 * du; icon.v1 = icon.v0 + 32.0 * dv;
+        batch.rect_uv(cx - 16.0, cy - 16.0, 32.0, 32.0, icon, u32::MAX);
+    }
 }
