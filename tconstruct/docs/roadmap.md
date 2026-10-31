@@ -40,7 +40,7 @@ Each PR updates the relevant user and developer documentation. `main` is the off
 | Durability | Pickaxe maximum durability is derived from its selected materials; a representative Linux lifecycle passed in both modes. | Complete traits, original broken behavior, visuals and other tool interactions. |
 | Models and tooltips | Tested parts use source material sprites in GUI slots, and tested part tooltips display material names. Original tool textures and static table models are present. | Complete material and variant rendering, 3D models, resource reload, orientation, names, traits and detailed tooltips. |
 | Other tools, armor, materials and modifiers | The 45 equipment IDs are registered; representative icons and armor placement were tested. Some shared material stats and traits work, but equipment actions and most modifiers remain incomplete. | Expand shared stats and traits, then implement tool-specific actions and the remaining modifiers. |
-| Smeltery and foundry | Not implemented. | Port fluids, melting, casting, alloys and multiblocks. |
+| Smeltery and foundry | A small Smeltery melts copper and amethyst into amethyst bronze and casts an ingot in Linux single-player and LAN. | Complete container slots, other fuels and recipes, structure behavior and visuals; implement the Foundry. |
 | Progression and world content | Not implemented. | Port ores, mobs, books, advancements, recipes and gadgets. |
 | Persistence and multiplayer | Tested table inputs, tool name and custom data survive save/reload; representative two-player result races consume inputs once. | Complete original state and component handling, click modes, synchronization and dedicated-server validation. |
 
