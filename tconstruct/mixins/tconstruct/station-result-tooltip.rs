@@ -18,7 +18,8 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                     if let Some(tank) = fuel {
                         if let Some(fluid) = tank.fluid.as_deref() {
                             let name = crate::game::tconstruct_source_melter_render::fluid_name(game, fluid);
-                            let temperature = crate::game::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, u32::MAX).map_or(0, |recipe| recipe.temperature);
+                            let temperature = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
+                                .and_then(|tag| match tag.get("fuel_temperature") { Some(horizon_world::nbt::Tag::Long(value)) => u32::try_from(*value).ok(), _ => None }).unwrap_or(0);
                             let detail = if temperature > 0 {
                                 game.pack.names.display_get("gui.tconstruct.melting.fuel.temperature").unwrap_or_else(|| "Temperature: %s°C".to_owned()).replace("%s", &temperature.to_string())
                             } else { game.pack.names.display_get("gui.tconstruct.melting.fuel.invalid").unwrap_or_else(|| "Invalid melting fuel!".to_owned()) };

@@ -324,7 +324,14 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
         }).collect()))
     } else { saved.get("heat_codes").cloned() };
     let mut melter_tag = melter.to_nbt();
-    if let (Tag::Compound(fields), Some(codes)) = (&mut melter_tag, heat_codes) { fields.insert("heat_codes".into(), codes); }
+    let liquid_temperature = liquid_kind.and_then(|(capacity, kind)| store::read(&game.world, below, kind)
+        .and_then(|tag| Tank::from_nbt(&tag, capacity)))
+        .and_then(|tank| tank.fluid.and_then(|fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, &fluid, u32::MAX)))
+        .map_or(0, |fuel| fuel.temperature);
+    if let Tag::Compound(fields) = &mut melter_tag {
+        fields.insert("fuel_temperature".into(), Tag::Long(i64::from(liquid_temperature)));
+        if let Some(codes) = heat_codes { fields.insert("heat_codes".into(), codes); }
+    }
     let mut updates = vec![(pos, "tconstruct:melter", melter_tag)];
     if let Some(update) = fluid_update { updates.push(update); }
     let _ = store::write_many(&mut game.world, &updates);
