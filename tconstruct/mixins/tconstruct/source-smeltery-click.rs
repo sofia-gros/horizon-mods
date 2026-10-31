@@ -54,6 +54,28 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     let Some(pos) = game.container else { return Break(true); };
     let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(true); };
+    if input == horizon_client::menu::Input::QuickMove && slot < 36 {
+        let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+            .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+        let mut stack = game.inventory.get(slot).cloned().flatten();
+        if stack.as_ref().is_some_and(|stack| crate::game::tconstruct_source_fluid_container::accepts(stack, &|fluid| fluids.contains(fluid))) {
+            let (mut containers, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
+                .get(&pos).cloned().unwrap_or(([None, None], 0));
+            if crate::game::tconstruct_source_fluid_container::quick_input(&mut containers, &mut stack, &|fluid| fluids.contains(fluid)) {
+                crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut containers,
+                    crate::game::tconstruct_source_fluid_container::Direction::from_index(mode),
+                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+                if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                    game.inventory[slot] = stack;
+                    game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), mode));
+                    if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+                        *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    }
+                }
+            }
+            return Break(true);
+        }
+    }
     if input == horizon_client::menu::Input::QuickMove {
         let mut inventory = game.inventory.clone();
         let before_slots = state.slots.clone();

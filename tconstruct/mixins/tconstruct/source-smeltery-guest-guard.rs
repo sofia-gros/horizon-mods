@@ -68,6 +68,28 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
         let player_index = usize::try_from(packet.slot).ok().filter(|slot| (54..90).contains(slot)).map(|slot| {
             let index = slot - 54; if index < 27 { index + 9 } else { index - 27 }
         });
+        if let Some(index) = player_index {
+            let fluids = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+                .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+            let mut stack = inventory[index].clone();
+            if stack.as_ref().is_some_and(|stack| crate::tconstruct_source_fluid_container::accepts(stack, &|fluid| fluids.contains(fluid))) {
+                let mut next = containers.clone();
+                if crate::tconstruct_source_fluid_container::quick_input(&mut next, &mut stack, &|fluid| fluids.contains(fluid)) {
+                    crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,
+                        crate::tconstruct_source_fluid_container::Direction::from_index(direction),
+                        &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+                    if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                        inventory[index] = stack;
+                        hub.guests[gi].inventory = inventory;
+                        *hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers_mut() = Some((pos, next.clone(), direction));
+                    }
+                }
+                let current = hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+                    .filter(|(at, _, _)| *at == pos).map(|(_, slots, _)| slots.clone()).unwrap_or([None, None]);
+                hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &current));
+                return Break(Vec::new());
+            }
+        }
         let stack = container_index.and_then(|index| state.slots[index].clone())
             .or_else(|| player_index.and_then(|index| inventory[index].clone()));
         if let Some(stack) = stack {

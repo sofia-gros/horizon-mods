@@ -63,6 +63,29 @@ pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<Ite
     }
     true
 }
+/// Stage a shift move from player inventory into the input slot.
+pub(super) fn quick_input(slots: &mut [Option<ItemStack>; 2], stack: &mut Option<ItemStack>,
+    known_fluid: &impl Fn(&str) -> bool) -> bool {
+    let Some(held) = stack.as_mut() else { return false; };
+    if !accepts(held, known_fluid) { return false; }
+    let max = if held.item.as_ref() == "minecraft:bucket" { 16 } else { 1 };
+    let amount = match slots[0].as_mut() {
+        None => {
+            let amount = held.count.min(max);
+            let mut placed = held.clone(); placed.count = amount;
+            slots[0] = Some(placed); amount
+        }
+        Some(existing) if existing.item == held.item && existing.damage == held.damage && existing.extra == held.extra => {
+            let amount = held.count.min(max.saturating_sub(existing.count));
+            existing.count += amount; amount
+        }
+        _ => 0,
+    };
+    if amount == 0 { return false; }
+    held.count -= amount;
+    if held.count == 0 { *stack = None; }
+    true
+}
 fn filled_bucket(fluid: &str) -> Option<String> {
     match fluid {
         "minecraft:water" => Some("minecraft:water_bucket".into()),
@@ -122,6 +145,19 @@ mod tests {
         assert!(carried.is_none());
         assert!(click(&mut slots, &mut carried, 0, true, &known));
         assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (1, 2));
+    }
+    #[test]
+    fn quick_input_conserves_buckets_and_rejects_invalid_stacks() {
+        let mut slots = [None, None];
+        let mut held = Some(ItemStack::new("minecraft:bucket", 20));
+        assert!(quick_input(&mut slots, &mut held, &known));
+        assert_eq!(slots[0].as_ref().unwrap().count, 16);
+        assert_eq!(held.as_ref().unwrap().count, 4);
+        assert!(!quick_input(&mut slots, &mut held, &known));
+        assert_eq!(held.as_ref().unwrap().count, 4);
+        slots = [None, None]; held = Some(ItemStack::new("minecraft:stone", 1));
+        assert!(!quick_input(&mut slots, &mut held, &known));
+        assert_eq!(held.as_ref().unwrap().count, 1);
     }
     #[test]
     fn fills_and_empties_one_bucket_without_losing_a_stack() {
