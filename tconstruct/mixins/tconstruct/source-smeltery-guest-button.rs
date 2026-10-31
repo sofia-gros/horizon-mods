@@ -17,6 +17,7 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let Some(pos) = menu.pos else { return Continue(()); };
     let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Continue(()); };
+    if host.hub.guests[gi].spectator() { return Break(()); }
     if (1..=2).contains(&id) {
         if host.hub.guests[gi].carried.is_some() { crate::game::tconstruct_source_fluid_direct::fuel_guest(game, host, gi, pos, id == 2); }
         return Break(());
