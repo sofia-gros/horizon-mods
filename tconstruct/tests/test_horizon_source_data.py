@@ -12,7 +12,7 @@ class HorizonSourceData(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp) / 'resources'; base.mkdir()
             (base / 'horizon-resources.json').write_text('{}')
-            cases = [('recipe/a.json', 'recipes/a.json'), ('tags/item/nested/a.json', 'tags/items/nested/a.json'), ('tags/fluid/a.json', 'tags/fluids/a.json')]
+            cases = [('recipe/a.json', 'recipes/a.json'), ('tags/item/nested/a.json', 'tags/items/nested/a.json'), ('tags/fluid/a.json', 'tags/fluids/a.json'), ('tags/block/a.json', 'tags/blocks/a.json')]
             for source, _ in cases:
                 path = base / 'data/minecraft' / source; path.parent.mkdir(parents=True, exist_ok=True); path.write_text('{"test":true}')
             out = Path(tmp) / 'pack'
