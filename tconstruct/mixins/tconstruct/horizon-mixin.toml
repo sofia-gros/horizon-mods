@@ -2289,3 +2289,11 @@ id = "source-workstation-tabs-lan"
 file = "crates/horizon-client/src/game/lan_actions.rs"
 name = "tconstruct_source_workstation_tabs_lan"
 source = "source-workstation-tabs-lan.rs"
+
+[[injection]]
+id = "source-station-slots"
+target = "horizon_client::game::Game<'_>::slots"
+kind = "HEAD"
+cancellable = true
+helper = "source-station-slots.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]

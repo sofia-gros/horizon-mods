@@ -18,6 +18,8 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
     let position = match slot {
         0..=8 => (8.0 + slot as f32 * 18.0, 160.0),
         9..=35 => (8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0),
+        500..=503 if station => (152.0, 20.0 + (slot - 500) as f32 * 18.0),
+        504 if station => (132.0, 74.0),
         300..=303 if station => station_layout.as_ref().and_then(|layout| {
             if layout.tool_slot.is_some() {
                 if slot == 300 { layout.tool_slot.as_ref() } else { layout.input_slots.get(slot - 301) }

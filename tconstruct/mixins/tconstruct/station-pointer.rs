@@ -45,6 +45,24 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
             }
         }
     }
+    if station {
+        if let Some(slot @ 500..=504) = game.slot_at(&batch, game.cursor.0, game.cursor.1) {
+            let shift = game.has_shift_down();
+            if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+                let action = (slot - 500) as i32 * 3 + if shift { 2 } else if right { 1 } else { 0 };
+                game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 31100 + action }));
+            } else {
+                // Use the existing InventoryMenu transaction and equipment rules.
+                let previous = game.container.take();
+                let previous_size = game.craft_size;
+                game.craft_size = 2;
+                game.menu_ops(&[(Some(slot), i32::from(right), if shift { horizon_client::menu::Input::QuickMove } else { horizon_client::menu::Input::Pickup })]);
+                game.craft_size = previous_size;
+                game.container = previous;
+            }
+            return Break(true);
+        }
+    }
     if game.has_shift_down() {
         if !station && game.slot_at(&batch, game.cursor.0, game.cursor.1) == Some(322) {
             if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, i32::from(right), 1); }
