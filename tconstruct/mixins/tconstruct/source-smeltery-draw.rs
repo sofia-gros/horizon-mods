@@ -58,7 +58,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         for fluid in &tank.fluids {
             let height = (106.0 * fluid.amount as f32 / tank.capacity as f32).min(106.0-y);
             if height <= 0.0 { break; }
-            let name = format!("block/tconstruct_fluid_{}", fluid.id.strip_prefix("tconstruct:").unwrap_or(""));
+            let name = crate::game::tconstruct_source_melter_render::sprite(&fluid.id);
             if let Some(sprite) = atlas.sprites.get(&name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                 let (du,dv)=((sprite.u1-sprite.u0)/sprite.w as f32,(sprite.v1-sprite.v0)/sprite.h as f32);
                 let mut yy=0.0;
