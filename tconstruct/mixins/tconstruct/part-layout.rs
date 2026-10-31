@@ -1,4 +1,14 @@
 fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<(f32, f32)> {
+    if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
+        let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
+        let position = match slot {
+            0..=8 => Some((8.0 + slot as f32 * 18.0, 196.0)),
+            9..=35 => Some((8.0 + ((slot - 9) % 9) as f32 * 18.0, 138.0 + ((slot - 9) / 9) as f32 * 18.0)),
+            300..=353 => Some(crate::game::tconstruct_source_smeltery_layout::position(count, offset, slot - 300).unwrap_or((-10000.0, -10000.0))),
+            _ => None,
+        };
+        return position.map_or(std::ops::ControlFlow::Continue(()), std::ops::ControlFlow::Break);
+    }
     if crate::game::tconstruct_ui::is_melter(game) {
         return crate::game::tconstruct_source_melter_layout::position(slot)
             .map_or(std::ops::ControlFlow::Continue(()), std::ops::ControlFlow::Break);

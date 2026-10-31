@@ -116,6 +116,20 @@ pub(super) fn merge_pack_fluid_tags(
     }
 }
 
+pub(super) fn merge_pack_block_tags(
+    tags: &mut BTreeMap<String, Vec<Vec<u8>>>,
+    files: impl IntoIterator<Item = String>,
+    read: impl Fn(&str) -> Option<Vec<u8>>,
+) {
+    for file in files {
+        let Some(rest) = file.strip_prefix("data/") else { continue; };
+        let Some((namespace, path)) = rest.split_once('/') else { continue; };
+        let Some(path) = path.strip_prefix("tags/blocks/").and_then(|p| p.strip_suffix(".json")) else { continue; };
+        if !valid_id(&format!("{namespace}:{path}")) || path.split('/').any(|p| p.is_empty() || p == "." || p == "..") { continue; }
+        if let Some(bytes) = read(&file) { tags.entry(format!("{namespace}:{path}")).or_default().push(bytes); }
+    }
+}
+
 /// Resolve an acyclic tag against the current registry. Missing required
 /// entries fail the tag; missing removals are optional in Forge. Cycles are
 /// explicitly unsupported for now and must not be treated as an empty tag.
@@ -233,6 +247,15 @@ mod tests {
         merge_pack_fluid_tags(&mut tags, [fluid.into(), "data/forge/tags/items/creosote.json".into()], |_| Some(b"base".to_vec()));
         merge_pack_fluid_tags(&mut tags, [fluid.into()], |_| Some(b"override".to_vec()));
         assert_eq!(tags["forge:creosote"], [b"base".to_vec(), b"override".to_vec()]);
+        assert_eq!(tags.len(), 1);
+    }
+    #[test]
+    fn block_tags_preserve_pack_layers_without_reading_item_tags() {
+        let mut tags = BTreeMap::new();
+        let block = "data/tconstruct/tags/blocks/smeltery/wall.json";
+        merge_pack_block_tags(&mut tags, [block.into(), "data/tconstruct/tags/items/smeltery/wall.json".into()], |_| Some(b"base".to_vec()));
+        merge_pack_block_tags(&mut tags, [block.into()], |_| Some(b"override".to_vec()));
+        assert_eq!(tags["tconstruct:smeltery/wall"], [b"base".to_vec(), b"override".to_vec()]);
         assert_eq!(tags.len(), 1);
     }
     #[test]

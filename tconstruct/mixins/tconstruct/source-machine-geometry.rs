@@ -7,6 +7,20 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
         for (pos, raw) in &saved.block_entity_sources {
             let Some(horizon_world::nbt::Tag::String(id)) = raw.get("id") else { continue; };
             let id = id.to_string_lossy();
+            if matches!(id.as_str(), "tconstruct:fuel_tank" | "tconstruct:ingot_tank") {
+                let block = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
+                let expected = match id.as_str() {
+                    "tconstruct:fuel_tank" => matches!(block, "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge"),
+                    _ => matches!(block, "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge"),
+                };
+                if expected {
+                    let capacity = if id == "tconstruct:fuel_tank" { 4000 } else { 4320 };
+                    if let Some(tank) = raw.get(id.as_str()).and_then(|tag| crate::game::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity)) {
+                        tconstruct_fluid_geometry(game, camera, out, *pos, &tank, [0.08, 0.08, 0.08, 15.92, 15.92, 15.92], true);
+                    }
+                }
+                continue;
+            }
             if id == "tconstruct:melter" {
                 if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:seared_melter" {
                     if let Some(melter) = raw.get("tconstruct:melter").and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt) {
@@ -72,7 +86,7 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
     // Fluid cuboid bounds and visible faces come from the source render provider.
 fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, out: &mut Vec<Vertex>, pos: (i32, i32, i32), tank: &crate::game::tconstruct_source_melter_state::Tank, bounds: [f32; 6], sides: bool) {
     let Some(fluid) = tank.fluid.as_deref() else { return; };
-    let name = format!("block/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or(""));
+    let name = crate::game::tconstruct_source_melter_render::sprite(fluid);
     let Some(sprite) = game.gui.atlas.sprites.get(&name).or_else(|| game.gui.atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() else { return; };
     let at = glam::DVec3::new(f64::from(pos.0), f64::from(pos.1), f64::from(pos.2));
     if at.distance_squared(camera) >= 64.0 * 64.0 { return; }

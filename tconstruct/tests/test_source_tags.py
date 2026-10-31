@@ -1,5 +1,6 @@
 """The MIT-licensed tag layer is the exact pinned upstream generated data."""
 import hashlib
+import json
 from pathlib import Path
 import unittest
 import zipfile
@@ -7,6 +8,15 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 
 class SourceTags(unittest.TestCase):
+    def test_smeltery_block_tags_are_available_to_source_pack(self):
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-block-tags.zip') as archive:
+            names = archive.namelist()
+            self.assertEqual(len(names), len(set(names)))
+            self.assertTrue(all('/tags/blocks/' in name and name.endswith('.json') for name in names))
+            wall = json.loads(archive.read('data/tconstruct/tags/blocks/smeltery/wall.json'))
+            floor = json.loads(archive.read('data/tconstruct/tags/blocks/smeltery/floor.json'))
+            self.assertIn('#tconstruct:seared_blocks', wall['values'])
+            self.assertIn('#tconstruct:seared_blocks', floor['values'])
     def test_fluid_tags_match_pinned_manifest(self):
         rows = (ROOT / 'docs/upstream-fluid-tags.sha256').read_text().splitlines()
         expected = dict(row.split('  ', 1)[::-1] for row in rows)

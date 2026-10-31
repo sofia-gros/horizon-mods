@@ -2,7 +2,7 @@
 // registry snapshots. Unknown conditions and ambiguous tags fail closed.
 use std::collections::{HashMap, HashSet};
 use super::tconstruct_source_melting_lookup::Catalog;
-use super::tconstruct_source_melting_recipes::{CastingRecipe, MeltingRecipe};
+use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidFuel, MeltingRecipe};
 use super::tconstruct_world::World;
 
 type Tags = HashMap<String, HashSet<String>>;
@@ -22,6 +22,19 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.melting(item, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
+pub(super) fn alloy(world: &World, fluids: &[(String, u32)], capacity: u32, temperature: u32)
+    -> Option<(String, Vec<(String, u32)>, String, u32)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.alloy(fluids, capacity, temperature, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
+pub(super) fn fluid_fuel(world: &World, fluid: &str, available: u32) -> Option<FluidFuel> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.fluid_fuel(fluid, available, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
     })?
 }
 

@@ -23,13 +23,13 @@ impl Tank {
         if self.amount == 0 { self.fluid = None; }
         Some(fluid)
     }
-    fn to_nbt(&self) -> Tag {
+    pub(super) fn to_nbt(&self) -> Tag {
         let mut value = Compound::new();
         if let Some(id) = &self.fluid { value.insert("fluid".into(), Tag::String(id.as_str().into())); }
         value.insert("amount".into(), Tag::Int(self.amount as i32));
         Tag::Compound(value)
     }
-    fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
+    pub(super) fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };
         if amount > capacity { return None; }
         let fluid = match tag.get("fluid") { Some(Tag::String(id)) => Some(id.to_string_lossy()), None => None, _ => return None };

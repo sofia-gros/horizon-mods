@@ -1,6 +1,30 @@
 fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, pos: (i32, i32, i32)) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     let machine = game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name.clone();
+    if &*machine == "tconstruct:smeltery_controller" {
+        game.ensure_datapacks();
+        if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &machine) { return Break(false); }
+        crate::game::tconstruct_source_machine_runtime::refresh_smeltery(game, pos);
+        if crate::game::tconstruct_source_smeltery_world::detect(game, pos).is_none() { return Break(false); }
+        let Some(state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
+            .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(false); };
+        if state.slots.is_empty() { return Break(false); }
+        let slots = horizon_client::lan::menu::Slots::Block(pos);
+        let Some(guest) = host.hub.guest(conn) else { return Break(false); };
+        let key = (conn, guest.placed_at, pos);
+        game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (0, state.slots.len()));
+        let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
+        game.guest_container_closed(host, conn);
+        game.lan_station_closed(host, conn, None);
+        host.hub.open_container(conn, "minecraft:generic_9x6", horizon_protocol::text::literal("TConstruct Smeltery"), pos, slots, items);
+        if let Some(guest) = host.hub.guest(conn) {
+            if let Some(window) = guest.menu.as_ref().map(|menu| menu.window) {
+                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30002, value: state.slots.len() as i16 }));
+                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30003, value: 0 }));
+            }
+        }
+        return Break(true);
+    }
     if matches!(&*machine, "tconstruct:seared_melter" | "tconstruct:seared_heater") {
         game.ensure_datapacks();
         if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &machine) { return Break(false); }

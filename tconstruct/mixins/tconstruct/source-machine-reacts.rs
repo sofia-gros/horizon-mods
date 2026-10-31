@@ -4,7 +4,7 @@ fn tconstruct_machine_reacts(game: &crate::game::Game<'_>, hit: &super::Hit) -> 
     if game.keys.contains(&KeyCode::ShiftLeft) && (game.stack_in(game.selected).is_some() || game.offhand.is_some()) { return Continue(()); }
     let state = game.world.block(hit.pos[0], hit.pos[1], hit.pos[2]);
     let name = &game.res.facts().get(state).name;
-    if matches!(&**name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin") {
+    if matches!(&**name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge") {
         return Break((true, DryUse::default()));
     }
     Continue(())

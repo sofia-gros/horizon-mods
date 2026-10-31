@@ -1,4 +1,8 @@
 fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) -> std::ops::ControlFlow<()> {
+    if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
+        crate::game::tconstruct_source_smeltery_draw::draw(game, batch, ox, oy);
+        return std::ops::ControlFlow::Break(());
+    }
     if crate::game::tconstruct_ui::is_melter(game) {
         let atlas = &game.gui.atlas;
         batch.sprite_region(atlas, "gui/tconstruct_melter", [ox, oy, 176.0, 166.0], 256.0, 256.0);
@@ -26,7 +30,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             if let Some(fluid) = &melter.tank.fluid {
                 // Tile the first frame of the original still-fluid texture in
                 // the source tank's 52x52 area, scaled by the stored amount.
-                let sprite_name = format!("block/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or(""));
+                let sprite_name = crate::game::tconstruct_source_melter_render::sprite(fluid);
                 if let Some(sprite) = atlas.sprites.get(&sprite_name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                     let height = (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0);
                     let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);

@@ -1,3 +1,13 @@
+// Vanilla fluids use their existing still sprites; TConstruct fluids use the
+// source images staged under a separate prefix.
+pub(super) fn sprite(fluid: &str) -> String {
+    match fluid {
+        "minecraft:lava" => "block/lava_still".to_owned(),
+        "minecraft:water" => "block/water_still".to_owned(),
+        _ => format!("block/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or("")),
+    }
+}
+
 // Generated from the source FluidTextureProvider ARGB colors.
 pub(super) fn color(fluid: &str) -> u32 {
     match fluid {

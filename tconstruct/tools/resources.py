@@ -71,6 +71,8 @@ for child in (src / 'assets/minecraft/textures/gui').iterdir():
     link_or_copy(child, gui / child.name)
 for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
+with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as source_smeltery:
+    (gui / 'tconstruct_heating_structure.png').write_bytes(source_smeltery.read('assets/tconstruct/textures/gui/heating_structure.png'))
 # Use the original Melter screen in the shared GUI atlas.
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as source_melter:
     (gui / 'tconstruct_melter.png').write_bytes(source_melter.read('assets/tconstruct/textures/gui/melter.png'))
@@ -87,6 +89,8 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
+    (mod_assets / 'textures/item/amethyst_bronze_ingot.png').write_bytes(smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
 shutil.copytree(repository / 'content/assets/tconstruct/sounds', mod_assets / 'sounds')
 shutil.copyfile(repository / 'content/assets/tconstruct/sounds.json', mod_assets / 'sounds.json')
 # Original dummy plating sprites are ordinary generated item textures.
@@ -149,6 +153,7 @@ entries = [
     ('tconstruct:tool_handle', 'minecraft:flint', 'Tool Handle'),
     ('tconstruct:tool_binding', 'minecraft:flint', 'Tool Binding'),
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
+    ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
 ]
 # Original material-bearing part and fake-ingot IDs share MaterialItem behavior.
 # Their rendering and tooltip name paths are connected; stats, traits and

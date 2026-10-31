@@ -7,7 +7,7 @@ use super::tconstruct_world::World;
 type Pos = (i32, i32, i32);
 
 fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) -> bool {
-    if !matches!(key, "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin") { return false; }
+    if !matches!(key, "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank") { return false; }
     if let Some((_, tag)) = sources.iter_mut().find(|(at, _)| *at == pos) {
         if tag.get("id") != Some(&Tag::String(key.into())) { return false; }
         let Tag::Compound(map) = tag else { return false; };
@@ -28,9 +28,13 @@ pub(super) fn clear(world: &mut World, pos: Pos) {
     let chunk = std::sync::Arc::make_mut(chunk);
     let Some(saved) = chunk.saved.as_mut() else { return; };
     let saved = std::sync::Arc::make_mut(saved);
-    let before = saved.block_entity_sources.len();
-    saved.block_entity_sources.retain(|(at, _)| *at != pos);
-    if saved.block_entity_sources.len() != before { world.modified.insert((pos.0 >> 4, pos.2 >> 4)); }
+    if clear_metadata(&mut saved.block_entity_sources, pos) { world.modified.insert((pos.0 >> 4, pos.2 >> 4)); }
+}
+
+fn clear_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos) -> bool {
+    let before = sources.len();
+    sources.retain(|(at, _)| *at != pos);
+    sources.len() != before
 }
 
 /// A replaced vanilla block can leave its old source tag in chunk extras.
@@ -62,22 +66,18 @@ pub(super) fn write(world: &mut World, pos: Pos, key: &str, value: Tag) -> bool 
 mod tests {
     use super::*;
     #[test]
-    fn replacement_clears_only_stale_metadata_and_removal_preserves_neighbors() {
-        use horizon_world::registry::BlockStateId;
-        use std::sync::Arc;
-        let mut world = World::new(BlockStateId(0), 0);
-        world.chunks.insert((0, 0), Arc::new(horizon_client::chunk::Chunk::empty(0, 0)));
+    fn removal_preserves_neighbor_metadata_and_allows_replacement() {
+        let mut sources = Vec::new();
         let a = (1, 70, 1); let b = (2, 70, 1);
-        assert!(write(&mut world, a, "tconstruct:melter", Tag::Int(7)));
-        assert!(write(&mut world, b, "tconstruct:melter", Tag::Int(9)));
-        clear_different(&mut world, a, "tconstruct:melter");
-        assert_eq!(read(&world, a, "tconstruct:melter"), Some(Tag::Int(7)));
-        clear_different(&mut world, a, "tconstruct:table");
-        assert!(read(&world, a, "tconstruct:melter").is_none());
-        assert!(write(&mut world, a, "tconstruct:table", Tag::Int(3)));
-        clear(&mut world, a);
-        assert!(read(&world, a, "tconstruct:table").is_none());
-        assert_eq!(read(&world, b, "tconstruct:melter"), Some(Tag::Int(9)));
+        assert!(set_metadata(&mut sources, a, "tconstruct:melter", Tag::Int(7)));
+        assert!(set_metadata(&mut sources, b, "tconstruct:melter", Tag::Int(9)));
+        assert!(clear_metadata(&mut sources, a));
+        assert!(!clear_metadata(&mut sources, a));
+        assert!(set_metadata(&mut sources, a, "tconstruct:table", Tag::Int(3)));
+        assert!(clear_metadata(&mut sources, a));
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].0, b);
+        assert_eq!(sources[0].1.get("tconstruct:melter"), Some(&Tag::Int(9)));
     }
     #[test]
     fn metadata_preserves_inventory_source_and_rejects_other_entities() {

@@ -69,6 +69,30 @@ bindings = [
 ]
 
 [[injection]]
+id = "smeltery-click"
+target = "horizon_client::game::Game<'_>::menu_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]
+
+[[injection]]
+id = "smeltery-local-click-fallback"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-local-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
 id = "part-builder-output"
 target = "horizon_client::game::Game<'_>::menu_click"
 kind = "HEAD"
@@ -79,6 +103,20 @@ bindings = [
   { name = "slot", ty = "Option<usize>", value = "slot" },
   { name = "button", ty = "i32", value = "button" },
   { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]
+
+[[injection]]
+id = "smeltery-guest-guard"
+target = "horizon_client::lan::containers::Hub::container_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-guard.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&play::ContainerClick", value = "p" },
+  { name = "world", ty = "&mut World", value = "&mut *world" },
+  { name = "rules", ty = "&dyn Rules", value = "rules" },
 ]
 
 [[injection]]
@@ -160,6 +198,17 @@ id = "server-transactions"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_tx"
 source = "transaction.rs"
+
+[[injection]]
+id = "smeltery-pointer"
+target = "horizon_client::game::stations::Game<'_>::station_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-pointer.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
 
 [[injection]]
 id = "station-pointer-output"
@@ -272,6 +321,18 @@ target = "horizon_client::game::remote_stations::Game<'_>::remote_station_data"
 kind = "HEAD"
 cancellable = true
 helper = "part-selection-remote-data.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "id", ty = "usize", value = "id" },
+  { name = "value", ty = "i16", value = "value" },
+]
+
+[[injection]]
+id = "smeltery-remote-data"
+target = "horizon_client::game::remote_stations::Game<'_>::remote_station_data"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-remote-data.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "id", ty = "usize", value = "id" },
@@ -459,6 +520,85 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "resolved-block-tags"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-owners"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-guest-pages"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,(i32,i32,i32)),(usize,usize)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-ui-pages"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(usize,usize)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-ui-dragging"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-ui-menu-state"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "smeltery-track-menu-state"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+helper = "source-smeltery-track-state.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "packet", ty = "&horizon_protocol::packets::play::Clientbound", value = "&packet" },
+]
+
+[[injection]]
+id = "smeltery-restore-menu-state"
+target = "horizon_client::game::remote::Game<'_>::remote_menu_ops"
+kind = "HEAD"
+helper = "source-smeltery-restore-state.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+[[state]]
 id = "fluid-tag-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
@@ -641,6 +781,17 @@ bindings = [
   { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
   { name = "pos", ty = "[i32; 3]", value = "pos" },
   { name = "tag", ty = "&horizon_world::nbt::Tag", value = "tag" },
+]
+
+[[injection]]
+id = "smeltery-tank-attach-drop"
+target = "horizon_client::game::spill::Pending::attach"
+kind = "HEAD"
+helper = "source-smeltery-tank-drop.rs"
+bindings = [
+  { name = "pending", ty = "&mut crate::game::spill::Pending", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "stack", ty = "&mut horizon_client::items::ItemStack", value = "stack" },
 ]
 
 [[injection]]
@@ -1084,6 +1235,14 @@ selector = "Self"
 require = 1
 
 [[injection]]
+id = "smeltery-scroll-input"
+target = "horizon_client::game::stations::Game<'_>::station_scroll"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-scroll.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "delta", ty = "f32", value = "d" }]
+
+[[injection]]
 id = "builder-scroll-input"
 target = "horizon_client::game::stations::Game<'_>::station_scroll"
 kind = "HEAD"
@@ -1092,11 +1251,26 @@ helper = "source-builder-scroll.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "delta", ty = "f32", value = "d" }]
 
 [[injection]]
+id = "smeltery-drag"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
 id = "builder-drag"
 target = "horizon_client::game::Game<'_>::inventory_drag_move"
 kind = "HEAD"
 cancellable = true
 helper = "source-builder-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "smeltery-release"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+kind = "HEAD"
+helper = "source-smeltery-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]
@@ -1314,6 +1488,58 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[injection]]
+id = "smeltery-guest-button"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_button"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-button.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "i32", value = "window" },
+  { name = "id", ty = "i32", value = "id" },
+]
+
+[[injection]]
+id = "smeltery-guest-read"
+target = "horizon_client::lan::menu::Slots::read"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-read.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+  { name = "guest", ty = "&crate::lan::guest::Guest", value = "guest" },
+]
+
+[[injection]]
+id = "smeltery-guest-write"
+target = "horizon_client::lan::menu::Slots::write"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-write.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&mut crate::world::World", value = "&mut *world" },
+  { name = "guest", ty = "&crate::lan::guest::Guest", value = "&*guest" },
+  { name = "items", ty = "&[Option<ItemStack>]", value = "&items" },
+]
+
+[[injection]]
+id = "smeltery-guest-get"
+target = "horizon_client::lan::menu::Slots::get"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-get.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+  { name = "guest", ty = "&crate::lan::guest::Guest", value = "guest" },
+  { name = "index", ty = "usize", value = "n" },
+]
 
 [[injection]]
 id = "builder-hopper-menu-read"
@@ -1698,6 +1924,96 @@ name = "tconstruct_source_melter_state"
 source = "source-melter-state.rs"
 
 [[module]]
+id = "source-smeltery-tank"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_tank"
+source = "source-smeltery-tank.rs"
+
+[[module]]
+id = "source-smeltery-state"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_state"
+source = "source-smeltery-state.rs"
+
+[[module]]
+id = "source-smeltery-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_layout"
+source = "source-smeltery-layout.rs"
+
+[[module]]
+id = "source-smeltery-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_ui"
+source = "source-smeltery-ui.rs"
+
+[[module]]
+id = "source-smeltery-draw"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_draw"
+source = "source-smeltery-draw.rs"
+
+[[module]]
+id = "source-smeltery-spill"
+file = "crates/horizon-client/src/game/spill.rs"
+name = "tconstruct_source_smeltery_spill"
+source = "source-smeltery-spill.rs"
+
+[[module]]
+id = "source-smeltery-page"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_page"
+source = "source-smeltery-page.rs"
+
+[[module]]
+id = "source-smeltery-fuel"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_fuel"
+source = "source-smeltery-fuel.rs"
+
+[[module]]
+id = "source-smeltery-structure"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_structure"
+source = "source-smeltery-structure.rs"
+
+[[module]]
+id = "source-smeltery-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_world"
+source = "source-smeltery-world.rs"
+
+[[module]]
+id = "server-smeltery-tank"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_tank"
+source = "source-smeltery-tank.rs"
+
+[[module]]
+id = "server-smeltery-state"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_state"
+source = "source-smeltery-state.rs"
+
+[[module]]
+id = "server-smeltery-layout"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_layout"
+source = "source-smeltery-layout.rs"
+
+[[module]]
+id = "server-smeltery-page"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_page"
+source = "source-smeltery-page.rs"
+
+[[module]]
+id = "server-melter-store"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_melter_store"
+source = "source-melter-store.rs"
+
+[[module]]
 id = "source-melting-lookup"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melting_lookup"
@@ -1859,6 +2175,7 @@ bindings = [
   { name = "level", ty = "&mut crate::game::GameLevel<'_>", value = "&mut *self" },
   { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
   { name = "old", ty = "horizon_world::registry::BlockStateId", value = "old" },
+  { name = "side_effects", ty = "bool", value = "side_effects" },
 ]
 
 [[injection]]

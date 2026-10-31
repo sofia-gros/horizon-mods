@@ -1,0 +1,75 @@
+fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button: i32, input: horizon_client::menu::Input) -> std::ops::ControlFlow<bool> {
+    use std::ops::ControlFlow::{Break, Continue};
+    if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
+    // Reject outside clicks and every synthetic container slot before the
+    // generic menu can alter the carried stack or player inventory.
+    let Some(slot) = slot else { return Break(true); };
+    if (36..300).contains(&slot) { return Break(true); }
+    if slot >= 300 && (slot >= 354 || crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).is_none()) { return Break(true); }
+    if !matches!(input, horizon_client::menu::Input::Pickup | horizon_client::menu::Input::QuickMove) { return Break(true); }
+    if game.remote.is_some() { return Continue(()); }
+    let Some(pos) = game.container else { return Break(true); };
+    let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
+        .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(true); };
+    if input == horizon_client::menu::Input::QuickMove {
+        let mut inventory = game.inventory.clone();
+        let before_slots = state.slots.clone();
+        let source = if slot < 36 { inventory.get(slot).cloned().flatten() }
+            else { crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).and_then(|index| state.slots[index].clone()) };
+        if let Some(stack) = source {
+            let info = game.res.items().get(&stack.item);
+            let max = info.map_or(64, |item| item.max_stack).max(1);
+            let stackable = info.is_some_and(|item| max > 1 && !(item.max_damage > 0 && stack.damage > 0));
+            let before = stack.count;
+            let remaining = if slot < 36 {
+                let remaining = crate::game::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, max, stackable);
+                inventory[slot] = remaining.clone(); remaining
+            } else {
+                let Some(index) = crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300) else { return Break(true); };
+                let remaining = crate::game::tconstruct_tx::source_quick_move_player(&mut inventory, stack, max, stackable);
+                state.slots[index] = remaining.clone(); remaining
+            };
+            for (index, (before, after)) in before_slots.iter().zip(&state.slots).enumerate() {
+                let same = match (before, after) {
+                    (None, None) => true,
+                    (Some(a), Some(b)) => a.item == b.item && a.damage == b.damage && a.extra == b.extra,
+                    _ => false,
+                };
+                if !same { state.progress[index] = 0; }
+            }
+            if remaining.as_ref().map_or(0, |item| item.count) != before && crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                game.inventory = inventory;
+                if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+                    *live = crate::game::tconstruct_source_smeltery_page::project(&state.slots, offset);
+                }
+            }
+        }
+        return Break(true);
+    }
+    let expected = crate::game::tconstruct_source_smeltery_page::project(&state.slots, offset);
+    let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) else { return Break(true); };
+    let previous_live = live.clone();
+    *live = expected.clone();
+    let previous_inventory = game.inventory.clone();
+    let previous_carried = game.carried.clone();
+    let handled = game.menu_ops(&[(Some(slot), button, input)]);
+    let changed = game.world.block_entities.get(&pos).map(|entity| entity.slots().to_vec());
+    let before_slots = state.slots.clone();
+    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::commit(&mut state.slots, offset, &expected, view));
+    if committed {
+        for (index, (before, after)) in before_slots.iter().zip(&state.slots).enumerate() {
+            let same = match (before, after) {
+                (None, None) => true,
+                (Some(a), Some(b)) => a.item == b.item && a.damage == b.damage && a.extra == b.extra,
+                _ => false,
+            };
+            if !same { state.progress[index] = 0; }
+        }
+        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) { return Break(handled); }
+    }
+    game.inventory = previous_inventory;
+    game.carried = previous_carried;
+    if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) { *live = previous_live; }
+    Break(true)
+}
