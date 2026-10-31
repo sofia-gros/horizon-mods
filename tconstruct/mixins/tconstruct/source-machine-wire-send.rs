@@ -9,23 +9,26 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
         for (pos, raw) in &saved.block_entity_sources {
             let Some(Tag::String(id)) = raw.get("id") else { continue; };
             let id = id.to_string_lossy();
-            let block = match id.as_str() {
-                "tconstruct:melter" => "tconstruct:seared_melter",
-                "tconstruct:heater" => "tconstruct:seared_heater",
-                "tconstruct:faucet" => "tconstruct:seared_faucet",
-                "tconstruct:table" => "tconstruct:seared_table",
-                "tconstruct:basin" => "tconstruct:seared_basin",
+            let blocks: &[&str] = match id.as_str() {
+                "tconstruct:melter" => &["tconstruct:seared_melter"],
+                "tconstruct:heater" => &["tconstruct:seared_heater"],
+                "tconstruct:faucet" => &["tconstruct:seared_faucet"],
+                "tconstruct:table" => &["tconstruct:seared_table"],
+                "tconstruct:basin" => &["tconstruct:seared_basin"],
+                "tconstruct:smeltery" => &["tconstruct:smeltery_controller"],
+                "tconstruct:fuel_tank" => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge"],
+                "tconstruct:ingot_tank" => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge"],
                 _ => continue,
             };
             let Some(kind) = hub.sync.builtin.get("minecraft:block_entity_type").and_then(|r| r.id(&id)) else { continue; };
-            let Some(block_id) = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(block)) else { continue; };
             let state = ctx.world.block(pos.0, pos.1, pos.2).0 as usize;
-            if hub.encoder.block_ids.get(state).copied() != Some(block_id) { continue; }
+            let Some(block_id) = hub.encoder.block_ids.get(state).copied() else { continue; };
+            if !blocks.iter().any(|block| hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(block)) == Some(block_id)) { continue; }
             let Some(value) = raw.get(id.as_str()) else { continue; };
             let mut value = value.clone();
             // Phase is only the server's scheduling cursor. Sending it would
             // broadcast an otherwise unchanged Melter every tick.
-            if id == "tconstruct:melter" {
+            if matches!(id.as_str(), "tconstruct:melter" | "tconstruct:smeltery") {
                 if let Tag::Compound(fields) = &mut value { fields.insert("phase".into(), Tag::Int(0)); }
             }
             let mut data = Compound::new(); data.insert(id.as_str().into(), value);

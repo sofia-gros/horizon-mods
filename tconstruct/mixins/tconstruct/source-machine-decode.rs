@@ -1,7 +1,7 @@
 fn tconstruct_machine_decode(tag: &horizon_world::nbt::Tag) -> std::ops::ControlFlow<Option<((i32, i32, i32), crate::containers::BlockEntity)>> {
     use horizon_world::nbt::Tag;
     let Some(Tag::String(id)) = tag.get("id") else { return std::ops::ControlFlow::Continue(()); };
-    if !matches!(id.to_string_lossy().as_str(), "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin") {
+    if !matches!(id.to_string_lossy().as_str(), "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank") {
         return std::ops::ControlFlow::Continue(());
     }
     let coord = |key| match tag.get(key) { Some(Tag::Int(n)) => Some(*n), _ => None };

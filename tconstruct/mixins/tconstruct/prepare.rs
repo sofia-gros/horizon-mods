@@ -147,7 +147,9 @@ fn prepare_tconstruct_resources() {
         // keep machine metadata outside vanilla chest canonicalization.
         let machines = [("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
             ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
-            ("tconstruct:seared_basin", "tconstruct:basin")];
+            ("tconstruct:seared_basin", "tconstruct:basin"), ("tconstruct:smeltery_controller", "tconstruct:smeltery"),
+            ("tconstruct:seared_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:seared_fuel_gauge", "tconstruct:fuel_tank"),
+            ("tconstruct:seared_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:seared_ingot_gauge", "tconstruct:ingot_tank")];
         let path = out.join("registries.json");
         let mut registries: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         let entries = registries["minecraft:block_entity_type"]["entries"].as_object_mut().ok_or("missing block entity registry")?;
@@ -231,10 +233,10 @@ fn prepare_tconstruct_resources() {
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
                 let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
-                if !matches!(name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin") { continue; }
+                if !matches!(name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge") { continue; }
                 let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
                 row["block_entity"] = serde_json::Value::Bool(true);
-                if name != "tconstruct:seared_heater" {
+                if !matches!(name, "tconstruct:seared_heater" | "tconstruct:smeltery_controller") {
                     row["solid_render"] = serde_json::Value::Bool(false);
                     row["can_occlude"] = serde_json::Value::Bool(false);
                 }
