@@ -1981,6 +1981,12 @@ name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
 
 [[module]]
+id = "source-fluid-direct"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fluid_direct"
+source = "source-fluid-direct.rs"
+
+[[module]]
 id = "source-fluid-return"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_fluid_return"

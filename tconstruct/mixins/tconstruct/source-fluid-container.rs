@@ -77,12 +77,17 @@ fn filled_bucket(fluid: &str) -> Option<String> {
 /// semantics are supported; no custom data is silently discarded.
 pub(super) fn transfer(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    transfer_selected(tank, slots, direction, None, known_item, known_fluid)
+}
+
+pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
     if input.count == 0 || input.damage != 0 || input.extra.is_some() || !known_item(&input.item) { return false; }
     let mut next = tank.clone();
     let replacement = if input.item.as_ref() == "minecraft:bucket" && direction != Direction::EmptyItem {
-        let Some(fluid) = next.fluids.first().map(|fluid| fluid.id.clone()) else { return false; };
+        let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
         let Some(bucket) = filled_bucket(&fluid) else { return false; };
         if !known_fluid(&fluid) || !known_item(&bucket) || !next.take(&fluid, 1000) { return false; }
         bucket
@@ -152,5 +157,15 @@ mod tests {
         assert_eq!(tank.amount("tconstruct:molten_copper"), 1000);
         assert!(transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
         assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "tconstruct:molten_copper_bucket");
+    }
+    #[test]
+    fn selected_fluid_is_drained_without_reordering_other_layers() {
+        let mut tank = SmelteryTank::new(3000);
+        assert!(tank.insert("minecraft:water", 1000)); assert!(tank.insert("minecraft:lava", 2000));
+        let mut slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("minecraft:lava"), &known, &known));
+        assert_eq!(tank.fluids[0].id, "minecraft:water");
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:lava_bucket");
     }
 }

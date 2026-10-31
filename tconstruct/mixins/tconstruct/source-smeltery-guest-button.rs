@@ -1,6 +1,6 @@
 fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, window: i32, id: i32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    if (1..4).contains(&id) || id < 0 { return Continue(()); }
+    if (1..3).contains(&id) || id < 0 { return Continue(()); }
     let Some(gi) = host.hub.guests.iter().position(|guest| guest.conn == conn) else { return Continue(()); };
     let Some(menu) = host.hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if menu.window != window || !menu.slots.still_valid(&game.world, &host.hub.guests[gi], menu.pos) { return Continue(()); }
@@ -21,9 +21,15 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         }
         return Break(());
     }
+    if id == 3 {
+        if host.hub.guests[gi].carried.is_some() { crate::game::tconstruct_source_fluid_direct::guest(game, host, gi, pos, None); }
+        return Break(());
+    }
     if !matches!(id, 32000 | 32001) && !(33000..=45348).contains(&id) {
         let Some(index) = usize::try_from(id - 4).ok() else { return Break(()); };
-        if host.hub.guests[gi].carried.is_none() && state.tank.move_to_bottom(index) {
+        if host.hub.guests[gi].carried.is_some() {
+            crate::game::tconstruct_source_fluid_direct::guest(game, host, gi, pos, Some(index));
+        } else if state.tank.move_to_bottom(index) {
             let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
         }
         return Break(());
