@@ -56,11 +56,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     if state.slots.len() != volume || state.tank.capacity != capacity {
         if !state.resize(volume, capacity).is_empty() { return; }
     }
-    let Some(BlockEntity::Chest(live)) = game.world.block_entities.get(&pos) else { return; };
-    for (index, slot) in live.iter().take(state.slots.len()).enumerate() {
-        if !same_material(&state.slots[index], slot) { state.progress[index] = 0; }
-        state.slots[index] = slot.clone();
-    }
+    if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(_))) { return; }
     let recipes: Vec<_> = if state.phase == 0 || state.phase == 1 {
         state.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
             super::tconstruct_source_melter_world::melting(&game.world, &stack.item))).collect()
@@ -119,9 +115,6 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
-    if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
-        for (slot, updated) in live.iter_mut().zip(&state.slots) { *slot = updated.clone(); }
-    }
 }
 
 /// Exchange a standard lava bucket with a source tank, staging the NBT before

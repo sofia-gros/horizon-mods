@@ -82,6 +82,19 @@ bindings = [
 ]
 
 [[injection]]
+id = "smeltery-guest-guard"
+target = "horizon_client::lan::containers::Hub::container_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-guard.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&play::ContainerClick", value = "p" },
+  { name = "world", ty = "&mut World", value = "&mut *world" },
+]
+
+[[injection]]
 id = "guest-part-output"
 target = "horizon_client::lan::containers::Hub::container_click"
 kind = "HEAD"
@@ -472,6 +485,16 @@ require = 1
 id = "smeltery-owners"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-guest-pages"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,(i32,i32,i32)),usize>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
@@ -1336,6 +1359,44 @@ selector = "Self"
 require = 1
 
 [[injection]]
+id = "smeltery-guest-read"
+target = "horizon_client::lan::menu::Slots::read"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-read.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+  { name = "guest", ty = "&crate::lan::guest::Guest", value = "guest" },
+]
+
+[[injection]]
+id = "smeltery-guest-write"
+target = "horizon_client::lan::menu::Slots::write"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-write.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&mut crate::world::World", value = "&mut *world" },
+  { name = "guest", ty = "&crate::lan::guest::Guest", value = "&*guest" },
+  { name = "items", ty = "&[Option<ItemStack>]", value = "&items" },
+]
+
+[[injection]]
+id = "smeltery-guest-get"
+target = "horizon_client::lan::menu::Slots::get"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-get.rs"
+bindings = [
+  { name = "slots", ty = "crate::lan::menu::Slots", value = "self" },
+  { name = "world", ty = "&crate::world::World", value = "world" },
+  { name = "guest", ty = "&crate::lan::guest::Guest", value = "guest" },
+  { name = "index", ty = "usize", value = "n" },
+]
+
+[[injection]]
 id = "builder-hopper-menu-read"
 target = "horizon_client::lan::menu::Slots::read"
 kind = "HEAD"
@@ -1758,6 +1819,36 @@ id = "source-smeltery-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_world"
 source = "source-smeltery-world.rs"
+
+[[module]]
+id = "server-smeltery-tank"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_tank"
+source = "source-smeltery-tank.rs"
+
+[[module]]
+id = "server-smeltery-state"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_state"
+source = "source-smeltery-state.rs"
+
+[[module]]
+id = "server-smeltery-layout"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_layout"
+source = "source-smeltery-layout.rs"
+
+[[module]]
+id = "server-smeltery-page"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_page"
+source = "source-smeltery-page.rs"
+
+[[module]]
+id = "server-melter-store"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_melter_store"
+source = "source-melter-store.rs"
 
 [[module]]
 id = "source-melting-lookup"
