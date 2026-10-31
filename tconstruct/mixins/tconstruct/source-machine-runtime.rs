@@ -46,12 +46,13 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let Some(saved) = store::read(&game.world, pos, "tconstruct:smeltery") else { return; };
     let Some(mut state) = Smeltery::from_nbt(&saved) else { return; };
     let Some((min, max, capacity)) = bounds else {
-        if state.phase == 1 { for slot in 0..state.slots.len() { state.cool_slot(slot); } }
-        state.phase = (state.phase + 1) % 4;
+        state.tick_invalid_structure();
         let _ = store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
         return;
     };
     let volume = (capacity / 1080) as usize;
+    let dx = (max[0] - min[0] - 1) as u32; let dy = (max[1] - min[1]) as u32; let dz = (max[2] - min[2] - 1) as u32;
+    state.fuel_cost = 1 + (2 * dx * dy + 2 * dy * dz + dx * dz) / 15;
     let displaced = if state.slots.len() != volume || state.tank.capacity != capacity {
         state.resize(volume, capacity)
     } else { Vec::new() };
@@ -106,9 +107,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         }
     }
     if state.phase == 3 && state.fuel > 0 {
-        let dx = (max[0] - min[0] - 1) as u32; let dy = (max[1] - min[1]) as u32; let dz = (max[2] - min[2] - 1) as u32;
-        let fuel_rate = 1 + (2 * dx * dy + 2 * dy * dz + dx * dz) / 15;
-        state.fuel = state.fuel.saturating_sub(fuel_rate);
+        state.fuel = state.fuel.saturating_sub(state.fuel_cost);
     }
     state.phase = (state.phase + 1) % 4;
     let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];

@@ -57,6 +57,12 @@ try:
     assert g.call('status')['screen'] == 'inventory', 'formed Smeltery menu did not open'
     assert any(widget.get('id') == 'slot-302' for widget in g.call('ui')['widgets']), 'real input slot is missing'
     click(hotbar('minecraft:copper_ingot')); click(302)
+    # An interrupted structure must retain its input, then resume after repair.
+    g.call('wait', '20'); g.call('close')
+    g.call('command', 'setblock -1 71 2 minecraft:air'); g.call('wait', '40')
+    g.call('command', 'setblock -1 71 2 tconstruct:seared_bricks'); g.call('wait', '20')
+    g.call('interact', '0', '71', '1'); g.call('wait', '10')
+    assert any(row.get('slot') == 302 and (row.get('stack') or {}).get('item') == 'minecraft:copper_ingot' for row in g.call('menu')['slots']), 'input lost on structure repair'
     g.call('wait', '300', timeout=40)
     assert not any(row.get('slot') == 302 and row.get('stack') for row in g.call('menu')['slots']), 'copper did not melt'
     click(hotbar('minecraft:amethyst_shard')); click(302)
