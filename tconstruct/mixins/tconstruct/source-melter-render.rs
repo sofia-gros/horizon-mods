@@ -88,3 +88,12 @@ pub(super) fn draw_fire(batch: &mut horizon_client::hud::HudBatch, atlas: &horiz
         batch.rect_uv(x, y + 14.0 - height, 14.0, height, sprite, u32::MAX);
     }
 }
+
+pub(super) fn fuel_tank(game: &super::Game<'_>, pos: (i32, i32, i32)) -> Option<super::tconstruct_source_melter_state::Tank> {
+    let below = (pos.0, pos.1.checked_sub(1)?, pos.2);
+    let name = game.res.facts().get(game.world.block(below.0, below.1, below.2)).name.clone();
+    let capacity = super::tconstruct_source_smeltery_fuel::capacity(&name)?;
+    let kind = super::tconstruct_source_machine_runtime::kind(&name)?;
+    super::tconstruct_source_melter_store::read(&game.world, below, kind)
+        .and_then(|tag| super::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity))
+}

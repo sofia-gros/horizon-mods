@@ -234,7 +234,10 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     }
     let below = (pos.0, pos.1 - 1, pos.2);
     let heater_state = game.world.block(below.0, below.1, below.2);
-    let has_heater = &*game.res.facts().get(heater_state).name == "tconstruct:seared_heater";
+    let below_name = game.res.facts().get(heater_state).name.clone();
+    let has_heater = &*below_name == "tconstruct:seared_heater";
+    let liquid_kind = super::tconstruct_source_smeltery_fuel::capacity(&below_name)
+        .zip(kind(&below_name));
     // Recipe matches are only used on the fuel and heat phases of the
     // source's four-tick cycle. Avoid scanning the source recipe snapshot on
     // the intervening ticks.
@@ -268,8 +271,26 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
             }
         }
     }
+    let mut fluid_update = None;
+    if melter.phase == 0 && melter.fuel == 0 {
+        if let Some((capacity, kind)) = liquid_kind {
+            if let Some(mut tank) = store::read(&game.world, below, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) {
+                if let Some(fluid) = tank.fluid.as_deref() {
+                    if let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) {
+                        let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
+                            melter.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
+                        if can_heat && tank.take(fuel.fluid.amount).is_some() {
+                            melter.fuel = fuel.duration; melter.fuel_quality = fuel.duration;
+                            melter.temperature = fuel.temperature; melter.rate = fuel.rate;
+                            fluid_update = Some((below, kind, tank.to_nbt()));
+                        }
+                    }
+                }
+            }
+        }
+    }
     if melter.phase == 2 {
-        let burning = has_heater && melter.fuel > 0;
+        let burning = (has_heater || liquid_kind.is_some()) && melter.fuel > 0;
         for (index, recipe) in recipes.iter().enumerate() {
             if let Some((_, recipe, fluid)) = recipe {
                 if burning || melter.progress[index] == -1 {
@@ -286,7 +307,9 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
         for (dst, src) in live.iter_mut().take(3).zip(&melter.slots) { *dst = src.clone(); }
     }
-    let _ = store::write(&mut game.world, pos, "tconstruct:melter", melter.to_nbt());
+    let mut updates = vec![(pos, "tconstruct:melter", melter.to_nbt())];
+    if let Some(update) = fluid_update { updates.push(update); }
+    let _ = store::write_many(&mut game.world, &updates);
 }
 
 fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting)> {

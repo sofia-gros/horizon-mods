@@ -13,7 +13,19 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                     .flatten().filter(|stack| game.res.providers().burn_time(game.res.items(), stack, false) > 0)
                     .and_then(|_| crate::game::tconstruct_source_machine_runtime::solid_fuel_rule(game).map(|(temperature, _)| temperature));
                 let temperature = if state.fuel > 0 { Some(state.temperature) } else { queued_temperature };
-                let lines = if let Some(temperature) = temperature {
+                let lines = if !has_heater {
+                    let fuel = position.and_then(|pos| crate::game::tconstruct_source_melter_render::fuel_tank(game, pos));
+                    if let Some(tank) = fuel {
+                        if let Some(fluid) = tank.fluid.as_deref() {
+                            let name = game.pack.names.display_get(&format!("fluid.{}", fluid.replace(':', "."))).unwrap_or_else(|| fluid.to_owned());
+                            let temperature = crate::game::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, u32::MAX).map_or(0, |recipe| recipe.temperature);
+                            let detail = if temperature > 0 {
+                                game.pack.names.display_get("gui.tconstruct.melting.fuel.temperature").unwrap_or_else(|| "Temperature: %s°C".to_owned()).replace("%s", &temperature.to_string())
+                            } else { game.pack.names.display_get("gui.tconstruct.melting.fuel.invalid").unwrap_or_else(|| "Invalid melting fuel!".to_owned()) };
+                            vec![(name, u32::MAX), (detail, 0xffaaaaaa), (format!("{} mB", tank.amount), 0xffaaaaaa)]
+                        } else { vec![(game.pack.names.display_get("gui.tconstruct.melting.fuel.empty").unwrap_or_else(|| "No fuel found".to_owned()), u32::MAX)] }
+                    } else { vec![(game.pack.names.display_get("gui.tconstruct.melting.fuel.no_tank").unwrap_or_else(|| "No tank in structure".to_owned()), u32::MAX)] }
+                } else if let Some(temperature) = temperature {
                     let title = game.pack.names.display_get("gui.tconstruct.melting.fuel.solid").unwrap_or_else(|| "Solid fuel".to_owned());
                     let format = game.pack.names.display_get("gui.tconstruct.melting.fuel.temperature").unwrap_or_else(|| "Temperature: %s°C".to_owned());
                     vec![(title, u32::MAX), (format.replace("%s", &temperature.to_string()), 0xffaaaaaa)]

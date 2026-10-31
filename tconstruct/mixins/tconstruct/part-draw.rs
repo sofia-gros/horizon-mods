@@ -27,6 +27,25 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
         let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
         if let Some(melter) = parsed {
+            if !has_heater {
+                let fuel = position.and_then(|pos| crate::game::tconstruct_source_melter_render::fuel_tank(game, pos));
+                if let Some(tank) = fuel {
+                    if let Some(fluid) = tank.fluid.as_deref() {
+                        let sprite = crate::game::tconstruct_source_melter_render::sprite(fluid);
+                        if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                            let height = (36u64 * u64::from(tank.amount) / u64::from(tank.capacity.max(1))).min(36) as f32;
+                            let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                            let mut y = 0.0;
+                            while y < height {
+                                let h = (height - y).min(16.0); let mut part = sprite;
+                                part.u1 = part.u0 + 12.0 * du; part.v1 = part.v0 + h * dv;
+                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                                y += h;
+                            }
+                        }
+                    }
+                }
+            }
             crate::game::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_melter", ox + 152.0, oy + 15.0, melter.fuel, melter.fuel_quality);
             if let Some(fluid) = &melter.tank.fluid {
                 // Tile the first frame of the original still-fluid texture in

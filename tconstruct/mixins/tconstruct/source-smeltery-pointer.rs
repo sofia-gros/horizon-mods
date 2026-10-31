@@ -1,5 +1,21 @@
 fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_ui::is_melter(game) {
+        let Some(pos) = (if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container }) else { return Continue(()); };
+        let Some(size) = game.renderer.as_ref().map(|renderer| [renderer.config.width, renderer.config.height]) else { return Continue(()); };
+        let batch = horizon_client::hud::HudBatch::new(size);
+        let (ox, oy) = game.inventory_origin(&batch);
+        let main = (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1);
+        let fuel = (ox + 151.0..ox + 167.0).contains(&game.cursor.0) && (oy + 31.0..oy + 69.0).contains(&game.cursor.1)
+            && !(if game.remote.is_some() { game.remote_chest_menu().is_some_and(|(rows, _)| rows == 6) } else { game.container_size() > 27 });
+        if (main || fuel) && game.carried.is_some() {
+            if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+                game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 30010 + if fuel { 2 } else { 0 } + i32::from(right) }));
+            } else { crate::game::tconstruct_source_fluid_direct::melter_local(game, pos, fuel, right); }
+            return Break(true);
+        }
+        return Continue(());
+    }
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
     let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) else { return Continue(()); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };

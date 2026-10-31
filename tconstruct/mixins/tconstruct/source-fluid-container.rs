@@ -129,10 +129,39 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
     true
 }
 
+/// Apply the same bucket rules to the Melter's single-fluid tank.
+pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    let mut staged = SmelteryTank::new(tank.capacity);
+    if let Some(id) = tank.fluid.as_deref() {
+        if !staged.insert(id, tank.amount) { return false; }
+    }
+    let mut staged_slots = slots.clone();
+    if !transfer(&mut staged, &mut staged_slots, direction, known_item, known_fluid) { return false; }
+    if staged.fluids.len() > 1 { return false; }
+    *slots = staged_slots;
+    tank.amount = staged.total();
+    tank.fluid = staged.fluids.first().map(|fluid| fluid.id.clone());
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     fn known(_: &str) -> bool { true }
+    #[test]
+    fn single_fluid_tank_rejects_mixing_without_losing_container() {
+        let mut tank = super::super::tconstruct_source_melter_state::Tank::new(3000);
+        assert!(tank.insert("minecraft:lava", 1000));
+        let mut slots = [Some(ItemStack::new("minecraft:water_bucket", 1)), None];
+        let before = slots.clone();
+        assert!(!transfer_single(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(slots, before); assert_eq!(tank.amount, 1000);
+        slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+        assert!(transfer_single(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:lava_bucket");
+        assert_eq!(tank.amount, 0);
+    }
     #[test]
     fn slot_clicks_conserve_stacks_and_cannot_insert_into_output() {
         let mut slots = [None, None];

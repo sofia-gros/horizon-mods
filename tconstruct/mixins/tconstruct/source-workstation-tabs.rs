@@ -1,4 +1,4 @@
-//! Original TabbedContainerMenu's six-connected-station scan and tab geometry.
+// Original TabbedContainerMenu's six-connected-station scan and tab geometry.
 type Pos = (i32, i32, i32);
 
 pub(super) fn tabbed(name: &str) -> bool {
