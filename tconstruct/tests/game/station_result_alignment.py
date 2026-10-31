@@ -31,13 +31,13 @@ try:
     g.call('wait', '15'); g.call('interact', '0', '71', '2'); g.call('wait', '10')
     for index, item in enumerate(('tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding')):
         click(hotbar(item)); click(300 + index)
-    g.call('screenshot', str(run / 'station-result-build.png'))
+    g.call('wait', '220'); g.call('screenshot', str(run / 'station-result-build.png'))
     click(324)
     assert (g.call('menu').get('carried') or {}).get('item') == 'tconstruct:pickaxe', 'building result missing'
     empty = next(slot['slot'] for slot in g.call('inventory')['hotbar'] if not slot.get('item'))
     click(empty); g.call('close'); g.call('wait', '5'); g.call('interact', '0', '71', '2'); g.call('wait', '10')
     click(hotbar('tconstruct:pickaxe')); click(300); click(hotbar('minecraft:quartz')); click(301)
-    g.call('screenshot', str(run / 'station-result-upgrade.png'))
+    g.call('wait', '220'); g.call('screenshot', str(run / 'station-result-upgrade.png'))
     click(325)
     assert (g.call('menu').get('carried') or {}).get('item') == 'tconstruct:pickaxe', 'upgrade result missing'
     g.call('close'); g.call('save'); g.stop()
