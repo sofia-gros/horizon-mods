@@ -110,6 +110,7 @@ fn fuel_exchange(game: &mut Game<'_>, pos: Pos, carried: &Option<horizon_items::
         let name = game.res.facts().get(game.world.block(at.0, at.1, at.2)).name.clone();
         let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(&name) else { continue; };
         let Some(kind) = super::tconstruct_source_machine_runtime::kind(&name) else { continue; };
+        if !super::tconstruct_source_machine_runtime::ensure(game, at, &name) { continue; }
         let Some(mut tank) = super::tconstruct_source_melter_store::read(&game.world, at, kind)
             .and_then(|tag| Tank::from_nbt(&tag, capacity)) else { continue; };
         let mut slots = [carried.clone(), None];
