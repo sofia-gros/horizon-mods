@@ -15,6 +15,8 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
         "tconstruct:seared_table" => Some("tconstruct:table"),
         "tconstruct:seared_basin" => Some("tconstruct:basin"),
         "tconstruct:smeltery_controller" => Some("tconstruct:smeltery"),
+        "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" => Some("tconstruct:fuel_tank"),
+        "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" => Some("tconstruct:ingot_tank"),
         _ => None,
     }
 }
@@ -26,6 +28,8 @@ fn initial(kind: &str) -> Option<Tag> {
         "tconstruct:faucet" => Faucet::new().to_nbt(),
         "tconstruct:table" | "tconstruct:basin" => Casting::new().to_nbt(),
         "tconstruct:smeltery" => Smeltery::new().to_nbt(),
+        "tconstruct:fuel_tank" => Tank::new(4000).to_nbt(),
+        "tconstruct:ingot_tank" => Tank::new(4320).to_nbt(),
         _ => return None,
     })
 }
@@ -43,6 +47,29 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     if state.slots.len() == volume && state.tank.capacity == capacity { return; }
     if !state.resize(volume, capacity).is_empty() { return; }
     let _ = store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
+}
+
+/// Exchange a standard lava bucket with a source tank, staging the NBT before
+/// changing the held stack. Other fluid containers are not handled here yet.
+pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
+    let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(block) else { return false; };
+    let Some(kind) = kind(block) else { return false; };
+    if !ensure(game, pos, block) { return false; }
+    let Some(mut tank) = store::read(&game.world, pos, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) else { return false; };
+    let Some(mut held) = game.held().cloned() else { return true; };
+    if held.count == 0 { return false; }
+    let Some(replacement) = super::tconstruct_source_smeltery_fuel::exchange(&mut tank, &held.item) else { return true; };
+    if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
+    if !game.creative {
+        held.count -= 1;
+        if held.count == 0 {
+            *game.held_mut() = Some(horizon_items::items::ItemStack::new(replacement, 1));
+        } else {
+            *game.held_mut() = Some(held);
+            game.give_or_drop(horizon_items::items::ItemStack::new(replacement, 1));
+        }
+    }
+    true
 }
 
 pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
