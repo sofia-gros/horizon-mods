@@ -469,6 +469,16 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "smeltery-owners"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "fluid-tag-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
@@ -1724,6 +1734,12 @@ id = "source-smeltery-structure"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_structure"
 source = "source-smeltery-structure.rs"
+
+[[module]]
+id = "source-smeltery-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_world"
+source = "source-smeltery-world.rs"
 
 [[module]]
 id = "source-melting-lookup"
