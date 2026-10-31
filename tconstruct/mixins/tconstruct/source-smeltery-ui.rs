@@ -38,7 +38,9 @@ pub(super) fn set_offset(game: &mut Game<'_>, pos: (i32, i32, i32), count: usize
         let Some(state) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
             .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return; };
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
-            *slots = super::tconstruct_source_smeltery_page::project(&state.slots, next);
+            let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
+                .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+            *slots = super::tconstruct_source_smeltery_page::project_with_containers(&state.slots, next, &containers);
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(pos, (count, next));
         }
     }

@@ -14,7 +14,7 @@ In Creative, the Tinkers blocks tab also offers registered building blocks. See 
 
 Use a Melter and a casting setup to melt and cast supported materials. The [melting and casting guide](docs/melter-casting.md) shows the tested copper example.
 
-A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup.
+A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup. The [fluid container guide](docs/fluid-containers.md) explains bucket transfers.
 
 The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct setup.
 

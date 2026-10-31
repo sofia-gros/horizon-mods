@@ -1,6 +1,11 @@
 fn builder_close(game: &mut crate::game::Game<'_>) {
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         if let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) {
+            if let Some((containers, _)) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().remove(&pos) {
+                if game.remote.is_none() {
+                    for stack in containers.into_iter().flatten() { game.give_or_drop(stack); }
+                }
+            }
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_dragging_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_menu_state_mut().remove(&pos);

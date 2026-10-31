@@ -129,8 +129,10 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
     if game.container == Some(pos) && game.remote.is_none() {
         let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map_or(0, |page| page.1);
+        let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
+            .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
         if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
-            *live = super::tconstruct_source_smeltery_page::project(&state.slots, offset);
+            *live = super::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
         }
     }
 }

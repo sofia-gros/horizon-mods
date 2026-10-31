@@ -13,15 +13,17 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         let Some(guest) = host.hub.guest(conn) else { return Break(false); };
         let key = (conn, guest.placed_at, pos);
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (0, state.slots.len()));
-        let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);
+        game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, [None, None], 0));
+        let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         let title = if &*machine == "tconstruct:foundry_controller" { "TConstruct Foundry" } else { "TConstruct Smeltery" };
         host.hub.open_container(conn, "minecraft:generic_9x6", horizon_protocol::text::literal(title), pos, slots, items);
         if let Some(guest) = host.hub.guest(conn) {
             if let Some(window) = guest.menu.as_ref().map(|menu| menu.window) {
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30002, value: state.slots.len() as i16 }));
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30003, value: 0 }));
+                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30004, value: 0 }));
             }
         }
         return Break(true);

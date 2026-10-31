@@ -7,7 +7,12 @@ use super::tconstruct_source_smeltery_layout as layout;
 pub(super) const MENU_SIZE: usize = 54;
 
 pub(super) fn project(slots: &[Option<ItemStack>], offset: usize) -> Vec<Option<ItemStack>> {
+    project_with_containers(slots, offset, &[None, None])
+}
+
+pub(super) fn project_with_containers(slots: &[Option<ItemStack>], offset: usize, containers: &[Option<ItemStack>; 2]) -> Vec<Option<ItemStack>> {
     let mut view = vec![None; MENU_SIZE];
+    view[..2].clone_from_slice(containers);
     for (menu_slot, item) in view.iter_mut().enumerate() {
         if let Some(index) = layout::melting_index(slots.len(), offset, menu_slot) {
             *item = slots[index].clone();
@@ -20,8 +25,16 @@ pub(super) fn project(slots: &[Option<ItemStack>], offset: usize) -> Vec<Option<
 /// bucket slots are reserved for a separate transaction and must remain empty
 /// here; all other padding is rejected rather than accepting a virtual item.
 pub(super) fn commit(slots: &mut [Option<ItemStack>], offset: usize, expected: &[Option<ItemStack>], changed: &[Option<ItemStack>]) -> bool {
-    if expected.len() != MENU_SIZE || changed.len() != MENU_SIZE || project(slots, offset) != expected { return false; }
+    commit_with_containers(slots, offset, expected, changed, &[None, None])
+}
+
+pub(super) fn commit_with_containers(slots: &mut [Option<ItemStack>], offset: usize, expected: &[Option<ItemStack>], changed: &[Option<ItemStack>], containers: &[Option<ItemStack>; 2]) -> bool {
+    if expected.len() != MENU_SIZE || changed.len() != MENU_SIZE || project_with_containers(slots, offset, containers) != expected { return false; }
     for (menu_slot, item) in changed.iter().enumerate() {
+        if menu_slot < 2 {
+            if item != &containers[menu_slot] { return false; }
+            continue;
+        }
         if layout::melting_index(slots.len(), offset, menu_slot).is_none() && item.is_some() { return false; }
     }
     for (menu_slot, item) in changed.iter().enumerate() {
@@ -33,6 +46,17 @@ pub(super) fn commit(slots: &mut [Option<ItemStack>], offset: usize, expected: &
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn projection_preserves_each_viewers_container_slots() {
+        let mut melting = vec![None; 1];
+        let buckets = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+        let expected = project_with_containers(&melting, 0, &buckets);
+        let mut changed = expected.clone();
+        changed[2] = Some(ItemStack::new("minecraft:copper_ore", 1));
+        assert!(commit_with_containers(&mut melting, 0, &expected, &changed, &buckets));
+        changed[0] = None;
+        assert!(!commit_with_containers(&mut melting, 0, &expected, &changed, &buckets));
+    }
     #[test]
     fn last_page_updates_only_real_slots() {
         let mut slots = vec![None; 71];
