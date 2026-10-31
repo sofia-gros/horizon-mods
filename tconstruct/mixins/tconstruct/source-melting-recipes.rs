@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
+pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
 
 impl Ingredient {
     fn parse(value: &Value) -> Option<Self> {
@@ -13,6 +13,11 @@ impl Ingredient {
             return (!choices.is_empty()).then_some(Self::Any(choices));
         }
         let obj = value.as_object()?;
+        if obj.get("type").and_then(Value::as_str) == Some("forge:intersection") {
+            if obj.keys().any(|key| key != "type" && key != "children") { return None; }
+            let children = obj.get("children")?.as_array()?.iter().map(Self::parse).collect::<Option<Vec<_>>>()?;
+            return (!children.is_empty()).then_some(Self::All(children));
+        }
         if obj.get("type").and_then(Value::as_str) == Some("forge:difference") {
             if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
             return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
@@ -31,6 +36,7 @@ impl Ingredient {
             Self::Item(id) => id == item,
             Self::Tag(tag) => in_tag(tag, item),
             Self::Any(choices) => choices.iter().any(|choice| choice.matches(item, in_tag)),
+            Self::All(choices) => choices.iter().all(|choice| choice.matches(item, in_tag)),
             Self::Difference(base, removed) => base.matches(item, in_tag) && !removed.matches(item, in_tag),
         }
     }
@@ -183,6 +189,15 @@ impl FoundryRecipe {
 #[cfg(test)]
 mod foundry_tests {
     use super::*;
+    #[test]
+    fn foundry_dense_copper_requires_both_source_tags() {
+        let source = br#"{"type":"tconstruct:ore_melting","ingredient":{"type":"forge:intersection","children":[{"tag":"forge:ores/copper"},{"tag":"forge:ore_rates/dense"}]},"result":{"amount":540,"tag":"forge:molten_copper"},"temperature":500,"time":225,"rate":"metal","byproducts":[{"tag":"forge:molten_gold","amount":180,"rate":"metal"}]}"#;
+        let recipe = FoundryRecipe::parse(source, &|_| true).unwrap();
+        let both = |tag: &str, item: &str| item == "minecraft:copper_ore" && matches!(tag, "forge:ores/copper" | "forge:ore_rates/dense");
+        assert!(recipe.melting.input.matches("minecraft:copper_ore", &both));
+        assert!(!recipe.melting.input.matches("minecraft:copper_ore", &|tag, _| tag == "forge:ores/copper"));
+        assert_eq!((recipe.melting.output.amount, recipe.byproducts[0].amount), (540, 60));
+    }
     #[test]
     fn foundry_uses_source_primary_and_byproduct_ore_rates() {
         let source = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":180,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"fluid":"tconstruct:molten_gold","amount":90},{"fluid":"tconstruct:molten_quartz","amount":100,"rate":"gem"}]}"#;

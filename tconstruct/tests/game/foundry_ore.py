@@ -67,16 +67,16 @@ try:
     assert g.call('status')['screen'] == 'inventory', 'formed Foundry did not open'
     click(hotbar('minecraft:copper_ore')); click(302)
     assert (input_item() or {}).get('item') == 'minecraft:copper_ore', 'ore input was not accepted'
-    g.call('wait', '620', timeout=60)
+    g.call('wait', '1100', timeout=85)
     g.call('screenshot', str(run / 'foundry-ore-check.png'))
     g.call('save')
     assert input_item() is None, 'copper ore did not melt'
     g.call('wait', '20'); g.call('screenshot', str(run / 'foundry-ore.png'))
     # Source minimum-height fluid layers make the small gold byproduct selectable.
-    g.call('click-gui', '30', '117'); g.call('wait', '10')
+    g.call('click-gui', '30', '115.5'); g.call('wait', '10')
     g.call('screenshot', str(run / 'foundry-byproduct-selected.png'))
     # Return copper to the bottom before casting it.
-    g.call('click-gui', '30', '117'); g.call('wait', '10')
+    g.call('click-gui', '30', '115.5'); g.call('wait', '10')
     g.call('close'); g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
     g.call('command', 'tp @s 2.5 71 4.5'); g.call('wait', '10')

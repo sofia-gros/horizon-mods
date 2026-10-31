@@ -83,15 +83,15 @@ try:
         game.call('interact', '0', '71', '1')
         game.call('wait', '10')
         assert any(w.get('id') == 'slot-302' for w in game.call('ui')['widgets']), game.label + ' input missing'
-    for item, ticks in (('minecraft:copper_ore', 620),):
+    for item, ticks in (('minecraft:copper_ore', 1100),):
         click(guest, hotbar(guest, item))
         click(guest, 302)
         wait('shared input ' + item, lambda: all(slots(game).get(302, {}).get('item') == item for game in games))
-        host.call('wait', str(ticks), timeout=65)
+        host.call('wait', str(ticks), timeout=90)
         wait('melted input ' + item, lambda: all(302 not in slots(game) for game in games))
     guest.call('screenshot', str(run / 'foundry-ore-lan.png'))
-    guest.call('click-gui', '30', '117'); guest.call('wait', '10')
-    guest.call('click-gui', '30', '117'); guest.call('wait', '10')
+    guest.call('click-gui', '30', '115.5'); guest.call('wait', '10')
+    guest.call('click-gui', '30', '115.5'); guest.call('wait', '10')
     for game in games:
         game.call('close')
     host.call('command', 'tp Guest 2.5 71 4.5')
