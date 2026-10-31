@@ -79,12 +79,13 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
             return Break(());
         }
-        let state = crate::game::tconstruct_source_smeltery_ui::position(game)
-            .and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
-            .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
-        if let Some(state) = state {
+        let data = crate::game::tconstruct_source_smeltery_ui::position(game)
+            .and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"));
+        let view = data.as_ref().and_then(|tag| tag.get("fuel_view"))
+            .and_then(crate::game::tconstruct_source_smeltery_fuel::FuelView::from_nbt);
+        if let Some(view) = view {
             if (ox + 151.0..ox + 169.0).contains(&game.cursor.0) && (oy + 31.0..oy + 123.0).contains(&game.cursor.1) {
-                let view = &state.fuel_view;
+                let view = &view;
                 let mut lines = Vec::new();
                 if let Some(fluid) = view.fluid.as_deref() {
                     let key = format!("fluid.{}", fluid.replace(':', "."));
@@ -103,6 +104,8 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                 game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
                 return Break(());
             }
+        }
+        if let Some(state) = data.and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) {
             let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
             let cols = crate::game::tconstruct_source_smeltery_layout::columns(count);
             let rows = crate::game::tconstruct_source_smeltery_layout::visible_rows(count);

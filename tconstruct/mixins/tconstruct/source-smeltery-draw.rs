@@ -123,13 +123,14 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
             if height > 0.0 { batch.fill(atlas, ox + 8.0, top, 106.0, height, rgba(255, 255, 255, 128)); }
         }
     }
-    let state = super::tconstruct_source_smeltery_ui::position(game)
-        .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
-        .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
-    if let Some(state) = state {
-        if let Some(fluid) = state.fuel_view.fluid.as_deref() {
-            if state.fuel_view.capacity > 0 {
-                let height = (90u64 * u64::from(state.fuel_view.amount) / u64::from(state.fuel_view.capacity)).min(90) as f32;
+    let data = super::tconstruct_source_smeltery_ui::position(game)
+        .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"));
+    let view = data.as_ref().and_then(|tag| tag.get("fuel_view"))
+        .and_then(super::tconstruct_source_smeltery_fuel::FuelView::from_nbt);
+    if let Some(view) = view {
+        if let Some(fluid) = view.fluid.as_deref() {
+            if view.capacity > 0 {
+                let height = (90u64 * u64::from(view.amount) / u64::from(view.capacity)).min(90) as f32;
                 let sprite = super::tconstruct_source_melter_render::sprite(fluid);
                 if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                     let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
@@ -146,7 +147,12 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         if (ox + 151.0..ox + 169.0).contains(&game.cursor.0) && (oy + 31.0..oy + 123.0).contains(&game.cursor.1) {
             batch.fill(atlas, ox + 152.0, oy + 32.0, 16.0, 90.0, rgba(255, 255, 255, 128));
         }
-        super::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_heating_structure", ox + 153.0, oy + 15.0, state.fuel, state.fuel_quality);
+    }
+    let number = |key: &str| data.as_ref().and_then(|tag| tag.get(key)).and_then(|value| match value {
+        horizon_world::nbt::Tag::Long(value) => u32::try_from(*value).ok(), _ => None,
+    }).unwrap_or(0);
+    super::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_heating_structure", ox + 153.0, oy + 15.0, number("fuel"), number("fuel_quality"));
+    if let Some(state) = data.and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) {
         for visible in 0..rows * cols {
             let menu_slot = visible + 2;
             let Some(index) = super::tconstruct_source_smeltery_layout::melting_index(count, offset, menu_slot) else { continue; };
