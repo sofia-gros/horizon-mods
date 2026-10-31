@@ -13,6 +13,23 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(true); };
         let (mut containers, direction) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
             .get(&pos).cloned().unwrap_or(([None, None], 0));
+        if input == horizon_client::menu::Input::QuickMove {
+            if let Some(stack) = containers[slot - 300].clone() {
+                let max = game.res.items().get(&stack.item).map_or(64, |item| item.max_stack).max(1);
+                let mut inventory = game.inventory.clone();
+                let before = stack.count;
+                let remaining = crate::game::tconstruct_tx::source_quick_move_player(&mut inventory, stack, max, max > 1);
+                if remaining.as_ref().map_or(0, |stack| stack.count) != before {
+                    containers[slot - 300] = remaining;
+                    game.inventory = inventory;
+                    game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
+                    if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+                        *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    }
+                }
+            }
+            return Break(true);
+        }
         let mut carried = game.carried.clone();
         let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
