@@ -18,3 +18,5 @@ This is a work checklist, not a statement that the screens already match. New ma
 Still to verify: source fuel-area tooltips and fuel-tank contents, text and click boundaries at both screen sizes, all visible tab states, Part Builder patterns and side inventory, and heat-bar/tooltip behavior while recipes heat or cannot heat. Compare against the source screen code and assets instead of using earlier screenshots as a reference.
 
 The Linux game showed the source fuel gauge and tooltip and an active copper heating bar after the server synchronized the visible heating status. The screenshots cover representative states; they do not establish pixel-perfect parity for every screen, language or scale. Windows remains unverified.
+
+A representative Foundry screen also showed the source fluid gauge and capacity tooltip in the Linux game.
