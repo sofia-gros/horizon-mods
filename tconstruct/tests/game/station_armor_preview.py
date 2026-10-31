@@ -30,7 +30,7 @@ try:
     # Rotate using the same physical position as the visible stand.
     size = __import__('os').environ.get('HORIZON_TEST_SIZE', '960x540')
     if size == '960x540':
-        game.call('drag-at', '190', '400', '220', '400'); game.call('wait', '10')
+        game.call('drag-at', '95', '200', '110', '200'); game.call('wait', '10')
         game.call('screenshot', str(run / 'station-armor-rotated.png'))
     game.call('close'); game.call('save'); game.stop()
     print('PASS dagger result; inspect armor stand screenshot', flush=True)
