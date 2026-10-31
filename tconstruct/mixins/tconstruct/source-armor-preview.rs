@@ -48,9 +48,14 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
     if let Some(layer) = layer {
         let slot = match layer { "helmet" => 5, "chestplate" => 4, "leggings" => 3, _ => 2 };
         if let Some(stack) = stand.equipment[slot].as_ref() {
-            // Plate Helmet uses original plating/maille at material indices
-            // 0/1. Dyed modifiers, trims and other armor sets remain separate.
-            if stack.item.as_ref() == "tconstruct:plate_helmet" {
+            // Plate armor uses original plating/maille at material indices 0/1.
+            // Dye, trims and other armor sets remain separate.
+            let plate_type = match (stack.item.as_ref(), layer) {
+                ("tconstruct:plate_helmet", "helmet") | ("tconstruct:plate_chestplate", "chestplate") | ("tconstruct:plate_boots", "boots") => Some("armor"),
+                ("tconstruct:plate_leggings", "leggings") => Some("leggings"),
+                _ => None,
+            };
+            if let Some(texture_type) = plate_type {
                 if let (Some(horizon_world::nbt::Tag::List(materials)), Ok((records, _)), Some(part)) = (
                     stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_materials")),
                     game.world.chunks.__horizon_mixins_tconstruct_render_assets().get_or_init(|| crate::game::tconstruct_source_render_info::load_render_assets(&game.options.resources)),
@@ -61,7 +66,7 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
                         let id = crate::game::tconstruct_source_render_info::material_id(&value.to_string_lossy())?;
                         let info = crate::game::tconstruct_source_render_info::render_info(records, &id).ok()?.unwrap_or(crate::game::tconstruct_source_render_info::RenderInfo { texture: None, fallbacks: Vec::new(), color: u32::MAX, luminosity: 0 });
                         let available = |id: &str| id.strip_prefix("tconstruct:").is_some_and(|path| sprites.contains_key(&format!("gui/tconstruct_plate_{path}")));
-                        let (id, color, _) = crate::game::tconstruct_source_render_info::select_armor_sprite_by(&format!("tconstruct:{kind}_armor"), &info, available).ok()??;
+                        let (id, color, _) = crate::game::tconstruct_source_render_info::select_armor_sprite_by(&format!("tconstruct:{kind}_{texture_type}"), &info, available).ok()??;
                         let sprite = sprites.get(&format!("gui/tconstruct_plate_{}", id.strip_prefix("tconstruct:")?))?;
                         let color = (color & 0xFF00_0000) | (color & 0xFF) << 16 | (color & 0xFF00) | (color >> 16) & 0xFF;
                         Some((sprite, color))
