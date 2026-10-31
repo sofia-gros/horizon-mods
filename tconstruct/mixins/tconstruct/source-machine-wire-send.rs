@@ -59,7 +59,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
                     let start = offset.saturating_mul(columns).min(progress.len());
                     let end = start.saturating_add(40).min(progress.len());
                     if let Tag::Compound(fields) = &mut tag {
-                        if let Some(Tag::Compound(machine)) = fields.get_mut("tconstruct:smeltery") {
+                        if let Some(Tag::Compound(machine)) = fields.get_mut(&"tconstruct:smeltery".into()) {
                             machine.insert("progress_start".into(), Tag::Int(start as i32));
                             machine.insert("progress_page".into(), Tag::IntArray(progress[start..end].to_vec()));
                         }
