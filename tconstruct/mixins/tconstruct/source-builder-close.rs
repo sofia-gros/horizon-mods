@@ -3,6 +3,7 @@ fn builder_close(game: &mut crate::game::Game<'_>) {
         if let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) {
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_dragging_mut().remove(&pos);
+            game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_menu_state_mut().remove(&pos);
         }
         return;
     }

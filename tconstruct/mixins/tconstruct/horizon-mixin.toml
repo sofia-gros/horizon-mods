@@ -82,6 +82,17 @@ bindings = [
 ]
 
 [[injection]]
+id = "smeltery-local-click-fallback"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-local-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
 id = "part-builder-output"
 target = "horizon_client::game::Game<'_>::menu_click"
 kind = "HEAD"
@@ -557,6 +568,35 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[state]]
+id = "smeltery-ui-menu-state"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "smeltery-track-menu-state"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+helper = "source-smeltery-track-state.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "packet", ty = "&horizon_protocol::packets::play::Clientbound", value = "&packet" },
+]
+
+[[injection]]
+id = "smeltery-restore-menu-state"
+target = "horizon_client::game::remote::Game<'_>::remote_menu_ops"
+kind = "HEAD"
+helper = "source-smeltery-restore-state.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
 
 [[state]]
 id = "fluid-tag-snapshot"
