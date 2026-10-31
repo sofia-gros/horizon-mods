@@ -49,7 +49,7 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
         let slot = match layer { "helmet" => 5, "chestplate" => 4, "leggings" => 3, _ => 2 };
         if let Some(stack) = stand.equipment[slot].as_ref() {
             // Plate armor uses original plating/maille at material indices 0/1.
-            // Dye, trims and other armor sets remain separate.
+            // Source-shaped dyed modifier data selects the maille layer; trim remains separate.
             let plate_type = match (stack.item.as_ref(), layer) {
                 ("tconstruct:plate_helmet", "helmet") | ("tconstruct:plate_chestplate", "chestplate") | ("tconstruct:plate_boots", "boots") => Some("armor"),
                 ("tconstruct:plate_leggings", "leggings") => Some("leggings"),
@@ -66,7 +66,20 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
                         let id = crate::game::tconstruct_source_render_info::material_id(&value.to_string_lossy())?;
                         let info = crate::game::tconstruct_source_render_info::render_info(records, &id).ok()?.unwrap_or(crate::game::tconstruct_source_render_info::RenderInfo { texture: None, fallbacks: Vec::new(), color: u32::MAX, luminosity: 0 });
                         let available = |id: &str| id.strip_prefix("tconstruct:").is_some_and(|path| sprites.contains_key(&format!("gui/tconstruct_plate_{path}")));
-                        let (id, color, _) = crate::game::tconstruct_source_render_info::select_armor_sprite_by(&format!("tconstruct:{kind}_{texture_type}"), &info, available).ok()??;
+                        let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+                        let dyed = custom.and_then(|tag| tag.get("tic_modifiers")).and_then(|tag| match tag { horizon_world::nbt::Tag::List(entries) => Some(entries), _ => None }).is_some_and(|entries| entries.iter().any(|entry| {
+                            matches!(entry.get("name"), Some(horizon_world::nbt::Tag::String(name)) if name.to_string_lossy() == "tconstruct:dyed")
+                                && matches!(entry.get("level"), Some(horizon_world::nbt::Tag::Int(level)) if *level > 0)
+                        }));
+                        let dye = dyed.then(|| match custom.and_then(|tag| tag.get("tic_persistent")).and_then(|tag| tag.get("tconstruct:dyed")) {
+                            Some(horizon_world::nbt::Tag::Int(color)) => *color as u32,
+                            _ => u32::MAX,
+                        });
+                        let dyed_maille = if kind == "maille" { crate::game::tconstruct_source_render_info::select_plate_dyed_maille_by(texture_type, &info, dye, available) } else { None };
+                        let (id, color) = if let Some(selected) = dyed_maille { selected } else {
+                            let (id, color, _) = crate::game::tconstruct_source_render_info::select_armor_sprite_by(&format!("tconstruct:{kind}_{texture_type}"), &info, available).ok()??;
+                            (id, color)
+                        };
                         let sprite = sprites.get(&format!("gui/tconstruct_plate_{}", id.strip_prefix("tconstruct:")?))?;
                         let color = (color & 0xFF00_0000) | (color & 0xFF) << 16 | (color & 0xFF00) | (color >> 16) & 0xFF;
                         Some((sprite, color))
