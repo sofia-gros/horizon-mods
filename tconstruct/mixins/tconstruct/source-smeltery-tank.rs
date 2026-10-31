@@ -49,10 +49,19 @@ impl SmelteryTank {
     pub(super) fn alloy(&mut self, inputs: &[FluidAmount], result: &FluidAmount) -> bool {
         if inputs.is_empty() || result.id.is_empty() || result.amount == 0 { return false; }
         let mut next = self.clone();
+        let mut removed = 0u32;
         for input in inputs {
             if !next.take(&input.id, input.amount) { return false; }
+            let Some(sum) = removed.checked_add(input.amount) else { return false; };
+            removed = sum;
         }
-        if !next.insert(&result.id, result.amount) { return false; }
+        // The source allows a net decrease even if a resized tank is overfull.
+        if result.amount.saturating_sub(removed) > self.capacity.saturating_sub(self.total()) { return false; }
+        if let Some(fluid) = next.fluids.iter_mut().find(|f| f.id == result.id) {
+            let Some(amount) = fluid.amount.checked_add(result.amount) else { return false; };
+            fluid.amount = amount;
+        } else { next.fluids.push(result.clone()); }
+        if next.fluids.iter().try_fold(0u32, |sum, fluid| sum.checked_add(fluid.amount)).is_none() { return false; }
         *self = next;
         true
     }
@@ -69,11 +78,15 @@ impl SmelteryTank {
         let Tag::Long(capacity) = tag.get("capacity")? else { return None; };
         let mut tank = Self::new(u32::try_from(*capacity).ok()?);
         let Tag::List(fluids) = tag.get("fluids")? else { return None; };
+        let mut total = 0u32;
         for fluid in fluids {
             let Tag::String(id) = fluid.get("id")? else { return None; };
             let Tag::Long(amount) = fluid.get("amount")? else { return None; };
             let id = id.to_string_lossy();
-            if tank.amount(&id) != 0 || !tank.insert(&id, u32::try_from(*amount).ok()?) { return None; }
+            let amount = u32::try_from(*amount).ok()?;
+            if id.is_empty() || amount == 0 || tank.amount(&id) != 0 { return None; }
+            total = total.checked_add(amount)?;
+            tank.fluids.push(FluidAmount { id, amount });
         }
         Some(tank)
     }
@@ -113,5 +126,24 @@ mod tests {
         assert!(tank.insert("tconstruct:molten_copper", 270));
         assert!(tank.insert("tconstruct:molten_tin", 90));
         assert_eq!(SmelteryTank::from_nbt(&tank.to_nbt()), Some(tank));
+    }
+    #[test]
+    fn structure_shrink_preserves_existing_fluid_until_drained() {
+        let mut tank = SmelteryTank::new(2160);
+        assert!(tank.insert("tconstruct:molten_copper", 1800));
+        tank.capacity = 1080;
+        let mut restored = SmelteryTank::from_nbt(&tank.to_nbt()).unwrap();
+        assert_eq!(restored.total(), 1800);
+        assert!(!restored.insert("tconstruct:molten_tin", 1));
+        assert!(restored.take("tconstruct:molten_copper", 800));
+        assert!(restored.insert("tconstruct:molten_tin", 80));
+    }
+    #[test]
+    fn overfull_tank_can_alloy_when_volume_does_not_increase() {
+        let mut tank = SmelteryTank::new(500);
+        assert!(tank.insert("copper", 270)); assert!(tank.insert("amethyst", 100));
+        tank.capacity = 100;
+        assert!(tank.alloy(&[fluid("copper", 90), fluid("amethyst", 100)], &fluid("alloy", 90)));
+        assert_eq!(tank.total(), 270);
     }
 }
