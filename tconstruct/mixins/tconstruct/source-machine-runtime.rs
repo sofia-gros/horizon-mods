@@ -93,7 +93,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                 });
             if !can_heat && !can_alloy { continue; }
             if tank.take(fuel.fluid.amount).is_none() { continue; }
-            state.fuel = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
+            state.fuel = fuel.duration; state.fuel_quality = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
             fuel_update = Some((at, kind, tank.to_nbt()));
             break;
         }
@@ -123,7 +123,33 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         state.fuel = state.fuel.saturating_sub(state.fuel_cost);
     }
     state.phase = (state.phase + 1) % 4;
-    let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
+    if state.phase == 1 {
+        let mut positions: Vec<_> = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().iter()
+            .filter_map(|(at, owner)| (*owner == pos).then_some(*at)).collect();
+        positions.sort_unstable();
+        let tanks: Vec<_> = positions.into_iter().filter_map(|at| {
+            let name = game.res.facts().get(game.world.block(at.0, at.1, at.2)).name.clone();
+            let capacity = super::tconstruct_source_smeltery_fuel::capacity(&name)?;
+            let kind = kind(&name)?;
+            let staged = fuel_update.as_ref().filter(|(updated, _, _)| *updated == at).map(|(_, _, tag)| tag.clone());
+            let tank = staged.or_else(|| store::read(&game.world, at, kind))
+                .and_then(|tag| Tank::from_nbt(&tag, capacity)).unwrap_or_else(|| Tank::new(capacity));
+            Some((at, tank))
+        }).collect();
+        let last = fuel_update.as_ref().map(|(at, _, _)| *at).or(state.fuel_view.last);
+        state.fuel_view = super::tconstruct_source_smeltery_fuel::FuelView::collect(&tanks, last,
+            |fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, u32::MAX).map_or(0, |fuel| fuel.temperature));
+    }
+    let heat_codes = if state.phase == 1 || state.phase == 2 {
+        Some(Tag::IntArray(state.slots.iter().enumerate().map(|(index, slot)| {
+            if slot.is_none() { return -1; }
+            let recipe = recipes.get(index).and_then(Option::as_ref).map(|(_, recipe, _, _)| (recipe.temperature, recipe.time));
+            super::tconstruct_source_melter_render::encode_heat(recipe, state.temperature, state.progress[index])
+        }).collect()))
+    } else { saved.get("heat_codes").cloned() };
+    let mut state_tag = state.to_nbt();
+    if let (Tag::Compound(fields), Some(codes)) = (&mut state_tag, heat_codes) { fields.insert("heat_codes".into(), codes); }
+    let mut updates = vec![(pos, "tconstruct:smeltery", state_tag)];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
     super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
@@ -186,7 +212,7 @@ fn same_material(a: &Option<horizon_items::items::ItemStack>, b: &Option<horizon
     }
 }
 
-fn solid_fuel_rule(game: &super::Game<'_>) -> Option<(u32, u32)> {
+pub(super) fn solid_fuel_rule(game: &super::Game<'_>) -> Option<(u32, u32)> {
     let recipes = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let bytes = recipes.get("tconstruct:smeltery/melting/fuel/solid")?;
     let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
@@ -217,7 +243,10 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     }
     let below = (pos.0, pos.1 - 1, pos.2);
     let heater_state = game.world.block(below.0, below.1, below.2);
-    let has_heater = &*game.res.facts().get(heater_state).name == "tconstruct:seared_heater";
+    let below_name = game.res.facts().get(heater_state).name.clone();
+    let has_heater = &*below_name == "tconstruct:seared_heater";
+    let liquid_kind = super::tconstruct_source_smeltery_fuel::capacity(&below_name)
+        .zip(kind(&below_name));
     // Recipe matches are only used on the fuel and heat phases of the
     // source's four-tick cycle. Avoid scanning the source recipe snapshot on
     // the intervening ticks.
@@ -242,7 +271,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                                 if stack.count == 0 {
                                     slots[0] = remainder.map(|id| horizon_items::items::ItemStack::new(&id, 1));
                                 }
-                                melter.fuel = duration; melter.temperature = temperature; melter.rate = rate;
+                                melter.fuel = duration; melter.fuel_quality = duration; melter.temperature = temperature; melter.rate = rate;
                                 game.world.modified.insert((below.0 >> 4, below.2 >> 4));
                             }
                         }
@@ -251,8 +280,26 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
             }
         }
     }
+    let mut fluid_update = None;
+    if melter.phase == 0 && melter.fuel == 0 {
+        if let Some((capacity, kind)) = liquid_kind {
+            if let Some(mut tank) = store::read(&game.world, below, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) {
+                if let Some(fluid) = tank.fluid.as_deref() {
+                    if let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) {
+                        let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
+                            melter.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
+                        if can_heat && tank.take(fuel.fluid.amount).is_some() {
+                            melter.fuel = fuel.duration; melter.fuel_quality = fuel.duration;
+                            melter.temperature = fuel.temperature; melter.rate = fuel.rate;
+                            fluid_update = Some((below, kind, tank.to_nbt()));
+                        }
+                    }
+                }
+            }
+        }
+    }
     if melter.phase == 2 {
-        let burning = has_heater && melter.fuel > 0;
+        let burning = (has_heater || liquid_kind.is_some()) && melter.fuel > 0;
         for (index, recipe) in recipes.iter().enumerate() {
             if let Some((_, recipe, fluid)) = recipe {
                 if burning || melter.progress[index] == -1 {
@@ -269,7 +316,25 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
         for (dst, src) in live.iter_mut().take(3).zip(&melter.slots) { *dst = src.clone(); }
     }
-    let _ = store::write(&mut game.world, pos, "tconstruct:melter", melter.to_nbt());
+    let heat_codes = if melter.phase == 1 || melter.phase == 3 {
+        Some(Tag::IntArray(melter.slots.iter().enumerate().map(|(index, slot)| {
+            if slot.is_none() { return -1; }
+            let recipe = recipes.get(index).and_then(Option::as_ref).map(|(_, recipe, _)| (recipe.temperature, recipe.time));
+            super::tconstruct_source_melter_render::encode_heat(recipe, melter.temperature, melter.progress[index])
+        }).collect()))
+    } else { saved.get("heat_codes").cloned() };
+    let mut melter_tag = melter.to_nbt();
+    let liquid_temperature = liquid_kind.and_then(|(capacity, kind)| store::read(&game.world, below, kind)
+        .and_then(|tag| Tank::from_nbt(&tag, capacity)))
+        .and_then(|tank| tank.fluid.and_then(|fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, &fluid, u32::MAX)))
+        .map_or(0, |fuel| fuel.temperature);
+    if let Tag::Compound(fields) = &mut melter_tag {
+        fields.insert("fuel_temperature".into(), Tag::Long(i64::from(liquid_temperature)));
+        if let Some(codes) = heat_codes { fields.insert("heat_codes".into(), codes); }
+    }
+    let mut updates = vec![(pos, "tconstruct:melter", melter_tag)];
+    if let Some(update) = fluid_update { updates.push(update); }
+    let _ = store::write_many(&mut game.world, &updates);
 }
 
 fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting)> {

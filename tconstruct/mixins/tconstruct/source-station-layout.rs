@@ -29,6 +29,12 @@ pub(super) fn button_at(count: usize, x: i32, y: i32) -> Option<usize> {
     (index < count).then_some(index)
 }
 
+/// Position occupied inactive inputs in the source still-filled row.
+pub(super) fn dormant_position(index: usize, active: usize, occupied: bool) -> Option<(f32, f32)> {
+    if index >= 4 || index < active || !occupied { return None; }
+    Some((112.0 - (index - active) as f32 * 18.0, 62.0))
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct LayoutSlot {
     pub x: i32,
@@ -86,6 +92,13 @@ impl StationLayout {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn source_still_filled_row_only_shows_occupied_dormant_inputs() {
+        assert_eq!(dormant_position(2, 2, true), Some((112.0, 62.0)));
+        assert_eq!(dormant_position(3, 2, true), Some((94.0, 62.0)));
+        assert_eq!(dormant_position(3, 2, false), None);
+        assert_eq!(dormant_position(1, 2, true), None);
+    }
     #[test]
     fn source_layout_keeps_slot_coordinates_and_filters() {
         let bytes = br#"{"icon":{"item":"tconstruct:pickaxe"},"sortIndex":6,"translation_key":"item.tconstruct.pickaxe","input_slots":[{"filter":{"item":"tconstruct:pick_head"},"x":53,"y":22}]}"#;

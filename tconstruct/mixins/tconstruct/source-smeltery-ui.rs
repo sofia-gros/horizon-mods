@@ -45,3 +45,26 @@ pub(super) fn set_offset(game: &mut Game<'_>, pos: (i32, i32, i32), count: usize
         }
     }
 }
+
+/// Return server-computed statuses for only the currently visible slots.
+pub(super) fn visible_heat(game: &Game<'_>) -> Vec<(i32, f32, f32)> {
+    use horizon_world::nbt::Tag;
+    let Some(pos) = position(game) else { return Vec::new(); };
+    let Some(tag) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery") else { return Vec::new(); };
+    let (count, offset) = page(game);
+    let total = super::tconstruct_source_smeltery_layout::columns(count) * super::tconstruct_source_smeltery_layout::visible_rows(count);
+    let codes = match (tag.get("heat_start"), tag.get("heat_page"), tag.get("heat_codes")) {
+        (Some(Tag::Int(start)), Some(Tag::IntArray(values)), _) => usize::try_from(*start).ok().map(|start| (start, values)),
+        (_, _, Some(Tag::IntArray(values))) => Some((0, values)), _ => None,
+    };
+    let Some((start, codes)) = codes else { return Vec::new(); };
+    let mut result = Vec::new();
+    for visible in 0..total {
+        let menu_slot = visible + 2;
+        let Some(index) = super::tconstruct_source_smeltery_layout::melting_index(count, offset, menu_slot) else { continue; };
+        let Some((x, y)) = super::tconstruct_source_smeltery_layout::position(count, offset, menu_slot) else { continue; };
+        let Some(code) = index.checked_sub(start).and_then(|index| codes.get(index)) else { continue; };
+        if *code >= 0 { result.push((*code, x, y)); }
+    }
+    result
+}

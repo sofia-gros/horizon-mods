@@ -18,13 +18,19 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
     let position = match slot {
         0..=8 => (8.0 + slot as f32 * 18.0, 160.0),
         9..=35 => (8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0),
+        500..=503 if station => (152.0, 20.0 + (slot - 500) as f32 * 18.0),
+        504 if station => (132.0, 74.0),
         300..=303 if station => station_layout.as_ref().and_then(|layout| {
             if layout.tool_slot.is_some() {
                 if slot == 300 { layout.tool_slot.as_ref() } else { layout.input_slots.get(slot - 301) }
             } else { layout.input_slots.get(slot - 300) }
         }).map(|slot| (slot.x as f32, slot.y as f32)).unwrap_or_else(|| {
             if station_layout.is_none() && slot < 303 { [(53.0, 22.0), (15.0, 60.0), (33.0, 42.0)][slot - 300] }
-            else { (-10000.0, -10000.0) }
+            else {
+                let active = station_layout.as_ref().map_or(0, |layout| layout.input_slots.len() + usize::from(layout.tool_slot.is_some()));
+                let occupied = game.container_kind().and_then(|entity| entity.slots().get(slot - 300)).and_then(Option::as_ref).is_some();
+                crate::game::tconstruct_source_station_layout::dormant_position(slot - 300, active, occupied).unwrap_or((-10000.0, -10000.0))
+            }
         }),
         300 => (8.0, 43.0),
         301 => (29.0, 43.0),

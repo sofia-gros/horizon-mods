@@ -8,7 +8,7 @@ fn smeltery_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::Co
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(()); };
     let batch = horizon_client::hud::HudBatch::new(size);
     let (ox, oy) = game.inventory_origin(&batch);
-    let left = -crate::game::tconstruct_source_smeltery_layout::panel_width(count);
+    let left = crate::game::tconstruct_source_smeltery_layout::panel_left(count);
     let height = crate::game::tconstruct_source_smeltery_layout::visible_rows(count) as f32 * 18.0 + 14.0;
     if !(ox + left..ox).contains(&game.cursor.0) || !(oy + 4.0..oy + 4.0 + height).contains(&game.cursor.1) { return Continue(()); }
     let next = (offset as i32 - delta.signum() as i32).clamp(0, max as i32) as usize;

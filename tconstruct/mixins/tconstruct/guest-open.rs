@@ -51,6 +51,10 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         _ => return Continue(()),
     };
     game.ensure_datapacks();
+    // A tab can open a neighbouring workstation before it has ever been
+    // interacted with. Initialise its storage just as the direct open does.
+    game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(vec![None; 27]));
+    game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));
     let side = if title == "TConstruct Part Builder" { crate::game::tconstruct_ui::side_inventory(game, pos, true) } else { None };
     let partner = side.and_then(|side| game.chest_partner(side).map(|(partner, _)| partner));
     if let Some(partner) = partner {

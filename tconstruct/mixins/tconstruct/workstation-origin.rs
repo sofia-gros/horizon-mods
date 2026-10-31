@@ -3,7 +3,7 @@ fn workstation_origin(game: &crate::game::Game<'_>, batch: &horizon_client::hud:
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (base, y) = batch.centered_origin(176.0, 220.0);
         let (count, _) = crate::game::tconstruct_source_smeltery_ui::page(game);
-        let left = -crate::game::tconstruct_source_smeltery_layout::panel_width(count);
+        let left = crate::game::tconstruct_source_smeltery_layout::panel_left(count);
         return Break((crate::game::tconstruct_source_side_layout::adjusted_origin(batch.width, base, left, 176.0), y));
     }
     if crate::game::tconstruct_ui::is_melter(game) { return Break(batch.centered_origin(176.0, 166.0)); }

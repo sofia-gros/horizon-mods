@@ -12,10 +12,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_melter").copied() {
             let du = (sprite.u1 - sprite.u0) / sprite.w as f32;
             let dv = (sprite.v1 - sprite.v0) / sprite.h as f32;
-            let (x, width, sx) = if has_heater { (150.0, 18.0, 176.0) } else { (152.0, 14.0, 194.0) };
+            let (x, width, height, sx) = if has_heater { (150.0, 18.0, 36.0, 176.0) } else { (152.0, 14.0, 38.0, 194.0) };
             sprite.u0 += sx * du; sprite.v0 += 52.0 * dv;
-            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + 36.0 * dv;
-            batch.rect_uv(ox + x, oy + 31.0, width, 36.0, sprite, u32::MAX);
+            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + height * dv;
+            batch.rect_uv(ox + x, oy + 31.0, width, height, sprite, u32::MAX);
         }
         let title = game.pack.names.display_get("container.tconstruct.melter").unwrap_or_else(|| "Melter".to_owned());
         let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
@@ -27,6 +27,26 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
         let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
         if let Some(melter) = parsed {
+            if !has_heater {
+                let fuel = position.and_then(|pos| crate::game::tconstruct_source_melter_render::fuel_tank(game, pos));
+                if let Some(tank) = fuel {
+                    if let Some(fluid) = tank.fluid.as_deref() {
+                        let sprite = crate::game::tconstruct_source_melter_render::sprite(fluid);
+                        if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                            let height = (36u64 * u64::from(tank.amount) / u64::from(tank.capacity.max(1))).min(36) as f32;
+                            let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                            let mut y = 0.0;
+                            while y < height {
+                                let h = (height - y).min(16.0); let mut part = sprite;
+                                part.u1 = part.u0 + 12.0 * du; part.v1 = part.v0 + h * dv;
+                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                                y += h;
+                            }
+                        }
+                    }
+                }
+            }
+            crate::game::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_melter", ox + 152.0, oy + 15.0, melter.fuel, melter.fuel_quality);
             if let Some(fluid) = &melter.tank.fluid {
                 // Tile the first frame of the original still-fluid texture in
                 // the source tank's 52x52 area, scaled by the stored amount.
@@ -47,15 +67,25 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         y += h;
                     }
                 }
-                let translation = format!("fluid.{}", fluid.replace(':', "."));
-                let name = game.pack.names.display_get(&translation).unwrap_or_else(|| fluid.clone());
-                batch.text(atlas, &name, ox + 90.0, oy + 24.0, color, false);
-                batch.text(atlas, &format!("{} mB", melter.tank.amount), ox + 90.0, oy + 36.0, color, false);
             }
-            for (slot, progress) in melter.progress.iter().enumerate() {
-                if *progress != 0 {
-                    let text = if *progress < 0 { "Full".to_owned() } else { progress.to_string() };
-                    batch.text(atlas, &text, ox + 44.0, oy + 19.0 + slot as f32 * 18.0, color, false);
+            // GuiMelterScreen overlays the original 52×52 gauge after fluid.
+            if let Some(mut gauge) = atlas.sprites.get("gui/tconstruct_melter").copied() {
+                let (du, dv) = ((gauge.u1 - gauge.u0) / gauge.w as f32, (gauge.v1 - gauge.v0) / gauge.h as f32);
+                gauge.u0 += 176.0 * du;
+                gauge.u1 = gauge.u0 + 52.0 * du; gauge.v1 = gauge.v0 + 52.0 * dv;
+                batch.rect_uv(ox + 90.0, oy + 16.0, 52.0, 52.0, gauge, u32::MAX);
+            }
+            if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
+                let fluid_height = if melter.tank.capacity == 0 { 0.0 } else {
+                    (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0).floor()
+                };
+                let middle = oy + 68.0 - fluid_height;
+                let (top, height) = if game.cursor.1 > middle { (middle, fluid_height) } else { (oy + 16.0, 52.0 - fluid_height) };
+                if height > 0.0 { batch.fill(atlas, ox + 90.0, top, 52.0, height, horizon_client::hud::rgba(255, 255, 255, 128)); }
+            }
+            for slot in 0..3 {
+                if let Some((sprite, height, _)) = position.and_then(|pos| crate::game::tconstruct_source_melter_render::melter_heat(game, pos, slot)) {
+                    crate::game::tconstruct_source_melter_render::draw_heat_bar(batch, atlas, "gui/tconstruct_melter", ox + 22.0, oy + 16.0 + slot as f32 * 18.0, sprite, height);
                 }
             }
         }
@@ -92,8 +122,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             region(batch, 0.0, 7.0, 7.0, 50.0, 0.0, 7.0, 7.0, height);
             region(batch, 57.0, 7.0, 7.0, 50.0, width + 7.0, 7.0, 7.0, height);
             region(batch, 25.0, 7.0, 18.0, 10.0, 7.0, 7.0, width, 10.0);
-            let title_key = crate::game::tconstruct_ui::side_title(game);
-            let title = game.pack.names.display_get(title_key).unwrap_or_else(|| "Inventory".to_owned());
+            let title = crate::game::tconstruct_ui::side_title(game);
             batch.text(atlas, &title, ox + left + 7.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
             let first = offset.min(crate::game::tconstruct_source_side_layout::max_offset(count)) * columns;
             for i in 0..count.saturating_sub(first).min(crate::game::tconstruct_source_side_layout::visible_rows(count) * columns) {
@@ -127,12 +156,46 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, color);
         }
     };
+    if let Some(start) = crate::game::tconstruct_source_workstation_tabs::start(game) {
+        let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
+        if let Some(icon) = atlas.sprites.get("gui/tconstruct_icons").copied() {
+            let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);
+            for (index, (pos, name)) in tabs.iter().enumerate() {
+                let (x, y) = crate::game::tconstruct_source_workstation_tabs::position(index, station);
+                let mut region = icon;
+                region.u0 += if *pos == start { 52.0 * du } else { 0.0 };
+                region.v0 += 18.0 * dv;
+                region.u1 = region.u0 + 26.0 * du; region.v1 = region.v0 + 30.0 * dv;
+                batch.rect_uv(ox + x, oy + y, 26.0, 30.0, region, u32::MAX);
+                if game.res.items().get(name).is_some() {
+                    game.draw_item(batch, &horizon_items::items::ItemStack::new(name, 1), ox + x + 5.0, oy + y + 7.0);
+                }
+                if !crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                    batch.text(atlas, "!", ox + x + 20.0, oy + y + 18.0, horizon_client::hud::rgba(255, 255, 85, 255), true);
+                }
+            }
+        }
+    }
     let (title_key, fallback) = if station { ("gui.tconstruct.tinker_station", "Tinker Station") } else { ("gui.tconstruct.part_builder", "Part Builder") };
     let title = game.pack.names.display_get(title_key).unwrap_or_else(|| fallback.to_owned());
     let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
+        let active_layout = crate::game::tconstruct_ui::station_layout(game);
+        if crate::game::tconstruct_ui::station_layouts(game).len() <= 36 {
+            crate::game::armor_stands::tconstruct_armor_preview::draw(game, batch, ox, oy);
+        }
+        if let Some(layout) = active_layout.as_ref() {
+            let (x, y) = (ox + 12.5, oy + 22.0);
+            let start = batch.vertices.len();
+            if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
+                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), x, y);
+            } else if let Some(("tconstruct", name)) = layout.icon.get("pattern").and_then(serde_json::Value::as_str).and_then(|id| id.split_once(':')) {
+                batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), x, y);
+            }
+            batch.scale_since(start, x, y, 3.7, 3.7);
+        }
         // Source TinkerStationScreen paints the translucent item cover before
         // rendering the active layout's slot backgrounds.
         if let Some(mut r) = atlas.sprites.get(texture).copied() {
@@ -150,14 +213,15 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             };
             // The original top beams and decorations frame the button and
             // information modules; they do not create additional slots.
-            for (left, width) in [(-132.0, 128.0), (180.0, 126.0)] {
+            let panel_width = crate::game::tconstruct_builder_info_ui::panel_width(game, true);
+            for (left, width) in [(-132.0, 128.0), (180.0, panel_width)] {
                 region(batch, 0.0, 202.0, 2.0, 7.0, left, 0.0, 2.0, 7.0);
                 region(batch, 2.0, 202.0, 129.0, 7.0, left + 2.0, 0.0, width, 7.0);
                 region(batch, 131.0, 202.0, 2.0, 7.0, left + width + 2.0, 0.0, 2.0, 7.0);
             }
             for y in [1.0, 90.0] {
                 region(batch, 0.0, 196.0, 5.0, 4.0, 187.0, y, 5.0, 4.0);
-                region(batch, 9.0, 196.0, 9.0, 4.0, 294.0, y, 9.0, 4.0);
+                region(batch, 9.0, 196.0, 9.0, 4.0, 168.0 + panel_width, y, 9.0, 4.0);
             }
             let count = crate::game::tconstruct_ui::station_layouts(game).len();
             for index in 0..count {
@@ -178,7 +242,6 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             edit.x = ox + 80.0; edit.y = oy + 7.0;
             edit.draw(batch, atlas, None);
         }
-        let active_layout = crate::game::tconstruct_ui::station_layout(game);
         for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
             let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
             let (x, y) = (x as f32, y as f32);
@@ -214,6 +277,13 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             part(batch, 194.0, 0.0, x, y, u32::MAX);
         }
         if let (Some(layout), Some(entity)) = (active_layout.as_ref(), game.container_kind()) {
+            let active = layout.input_slots.len() + usize::from(layout.tool_slot.is_some());
+            for index in active..4 {
+                let occupied = entity.slots().get(index).and_then(Option::as_ref).is_some();
+                if let Some((x, y)) = crate::game::tconstruct_source_station_layout::dormant_position(index, active, occupied) {
+                    part(batch, 194.0, 0.0, x - 1.0, y - 1.0, u32::MAX);
+                }
+            }
             let specs: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() {
                 std::iter::once(tool).chain(layout.input_slots.iter()).collect()
             } else { layout.input_slots.iter().collect() };

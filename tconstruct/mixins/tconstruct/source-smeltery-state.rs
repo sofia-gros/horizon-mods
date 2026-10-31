@@ -10,6 +10,9 @@ pub(super) struct Smeltery {
     pub progress: Vec<i32>,
     pub tank: SmelteryTank,
     pub fuel: u32,
+    // Original fuel quality is the total duration used by the GUI flame.
+    pub fuel_quality: u32,
+    pub fuel_view: super::tconstruct_source_smeltery_fuel::FuelView,
     pub temperature: u32,
     pub rate: u32,
     pub fuel_cost: u32,
@@ -17,7 +20,7 @@ pub(super) struct Smeltery {
 }
 impl Smeltery {
     pub(super) fn new() -> Self {
-        Self { slots: Vec::new(), progress: Vec::new(), tank: SmelteryTank::new(0), fuel: 0, temperature: 0, rate: 0, fuel_cost: 1, phase: 0 }
+        Self { slots: Vec::new(), progress: Vec::new(), tank: SmelteryTank::new(0), fuel: 0, fuel_quality: 0, fuel_view: Default::default(), temperature: 0, rate: 0, fuel_cost: 1, phase: 0 }
     }
     /// Resize with the structure. The caller must return or drop any displaced
     /// stacks; shrinking capacity does not discard already stored liquid.
@@ -87,7 +90,7 @@ impl Smeltery {
     pub(super) fn to_nbt(&self) -> Tag {
         let slots = self.slots.iter().map(|slot| slot.as_ref().map(item_to_nbt).unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()))).collect();
         Tag::compound([("slots", Tag::List(slots)), ("progress", Tag::IntArray(self.progress.clone())),
-            ("tank", self.tank.to_nbt()), ("fuel", Tag::Long(i64::from(self.fuel))),
+            ("tank", self.tank.to_nbt()), ("fuel", Tag::Long(i64::from(self.fuel))), ("fuel_quality", Tag::Long(i64::from(self.fuel_quality))), ("fuel_view", self.fuel_view.to_nbt()),
             ("temperature", Tag::Long(i64::from(self.temperature))), ("rate", Tag::Long(i64::from(self.rate))),
             ("fuel_cost", Tag::Long(i64::from(self.fuel_cost))), ("phase", Tag::Int(i32::from(self.phase)))])
     }
@@ -102,13 +105,32 @@ impl Smeltery {
         let number = |key| match tag.get(key)? { Tag::Long(n) => u32::try_from(*n).ok(), _ => None };
         let phase = match tag.get("phase")? { Tag::Int(n) if (0..4).contains(n) => *n as u8, _ => return None };
         Some(Self { slots: inventory, progress: progress.clone(), tank: SmelteryTank::from_nbt(tag.get("tank")?)?,
-            fuel: number("fuel")?, temperature: number("temperature")?, rate: number("rate")?, fuel_cost: number("fuel_cost").unwrap_or(1), phase })
+            fuel: number("fuel")?, fuel_quality: number("fuel_quality").unwrap_or(number("fuel")?), fuel_view: tag.get("fuel_view").and_then(super::tconstruct_source_smeltery_fuel::FuelView::from_nbt).unwrap_or_default(), temperature: number("temperature")?, rate: number("rate")?, fuel_cost: number("fuel_cost").unwrap_or(1), phase })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fuel_view_survives_metadata_roundtrip() {
+        let mut state = Smeltery::new();
+        state.fuel_view.has_tank = true;
+        state.fuel_view.fluid = Some("minecraft:lava".into());
+        state.fuel_view.amount = 500;
+        state.fuel_view.capacity = 4000;
+        let restored = Smeltery::from_nbt(&state.to_nbt()).unwrap();
+        assert_eq!(restored.fuel_view.fluid.as_deref(), Some("minecraft:lava"));
+        assert_eq!((restored.fuel_view.amount, restored.fuel_view.capacity), (500, 4000));
+    }
+    #[test]
+    fn fuel_quality_survives_reload_and_legacy_data() {
+        let mut state = Smeltery::new(); state.fuel = 35; state.fuel_quality = 100;
+        let mut saved = state.to_nbt();
+        assert_eq!(Smeltery::from_nbt(&saved).unwrap().fuel_quality, 100);
+        if let Tag::Compound(map) = &mut saved { map.retain(|key, _| key.to_string_lossy() != "fuel_quality"); }
+        assert_eq!(Smeltery::from_nbt(&saved).unwrap().fuel_quality, 35);
+    }
     #[test]
     fn invalid_structure_burns_existing_fuel_before_cooling() {
         let mut s = Smeltery::new(); s.resize(1, 1080);
