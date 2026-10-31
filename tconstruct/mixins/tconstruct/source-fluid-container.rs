@@ -7,6 +7,12 @@ use super::tconstruct_source_smeltery_tank::SmelteryTank;
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Direction { Auto, EmptyItem, FillItem }
 impl Direction {
+    pub(super) fn from_index(index: u8) -> Self {
+        match index { 1 => Self::EmptyItem, 2 => Self::FillItem, _ => Self::Auto }
+    }
+    pub(super) fn index(self) -> u8 {
+        match self { Self::Auto => 0, Self::EmptyItem => 1, Self::FillItem => 2 }
+    }
     pub(super) fn next(self) -> Self {
         match self { Self::Auto => Self::EmptyItem, Self::EmptyItem => Self::FillItem, Self::FillItem => Self::Auto }
     }
@@ -18,6 +24,44 @@ fn bucket_fluid(item: &str) -> Option<String> {
         "minecraft:lava_bucket" => Some("minecraft:lava".into()),
         _ => item.strip_prefix("tconstruct:")?.strip_suffix("_bucket").filter(|id| !id.is_empty()).map(|id| format!("tconstruct:{id}")),
     }
+}
+pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    stack.count > 0 && stack.damage == 0 && stack.extra.is_none()
+        && (stack.item.as_ref() == "minecraft:bucket" || bucket_fluid(&stack.item).is_some_and(|fluid| known_fluid(&fluid)))
+}
+
+/// A normal left/right click on either temporary slot. The output never
+/// accepts inserted items; all changes are staged in caller-owned copies.
+pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<ItemStack>, index: usize,
+    right: bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    if index > 1 { return false; }
+    if index == 1 && carried.is_some() { return false; }
+    let Some(mut held) = carried.take() else {
+        let Some(mut stack) = slots[index].take() else { return false; };
+        let count = if right { stack.count.div_ceil(2) } else { stack.count };
+        stack.count -= count;
+        let mut taken = stack.clone(); taken.count = count;
+        slots[index] = (stack.count > 0).then_some(stack);
+        *carried = Some(taken);
+        return true;
+    };
+    if index != 0 || !accepts(&held, known_fluid) { *carried = Some(held); return false; }
+    let max = if held.item.as_ref() == "minecraft:bucket" { 16 } else { 1 };
+    match slots[index].as_mut() {
+        None => {
+            let count = if right { 1 } else { held.count.min(max) };
+            let mut placed = held.clone(); placed.count = count; held.count -= count;
+            slots[index] = Some(placed); *carried = (held.count > 0).then_some(held);
+        }
+        Some(existing) if existing.item == held.item && existing.damage == held.damage && existing.extra == held.extra => {
+            let available = max.saturating_sub(existing.count);
+            let count = if right { held.count.min(available).min(1) } else { held.count.min(available) };
+            if count == 0 { *carried = Some(held); return false; }
+            existing.count += count; held.count -= count; *carried = (held.count > 0).then_some(held);
+        }
+        Some(_) => { *carried = Some(held); return false; }
+    }
+    true
 }
 fn filled_bucket(fluid: &str) -> Option<String> {
     match fluid {
@@ -59,6 +103,21 @@ pub(super) fn transfer(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 
 mod tests {
     use super::*;
     fn known(_: &str) -> bool { true }
+    #[test]
+    fn slot_clicks_conserve_stacks_and_cannot_insert_into_output() {
+        let mut slots = [None, None];
+        let mut carried = Some(ItemStack::new("minecraft:bucket", 3));
+        assert!(click(&mut slots, &mut carried, 0, true, &known));
+        assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (1, 2));
+        let before = (slots.clone(), carried.clone());
+        assert!(!click(&mut slots, &mut carried, 1, false, &known));
+        assert_eq!((slots.clone(), carried.clone()), before);
+        assert!(click(&mut slots, &mut carried, 0, false, &known));
+        assert_eq!(slots[0].as_ref().unwrap().count, 3);
+        assert!(carried.is_none());
+        assert!(click(&mut slots, &mut carried, 0, true, &known));
+        assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (1, 2));
+    }
     #[test]
     fn fills_and_empties_one_bucket_without_losing_a_stack() {
         let mut tank = SmelteryTank::new(2000);

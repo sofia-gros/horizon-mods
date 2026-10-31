@@ -4,7 +4,7 @@ fn tconstruct_drag_guard(game: &crate::game::Game<'_>, ops: &[(Option<usize>, i3
         if ops.iter().any(|(slot, _, input)| {
             if !matches!(*input, horizon_client::menu::Input::Pickup | horizon_client::menu::Input::QuickMove) { return true; }
             let Some(slot) = *slot else { return true; };
-            (36..300).contains(&slot) || slot >= 354 || (slot >= 300 && crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).is_none())
+            (36..300).contains(&slot) || slot >= 354 || (slot >= 302 && crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).is_none())
         }) { return std::ops::ControlFlow::Break(true); }
     }
     // The current Melter uses three live slots in the shared chest protocol.

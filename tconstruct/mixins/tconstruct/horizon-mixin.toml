@@ -69,6 +69,37 @@ bindings = [
 ]
 
 [[injection]]
+id = "fluid-guest-close"
+target = "horizon_client::game::lan_actions::Game<'_>::guest_container_closed"
+kind = "HEAD"
+helper = "source-fluid-guest-close.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
+
+[[injection]]
+id = "fluid-guest-tick"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+kind = "HEAD"
+helper = "source-fluid-guest-tick.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]
+
+[[injection]]
+id = "fluid-guest-left"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+kind = "HEAD"
+helper = "source-fluid-guest-left.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "guest", ty = "&mut horizon_client::lan::guest::Guest", value = "&mut *g" },
+]
+
+[[injection]]
 id = "smeltery-click"
 target = "horizon_client::game::Game<'_>::menu_click"
 kind = "HEAD"
@@ -576,6 +607,26 @@ ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-local-containers"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),([Option<horizon_items::items::ItemStack>;2],u8)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-guest-containers"
+target = "horizon_client::lan::guest::Guest"
+ty = "Option<((i32,i32,i32),[Option<horizon_items::items::ItemStack>;2],u8)>"
+initial = "None"
+[[state.constructor]]
+target = "horizon_client::lan::guest::Guest::new"
 selector = "Self"
 require = 1
 
@@ -1928,6 +1979,12 @@ id = "source-smeltery-tank"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
+
+[[module]]
+id = "source-fluid-return"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fluid_return"
+source = "source-fluid-return.rs"
 
 [[module]]
 id = "source-fluid-container"

@@ -8,19 +8,41 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
     let Some(mut state) = crate::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag) else { return Break(Vec::new()); };
     let key = (conn, hub.guests[gi].placed_at, pos);
     let (offset, visible_count) = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).copied().unwrap_or((0, state.slots.len()));
+    let (containers, direction) = hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+        .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));
     let menu_state = menu.state;
     if visible_count != state.slots.len() {
         let offset = offset.min(crate::tconstruct_source_smeltery_layout::max_offset(state.slots.len()));
         world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (offset, state.slots.len()));
         hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData { container: packet.container, id: 30002, value: state.slots.len() as i16 }));
         hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData { container: packet.container, id: 30003, value: offset as i16 }));
-        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project(&state.slots, offset));
+        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
         return Break(Vec::new());
     }
     // Reject stale pages and virtual slots before any generic transaction.
-    let virtual_slot = (0..54).contains(&packet.slot) && crate::tconstruct_source_smeltery_layout::melting_index(state.slots.len(), offset, packet.slot as usize).is_none();
+    let virtual_slot = (2..54).contains(&packet.slot) && crate::tconstruct_source_smeltery_layout::melting_index(state.slots.len(), offset, packet.slot as usize).is_none();
     if packet.state != menu_state || virtual_slot {
-        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project(&state.slots, offset));
+        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
+        return Break(Vec::new());
+    }
+    if (0..2).contains(&packet.slot) {
+        let mut next = containers.clone();
+        let mut carried = hub.guests[gi].carried.clone();
+        let known_fluids = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+            .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+        if packet.input == 0 && matches!(packet.button, 0 | 1)
+            && crate::tconstruct_source_fluid_container::click(&mut next, &mut carried, packet.slot as usize, packet.button == 1, &|id| known_fluids.contains(id)) {
+            crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,
+                crate::tconstruct_source_fluid_container::Direction::from_index(direction),
+                &|id| rules.items().get(id).is_some(), &|id| known_fluids.contains(id));
+            if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                hub.guests[gi].carried = carried;
+                *hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers_mut() = Some((pos, next.clone(), direction));
+            }
+        }
+        let current = hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+            .filter(|(at, _, _)| *at == pos).map(|(_, slots, _)| slots.clone()).unwrap_or([None, None]);
+        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &current));
         return Break(Vec::new());
     }
     if packet.input == 1 {
@@ -61,11 +83,11 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
         }
         let current = crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery")
             .and_then(|tag| crate::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)).unwrap_or(state);
-        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project(&current.slots, offset));
+        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&current.slots, offset, &containers));
         return Break(Vec::new());
     }
     if packet.input != 0 {
-        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project(&state.slots, offset));
+        hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
         return Break(Vec::new());
     }
     Continue(())

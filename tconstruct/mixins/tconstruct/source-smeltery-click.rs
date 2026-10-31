@@ -6,6 +6,31 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     // generic menu can alter the carried stack or player inventory.
     let Some(slot) = slot else { return Break(true); };
     if (36..300).contains(&slot) { return Break(true); }
+    if (300..302).contains(&slot) {
+        if game.remote.is_some() { return Continue(()); }
+        let Some(pos) = game.container else { return Break(true); };
+        let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
+            .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(true); };
+        let (mut containers, direction) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
+            .get(&pos).cloned().unwrap_or(([None, None], 0));
+        let mut carried = game.carried.clone();
+        let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+            .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+        if input == horizon_client::menu::Input::Pickup && matches!(button, 0 | 1)
+            && crate::game::tconstruct_source_fluid_container::click(&mut containers, &mut carried, slot - 300, button == 1, &|id| known_fluids.contains(id)) {
+            crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut containers,
+                crate::game::tconstruct_source_fluid_container::Direction::from_index(direction),
+                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id));
+            if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                game.carried = carried;
+                game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
+                if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+                    *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                }
+            }
+        }
+        return Break(true);
+    }
     if slot >= 300 && (slot >= 354 || crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).is_none()) { return Break(true); }
     if !matches!(input, horizon_client::menu::Input::Pickup | horizon_client::menu::Input::QuickMove) { return Break(true); }
     if game.remote.is_some() { return Continue(()); }
@@ -47,7 +72,9 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
         }
         return Break(true);
     }
-    let expected = crate::game::tconstruct_source_smeltery_page::project(&state.slots, offset);
+    let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
+        .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+    let expected = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
     let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) else { return Break(true); };
     let previous_live = live.clone();
     *live = expected.clone();
@@ -56,7 +83,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     let handled = game.menu_ops(&[(Some(slot), button, input)]);
     let changed = game.world.block_entities.get(&pos).map(|entity| entity.slots().to_vec());
     let before_slots = state.slots.clone();
-    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::commit(&mut state.slots, offset, &expected, view));
+    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::commit_with_containers(&mut state.slots, offset, &expected, view, &containers));
     if committed {
         for (index, (before, after)) in before_slots.iter().zip(&state.slots).enumerate() {
             let same = match (before, after) {

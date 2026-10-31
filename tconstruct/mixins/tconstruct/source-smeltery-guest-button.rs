@@ -19,7 +19,9 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let current = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).map_or(0, |page| page.0);
     let next = if id == 32000 { current.saturating_sub(1) } else if id == 32001 { current.saturating_add(1).min(max) } else { ((id - 33000) as usize).min(max) };
     game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (next, state.slots.len()));
-    let mut items = crate::game::tconstruct_source_smeltery_page::project(&state.slots, next);
+    let containers = host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+        .filter(|(at, _, _)| *at == pos).map(|(_, slots, _)| slots.clone()).unwrap_or([None, None]);
+    let mut items = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, next, &containers);
     items.extend((9..36).chain(0..9).map(|i| host.hub.guests[gi].inventory[i].clone()));
     let net = items.iter().map(|item| host.hub.stack(item)).collect();
     let carried = host.hub.guests[gi].carried.clone();
