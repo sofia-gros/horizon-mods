@@ -1,4 +1,12 @@
 fn tconstruct_drag_guard(game: &crate::game::Game<'_>, ops: &[(Option<usize>, i32, horizon_client::menu::Input)]) -> std::ops::ControlFlow<bool> {
+    if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
+        let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
+        if ops.iter().any(|(slot, _, input)| {
+            if *input != horizon_client::menu::Input::Pickup { return true; }
+            let Some(slot) = *slot else { return true; };
+            (36..300).contains(&slot) || slot >= 354 || (slot >= 300 && crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).is_none())
+        }) { return std::ops::ControlFlow::Break(true); }
+    }
     // The current Melter uses three live slots in the shared chest protocol.
     // Do not allow quick-move or drag to place items in its hidden slots.
     if crate::game::tconstruct_ui::is_melter(game) && ops.iter().any(|(slot, _, input)| {

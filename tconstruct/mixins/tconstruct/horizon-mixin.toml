@@ -69,6 +69,19 @@ bindings = [
 ]
 
 [[injection]]
+id = "smeltery-click"
+target = "horizon_client::game::Game<'_>::menu_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]
+
+[[injection]]
 id = "part-builder-output"
 target = "horizon_client::game::Game<'_>::menu_click"
 kind = "HEAD"
@@ -292,6 +305,18 @@ bindings = [
 ]
 
 [[injection]]
+id = "smeltery-remote-data"
+target = "horizon_client::game::remote_stations::Game<'_>::remote_station_data"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-remote-data.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "id", ty = "usize", value = "id" },
+  { name = "value", ty = "i16", value = "value" },
+]
+
+[[injection]]
 id = "part-selection-block-change"
 target = "horizon_client::world::World::set"
 kind = "HEAD"
@@ -495,6 +520,16 @@ require = 1
 id = "smeltery-guest-pages"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,(i32,i32,i32)),usize>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "smeltery-ui-pages"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(i32,i32,i32),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
@@ -1127,6 +1162,14 @@ selector = "Self"
 require = 1
 
 [[injection]]
+id = "smeltery-scroll-input"
+target = "horizon_client::game::stations::Game<'_>::station_scroll"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-scroll.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "delta", ty = "f32", value = "d" }]
+
+[[injection]]
 id = "builder-scroll-input"
 target = "horizon_client::game::stations::Game<'_>::station_scroll"
 kind = "HEAD"
@@ -1357,6 +1400,20 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[injection]]
+id = "smeltery-guest-button"
+target = "horizon_client::game::lan_stations::Game<'_>::lan_station_button"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-guest-button.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "i32", value = "window" },
+  { name = "id", ty = "i32", value = "id" },
+]
 
 [[injection]]
 id = "smeltery-guest-read"
@@ -1795,6 +1852,18 @@ id = "source-smeltery-layout"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_layout"
 source = "source-smeltery-layout.rs"
+
+[[module]]
+id = "source-smeltery-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_ui"
+source = "source-smeltery-ui.rs"
+
+[[module]]
+id = "source-smeltery-draw"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_draw"
+source = "source-smeltery-draw.rs"
 
 [[module]]
 id = "source-smeltery-page"

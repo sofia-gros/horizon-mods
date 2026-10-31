@@ -115,6 +115,12 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
+    if game.container == Some(pos) && game.remote.is_none() {
+        let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map_or(0, |page| page.1);
+        if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+            *live = super::tconstruct_source_smeltery_page::project(&state.slots, offset);
+        }
+    }
 }
 
 /// Exchange a standard lava bucket with a source tank, staging the NBT before
