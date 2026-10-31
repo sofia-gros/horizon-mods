@@ -14,7 +14,7 @@ if out.exists() or out.is_symlink() or out.is_relative_to(root) or root.is_relat
     p.error('output must not exist and must be separate from resources')
 if not (root / 'horizon-resources.json').is_file():
     p.error('expected prepared Horizon 26.3 resources')
-mappings = [('recipe', 'recipes'), ('tags/item', 'tags/items'), ('tags/fluid', 'tags/fluids')]
+mappings = [('recipe', 'recipes'), ('tags/item', 'tags/items'), ('tags/fluid', 'tags/fluids'), ('tags/block', 'tags/blocks')]
 files = []
 for source, destination in mappings:
     base = root / 'data/minecraft' / source
