@@ -1,5 +1,24 @@
 fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
+        let (ox, oy) = game.inventory_origin(batch);
+        if (ox + 124.0..ox + 142.0).contains(&game.cursor.0) && (oy + 69.0..oy + 87.0).contains(&game.cursor.1) {
+            let mode = crate::game::tconstruct_source_smeltery_ui::position(game)
+                .and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos).map(|(_, mode)| *mode)).unwrap_or(0);
+            let (name, title, description) = match mode {
+                1 => ("empty_item", "Mode: Empty Item", "Slot will attempt to empty the item"),
+                2 => ("fill_item", "Mode: Fill Item", "Slot will attempt to fill the item"),
+                _ => ("auto", "Mode: Auto", "Slot will attempt to empty then fill the item"),
+            };
+            let translate = |suffix: &str, fallback: &str| game.pack.names
+                .display_get(&format!("gui.tconstruct.tank.bucket.{name}.{suffix}")).unwrap_or_else(|| fallback.to_owned());
+            let lines = vec![(translate("title", title), u32::MAX), (translate("description", description), 0xffaaaaaa),
+                (game.pack.names.display_get("gui.tconstruct.tank.bucket.clickable").unwrap_or_else(|| "Click to toggle fluid transfer mode".to_owned()), 0xffaaaaaa)];
+            game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+            return Break(());
+        }
+        return Continue(());
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     if station {
         let (ox, oy) = game.inventory_origin(batch);

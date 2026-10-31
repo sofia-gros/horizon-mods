@@ -15,6 +15,19 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         .and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos).map(|(_, mode)| *mode)).unwrap_or(0).min(2);
     if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_heating_structure").copied() {
         let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+        let original = sprite;
+        if game.container_kind().is_some_and(|entity| entity.slots().first().is_none_or(Option::is_none)) {
+            let mut icon = original;
+            icon.u0 += 224.0 * du; icon.v0 += 186.0 * dv;
+            icon.u1 = icon.u0 + 16.0 * du; icon.v1 = icon.v0 + 16.0 * dv;
+            batch.rect_uv(ox + 125.0, oy + 46.0, 16.0, 16.0, icon, u32::MAX);
+        }
+        if (ox + 124.0..ox + 142.0).contains(&game.cursor.0) && (oy + 69.0..oy + 87.0).contains(&game.cursor.1) {
+            let mut hover = original;
+            hover.u0 += 176.0 * du; hover.v0 += 202.0 * dv;
+            hover.u1 = hover.u0 + 18.0 * du; hover.v1 = hover.v0 + 18.0 * dv;
+            batch.rect_uv(ox + 124.0, oy + 69.0, 18.0, 18.0, hover, u32::MAX);
+        }
         sprite.u0 += (176.0 + f32::from(mode) * 16.0) * du; sprite.v0 += 186.0 * dv;
         sprite.u1 = sprite.u0 + 16.0 * du; sprite.v1 = sprite.v0 + 16.0 * dv;
         batch.rect_uv(ox + 125.0, oy + 70.0, 16.0, 16.0, sprite, u32::MAX);
