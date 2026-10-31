@@ -97,6 +97,14 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
             y += height;
         }
     }
+    // HeatingStructureScreen overlays its original 80×106 gauge at the
+    // tank's upper left after drawing its fluid layers.
+    if let Some(mut gauge) = atlas.sprites.get("gui/tconstruct_heating_structure").copied() {
+        let (du, dv) = ((gauge.u1 - gauge.u0) / gauge.w as f32, (gauge.v1 - gauge.v0) / gauge.h as f32);
+        gauge.u0 += 176.0 * du;
+        gauge.u1 = gauge.u0 + 80.0 * du; gauge.v1 = gauge.v0 + 106.0 * dv;
+        batch.rect_uv(ox + 8.0, oy + 16.0, 80.0, 106.0, gauge, u32::MAX);
+    }
     if (ox + 8.0..ox + 114.0).contains(&game.cursor.0) && (oy + 16.0..oy + 122.0).contains(&game.cursor.1) {
         let tank = super::tconstruct_source_smeltery_ui::position(game)
             .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))

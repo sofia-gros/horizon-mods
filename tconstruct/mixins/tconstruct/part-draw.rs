@@ -48,6 +48,13 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                     }
                 }
             }
+            // GuiMelterScreen overlays the original 52×52 gauge after fluid.
+            if let Some(mut gauge) = atlas.sprites.get("gui/tconstruct_melter").copied() {
+                let (du, dv) = ((gauge.u1 - gauge.u0) / gauge.w as f32, (gauge.v1 - gauge.v0) / gauge.h as f32);
+                gauge.u0 += 176.0 * du;
+                gauge.u1 = gauge.u0 + 52.0 * du; gauge.v1 = gauge.v0 + 52.0 * dv;
+                batch.rect_uv(ox + 90.0, oy + 16.0, 52.0, 52.0, gauge, u32::MAX);
+            }
             if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
                 let fluid_height = if melter.tank.capacity == 0 { 0.0 } else {
                     (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0).floor()
