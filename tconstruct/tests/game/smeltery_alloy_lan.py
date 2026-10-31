@@ -39,7 +39,8 @@ def click(game, slot):
 
 
 def slots(game):
-    return {row['slot']: row['stack'] for row in game.call('menu')['slots'] if row.get('stack')}
+    return {int(row['id'][5:]): row['stack'] for row in game.call('ui')['widgets']
+            if row.get('id', '').startswith('slot-') and row.get('stack')}
 
 
 try:
@@ -50,6 +51,9 @@ try:
     guest = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=(run / 'Guest').exists())
     games.append(guest)
     guest.ready()
+    for x, y, z in ((0,71,1), (1,71,2), (0,71,3), (0,71,4), (0,70,4)):
+        host.call('command', f'setblock {x} {y} {z} minecraft:air')
+    host.call('wait', '10')
     for command in (
         'gamemode creative @a', 'clear @a', 'tp @s 2.5 71 1.5', 'tp Guest 3.5 71 1.5',
         'setblock 0 70 2 tconstruct:seared_bricks', 'setblock 0 71 2 minecraft:air',
@@ -65,6 +69,9 @@ try:
     select(guest, 'minecraft:lava_bucket')
     guest.call('interact', '1', '71', '2')
     guest.call('wait', '10')
+    host.call('command', 'tp @s 1.5 71 -1.5')
+    host.call('command', 'tp Guest -1.5 71 -1.5')
+    host.call('wait', '10')
     for game in games:
         empty = next(slot['slot'] for slot in game.call('inventory')['hotbar'] if not slot.get('item'))
         game.call('hotbar', str(empty + 1))
@@ -81,6 +88,8 @@ try:
     guest.call('screenshot', str(run / 'smeltery-alloy-lan.png'))
     for game in games:
         game.call('close')
+    host.call('command', 'tp Guest 2.5 71 4.5')
+    guest.call('wait', '10')
     select(guest, 'tconstruct:ingot_cast')
     guest.call('interact', '0', '70', '4')
     empty = next(slot['slot'] for slot in guest.call('inventory')['hotbar'] if not slot.get('item'))
