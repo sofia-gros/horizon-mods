@@ -6,7 +6,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
         let state = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
             .and_then(|tag| crate::game::tconstruct_source_melter_state::Melter::from_nbt(&tag));
         if let Some(state) = state {
-            if (ox + 90.0..ox + 142.0).contains(&game.cursor.0) && (oy + 16.0..oy + 68.0).contains(&game.cursor.1) {
+            if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
                 let mut lines = Vec::new();
                 if let Some(fluid) = state.tank.fluid.as_ref() {
                     let key = format!("fluid.{}", fluid.replace(':', "."));

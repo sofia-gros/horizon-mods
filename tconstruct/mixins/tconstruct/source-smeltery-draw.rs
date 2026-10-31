@@ -97,6 +97,24 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
             y += height;
         }
     }
+    if (ox + 8.0..ox + 114.0).contains(&game.cursor.0) && (oy + 16.0..oy + 122.0).contains(&game.cursor.1) {
+        let tank = super::tconstruct_source_smeltery_ui::position(game)
+            .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
+            .and_then(|tag| tag.get("tank").and_then(super::tconstruct_source_smeltery_tank::SmelteryTank::from_nbt));
+        if let Some(tank) = tank {
+            let amounts = tank.fluids.iter().map(|fluid| fluid.amount).collect::<Vec<_>>();
+            let heights = super::tconstruct_source_smeltery_layout::fluid_heights(&amounts, tank.capacity);
+            let index = super::tconstruct_source_smeltery_layout::fluid_at(&amounts, tank.capacity, game.cursor.1 - oy);
+            let (top, height) = if let Some(index) = index {
+                let below: u32 = heights.iter().take(index).sum();
+                let height = heights[index] as f32;
+                (oy + 122.0 - below as f32 - height, height)
+            } else {
+                (oy + 16.0, 106.0 - heights.iter().sum::<u32>() as f32)
+            };
+            if height > 0.0 { batch.fill(atlas, ox + 8.0, top, 106.0, height, rgba(255, 255, 255, 128)); }
+        }
+    }
     let state = super::tconstruct_source_smeltery_ui::position(game)
         .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
         .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));

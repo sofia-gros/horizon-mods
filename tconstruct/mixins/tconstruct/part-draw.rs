@@ -48,6 +48,14 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                     }
                 }
             }
+            if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
+                let fluid_height = if melter.tank.capacity == 0 { 0.0 } else {
+                    (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0).floor()
+                };
+                let middle = oy + 68.0 - fluid_height;
+                let (top, height) = if game.cursor.1 > middle { (middle, fluid_height) } else { (oy + 16.0, 52.0 - fluid_height) };
+                if height > 0.0 { batch.fill(atlas, ox + 90.0, top, 52.0, height, horizon_client::hud::rgba(255, 255, 255, 128)); }
+            }
             for (slot, progress) in melter.progress.iter().enumerate() {
                 if let Some(stack) = melter.slots[slot].as_ref() {
                     let (sprite, height, _) = crate::game::tconstruct_source_melter_render::heat_bar(&game.world, stack, melter.temperature, *progress, false);
