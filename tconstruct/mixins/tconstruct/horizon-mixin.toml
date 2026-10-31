@@ -1930,6 +1930,12 @@ name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
 
 [[module]]
+id = "source-fluid-container"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fluid_container"
+source = "source-fluid-container.rs"
+
+[[module]]
 id = "source-smeltery-state"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_state"
@@ -1988,6 +1994,12 @@ id = "server-smeltery-tank"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
+
+[[module]]
+id = "server-fluid-container"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_fluid_container"
+source = "source-fluid-container.rs"
 
 [[module]]
 id = "server-smeltery-state"
