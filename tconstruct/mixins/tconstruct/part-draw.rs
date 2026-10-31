@@ -122,8 +122,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             region(batch, 0.0, 7.0, 7.0, 50.0, 0.0, 7.0, 7.0, height);
             region(batch, 57.0, 7.0, 7.0, 50.0, width + 7.0, 7.0, 7.0, height);
             region(batch, 25.0, 7.0, 18.0, 10.0, 7.0, 7.0, width, 10.0);
-            let title_key = crate::game::tconstruct_ui::side_title(game);
-            let title = game.pack.names.display_get(title_key).unwrap_or_else(|| "Inventory".to_owned());
+            let title = crate::game::tconstruct_ui::side_title(game);
             batch.text(atlas, &title, ox + left + 7.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
             let first = offset.min(crate::game::tconstruct_source_side_layout::max_offset(count)) * columns;
             for i in 0..count.saturating_sub(first).min(crate::game::tconstruct_source_side_layout::visible_rows(count) * columns) {
