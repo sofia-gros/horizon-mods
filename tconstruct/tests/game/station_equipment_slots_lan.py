@@ -34,7 +34,7 @@ try:
     host.call('wait', '15'); guest.call('interact', '0', '71', '2'); guest.call('wait', '10')
     wait('Part Builder', lambda: widget(guest, 322))
     guest.call('click-gui', '45', '-15'); guest.call('wait', '10')
-    wait('Station', lambda: widget(guest, 324) or widget(guest, 325))
+    wait('Station', lambda: widget(guest, 500))
     hotbar = next(slot['slot'] for slot in guest.call('inventory')['hotbar'] if slot.get('item') == 'minecraft:iron_helmet')
     guest.call('click-slot', str(hotbar)); guest.call('wait', '5'); guest.call('click-slot', '500'); guest.call('wait', '10')
     wait('helmet equipped', lambda: guest.call('inventory')['armor'][0].get('item') == 'minecraft:iron_helmet')

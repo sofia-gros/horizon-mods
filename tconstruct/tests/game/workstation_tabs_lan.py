@@ -36,7 +36,7 @@ try:
     hotbar = next(slot['slot'] for slot in guest.call('inventory')['hotbar'] if slot.get('item') == 'minecraft:stone')
     guest.call('click-slot', str(hotbar)); guest.call('wait', '5')
     guest.call('click-gui', '45', '-15'); guest.call('wait', '10')
-    wait('Station', lambda: widget(guest, 324) or widget(guest, 325))
+    wait('Station', lambda: widget(guest, 500))
     assert (guest.call('menu').get('carried') or {}).get('item') == 'minecraft:stone', 'guest cursor item was lost'
     guest.call('click-gui', '17', '-19'); guest.call('wait', '10')
     wait('Part Builder again', lambda: widget(guest, 322))
