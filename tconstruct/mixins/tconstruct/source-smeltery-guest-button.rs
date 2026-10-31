@@ -8,7 +8,7 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Continue(()); };
     if id == 0 {
-        let (mut slots, mode) = host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+        let (mut slots, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
             .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));
         let direction = crate::game::tconstruct_source_fluid_container::Direction::from_index(mode).next();
         let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
@@ -16,7 +16,7 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut slots, direction,
             &|item| game.res.items().get(item).is_some(), &|fluid| known_fluids.contains(fluid));
         if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
-            *host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers_mut() = Some((pos, slots, direction.index()));
+            game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, slots, direction.index()));
             host.hub.guests[gi].send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30004, value: i16::from(direction.index()) }));
         }
         return Break(());
@@ -30,7 +30,7 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         if host.hub.guests[gi].carried.is_some() {
             crate::game::tconstruct_source_fluid_direct::guest(game, host, gi, pos, Some(index));
         } else if state.tank.move_to_bottom(index) {
-            let (mut slots, mode) = host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+            let (mut slots, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
                 .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));
             let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
                 .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
@@ -38,7 +38,7 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
                 crate::game::tconstruct_source_fluid_container::Direction::from_index(mode),
                 &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
             if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
-                *host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers_mut() = Some((pos, slots, mode));
+                game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, slots, mode));
             }
         }
         return Break(());
@@ -48,7 +48,7 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let current = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).map_or(0, |page| page.0);
     let next = if id == 32000 { current.saturating_sub(1) } else if id == 32001 { current.saturating_add(1).min(max) } else { ((id - 33000) as usize).min(max) };
     game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (next, state.slots.len()));
-    let containers = host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+    let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
         .filter(|(at, _, _)| *at == pos).map(|(_, slots, _)| slots.clone()).unwrap_or([None, None]);
     let mut items = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, next, &containers);
     items.extend((9..36).chain(0..9).map(|i| host.hub.guests[gi].inventory[i].clone()));
