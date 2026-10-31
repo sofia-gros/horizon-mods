@@ -3,7 +3,7 @@ fn smeltery_guest_write(slots: crate::lan::menu::Slots, world: &mut crate::world
     let crate::lan::menu::Slots::Block(pos) = slots else { return Continue(()); };
     let Some(tag) = crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery") else { return Continue(()); };
     let Some(mut state) = crate::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag) else { return Break(()); };
-    let offset = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&(guest.conn, guest.placed_at, pos)).copied().unwrap_or(0);
+    let offset = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&(guest.conn, guest.placed_at, pos)).map_or(0, |page| page.0);
     let previous = state.slots.clone();
     let expected = crate::tconstruct_source_smeltery_page::project(&previous, offset);
     if !crate::tconstruct_source_smeltery_page::commit(&mut state.slots, offset, &expected, items) { return Break(()); }

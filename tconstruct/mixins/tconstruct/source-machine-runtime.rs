@@ -38,9 +38,8 @@ fn initial(kind: &str) -> Option<Tag> {
     })
 }
 
-/// Update the current candidate and capacity from loaded world blocks.  When
-/// shrinking would evict items, preserve the previous state until the caller's
-/// lossless spill path is connected.
+/// Update the current candidate and capacity from loaded world blocks. Items
+/// displaced by shrinking are spilled only after the state update commits.
 pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let bounds = super::tconstruct_source_smeltery_world::detect(game, pos);
     super::tconstruct_source_smeltery_world::claim(game, pos, bounds);
@@ -53,9 +52,9 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         return;
     };
     let volume = (capacity / 1080) as usize;
-    if state.slots.len() != volume || state.tank.capacity != capacity {
-        if !state.resize(volume, capacity).is_empty() { return; }
-    }
+    let displaced = if state.slots.len() != volume || state.tank.capacity != capacity {
+        state.resize(volume, capacity)
+    } else { Vec::new() };
     if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(_))) { return; }
     let recipes: Vec<_> = if state.phase == 0 || state.phase == 1 {
         state.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
@@ -115,6 +114,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
+    super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
     if game.container == Some(pos) && game.remote.is_none() {
         let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map_or(0, |page| page.1);
         if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {

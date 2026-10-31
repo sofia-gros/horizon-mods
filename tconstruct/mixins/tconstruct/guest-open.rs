@@ -10,7 +10,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         let slots = horizon_client::lan::menu::Slots::Block(pos);
         let Some(guest) = host.hub.guest(conn) else { return Break(false); };
         let key = (conn, guest.placed_at, pos);
-        game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, 0);
+        game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (0, state.slots.len()));
         let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);

@@ -105,6 +105,7 @@ bindings = [
   { name = "conn", ty = "u32", value = "conn" },
   { name = "packet", ty = "&play::ContainerClick", value = "p" },
   { name = "world", ty = "&mut World", value = "&mut *world" },
+  { name = "rules", ty = "&dyn Rules", value = "rules" },
 ]
 
 [[injection]]
@@ -519,7 +520,7 @@ require = 1
 [[state]]
 id = "smeltery-guest-pages"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<(u32,u64,(i32,i32,i32)),usize>"
+ty = "std::collections::HashMap<(u32,u64,(i32,i32,i32)),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
@@ -1875,6 +1876,12 @@ id = "source-smeltery-draw"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_draw"
 source = "source-smeltery-draw.rs"
+
+[[module]]
+id = "source-smeltery-spill"
+file = "crates/horizon-client/src/game/spill.rs"
+name = "tconstruct_source_smeltery_spill"
+source = "source-smeltery-spill.rs"
 
 [[module]]
 id = "source-smeltery-page"
