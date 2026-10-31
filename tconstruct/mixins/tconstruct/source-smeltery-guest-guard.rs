@@ -35,8 +35,15 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                 let remaining = crate::tconstruct_tx::source_quick_move_player(&mut inventory, stack, max, max > 1);
                 if remaining.as_ref().map_or(0, |stack| stack.count) != before {
                     next[packet.slot as usize] = remaining;
-                    hub.guests[gi].inventory = inventory;
-                    world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
+                    let fluids = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+                        .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+                    crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,
+                        crate::tconstruct_source_fluid_container::Direction::from_index(direction),
+                        &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+                    if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                        hub.guests[gi].inventory = inventory;
+                        world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
+                    } else { next = containers.clone(); }
                 }
             }
             hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &next));
