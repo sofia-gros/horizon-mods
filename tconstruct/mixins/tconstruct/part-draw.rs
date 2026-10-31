@@ -152,6 +152,9 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 if game.res.items().get(name).is_some() {
                     game.draw_item(batch, &horizon_items::items::ItemStack::new(name, 1), ox + x + 5.0, oy + y + 7.0);
                 }
+                if !crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                    batch.text(atlas, "!", ox + x + 20.0, oy + y + 18.0, horizon_client::hud::rgba(255, 255, 85, 255), true);
+                }
             }
         }
     }
