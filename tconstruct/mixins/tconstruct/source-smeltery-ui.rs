@@ -22,3 +22,19 @@ pub(super) fn page(game: &Game<'_>) -> (usize, usize) {
         (count, offset)
     }
 }
+
+pub(super) fn set_offset(game: &mut Game<'_>, pos: (i32, i32, i32), count: usize, offset: usize) {
+    let next = offset.min(super::tconstruct_source_smeltery_layout::max_offset(count));
+    if game.remote.is_some() {
+        if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 33000 + next as i32 }));
+        }
+    } else {
+        let Some(state) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
+            .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return; };
+        if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
+            *slots = super::tconstruct_source_smeltery_page::project(&state.slots, next);
+            game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(pos, (count, next));
+        }
+    }
+}

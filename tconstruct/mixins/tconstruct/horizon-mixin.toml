@@ -549,6 +549,16 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "smeltery-ui-dragging"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "fluid-tag-snapshot"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
@@ -1201,11 +1211,26 @@ helper = "source-builder-scroll.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "delta", ty = "f32", value = "d" }]
 
 [[injection]]
+id = "smeltery-drag"
+target = "horizon_client::game::Game<'_>::inventory_drag_move"
+kind = "HEAD"
+cancellable = true
+helper = "source-smeltery-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
 id = "builder-drag"
 target = "horizon_client::game::Game<'_>::inventory_drag_move"
 kind = "HEAD"
 cancellable = true
 helper = "source-builder-drag.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "smeltery-release"
+target = "horizon_client::game::Game<'_>::inventory_mouse_release"
+kind = "HEAD"
+helper = "source-smeltery-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]

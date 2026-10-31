@@ -1,10 +1,22 @@
-fn smeltery_pointer(game: &mut crate::game::Game<'_>, _right: bool) -> std::ops::ControlFlow<bool> {
+fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
     let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) else { return Continue(()); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
     let batch = horizon_client::hud::HudBatch::new(size);
     let (ox, oy) = game.inventory_origin(&batch);
+    let (count, _) = crate::game::tconstruct_source_smeltery_ui::page(game);
+    let columns = crate::game::tconstruct_source_smeltery_layout::columns(count);
+    let max = crate::game::tconstruct_source_smeltery_layout::max_offset(count);
+    let left = -crate::game::tconstruct_source_smeltery_layout::panel_width(count);
+    let x = ox + left + 7.0 + columns as f32 * 22.0;
+    let height = crate::game::tconstruct_source_smeltery_layout::visible_rows(count) as f32 * 18.0;
+    if !right && max > 0 && (x..x+10.0).contains(&game.cursor.0) && (oy+11.0..oy+11.0+height).contains(&game.cursor.1) {
+        game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_dragging_mut().insert(pos);
+        let next = crate::game::tconstruct_source_smeltery_layout::drag_offset(count, game.cursor.1 - oy);
+        crate::game::tconstruct_source_smeltery_ui::set_offset(game, pos, count, next);
+        return Break(true);
+    }
     if !(ox + 8.0..ox + 114.0).contains(&game.cursor.0) || !(oy + 16.0..oy + 122.0).contains(&game.cursor.1) { return Continue(()); }
     // Filling a held container from a selected fluid has not been connected;
     // do not move or consume the carried item until that transaction exists.

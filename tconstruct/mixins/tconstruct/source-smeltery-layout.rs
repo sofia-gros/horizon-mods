@@ -24,6 +24,12 @@ pub(super) fn fluid_at(amounts: &[u32], capacity: u32, y: f32) -> Option<usize> 
     }
     None
 }
+pub(super) fn drag_offset(count: usize, y: f32) -> usize {
+    let max = max_offset(count);
+    if max == 0 { return 0; }
+    let travel = (visible_rows(count) as f32 * 18.0 - 15.0).max(1.0);
+    (((y - 11.0 - 7.5) / travel).clamp(0.0, 1.0) * max as f32).round() as usize
+}
 /// Resolve a visible container slot to the real melting slot. No virtual slot
 /// is ever a destination; callers must reject a None before mutating items.
 pub(super) fn melting_index(count: usize, offset: usize, menu_slot: usize) -> Option<usize> {
@@ -65,6 +71,8 @@ mod tests {
         assert_eq!(melting_index(count, 999, 40), Some(70));
         assert_eq!(melting_index(count, 999, 41), None);
         assert_eq!(position(count, 999, 2), position(count, 0, 2));
+        assert_eq!(drag_offset(count, 11.0), 0);
+        assert_eq!(drag_offset(count, 191.0), max_offset(count));
     }
     #[test]
     fn fluid_hit_uses_the_same_bottom_up_scale_as_rendering() {
