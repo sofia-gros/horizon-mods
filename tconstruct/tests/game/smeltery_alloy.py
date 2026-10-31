@@ -3,6 +3,7 @@
 Only the named structure positions in the existing test world are reset.
 """
 import argparse
+import subprocess
 from pathlib import Path
 from harness import Game
 
@@ -53,7 +54,13 @@ try:
         g.call('command', command)
     g.call('wait', '20')
     select('minecraft:lava_bucket'); g.call('interact', '1', '71', '2'); g.call('wait', '10')
-    empty_hand(); g.call('interact', '0', '71', '1'); g.call('wait', '20')
+    empty_hand()
+    try:
+        g.call('interact', '0', '71', '1')
+    except subprocess.CalledProcessError as error:
+        print(f'controller interaction failed: {error.stdout}\n{error.stderr}', flush=True)
+        raise
+    g.call('wait', '20')
     assert g.call('status')['screen'] == 'inventory', 'formed Smeltery menu did not open'
     assert any(widget.get('id') == 'slot-302' for widget in g.call('ui')['widgets']), 'real input slot is missing'
     click(hotbar('minecraft:copper_ingot')); click(302)
