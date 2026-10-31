@@ -79,7 +79,12 @@ try:
     click(301); click(300)
     assert any(w.get('id') == 'slot-301' and (w.get('stack') or {}).get('item') == 'tconstruct:molten_copper_bucket' for w in g.call('ui')['widgets']), 'filled bucket was not returned'
     click(301)
-    # The cursor item is returned when the menu closes; save and reload it.
+    # Put the filled bucket away and show the active input's source heat bar.
+    empty = next(slot['slot'] for slot in g.call('inventory')['hotbar'] if not slot.get('item'))
+    click(empty); click(hotbar('minecraft:copper_ingot')); click(302); g.call('wait', '30')
+    g.call('scroll-at', str(ox - 23), str(oy + 20), '0'); g.call('wait', '5')
+    g.call('screenshot', str(run / 'gui-smeltery-heating.png'))
+    # The filled bucket remains in the inventory across save and reload.
     g.call('close'); g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
     assert g.call('inventory')['counts'].get('tconstruct:molten_copper_bucket', 0) == 1, 'filled bucket was lost on close/reload'
