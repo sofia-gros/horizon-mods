@@ -2343,6 +2343,17 @@ selector = "Self"
 require = 1
 
 [[injection]]
+id = "station-armor-press"
+target = "horizon_client::game::Game<'_>::inventory_press"
+kind = "HEAD"
+cancellable = true
+helper = "station-armor-press.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[injection]]
 id = "station-armor-drag"
 target = "horizon_client::game::Game<'_>::inventory_drag_move"
 kind = "HEAD"
