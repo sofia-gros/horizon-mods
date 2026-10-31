@@ -38,6 +38,12 @@ def snapshot(repo):
         info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         output.writestr(info, data)
+        for suffix in ('u', 'd', 'l', 'r', 'ud', 'ul', 'ur', 'dl', 'dr', 'lr', 'udl', 'udr', 'ulr', 'dlr', 'udlr'):
+            name = f'assets/tconstruct/textures/block/smeltery/tinted_glass/{suffix}.png'
+            data = subprocess.check_output(['git', '-C', str(repo), 'show', f'{source.REVISION}:src/main/resources/{name}'])
+            info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            output.writestr(info, data)
     return result.getvalue()
 
 

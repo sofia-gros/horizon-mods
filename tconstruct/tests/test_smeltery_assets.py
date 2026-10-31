@@ -21,6 +21,8 @@ class SmelteryAssets(unittest.TestCase):
             self.assertEqual(tank['loader'], 'tconstruct:tank')
             self.assertEqual(controller['loader'], 'mantle:retextured')
             self.assertIn('assets/tconstruct/textures/gui/heating_structure.png', archive.namelist())
+            for suffix in ('u', 'd', 'l', 'r', 'ud', 'ul', 'ur', 'dl', 'dr', 'lr', 'udl', 'udr', 'ulr', 'dlr', 'udlr'):
+                self.assertIn(f'assets/tconstruct/textures/block/smeltery/tinted_glass/{suffix}.png', archive.namelist())
 
     def test_static_shell_generation_is_reproducible(self):
         sys.path.insert(0, str(ROOT / 'tools'))

@@ -20,7 +20,7 @@ fn tconstruct_storage_atlas(assets: &Assets, root: &Path) -> std::ops::ControlFl
         }
         // Connected models reference their base sprite during baking. The
         // adjacent variants are selected later while meshing a block face.
-        for base in ["clear_glass", "clear_stained_glass", "soul_glass", "smeltery/seared_glass", "smeltery/soul_glass", "foundry/glass", "foundry/soul_glass"] {
+        for base in ["clear_glass", "clear_stained_glass", "soul_glass", "smeltery/seared_glass", "smeltery/soul_glass", "smeltery/tinted_glass", "foundry/glass", "foundry/soul_glass"] {
             let dir = root.join("assets/tconstruct/textures/block").join(base);
             if !dir.is_dir() { continue; }
             for suffix in ["u", "d", "l", "r", "ud", "ul", "ur", "dl", "dr", "lr", "udl", "udr", "ulr", "dlr", "udlr"] {
