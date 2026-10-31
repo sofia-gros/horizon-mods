@@ -10,13 +10,17 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         }
         return Break(());
     }
-    if (1..3).contains(&id) || id < 0 { return Continue(()); }
+    if id < 0 { return Continue(()); }
     let Some(gi) = host.hub.guests.iter().position(|guest| guest.conn == conn) else { return Continue(()); };
     let Some(menu) = host.hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if menu.window != window || !menu.slots.still_valid(&game.world, &host.hub.guests[gi], menu.pos) { return Continue(()); }
     let Some(pos) = menu.pos else { return Continue(()); };
     let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Continue(()); };
+    if (1..=2).contains(&id) {
+        if host.hub.guests[gi].carried.is_some() { crate::game::tconstruct_source_fluid_direct::fuel_guest(game, host, gi, pos, id == 2); }
+        return Break(());
+    }
     if id == 0 {
         let (mut slots, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
             .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));

@@ -21,6 +21,12 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
     let batch = horizon_client::hud::HudBatch::new(size);
     let (ox, oy) = game.inventory_origin(&batch);
+    if (ox + 151.0..ox + 169.0).contains(&game.cursor.0) && (oy + 31.0..oy + 123.0).contains(&game.cursor.1) && game.carried.is_some() {
+        if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: if right { 2 } else { 1 } }));
+        } else { crate::game::tconstruct_source_fluid_direct::fuel_local(game, pos, right); }
+        return Break(true);
+    }
     if !right && (ox + 124.0..ox + 142.0).contains(&game.cursor.0) && (oy + 69.0..oy + 87.0).contains(&game.cursor.1) {
         if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
             game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 0 }));
@@ -60,11 +66,13 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
     let amounts = tank.fluids.iter().map(|fluid| fluid.amount).collect::<Vec<_>>();
     let index = crate::game::tconstruct_source_smeltery_layout::fluid_at(&amounts, tank.capacity, game.cursor.1 - oy);
     if game.carried.is_some() {
+        let selected = if right { None } else { index };
         if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
-            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: index.map_or(3, |index| 4 + index as i32) }));
-        } else { crate::game::tconstruct_source_fluid_direct::local(game, pos, index); }
+            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: selected.map_or(3, |index| 4 + index as i32) }));
+        } else { crate::game::tconstruct_source_fluid_direct::local(game, pos, selected); }
         return Break(true);
     }
+    if right { return Break(true); }
     let Some(index) = index else { return Break(true); };
     if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
         game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 4 + index as i32 }));
