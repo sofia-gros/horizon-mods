@@ -15,7 +15,7 @@ pub(super) fn panel_width(count: usize) -> f32 {
 pub(super) fn fluid_heights(amounts: &[u32], capacity: u32) -> Vec<u32> {
     if amounts.is_empty() { return Vec::new(); }
     let total = amounts.iter().fold(0u32, |sum, amount| sum.saturating_add(*amount));
-    let capacity = capacity.max(total);
+    let capacity = if capacity == 0 { total } else { capacity };
     if capacity == 0 { return vec![0; amounts.len()]; }
     let mut heights: Vec<u32> = amounts.iter().map(|amount|
         ((106.0 * *amount as f64 / capacity as f64).ceil() as u32).max(3)).collect();
@@ -70,6 +70,10 @@ pub(super) fn position(count: usize, offset: usize, menu_slot: usize) -> Option<
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn overflow_uses_source_capacity_before_trimming_tallest_layer() {
+        assert_eq!(fluid_heights(&[1800, 200], 1000), vec![84, 22]);
+    }
     #[test]
     fn source_columns_and_bucket_positions() {
         assert_eq!((columns(1), columns(7), columns(8), columns(28), columns(29)), (1,1,2,4,4));
