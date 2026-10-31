@@ -15,9 +15,9 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
                 "tconstruct:faucet" => &["tconstruct:seared_faucet"],
                 "tconstruct:table" => &["tconstruct:seared_table"],
                 "tconstruct:basin" => &["tconstruct:seared_basin"],
-                "tconstruct:smeltery" => &["tconstruct:smeltery_controller"],
-                "tconstruct:fuel_tank" => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge"],
-                "tconstruct:ingot_tank" => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge"],
+                "tconstruct:smeltery" => &["tconstruct:smeltery_controller", "tconstruct:foundry_controller"],
+                "tconstruct:fuel_tank" => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "tconstruct:scorched_fuel_tank", "tconstruct:scorched_fuel_gauge"],
+                "tconstruct:ingot_tank" => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge", "tconstruct:scorched_ingot_tank", "tconstruct:scorched_ingot_gauge"],
                 _ => continue,
             };
             let Some(kind) = hub.sync.builtin.get("minecraft:block_entity_type").and_then(|r| r.id(&id)) else { continue; };

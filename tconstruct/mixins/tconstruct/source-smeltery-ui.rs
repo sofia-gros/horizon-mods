@@ -2,9 +2,14 @@ use super::Game;
 
 pub(super) fn is_smeltery(game: &Game<'_>) -> bool {
     if game.remote.is_some() {
-        return game.remote_menu_title().map(|title| title.plain()).as_deref() == Some("TConstruct Smeltery");
+        return game.remote_menu_title().map(|title| title.plain()).as_deref().is_some_and(|title| matches!(title, "TConstruct Smeltery" | "TConstruct Foundry"));
     }
-    game.container.is_some_and(|pos| &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:smeltery_controller")
+    game.container.is_some_and(|pos| matches!(&*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller"))
+}
+
+pub(super) fn is_foundry(game: &Game<'_>) -> bool {
+    if game.remote.is_some() { return game.remote_menu_title().map(|title| title.plain()).as_deref() == Some("TConstruct Foundry"); }
+    game.container.is_some_and(|pos| &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:foundry_controller")
 }
 
 pub(super) fn position(game: &Game<'_>) -> Option<(i32, i32, i32)> {

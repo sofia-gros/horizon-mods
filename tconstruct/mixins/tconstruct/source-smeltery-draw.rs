@@ -5,7 +5,9 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let atlas = &game.gui.atlas;
     batch.sprite_region(atlas, "gui/tconstruct_heating_structure", [ox, oy, 176.0, 220.0], 256.0, 256.0);
     let color = rgba(64, 64, 64, 255);
-    let title = game.pack.names.display_get("container.tconstruct.smeltery").unwrap_or_else(|| "Smeltery".to_owned());
+    let foundry = super::tconstruct_source_smeltery_ui::is_foundry(game);
+    let title = game.pack.names.display_get(if foundry { "container.tconstruct.foundry" } else { "container.tconstruct.smeltery" })
+        .unwrap_or_else(|| if foundry { "Foundry".to_owned() } else { "Smeltery".to_owned() });
     let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 128.0, color, false);

@@ -2,7 +2,7 @@
 // registry snapshots. Unknown conditions and ambiguous tags fail closed.
 use std::collections::{HashMap, HashSet};
 use super::tconstruct_source_melting_lookup::Catalog;
-use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidFuel, MeltingRecipe};
+use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidFuel, FoundryRecipe, MeltingRecipe};
 use super::tconstruct_world::World;
 
 type Tags = HashMap<String, HashSet<String>>;
@@ -22,6 +22,12 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.melting(item, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
+pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.foundry_melting(item, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
     })?
 }
 
