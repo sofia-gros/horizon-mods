@@ -57,6 +57,6 @@ try:
     actor.call('wait', '20'); actor.call('screenshot', str(run / ('station-dormant-lan.png' if a.lan else 'station-dormant.png')))
     actor.call('close'); host.call('save')
     for game in reversed(games): game.stop()
-    print('PASS dormant input take-only, shift and equipment preview', flush=True)
+    print('PASS dormant input take-only and shift; screenshot saved for preview inspection', flush=True)
 finally:
     for game in reversed(games): game.cleanup()
