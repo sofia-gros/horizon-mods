@@ -7,6 +7,10 @@ use super::tconstruct_source_smeltery_state::Smeltery;
 
 type Pos = (i32, i32, i32);
 
+fn smeltery_fluids(tank: &super::tconstruct_source_smeltery_tank::SmelteryTank) -> Vec<(String, u32)> {
+    tank.fluids.iter().map(|fluid| (fluid.id.clone(), fluid.amount)).collect()
+}
+
 pub(super) fn kind(block: &str) -> Option<&'static str> {
     match block {
         "tconstruct:seared_melter" => Some("tconstruct:melter"),
@@ -40,13 +44,84 @@ fn initial(kind: &str) -> Option<Tag> {
 pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let bounds = super::tconstruct_source_smeltery_world::detect(game, pos);
     super::tconstruct_source_smeltery_world::claim(game, pos, bounds);
-    let Some((_, _, capacity)) = bounds else { return; };
     let Some(saved) = store::read(&game.world, pos, "tconstruct:smeltery") else { return; };
     let Some(mut state) = Smeltery::from_nbt(&saved) else { return; };
+    let Some((min, max, capacity)) = bounds else {
+        if state.phase == 1 { for slot in 0..state.slots.len() { state.cool_slot(slot); } }
+        state.phase = (state.phase + 1) % 4;
+        let _ = store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
+        return;
+    };
     let volume = (capacity / 1080) as usize;
-    if state.slots.len() == volume && state.tank.capacity == capacity { return; }
-    if !state.resize(volume, capacity).is_empty() { return; }
-    let _ = store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
+    if state.slots.len() != volume || state.tank.capacity != capacity {
+        if !state.resize(volume, capacity).is_empty() { return; }
+    }
+    let Some(BlockEntity::Chest(live)) = game.world.block_entities.get(&pos) else { return; };
+    for (index, slot) in live.iter().take(state.slots.len()).enumerate() {
+        if !same_material(&state.slots[index], slot) { state.progress[index] = 0; }
+        state.slots[index] = slot.clone();
+    }
+    let recipes: Vec<_> = if state.phase == 0 || state.phase == 1 {
+        state.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
+            super::tconstruct_source_melter_world::melting(&game.world, &stack.item))).collect()
+    } else { vec![None; state.slots.len()] };
+    let mut fuel_update = None;
+    if state.phase == 0 && state.fuel == 0 {
+        let mut tanks: Vec<_> = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().iter()
+            .filter_map(|(at, owner)| (*owner == pos).then_some(*at)).collect();
+        tanks.sort_unstable();
+        for at in tanks {
+            let name = game.res.facts().get(game.world.block(at.0, at.1, at.2)).name.clone();
+            let Some(tank_capacity) = super::tconstruct_source_smeltery_fuel::capacity(&name) else { continue; };
+            if !ensure(game, at, &name) { continue; }
+            let Some(kind) = kind(&name) else { continue; };
+            let Some(mut tank) = store::read(&game.world, at, kind).and_then(|tag| Tank::from_nbt(&tag, tank_capacity)) else { continue; };
+            let Some(fluid) = tank.fluid.as_deref() else { continue; };
+            let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
+            let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
+                state.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
+            let can_alloy = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), fuel.temperature)
+                .is_some_and(|(_, inputs, output, amount)| {
+                    let mut candidate = state.tank.clone();
+                    let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
+                    candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount })
+                });
+            if !can_heat && !can_alloy { continue; }
+            if tank.take(fuel.fluid.amount).is_none() { continue; }
+            state.fuel = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
+            fuel_update = Some((at, kind, tank.to_nbt()));
+            break;
+        }
+    }
+    if state.phase == 1 {
+        for (index, recipe) in recipes.iter().enumerate() {
+            if let Some((_, recipe, fluid)) = recipe {
+                if state.fuel > 0 || state.progress[index] == -1 {
+                    if let Some(time) = recipe.time.checked_mul(10) {
+                        state.heat_slot(index, recipe.temperature, time, fluid, recipe.output.amount);
+                    }
+                } else { state.cool_slot(index); }
+            } else { state.progress[index] = 0; }
+        }
+    }
+    if state.phase == 2 && state.fuel > 0 {
+        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.temperature) {
+            let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
+            state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount });
+        }
+    }
+    if state.phase == 3 && state.fuel > 0 {
+        let dx = (max[0] - min[0] - 1) as u32; let dy = (max[1] - min[1]) as u32; let dz = (max[2] - min[2] - 1) as u32;
+        let fuel_rate = 1 + (2 * dx * dy + 2 * dy * dz + dx * dz) / 15;
+        state.fuel = state.fuel.saturating_sub(fuel_rate);
+    }
+    state.phase = (state.phase + 1) % 4;
+    let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
+    if let Some(update) = fuel_update { updates.push(update); }
+    if !store::write_many(&mut game.world, &updates) { return; }
+    if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+        for (slot, updated) in live.iter_mut().zip(&state.slots) { *slot = updated.clone(); }
+    }
 }
 
 /// Exchange a standard lava bucket with a source tank, staging the NBT before

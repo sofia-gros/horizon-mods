@@ -99,4 +99,19 @@ mod tests {
         assert_eq!(s.resize(1, 1080)[0].count, 2);
         assert_eq!(s.tank.total(), 1800); assert_eq!(s.progress.len(), 1);
     }
+    #[test]
+    fn two_inputs_produce_source_amethyst_bronze_without_losing_components() {
+        use super::super::tconstruct_source_smeltery_tank::FluidAmount;
+        let mut s = Smeltery::new(); s.resize(2, 2160);
+        s.slots[0] = Some(ItemStack::new("minecraft:copper_ingot", 1));
+        s.slots[1] = Some(ItemStack::new("minecraft:amethyst_shard", 1));
+        s.temperature = 1000; s.rate = 10; s.progress = vec![500, 650];
+        assert!(s.heat_slot(0, 500, 500, "tconstruct:molten_copper", 90));
+        assert!(s.heat_slot(1, 950, 650, "tconstruct:molten_amethyst", 100));
+        let f = |id: &str, amount| FluidAmount { id: id.into(), amount };
+        assert!(s.tank.alloy(&[f("tconstruct:molten_copper", 90), f("tconstruct:molten_amethyst", 100)], &f("tconstruct:molten_amethyst_bronze", 90)));
+        assert_eq!(s.tank.amount("tconstruct:molten_amethyst_bronze"), 90);
+        assert!(s.slots.iter().all(Option::is_none));
+        assert_eq!(Smeltery::from_nbt(&s.to_nbt()).unwrap().tank, s.tank);
+    }
 }
