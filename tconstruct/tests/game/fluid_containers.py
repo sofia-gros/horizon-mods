@@ -69,7 +69,7 @@ try:
     g.call('wait', '20')
     assert g.call('status')['screen'] == 'inventory', 'formed Smeltery menu did not open'
     assert any(widget.get('id') == 'slot-302' for widget in g.call('ui')['widgets']), 'real input slot is missing'
-    click(hotbar('tconstruct:molten_copper_bucket')); click(300)
+    g.call('click-slot', str(hotbar('tconstruct:molten_copper_bucket')), 'shift'); g.call('wait', '5')
     assert any(w.get('id') == 'slot-301' and (w.get('stack') or {}).get('item') == 'minecraft:bucket' for w in g.call('ui')['widgets']), 'empty bucket was not returned'
     click(301); click(300)
     assert any(w.get('id') == 'slot-301' and (w.get('stack') or {}).get('item') == 'tconstruct:molten_copper_bucket' for w in g.call('ui')['widgets']), 'filled bucket was not returned'

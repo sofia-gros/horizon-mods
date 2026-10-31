@@ -79,8 +79,7 @@ try:
         game.call('interact', '0', '71', '1')
         game.call('wait', '10')
         assert any(w.get('id') == 'slot-302' for w in game.call('ui')['widgets']), game.label + ' input missing'
-    click(guest, hotbar(guest, 'tconstruct:molten_copper_bucket'))
-    click(guest, 300)
+    guest.call('click-slot', str(hotbar(guest, 'tconstruct:molten_copper_bucket')), 'shift'); guest.call('wait', '5')
     wait('guest empty bucket', lambda: slots(guest).get(301, {}).get('item') == 'minecraft:bucket')
     assert 301 not in slots(host), 'guest container leaked into host menu'
     click(guest, 301); click(guest, 300)
