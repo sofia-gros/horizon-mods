@@ -25,9 +25,11 @@ fn bucket_fluid(item: &str) -> Option<String> {
         _ => item.strip_prefix("tconstruct:")?.strip_suffix("_bucket").filter(|id| !id.is_empty()).map(|id| format!("tconstruct:{id}")),
     }
 }
+pub(super) fn is_bucket(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    stack.item.as_ref() == "minecraft:bucket" || bucket_fluid(&stack.item).is_some_and(|fluid| known_fluid(&fluid))
+}
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
-    stack.count > 0 && stack.damage == 0 && stack.extra.is_none()
-        && (stack.item.as_ref() == "minecraft:bucket" || bucket_fluid(&stack.item).is_some_and(|fluid| known_fluid(&fluid)))
+    stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && is_bucket(stack, known_fluid)
 }
 
 /// A normal left/right click on either temporary slot. The output never

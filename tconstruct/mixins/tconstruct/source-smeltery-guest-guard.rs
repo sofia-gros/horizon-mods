@@ -72,7 +72,7 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
             let fluids = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
                 .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
             let mut stack = inventory[index].clone();
-            if stack.as_ref().is_some_and(|stack| crate::tconstruct_source_fluid_container::accepts(stack, &|fluid| fluids.contains(fluid))) {
+            if stack.as_ref().is_some_and(|stack| crate::tconstruct_source_fluid_container::is_bucket(stack, &|fluid| fluids.contains(fluid))) {
                 let mut next = containers.clone();
                 if crate::tconstruct_source_fluid_container::quick_input(&mut next, &mut stack, &|fluid| fluids.contains(fluid)) {
                     crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,

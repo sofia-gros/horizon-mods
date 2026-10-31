@@ -58,7 +58,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
         let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
         let mut stack = game.inventory.get(slot).cloned().flatten();
-        if stack.as_ref().is_some_and(|stack| crate::game::tconstruct_source_fluid_container::accepts(stack, &|fluid| fluids.contains(fluid))) {
+        if stack.as_ref().is_some_and(|stack| crate::game::tconstruct_source_fluid_container::is_bucket(stack, &|fluid| fluids.contains(fluid))) {
             let (mut containers, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
                 .get(&pos).cloned().unwrap_or(([None, None], 0));
             if crate::game::tconstruct_source_fluid_container::quick_input(&mut containers, &mut stack, &|fluid| fluids.contains(fluid)) {
