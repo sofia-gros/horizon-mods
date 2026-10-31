@@ -11,7 +11,10 @@ import import_melter_assets as source
 
 BLOCKS = ('smeltery_controller', 'seared_drain', 'seared_chute', 'seared_duct',
           'seared_ladder', 'seared_fuel_tank', 'seared_fuel_gauge',
-          'seared_ingot_tank', 'seared_ingot_gauge', 'seared_tinted_glass')
+          'seared_ingot_tank', 'seared_ingot_gauge', 'seared_tinted_glass',
+          'foundry_controller', 'scorched_drain', 'scorched_chute', 'scorched_duct',
+          'scorched_ladder', 'scorched_fuel_tank', 'scorched_fuel_gauge',
+          'scorched_ingot_tank', 'scorched_ingot_gauge', 'scorched_tinted_glass')
 OUTPUT = Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip'
 
 
@@ -38,12 +41,13 @@ def snapshot(repo):
         info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
         info.compress_type = zipfile.ZIP_DEFLATED
         output.writestr(info, data)
-        for suffix in ('u', 'd', 'l', 'r', 'ud', 'ul', 'ur', 'dl', 'dr', 'lr', 'udl', 'udr', 'ulr', 'dlr', 'udlr'):
-            name = f'assets/tconstruct/textures/block/smeltery/tinted_glass/{suffix}.png'
-            data = subprocess.check_output(['git', '-C', str(repo), 'show', f'{source.REVISION}:src/main/resources/{name}'])
-            info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            output.writestr(info, data)
+        for family in ('smeltery', 'foundry'):
+            for suffix in ('u', 'd', 'l', 'r', 'ud', 'ul', 'ur', 'dl', 'dr', 'lr', 'udl', 'udr', 'ulr', 'dlr', 'udlr'):
+                name = f'assets/tconstruct/textures/block/{family}/tinted_glass/{suffix}.png'
+                data = subprocess.check_output(['git', '-C', str(repo), 'show', f'{source.REVISION}:src/main/resources/{name}'])
+                info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                output.writestr(info, data)
         for name in ('assets/tconstruct/models/item/amethyst_bronze_ingot.json', 'assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'):
             data = subprocess.check_output(['git', '-C', str(repo), 'show', f'{source.REVISION}:src/main/resources/{name}'])
             info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))

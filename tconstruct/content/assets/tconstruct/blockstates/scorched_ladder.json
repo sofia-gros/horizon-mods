@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"tconstruct:block/foundry/scorched/ladder"},"facing=south":{"model":"tconstruct:block/foundry/scorched/ladder","uvlock":true,"y":180},"facing=west":{"model":"tconstruct:block/foundry/scorched/ladder","uvlock":true,"y":270},"facing=east":{"model":"tconstruct:block/foundry/scorched/ladder","uvlock":true,"y":90}}}
