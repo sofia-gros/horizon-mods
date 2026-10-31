@@ -1,5 +1,38 @@
 fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_ui::is_melter(game) {
+        let (ox, oy) = game.inventory_origin(batch);
+        let position = if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container };
+        let state = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
+            .and_then(|tag| crate::game::tconstruct_source_melter_state::Melter::from_nbt(&tag));
+        if let Some(state) = state {
+            if (ox + 90.0..ox + 142.0).contains(&game.cursor.0) && (oy + 16.0..oy + 68.0).contains(&game.cursor.1) {
+                let mut lines = Vec::new();
+                if let Some(fluid) = state.tank.fluid.as_ref() {
+                    let key = format!("fluid.{}", fluid.replace(':', "."));
+                    lines.push((game.pack.names.display_get(&key).unwrap_or_else(|| fluid.clone()), u32::MAX));
+                    lines.push((format!("{} mB", state.tank.amount), 0xffaaaaaa));
+                } else {
+                    let label = game.pack.names.display_get("gui.tconstruct.melting.capacity").unwrap_or_else(|| "Capacity:".to_owned());
+                    lines.push((format!("{label} {} mB", state.tank.capacity), u32::MAX));
+                }
+                game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+                return Break(());
+            }
+            for slot in 0..3 {
+                let y = oy + 16.0 + slot as f32 * 18.0;
+                if !(ox + 17.0..ox + 21.0).contains(&game.cursor.0) || !(y - 1.0..y + 17.0).contains(&game.cursor.1) { continue; }
+                if let Some(stack) = state.slots[slot].as_ref() {
+                    let (_, _, key) = crate::game::tconstruct_source_melter_render::heat_bar(&game.world, stack, state.temperature, state.progress[slot], false);
+                    if let Some(key) = key { if let Some(text) = game.pack.names.display_get(key) {
+                        game.draw_tooltip_lines(batch, &[(text, u32::MAX)], game.cursor.0, game.cursor.1);
+                    }}
+                }
+                return Break(());
+            }
+        }
+        return Continue(());
+    }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (ox, oy) = game.inventory_origin(batch);
         if (ox + 124.0..ox + 142.0).contains(&game.cursor.0) && (oy + 69.0..oy + 87.0).contains(&game.cursor.1) {

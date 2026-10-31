@@ -47,15 +47,11 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         y += h;
                     }
                 }
-                let translation = format!("fluid.{}", fluid.replace(':', "."));
-                let name = game.pack.names.display_get(&translation).unwrap_or_else(|| fluid.clone());
-                batch.text(atlas, &name, ox + 90.0, oy + 24.0, color, false);
-                batch.text(atlas, &format!("{} mB", melter.tank.amount), ox + 90.0, oy + 36.0, color, false);
             }
             for (slot, progress) in melter.progress.iter().enumerate() {
-                if *progress != 0 {
-                    let text = if *progress < 0 { "Full".to_owned() } else { progress.to_string() };
-                    batch.text(atlas, &text, ox + 44.0, oy + 19.0 + slot as f32 * 18.0, color, false);
+                if let Some(stack) = melter.slots[slot].as_ref() {
+                    let (sprite, height, _) = crate::game::tconstruct_source_melter_render::heat_bar(&game.world, stack, melter.temperature, *progress, false);
+                    crate::game::tconstruct_source_melter_render::draw_heat_bar(batch, atlas, "gui/tconstruct_melter", ox + 22.0, oy + 16.0 + slot as f32 * 18.0, sprite, height);
                 }
             }
         }

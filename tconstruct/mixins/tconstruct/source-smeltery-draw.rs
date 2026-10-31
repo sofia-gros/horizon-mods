@@ -97,4 +97,17 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
             y += height;
         }
     }
+    let state = super::tconstruct_source_smeltery_ui::position(game)
+        .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
+        .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
+    if let Some(state) = state {
+        for visible in 0..rows * cols {
+            let menu_slot = visible + 2;
+            let Some(index) = super::tconstruct_source_smeltery_layout::melting_index(count, offset, menu_slot) else { continue; };
+            let (Some(stack), Some(progress), Some((x, y))) = (state.slots.get(index).and_then(Option::as_ref), state.progress.get(index),
+                super::tconstruct_source_smeltery_layout::position(count, offset, menu_slot)) else { continue; };
+            let (sprite, height, _) = super::tconstruct_source_melter_render::heat_bar(&game.world, stack, state.temperature, *progress, foundry);
+            super::tconstruct_source_melter_render::draw_heat_bar(batch, atlas, "gui/tconstruct_heating_structure", ox + x, oy + y, sprite, height);
+        }
+    }
 }
