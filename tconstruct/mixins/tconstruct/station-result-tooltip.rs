@@ -17,6 +17,31 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
             return Break(());
         }
+        if (ox + 8.0..ox + 114.0).contains(&game.cursor.0) && (oy + 16.0..oy + 122.0).contains(&game.cursor.1) {
+            let tank = crate::game::tconstruct_source_smeltery_ui::position(game)
+                .and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
+                .and_then(|tag| tag.get("tank").and_then(crate::game::tconstruct_source_smeltery_tank::SmelteryTank::from_nbt));
+            if let Some(tank) = tank {
+                let amounts = tank.fluids.iter().map(|fluid| fluid.amount).collect::<Vec<_>>();
+                let hovered = crate::game::tconstruct_source_smeltery_layout::fluid_at(&amounts, tank.capacity, game.cursor.1 - oy);
+                let mut lines = Vec::new();
+                if let Some(fluid) = hovered.and_then(|index| tank.fluids.get(index)) {
+                    let key = format!("fluid.{}", fluid.id.replace(':', "."));
+                    lines.push((game.pack.names.display_get(&key).unwrap_or_else(|| fluid.id.clone()), u32::MAX));
+                    lines.push((format!("{} mB", fluid.amount), 0xffaaaaaa));
+                } else {
+                    for (key, fallback, amount) in [("capacity", "Capacity:", tank.capacity),
+                        ("available", "Free:", tank.capacity.saturating_sub(tank.total())),
+                        ("used", "Used:", tank.total())] {
+                        let label = game.pack.names.display_get(&format!("gui.tconstruct.melting.{key}"))
+                            .unwrap_or_else(|| fallback.to_owned());
+                        lines.push((format!("{label} {amount} mB"), u32::MAX));
+                    }
+                }
+                game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+                return Break(());
+            }
+        }
         return Continue(());
     }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
