@@ -140,7 +140,16 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         state.fuel_view = super::tconstruct_source_smeltery_fuel::FuelView::collect(&tanks, last,
             |fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, u32::MAX).map_or(0, |fuel| fuel.temperature));
     }
-    let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
+    let heat_codes = if state.phase == 1 || state.phase == 2 {
+        Some(Tag::IntArray(state.slots.iter().enumerate().map(|(index, slot)| {
+            if slot.is_none() { return -1; }
+            let recipe = recipes.get(index).and_then(Option::as_ref).map(|(_, recipe, _, _)| (recipe.temperature, recipe.time));
+            super::tconstruct_source_melter_render::encode_heat(recipe, state.temperature, state.progress[index])
+        }).collect()))
+    } else { saved.get("heat_codes").cloned() };
+    let mut state_tag = state.to_nbt();
+    if let (Tag::Compound(fields), Some(codes)) = (&mut state_tag, heat_codes) { fields.insert("heat_codes".into(), codes); }
+    let mut updates = vec![(pos, "tconstruct:smeltery", state_tag)];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
     super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
@@ -307,7 +316,16 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
         for (dst, src) in live.iter_mut().take(3).zip(&melter.slots) { *dst = src.clone(); }
     }
-    let mut updates = vec![(pos, "tconstruct:melter", melter.to_nbt())];
+    let heat_codes = if melter.phase == 1 || melter.phase == 3 {
+        Some(Tag::IntArray(melter.slots.iter().enumerate().map(|(index, slot)| {
+            if slot.is_none() { return -1; }
+            let recipe = recipes.get(index).and_then(Option::as_ref).map(|(_, recipe, _)| (recipe.temperature, recipe.time));
+            super::tconstruct_source_melter_render::encode_heat(recipe, melter.temperature, melter.progress[index])
+        }).collect()))
+    } else { saved.get("heat_codes").cloned() };
+    let mut melter_tag = melter.to_nbt();
+    if let (Tag::Compound(fields), Some(codes)) = (&mut melter_tag, heat_codes) { fields.insert("heat_codes".into(), codes); }
+    let mut updates = vec![(pos, "tconstruct:melter", melter_tag)];
     if let Some(update) = fluid_update { updates.push(update); }
     let _ = store::write_many(&mut game.world, &updates);
 }

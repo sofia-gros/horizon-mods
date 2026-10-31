@@ -48,6 +48,26 @@ pub(super) fn classify_heat(recipe: Option<(u32, u32)>, temperature: u32, progre
     (176.0, (16.0 * progress as f32 / required as f32).clamp(0.0, 16.0), None)
 }
 
+// Server-calculated status keeps remote GUI independent of client datapacks.
+pub(super) fn encode_heat(recipe: Option<(u32, u32)>, temperature: u32, progress: i32) -> i32 {
+    let (sprite, height, _) = classify_heat(recipe, temperature, progress);
+    sprite as i32 * 32 + height.ceil() as i32
+}
+pub(super) fn decode_heat(code: i32) -> Option<(f32, f32, Option<&'static str>)> {
+    let (sprite, height) = (code.div_euclid(32), code.rem_euclid(32));
+    if height > 16 { return None; }
+    let tip = match sprite { 176 => None, 179 => Some("gui.tconstruct.melting.no_heat"),
+        182 => Some("gui.tconstruct.melting.no_space"), 185 => Some("gui.tconstruct.melting.no_recipe"), _ => return None };
+    Some((sprite as f32, height as f32, tip))
+}
+
+pub(super) fn melter_heat(game: &super::Game<'_>, pos: (i32,i32,i32), slot: usize) -> Option<(f32, f32, Option<&'static str>)> {
+    use horizon_world::nbt::Tag;
+    let tag = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter")?;
+    let Tag::IntArray(codes) = tag.get("heat_codes")? else { return None; };
+    decode_heat(*codes.get(slot)?)
+}
+
 pub(super) fn draw_heat_bar(batch: &mut horizon_client::hud::HudBatch, atlas: &horizon_client::hud::HudAtlas,
     texture: &str, x: f32, y: f32, source_x: f32, height: f32) {
     if height <= 0.0 { return; }

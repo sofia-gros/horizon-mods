@@ -25,7 +25,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             let Some(block_id) = hub.encoder.block_ids.get(state).copied() else { continue; };
             if !blocks.iter().any(|block| hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(block)) == Some(block_id)) { continue; }
             let Some(value) = raw.get(id.as_str()) else { continue; };
-            let progress = match value.get("progress") { Some(Tag::IntArray(values)) if id == "tconstruct:smeltery" => Some(values.clone()), _ => None };
+            let progress = match value.get("heat_codes") { Some(Tag::IntArray(values)) if id == "tconstruct:smeltery" => Some(values.clone()), _ => None };
             let mut value = value.clone();
             // Phase is only the server's scheduling cursor. Sending it would
             // broadcast an otherwise unchanged Melter every tick.
@@ -35,7 +35,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             if id == "tconstruct:smeltery" {
                 let count = match value.get("slots") { Some(Tag::List(slots)) => slots.len(), _ => continue };
                 if let Tag::Compound(fields) = &mut value {
-                    fields.retain(|key, _| !matches!(key.to_string_lossy().as_str(), "slots" | "progress"));
+                    fields.retain(|key, _| !matches!(key.to_string_lossy().as_str(), "slots" | "progress" | "heat_codes"));
                     fields.insert("slot_count".into(), Tag::Int(count as i32));
                 }
             }
@@ -60,8 +60,8 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
                     let end = start.saturating_add(40).min(progress.len());
                     if let Tag::Compound(fields) = &mut tag {
                         if let Some(Tag::Compound(machine)) = fields.get_mut(&"tconstruct:smeltery".into()) {
-                            machine.insert("progress_start".into(), Tag::Int(start as i32));
-                            machine.insert("progress_page".into(), Tag::IntArray(progress[start..end].to_vec()));
+                            machine.insert("heat_start".into(), Tag::Int(start as i32));
+                            machine.insert("heat_page".into(), Tag::IntArray(progress[start..end].to_vec()));
                         }
                     }
                 }

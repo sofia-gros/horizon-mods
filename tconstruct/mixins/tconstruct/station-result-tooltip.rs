@@ -51,11 +51,10 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             for slot in 0..3 {
                 let y = oy + 16.0 + slot as f32 * 18.0;
                 if !(ox + 17.0..ox + 21.0).contains(&game.cursor.0) || !(y - 1.0..y + 17.0).contains(&game.cursor.1) { continue; }
-                if let Some(stack) = state.slots[slot].as_ref() {
-                    let (_, _, key) = crate::game::tconstruct_source_melter_render::heat_bar(&game.world, stack, state.temperature, state.progress[slot], false);
-                    if let Some(key) = key { if let Some(text) = game.pack.names.display_get(key) {
+                if let Some((_, _, Some(key))) = position.and_then(|pos| crate::game::tconstruct_source_melter_render::melter_heat(game, pos, slot)) {
+                    if let Some(text) = game.pack.names.display_get(key) {
                         game.draw_tooltip_lines(batch, &[(text, u32::MAX)], game.cursor.0, game.cursor.1);
-                    }}
+                    }
                 }
                 return Break(());
             }
@@ -105,11 +104,9 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                 return Break(());
             }
         }
-        let temperature = crate::game::tconstruct_source_smeltery_ui::temperature(game);
-        for (stack, progress, x, y) in crate::game::tconstruct_source_smeltery_ui::visible_heat(game) {
+        for (code, x, y) in crate::game::tconstruct_source_smeltery_ui::visible_heat(game) {
             if !(ox + x - 5.0..ox + x - 1.0).contains(&game.cursor.0) || !(oy + y - 1.0..oy + y + 17.0).contains(&game.cursor.1) { continue; }
-            let foundry = crate::game::tconstruct_source_smeltery_ui::is_foundry(game);
-            let (_, _, key) = crate::game::tconstruct_source_melter_render::heat_bar(&game.world, &stack, temperature, progress, foundry);
+            let key = crate::game::tconstruct_source_melter_render::decode_heat(code).and_then(|(_, _, key)| key);
             if let Some(key) = key { if let Some(text) = game.pack.names.display_get(key) {
                 game.draw_tooltip_lines(batch, &[(text, u32::MAX)], game.cursor.0, game.cursor.1);
             }}

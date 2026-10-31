@@ -152,9 +152,9 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         horizon_world::nbt::Tag::Long(value) => u32::try_from(*value).ok(), _ => None,
     }).unwrap_or(0);
     super::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_heating_structure", ox + 153.0, oy + 15.0, number("fuel"), number("fuel_quality"));
-    let temperature = super::tconstruct_source_smeltery_ui::temperature(game);
-    for (stack, progress, x, y) in super::tconstruct_source_smeltery_ui::visible_heat(game) {
-        let (sprite, height, _) = super::tconstruct_source_melter_render::heat_bar(&game.world, &stack, temperature, progress, foundry);
-        super::tconstruct_source_melter_render::draw_heat_bar(batch, atlas, "gui/tconstruct_heating_structure", ox + x, oy + y, sprite, height);
+    for (code, x, y) in super::tconstruct_source_smeltery_ui::visible_heat(game) {
+        if let Some((sprite, height, _)) = super::tconstruct_source_melter_render::decode_heat(code) {
+            super::tconstruct_source_melter_render::draw_heat_bar(batch, atlas, "gui/tconstruct_heating_structure", ox + x, oy + y, sprite, height);
+        }
     }
 }
