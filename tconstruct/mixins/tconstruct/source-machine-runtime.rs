@@ -186,7 +186,7 @@ fn same_material(a: &Option<horizon_items::items::ItemStack>, b: &Option<horizon
     }
 }
 
-fn solid_fuel_rule(game: &super::Game<'_>) -> Option<(u32, u32)> {
+pub(super) fn solid_fuel_rule(game: &super::Game<'_>) -> Option<(u32, u32)> {
     let recipes = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let bytes = recipes.get("tconstruct:smeltery/melting/fuel/solid")?;
     let value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
