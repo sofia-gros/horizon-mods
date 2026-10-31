@@ -45,3 +45,39 @@ pub(super) fn set_offset(game: &mut Game<'_>, pos: (i32, i32, i32), count: usize
         }
     }
 }
+
+/// Return only the currently visible heating slots. Remote metadata carries a
+/// bounded progress page; item stacks use the existing container sync.
+pub(super) fn visible_heat(game: &Game<'_>) -> Vec<(horizon_client::items::ItemStack, i32, f32, f32)> {
+    use horizon_world::nbt::Tag;
+    let Some(pos) = position(game) else { return Vec::new(); };
+    let Some(tag) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery") else { return Vec::new(); };
+    let (count, offset) = page(game);
+    let total = super::tconstruct_source_smeltery_layout::columns(count) * super::tconstruct_source_smeltery_layout::visible_rows(count);
+    let full = super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag);
+    let remote_page = match (tag.get("progress_start"), tag.get("progress_page")) {
+        (Some(Tag::Int(start)), Some(Tag::IntArray(values))) => usize::try_from(*start).ok().map(|start| (start, values)),
+        _ => None,
+    };
+    let mut result = Vec::new();
+    for visible in 0..total {
+        let menu_slot = visible + 2;
+        let Some(index) = super::tconstruct_source_smeltery_layout::melting_index(count, offset, menu_slot) else { continue; };
+        let Some((x, y)) = super::tconstruct_source_smeltery_layout::position(count, offset, menu_slot) else { continue; };
+        let pair = if let Some(state) = &full {
+            state.slots.get(index).and_then(Option::as_ref).zip(state.progress.get(index)).map(|(stack, progress)| (stack.clone(), *progress))
+        } else {
+            let Some((start, values)) = remote_page else { continue; };
+            let Some(progress) = index.checked_sub(start).and_then(|index| values.get(index)) else { continue; };
+            game.container_kind().and_then(|entity| entity.slots().get(menu_slot)).and_then(Option::as_ref).map(|stack| (stack.clone(), *progress))
+        };
+        if let Some((stack, progress)) = pair { result.push((stack, progress, x, y)); }
+    }
+    result
+}
+
+pub(super) fn temperature(game: &Game<'_>) -> u32 {
+    use horizon_world::nbt::Tag;
+    position(game).and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
+        .and_then(|tag| match tag.get("temperature") { Some(Tag::Long(n)) => u32::try_from(*n).ok(), _ => None }).unwrap_or(0)
+}
