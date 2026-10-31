@@ -1730,6 +1730,12 @@ name = "tconstruct_source_smeltery_state"
 source = "source-smeltery-state.rs"
 
 [[module]]
+id = "source-smeltery-layout"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_layout"
+source = "source-smeltery-layout.rs"
+
+[[module]]
 id = "source-smeltery-fuel"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_fuel"
