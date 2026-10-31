@@ -277,6 +277,13 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             part(batch, 194.0, 0.0, x, y, u32::MAX);
         }
         if let (Some(layout), Some(entity)) = (active_layout.as_ref(), game.container_kind()) {
+            let active = layout.input_slots.len() + usize::from(layout.tool_slot.is_some());
+            for index in active..4 {
+                let occupied = entity.slots().get(index).and_then(Option::as_ref).is_some();
+                if let Some((x, y)) = crate::game::tconstruct_source_station_layout::dormant_position(index, active, occupied) {
+                    part(batch, 194.0, 0.0, x - 1.0, y - 1.0, u32::MAX);
+                }
+            }
             let specs: Vec<_> = if let Some(tool) = layout.tool_slot.as_ref() {
                 std::iter::once(tool).chain(layout.input_slots.iter()).collect()
             } else { layout.input_slots.iter().collect() };

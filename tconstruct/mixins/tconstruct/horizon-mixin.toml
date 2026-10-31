@@ -2315,3 +2315,13 @@ id = "source-armor-preview"
 file = "crates/horizon-client/src/game/perspective.rs"
 name = "tconstruct_armor_preview"
 source = "source-armor-preview.rs"
+
+[[state]]
+id = "station-guest-layout-count"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,i32,(i32,i32,i32)),usize>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

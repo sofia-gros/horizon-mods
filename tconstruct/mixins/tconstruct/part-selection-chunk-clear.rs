@@ -6,6 +6,7 @@ fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     chunks.__horizon_mixins_tconstruct_station_name_edit_mut().clear();
     chunks.__horizon_mixins_tconstruct_station_info_scroll_mut().clear();
     chunks.__horizon_mixins_tconstruct_station_guest_names_mut().clear();
+    chunks.__horizon_mixins_tconstruct_station_guest_layout_count_mut().clear();
     chunks.__horizon_mixins_tconstruct_part_selections_mut().clear();
     chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().clear();
     *chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = 0;

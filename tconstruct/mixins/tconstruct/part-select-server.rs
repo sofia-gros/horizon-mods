@@ -3,6 +3,16 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
     let Some(g) = host.hub.guests.iter().find(|g| g.conn == conn) else { return Continue(()); };
     let Some(menu) = g.menu.as_ref().filter(|m| m.window == window) else { return Continue(()); };
     let Some(key) = menu.pos else { return Continue(()); };
+    if (34000..34048).contains(&id) {
+        if &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:tinker_station"
+            && !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {
+            if let Some(layout) = crate::game::tconstruct_ui::station_layouts(game).get((id - 34000) as usize) {
+                let count = layout.input_slots.len() + usize::from(layout.tool_slot.is_some());
+                game.world.chunks.__horizon_mixins_tconstruct_station_guest_layout_count_mut().insert((conn, window, key), count);
+            }
+        }
+        return Break(());
+    }
     if (31100..31115).contains(&id) {
         let station = &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:tinker_station";
         if station && !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {

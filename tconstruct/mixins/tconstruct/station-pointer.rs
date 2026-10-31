@@ -40,7 +40,11 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
             crate::game::tconstruct_ui::station_layouts(game).len(), x.floor() as i32, y.floor() as i32,
         ) {
             if let Some(layout) = crate::game::tconstruct_ui::station_layouts(game).get(index) {
-                game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, layout.id.clone());
+                let id = layout.id.clone();
+                if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+                    game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 34000 + index as i32 }));
+                }
+                game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, id);
                 return Break(true);
             }
         }
@@ -64,6 +68,13 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         }
     }
     if game.has_shift_down() {
+        if station {
+            if let Some(slot @ 300..=303) = game.slot_at(&batch, game.cursor.0, game.cursor.1) {
+                let active = crate::game::tconstruct_ui::station_layout(game).map_or(4, |layout| layout.input_slots.len() + usize::from(layout.tool_slot.is_some()));
+                let occupied = game.container_kind().and_then(|entity| entity.slots().get(slot - 300)).and_then(Option::as_ref).is_some();
+                if slot - 300 >= active && occupied && game.carried.is_none() { return Continue(()); }
+            }
+        }
         if !station && game.slot_at(&batch, game.cursor.0, game.cursor.1) == Some(322) {
             if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, i32::from(right), 1); }
             else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
@@ -107,6 +118,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     }
     let Some(slot) = game.slot_at(&batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if !station && (324..=326).contains(&slot) { return Break(true); }
+    let dormant = station && (300..=303).contains(&slot) && crate::game::tconstruct_ui::station_layout(game)
+        .is_some_and(|layout| slot - 300 >= layout.input_slots.len() + usize::from(layout.tool_slot.is_some()));
+    if dormant && (game.carried.is_some() || game.container_kind().and_then(|entity| entity.slots().get(slot - 300)).and_then(Option::as_ref).is_none()) { return Break(true); }
     if game.remote.is_some() {
         if station && slot == 324 {
             let output = game.container_kind().and_then(|entity| entity.slots().get(24)).and_then(Option::as_ref);
@@ -119,7 +133,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         return Continue(());
     }
     let repair_slot = station && slot == 303 && crate::game::tconstruct_ui::station_layout(game).is_some_and(|layout| layout.tool_slot.is_some());
-    if (302..=323).contains(&slot) && (!station && slot != 322 || station && slot != 302 && !repair_slot) { return Break(true); }
+    if (302..=323).contains(&slot) && (!station && slot != 322 || station && slot != 302 && !repair_slot && !dormant) { return Break(true); }
     if !station && slot == 322 {
         crate::game::tconstruct_source_builder_take::take(game, key);
         return Break(true);

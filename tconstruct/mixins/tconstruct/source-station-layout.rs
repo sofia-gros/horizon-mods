@@ -29,6 +29,12 @@ pub(super) fn button_at(count: usize, x: i32, y: i32) -> Option<usize> {
     (index < count).then_some(index)
 }
 
+/// Position occupied inactive inputs in the source still-filled row.
+pub(super) fn dormant_position(index: usize, active: usize, occupied: bool) -> Option<(f32, f32)> {
+    if index >= 4 || index < active || !occupied { return None; }
+    Some((112.0 - (index - active) as f32 * 18.0, 62.0))
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct LayoutSlot {
     pub x: i32,
