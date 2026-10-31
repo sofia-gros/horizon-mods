@@ -21,7 +21,7 @@ try:
     for part in ('helmet', 'chestplate', 'leggings', 'boots'):
         game.call('command', f'give @s tconstruct:plate_{part}[minecraft:max_damage=382,minecraft:custom_data={{tic_max_damage:382,tic_materials:["tconstruct:steel","tconstruct:steel"]}}] 1')
     game.call('wait', '15'); game.call('interact', '0', '71', '2'); game.call('wait', '15')
-    game.call('click-gui', '-121', '18'); game.call('wait', '10')
+    game.call('click-gui', '-121', '18'); game.call('wait', '220')  # Let setup chat fade.
     for part in ('helmet', 'chestplate', 'leggings', 'boots'):
         item = 'tconstruct:plate_' + part
         slot = next(x['slot'] for x in game.call('inventory')['hotbar'] if x.get('item') == item)
