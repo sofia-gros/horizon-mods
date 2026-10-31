@@ -39,7 +39,8 @@ try:
     host = Game(a, run, 'Player', in_frame=a.in_frame, resume=(run / 'Player').exists()); games.append(host); host.ready()
     port = host.call('lan', 'open', '0', 'commands')['port']
     guest = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=(run / 'Guest').exists()); games.append(guest); guest.ready()
-    for command in ('gamemode creative @a', 'clear @a', 'tp Guest 2.5 71 2.5',
+    for command in ('gamemode creative @a', 'clear @a', 'tp @s -2.5 71 0.5', 'tp Guest 0.5 71 0.5',
+                    'setblock 1 71 2 minecraft:air', 'setblock 1 72 2 minecraft:air',
                     'setblock 0 72 2 minecraft:air', 'setblock 0 71 2 minecraft:air',
                     'setblock 0 71 2 tconstruct:seared_fuel_tank', 'setblock 0 72 2 tconstruct:seared_melter',
                     'give Guest minecraft:lava_bucket 1', 'give Guest tconstruct:molten_copper_bucket 1',
