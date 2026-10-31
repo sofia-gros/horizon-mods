@@ -183,6 +183,17 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
     if station {
+        let active_layout = crate::game::tconstruct_ui::station_layout(game);
+        if let Some(layout) = active_layout.as_ref() {
+            let (x, y) = (ox + 12.5, oy + 22.0);
+            let start = batch.vertices.len();
+            if let Some(item) = layout.icon.get("item").and_then(serde_json::Value::as_str) {
+                game.draw_item(batch, &horizon_items::items::ItemStack::new(item, 1), x, y);
+            } else if let Some(("tconstruct", name)) = layout.icon.get("pattern").and_then(serde_json::Value::as_str).and_then(|id| id.split_once(':')) {
+                batch.sprite(atlas, &format!("gui/tconstruct_patterns/{name}"), x, y);
+            }
+            batch.scale_since(start, x, y, 3.7, 3.7);
+        }
         // Source TinkerStationScreen paints the translucent item cover before
         // rendering the active layout's slot backgrounds.
         if let Some(mut r) = atlas.sprites.get(texture).copied() {
@@ -200,14 +211,15 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             };
             // The original top beams and decorations frame the button and
             // information modules; they do not create additional slots.
-            for (left, width) in [(-132.0, 128.0), (180.0, 126.0)] {
+            let panel_width = crate::game::tconstruct_builder_info_ui::panel_width(game, true);
+            for (left, width) in [(-132.0, 128.0), (180.0, panel_width)] {
                 region(batch, 0.0, 202.0, 2.0, 7.0, left, 0.0, 2.0, 7.0);
                 region(batch, 2.0, 202.0, 129.0, 7.0, left + 2.0, 0.0, width, 7.0);
                 region(batch, 131.0, 202.0, 2.0, 7.0, left + width + 2.0, 0.0, 2.0, 7.0);
             }
             for y in [1.0, 90.0] {
                 region(batch, 0.0, 196.0, 5.0, 4.0, 187.0, y, 5.0, 4.0);
-                region(batch, 9.0, 196.0, 9.0, 4.0, 294.0, y, 9.0, 4.0);
+                region(batch, 9.0, 196.0, 9.0, 4.0, 168.0 + panel_width, y, 9.0, 4.0);
             }
             let count = crate::game::tconstruct_ui::station_layouts(game).len();
             for index in 0..count {
@@ -228,7 +240,6 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             edit.x = ox + 80.0; edit.y = oy + 7.0;
             edit.draw(batch, atlas, None);
         }
-        let active_layout = crate::game::tconstruct_ui::station_layout(game);
         for (index, layout) in crate::game::tconstruct_ui::station_layouts(game).iter().enumerate() {
             let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
             let (x, y) = (x as f32, y as f32);
