@@ -63,6 +63,7 @@ try:
         'setblock 0 71 4 tconstruct:seared_faucet[facing=south]', 'setblock 0 70 4 tconstruct:seared_table',
         'give Guest minecraft:lava_bucket 1', 'give Guest minecraft:copper_ingot 1',
         'give Guest minecraft:amethyst_shard 1', 'give Guest tconstruct:ingot_cast 1',
+        'give Guest minecraft:bucket 1', 'give Guest tconstruct:molten_copper_bucket 1',
     ):
         host.call('command', command)
     host.call('wait', '20')
@@ -79,6 +80,21 @@ try:
         game.call('interact', '0', '71', '1')
         game.call('wait', '10')
         assert any(w.get('id') == 'slot-302' for w in game.call('ui')['widgets']), game.label + ' input missing'
+    click(guest, hotbar(guest, 'minecraft:bucket'))
+    guest.call('click-gui', '160', '110'); guest.call('wait', '10')
+    wait('fuel filled bucket', lambda: (guest.call('menu').get('carried') or {}).get('item') == 'minecraft:lava_bucket')
+    guest.call('click-gui', '160', '110', 'right'); guest.call('wait', '10')
+    wait('fuel emptied bucket', lambda: (guest.call('menu').get('carried') or {}).get('item') == 'minecraft:bucket')
+    empty = next(slot['slot'] for slot in guest.call('inventory')['hotbar'] if not slot.get('item'))
+    click(guest, empty); click(guest, hotbar(guest, 'tconstruct:molten_copper_bucket'))
+    guest.call('click-gui', '30', '115', 'right'); guest.call('wait', '10')
+    wait('fluid emptied bucket', lambda: (guest.call('menu').get('carried') or {}).get('item') == 'minecraft:bucket')
+    guest.call('click-gui', '30', '115', 'right'); guest.call('wait', '10')
+    assert (guest.call('menu').get('carried') or {}).get('item') == 'minecraft:bucket', 'right click filled a bucket'
+    guest.call('click-gui', '30', '115'); guest.call('wait', '10')
+    wait('fluid filled bucket', lambda: (guest.call('menu').get('carried') or {}).get('item') == 'tconstruct:molten_copper_bucket')
+    empty = next(slot['slot'] for slot in guest.call('inventory')['hotbar'] if not slot.get('item'))
+    click(guest, empty)
     for item, ticks in (('minecraft:copper_ingot', 300), ('minecraft:amethyst_shard', 360)):
         click(guest, hotbar(guest, item))
         click(guest, 302)
