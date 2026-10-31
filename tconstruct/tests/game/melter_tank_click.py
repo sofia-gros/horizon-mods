@@ -46,7 +46,11 @@ try:
     tank(158, 50, True)
     assert carried() == 'minecraft:bucket', 'fuel deposit retry failed'
     empty = next(slot['slot'] for slot in g.call('inventory')['hotbar'] if not slot.get('item'))
-    click(empty); click(hotbar('tconstruct:molten_copper_bucket')); tank(100, 45, True)
+    click(empty); click(hotbar('tconstruct:molten_copper_bucket'))
+    # ClickableTankModule sends left as fill even over an empty tank.
+    tank(100, 45)
+    assert carried() == 'tconstruct:molten_copper_bucket', 'empty-area left click unexpectedly emptied the container'
+    tank(100, 45, True)
     assert carried() == 'minecraft:bucket', 'output tank deposit failed'
     tank(100, 45)
     assert carried() == 'tconstruct:molten_copper_bucket', 'output tank extraction failed'
