@@ -54,7 +54,22 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
         game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 4 + index as i32 }));
     } else if let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) {
-        if state.tank.move_to_bottom(index) { let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()); }
+        if state.tank.move_to_bottom(index) {
+            let (mut slots, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
+                .get(&pos).cloned().unwrap_or(([None, None], 0));
+            let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+                .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+            crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut slots,
+                crate::game::tconstruct_source_fluid_container::Direction::from_index(mode),
+                &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+            if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (slots.clone(), mode));
+                let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
+                if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+                    *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &slots);
+                }
+            }
+        }
     }
     Break(true)
 }

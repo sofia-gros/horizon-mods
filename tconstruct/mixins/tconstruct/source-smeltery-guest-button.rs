@@ -30,7 +30,16 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         if host.hub.guests[gi].carried.is_some() {
             crate::game::tconstruct_source_fluid_direct::guest(game, host, gi, pos, Some(index));
         } else if state.tank.move_to_bottom(index) {
-            let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
+            let (mut slots, mode) = host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers().as_ref()
+                .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));
+            let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+                .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+            crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut slots,
+                crate::game::tconstruct_source_fluid_container::Direction::from_index(mode),
+                &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+            if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+                *host.hub.guests[gi].__horizon_mixins_tconstruct_smeltery_guest_containers_mut() = Some((pos, slots, mode));
+            }
         }
         return Break(());
     }
