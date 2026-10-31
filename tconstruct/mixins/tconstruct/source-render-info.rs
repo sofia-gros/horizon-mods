@@ -139,6 +139,18 @@ pub(super) fn select_armor_sprite_by(base: &str, info: &RenderInfo, available: i
     Ok(Some((base, info.color, info.luminosity)))
 }
 
+/// Source Plate maille tries the dyed metal sprite for metal fallbacks,
+/// then dyed cloth, and only then the normal material texture.
+pub(super) fn select_plate_dyed_maille_by(texture_type: &str, info: &RenderInfo, dyed: Option<u32>, available: impl Fn(&str) -> bool) -> Option<(String, u32)> {
+    let color = 0xff000000 | (dyed? & 0x00ffffff);
+    if info.fallbacks.iter().any(|f| f == "metal" || f == "metal_contrast") {
+        let sprite = format!("tconstruct:maille_{texture_type}_metal");
+        if available(&sprite) { return Some((sprite, color)); }
+    }
+    let sprite = format!("tconstruct:maille_{texture_type}_cloth");
+    available(&sprite).then_some((sprite, color))
+}
+
 /// MaterialBlockModel.BakedSingleMaterial keeps its original model for
 /// unknown material or missing render info; otherwise it retextures `all`.
 /// None means the original model must be used unchanged.
@@ -288,6 +300,16 @@ mod tests {
         assert_eq!(select_armor_sprite_by(base, &info, |id| id != all[1] && all.contains(&id)).unwrap(), Some((all[2].into(), 0xff123456, 2)));
         assert_eq!(select_armor_sprite_by(base, &info, |id| id == base).unwrap(), Some((base.into(), 0xff123456, 2)));
         assert_eq!(select_armor_sprite_by(base, &info, |_| false).unwrap(), None);
+    }
+
+    #[test]
+    fn plate_dye_prefers_metal_then_cloth_and_requires_dye() {
+        let info = RenderInfo { texture: None, fallbacks: vec!["metal".into()], color: u32::MAX, luminosity: 0 };
+        let metal = "tconstruct:maille_armor_metal";
+        let cloth = "tconstruct:maille_armor_cloth";
+        assert_eq!(select_plate_dyed_maille_by("armor", &info, Some(0x123456), |_| true), Some((metal.into(), 0xff123456)));
+        assert_eq!(select_plate_dyed_maille_by("armor", &info, Some(0x123456), |id| id == cloth), Some((cloth.into(), 0xff123456)));
+        assert_eq!(select_plate_dyed_maille_by("armor", &info, None, |_| true), None);
     }
 
 }
