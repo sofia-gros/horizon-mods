@@ -15,7 +15,8 @@ try:
     for command in ('gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',
                     'setblock 0 71 1 minecraft:air', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
                     'give @s tconstruct:small_blade[minecraft:custom_data={Material:"tconstruct:flint"}] 1',
-                    'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+                    'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1',
+                    'give @s tconstruct:plate_helmet[minecraft:max_damage=382,minecraft:custom_data={tic_max_damage:382,tic_materials:["tconstruct:steel","tconstruct:steel"]}] 1'):
         game.call('command', command)
     game.call('wait', '15'); game.call('interact', '0', '71', '2'); game.call('wait', '15')
     game.call('click-gui', '-99', '18'); game.call('wait', '10')
@@ -32,6 +33,13 @@ try:
     if size == '960x540':
         game.call('drag-at', '95', '200', '110', '200'); game.call('wait', '10')
         game.call('screenshot', str(run / 'station-armor-rotated.png'))
+    game.call('close'); game.call('interact', '0', '71', '2'); game.call('wait', '15')
+    game.call('click-gui', '-121', '18'); game.call('wait', '8')
+    for slot in (300, 301):
+        game.call('click-slot', str(slot), 'shift'); game.call('wait', '5')
+    source = next(row['slot'] for row in game.call('inventory')['hotbar'] if row.get('item') == 'tconstruct:plate_helmet')
+    game.call('click-slot', str(source)); game.call('click-slot', '300'); game.call('wait', '20')
+    game.call('screenshot', str(run / 'station-armor-helmet.png'))
     game.call('close'); game.call('save'); game.stop()
     print('PASS dagger result; inspect armor stand screenshot', flush=True)
 finally:
