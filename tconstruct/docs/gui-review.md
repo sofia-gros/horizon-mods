@@ -8,7 +8,7 @@ This is a work checklist, not a statement that the screens already match. New ma
 
 ## Source comparison
 
-- Station result: the older upgrade screenshot used a separate result coordinate for repairs and upgrades. The original has one result slot at (114, 38); the current layout maps both operations there. Verify rendering, clicking and tooltip in a fresh game before replacing the screenshot.
+- Station result: the older upgrade screenshot used a separate result coordinate for repairs and upgrades. The original has one result slot at (114, 38); the current layout maps both operations there. A fresh Linux game at 960 × 540 and 1280 × 720 shows the result inside the frame; the result click was exercised.
 - Smeltery and Foundry: the original heating screen supplies an empty-bucket hint, a mode-button hover and a three-line mode tooltip. These are being connected to the existing screen; game verification is pending.
 - Adjacent table tabs use the source six-face scan and order. Part Builder and Tinker Station switching and the Station equipment and offhand slots have passed representative Linux LAN checks. Registered tables without menus remain visibly unavailable.
 - Part Builder, Melter and the remaining screen interactions still need source and runtime comparison.
@@ -17,4 +17,4 @@ This is a work checklist, not a statement that the screens already match. New ma
 
 Still to verify: source fuel-area tooltips and fuel-tank contents, text and click boundaries at both screen sizes, all visible tab states, Part Builder patterns and side inventory, and heat-bar/tooltip behavior while recipes heat or cannot heat. Compare against the source screen code and assets instead of using earlier screenshots as a reference.
 
-The fuel display and visible heating-progress synchronization have been revised after game testing exposed missing remote metadata. These latest changes still require a fresh build and game verification.
+The Linux game showed the source fuel gauge and tooltip and an active copper heating bar after the server synchronized the visible heating status. The screenshots cover representative states; they do not establish pixel-perfect parity for every screen, language or scale. Windows remains unverified.
