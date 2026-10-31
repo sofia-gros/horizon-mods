@@ -62,7 +62,6 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
     let (cx, cy, size) = (ox - 55.0, oy + 195.0, 35.0);
     let matrix = glam::Mat4::from_translation(glam::Vec3::new(cx, cy, 0.0))
         * glam::Mat4::from_scale(glam::Vec3::new(size, size, -size))
-        * glam::Mat4::from_translation(glam::Vec3::new(0.0, 1.0, 0.0))
         * glam::Mat4::from_rotation_z(std::f32::consts::PI)
         * glam::Mat4::from_rotation_x(25.0f32.to_radians());
     let start = batch.vertices.len();
