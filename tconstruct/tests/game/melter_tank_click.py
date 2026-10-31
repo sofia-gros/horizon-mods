@@ -23,6 +23,8 @@ def tank(x, y, right=False):
 
 try:
     g.ready()
+    if g.call('block', '0', '72', '1').get('block') == 'tconstruct:seared_faucet':
+        g.call('command', 'setblock 0 72 1 minecraft:air')
     if g.call('block', '2', '71', '2').get('block') == 'tconstruct:red_clear_stained_glass':
         g.call('command', 'setblock 2 71 2 minecraft:air')
     for command in ('gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',

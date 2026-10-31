@@ -37,6 +37,8 @@ def slots(game):
 
 try:
     host = Game(a, run, 'Player', in_frame=a.in_frame, resume=(run / 'Player').exists()); games.append(host); host.ready()
+    if host.call('block', '0', '72', '1').get('block') == 'tconstruct:seared_faucet':
+        host.call('command', 'setblock 0 72 1 minecraft:air')
     port = host.call('lan', 'open', '0', 'commands')['port']
     guest = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=(run / 'Guest').exists()); games.append(guest); guest.ready()
     for command in ('gamemode creative @a', 'clear @a', 'tp @s -2.5 71 0.5', 'tp Guest 0.5 71 0.5',
