@@ -185,6 +185,21 @@ for short in MATERIAL_MODELS:
     name = 'tconstruct:' + short
     if name not in existing:
         entries.append((name, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+# Preserve the original fluid bucket IDs and use source-derived still icons.
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-fluid-buckets.zip') as archive:
+    bucket_manifest = json.loads(archive.read('manifest.json'))['buckets']
+    bucket_names = set(bucket_manifest)
+    for short, definition in sorted(bucket_manifest.items()):
+        if not short.replace('_', '').isalnum() or definition['fluid'] != 'tconstruct:' + short.removesuffix('_bucket'):
+            raise ValueError('Invalid fluid bucket definition: ' + short)
+        item_id = 'tconstruct:' + short
+        if item_id in existing:
+            raise ValueError('Duplicate fluid bucket: ' + item_id)
+        entries.append((item_id, 'minecraft:water_bucket', source_names['item.tconstruct.' + short]))
+        existing.add(item_id)
+        destination = mod_assets / 'textures/item/fluid_bucket' / (short + '.png')
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(archive.read('textures/' + short + '.png'))
 # Register original gold, sand and red-sand casts from their source tags.
 casts = []
 for kind in ('gold', 'sand', 'red_sand'):
@@ -207,7 +222,9 @@ for name, template, title in entries:
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
-    if short == 'venom_bottle':
+    if short in bucket_names:
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
+    elif short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
     elif name in casts or short.endswith('_plating_dummy'):
         native_model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())
