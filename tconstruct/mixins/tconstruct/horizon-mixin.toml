@@ -2325,3 +2325,8 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[bridge]]
+id = "preview-stand-items"
+kind = "INVOKE"
+target = "horizon_client::game::Game::armor_stand_items"
