@@ -3,20 +3,36 @@ use super::Game;
 use crate::game::perspective::tconstruct_preview_projection::player_preview_quads;
 use horizon_client::{entities::ArmorStand, hud::HudBatch, mobs::{anim::Poses, render}, mesher::Vertex};
 
+// Resolve the same result/operation stack for preview and trim preparation.
+pub(in crate::game) fn selected(game: &Game<'_>) -> Option<horizon_client::items::ItemStack> {
+    let entity = game.container_kind()?;
+    let slots = entity.slots();
+    if game.remote.is_some() {
+        slots.get(24).cloned().flatten().or_else(|| slots.get(25).cloned().flatten())
+    } else {
+        crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
+            .or_else(|| crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output))
+    }.or_else(|| crate::game::tconstruct_source_station_world::has_operation_tool(slots).then(|| slots.first().cloned().flatten()).flatten())
+}
+
+// Source trim modifiers store registry IDs in persistent tool data.
+pub(in crate::game) fn source_trim(game: &Game<'_>, stack: &horizon_client::items::ItemStack) -> Option<horizon_client::trims::TrimTexture> {
+    use horizon_world::nbt::Tag;
+    if !matches!(stack.item.as_ref(), "tconstruct:plate_helmet" | "tconstruct:plate_chestplate" | "tconstruct:plate_leggings" | "tconstruct:plate_boots") { return None; }
+    let persistent = stack.data()?.other("minecraft:custom_data")?.get("tic_persistent")?;
+    let Tag::String(pattern) = persistent.get("tconstruct:trim_pattern")? else { return None; };
+    let Tag::String(material) = persistent.get("tconstruct:trim_material")? else { return None; };
+    let kind = if stack.item.as_ref() == "tconstruct:plate_leggings" { "humanoid_leggings" } else { "humanoid" };
+    horizon_client::trims::TrimTexture::resolve(&game.armor_stand_assets.trims, &[], &material.to_string_lossy(), &pattern.to_string_lossy(), kind)
+}
+
 pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let assets = &game.armor_stand_assets;
     let Some(model) = assets.main.as_ref() else { return; };
     let sprites = &game.gui.atlas.sprites;
     let Some(wood) = sprites.get("entity/armorstand/armorstand") else { return; };
     let uv = |r: &horizon_client::hud::Rect| [r.u0, r.v0, r.u1, r.v1];
-    let Some(entity) = game.container_kind() else { return; };
-    let slots = entity.slots();
-    let output = if game.remote.is_some() {
-        slots.get(24).cloned().flatten().or_else(|| slots.get(25).cloned().flatten())
-    } else {
-        crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
-            .or_else(|| crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output))
-    }.or_else(|| crate::game::tconstruct_source_station_world::has_operation_tool(slots).then(|| slots.first().cloned().flatten()).flatten());
+    let output = selected(game);
     let mut stand = ArmorStand::new(0, horizon_core::geometry::Vec3::ZERO, 210.0);
     stand.show_arms = true; stand.no_base_plate = true;
     let mut layer = None;
@@ -89,6 +105,9 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
                         super::apply_pose(&mut layer_poses, &stand.pose);
                         for (sprite, color) in [plating, maille] {
                             render::draw(part, base, &layer_poses, uv(sprite), color, light, 0, &mut verts);
+                        }
+                        if let Some(trim) = source_trim(game, stack).and_then(|trim| sprites.get(&trim.sprite())) {
+                            render::draw(part, base, &layer_poses, uv(trim), u32::MAX, light, 0, &mut verts);
                         }
                     }
                 }

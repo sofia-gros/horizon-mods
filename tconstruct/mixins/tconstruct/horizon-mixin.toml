@@ -2367,3 +2367,15 @@ target = "horizon_client::game::Game<'_>::inventory_mouse_release"
 kind = "HEAD"
 helper = "station-armor-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "station-preview-trim-prepare"
+target = "horizon_client::game::armor_stands::Game<'_>::prepare_trims"
+kind = "BEFORE_CALL"
+selector = "self.lan.iter"
+require = 1
+helper = "station-preview-trim-prepare.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "wanted", ty = "&mut Vec<TrimTexture>", value = "$local_mut:wanted:0" },
+]
