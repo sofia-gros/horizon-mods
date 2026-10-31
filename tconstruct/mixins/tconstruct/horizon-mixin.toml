@@ -2297,3 +2297,15 @@ kind = "HEAD"
 cancellable = true
 helper = "source-station-slots.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "server-melter-state"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_melter_state"
+source = "source-melter-state.rs"
+
+[[module]]
+id = "server-smeltery-fuel"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_smeltery_fuel"
+source = "source-smeltery-fuel.rs"
