@@ -1,4 +1,4 @@
-//! Station equipment preview using Horizon's armor-stand models and UI renderer.
+// Station equipment preview using Horizon's armor-stand models and UI renderer.
 use super::{Game, player_preview_quads};
 use horizon_client::{hud::HudBatch, mobs::{anim::Poses, render}, mesher::Vertex};
 
