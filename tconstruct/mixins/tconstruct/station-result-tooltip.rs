@@ -99,6 +99,21 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
         return Continue(());
     }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
+    if let Some(start) = crate::game::tconstruct_source_workstation_tabs::start(game) {
+        let (ox, oy) = game.inventory_origin(batch);
+        let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
+        if let Some(index) = crate::game::tconstruct_source_workstation_tabs::hit(tabs.len(), station, game.cursor.0 - ox, game.cursor.1 - oy) {
+            let name = &tabs[index].1;
+            let key = format!("block.{}", name.replace(':', "."));
+            let title = game.pack.names.display_get(&key).unwrap_or_else(|| name.clone());
+            let mut lines = vec![(title, u32::MAX)];
+            if !crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                lines.push(("This table is not available yet".to_owned(), 0xffaaaaaa));
+            }
+            game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+            return Break(());
+        }
+    }
     if station {
         let (ox, oy) = game.inventory_origin(batch);
         if (ox + 182.0..ox + 182.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, true)).contains(&game.cursor.0) {

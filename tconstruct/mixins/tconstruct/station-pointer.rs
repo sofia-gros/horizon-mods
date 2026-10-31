@@ -4,6 +4,25 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let Some(key) = game.container else { return Break(true); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
     let batch = horizon_client::hud::HudBatch::new(size);
+    if !right {
+        let (ox, oy) = game.inventory_origin(&batch);
+        let start = crate::game::tconstruct_source_workstation_tabs::start(game).unwrap_or(key);
+        let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
+        if let Some(index) = crate::game::tconstruct_source_workstation_tabs::hit(tabs.len(), station, game.cursor.0 - ox, game.cursor.1 - oy) {
+            let (pos, name) = &tabs[index];
+            if *pos != start && crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+                    game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 31000 + index as i32 }));
+                } else {
+                    let carried = game.carried.take();
+                    game.close_container();
+                    game.carried = carried;
+                    game.open_station([pos.0, pos.1, pos.2], name);
+                }
+            }
+            return Break(true);
+        }
+    }
     if station && !right {
         let (ox, oy) = game.inventory_origin(&batch);
         let (x, y) = (game.cursor.0 - ox, game.cursor.1 - oy);

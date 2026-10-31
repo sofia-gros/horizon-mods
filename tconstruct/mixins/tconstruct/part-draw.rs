@@ -138,6 +138,23 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             batch.rect_uv(ox + x, oy + y, 18.0, 18.0, r, color);
         }
     };
+    if let Some(start) = crate::game::tconstruct_source_workstation_tabs::start(game) {
+        let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
+        if let Some(icon) = atlas.sprites.get("gui/tconstruct_icons").copied() {
+            let (du, dv) = ((icon.u1 - icon.u0) / icon.w as f32, (icon.v1 - icon.v0) / icon.h as f32);
+            for (index, (pos, name)) in tabs.iter().enumerate() {
+                let (x, y) = crate::game::tconstruct_source_workstation_tabs::position(index, station);
+                let mut region = icon;
+                region.u0 += if *pos == start { 52.0 * du } else { 0.0 };
+                region.v0 += 18.0 * dv;
+                region.u1 = region.u0 + 26.0 * du; region.v1 = region.v0 + 30.0 * dv;
+                batch.rect_uv(ox + x, oy + y, 26.0, 30.0, region, u32::MAX);
+                if game.res.items().get(name).is_some() {
+                    game.draw_item(batch, &horizon_items::items::ItemStack::new(name, 1), ox + x + 5.0, oy + y + 7.0);
+                }
+            }
+        }
+    }
     let (title_key, fallback) = if station { ("gui.tconstruct.tinker_station", "Tinker Station") } else { ("gui.tconstruct.part_builder", "Part Builder") };
     let title = game.pack.names.display_get(title_key).unwrap_or_else(|| fallback.to_owned());
     let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());

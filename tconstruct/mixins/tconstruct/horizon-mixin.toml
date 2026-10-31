@@ -2277,3 +2277,15 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "hit", ty = "&super::Hit", value = "hit" },
 ]
+
+[[module]]
+id = "source-workstation-tabs"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_workstation_tabs"
+source = "source-workstation-tabs.rs"
+
+[[module]]
+id = "source-workstation-tabs-lan"
+file = "crates/horizon-client/src/game/lan_actions.rs"
+name = "tconstruct_source_workstation_tabs_lan"
+source = "source-workstation-tabs-lan.rs"

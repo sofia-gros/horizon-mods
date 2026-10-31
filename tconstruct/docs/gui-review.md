@@ -10,4 +10,5 @@ This is a work checklist, not a statement that the screens already match. New ma
 
 - Station result: the older upgrade screenshot used a separate result coordinate for repairs and upgrades. The original has one result slot at (114, 38); the current layout maps both operations there. Verify rendering, clicking and tooltip in a fresh game before replacing the screenshot.
 - Smeltery and Foundry: the original heating screen supplies an empty-bucket hint, a mode-button hover and a three-line mode tooltip. These are being connected to the existing screen; game verification is pending.
+- Adjacent table tabs use the source six-face scan and order. Part Builder and Tinker Station switches are being connected for local and LAN play; registered tables without menus remain visibly unavailable. Game verification is pending.
 - Part Builder, Melter and the remaining screen interactions still need source and runtime comparison.

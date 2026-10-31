@@ -1,5 +1,16 @@
 fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value: i16) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if id == 30999 {
+        if let (Some(start), Ok(index)) = (crate::game::tconstruct_source_workstation_tabs::start(game), usize::try_from(value)) {
+            let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
+            if let Some((pos, name)) = tabs.get(index) {
+                if crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                    crate::game::remote::tconstruct_source_machine_remote::set_position(game, *pos);
+                }
+            }
+        }
+        return Break(());
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     if station {
         let Some(key) = game.container else { return Break(()); };
