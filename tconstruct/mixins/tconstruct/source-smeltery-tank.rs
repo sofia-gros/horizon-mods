@@ -51,6 +51,20 @@ impl SmelteryTank {
         true
     }
 
+    /// The source Foundry requires space for the primary result. Once that
+    /// succeeds it fills each byproduct in order, accepting partial amounts
+    /// when the remaining tank capacity runs out.
+    pub(super) fn foundry_output(&mut self, primary: &FluidAmount, byproducts: &[FluidAmount]) -> bool {
+        let mut next = self.clone();
+        if !next.insert(&primary.id, primary.amount) { return false; }
+        for fluid in byproducts {
+            let amount = fluid.amount.min(next.capacity.saturating_sub(next.total()));
+            if amount > 0 { let _ = next.insert(&fluid.id, amount); }
+        }
+        *self = next;
+        true
+    }
+
     /// Commit only when every input and the resulting net volume fit.
     pub(super) fn alloy(&mut self, inputs: &[FluidAmount], result: &FluidAmount) -> bool {
         if inputs.is_empty() || result.id.is_empty() || result.amount == 0 { return false; }
@@ -102,6 +116,17 @@ impl SmelteryTank {
 mod tests {
     use super::*;
     fn fluid(id: &str, amount: u32) -> FluidAmount { FluidAmount { id: id.into(), amount } }
+    #[test]
+    fn foundry_requires_primary_space_and_fills_byproducts_in_order() {
+        let mut tank = SmelteryTank::new(205);
+        let primary = fluid("copper", 180);
+        let byproducts = [fluid("gold", 30), fluid("silver", 10)];
+        assert!(tank.foundry_output(&primary, &byproducts));
+        assert_eq!(tank.fluids, vec![fluid("copper", 180), fluid("gold", 25)]);
+        let before = tank.clone();
+        assert!(!tank.foundry_output(&primary, &byproducts));
+        assert_eq!(tank, before);
+    }
     #[test]
     fn combines_source_bronze_volumes_in_a_full_tank() {
         let mut tank = SmelteryTank::new(360);

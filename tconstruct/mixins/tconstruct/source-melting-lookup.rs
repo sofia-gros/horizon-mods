@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidFuel, FluidSpec, MeltingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidFuel, FluidSpec, FoundryRecipe, MeltingRecipe, Output};
 
 pub(super) struct Catalog<'a> {
     pub recipes: &'a BTreeMap<String, Vec<u8>>,
@@ -85,6 +85,25 @@ impl Catalog<'_> {
         }
         found
     }
+    pub(super) fn foundry_melting(&self, item: &str, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+        if !self.known_items.contains(item) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found: Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = FoundryRecipe::parse(bytes, conditions) else { continue; };
+            if !recipe.melting.input.matches(item, &in_tag) { continue; }
+            let Some(primary) = self.resolved_fluid(&recipe.melting.output) else { continue; };
+            let Some(byproducts) = recipe.byproducts.iter().map(|fluid|
+                self.resolved_fluid(fluid).map(|id| (id, fluid.amount))).collect::<Option<Vec<_>>>() else { continue; };
+            if let Some((_, previous, old_primary, old_byproducts)) = &found {
+                if previous.melting.temperature != recipe.melting.temperature || previous.melting.time != recipe.melting.time
+                    || previous.melting.output.amount != recipe.melting.output.amount || old_primary != &primary
+                    || old_byproducts != &byproducts { return None; }
+            } else { found = Some((id.clone(), recipe, primary, byproducts)); }
+        }
+        found
+    }
     pub(super) fn casting(&self, basin: bool, input: Option<&str>, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String)> {
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, CastingRecipe, String)> = None;
@@ -111,6 +130,20 @@ impl Catalog<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn foundry_resolves_primary_and_byproduct_tags() {
+        let recipe = br#"{"type":"tconstruct:ore_melting","ingredient":{"tag":"forge:ores/copper"},"result":{"amount":180,"tag":"forge:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"amount":90,"tag":"forge:molten_gold"}]}"#;
+        let recipes = [("ore".into(), recipe.to_vec())].into_iter().collect();
+        let item_tags = [("forge:ores/copper".into(), ["minecraft:copper_ore".into()].into_iter().collect())].into_iter().collect();
+        let fluid_tags = [("forge:molten_copper".into(), ["tconstruct:molten_copper".into()].into_iter().collect()),
+            ("forge:molten_gold".into(), ["tconstruct:molten_gold".into()].into_iter().collect())].into_iter().collect();
+        let known_items = ["minecraft:copper_ore".into()].into_iter().collect();
+        let known_fluids = ["tconstruct:molten_copper".into(), "tconstruct:molten_gold".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+        let (_, recipe, primary, byproducts) = catalog.foundry_melting("minecraft:copper_ore", &|_| true).unwrap();
+        assert_eq!((primary.as_str(), recipe.melting.output.amount), ("tconstruct:molten_copper", 180));
+        assert_eq!(byproducts, vec![("tconstruct:molten_gold".into(), 30)]);
+    }
     #[test]
     fn alloy_resolves_source_tags_and_temperature() {
         let recipes = [
