@@ -73,6 +73,8 @@ try:
     print('input widget:', [w for w in g.call('ui')['widgets'] if w.get('id') in ('slot-300','slot-301','slot-302','slot-303')], flush=True)
     click(hotbar('minecraft:copper_ingot')); click(302)
     print('input after insertion:', g.call('menu'), flush=True)
+    print('input widget after insertion:', [w for w in g.call('ui')['widgets'] if w.get('id') == 'slot-302'], flush=True)
+    g.call('screenshot', str(run / 'smeltery-input-after.png'))
     # An interrupted structure must retain its input, then resume after repair.
     g.call('wait', '20'); g.call('close')
     g.call('command', 'setblock -1 71 2 minecraft:air'); g.call('wait', '40')
@@ -80,7 +82,8 @@ try:
     g.call('interact', '0', '71', '1'); g.call('wait', '10')
     repaired = g.call('menu')
     print('input after repair:', repaired, flush=True)
-    assert any(row.get('slot') == 302 and (row.get('stack') or {}).get('item') == 'minecraft:copper_ingot' for row in repaired['slots']), 'input lost on structure repair'
+    print('input widget after repair:', [w for w in g.call('ui')['widgets'] if w.get('id') == 'slot-302'], flush=True)
+    assert any(w.get('id') == 'slot-302' and (w.get('stack') or {}).get('item') == 'minecraft:copper_ingot' for w in g.call('ui')['widgets']), 'input lost on structure repair'
     g.call('wait', '300', timeout=40)
     assert not any(row.get('slot') == 302 and row.get('stack') for row in g.call('menu')['slots']), 'copper did not melt'
     click(hotbar('minecraft:amethyst_shard')); click(302)
