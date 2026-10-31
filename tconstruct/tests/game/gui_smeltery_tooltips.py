@@ -73,6 +73,7 @@ try:
     assert any(w.get('id') == 'slot-301' and (w.get('stack') or {}).get('item') == 'minecraft:bucket' for w in g.call('ui')['widgets']), 'empty bucket was not returned'
     node = next(row for row in g.call('ui')['widgets'] if row.get('id') == 'slot-301')
     x, y, _, _ = node['bounds']; ox, oy = x - 125, y - 104
+    g.call('wait', '220')  # Let setup chat fade before saving documentation images.
     for name, px, py in (('mode', 130, 75), ('fuel', 160, 80), ('fluid', 30, 115)):
         g.call('scroll-at', str(ox + px), str(oy + py), '0'); g.call('wait', '5')
         g.call('screenshot', str(run / ('gui-smeltery-tooltip-' + name + '.png')))
