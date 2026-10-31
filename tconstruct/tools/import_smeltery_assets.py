@@ -3,6 +3,7 @@
 Usage: python import_smeltery_assets.py /path/to/TinkersConstruct
 """
 import io
+import subprocess
 import sys
 import zipfile
 from pathlib import Path
@@ -31,6 +32,12 @@ def snapshot(repo):
             info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             output.writestr(info, original.read(name))
+        name = 'assets/tconstruct/textures/gui/heating_structure.png'
+        path = 'src/main/resources/' + name
+        data = subprocess.check_output(['git', '-C', str(repo), 'show', f'{source.REVISION}:{path}'])
+        info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+        info.compress_type = zipfile.ZIP_DEFLATED
+        output.writestr(info, data)
     return result.getvalue()
 
 

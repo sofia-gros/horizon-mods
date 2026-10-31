@@ -20,6 +20,7 @@ class SmelteryAssets(unittest.TestCase):
             controller = json.loads(archive.read('assets/tconstruct/models/block/template/controller.json'))
             self.assertEqual(tank['loader'], 'tconstruct:tank')
             self.assertEqual(controller['loader'], 'mantle:retextured')
+            self.assertIn('assets/tconstruct/textures/gui/heating_structure.png', archive.namelist())
 
     def test_static_shell_generation_is_reproducible(self):
         sys.path.insert(0, str(ROOT / 'tools'))
