@@ -10,7 +10,7 @@ To fill a bucket, put an empty bucket in the upper slot. The lower slot receives
 
 Transfers require a full bucket's worth of space or fluid and an empty output slot. If a transfer cannot complete, the input remains in place. Close the screen to return containers left in its slots to your inventory. To fuel a Smeltery or Foundry, you can also use a lava bucket directly on its fuel tank.
 
-The current implementation supports standard 1,000 mB buckets with registered fluid and item IDs. Other fluid containers and buckets carrying custom components are not supported; their data is not discarded. Representative Linux single-player and LAN bucket transfers have been tested. The fix for resuming a waiting bucket after Shift-clicking the output is awaiting verification, and Windows remains untested.
+The current implementation supports standard 1,000 mB buckets with registered fluid and item IDs. Other fluid containers and buckets carrying custom components are not supported; their data is not discarded. Representative Linux single-player and LAN bucket transfers have been tested. The waiting bucket also resumed after Shift-clicking the output in representative single-player and LAN tests. Windows remains untested.
 
 ## Source assets
 
