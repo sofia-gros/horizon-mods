@@ -279,4 +279,15 @@ mod tests {
         assert_eq!(storage_sprite_by(&records, "tconstruct:wood", |_| false).unwrap(),
             Some(("tconstruct:block/storage/fallback".into(), info.color, info.luminosity)));
     }
+    #[test]
+    fn armor_texture_prefers_unique_then_tinted_fallback_then_base() {
+        let info = RenderInfo { texture: Some("tconstruct:steel".into()), fallbacks: vec!["metal".into()], color: 0xff123456, luminosity: 2 };
+        let base = "tconstruct:plating_armor";
+        let all = [base, "tconstruct:plating_armor_tconstruct_steel", "tconstruct:plating_armor_metal"];
+        assert_eq!(select_armor_sprite_by(base, &info, |id| all.contains(&id)).unwrap(), Some((all[1].into(), u32::MAX, 2)));
+        assert_eq!(select_armor_sprite_by(base, &info, |id| id != all[1] && all.contains(&id)).unwrap(), Some((all[2].into(), 0xff123456, 2)));
+        assert_eq!(select_armor_sprite_by(base, &info, |id| id == base).unwrap(), Some((base.into(), 0xff123456, 2)));
+        assert_eq!(select_armor_sprite_by(base, &info, |_| false).unwrap(), None);
+    }
+
 }
