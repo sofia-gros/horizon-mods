@@ -62,11 +62,29 @@ pub(super) fn draw_heat_bar(batch: &mut horizon_client::hud::HudBatch, atlas: &h
 
 #[cfg(test)]
 mod heat_tests {
-    use super::classify_heat;
+    use super::{classify_heat, fire_height};
     #[test] fn source_heat_status_and_scaling() {
         assert_eq!(classify_heat(None, 500, 0).0, 185.0);
         assert_eq!(classify_heat(Some((600, 10)), 500, -1).0, 179.0);
         assert_eq!(classify_heat(Some((600, 10)), 600, -1).0, 182.0);
         assert_eq!(classify_heat(Some((600, 10)), 600, 50), (176.0, 8.0, None));
+        assert_eq!((fire_height(50, 100), fire_height(1, 0), fire_height(u32::MAX, 1)), (7, 0, 14));
+    }
+}
+
+/// GuiFuelModule uses the remaining fuel divided by its original quality.
+pub(super) fn fire_height(fuel: u32, quality: u32) -> u32 {
+    if quality == 0 { return 0; }
+    ((14 * u64::from(fuel)) / u64::from(quality)).min(14) as u32
+}
+pub(super) fn draw_fire(batch: &mut horizon_client::hud::HudBatch, atlas: &horizon_client::hud::HudAtlas,
+    texture: &str, x: f32, y: f32, fuel: u32, quality: u32) {
+    let height = fire_height(fuel, quality) as f32;
+    if height == 0.0 { return; }
+    if let Some(mut sprite) = atlas.sprites.get(texture).copied() {
+        let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+        sprite.u0 += 176.0 * du; sprite.v0 += (136.0 + 14.0 - height) * dv;
+        sprite.u1 = sprite.u0 + 14.0 * du; sprite.v1 = sprite.v0 + height * dv;
+        batch.rect_uv(x, y + 14.0 - height, 14.0, height, sprite, u32::MAX);
     }
 }

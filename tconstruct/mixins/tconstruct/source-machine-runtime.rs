@@ -93,7 +93,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                 });
             if !can_heat && !can_alloy { continue; }
             if tank.take(fuel.fluid.amount).is_none() { continue; }
-            state.fuel = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
+            state.fuel = fuel.duration; state.fuel_quality = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
             fuel_update = Some((at, kind, tank.to_nbt()));
             break;
         }
@@ -242,7 +242,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                                 if stack.count == 0 {
                                     slots[0] = remainder.map(|id| horizon_items::items::ItemStack::new(&id, 1));
                                 }
-                                melter.fuel = duration; melter.temperature = temperature; melter.rate = rate;
+                                melter.fuel = duration; melter.fuel_quality = duration; melter.temperature = temperature; melter.rate = rate;
                                 game.world.modified.insert((below.0 >> 4, below.2 >> 4));
                             }
                         }

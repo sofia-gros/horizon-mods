@@ -46,12 +46,14 @@ pub(super) struct Melter {
     pub tank: Tank,
     pub phase: u8,
     pub fuel: u32,
+    // Original fuel quality is the total duration used by the GUI flame.
+    pub fuel_quality: u32,
     pub temperature: u32,
     pub rate: u32,
 }
 impl Melter {
     pub(super) fn new() -> Self {
-        Self { slots: [None, None, None], progress: [0; 3], tank: Tank::new(MELTER_CAPACITY), phase: 0, fuel: 0, temperature: 0, rate: 0 }
+        Self { slots: [None, None, None], progress: [0; 3], tank: Tank::new(MELTER_CAPACITY), phase: 0, fuel: 0, fuel_quality: 0, temperature: 0, rate: 0 }
     }
     /// A full output tank leaves a completed slot waiting without demanding
     /// additional fuel. It still retries output when space becomes available.
@@ -86,7 +88,7 @@ impl Melter {
         let slots = self.slots.iter().map(|slot| slot.as_ref().map(item_to_nbt).unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()))).collect();
         Tag::compound([("slots", Tag::List(slots)), ("progress", Tag::IntArray(self.progress.to_vec())),
             ("tank", self.tank.to_nbt()), ("phase", Tag::Int(self.phase as i32)),
-            ("fuel", Tag::Long(self.fuel as i64)), ("temperature", Tag::Long(self.temperature as i64)), ("rate", Tag::Long(self.rate as i64))])
+            ("fuel", Tag::Long(self.fuel as i64)), ("fuel_quality", Tag::Long(self.fuel_quality as i64)), ("temperature", Tag::Long(self.temperature as i64)), ("rate", Tag::Long(self.rate as i64))])
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
@@ -102,13 +104,21 @@ impl Melter {
         let phase = match tag.get("phase")? { Tag::Int(n) if (0..4).contains(n) => *n as u8, _ => return None };
         let number = |key| match tag.get(key)? { Tag::Long(n) => u32::try_from(*n).ok(), _ => None };
         Some(Self { slots: inventory, progress, tank: Tank::from_nbt(tag.get("tank")?, MELTER_CAPACITY)?, phase,
-            fuel: number("fuel")?, temperature: number("temperature")?, rate: number("rate")? })
+            fuel: number("fuel")?, fuel_quality: number("fuel_quality").unwrap_or(number("fuel")?), temperature: number("temperature")?, rate: number("rate")? })
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn fuel_quality_survives_reload_and_legacy_data() {
+        let mut state = Melter::new(); state.fuel = 35; state.fuel_quality = 100;
+        let mut saved = state.to_nbt();
+        assert_eq!(Melter::from_nbt(&saved).unwrap().fuel_quality, 100);
+        if let Tag::Compound(map) = &mut saved { map.retain(|key, _| key.to_string_lossy() != "fuel_quality"); }
+        assert_eq!(Melter::from_nbt(&saved).unwrap().fuel_quality, 35);
+    }
     #[test]
     fn full_tank_keeps_finished_item_and_completes_after_space_opens() {
         let mut m = Melter::new(); m.slots[0] = Some(ItemStack::new("minecraft:copper_ingot", 2));

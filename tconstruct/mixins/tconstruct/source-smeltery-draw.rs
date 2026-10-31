@@ -127,6 +127,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
         .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
     if let Some(state) = state {
+        super::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_heating_structure", ox + 153.0, oy + 15.0, state.fuel, state.fuel_quality);
         for visible in 0..rows * cols {
             let menu_slot = visible + 2;
             let Some(index) = super::tconstruct_source_smeltery_layout::melting_index(count, offset, menu_slot) else { continue; };

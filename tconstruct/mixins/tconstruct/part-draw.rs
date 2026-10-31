@@ -27,6 +27,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
         let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
         if let Some(melter) = parsed {
+            crate::game::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_melter", ox + 152.0, oy + 15.0, melter.fuel, melter.fuel_quality);
             if let Some(fluid) = &melter.tank.fluid {
                 // Tile the first frame of the original still-fluid texture in
                 // the source tank's 52x52 area, scaled by the stored amount.
