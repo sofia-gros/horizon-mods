@@ -20,10 +20,22 @@ pub(super) fn fluid_heights(amounts: &[u32], capacity: u32) -> Vec<u32> {
     let mut heights: Vec<u32> = amounts.iter().map(|amount|
         ((106.0 * *amount as f64 / capacity as f64).ceil() as u32).max(3)).collect();
     let available = if total < capacity { 103 } else { 106 };
-    while heights.iter().sum::<u32>() > available {
-        let Some(index) = heights.iter().enumerate().max_by_key(|(index, height)| (**height, std::cmp::Reverse(*index))).map(|(index, _)| index) else { break; };
-        if heights[index] == 0 { break; }
-        heights[index] -= 1;
+    if heights.iter().map(|height| u64::from(*height)).sum::<u64>() > u64::from(available) {
+        // The source removes pixels from the tallest layer, choosing the first
+        // on ties. Find the equivalent cutoff without looping once per pixel
+        // when a saved tank exceeds a newly reduced capacity.
+        let (mut low, mut high) = (0, *heights.iter().max().unwrap_or(&0));
+        while low < high {
+            let mid = low + (high - low).div_ceil(2);
+            let sum = heights.iter().map(|height| u64::from((*height).min(mid))).sum::<u64>();
+            if sum <= u64::from(available) { low = mid; } else { high = mid - 1; }
+        }
+        let mut spare = available - heights.iter().map(|height| (*height).min(low)).sum::<u32>();
+        for height in heights.iter_mut().rev() {
+            let original = *height;
+            *height = original.min(low);
+            if spare > 0 && original > low { *height += 1; spare -= 1; }
+        }
     }
     heights
 }
@@ -73,6 +85,8 @@ mod tests {
     #[test]
     fn overflow_uses_source_capacity_before_trimming_tallest_layer() {
         assert_eq!(fluid_heights(&[1800, 200], 1000), vec![84, 22]);
+        assert_eq!(fluid_heights(&[1000, 1000], 1000), vec![53, 53]);
+        assert_eq!(fluid_heights(&[u32::MAX, u32::MAX], 1), vec![53, 53]);
     }
     #[test]
     fn source_columns_and_bucket_positions() {
