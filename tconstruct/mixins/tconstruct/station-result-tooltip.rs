@@ -50,6 +50,27 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
             return Break(());
         }
+        let state = crate::game::tconstruct_source_smeltery_ui::position(game)
+            .and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
+            .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
+        if let Some(state) = state {
+            let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
+            let cols = crate::game::tconstruct_source_smeltery_layout::columns(count);
+            let rows = crate::game::tconstruct_source_smeltery_layout::visible_rows(count);
+            for visible in 0..rows * cols {
+                let menu_slot = visible + 2;
+                let Some(index) = crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, menu_slot) else { continue; };
+                let (Some(stack), Some(progress), Some((x, y))) = (state.slots.get(index).and_then(Option::as_ref), state.progress.get(index),
+                    crate::game::tconstruct_source_smeltery_layout::position(count, offset, menu_slot)) else { continue; };
+                if !(ox + x - 5.0..ox + x - 1.0).contains(&game.cursor.0) || !(oy + y - 1.0..oy + y + 17.0).contains(&game.cursor.1) { continue; }
+                let foundry = crate::game::tconstruct_source_smeltery_ui::is_foundry(game);
+                let (_, _, key) = crate::game::tconstruct_source_melter_render::heat_bar(&game.world, stack, state.temperature, *progress, foundry);
+                if let Some(key) = key { if let Some(text) = game.pack.names.display_get(key) {
+                    game.draw_tooltip_lines(batch, &[(text, u32::MAX)], game.cursor.0, game.cursor.1);
+                }}
+                return Break(());
+            }
+        }
         if (ox + 8.0..ox + 114.0).contains(&game.cursor.0) && (oy + 16.0..oy + 122.0).contains(&game.cursor.1) {
             let tank = crate::game::tconstruct_source_smeltery_ui::position(game)
                 .and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
