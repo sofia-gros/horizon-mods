@@ -21,6 +21,7 @@ def hotbar(item):
 try:
     g.ready()
     for command in ('gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',
+                    'setblock -1 71 1 minecraft:air', 'setblock 0 71 1 minecraft:air', 'setblock 1 71 1 minecraft:air',
                     'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
                     'give @s minecraft:iron_helmet 1', 'give @s minecraft:stone 1'):
         g.call('command', command)

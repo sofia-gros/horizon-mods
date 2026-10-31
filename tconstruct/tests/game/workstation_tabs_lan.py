@@ -26,6 +26,7 @@ try:
     port = host.call('lan', 'open', '0', 'commands')['port']
     guest = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=True); games.append(guest); guest.ready()
     for command in ('gamemode creative @a', 'clear @a', 'tp Guest 0.5 71 0.5',
+                    'setblock -1 71 1 minecraft:air', 'setblock 0 71 1 minecraft:air', 'setblock 1 71 1 minecraft:air',
                     'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
                     'setblock 0 71 2 tconstruct:part_builder', 'setblock 1 71 2 tconstruct:tinker_station',
                     'give Guest minecraft:stone 1'):
