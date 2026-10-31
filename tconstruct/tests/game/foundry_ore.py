@@ -67,6 +67,11 @@ try:
     assert g.call('status')['screen'] == 'inventory', 'formed Foundry did not open'
     click(hotbar('minecraft:copper_ore')); click(302)
     assert (input_item() or {}).get('item') == 'minecraft:copper_ore', 'ore input was not accepted'
+    g.call('wait', '20'); g.call('close')
+    g.call('command', 'setblock -1 71 2 minecraft:air'); g.call('wait', '40')
+    g.call('command', 'setblock -1 71 2 tconstruct:scorched_bricks'); g.call('wait', '20')
+    g.call('interact', '0', '71', '1'); g.call('wait', '10')
+    assert (input_item() or {}).get('item') == 'minecraft:copper_ore', 'ore was not preserved through structure repair'
     g.call('wait', '1100', timeout=85)
     g.call('screenshot', str(run / 'foundry-ore-check.png'))
     g.call('save')
