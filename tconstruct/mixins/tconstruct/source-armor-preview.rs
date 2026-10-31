@@ -48,21 +48,23 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
     if let Some(layer) = layer {
         let slot = match layer { "helmet" => 5, "chestplate" => 4, "leggings" => 3, _ => 2 };
         if let Some(stack) = stand.equipment[slot].as_ref() {
-            // The source plate helmet has two material layers. This first
-            // supported combination uses the exact generated steel sprites;
-            // other materials, dye and slots need the source resolver.
+            // Source Plate Helmet has plating at material index 0 and maille
+            // at index 1. Draw only when both exact source sprites exist;
+            // variants, dye, fallback and other armor sets are not resolved.
             if stack.item.as_ref() == "tconstruct:plate_helmet" {
                 if let Some(horizon_world::nbt::Tag::List(materials)) = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_materials")) {
-                    let is_steel = |index: usize| matches!(materials.get(index), Some(horizon_world::nbt::Tag::String(value)) if value.to_string_lossy() == "tconstruct:steel");
-                    if is_steel(0) && is_steel(1) {
-                        if let Some(part) = assets.layers.get(&(layer, false)) {
-                            let mut layer_poses = Poses::new(part);
-                            super::apply_pose(&mut layer_poses, &stand.pose);
-                            for name in ["gui/tconstruct_plate_plating_steel", "gui/tconstruct_plate_maille_steel"] {
-                                if let Some(sprite) = sprites.get(name) {
-                                    render::draw(part, base, &layer_poses, uv(sprite), u32::MAX, light, 0, &mut verts);
-                                }
-                            }
+                    let texture = |index: usize, kind: &str| -> Option<_> {
+                        let horizon_world::nbt::Tag::String(value) = materials.get(index)? else { return None; };
+                        let id = value.to_string_lossy();
+                        let material = id.strip_prefix("tconstruct:")?;
+                        if material.is_empty() || !material.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_') { return None; }
+                        sprites.get(&format!("gui/tconstruct_plate_{kind}_armor_tconstruct_{material}"))
+                    };
+                    if let (Some(plating), Some(maille), Some(part)) = (texture(0, "plating"), texture(1, "maille"), assets.layers.get(&(layer, false))) {
+                        let mut layer_poses = Poses::new(part);
+                        super::apply_pose(&mut layer_poses, &stand.pose);
+                        for sprite in [plating, maille] {
+                            render::draw(part, base, &layer_poses, uv(sprite), u32::MAX, light, 0, &mut verts);
                         }
                     }
                 }
