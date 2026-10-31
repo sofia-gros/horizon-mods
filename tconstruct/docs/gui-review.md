@@ -12,3 +12,7 @@ This is a work checklist, not a statement that the screens already match. New ma
 - Smeltery and Foundry: the original heating screen supplies an empty-bucket hint, a mode-button hover and a three-line mode tooltip. These are being connected to the existing screen; game verification is pending.
 - Adjacent table tabs use the source six-face scan and order. Part Builder and Tinker Station switches are being connected for local and LAN play; registered tables without menus remain visibly unavailable. Game verification is pending.
 - Part Builder, Melter and the remaining screen interactions still need source and runtime comparison.
+- Station armor and offhand frames correspond to five source inventory slots. A local/LAN path using the existing inventory transaction rules is in progress; test equipment placement, removal, Shift-click and cursor preservation before claiming support.
+- Melter and heating structures use original gauge and heat-bar sprites, fluid hover regions and status text. Burn duration is saved for the source flame indicator; older saves use the remaining burn time as their first displayed total. Runtime and LAN verification are pending.
+
+Still to verify: source fuel-area tooltips and fuel-tank contents, text and click boundaries at both screen sizes, all visible tab states, Part Builder patterns and side inventory, and heat-bar/tooltip behavior while recipes heat or cannot heat. Compare against the source screen code and assets instead of using earlier screenshots as a reference.
