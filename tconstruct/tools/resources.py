@@ -69,6 +69,11 @@ gui = textures / 'gui'
 gui.mkdir()
 for child in (src / 'assets/minecraft/textures/gui').iterdir():
     link_or_copy(child, gui / child.name)
+# Pack the original steel plate layers for the representative Station preview.
+# Other materials and armor slots still require the source texture resolver.
+for layer in ('plating', 'maille'):
+    source = repository / 'content/assets/tconstruct/textures/tinker_armor/plate' / (layer + '_armor_tconstruct_steel.png')
+    shutil.copyfile(source, gui / ('tconstruct_plate_' + layer + '_steel.png'))
 for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as source_smeltery:

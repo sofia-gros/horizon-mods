@@ -48,6 +48,25 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
     if let Some(layer) = layer {
         let slot = match layer { "helmet" => 5, "chestplate" => 4, "leggings" => 3, _ => 2 };
         if let Some(stack) = stand.equipment[slot].as_ref() {
+            // The source plate helmet has two material layers. This first
+            // supported combination uses the exact generated steel sprites;
+            // other materials, dye and slots need the source resolver.
+            if stack.item.as_ref() == "tconstruct:plate_helmet" {
+                if let Some(horizon_world::nbt::Tag::List(materials)) = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_materials")) {
+                    let is_steel = |index: usize| matches!(materials.get(index), Some(horizon_world::nbt::Tag::String(value)) if value.to_string_lossy() == "tconstruct:steel");
+                    if is_steel(0) && is_steel(1) {
+                        if let Some(part) = assets.layers.get(&(layer, false)) {
+                            let mut layer_poses = Poses::new(part);
+                            super::apply_pose(&mut layer_poses, &stand.pose);
+                            for name in ["gui/tconstruct_plate_plating_steel", "gui/tconstruct_plate_maille_steel"] {
+                                if let Some(sprite) = sprites.get(name) {
+                                    render::draw(part, base, &layer_poses, uv(sprite), u32::MAX, light, 0, &mut verts);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             if let Some(asset) = game.res.items().get(&stack.item).and_then(|info| info.equip_asset.as_ref()) {
                 let kind = if layer == "leggings" { "humanoid_leggings" } else { "humanoid" };
                 if let (Some((texture, color)), Some(part)) = (assets.equipment.get(asset).and_then(|entry| entry.get(kind)), assets.layers.get(&(layer, false))) {
