@@ -12,7 +12,7 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
                     if crate::game::lan_actions::tconstruct_source_workstation_tabs_lan::open(game, host, conn, pos) {
                         if let Some(guest) = host.hub.guest(conn) {
                             if let Some(new_window) = guest.menu.as_ref().map(|menu| menu.window) {
-                                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: new_window, id: 30999, value: (id - 31000) as i16 }));
+                                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: new_window, id: -1, value: (id - 31000) as i16 }));
                             }
                         }
                     }

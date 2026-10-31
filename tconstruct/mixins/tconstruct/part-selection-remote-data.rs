@@ -1,6 +1,7 @@
 fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value: i16) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    if id == 30999 {
+    // A negative data-slot id is reserved for an acknowledged table-tab switch.
+    if id == usize::MAX {
         if let (Some(start), Ok(index)) = (crate::game::tconstruct_source_workstation_tabs::start(game), usize::try_from(value)) {
             let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
             if let Some((pos, name)) = tabs.get(index) {
