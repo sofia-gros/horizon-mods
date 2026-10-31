@@ -121,6 +121,24 @@ pub(super) fn select_sprite_by(base: &str, info: &RenderInfo, available: impl Fn
     Ok((base, info.color, info.luminosity))
 }
 
+/// MaterialArmorTextureSupplier uses namespace and path even for minecraft.
+/// A base texture must exist; unique textures remain untinted, while fallback
+/// and base textures use the material's render color and luminosity.
+pub(super) fn select_armor_sprite_by(base: &str, info: &RenderInfo, available: impl Fn(&str) -> bool) -> Result<Option<(String, u32, u8)>, &'static str> {
+    let base = resource_id(base)?;
+    if !available(&base) { return Ok(None); }
+    if let Some(texture) = &info.texture {
+        let (namespace, path) = texture.split_once(':').ok_or("invalid texture")?;
+        let sprite = resource_id(&format!("{base}_{namespace}_{path}"))?;
+        if available(&sprite) { return Ok(Some((sprite, u32::MAX, info.luminosity))); }
+    }
+    for fallback in &info.fallbacks {
+        let sprite = resource_id(&format!("{base}_{fallback}"))?;
+        if available(&sprite) { return Ok(Some((sprite, info.color, info.luminosity))); }
+    }
+    Ok(Some((base, info.color, info.luminosity)))
+}
+
 /// MaterialBlockModel.BakedSingleMaterial keeps its original model for
 /// unknown material or missing render info; otherwise it retextures `all`.
 /// None means the original model must be used unchanged.
