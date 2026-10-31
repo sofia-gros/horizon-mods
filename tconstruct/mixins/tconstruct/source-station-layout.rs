@@ -93,6 +93,13 @@ impl StationLayout {
 mod tests {
     use super::*;
     #[test]
+    fn source_still_filled_row_only_shows_occupied_dormant_inputs() {
+        assert_eq!(dormant_position(2, 2, true), Some((112.0, 62.0)));
+        assert_eq!(dormant_position(3, 2, true), Some((94.0, 62.0)));
+        assert_eq!(dormant_position(3, 2, false), None);
+        assert_eq!(dormant_position(1, 2, true), None);
+    }
+    #[test]
     fn source_layout_keeps_slot_coordinates_and_filters() {
         let bytes = br#"{"icon":{"item":"tconstruct:pickaxe"},"sortIndex":6,"translation_key":"item.tconstruct.pickaxe","input_slots":[{"filter":{"item":"tconstruct:pick_head"},"x":53,"y":22}]}"#;
         let layout = StationLayout::parse("tconstruct:pickaxe".into(), bytes).unwrap();
