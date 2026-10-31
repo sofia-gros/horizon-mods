@@ -1,5 +1,18 @@
-fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizon_core::position::BlockPos, old: horizon_world::registry::BlockStateId) {
+fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizon_core::position::BlockPos, old: horizon_world::registry::BlockStateId, side_effects: bool) {
     let name = &level.facts.get(old).name;
+    if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::capacity(name) {
+        let kind = crate::game::tconstruct_source_machine_runtime::kind(name);
+        if side_effects {
+            if let Some((_, tank)) = kind.and_then(|kind| crate::game::tconstruct_source_melter_store::read(level.world, (pos.x, pos.y, pos.z), kind)
+                .and_then(|tag| crate::game::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity).map(|tank| (kind, tank)))) {
+                if tank.amount > 0 {
+                    let entry = level.pending.copied.entry([pos.x, pos.y, pos.z]).or_insert_with(|| (name.to_string(), horizon_world::nbt::Compound::new()));
+                    entry.1.insert("tconstruct:internal_tank_copy".into(), tank.to_nbt());
+                }
+            }
+        }
+        crate::game::tconstruct_source_melter_store::clear(level.world, (pos.x, pos.y, pos.z));
+    }
     if &**name == "tconstruct:smeltery_controller" {
         let controller = (pos.x, pos.y, pos.z);
         level.world.chunks.__horizon_mixins_tconstruct_smeltery_owners_mut().retain(|_, owner| *owner != controller);

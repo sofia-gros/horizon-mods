@@ -11,7 +11,7 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
     // Until quick-move and bucket slots have a real transaction, reject them
     // before the generic menu can mutate inventory or a virtual slot.
     let virtual_slot = (0..54).contains(&packet.slot) && crate::tconstruct_source_smeltery_layout::melting_index(state.slots.len(), offset, packet.slot as usize).is_none();
-    if packet.input != 0 || virtual_slot {
+    if packet.state != menu.state || packet.input != 0 || virtual_slot {
         hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project(&state.slots, offset));
         return Break(Vec::new());
     }

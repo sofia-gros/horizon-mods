@@ -12,7 +12,17 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let current = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).copied().unwrap_or(0);
     let next = if id == 32000 { current.saturating_sub(1) } else { current.saturating_add(1).min(max) };
     game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, next);
-    host.hub.send_menu_content(gi, crate::game::tconstruct_source_smeltery_page::project(&state.slots, next));
-    host.hub.guests[gi].send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30003, value: next as i16 }));
+    let mut items = crate::game::tconstruct_source_smeltery_page::project(&state.slots, next);
+    items.extend((9..36).chain(0..9).map(|i| host.hub.guests[gi].inventory[i].clone()));
+    let net = items.iter().map(|item| host.hub.stack(item)).collect();
+    let carried = host.hub.guests[gi].carried.clone();
+    let carried = host.hub.stack(&carried);
+    let guest = &mut host.hub.guests[gi];
+    let Some(menu) = guest.menu.as_mut() else { return Break(()); };
+    menu.state = (menu.state + 1) & 0x7FFF;
+    let packet = horizon_protocol::packets::play::ContainerSetContent { container: window, state: menu.state, items: net, carried };
+    menu.sent = items;
+    guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30003, value: next as i16 }));
+    guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetContent(packet));
     Break(())
 }
