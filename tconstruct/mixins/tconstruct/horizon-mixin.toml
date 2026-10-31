@@ -1736,6 +1736,12 @@ name = "tconstruct_source_smeltery_layout"
 source = "source-smeltery-layout.rs"
 
 [[module]]
+id = "source-smeltery-page"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_page"
+source = "source-smeltery-page.rs"
+
+[[module]]
 id = "source-smeltery-fuel"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_fuel"
