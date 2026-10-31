@@ -136,7 +136,7 @@ pub(crate) fn glass_kind(name: &str) -> Option<(bool, u32)> {
     let name = name.strip_prefix("tconstruct:")?;
     let (name, pane) = name.strip_suffix("_pane").map_or((name, false), |name| (name, true));
     let color = match name {
-        "clear_glass" | "soul_glass" | "seared_glass" | "seared_soul_glass" | "seared_tinted_glass" | "scorched_glass" | "scorched_soul_glass" | "white_clear_stained_glass" => 0xffffff,
+        "clear_glass" | "soul_glass" | "seared_glass" | "seared_soul_glass" | "seared_tinted_glass" | "scorched_glass" | "scorched_soul_glass" | "scorched_tinted_glass" | "white_clear_stained_glass" => 0xffffff,
         _ => match name.strip_suffix("_clear_stained_glass")? {
             "black" => 0x191919, "blue" => 0x334cb2, "brown" => 0x664c33,
             "cyan" => 0x4c7f99, "gray" => 0x4c4c4c, "green" => 0x667f33,

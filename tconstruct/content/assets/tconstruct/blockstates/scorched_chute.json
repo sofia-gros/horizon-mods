@@ -1,0 +1,1 @@
+{"variants":{"facing=west":{"model":"tconstruct:block/foundry/io/chute_inactive","y":90},"facing=south":{"model":"tconstruct:block/foundry/io/chute_inactive"},"facing=north":{"model":"tconstruct:block/foundry/io/chute_inactive","y":180},"facing=east":{"model":"tconstruct:block/foundry/io/chute_inactive","y":270}}}

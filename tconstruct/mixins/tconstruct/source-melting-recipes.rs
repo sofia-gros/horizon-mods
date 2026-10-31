@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
+pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
 
 impl Ingredient {
     fn parse(value: &Value) -> Option<Self> {
@@ -13,6 +13,11 @@ impl Ingredient {
             return (!choices.is_empty()).then_some(Self::Any(choices));
         }
         let obj = value.as_object()?;
+        if obj.get("type").and_then(Value::as_str) == Some("forge:intersection") {
+            if obj.keys().any(|key| key != "type" && key != "children") { return None; }
+            let children = obj.get("children")?.as_array()?.iter().map(Self::parse).collect::<Option<Vec<_>>>()?;
+            return (!children.is_empty()).then_some(Self::All(children));
+        }
         if obj.get("type").and_then(Value::as_str) == Some("forge:difference") {
             if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
             return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
@@ -31,6 +36,7 @@ impl Ingredient {
             Self::Item(id) => id == item,
             Self::Tag(tag) => in_tag(tag, item),
             Self::Any(choices) => choices.iter().any(|choice| choice.matches(item, in_tag)),
+            Self::All(choices) => choices.iter().all(|choice| choice.matches(item, in_tag)),
             Self::Difference(base, removed) => base.matches(item, in_tag) && !removed.matches(item, in_tag),
         }
     }
@@ -131,6 +137,80 @@ impl MeltingRecipe {
         let temperature = u32::try_from(v.get("temperature")?.as_u64()?).ok()?;
         if time == 0 || time.checked_mul(10).is_none_or(|required| required > i32::MAX as u32) { return None; }
         Some(Self { input: Ingredient::parse(v.get("ingredient")?)?, output, temperature, time })
+    }
+}
+
+/// Foundries use the source's separate ore and byproduct rates. Keep these
+/// outputs distinct so the caller can insert the primary fluid first and
+/// then fill byproducts in their original order.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct FoundryRecipe {
+    pub melting: MeltingRecipe,
+    pub byproducts: Vec<FluidSpec>,
+}
+impl FoundryRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let value: Value = serde_json::from_slice(bytes).ok()?;
+        let mut melting = MeltingRecipe::parse(bytes, conditions)?;
+        let ore = value.get("type")?.as_str()? == "tconstruct:ore_melting";
+        let main_rate = if ore { value.get("rate")?.as_str()? } else { "none" };
+        let adjust = |amount: u32, rate: &str, byproduct: bool| -> Option<u32> {
+            let (numerator, denominator) = match rate {
+                "metal" => (if byproduct { 3 } else { 9 }, 9),
+                "gem" => (4, 4),
+                "none" | "default" => (1, 1),
+                _ => return None,
+            };
+            amount.checked_mul(numerator).map(|n| n / denominator).filter(|n| *n > 0)
+        };
+        let mut primary = FluidSpec::parse(value.get("result")?)?;
+        primary.amount = adjust(primary.amount, main_rate, false)?;
+        melting.output = primary;
+        let mut byproducts = Vec::new();
+        if let Some(raw) = value.get("byproducts") {
+            for entry in raw.as_array()? {
+                let mut object = entry.as_object()?.clone();
+                let raw_rate = object.remove("rate");
+                let rate = match raw_rate.as_ref().map(Value::as_str) {
+                    None => main_rate,
+                    Some(Some("default")) => main_rate,
+                    Some(Some(rate)) if ore => rate,
+                    _ => return None,
+                };
+                let mut fluid = FluidSpec::parse(&Value::Object(object))?;
+                fluid.amount = adjust(fluid.amount, if ore { rate } else { "none" }, true)?;
+                byproducts.push(fluid);
+            }
+        }
+        Some(Self { melting, byproducts })
+    }
+}
+
+#[cfg(test)]
+mod foundry_tests {
+    use super::*;
+    #[test]
+    fn foundry_dense_copper_requires_both_source_tags() {
+        let source = br#"{"type":"tconstruct:ore_melting","ingredient":{"type":"forge:intersection","children":[{"tag":"forge:ores/copper"},{"tag":"forge:ore_rates/dense"}]},"result":{"amount":540,"tag":"forge:molten_copper"},"temperature":500,"time":225,"rate":"metal","byproducts":[{"tag":"forge:molten_gold","amount":180,"rate":"metal"}]}"#;
+        let recipe = FoundryRecipe::parse(source, &|_| true).unwrap();
+        let both = |tag: &str, item: &str| item == "minecraft:copper_ore" && matches!(tag, "forge:ores/copper" | "forge:ore_rates/dense");
+        assert!(recipe.melting.input.matches("minecraft:copper_ore", &both));
+        assert!(!recipe.melting.input.matches("minecraft:copper_ore", &|tag, _| tag == "forge:ores/copper"));
+        assert_eq!((recipe.melting.output.amount, recipe.byproducts[0].amount), (540, 60));
+    }
+    #[test]
+    fn foundry_uses_source_primary_and_byproduct_ore_rates() {
+        let source = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":180,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"fluid":"tconstruct:molten_gold","amount":90},{"fluid":"tconstruct:molten_quartz","amount":100,"rate":"gem"}]}"#;
+        let foundry = FoundryRecipe::parse(source, &|_| true).unwrap();
+        assert_eq!(foundry.melting.output.amount, 180);
+        assert_eq!(foundry.byproducts.iter().map(|f| f.amount).collect::<Vec<_>>(), [30, 100]);
+        assert_eq!(MeltingRecipe::parse(source, &|_| true).unwrap().output.amount, 240);
+    }
+    #[test]
+    fn foundry_keeps_non_ore_byproduct_amounts_and_conditions() {
+        let source = br#"{"type":"tconstruct:melting","conditions":[{}],"ingredient":{"item":"minecraft:amethyst_shard"},"result":{"amount":100,"fluid":"tconstruct:molten_amethyst"},"temperature":950,"time":65,"byproducts":[{"fluid":"tconstruct:molten_quartz","amount":20}]}"#;
+        assert_eq!(FoundryRecipe::parse(source, &|_| true).unwrap().byproducts[0].amount, 20);
+        assert!(FoundryRecipe::parse(source, &|_| false).is_none());
     }
 }
 

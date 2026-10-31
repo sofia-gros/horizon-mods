@@ -4,8 +4,8 @@ use super::tconstruct_source_melter_state::Tank;
 
 pub(super) fn capacity(name: &str) -> Option<u32> {
     match name {
-        "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" => Some(4000),
-        "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" => Some(48 * 90),
+        "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" => Some(4000),
+        "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => Some(48 * 90),
         _ => None,
     }
 }

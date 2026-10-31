@@ -10,8 +10,8 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
             if matches!(id.as_str(), "tconstruct:fuel_tank" | "tconstruct:ingot_tank") {
                 let block = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
                 let expected = match id.as_str() {
-                    "tconstruct:fuel_tank" => matches!(block, "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge"),
-                    _ => matches!(block, "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge"),
+                    "tconstruct:fuel_tank" => matches!(block, "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge"),
+                    _ => matches!(block, "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge"),
                 };
                 if expected {
                     let capacity = if id == "tconstruct:fuel_tank" { 4000 } else { 4320 };

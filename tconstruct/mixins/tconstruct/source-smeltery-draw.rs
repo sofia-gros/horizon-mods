@@ -5,10 +5,18 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let atlas = &game.gui.atlas;
     batch.sprite_region(atlas, "gui/tconstruct_heating_structure", [ox, oy, 176.0, 220.0], 256.0, 256.0);
     let color = rgba(64, 64, 64, 255);
-    let title = game.pack.names.display_get("container.tconstruct.smeltery").unwrap_or_else(|| "Smeltery".to_owned());
+    let foundry = super::tconstruct_source_smeltery_ui::is_foundry(game);
+    let title = game.pack.names.display_get(if foundry { "container.tconstruct.foundry" } else { "container.tconstruct.smeltery" })
+        .unwrap_or_else(|| if foundry { "Foundry".to_owned() } else { "Smeltery".to_owned() });
     let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
     batch.text(atlas, &inventory, ox + 8.0, oy + 128.0, color, false);
+    // Keep the original container-slot frames, but make it clear that this
+    // port does not yet accept containers in either slot.
+    for y in [46.0, 104.0] {
+        batch.fill(atlas, ox + 125.0, oy + y, 16.0, 16.0, rgba(32, 32, 32, 150));
+        batch.text(atlas, "X", ox + 130.0, oy + y + 4.0, rgba(255, 255, 255, 255), false);
+    }
     let (count, offset) = super::tconstruct_source_smeltery_ui::page(game);
     let cols = super::tconstruct_source_smeltery_layout::columns(count);
     let rows = super::tconstruct_source_smeltery_layout::visible_rows(count);
@@ -55,9 +63,11 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         .and_then(|tag| tag.get("tank").and_then(super::tconstruct_source_smeltery_tank::SmelteryTank::from_nbt));
     if let Some(tank) = tank.filter(|tank| tank.capacity > 0) {
         let mut y = 0.0f32;
-        for fluid in &tank.fluids {
-            let height = (106.0 * fluid.amount as f32 / tank.capacity as f32).min(106.0-y);
-            if height <= 0.0 { break; }
+        let amounts = tank.fluids.iter().map(|fluid| fluid.amount).collect::<Vec<_>>();
+        let heights = super::tconstruct_source_smeltery_layout::fluid_heights(&amounts, tank.capacity);
+        for (fluid, height) in tank.fluids.iter().zip(heights) {
+            let height = height as f32;
+            if height <= 0.0 { continue; }
             let name = crate::game::tconstruct_source_melter_render::sprite(&fluid.id);
             if let Some(sprite) = atlas.sprites.get(&name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                 let (du,dv)=((sprite.u1-sprite.u0)/sprite.w as f32,(sprite.v1-sprite.v0)/sprite.h as f32);

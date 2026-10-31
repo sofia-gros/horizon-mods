@@ -52,6 +52,24 @@ impl Smeltery {
             false
         }
     }
+    pub(super) fn heat_foundry_slot(&mut self, slot: usize, required_temp: u32, required_time: u32,
+        primary: &super::tconstruct_source_smeltery_tank::FluidAmount,
+        byproducts: &[super::tconstruct_source_smeltery_tank::FluidAmount]) -> bool {
+        if self.slots.get(slot).is_none_or(Option::is_none) || required_time == 0 { return false; }
+        let Some(progress) = self.progress.get_mut(slot) else { return false; };
+        if *progress != -1 && (self.temperature < required_temp || self.rate == 0) { return false; }
+        if *progress == -1 || u32::try_from(*progress).is_ok_and(|p| p >= required_time) {
+            if !self.tank.foundry_output(primary, byproducts) { *progress = -1; return false; }
+            let stack = self.slots[slot].as_mut().unwrap();
+            stack.count -= 1;
+            if stack.count == 0 { self.slots[slot] = None; }
+            *progress = 0;
+            true
+        } else {
+            *progress = progress.saturating_add(self.rate.min(i32::MAX as u32) as i32);
+            false
+        }
+    }
     pub(super) fn cool_slot(&mut self, slot: usize) {
         if let Some(progress) = self.progress.get_mut(slot) { if *progress > 0 { *progress = (*progress - 5).max(0); } }
     }
@@ -101,6 +119,18 @@ mod tests {
         s.tick_invalid_structure(); s.tick_invalid_structure();
         assert_eq!(s.progress[0], 15);
         assert_eq!(Smeltery::from_nbt(&s.to_nbt()).unwrap().fuel_cost, 2);
+    }
+    #[test]
+    fn foundry_consumes_input_only_after_primary_and_byproduct_are_staged() {
+        use super::super::tconstruct_source_smeltery_tank::FluidAmount;
+        let mut s = Smeltery::new(); s.resize(1, 205);
+        s.slots[0] = Some(ItemStack::new("minecraft:copper_ore", 1));
+        s.temperature = 1000; s.rate = 10; s.progress[0] = 500;
+        let primary = FluidAmount { id: "copper".into(), amount: 180 };
+        let extra = [FluidAmount { id: "gold".into(), amount: 30 }];
+        assert!(s.heat_foundry_slot(0, 500, 500, &primary, &extra));
+        assert!(s.slots[0].is_none());
+        assert_eq!((s.tank.amount("copper"), s.tank.amount("gold")), (180, 25));
     }
     #[test]
     fn blocked_output_and_storage_round_trip() {

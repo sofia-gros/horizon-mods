@@ -43,16 +43,16 @@ def generate(root=CONTENT):
             continue
         block = Path(name).stem
         state = json.loads(payload)
-        if block in ('smeltery_controller', 'seared_drain', 'seared_chute', 'seared_duct', 'seared_ladder'):
+        if block in ('smeltery_controller', 'foundry_controller', 'seared_drain', 'seared_chute', 'seared_duct', 'seared_ladder', 'scorched_drain', 'scorched_chute', 'scorched_duct', 'scorched_ladder'):
             variants = {}
             for raw, model in state['variants'].items():
                 values = dict(pair.split('=', 1) for pair in raw.split(','))
-                if block == 'smeltery_controller':
+                if block in ('smeltery_controller', 'foundry_controller'):
                     # The template currently carries the active flag only.
                     if values.get('in_structure') != 'true':
                         continue
                     key = f'facing={values["facing"]},lit={values["active"]}'
-                elif block == 'seared_ladder':
+                elif block in ('seared_ladder', 'scorched_ladder'):
                     if values.get('bottom') != 'false':
                         continue
                     key = f'facing={values["facing"]}'
@@ -61,14 +61,14 @@ def generate(root=CONTENT):
                         continue
                     key = f'facing={values["facing"]}'
                 variants[key] = model
-            if len(variants) != (8 if block == 'smeltery_controller' else 4):
+            if len(variants) != (8 if block in ('smeltery_controller', 'foundry_controller') else 4):
                 raise ValueError(f'unexpected source state variants for {block}')
             state = {'variants': variants}
         emit(assets / name, state)
         emit(assets / f'items/{block}.json', {'model': {'type': 'minecraft:model', 'model': f'tconstruct:item/{block}'}})
-        template = ('minecraft:furnace' if block == 'smeltery_controller' else
-                    'minecraft:ladder' if block == 'seared_ladder' else
-                    'minecraft:glass' if block in ('seared_tinted_glass', 'seared_fuel_tank', 'seared_fuel_gauge', 'seared_ingot_tank', 'seared_ingot_gauge') else
+        template = ('minecraft:furnace' if block in ('smeltery_controller', 'foundry_controller') else
+                    'minecraft:ladder' if block in ('seared_ladder', 'scorched_ladder') else
+                    'minecraft:glass' if block.endswith(('_tinted_glass', '_fuel_tank', '_fuel_gauge', '_ingot_tank', '_ingot_gauge')) else
                     'minecraft:white_glazed_terracotta')
         emit(root / f'data/tconstruct/horizon/block/{block}.json', {'template': template, 'properties': {
             'hardness': 3.0, 'explosion_resistance': 9.0, 'requires_tool': True, 'sounds': 'minecraft:stone'}})

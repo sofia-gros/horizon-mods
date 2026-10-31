@@ -7,9 +7,9 @@ fn tconstruct_machine_wire_receive(game: &mut crate::game::Game<'_>, pos: [i32; 
         Some("tconstruct:faucet") => &["tconstruct:seared_faucet"],
         Some("tconstruct:table") => &["tconstruct:seared_table"],
         Some("tconstruct:basin") => &["tconstruct:seared_basin"],
-        Some("tconstruct:smeltery") => &["tconstruct:smeltery_controller"],
-        Some("tconstruct:fuel_tank") => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge"],
-        Some("tconstruct:ingot_tank") => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge"],
+        Some("tconstruct:smeltery") => &["tconstruct:smeltery_controller", "tconstruct:foundry_controller"],
+        Some("tconstruct:fuel_tank") => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "tconstruct:scorched_fuel_tank", "tconstruct:scorched_fuel_gauge"],
+        Some("tconstruct:ingot_tank") => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge", "tconstruct:scorched_ingot_tank", "tconstruct:scorched_ingot_gauge"],
         _ => return Continue(()),
     };
     let block = &game.res.facts().get(game.world.block(pos[0], pos[1], pos[2])).name;

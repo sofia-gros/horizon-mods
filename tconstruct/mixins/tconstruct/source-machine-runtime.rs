@@ -18,9 +18,9 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
         "tconstruct:seared_faucet" => Some("tconstruct:faucet"),
         "tconstruct:seared_table" => Some("tconstruct:table"),
         "tconstruct:seared_basin" => Some("tconstruct:basin"),
-        "tconstruct:smeltery_controller" => Some("tconstruct:smeltery"),
-        "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" => Some("tconstruct:fuel_tank"),
-        "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" => Some("tconstruct:ingot_tank"),
+        "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => Some("tconstruct:smeltery"),
+        "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" => Some("tconstruct:fuel_tank"),
+        "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => Some("tconstruct:ingot_tank"),
         _ => None,
     }
 }
@@ -50,16 +50,25 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         let _ = store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt());
         return;
     };
-    let volume = (capacity / 1080) as usize;
+    let foundry = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:foundry_controller";
     let dx = (max[0] - min[0] - 1) as u32; let dy = (max[1] - min[1]) as u32; let dz = (max[2] - min[2] - 1) as u32;
-    state.fuel_cost = 1 + (2 * dx * dy + 2 * dy * dz + dx * dz) / 15;
+    let volume = (dx * dy * dz) as usize;
+    state.fuel_cost = if foundry { 1 + (2 * (dx + 2) * dy + 2 * dy * dz + (dx + 2) * (dz + 2)) / 18 }
+        else { 1 + (2 * dx * dy + 2 * dy * dz + dx * dz) / 15 };
     let displaced = if state.slots.len() != volume || state.tank.capacity != capacity {
         state.resize(volume, capacity)
     } else { Vec::new() };
     if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(_))) { return; }
     let recipes: Vec<_> = if state.phase == 0 || state.phase == 1 {
-        state.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
-            super::tconstruct_source_melter_world::melting(&game.world, &stack.item))).collect()
+        state.slots.iter().map(|slot| slot.as_ref().and_then(|stack| {
+            if foundry {
+                super::tconstruct_source_melter_world::foundry_melting(&game.world, &stack.item)
+                    .map(|(id, recipe, fluid, byproducts)| (id, recipe.melting, fluid, byproducts))
+            } else {
+                super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
+                    .map(|(id, recipe, fluid)| (id, recipe, fluid, Vec::new()))
+            }
+        })).collect()
     } else { vec![None; state.slots.len()] };
     let mut fuel_update = None;
     if state.phase == 0 && state.fuel == 0 {
@@ -74,9 +83,9 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(mut tank) = store::read(&game.world, at, kind).and_then(|tag| Tank::from_nbt(&tag, tank_capacity)) else { continue; };
             let Some(fluid) = tank.fluid.as_deref() else { continue; };
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
-            let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
+            let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
                 state.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
-            let can_alloy = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, fuel.temperature)
+            let can_alloy = !foundry && super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, fuel.temperature)
                 .is_some_and(|(_, inputs, output, amount)| {
                     let mut candidate = state.tank.clone();
                     let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
@@ -91,16 +100,20 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     }
     if state.phase == 1 {
         for (index, recipe) in recipes.iter().enumerate() {
-            if let Some((_, recipe, fluid)) = recipe {
+            if let Some((_, recipe, fluid, byproducts)) = recipe {
                 if state.fuel > 0 || state.progress[index] == -1 {
                     if let Some(time) = recipe.time.checked_mul(10) {
-                        state.heat_slot(index, recipe.temperature, time, fluid, recipe.output.amount);
+                        if foundry {
+                            let primary = super::tconstruct_source_smeltery_tank::FluidAmount { id: fluid.clone(), amount: recipe.output.amount };
+                            let extras = byproducts.iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id: id.clone(), amount: *amount }).collect::<Vec<_>>();
+                            state.heat_foundry_slot(index, recipe.temperature, time, &primary, &extras);
+                        } else { state.heat_slot(index, recipe.temperature, time, fluid, recipe.output.amount); }
                     }
                 } else { state.cool_slot(index); }
             } else { state.progress[index] = 0; }
         }
     }
-    if state.phase == 2 && state.fuel > 0 {
+    if !foundry && state.phase == 2 && state.fuel > 0 {
         if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, state.temperature) {
             let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
             state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount });
@@ -304,7 +317,7 @@ fn faucet_neighbors(game: &super::Game<'_>, pos: Pos) -> Option<(Pos, Pos)> {
 
 fn smeltery_source(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery)> {
     let block = &game.res.facts().get(game.world.block(io.0, io.1, io.2)).name;
-    if !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:seared_duct") { return None; }
+    if !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") { return None; }
     let controller = *game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&io)?;
     let state = store::read(&game.world, controller, "tconstruct:smeltery").and_then(|tag| Smeltery::from_nbt(&tag))?;
     Some((controller, state))
@@ -361,7 +374,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
-    if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct") {
+    if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") {
         return activate_smeltery_faucet(game, pos, source, target, faucet);
     }
     if &*source_name != "tconstruct:seared_melter" { return true; }
@@ -387,7 +400,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
-    if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct") {
+    if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") {
         tick_smeltery_faucet(game, pos, source, target, faucet);
         return;
     }

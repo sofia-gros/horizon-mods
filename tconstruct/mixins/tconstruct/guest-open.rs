@@ -1,7 +1,7 @@
 fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, pos: (i32, i32, i32)) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     let machine = game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name.clone();
-    if &*machine == "tconstruct:smeltery_controller" {
+    if matches!(&*machine, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
         game.ensure_datapacks();
         if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &machine) { return Break(false); }
         crate::game::tconstruct_source_machine_runtime::refresh_smeltery(game, pos);
@@ -16,7 +16,8 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);
-        host.hub.open_container(conn, "minecraft:generic_9x6", horizon_protocol::text::literal("TConstruct Smeltery"), pos, slots, items);
+        let title = if &*machine == "tconstruct:foundry_controller" { "TConstruct Foundry" } else { "TConstruct Smeltery" };
+        host.hub.open_container(conn, "minecraft:generic_9x6", horizon_protocol::text::literal(title), pos, slots, items);
         if let Some(guest) = host.hub.guest(conn) {
             if let Some(window) = guest.menu.as_ref().map(|menu| menu.window) {
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30002, value: state.slots.len() as i16 }));
