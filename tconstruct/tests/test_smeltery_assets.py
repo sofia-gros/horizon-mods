@@ -1,5 +1,7 @@
 """The Smeltery asset snapshot retains source model loaders for conversion."""
 import json
+import sys
+import tempfile
 from pathlib import Path
 import unittest
 import zipfile
@@ -18,3 +20,20 @@ class SmelteryAssets(unittest.TestCase):
             controller = json.loads(archive.read('assets/tconstruct/models/block/template/controller.json'))
             self.assertEqual(tank['loader'], 'tconstruct:tank')
             self.assertEqual(controller['loader'], 'mantle:retextured')
+
+    def test_static_shell_generation_is_reproducible(self):
+        sys.path.insert(0, str(ROOT / 'tools'))
+        try:
+            from generate_smeltery_assets import generate
+            with tempfile.TemporaryDirectory() as tmp:
+                out = Path(tmp)
+                generate(out)
+                first = {p.relative_to(out): p.read_bytes() for p in out.rglob('*') if p.is_file()}
+                generate(out)
+                second = {p.relative_to(out): p.read_bytes() for p in out.rglob('*') if p.is_file()}
+                self.assertEqual(first, second)
+                for block in ('smeltery_controller', 'seared_drain', 'seared_fuel_tank'):
+                    self.assertIn(Path(f'data/tconstruct/horizon/block/{block}.json'), first)
+                    self.assertIn(Path(f'assets/tconstruct/blockstates/{block}.json'), first)
+        finally:
+            sys.path.pop(0)

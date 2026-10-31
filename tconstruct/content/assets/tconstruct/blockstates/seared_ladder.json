@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"tconstruct:block/smeltery/seared/ladder"},"facing=south":{"model":"tconstruct:block/smeltery/seared/ladder","uvlock":true,"y":180},"facing=west":{"model":"tconstruct:block/smeltery/seared/ladder","uvlock":true,"y":270},"facing=east":{"model":"tconstruct:block/smeltery/seared/ladder","uvlock":true,"y":90}}}
