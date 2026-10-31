@@ -2309,3 +2309,9 @@ id = "server-smeltery-fuel"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_smeltery_fuel"
 source = "source-smeltery-fuel.rs"
+
+[[module]]
+id = "source-armor-preview"
+file = "crates/horizon-client/src/game/perspective.rs"
+name = "tconstruct_armor_preview"
+source = "source-armor-preview.rs"
