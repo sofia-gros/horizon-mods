@@ -10,7 +10,8 @@ This repository contains mods for [Horizon](https://github.com/horizon-rust/hori
 
 In the current Linux build, you can browse equipment in Creative, make parts,
 assemble and repair supported tools, apply Sharpness and Swiftstrike, place a
-selection of Tinkers blocks, melt and cast copper, and make a small Smeltery alloy. Many block and equipment behaviors are still in development.
+selection of Tinkers blocks, melt and cast copper, make a small Smeltery alloy,
+and recover a copper ore byproduct in a Foundry. Many block and equipment behaviors are still in development.
 
 ![A pickaxe and quartz in the Tinker Station](tconstruct/docs/station-upgrade-preview.png)
 

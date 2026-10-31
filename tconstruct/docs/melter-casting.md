@@ -14,4 +14,4 @@ The copper sequence, saving and reloading, and shared input and casting in LAN h
 
 The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; animated fluid frames and the casting cooling fade are not yet implemented.
 
-Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The Foundry remains separate work. Machine collision shapes still need comparison with the source before they can be described as accurate.
+Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. Machine collision shapes still need comparison with the source before they can be described as accurate.
