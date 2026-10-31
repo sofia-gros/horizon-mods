@@ -37,6 +37,10 @@ try:
     g.call('wait', '10'); g.call('interact', '0', '72', '2'); g.call('wait', '15')
     click(hotbar('minecraft:lava_bucket')); tank(158, 50, True)
     assert carried() == 'minecraft:bucket', 'fuel deposit did not return empty bucket'
+    node = next(row for row in g.call('ui')['widgets'] if row.get('id') == 'slot-300')
+    x, y, _, _ = node['bounds']; ox, oy = x - 22, y - 16
+    g.call('wait', '20'); g.call('scroll-at', str(ox + 158), str(oy + 55), '0'); g.call('wait', '5')
+    g.call('screenshot', str(run / 'melter-fuel-tooltip.png'))
     tank(158, 50)
     assert carried() == 'minecraft:lava_bucket', 'fuel extraction failed'
     tank(158, 50, True)
