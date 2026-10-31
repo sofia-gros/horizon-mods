@@ -13,7 +13,7 @@ game = Game(a, run, 'Player', resume=True)
 try:
     game.ready()
     for command in ('gamemode creative @s', 'clear @s', 'tp @s 0.5 71 0.5',
-                    'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
+                    'setblock 0 71 1 minecraft:air', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station',
                     'give @s tconstruct:small_blade[minecraft:custom_data={Material:"tconstruct:flint"}] 1',
                     'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
         game.call('command', command)
