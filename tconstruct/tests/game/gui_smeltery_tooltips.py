@@ -77,9 +77,15 @@ try:
     for name, px, py in (('mode', 130, 75), ('fuel', 160, 80), ('fluid', 30, 115)):
         g.call('scroll-at', str(ox + px), str(oy + py), '0'); g.call('wait', '5')
         g.call('screenshot', str(run / ('gui-smeltery-tooltip-' + name + '.png')))
-    click(301); click(300)
-    assert any(w.get('id') == 'slot-301' and (w.get('stack') or {}).get('item') == 'tconstruct:molten_copper_bucket' for w in g.call('ui')['widgets']), 'filled bucket was not returned'
     click(301)
+    g.call('click-gui', '160', '110'); g.call('wait', '10')
+    assert (g.call('menu').get('carried') or {}).get('item') == 'minecraft:lava_bucket', 'fuel gauge did not fill the bucket'
+    g.call('click-gui', '160', '110', 'right'); g.call('wait', '10')
+    assert (g.call('menu').get('carried') or {}).get('item') == 'minecraft:bucket', 'fuel gauge did not accept lava back'
+    g.call('click-gui', '30', '115', 'right'); g.call('wait', '10')
+    assert (g.call('menu').get('carried') or {}).get('item') == 'minecraft:bucket', 'right-click on fluid incorrectly filled a bucket'
+    g.call('click-gui', '30', '115'); g.call('wait', '10')
+    assert (g.call('menu').get('carried') or {}).get('item') == 'tconstruct:molten_copper_bucket', 'fluid layer did not fill bucket'
     # Put the filled bucket away and show the active input's source heat bar.
     empty = next(slot['slot'] for slot in g.call('inventory')['hotbar'] if not slot.get('item'))
     click(empty); click(hotbar('minecraft:copper_ingot')); click(302); g.call('wait', '30')
