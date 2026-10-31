@@ -121,6 +121,8 @@ class ResourceOverlay(unittest.TestCase):
             panel = (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/panel.png').read_bytes()
             self.assertEqual(hashlib.sha256(panel).hexdigest(), '6dce4d43b21133c75d774dfb3043bec34f9b326b9b3dd9475ff6973a8b329916')
             self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_panel.png').read_bytes(), panel)
+            with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
+                self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_heating_structure.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/gui/heating_structure.png'))
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as melter_assets:
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_melter.png').read_bytes(), melter_assets.read('assets/tconstruct/textures/gui/melter.png'))
                 fluids = json.loads(melter_assets.read('assets/tconstruct/melter-fluid-textures.json'))
