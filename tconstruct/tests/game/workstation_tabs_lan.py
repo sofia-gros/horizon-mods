@@ -19,7 +19,7 @@ def wait(label, test):
     raise AssertionError(label)
 
 def widget(game, slot):
-    return any(row.get('id') == f'slot-{slot}' for row in game.call('ui')['widgets'])
+    return any(row.get('id') == f'slot-{slot}' and (row.get('bounds') or [-1, -1])[0] >= 0 and (row.get('bounds') or [-1, -1])[1] >= 0 for row in game.call('ui')['widgets'])
 
 try:
     host = Game(a, run, 'Player', resume=True); games.append(host); host.ready()

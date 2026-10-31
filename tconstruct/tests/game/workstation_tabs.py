@@ -14,7 +14,7 @@ g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True)
 
 
 def widget(slot):
-    return any(row.get('id') == f'slot-{slot}' for row in g.call('ui')['widgets'])
+    return any(row.get('id') == f'slot-{slot}' and (row.get('bounds') or [-1, -1])[0] >= 0 and (row.get('bounds') or [-1, -1])[1] >= 0 for row in g.call('ui')['widgets'])
 
 try:
     g.ready()
