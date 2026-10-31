@@ -44,6 +44,11 @@ def snapshot(repo):
             info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             output.writestr(info, data)
+        for name in ('assets/tconstruct/models/item/amethyst_bronze_ingot.json', 'assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'):
+            data = subprocess.check_output(['git', '-C', str(repo), 'show', f'{source.REVISION}:src/main/resources/{name}'])
+            info = zipfile.ZipInfo(name, (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            output.writestr(info, data)
     return result.getvalue()
 
 

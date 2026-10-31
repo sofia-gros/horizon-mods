@@ -89,6 +89,8 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+with zipfile.ZipFile(repository / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
+    (mod_assets / 'textures/item/amethyst_bronze_ingot.png').write_bytes(smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
 shutil.copytree(repository / 'content/assets/tconstruct/sounds', mod_assets / 'sounds')
 shutil.copyfile(repository / 'content/assets/tconstruct/sounds.json', mod_assets / 'sounds.json')
 # Original dummy plating sprites are ordinary generated item textures.
@@ -151,6 +153,7 @@ entries = [
     ('tconstruct:tool_handle', 'minecraft:flint', 'Tool Handle'),
     ('tconstruct:tool_binding', 'minecraft:flint', 'Tool Binding'),
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
+    ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
 ]
 # Original material-bearing part and fake-ingot IDs share MaterialItem behavior.
 # Their rendering and tooltip name paths are connected; stats, traits and
