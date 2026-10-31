@@ -2312,7 +2312,7 @@ source = "source-smeltery-fuel.rs"
 
 [[module]]
 id = "source-armor-preview"
-file = "crates/horizon-client/src/game/perspective.rs"
+file = "crates/horizon-client/src/game/armor_stands.rs"
 name = "tconstruct_armor_preview"
 source = "source-armor-preview.rs"
 
@@ -2326,10 +2326,11 @@ target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
-[[bridge]]
-id = "preview-stand-items"
-kind = "INVOKE"
-target = "horizon_client::game::Game::armor_stand_items"
+[[module]]
+id = "source-preview-projection"
+file = "crates/horizon-client/src/game/perspective.rs"
+name = "tconstruct_preview_projection"
+source = "source-preview-projection.rs"
 
 [[state]]
 id = "station-armor-preview"

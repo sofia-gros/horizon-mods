@@ -184,7 +184,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     if station {
         let active_layout = crate::game::tconstruct_ui::station_layout(game);
         if crate::game::tconstruct_ui::station_layouts(game).len() <= 36 {
-            crate::game::perspective::tconstruct_armor_preview::draw(game, batch, ox, oy);
+            crate::game::armor_stands::tconstruct_armor_preview::draw(game, batch, ox, oy);
         }
         if let Some(layout) = active_layout.as_ref() {
             let (x, y) = (ox + 12.5, oy + 22.0);
