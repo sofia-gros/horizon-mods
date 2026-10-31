@@ -12,13 +12,28 @@ pub(super) fn panel_width(count: usize) -> f32 {
     (columns(count) * 22 + 14 + if max_offset(count) > 0 { 10 } else { 0 }) as f32
 }
 /// Return the source tank layer under a relative screen y coordinate.
+pub(super) fn fluid_heights(amounts: &[u32], capacity: u32) -> Vec<u32> {
+    if amounts.is_empty() { return Vec::new(); }
+    let total = amounts.iter().fold(0u32, |sum, amount| sum.saturating_add(*amount));
+    let capacity = capacity.max(total);
+    if capacity == 0 { return vec![0; amounts.len()]; }
+    let mut heights: Vec<u32> = amounts.iter().map(|amount|
+        ((106.0 * *amount as f64 / capacity as f64).ceil() as u32).max(3)).collect();
+    let available = if total < capacity { 103 } else { 106 };
+    while heights.iter().sum::<u32>() > available {
+        let Some(index) = heights.iter().enumerate().max_by_key(|(index, height)| (**height, std::cmp::Reverse(*index))).map(|(index, _)| index) else { break; };
+        if heights[index] == 0 { break; }
+        heights[index] -= 1;
+    }
+    heights
+}
+
 pub(super) fn fluid_at(amounts: &[u32], capacity: u32, y: f32) -> Option<usize> {
-    if capacity == 0 || !(16.0..122.0).contains(&y) { return None; }
+    if !(16.0..122.0).contains(&y) { return None; }
     let from_bottom = 122.0 - y;
     let mut bottom = 0.0f32;
-    for (index, amount) in amounts.iter().enumerate() {
-        let height = (106.0 * *amount as f32 / capacity as f32).min(106.0-bottom);
-        if height <= 0.0 { break; }
+    for (index, height) in fluid_heights(amounts, capacity).into_iter().enumerate() {
+        let height = height as f32;
         if from_bottom <= bottom + height && from_bottom > bottom { return Some(index); }
         bottom += height;
     }
@@ -79,6 +94,8 @@ mod tests {
         assert_eq!(fluid_at(&[90, 90], 180, 110.0), Some(0));
         assert_eq!(fluid_at(&[90, 90], 180, 20.0), Some(1));
         assert_eq!(fluid_at(&[90], 180, 20.0), None);
-        assert_eq!(fluid_at(&[90], 0, 110.0), None);
+        assert_eq!(fluid_at(&[90], 0, 110.0), Some(0));
+        assert_eq!(fluid_heights(&[180, 20], 12960), vec![3, 3]);
+        assert_eq!(fluid_at(&[180, 20], 12960, 117.5), Some(1));
     }
 }

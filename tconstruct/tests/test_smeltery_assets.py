@@ -23,6 +23,11 @@ class SmelteryAssets(unittest.TestCase):
             self.assertIn('assets/tconstruct/textures/gui/heating_structure.png', archive.namelist())
             for suffix in ('u', 'd', 'l', 'r', 'ud', 'ul', 'ur', 'dl', 'dr', 'lr', 'udl', 'udr', 'ulr', 'dlr', 'udlr'):
                 self.assertIn(f'assets/tconstruct/textures/block/smeltery/tinted_glass/{suffix}.png', archive.namelist())
+                self.assertIn(f'assets/tconstruct/textures/block/foundry/tinted_glass/{suffix}.png', archive.namelist())
+            for block in ('foundry_controller', 'scorched_drain', 'scorched_chute', 'scorched_duct',
+                          'scorched_ladder', 'scorched_fuel_tank', 'scorched_fuel_gauge',
+                          'scorched_ingot_tank', 'scorched_ingot_gauge', 'scorched_tinted_glass'):
+                self.assertIn('assets/tconstruct/blockstates/' + block + '.json', archive.namelist())
 
     def test_static_shell_generation_is_reproducible(self):
         sys.path.insert(0, str(ROOT / 'tools'))
@@ -35,7 +40,8 @@ class SmelteryAssets(unittest.TestCase):
                 generate(out)
                 second = {p.relative_to(out): p.read_bytes() for p in out.rglob('*') if p.is_file()}
                 self.assertEqual(first, second)
-                for block in ('smeltery_controller', 'seared_drain', 'seared_fuel_tank'):
+                for block in ('smeltery_controller', 'seared_drain', 'seared_fuel_tank',
+                              'foundry_controller', 'scorched_drain', 'scorched_fuel_tank'):
                     self.assertIn(Path(f'data/tconstruct/horizon/block/{block}.json'), first)
                     self.assertIn(Path(f'assets/tconstruct/blockstates/{block}.json'), first)
         finally:
