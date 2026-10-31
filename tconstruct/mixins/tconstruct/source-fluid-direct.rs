@@ -39,7 +39,8 @@ pub(super) fn guest(game: &mut Game<'_>, host: &mut LanHost, gi: usize, pos: Pos
         host.hub.guests[gi].carried = Some(rest);
         if let Some(result) = slots[1].take() { game.lan_place_back(host, gi, vec![result]); host.hub.send_inventory(gi); }
     } else { host.hub.guests[gi].carried = slots[1].take(); }
-    let carried = host.hub.stack(&host.hub.guests[gi].carried);
+    let carried_stack = host.hub.guests[gi].carried.clone();
+    let carried = host.hub.stack(&carried_stack);
     host.hub.guests[gi].send(&horizon_protocol::packets::play::Clientbound::SetCursorItem(
         horizon_protocol::packets::play::SetCursorItem { item: carried }));
 }
