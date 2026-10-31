@@ -66,7 +66,9 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             if remaining.as_ref().map_or(0, |item| item.count) != before && crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                 game.inventory = inventory;
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
-                    *live = crate::game::tconstruct_source_smeltery_page::project(&state.slots, offset);
+                    let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
+                        .get(&pos).map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+                    *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
                 }
             }
         }
