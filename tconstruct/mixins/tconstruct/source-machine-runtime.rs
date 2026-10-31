@@ -123,6 +123,23 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         state.fuel = state.fuel.saturating_sub(state.fuel_cost);
     }
     state.phase = (state.phase + 1) % 4;
+    if state.phase == 1 {
+        let mut positions: Vec<_> = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().iter()
+            .filter_map(|(at, owner)| (*owner == pos).then_some(*at)).collect();
+        positions.sort_unstable();
+        let tanks: Vec<_> = positions.into_iter().filter_map(|at| {
+            let name = game.res.facts().get(game.world.block(at.0, at.1, at.2)).name.clone();
+            let capacity = super::tconstruct_source_smeltery_fuel::capacity(&name)?;
+            let kind = kind(&name)?;
+            let staged = fuel_update.as_ref().filter(|(updated, _, _)| *updated == at).map(|(_, _, tag)| tag.clone());
+            let tank = staged.or_else(|| store::read(&game.world, at, kind))
+                .and_then(|tag| Tank::from_nbt(&tag, capacity)).unwrap_or_else(|| Tank::new(capacity));
+            Some((at, tank))
+        }).collect();
+        let last = fuel_update.as_ref().map(|(at, _, _)| *at).or(state.fuel_view.last);
+        state.fuel_view = super::tconstruct_source_smeltery_fuel::FuelView::collect(&tanks, last,
+            |fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, u32::MAX).map_or(0, |fuel| fuel.temperature));
+    }
     let mut updates = vec![(pos, "tconstruct:smeltery", state.to_nbt())];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }

@@ -127,6 +127,25 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
         .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
     if let Some(state) = state {
+        if let Some(fluid) = state.fuel_view.fluid.as_deref() {
+            if state.fuel_view.capacity > 0 {
+                let height = (90u64 * u64::from(state.fuel_view.amount) / u64::from(state.fuel_view.capacity)).min(90) as f32;
+                let sprite = super::tconstruct_source_melter_render::sprite(fluid);
+                if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                    let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                    let mut y = 0.0;
+                    while y < height {
+                        let h = (height - y).min(16.0);
+                        let mut part = sprite; part.u1 = part.u0 + 16.0 * du; part.v1 = part.v0 + h * dv;
+                        batch.rect_uv(ox + 152.0, oy + 122.0 - y - h, 16.0, h, part, super::tconstruct_source_melter_render::color(fluid));
+                        y += h;
+                    }
+                }
+            }
+        }
+        if (ox + 151.0..ox + 169.0).contains(&game.cursor.0) && (oy + 31.0..oy + 123.0).contains(&game.cursor.1) {
+            batch.fill(atlas, ox + 152.0, oy + 32.0, 16.0, 90.0, rgba(255, 255, 255, 128));
+        }
         super::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_heating_structure", ox + 153.0, oy + 15.0, state.fuel, state.fuel_quality);
         for visible in 0..rows * cols {
             let menu_slot = visible + 2;

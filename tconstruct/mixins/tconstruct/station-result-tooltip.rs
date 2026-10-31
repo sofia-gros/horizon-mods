@@ -71,6 +71,26 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             .and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
             .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag));
         if let Some(state) = state {
+            if (ox + 151.0..ox + 169.0).contains(&game.cursor.0) && (oy + 31.0..oy + 123.0).contains(&game.cursor.1) {
+                let view = &state.fuel_view;
+                let mut lines = Vec::new();
+                if let Some(fluid) = view.fluid.as_deref() {
+                    let key = format!("fluid.{}", fluid.replace(':', "."));
+                    lines.push((game.pack.names.display_get(&key).unwrap_or_else(|| fluid.to_owned()), u32::MAX));
+                    if view.temperature > 0 {
+                        let format = game.pack.names.display_get("gui.tconstruct.melting.fuel.temperature").unwrap_or_else(|| "Temperature: %s°C".to_owned());
+                        lines.push((format.replace("%s", &view.temperature.to_string()), 0xffaaaaaa));
+                    } else {
+                        lines.push((game.pack.names.display_get("gui.tconstruct.melting.fuel.invalid").unwrap_or_else(|| "Invalid melting fuel!".to_owned()), 0xff5555ff));
+                    }
+                    lines.push((format!("{} mB", view.amount), 0xffaaaaaa));
+                } else {
+                    let (key, fallback) = if view.has_tank { ("gui.tconstruct.melting.fuel.empty", "No fuel found") } else { ("gui.tconstruct.melting.fuel.no_tank", "No tank in structure") };
+                    lines.push((game.pack.names.display_get(key).unwrap_or_else(|| fallback.to_owned()), u32::MAX));
+                }
+                game.draw_tooltip_lines(batch, &lines, game.cursor.0, game.cursor.1);
+                return Break(());
+            }
             let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
             let cols = crate::game::tconstruct_source_smeltery_layout::columns(count);
             let rows = crate::game::tconstruct_source_smeltery_layout::visible_rows(count);
