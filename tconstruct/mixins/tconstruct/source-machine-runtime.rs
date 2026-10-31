@@ -75,7 +75,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
                 state.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
-            let can_alloy = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), fuel.temperature)
+            let can_alloy = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, fuel.temperature)
                 .is_some_and(|(_, inputs, output, amount)| {
                     let mut candidate = state.tank.clone();
                     let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
@@ -100,7 +100,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         }
     }
     if state.phase == 2 && state.fuel > 0 {
-        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.temperature) {
+        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, state.temperature) {
             let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
             state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount });
         }
@@ -134,7 +134,11 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
     if held.count == 0 { return false; }
     let Some(replacement) = super::tconstruct_source_smeltery_fuel::exchange(&mut tank, &held.item) else { return true; };
     if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
-    if !game.creative {
+    if game.creative && replacement == "minecraft:lava_bucket" {
+        // The held empty bucket remains in creative; do not silently discard
+        // the fluid that was removed from the tank.
+        game.give_or_drop(horizon_items::items::ItemStack::new(replacement, 1));
+    } else if !game.creative {
         held.count -= 1;
         if held.count == 0 {
             *game.held_mut() = Some(horizon_items::items::ItemStack::new(replacement, 1));

@@ -46,8 +46,9 @@ impl Catalog<'_> {
     }
     /// Match source ingredients in order, using each stored fluid at most once.
     /// Conditions and tags are evaluated against this world's snapshots.
-    pub(super) fn alloy(&self, fluids: &[(String, u32)], temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
+    pub(super) fn alloy(&self, fluids: &[(String, u32)], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, Vec<(String, u32)>, String, u32)> {
+        let total = fluids.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
         for (id, bytes) in self.recipes {
             let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
             if recipe.temperature > temperature { continue; }
@@ -62,6 +63,8 @@ impl Catalog<'_> {
                 inputs.push((fluid.clone(), ingredient.amount));
             }
             if inputs.len() == recipe.inputs.len() {
+                let removed = inputs.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
+                if recipe.output.amount.saturating_sub(removed) > capacity.saturating_sub(total) { continue; }
                 return Some((id.clone(), inputs, output, recipe.output.amount));
             }
         }
@@ -110,16 +113,20 @@ mod tests {
     use super::*;
     #[test]
     fn alloy_resolves_source_tags_and_temperature() {
-        let recipes = [("bronze".into(), br#"{"type":"tconstruct:alloy","inputs":[{"amount":270,"tag":"forge:copper"},{"amount":90,"tag":"forge:tin"}],"result":{"amount":360,"tag":"forge:bronze"},"temperature":700}"#.to_vec())].into_iter().collect();
+        let recipes = [
+            ("a-overflow".into(), br#"{"type":"tconstruct:alloy","inputs":[{"amount":270,"tag":"forge:copper"},{"amount":90,"tag":"forge:tin"}],"result":{"amount":361,"tag":"forge:bronze"},"temperature":700}"#.to_vec()),
+            ("bronze".into(), br#"{"type":"tconstruct:alloy","inputs":[{"amount":270,"tag":"forge:copper"},{"amount":90,"tag":"forge:tin"}],"result":{"amount":360,"tag":"forge:bronze"},"temperature":700}"#.to_vec())
+        ].into_iter().collect();
         let item_tags = HashMap::new(); let items = HashSet::new();
         let fluids = ["tconstruct:copper".into(), "tconstruct:tin".into(), "tconstruct:bronze".into()].into_iter().collect();
         let tags = [("forge:copper".into(), ["tconstruct:copper".into()].into_iter().collect()), ("forge:tin".into(), ["tconstruct:tin".into()].into_iter().collect()), ("forge:bronze".into(), ["tconstruct:bronze".into()].into_iter().collect())].into_iter().collect();
         let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
         let stored = [("tconstruct:copper".into(), 270), ("tconstruct:tin".into(), 90)];
-        assert!(catalog.alloy(&stored, 699, &|_| true).is_none());
-        let (_, inputs, output, amount) = catalog.alloy(&stored, 700, &|_| true).unwrap();
+        assert!(catalog.alloy(&stored, 360, 699, &|_| true).is_none());
+        let (id, inputs, output, amount) = catalog.alloy(&stored, 360, 700, &|_| true).unwrap();
+        assert_eq!(id, "bronze");
         assert_eq!((inputs.len(), output.as_str(), amount), (2, "tconstruct:bronze", 360));
-        assert!(catalog.alloy(&stored[..1], 700, &|_| true).is_none());
+        assert!(catalog.alloy(&stored[..1], 360, 700, &|_| true).is_none());
     }
     #[test]
     fn fluid_fuel_requires_known_fluid_and_enough_amount() {
