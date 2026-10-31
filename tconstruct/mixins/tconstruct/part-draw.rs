@@ -12,10 +12,10 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_melter").copied() {
             let du = (sprite.u1 - sprite.u0) / sprite.w as f32;
             let dv = (sprite.v1 - sprite.v0) / sprite.h as f32;
-            let (x, width, sx) = if has_heater { (150.0, 18.0, 176.0) } else { (152.0, 14.0, 194.0) };
+            let (x, width, height, sx) = if has_heater { (150.0, 18.0, 36.0, 176.0) } else { (152.0, 14.0, 38.0, 194.0) };
             sprite.u0 += sx * du; sprite.v0 += 52.0 * dv;
-            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + 36.0 * dv;
-            batch.rect_uv(ox + x, oy + 31.0, width, 36.0, sprite, u32::MAX);
+            sprite.u1 = sprite.u0 + width * du; sprite.v1 = sprite.v0 + height * dv;
+            batch.rect_uv(ox + x, oy + 31.0, width, height, sprite, u32::MAX);
         }
         let title = game.pack.names.display_get("container.tconstruct.melter").unwrap_or_else(|| "Melter".to_owned());
         let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
