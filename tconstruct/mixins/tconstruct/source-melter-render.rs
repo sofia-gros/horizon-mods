@@ -36,10 +36,14 @@ pub(super) fn heat_bar(world: &super::World, stack: &horizon_items::items::ItemS
     } else {
         super::tconstruct_source_melter_world::melting(world, &stack.item).map(|(_, recipe, _)| recipe)
     };
-    let Some(recipe) = recipe else { return (185.0, 16.0, Some("gui.tconstruct.melting.no_recipe")); };
-    let required = recipe.time.saturating_mul(10);
+    classify_heat(recipe.map(|recipe| (recipe.temperature, recipe.time)), temperature, progress)
+}
+
+pub(super) fn classify_heat(recipe: Option<(u32, u32)>, temperature: u32, progress: i32) -> (f32, f32, Option<&'static str>) {
+    let Some((recipe_temperature, time)) = recipe else { return (185.0, 16.0, Some("gui.tconstruct.melting.no_recipe")); };
+    let required = time.saturating_mul(10);
     if required == 0 { return (185.0, 16.0, Some("gui.tconstruct.melting.no_recipe")); }
-    if temperature < recipe.temperature { return (179.0, 16.0, Some("gui.tconstruct.melting.no_heat")); }
+    if temperature < recipe_temperature { return (179.0, 16.0, Some("gui.tconstruct.melting.no_heat")); }
     if progress < 0 { return (182.0, 16.0, Some("gui.tconstruct.melting.no_space")); }
     (176.0, (16.0 * progress as f32 / required as f32).clamp(0.0, 16.0), None)
 }
@@ -53,5 +57,16 @@ pub(super) fn draw_heat_bar(batch: &mut horizon_client::hud::HudBatch, atlas: &h
         sprite.v0 += (150.0 + 16.0 - height) * dv;
         sprite.u1 = sprite.u0 + 3.0 * du; sprite.v1 = sprite.v0 + height * dv;
         batch.rect_uv(x - 4.0, y + 16.0 - height, 3.0, height, sprite, u32::MAX);
+    }
+}
+
+#[cfg(test)]
+mod heat_tests {
+    use super::classify_heat;
+    #[test] fn source_heat_status_and_scaling() {
+        assert_eq!(classify_heat(None, 500, 0).0, 185.0);
+        assert_eq!(classify_heat(Some((600, 10)), 500, -1).0, 179.0);
+        assert_eq!(classify_heat(Some((600, 10)), 600, -1).0, 182.0);
+        assert_eq!(classify_heat(Some((600, 10)), 600, 50), (176.0, 8.0, None));
     }
 }
