@@ -1,5 +1,6 @@
 """Exercise one source Foundry ore, byproduct selection, and casting."""
 import argparse
+import sys
 from pathlib import Path
 from harness import Game
 
@@ -9,10 +10,12 @@ p.add_argument('--ctl', type=Path, required=True)
 p.add_argument('--resources', type=Path, required=True)
 p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--no-alloy', action='store_true', help='check that Foundry keeps alloy ingredients separate')
 a = p.parse_args()
 run = a.run_dir.resolve()
 run.mkdir(parents=True, exist_ok=True)
 g = Game(a, run, 'Player', in_frame=a.in_frame, resume=(run / 'Player').exists())
+input_id = 'minecraft:copper_ingot' if a.no_alloy else 'minecraft:copper_ore'
 
 
 def hotbar(item):
@@ -56,7 +59,8 @@ try:
         'setblock 0 71 1 tconstruct:foundry_controller[facing=north,lit=false]',
         'setblock 0 71 4 tconstruct:seared_faucet[facing=south]',
         'setblock 0 70 4 tconstruct:seared_table',
-        'give @s minecraft:lava_bucket 1', 'give @s minecraft:copper_ore 1',
+        'give @s minecraft:lava_bucket 1', f'give @s {input_id} 1',
+        'give @s minecraft:amethyst_shard 1',
         'give @s tconstruct:ingot_cast 1',
     ):
         g.call('command', command)
@@ -65,14 +69,24 @@ try:
     g.call('command', 'tp @s 0.5 71 -1.5'); g.call('wait', '10')
     empty_hand(); g.call('interact', '0', '71', '1'); g.call('wait', '20')
     assert g.call('status')['screen'] == 'inventory', 'formed Foundry did not open'
-    click(hotbar('minecraft:copper_ore')); click(302)
-    assert (input_item() or {}).get('item') == 'minecraft:copper_ore', 'ore input was not accepted'
+    click(hotbar(input_id)); click(302)
+    assert (input_item() or {}).get('item') == input_id, 'input was not accepted'
     g.call('wait', '20'); g.call('close')
     g.call('command', 'setblock -1 71 2 minecraft:air'); g.call('wait', '40')
     g.call('command', 'setblock -1 71 2 tconstruct:scorched_bricks'); g.call('wait', '20')
     g.call('interact', '0', '71', '1'); g.call('wait', '10')
-    assert (input_item() or {}).get('item') == 'minecraft:copper_ore', 'ore was not preserved through structure repair'
-    g.call('wait', '1100', timeout=85)
+    assert (input_item() or {}).get('item') == input_id, 'input was not preserved through structure repair'
+    g.call('wait', '300' if a.no_alloy else '1100', timeout=85)
+    if a.no_alloy:
+        assert input_item() is None, 'copper did not melt'
+        click(hotbar('minecraft:amethyst_shard')); click(302)
+        assert (input_item() or {}).get('item') == 'minecraft:amethyst_shard', 'amethyst input was not accepted'
+        g.call('wait', '360', timeout=45)
+        assert input_item() is None, 'amethyst did not melt'
+        g.call('screenshot', str(run / 'foundry-no-alloy.png'))
+        g.call('close'); g.call('save'); g.stop()
+        print('PASS Foundry ingredients melted; inspect saved fluids for no alloy', flush=True)
+        sys.exit(0)
     g.call('screenshot', str(run / 'foundry-ore-check.png'))
     g.call('save')
     assert input_item() is None, 'copper ore did not melt'
