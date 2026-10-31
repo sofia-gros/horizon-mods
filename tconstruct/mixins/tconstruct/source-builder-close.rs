@@ -16,6 +16,7 @@ fn builder_close(game: &mut crate::game::Game<'_>) {
         if let Some(pos) = game.container {
             game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_station_info_scroll_mut().remove(&pos);
+            game.world.chunks.__horizon_mixins_tconstruct_station_armor_preview_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&pos);
             game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().remove(&pos);

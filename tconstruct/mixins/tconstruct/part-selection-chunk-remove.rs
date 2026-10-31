@@ -7,6 +7,7 @@ fn clear_part_selection_on_unload(chunks: &mut crate::chunk_map::ChunkMap, chunk
     chunks.__horizon_mixins_tconstruct_station_info_scroll_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_station_guest_names_mut().retain(|(_, _, (x, _, z)), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_station_guest_layout_count_mut().retain(|(_, _, (x, _, z)), _| (*x >> 4, *z >> 4) != *chunk);
+    chunks.__horizon_mixins_tconstruct_station_armor_preview_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_material_wire_sent_mut().retain(|(_, _, pos), _| (pos[0] >> 4, pos[2] >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_source_selection_origin_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
     chunks.__horizon_mixins_tconstruct_part_selections_mut().retain(|(x, _, z), _| (*x >> 4, *z >> 4) != *chunk);
