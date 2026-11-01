@@ -56,6 +56,12 @@ file = "crates/horizon-client/src/logging.rs"
 name = "tconstruct_machine_shapes"
 source = "source-machine-shapes.rs"
 
+[[module]]
+id = "source-machine-prepare"
+file = "crates/horizon-client/src/logging.rs"
+name = "tconstruct_machine_prepare"
+source = "source-machine-prepare.rs"
+
 [[injection]]
 id = "prepare-station-resources"
 target = "horizon_client::logging::game_home"
