@@ -90,3 +90,20 @@ fn harvest_tier_uses_only_materials_applied_as_head_stats() {
     assert_eq!(tconstruct_source_station_stats::mining_tier(multi, &[flint.clone(), cobalt.clone(), flint.clone()]), Some(Some("diamond")));
     assert_eq!(tconstruct_source_station_stats::mining_tier(multi, &[flint.clone(), flint, cobalt]), Some(Some("stone")));
 }
+
+#[test]
+fn gem_mining_applies_additive_speed_and_conditional_multiplier_separately() {
+    let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+    let stats = tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+    let mut stack = ItemStack::new("tconstruct:pickaxe",1);
+    stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+        ("tic_max_damage",Tag::Int(100)),
+        ("tic_upgrades",Tag::compound([("tconstruct:diamond",Tag::Int(1)),("tconstruct:emerald",Tag::Int(1))]))
+    ])));
+    stack.data_mut().set_other("minecraft:tool",Some(Tag::compound([("rules",Tag::List(vec![Tag::compound([("speed",Tag::Float(4.0f32.to_bits()))])]))])));
+    tconstruct_source_mining_stack::apply(&mut stack,&stats,&BTreeMap::from([("tconstruct:maintained".into(),1)]),&["tconstruct:maintained".into()],true).unwrap();
+    let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+    let Some(Tag::List(rules))=custom.get("tic_mining_tool").and_then(|t|t.get("rules")) else {panic!()};
+    assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-6.0).abs()<0.0001));
+    assert!((tconstruct_source_mining_rules::conditional(custom,25,6.0,1.0).unwrap()-9.75).abs()<0.0001);
+}

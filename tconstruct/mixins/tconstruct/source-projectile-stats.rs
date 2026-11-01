@@ -45,6 +45,13 @@ mod tests {
         stack
     }
     #[test]
+    fn diamond_damage_comes_from_the_firing_stack() {
+        let mut stack = bow("tconstruct:crossbow", 1.0, 1.0);
+        assert_eq!(diamond_damage(&stack), 0.0);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:diamond", Tag::Int(1))]))])));
+        assert_eq!(diamond_damage(&stack), 0.5);
+    }
+    #[test]
     fn reads_source_stats_and_spread() {
         for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
             let (v, spread) = projectile_stats(&bow(id, 1.25, 0.75)).unwrap();

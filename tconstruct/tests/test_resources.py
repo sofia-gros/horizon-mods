@@ -26,6 +26,9 @@ class ResourceOverlay(unittest.TestCase):
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
             (src / 'assets/minecraft/textures/gui').mkdir(parents=True)
+            (src / 'assets/minecraft/textures/item').mkdir(parents=True)
+            for gem in ('diamond', 'emerald'):
+                (src / 'assets/minecraft/textures/item' / (gem + '.png')).write_bytes(gem.encode())
             subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], check=True)
             self.assertEqual(json.loads((src / 'items.json').read_text()), raw)
             self.assertEqual(json.loads((src / 'creative-inventory.json').read_text()), creative)
@@ -35,6 +38,8 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             items = json.loads((out / 'items.json').read_text())
+            for gem in ('diamond', 'emerald'):
+                self.assertEqual((out / 'assets/minecraft/textures/gui' / ('tconstruct_modifier_' + gem + '.png')).read_bytes(), gem.encode())
             for modifier in ('quick_charge', 'trueshot'):
                 self.assertEqual(
                     (out / 'assets/minecraft/textures/gui' / ('tconstruct_modifier_' + modifier + '.png')).read_bytes(),

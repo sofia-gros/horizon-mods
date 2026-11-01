@@ -180,7 +180,7 @@ pub(super) fn mining_tier(definition: &[u8], materials: &[Map<String, Value>]) -
 /// Tier upgrades set a minimum without lowering stronger materials.
 pub(super) fn gem_tier(tier: Option<&'static str>, diamond: bool, emerald: bool) -> Option<&'static str> {
     let rank = |t: &str| match t { "wooden" | "gold" => 0, "stone" => 1, "iron" => 2, "diamond" => 3, "netherite" => 4, _ => -1 };
-    let current = tier?;
+    let Some(current) = tier else { return if diamond { Some("diamond") } else if emerald { Some("iron") } else { None }; };
     if diamond && rank(current) < 3 { Some("diamond") }
     else if emerald && rank(current) < 2 { Some("iron") }
     else { Some(current) }
