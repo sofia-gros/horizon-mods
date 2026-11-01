@@ -7,10 +7,11 @@ p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'): p.add_argument('--'+n,type=Path,required=True)
 p.add_argument('--in-frame',action='store_true')
 p.add_argument('--seed',type=int,default=42)
+p.add_argument('--resume',action='store_true',help='resume the same disposable world after an interrupted probe')
 a=p.parse_args();a.natural_world=True;a.world_seed=a.seed
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve())
 world=run/'Sky';world.mkdir(exist_ok=True)
-assert not (world/'Player/saves/Probe').exists(), 'requires a new disposable Sky world'
+assert a.resume or not (world/'Player/saves/Probe').exists(), 'requires a new disposable Sky world unless --resume is specified'
 g=Game(a,world,'Player',in_frame=a.in_frame,resume=(world/'Player').exists());guest=None
 def cmd(s):g.call('command',s);g.call('wait','8')
 def hot(i):return next(x['slot'] for x in g.call('inventory')['hotbar'] if x.get('item')==i)
@@ -29,6 +30,7 @@ try:
  x,y,z=found;print('NATURAL CLUSTER',a.seed,found,flush=True)
  g.call('save');g.call('wait','15');g.stop();g.cleanup()
  g=Game(a,world,'Player',in_frame=a.in_frame,resume=True);g.ready()
+ cmd(f'tp @s {x+0.5} {y} {z-1.5}');g.call('wait-ready','90',timeout=95);g.call('wait','15')
  info=g.call('block',x,y,z);print('RELOADED BLOCK',info,flush=True);assert info['block']=='tconstruct:sky_slime_crystal_cluster',info
  port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
  cmd(f'tp Guest {x+0.5} {y} {z-1.5}');guest.call('wait','30');view=guest.call('block',x,y,z);print('LAN GUEST BLOCK',view,flush=True);assert view['block']=='tconstruct:sky_slime_crystal_cluster',view
