@@ -412,8 +412,8 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
     if casting.recipe.is_none() {
         let input = casting.input.as_ref().map(|stack| &*stack.item);
         let Some(id) = fluid.fluid.as_deref() else { return true; };
-        let Some((recipe_id, recipe, output)) = super::tconstruct_source_melter_world::casting(&game.world, kind == "tconstruct:basin", input, id) else { return true; };
-        if !casting.prepare(&recipe_id, recipe.fluid.amount, recipe.cooling_time, horizon_items::items::ItemStack::new(&output, 1), recipe.consumes_cast, recipe.switch_slots) { return true; }
+        let Some((recipe_id, recipe, output)) = super::tconstruct_source_melter_world::casting_stack(&game.world, kind == "tconstruct:basin", input, id) else { return true; };
+        if !casting.prepare(&recipe_id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut fluid, &casting.tank) { return true; }
     if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return false; }
@@ -453,8 +453,8 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(fluid) = melter.tank.fluid.clone() else { return true; };
     if casting.recipe.is_none() {
         let input = casting.input.as_ref().map(|stack| &*stack.item);
-        let Some((id, recipe, output)) = super::tconstruct_source_melter_world::casting(&game.world, casting_kind == "tconstruct:basin", input, &fluid) else { return true; };
-        if !casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, horizon_items::items::ItemStack::new(&output, 1), recipe.consumes_cast, recipe.switch_slots) { return true; }
+        let Some((id, recipe, output)) = super::tconstruct_source_melter_world::casting_stack(&game.world, casting_kind == "tconstruct:basin", input, &fluid) else { return true; };
+        if !casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut melter.tank, &casting.tank) { return true; }
     store::write_many(&mut game.world, &[(source, "tconstruct:melter", melter.to_nbt()), (target, casting_kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())])
@@ -490,8 +490,11 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     let Some((kind, mut casting)) = casting_at(game, pos) else { return; };
     let Some(fluid) = casting.tank.fluid.as_deref() else { return; };
     let input = casting.input.as_ref().map(|stack| &*stack.item);
-    let valid = super::tconstruct_source_melter_world::casting(&game.world, kind == "tconstruct:basin", input, fluid)
-        .is_some_and(|(id, _, _)| casting.recipe.as_deref() == Some(&id));
+    let valid = super::tconstruct_source_melter_world::casting_stack(&game.world, kind == "tconstruct:basin", input, fluid)
+        .is_some_and(|(id, recipe, result)| casting.recipe.as_deref() == Some(&id)
+            && casting.tank.capacity == recipe.fluid.amount && casting.cooling_time == recipe.cooling_time
+            && casting.consumes_cast == recipe.consumes_cast && casting.switch_slots == recipe.switch_slots
+            && casting.result.as_ref().is_some_and(|stored| stored.same_item_same_components(&result) && stored.count == result.count));
     let previous_timer = casting.timer;
     if !casting.tick(valid) {
         if casting.timer != previous_timer { let _ = store::write(&mut game.world, pos, kind, casting.to_nbt()); }

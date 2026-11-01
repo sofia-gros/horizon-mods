@@ -22,6 +22,16 @@ impl Ingredient {
             if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
             return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
         }
+        // With the default ANY predicate the source material ingredient only
+        // tests its nested item or tag, without reading material NBT.
+        if obj.get("type").and_then(Value::as_str) == Some("tconstruct:material") {
+            if obj.keys().any(|key| key != "type" && key != "item" && key != "tag") { return None; }
+            return match (obj.get("item"), obj.get("tag")) {
+                (Some(id), None) => Some(Self::Item(id.as_str()?.to_owned())),
+                (None, Some(id)) => Some(Self::Tag(id.as_str()?.to_owned())),
+                _ => None,
+            };
+        }
         // NBT/custom ingredients need their own semantics; do not silently
         // accept them as a plain item or tag.
         if obj.keys().any(|key| key != "item" && key != "tag") { return None; }
