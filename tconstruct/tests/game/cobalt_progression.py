@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'): p.add_argument('--'+n,type=Path,required=True)
-p.add_argument('--phase',choices=['mine','cast','reload'],required=True);p.add_argument('--in-frame',action='store_true')
+p.add_argument('--phase',choices=['mine','cast','lan','reload'],required=True);p.add_argument('--in-frame',action='store_true')
 a=p.parse_args();a.natural_world=True;a.world_seed=42
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve());world=run/'Sky'
 assert (world/'Player/saves/Probe').is_dir(), 'requires existing disposable seed-42 world'
@@ -85,11 +85,19 @@ try:
   part=next(x for x in inv()['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert 'tconstruct:cobalt' in part.get('components',''),part
   # Leave the actual assembled tool in the Station for the guest to inspect.
   empty();g.call('interact','2046','80','2048');g.call('wait','10');click(hot('tconstruct:pickaxe'));click(300);g.call('close');g.call('save')
-  port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready();cmd('tp Guest 2046.5 80 2046.5');guest.call('wait','15');guest.call('hotbar','9');guest.call('interact','2046','80','2048');guest.call('wait','15')
+  cmd('tp @s 2050.5 80 2046.5');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready();cmd('execute in minecraft:overworld run tp Guest 2046.5 80 2046.5');guest.call('wait','30');guest.call('hotbar','9');guest.call('interact','2046','80','2048');guest.call('wait','15')
   guest_tool=next((w.get('stack') for w in guest.call('ui')['widgets'] if w.get('id')=='slot-300'),None);assert guest_tool and 'tconstruct:cobalt' in guest_tool.get('components',''),guest_tool
-  guest.call('close');guest.stop();guest.cleanup();guest=None
+  guest.call('close');guest.stop();guest.cleanup();guest=None;cmd('tp @s 2046.5 80 2046.5')
   empty();g.call('interact','2046','80','2048');g.call('wait','10');click(300);click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close')
   g.call('save');g.stop();print('PASS cast cobalt part, assemble and LAN',flush=True)
+ elif a.phase=='lan':
+  where('overworld',2046,80,2046);empty();g.call('interact','2046','80','2048');g.call('wait','12');print('HOST_STATION',g.call('ui'),flush=True);g.call('close')
+  cmd('tp @s 2050.5 80 2046.5');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
+  cmd('execute in minecraft:overworld run tp Guest 2046.5 80 2046.5');guest.call('wait-ready','90',timeout=95);guest.call('wait','30');print('GUEST_STATE',guest.call('state'),'BLOCK',guest.call('block','2046','80','2048'),'INV',guest.call('inventory'),flush=True)
+  guest.call('hotbar','9');print('GUEST_INTERACT',guest.call('interact','2046','80','2048'),flush=True);guest.call('wait','20');ui=guest.call('ui');print('GUEST_UI',ui,flush=True)
+  guest_tool=next((w.get('stack') for w in ui['widgets'] if w.get('id')=='slot-300'),None);assert guest_tool and 'tconstruct:cobalt' in guest_tool.get('components',''),guest_tool
+  guest.call('close');guest.stop();guest.cleanup();guest=None;cmd('tp @s 2046.5 80 2046.5')
+  empty();g.call('interact','2046','80','2048');g.call('wait','10');click(300);click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close');g.call('save');g.stop();print('PASS LAN material tool',flush=True)
  elif a.phase=='reload':
   part=next(x for x in inv()['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert 'tconstruct:cobalt' in part.get('components',''),part
   cmd('tp @s 2046.5 80 2046.5');cmd('setblock 2046 80 2047 minecraft:stone');cmd('gamemode survival @s');select('tconstruct:pickaxe');g.call('break','2046','80','2047','--timeout','45',timeout=50);g.call('save');g.stop();print('PASS cobalt tool reload and mining',flush=True)
