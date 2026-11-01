@@ -6,6 +6,7 @@ for k in ('game', 'ctl', 'resources'):
     p.add_argument('--' + k, type=Path, required=True)
 p.add_argument('--run-dir', type=Path, default=Path('target/pb-station-batch'))
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--only-transaction', action='store_true')
 a = p.parse_args()
 run = a.run_dir.resolve()
 g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True)
@@ -88,47 +89,50 @@ try:
     cmd('reload')
     cmd('datapack enable "file/trait-melee-followup-test"')
     g.call('wait', '50')
-    set_trait('')
-    baseline = build()
-    base_damage = val(baseline, 'tic_attack_damage')
-    base_speed = val(baseline, 'tic_attack_speed')
-    assert abs(base_damage - 1.75) < 0.001 and abs(base_speed - 1.2) < 0.001
-    baseline_scale = cooldown_scale()
-    for name, level, expected_damage, expected_speed in [
-        ('solid', 1, base_damage * 1.15, base_speed),
-        ('pierce', 2, base_damage + 1.0, base_speed),
-        ('lightweight', 2, base_damage, base_speed * 1.16),
-        ('vintage', 1, base_damage, base_speed * 0.9),
-    ]:
-        set_trait(name, level)
-        tool = build()
-        print(name, json.dumps(tool), flush=True)
-        assert abs(val(tool, 'tic_attack_damage') - expected_damage) < 0.001
-        assert abs(val(tool, 'tic_attack_speed') - expected_speed) < 0.001
-        if name in ('lightweight', 'vintage'):
-            scale = cooldown_scale()
-            print('cooldown', name, baseline_scale, scale, flush=True)
-            assert scale > baseline_scale if name == 'lightweight' else scale < baseline_scale
-        if name in ('solid', 'pierce'):
-            amount = attack()
-            assert abs(amount - (1.0 + expected_damage)) < 0.01, amount
-            cmd('gamemode creative @s')
+    if not a.only_transaction:
+        set_trait('')
+        baseline = build()
+        base_damage = val(baseline, 'tic_attack_damage')
+        base_speed = val(baseline, 'tic_attack_speed')
+        assert abs(base_damage - 1.75) < 0.001 and abs(base_speed - 1.2) < 0.001
+        baseline_scale = cooldown_scale()
+        for name, level, expected_damage, expected_speed in [
+            ('solid', 1, base_damage * 1.15, base_speed),
+            ('pierce', 2, base_damage + 1.0, base_speed),
+            ('lightweight', 2, base_damage, base_speed * 1.16),
+            ('vintage', 1, base_damage, base_speed * 0.9),
+        ]:
+            set_trait(name, level)
+            tool = build()
+            print(name, json.dumps(tool), flush=True)
+            assert abs(val(tool, 'tic_attack_damage') - expected_damage) < 0.001
+            assert abs(val(tool, 'tic_attack_speed') - expected_speed) < 0.001
+            if name in ('lightweight', 'vintage'):
+                scale = cooldown_scale()
+                print('cooldown', name, baseline_scale, scale, flush=True)
+                assert scale > baseline_scale if name == 'lightweight' else scale < baseline_scale
+            if name in ('solid', 'pierce'):
+                amount = attack()
+                assert abs(amount - (1.0 + expected_damage)) < 0.01, amount
+                cmd('gamemode creative @s')
     # Upgrade, swap and save with a material-derived Solid trait.
     set_trait('solid')
     build()
     cmd('give @s minecraft:quartz 36')
     g.call('interact', '0', '71', '2'); g.call('wait', '10')
     click(0); click(300); click(hotbar('minecraft:quartz')); click(301); click(325)
-    upgraded = g.call('menu')['carried'] or {}
-    assert abs(val(upgraded, 'tic_attack_damage') - (1.75 + 0.75) * 1.15) < 0.001, upgraded
+    assert (g.call('menu')['carried'] or {}).get('item') == 'tconstruct:pickaxe'
     click(0); g.call('close')
+    upgraded = g.call('inventory')['held']
+    assert abs(val(upgraded, 'tic_attack_damage') - (1.75 + 0.75) * 1.15) < 0.001, upgraded
     cmd('give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:wood"}] 1')
     g.call('interact', '0', '71', '2'); g.call('wait', '10')
     click(0); click(300); click(hotbar('tconstruct:pick_head')); click(301); click(325)
-    swapped = g.call('menu')['carried'] or {}
-    assert 'tic_upgrades' in swapped.get('components', '')
+    assert (g.call('menu')['carried'] or {}).get('item') == 'tconstruct:pickaxe'
     click(0); g.call('screenshot', str(run / 'material-melee-followup.png')); g.call('close')
-    before = g.call('inventory')['held']; g.call('save'); g.stop(); g.cleanup()
+    before = g.call('inventory')['held']
+    assert 'tic_upgrades' in before.get('components', '')
+    g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
     saved = g.call('inventory')['held']
     assert abs(val(saved, 'tic_attack_damage') - val(before, 'tic_attack_damage')) < 0.001
