@@ -190,7 +190,9 @@ Both modifiers support extraction into and application from a Modifier Crystal. 
 
 ![Unbreakable selected in the Modifier Worktable](netherite-crystal.png)
 
-This branch has lightweight recipe and stat checks only. The new recipes, rarity, dropped-item protection, effective mining and combat, persistence and LAN have **not yet been verified in the game**. Worktable selection uses the original layered icons. Advancement criteria remain unimplemented; other equipment and modifiers still have the limits described below.
+A representative Linux test used supplied materials and equipment to add four upgrade slots, apply Netherite, complete Reinforced V and apply Unbreakable at a Tinkers' Anvil. It checked the returned bottle, missing-slot and prerequisite rejection, both Crystal round trips and save/reload. Separate fixture tests checked armor toughness on damage, actual melee and Longbow/Crossbow arrow speed, tool, armor and bow wear, diamond ore drops, and a dropped Netherite tool surviving observed lava contact. A LAN guest applied Netherite at a Scorched Anvil and extracted and reapplied an Unbreakable Crystal. These are representative checks, not a full survival playthrough; the ranged comparison used a small number of shots.
+
+Worktable selection uses the original layered icons. Glowing, advancement criteria, other dropped-item damage sources and Windows remain unverified or unimplemented; other equipment and modifiers retain the limits described below.
 
 ## Extract a modifier
 
