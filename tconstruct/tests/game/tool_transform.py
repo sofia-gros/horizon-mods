@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for k in ('game','ctl','resources'): p.add_argument('--'+k,type=Path,required=True)
-p.add_argument('--start-case',type=int,default=0);p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0);p.add_argument('--limits-only',action='store_true');p.add_argument('--smoke',action='store_true')
+p.add_argument('--only-break',action='store_true');p.add_argument('--start-case',type=int,default=0);p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0);p.add_argument('--limits-only',action='store_true');p.add_argument('--smoke',action='store_true')
 a=p.parse_args();run=a.run_dir.resolve();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True)
 def cmd(s):
     r=g.call('command',s);g.call('wait','5');return r
@@ -72,11 +72,11 @@ def pathing_obstacles():
     assert at(19,100,20).split('[')[0]=='minecraft:grass_block' and at(19,101,20)=='minecraft:stone'
     assert after.get('damage',0)-before.get('damage',0)==8,(before,after)
     print('source pathing replaceable and solid above',flush=True)
-def broken_area():
+def broken_area(remaining=1):
     acquire('scythe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('fill 19 100 19 21 100 21 minecraft:dirt');hydrate();cmd('tp @s 20.5 101 18.5')
-    held=g.call('inventory')['held'];maximum=held.get('damage',0)+1;cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}');cmd('gamemode survival @s');g.call('wait','10');g.call('interact','20','100','20','up');g.call('wait','20')
+    held=g.call('inventory')['held'];maximum=held.get('damage',0)+remaining;cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}');cmd('gamemode survival @s');g.call('wait','10');g.call('interact','20','100','20','up');g.call('wait','20')
     after=g.call('inventory')['held'];converted=[(x,z) for x in (19,20,21) for z in (19,20,21) if at(x,100,z).split('[')[0]=='minecraft:farmland']
-    assert len(converted)==1 and after.get('damage')==maximum and 'tic_broken:1b' in after.get('components',''),(converted,after)
+    assert len(converted)==remaining and after.get('damage')==maximum and 'tic_broken:1b' in after.get('components',''),(converted,after)
     print('broken scythe stops area',flush=True)
 def sneak_pass():
     acquire('mattock',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 103 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:dirt');hydrate();cmd('tp @s 20.5 101 18.5');cmd('give @s minecraft:torch 1')
@@ -97,6 +97,8 @@ def sneak_pass():
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
+    if a.only_break:
+        broken_area(3);g.call('save');g.stop();print('PASS mid-area break',flush=True);raise SystemExit(0)
     for index,(name,source,target,area) in enumerate([('mattock','minecraft:dirt','minecraft:farmland',False),('kama','minecraft:dirt','minecraft:farmland',False),('scythe','minecraft:dirt','minecraft:farmland',True),('excavator','minecraft:grass_block','minecraft:dirt_path',True),('hand_axe','minecraft:oak_log','minecraft:stripped_oak_log',False),('broad_axe','minecraft:oak_log','minecraft:stripped_oak_log',False)]):
         if index>=a.start_case:scene(name,source,target,area)
     for source,target in [('minecraft:oxidized_copper','minecraft:weathered_copper'),('minecraft:waxed_copper_block','minecraft:copper_block')]:scene('hand_axe',source,target)
