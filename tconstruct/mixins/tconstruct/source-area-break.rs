@@ -41,6 +41,15 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         if game.world.block(pos[0], pos[1], pos[2]) == state { return Ok(()); }
         let mut area = area;
         loop {
+            // Stop before removing another block if the original tool has broken
+            // or the player's held item has changed during the operation.
+            let intact = game.held().is_some_and(|stack| {
+                stack.item.as_ref() == tool_name.as_str() && stack.data()
+                    .and_then(|data| data.other("minecraft:custom_data"))
+                    .and_then(|custom| match custom.get("tic_max_damage") { Some(Tag::Int(max)) if *max > 0 => Some(*max as u32), _ => None })
+                    .is_some_and(|max| stack.damage < max)
+            });
+            if !intact { break; }
             let is_box = matches!(&area, Area::Box(_));
             let same = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).name == center_name;
             let occludes = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).can_occlude;
