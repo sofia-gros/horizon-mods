@@ -1,4 +1,4 @@
-"""Dedicated-server spawn-protection boundary using the existing fixed world."""
+"""Dedicated-server transform protection for both hands."""
 import argparse, ctypes, gzip, json, os, re, shutil, socket, struct, subprocess, tempfile, threading, time
 from pathlib import Path
 from harness import Game

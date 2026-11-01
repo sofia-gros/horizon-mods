@@ -1,4 +1,4 @@
-"""Source vein and tree traversal in a saved test world."""
+"""Source-derived tool block transformations in a saved test world."""
 import argparse, ctypes, json, re, subprocess, time
 from pathlib import Path
 from harness import Game

@@ -1,4 +1,4 @@
-"""Normal hosted LAN area break, synchronization, drops and save/reload."""
+"""Hosted LAN tool transformations, sneak pass-through and offhand use."""
 import argparse,ctypes,json,os,re,subprocess,time
 from pathlib import Path
 from harness import Game
