@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": "tconstruct:knightslime_block",
+    "s": "#tconstruct:anvil_seared_blocks"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:knightslime_block",
+          "Variant": "knightslime",
+          "Texture": "tconstruct:block/storage/knightslime"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_knightslime"
+    }
+  }
+}

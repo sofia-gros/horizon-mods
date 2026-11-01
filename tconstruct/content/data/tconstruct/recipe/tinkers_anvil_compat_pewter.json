@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": "tconstruct:fake_storage_block",
+    "s": "#tconstruct:anvil_seared_blocks"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:pewter",
+          "RequiredMaterial": "tconstruct:pewter",
+          "Variant": "compat_pewter",
+          "Texture": "tconstruct:block/storage/fallback_tconstruct_pewter"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_compat_pewter"
+    }
+  }
+}

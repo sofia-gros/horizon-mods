@@ -10,8 +10,8 @@ pub(in crate::game) fn selected(game: &Game<'_>) -> Option<horizon_client::items
     if game.remote.is_some() {
         slots.get(24).cloned().flatten().or_else(|| slots.get(25).cloned().flatten())
     } else {
-        crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
-            .or_else(|| crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output))
+        crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
+            .or_else(|| crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|plan| plan.output))
     }.or_else(|| crate::game::tconstruct_source_station_world::has_operation_tool(slots).then(|| slots.first().cloned().flatten()).flatten())
 }
 

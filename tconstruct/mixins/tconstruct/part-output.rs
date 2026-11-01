@@ -38,8 +38,8 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         }
         return Continue(());
     }
-    let repair_slot = station && slot == Some(303) && crate::game::tconstruct_ui::station_layout(game).is_some_and(|layout| layout.tool_slot.is_some());
-    if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && slot != Some(302) && !repair_slot) { return Break(true); }
+    let station_input = station && slot.is_some_and(|slot| (300..=300 + crate::game::tconstruct_ui::station_capacity(game)).contains(&slot));
+    if (302..=323).contains(&slot.unwrap_or(0)) && (!station && slot != Some(322) || station && !station_input) { return Break(true); }
     if !station && slot == Some(322) {
         if button == 0 || button == 1 { crate::game::tconstruct_source_builder_take::take(game, key); }
         return Break(true);
@@ -48,17 +48,27 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let Some(action) = action else { return Continue(()); };
     if button != 0 { return Break(true); }
     let mut build = if action == 24 {
-        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots()))
+        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)))
     } else { None };
     if let Some((_, output)) = build.as_mut() {
         let name = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key).map(|edit| edit.value.as_str());
         crate::game::tconstruct_source_station_name::name_result(output, name);
     }
-    let operation = if action == 25 {
-        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
+    let mut operation = if action == 25 {
+        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)))
     } else { None };
+    if crate::game::tconstruct_ui::station_capacity(game) == 5 {
+        if let Some(plan) = operation.as_mut() {
+            let name = game.world.chunks.__horizon_mixins_tconstruct_station_name_edit().get(&key).map(|edit| edit.value.as_str());
+            crate::game::tconstruct_source_station_name::name_result(&mut plan.output, name);
+        }
+    }
     if action == 25 {
-        if let Some(plan) = operation { crate::game::tconstruct_source_station_take_host::take(game, key, plan); }
+        if let Some(plan) = operation {
+            if crate::game::tconstruct_source_station_take_host::take(game, key, plan) {
+                game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
+            }
+        }
         return Break(true);
     }
     if build.as_ref().is_some_and(|(_, output)| !crate::game::tconstruct_ui::station_accepts_output(game, output)) { return Break(true); }

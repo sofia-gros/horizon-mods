@@ -10,6 +10,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             let Some(Tag::String(id)) = raw.get("id") else { continue; };
             let id = id.to_string_lossy();
             let blocks: &[&str] = match id.as_str() {
+                "tconstruct:anvil" => &["tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"],
                 "tconstruct:melter" => &["tconstruct:seared_melter"],
                 "tconstruct:heater" => &["tconstruct:seared_heater"],
                 "tconstruct:faucet" => &["tconstruct:seared_faucet"],

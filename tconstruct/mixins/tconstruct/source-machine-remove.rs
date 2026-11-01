@@ -1,5 +1,15 @@
 fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizon_core::position::BlockPos, old: horizon_world::registry::BlockStateId, side_effects: bool) {
     let name = level.facts.get(old).name.clone();
+    if matches!(&*name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil") {
+        let at = (pos.x, pos.y, pos.z);
+        if side_effects {
+            if let Some(value) = crate::game::tconstruct_source_melter_store::read(level.world, at, "tconstruct:anvil") {
+                let entry = level.pending.copied.entry([pos.x, pos.y, pos.z]).or_insert_with(|| (name.to_string(), horizon_world::nbt::Compound::new()));
+                entry.1.insert("tconstruct:internal_anvil_copy".into(), value);
+            }
+        }
+        crate::game::tconstruct_source_melter_store::clear(level.world, at);
+    }
     if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::capacity(&name) {
         let kind = crate::game::tconstruct_source_machine_runtime::kind(&name);
         if side_effects {

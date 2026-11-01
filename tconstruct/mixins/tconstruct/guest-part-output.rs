@@ -8,8 +8,11 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let actual = hub.encoder.block_ids.get(state).copied();
     let block = hub.sync.builtin.get("minecraft:block");
     let builder = block.and_then(|r| r.id("tconstruct:part_builder"));
-    let station = block.and_then(|r| r.id("tconstruct:tinker_station"));
-    let is_station = if builder.is_some() && actual == builder { false } else if station.is_some() && actual == station { true } else { return Continue(()); };
+    let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"].into_iter()
+        .find_map(|name| block.and_then(|r| r.id(name)).filter(|id| Some(*id) == actual)
+            .and_then(|_| crate::tconstruct_source_anvil_capacity::input_capacity(name)));
+    let is_station = if builder.is_some() && actual == builder { false } else if capacity.is_some() { true } else { return Continue(()); };
+    let capacity = capacity.unwrap_or(3);
     let side_shulker = if let crate::lan::menu::Slots::Double(_, side) = menu.slots {
         let side_state = world.block(side.0, side.1, side.2).0 as usize;
         hub.encoder.block_ids.get(side_state).and_then(|id| usize::try_from(*id).ok())
@@ -126,9 +129,9 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     }
     // Inactive inputs remain visible only while occupied and can be removed,
     // never used as a destination. Selection is scoped to this viewer/menu.
-    if is_station && (0..4).contains(&packet.slot) {
+    if is_station && (0..=capacity as i16).contains(&packet.slot) {
         let operation = world.block_entities.get(&key).is_some_and(|entity| crate::tconstruct_source_station_world::has_operation_tool(entity.slots()));
-        let count = if operation { 4 } else { world.chunks.__horizon_mixins_tconstruct_station_guest_layout_count().get(&(conn, packet.container, key)).copied().unwrap_or(4) };
+        let count = if operation { capacity + 1 } else { world.chunks.__horizon_mixins_tconstruct_station_guest_layout_count().get(&(conn, packet.container, key)).copied().unwrap_or(capacity + 1) };
         if packet.slot as usize >= count {
             let occupied = world.block_entities.get(&key).and_then(|entity| entity.slots().get(packet.slot as usize)).and_then(Option::as_ref).is_some();
             if !occupied || hub.guests[gi].carried.is_some() || !matches!(packet.input, 0 | 1) {
@@ -140,8 +143,8 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     }
     // The slot belongs to the underlying Station inventory even before the
     // tool is inserted. Layout selection only controls whether it is visible.
-    let repair_slot = is_station && packet.slot == 3;
-    if packet.input != 0 || (!is_station && (24..=26).contains(&packet.slot)) || ((2..=23).contains(&packet.slot) && (!is_station && packet.slot != 22 || is_station && packet.slot != 2 && !repair_slot)) {
+    let station_input = is_station && (0..=capacity as i16).contains(&packet.slot);
+    if packet.input != 0 || (!is_station && (24..=26).contains(&packet.slot)) || ((2..=23).contains(&packet.slot) && (!is_station && packet.slot != 22 || is_station && !station_input)) {
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(Vec::new());
     }
@@ -179,15 +182,21 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let Some(action) = action else { return Continue(()); };
     if packet.button == 0 {
         let mut building = if action == 24 {
-            world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan(world, entity.slots()))
+            world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan_with_capacity(world, entity.slots(), capacity))
         } else { None };
         if let Some((_, output)) = building.as_mut() {
             let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(conn, packet.container, key)).map(String::as_str);
             crate::tconstruct_source_station_name::name_result(output, name);
         }
-        let repair = if action == 25 {
-            world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan(world, entity.slots()))
+        let mut repair = if action == 25 {
+            world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan_with_capacity(world, entity.slots(), capacity))
         } else { None };
+        if capacity == 5 {
+            if let Some(plan) = repair.as_mut() {
+                let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(conn, packet.container, key)).map(String::as_str);
+                crate::tconstruct_source_station_name::name_result(&mut plan.output, name);
+            }
+        }
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let give = if action == 24 {
                 building.and_then(|(matched, output)| {
@@ -196,7 +205,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 })
             } else { repair.and_then(|plan| crate::tconstruct_source_station_world::take_operation(stacks, &mut hub.guests[gi].carried, plan)) };
             if let Some(give) = give {
-                if action == 24 { world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(conn, packet.container, key)); }
+                world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(conn, packet.container, key));
                 for stack in give {
                     let max = rules.max_stack(&stack.item);
                     let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));

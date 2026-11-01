@@ -1,5 +1,5 @@
 fn open_tconstruct_storage(game: &mut crate::game::Game<'_>, pos: [i32; 3], name: &str) -> std::ops::ControlFlow<bool> {
-    if name != "tconstruct:part_builder" && name != "tconstruct:tinker_station" {
+    if name != "tconstruct:part_builder" && crate::game::tconstruct_source_anvil_capacity::input_capacity(name).is_none() {
         return std::ops::ControlFlow::Continue(());
     }
     if game.remote.is_none() { game.ensure_datapacks(); }

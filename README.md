@@ -26,3 +26,5 @@ To work on a mod, start with the [development guide](docs/development.md).
 ## Shared library
 
 [pluto lib](pluto-lib/README.md) provides shared mod functionality, starting with Creative tab registration.
+
+The [Anvil guide](tconstruct/docs/anvil-assembly.md) describes five-input assembly and representative Linux LAN checks; Windows remains untested.

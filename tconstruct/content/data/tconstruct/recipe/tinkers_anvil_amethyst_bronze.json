@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": "tconstruct:amethyst_bronze_block",
+    "s": "#tconstruct:anvil_seared_blocks"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:amethyst_bronze_block",
+          "Variant": "amethyst_bronze",
+          "Texture": "tconstruct:block/storage/amethyst_bronze"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_amethyst_bronze"
+    }
+  }
+}

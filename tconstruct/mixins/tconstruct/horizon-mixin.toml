@@ -1677,6 +1677,18 @@ helper = "source-builder-crafted.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[module]]
+id = "host-source-anvil-capacity"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_anvil_capacity"
+source = "source-anvil-capacity.rs"
+
+[[module]]
+id = "server-source-anvil-capacity"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_anvil_capacity"
+source = "source-anvil-capacity.rs"
+
+[[module]]
 id = "host-source-station-layout"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_station_layout"
@@ -2778,3 +2790,14 @@ id = "source-armor-wear"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_armor_wear"
 source = "source-armor-wear.rs"
+
+[[injection]]
+id = "anvil-material-recipe"
+target = "horizon_client::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "anvil-material-recipe.rs"
+bindings = [
+  { name = "input", ty = "&Input<'_>", value = "input" },
+  { name = "recipe", ty = "&Recipe", value = "recipe" },
+]

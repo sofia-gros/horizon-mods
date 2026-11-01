@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": "minecraft:netherite_block",
+    "s": "#tconstruct:anvil_seared_blocks"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "minecraft:netherite_block",
+          "Variant": "netherite",
+          "Texture": "minecraft:block/netherite_block"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_netherite"
+    }
+  }
+}

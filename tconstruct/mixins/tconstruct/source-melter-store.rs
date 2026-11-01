@@ -7,7 +7,7 @@ use super::tconstruct_world::World;
 type Pos = (i32, i32, i32);
 
 fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) -> bool {
-    if !matches!(key, "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank") { return false; }
+    if !matches!(key, "tconstruct:anvil" | "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank") { return false; }
     if let Some((_, tag)) = sources.iter_mut().find(|(at, _)| *at == pos) {
         if tag.get("id") != Some(&Tag::String(key.into())) { return false; }
         let Tag::Compound(map) = tag else { return false; };
@@ -78,6 +78,17 @@ mod tests {
         assert_eq!(sources.len(), 1);
         assert_eq!(sources[0].0, b);
         assert_eq!(sources[0].1.get("tconstruct:melter"), Some(&Tag::Int(9)));
+    }
+    #[test]
+    fn anvil_alloy_and_inventory_metadata_share_one_source() {
+        let pos = (3, 70, -2);
+        let mut sources = Vec::new();
+        let alloy = Tag::compound([("Metal", Tag::String("tconstruct:slimesteel_block".into()))]);
+        assert!(set_metadata(&mut sources, pos, "tconstruct:anvil", alloy.clone()));
+        assert_eq!(sources[0].1.get("id"), Some(&Tag::String("tconstruct:anvil".into())));
+        assert_eq!(sources[0].1.get("tconstruct:anvil"), Some(&alloy));
+        assert!(!set_metadata(&mut sources, pos, "tconstruct:melter", Tag::Int(1)));
+        assert_eq!(sources[0].1.get("tconstruct:anvil"), Some(&alloy));
     }
     #[test]
     fn metadata_preserves_inventory_source_and_rejects_other_entities() {

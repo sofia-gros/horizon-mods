@@ -3,6 +3,14 @@ fn tconstruct_machine_place(game: &mut crate::game::Game<'_>, pos: [i32; 3], sta
     let name = game.res.facts().get(state).name.clone();
     if &*stack.item != &*name { return; }
     let key = (pos[0], pos[1], pos[2]);
+    if matches!(&*name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil") {
+        game.world.block_entities.get_or_insert_with(key, || horizon_client::containers::BlockEntity::Chest(vec![None; 27]));
+        crate::game::tconstruct_source_melter_store::clear_different(&mut game.world, key, "tconstruct:anvil");
+        if let Some(value) = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tconstruct:anvil")) {
+            let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, "tconstruct:anvil", value.clone());
+        }
+        return;
+    }
     if !crate::game::tconstruct_source_machine_runtime::ensure(game, key, &name) { return; }
     let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::capacity(&name) else { return; };
     let Some(saved) = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tconstruct:tank")) else { return; };

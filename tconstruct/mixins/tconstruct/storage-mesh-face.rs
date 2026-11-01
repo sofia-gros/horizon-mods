@@ -9,22 +9,33 @@ fn tconstruct_storage_mesh_face(
     let Some(chunk) = tints.region[1][1] else { return Continue(()); };
     let Some(saved) = chunk.saved.as_deref() else { return Continue(()); };
     let world = (tints.origin[0] * 16 + pos[0], tints.origin[2] + pos[1], tints.origin[1] * 16 + pos[2]);
-    let material = saved.block_entities.iter().find_map(|raw| {
-        if raw.get("id") != Some(&Tag::String("tconstruct:material_block".into())) { return None; }
-        match (raw.get("x"), raw.get("y"), raw.get("z"), raw.get("Material")) {
-            (Some(Tag::Int(x)), Some(Tag::Int(y)), Some(Tag::Int(z)), Some(Tag::String(id)))
-                if (*x, *y, *z) == world => Some(id.to_string_lossy()),
-            _ => None,
+    let anvil = saved.block_entity_sources.iter().find_map(|(at, tag)| {
+        if *at != world || tag.get("id") != Some(&Tag::String("tconstruct:anvil".into())) { return None; }
+        match tag.get("tconstruct:anvil").and_then(|value| value.get("Texture")) {
+            Some(Tag::String(id)) => Some(id.to_string_lossy().to_string()), _ => None,
         }
     });
-    let Some(material) = material else { return Continue(()); };
-    let Some(data) = saved.root.get(&"tconstruct:mesh_render_info".into()).and_then(|tag| tag.get(&material)) else { return Continue(()); };
-    let texture = match data.get("texture") { Some(Tag::String(id)) => Some(id.to_string_lossy()), _ => None };
-    let fallbacks = match data.get("fallbacks") { Some(Tag::List(ids)) => ids.iter().filter_map(|id| match id { Tag::String(s) => Some(s.to_string_lossy()), _ => None }).collect(), _ => return Continue(()) };
-    let color = match data.get("color") { Some(Tag::Int(v)) => *v as u32, _ => return Continue(()) };
-    let luminosity = match data.get("luminosity") { Some(Tag::Int(v)) => *v as u8, _ => return Continue(()) };
-    let info = tconstruct_storage_render_info::RenderInfo { texture, fallbacks, color, luminosity };
-    let Ok((sprite, color, emission)) = tconstruct_storage_render_info::select_sprite_by("tconstruct:block/storage/fallback", &info, |id| mesher.render.sprite_layers.contains_key(id)) else { return Continue(()); };
+    let (sprite, color, emission) = if let Some(sprite) = anvil {
+        (sprite, 0xffffffff, 0)
+    } else {
+        let material = saved.block_entities.iter().find_map(|raw| {
+            if raw.get("id") != Some(&Tag::String("tconstruct:material_block".into())) { return None; }
+            match (raw.get("x"), raw.get("y"), raw.get("z"), raw.get("Material")) {
+                (Some(Tag::Int(x)), Some(Tag::Int(y)), Some(Tag::Int(z)), Some(Tag::String(id)))
+                    if (*x, *y, *z) == world => Some(id.to_string_lossy()),
+                _ => None,
+            }
+        });
+        let Some(material) = material else { return Continue(()); };
+        let Some(data) = saved.root.get(&"tconstruct:mesh_render_info".into()).and_then(|tag| tag.get(&material)) else { return Continue(()); };
+        let texture = match data.get("texture") { Some(Tag::String(id)) => Some(id.to_string_lossy()), _ => None };
+        let fallbacks = match data.get("fallbacks") { Some(Tag::List(ids)) => ids.iter().filter_map(|id| match id { Tag::String(s) => Some(s.to_string_lossy()), _ => None }).collect(), _ => return Continue(()) };
+        let color = match data.get("color") { Some(Tag::Int(v)) => *v as u32, _ => return Continue(()) };
+        let luminosity = match data.get("luminosity") { Some(Tag::Int(v)) => *v as u8, _ => return Continue(()) };
+        let info = tconstruct_storage_render_info::RenderInfo { texture, fallbacks, color, luminosity };
+        let Ok(result) = tconstruct_storage_render_info::select_sprite_by("tconstruct:block/storage/fallback", &info, |id| mesher.render.sprite_layers.contains_key(id)) else { return Continue(()); };
+        result
+    };
     let Some(&layer) = mesher.render.sprite_layers.get(&sprite) else { return Continue(()); };
     let q = &face.quad;
     let directional = lighting::cardinal(mesher.nether_shading, q.shade_direction_override.unwrap_or(q.facing));

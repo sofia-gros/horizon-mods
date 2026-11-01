@@ -14,6 +14,12 @@ pub(super) fn has_operation_tool(slots: &[Option<ItemStack>]) -> bool {
 
 /// Resolve supported tools against source recipes and material stats.
 pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(BuildingMatch, ItemStack)> {
+    building_plan_with_capacity(world, slots, 3)
+}
+
+/// The authoritative caller must select the capacity from the workstation block.
+pub(super) fn building_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(BuildingMatch, ItemStack)> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let registered = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
@@ -23,7 +29,7 @@ pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Opt
         let Some((namespace, name)) = recipe.result.split_once(':') else { continue; };
         let Some(definition) = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()) else { continue; };
         let Some(parts) = recipe.parts(definition) else { continue; };
-        let Some(inputs) = slots.get(..3) else { return None; };
+        let Some(inputs) = slots.get(..input_capacity) else { return None; };
         let Some(matched) = recipe.match_inputs(&parts, parts.len(), inputs, |stack| {
             match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("Material")) {
                 Some(Tag::String(material)) => Some(material.to_string_lossy().to_string()),
@@ -129,9 +135,14 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
 
 /// Replace one part, rebuilding base stats and preserving the original stack.
 pub(super) fn swap_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    swap_plan_with_capacity(world, slots, 3)
+}
+
+fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
     let tool = slots.first()?.as_ref()?;
     if !tool.item.starts_with("tconstruct:") || tool.count != 1 { return None; }
-    let mut inputs = (1..=3).filter_map(|index| slots.get(index).and_then(Option::as_ref).map(|stack| (index, stack)));
+    let mut inputs = (1..=input_capacity).filter_map(|index| slots.get(index).and_then(Option::as_ref).map(|stack| (index, stack)));
     let (slot, part) = inputs.next()?;
     if inputs.next().is_some() { return None; }
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
@@ -167,6 +178,11 @@ pub(super) fn swap_plan(world: &super::tconstruct_world::World, slots: &[Option<
 
 /// Compute material repair from the tool definition and world recipes.
 pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    repair_plan_with_capacity(world, slots, 3)
+}
+
+fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
     let mut tool = slots.first()?.as_ref()?.clone();
     if !tool.item.starts_with("tconstruct:") || tool.count != 1 || tool.damage == 0 { return None; }
     let custom = tool.data()?.other("minecraft:custom_data")?;
@@ -219,7 +235,7 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
         * super::tconstruct_source_material_effects::dense_repair_factor(dense);
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
-    for index in 1..=3 {
+    for index in 1..=input_capacity {
         let Some(stack) = slots.get(index).and_then(Option::as_ref) else { continue; };
         let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
         if material.needed <= 0 { return None; }
@@ -259,7 +275,7 @@ pub(super) struct StationOperation {
     pub leftover: Option<ItemStack>,
 }
 
-fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<StationOperation> {
+fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
     let tool = slots.first()?.as_ref()?;
     if tool.count != 1 { return None; }
     let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
@@ -276,7 +292,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .sum::<i64>();
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..4)?, i32::try_from(slots_available).ok()?)?;
+    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?)?;
     let mut upgraded = tool.clone();
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
@@ -297,8 +313,13 @@ pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Opti
 
 /// Plan an upgrade, replacement or repair without consuming inputs.
 pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<StationOperation> {
-    if let Some(plan) = upgrade_plan(world, slots) { return Some(plan); }
-    if let Some((output, consumed)) = swap_plan(world, slots).or_else(|| repair_plan(world, slots)) {
+    operation_plan_with_capacity(world, slots, 3)
+}
+
+pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
+    if let Some(plan) = upgrade_plan(world, slots, input_capacity) { return Some(plan); }
+    if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity).or_else(|| repair_plan_with_capacity(world, slots, input_capacity)) {
         return Some(StationOperation { output, consumed, leftover: None });
     }
     let tool = slots.first()?.as_ref()?;
