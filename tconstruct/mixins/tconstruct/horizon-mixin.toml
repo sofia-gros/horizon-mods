@@ -2572,3 +2572,9 @@ kind = "HEAD"
 cancellable = true
 helper = "source-transform-use.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "pos", ty = "[i32;3]", value = "pos" }, { name = "face", ty = "[i32;3]", value = "face" }]
+
+[[module]]
+id = "source-transform-logic"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_transform_logic"
+source = "source-transform-logic.rs"

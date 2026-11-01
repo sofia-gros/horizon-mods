@@ -1,14 +1,8 @@
 // Use source tool traits and area rules with Horizon's existing block transformer.
 fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_items::items::ItemStack, pos:[i32;3], face:[i32;3]) -> std::ops::ControlFlow<Result<bool>> {
     use std::ops::ControlFlow::{Break,Continue};
-    use horizon_world::nbt::Tag;
-    let (template,kind)=match stack.item.as_ref() {
-        "tconstruct:mattock" | "tconstruct:kama" | "tconstruct:scythe" => ("minecraft:wooden_hoe",0),
-        "tconstruct:excavator" => ("minecraft:wooden_shovel",1),
-        "tconstruct:hand_axe" | "tconstruct:broad_axe" => ("minecraft:wooden_axe",2),
-        _ => return Continue(()),
-    };
-    let max=stack.data().and_then(|d|d.other("minecraft:custom_data")).and_then(|d|match d.get("tic_max_damage"){Some(Tag::Int(max)) if *max>0=>Some(*max as u32),_=>None});
+    let Some((template,kind))=crate::game::tconstruct_source_transform_logic::mode(stack.item.as_ref()) else {return Continue(());};
+    let max=crate::game::tconstruct_source_transform_logic::maximum(stack);
     if max.is_none_or(|max|stack.damage>=max) || !game.may_build() { return Break(Ok(false)); }
     let item=stack.item.clone();
     let fake=horizon_items::items::ItemStack::new(template,1);
@@ -39,9 +33,14 @@ fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_item
             let intact=game.held().is_some_and(|s|s.item==item && s.damage<max.unwrap());
             if !intact {break;}
             if !blocked.contains(&(at[0],at[2])) {
-                if let Some((new,sound,loot,_damage,particle))=game.block_transform(&fake,at,face) {
+                if let Some((new,sound,loot,_damage,particle,clear_above))=crate::game::tconstruct_source_transform_logic::probe(game,&fake,kind,at,face) {
                     game.trigger_block("minecraft:item_used_on_block",at,stack);
                     game.level_set(at,new)?;
+                    if clear_above {
+                        let above=horizon_core::position::BlockPos::new(at[0],at[1]+1,at[2]);
+                        game.with_level(|behaviours,level,ticks| behaviours.destroy_block(level,ticks,above,true));
+                        game.process_level_events()?;
+                    }
                     game.transform_particle(&particle,at);
                     if loot.as_deref()==Some("minecraft:till/rooted_dirt") {
                         game.pop_resource([at[0]+face[0],at[1]+face[1],at[2]+face[2]],horizon_items::items::ItemStack::new("minecraft:hanging_roots",1));
