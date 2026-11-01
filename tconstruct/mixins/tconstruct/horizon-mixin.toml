@@ -2744,7 +2744,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 [[state]]
 id = "armor-wear-context"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<Option<u32>,Vec<(horizon_client::items::ItemStack,u32)>>"
+ty = "std::collections::HashMap<Option<u32>,Vec<(horizon_items::items::ItemStack,u32)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
