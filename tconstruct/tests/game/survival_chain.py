@@ -81,7 +81,8 @@ try:
  g.ready()
  if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
  if a.phase=='base':
-  for c in ('gamemode creative @s','gamerule minecraft:spawn_mobs false','fill -5 70 -5 8 70 8 minecraft:stone','fill -5 71 -5 8 75 8 minecraft:air','tp @s 0.5 71 0.5','clear @s','setblock 0 71 2 minecraft:crafting_table','setblock 4 71 2 minecraft:furnace','give @s minecraft:oak_planks 12','give @s minecraft:stick 2','give @s minecraft:oak_log 1','give @s minecraft:flint 1'):cmd(c)
+  for c in ('gamemode creative @s','gamerule minecraft:spawn_mobs false','fill -5 70 -5 8 70 8 minecraft:stone','fill -5 71 -5 8 75 8 minecraft:air','tp @s 0.5 71 0.5','clear @s','setblock 0 71 2 minecraft:crafting_table','setblock 4 71 2 minecraft:furnace','give @s minecraft:oak_planks 14','give @s minecraft:stick 4','give @s minecraft:oak_log 1','give @s minecraft:flint 1'):cmd(c)
+  craft([('minecraft:oak_planks',[100,104]),('minecraft:stick',[101,103])],'tconstruct:pattern',6)
   craft([('minecraft:oak_planks',[100,104]),('minecraft:stick',[101,103])],'tconstruct:pattern',6)
   craft([('tconstruct:pattern',[100,101]),('minecraft:oak_planks',[103,104])],'tconstruct:part_builder')
   craft([('tconstruct:pattern',[100,101,102]),('minecraft:oak_planks',[103,105,106,108])],'tconstruct:tinker_station')
