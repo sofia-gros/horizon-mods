@@ -9,6 +9,9 @@ DATA = ROOT / 'content/data/tconstruct'
 
 class AnvilRecipes(unittest.TestCase):
     def test_source_pattern_and_registered_ingredients(self):
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as materials:
+            source_alloys = json.loads(materials.read('data/tconstruct/tinkering/tags/materials/compatibility_metals/alloys.json'))['values']
+            source_alloys = {entry['id'] if isinstance(entry, dict) else entry for entry in source_alloys}
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
             for anvil, material in [('tinkers_anvil', 'seared'), ('scorched_anvil', 'scorched')]:
                 source = json.loads(archive.read(f'data/tconstruct/recipes/tables/{anvil}.json'))
@@ -30,6 +33,7 @@ class AnvilRecipes(unittest.TestCase):
 
                     if recipe['key']['m'] == 'tconstruct:fake_storage_block':
                         self.assertEqual(visual['Metal'], visual['RequiredMaterial'])
+                        self.assertIn(visual['Metal'], source_alloys)
                         self.assertTrue(visual['Variant'].startswith('compat_'))
                     else:
                         self.assertEqual(visual['Metal'], recipe['key']['m'])
