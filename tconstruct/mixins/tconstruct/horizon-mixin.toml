@@ -2717,3 +2717,26 @@ target = "horizon_client::game::lan_pvp::Game<'_>::pvp_land"
 kind = "RETURN"
 helper = "source-melee-pvp-wear.rs"
 bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "strike", ty = "&Strike", value = "s" }]
+
+[[module]]
+id = "material-projectile-stats"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_projectile_stats"
+source = "source-projectile-stats.rs"
+
+[[state]]
+id = "material-projectile-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32)>,bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "material-projectile-add"
+target = "horizon_client::game::creatures::Game<'_>::add_projectile"
+kind = "HEAD"
+helper = "source-projectile-add.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&mut horizon_client::projectiles::Projectile", value = "&mut p" }]
