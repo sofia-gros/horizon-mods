@@ -320,7 +320,7 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     let mut modified = tool.clone();
     let mut custom = modified.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
-    let Tag::Compound(ref mut upgrades) = fields.get_mut(&"tic_upgrades".into())? else { return None; };
+    let Tag::Compound(upgrades) = fields.get_mut(&"tic_upgrades".into())? else { return None; };
     if plan.upgrade.amount == 0 { upgrades.remove(&id.into()); }
     else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
     modified.data_mut().set_other("minecraft:custom_data", Some(custom));
