@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for k in ('game','ctl','resources'): p.add_argument('--'+k,type=Path,required=True)
-p.add_argument('--only-break',action='store_true');p.add_argument('--start-case',type=int,default=0);p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0);p.add_argument('--limits-only',action='store_true');p.add_argument('--smoke',action='store_true')
+p.add_argument('--only-break',action='store_true');p.add_argument('--start-case',type=int,default=0);p.add_argument('--end-case',type=int,default=4);p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0);p.add_argument('--limits-only',action='store_true');p.add_argument('--smoke',action='store_true')
 a=p.parse_args();run=a.run_dir.resolve();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True)
 def cmd(s):
     r=g.call('command',s);g.call('wait','5');return r
@@ -53,7 +53,7 @@ try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     for case,tool in enumerate(('scythe','kama','sword','cleaver')):
-        if case<a.start_case: continue
+        if case<a.start_case or case>=a.end_case: continue
         before,after,held,used,log,target=scene(tool,21.3,24.5)
         other=min((e for e in before.values() if e['id']!=target),key=lambda e:e['pos'][0])['id']
         far=max(before.values(),key=lambda e:e['pos'][0])['id']
@@ -66,11 +66,12 @@ try:
             hits=[entry for entry in log if entry['id'] in (target,other)][-2:]
             assert len(hits)==2 and hits[0]['id']!=hits[1]['id'],hits
             assert abs(hits[0]['scale']-hits[1]['scale'])<0.0001,hits
-    before,after,held,used,log,target=scene('scythe',21.3,21.7,limited=1)
-    damaged=[e for e in before if after[e]['health']<before[e]['health']]
-    assert target in damaged and len(damaged)==2,(before,after,used)
-    assert 'tic_broken:1b' in used.get('components',''),used
-    assert used.get('damage',0)-held.get('damage',0)==1,(held,used)
-    print('circle stops on tool break',flush=True)
+    if a.end_case>=4:
+        before,after,held,used,log,target=scene('scythe',21.3,21.7,limited=1)
+        damaged=[e for e in before if after[e]['health']<before[e]['health']]
+        assert target in damaged and len(damaged)==2,(before,after,used)
+        assert 'tic_broken:1b' in used.get('components',''),used
+        assert used.get('damage',0)-held.get('damage',0)==1,(held,used)
+        print('circle stops on tool break',flush=True)
     g.stop();print('PASS observed melee scenes',flush=True)
 finally:g.cleanup()
