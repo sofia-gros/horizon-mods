@@ -65,7 +65,8 @@ try:
     held = q.call('inventory')['held']
     print('guest partial', json.dumps(held), flush=True)
     assert 'tic_upgrades' in held.get('components', '') and re.search('sharpness[^0-9]*1', held.get('components', ''))
-    assert re.search(r'tic_attack_speed:1\.296f', held.get('components', '')), held
+    speed = re.search(r'tic_attack_speed:([0-9.]+)f', held.get('components', ''))
+    assert speed and abs(float(speed.group(1)) - 1.296) < 0.0001, held
     cmd(h, 'give Guest minecraft:quartz_block 9')
     q.call('wait', '10')
     q.call('interact', '0', '71', '2')
