@@ -71,3 +71,22 @@ mod tests {
         assert_eq!(result, None);
     }
 }
+
+/// The host resolves the actor using its native spawn-protection predicate;
+/// this applies that actor's resolved square to an individual candidate.
+pub(super) fn outside_protection(protection: Option<([i32;3],u32)>, at: [i32;3]) -> bool {
+    protection.is_none_or(|(spawn,radius)| at[0].abs_diff(spawn[0]).max(at[2].abs_diff(spawn[2])) > radius)
+}
+
+#[cfg(test)]
+mod protection_tests {
+    use super::outside_protection;
+    #[test]
+    fn source_square_respects_boundary_and_authorized_actor() {
+        let protected=Some(([100,64,200],16));
+        assert!(!outside_protection(protected,[116,300,200]));
+        assert!(outside_protection(protected,[117,-50,200]));
+        assert!(!outside_protection(protected,[84,64,184]));
+        assert!(outside_protection(None,[100,64,200]));
+    }
+}

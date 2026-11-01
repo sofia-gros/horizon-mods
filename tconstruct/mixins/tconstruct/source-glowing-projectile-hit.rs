@@ -2,6 +2,8 @@
 fn tconstruct_glowing_projectile_hit(game: &mut crate::game::Game<'_>, p: &horizon_client::projectiles::Projectile, hit: horizon_client::projectiles::Hit) {
     use horizon_client::{mobs::Who, projectiles::Hit};
     let Some(weapon) = p.arrow.as_ref().and_then(|a| a.fired_from_weapon.as_ref()) else { return; };
+    // A disconnected guest must not fall back to host permissions.
+    if p.guest.is_some() && p.guest != game.lan_acting { return; }
     if !crate::game::tconstruct_glowing_world::has_glowing(game, weapon) { return; }
     let (at, preferred, remove_arrow) = match hit {
         Hit::Block { pos, face, .. } if face != [0,0,0] => {

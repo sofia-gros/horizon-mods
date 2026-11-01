@@ -25,6 +25,13 @@ pub(super) fn full_face(game: &super::Game<'_>, at: [i32;3], toward: [i32;3]) ->
 }
 
 pub(super) fn place(game: &mut super::Game<'_>, at: [i32;3], preferred: [i32;3]) -> anyhow::Result<bool> {
+    let permitted = match game.lan_acting {
+        Some(conn) => game.world.chunks.__horizon_mixins_tconstruct_glow_guest_protection().get(&conn)
+            .is_some_and(|policy| super::tconstruct_glowing_placement::outside_protection(*policy, at)),
+        // A dedicated server has no local player actor outside a guest turn.
+        None => game.options.dedicated.is_none(),
+    };
+    if !permitted { return Ok(false); }
     if !game.world.loaded(at[0], at[2]) { return Ok(false); }
     let before = game.world.block(at[0], at[1], at[2]);
     let facts = game.res.facts().get(before);

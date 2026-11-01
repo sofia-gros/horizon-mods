@@ -2927,6 +2927,23 @@ helper = "source-overslime-craft-remainders.rs"
 bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
 
 [[state]]
+id = "glow-guest-protection"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32,Option<([i32;3],u32)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "glow-resolve-guest-protection"
+target = "horizon_client::game::lan_actions::Game<'_>::enter_guest"
+kind = "HEAD"
+helper = "source-glowing-guest-policy.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }]
+
+[[state]]
 id = "glow-support-checks"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashSet<[i32; 3]>"
