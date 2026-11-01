@@ -51,6 +51,27 @@ pub(crate) fn with_property(ctx: &PieceContext<'_>, id: BlockStateId, key: &str,
     ctx.resources.registry.id(&state).ok_or(PlacementQueryError::Unavailable)
 }
 
+pub(crate) fn validate(ctx: &PieceContext<'_>, config: TreeConfig<'_>) -> Result<()> {
+    for tag in ["tconstruct:slimy_soil", "minecraft:dirt", "minecraft:leaves"] {
+        if !ctx.resources.block_tags.contains_key(tag) { return Err(PlacementQueryError::Unavailable); }
+    }
+    required(ctx, config.trunk, config.trunk_properties)?;
+    required(ctx, config.leaves, config.leaves_properties)?;
+    required(ctx, "minecraft:air", &BTreeMap::new())?;
+    if config.vines {
+        let base = required(ctx, config.vine.ok_or(PlacementQueryError::Unavailable)?, config.vine_properties)?;
+        // The source randomizes horizontal sides and sets the upward face;
+        // validate every combination before any world writes.
+        for bits in 0..32 {
+            let mut state = base;
+            for (bit, key) in [(1, "up"), (2, "north"), (4, "south"), (8, "west"), (16, "east")] {
+                state = with_property(ctx, state, key, if bits & bit == 0 { "false" } else { "true" })?;
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Randomize the source vine's horizontal sides once per group. The upward
 /// property is applied independently to the shared state at each position.
 fn random_vine(ctx: &mut PieceContext<'_>, base: BlockStateId) -> Result<BlockStateId> {
@@ -102,9 +123,7 @@ fn update_distances(ctx: &mut PieceContext<'_>, logs: &BTreeSet<[i32; 3]>) -> Re
 }
 
 pub(crate) fn place(ctx: &mut PieceContext<'_>, origin: [i32; 3], config: TreeConfig<'_>) -> Result<bool> {
-    for tag in ["tconstruct:slimy_soil", "minecraft:dirt", "minecraft:leaves"] {
-        if !ctx.resources.block_tags.contains_key(tag) { return Err(PlacementQueryError::Unavailable); }
-    }
+    validate(ctx, config)?;
     let range = i32::try_from(config.random_height).ok().filter(|v| *v > 0).ok_or(PlacementQueryError::Unavailable)?;
     let draw = ctx.random.int(range) as u32;
     let double = config.double_height.then(|| ctx.random.int(10) as u32);

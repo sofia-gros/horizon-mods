@@ -1,10 +1,11 @@
 //! A small in-memory PieceWorld exercises source tree writes without a game.
-pub use horizon_world::{registry, worldgen};
+pub use horizon_world::{nbt, registry, worldgen};
 #[path = "../../mixins/tconstruct/source-slime-tree-shape.rs"] mod tconstruct_slime_tree_shape;
 #[path = "../../mixins/tconstruct/source-slime-tree-world.rs"] mod tconstruct_slime_tree_world;
 #[path = "../../mixins/tconstruct/source-slime-island-markers.rs"] mod tconstruct_slime_island_markers;
 #[path = "../../mixins/tconstruct/source-slime-island-marker-world.rs"] mod tconstruct_slime_island_marker_world;
 #[path = "../../mixins/tconstruct/source-slime-tree-config.rs"] mod tconstruct_slime_tree_config;
+#[path = "../../mixins/tconstruct/source-slime-island-piece.rs"] mod tconstruct_slime_island_piece;
 
 #[cfg(test)]
 mod tests {
@@ -13,7 +14,7 @@ mod tests {
     use horizon_world::{heightmap::HeightmapType, nbt::Tag, registry::{BlockRegistry, BlockStateId},
         worldgen::{anchor::WorldGenerationContext, feature::FeatureWorld,
                    placement::{PlacementContext, PlacementQueryError},
-                   structure::{legacy::{PieceContext, PieceRandom}, processor::ProcessorRandom, BoundingBox, StateTransforms, StructureResources}}};
+                   structure::{legacy::{LegacyPiece, PieceContext, PieceRandom}, processor::ProcessorRandom, BoundingBox, Mirror, Rotation, StateTransforms, StructureResources}}};
     use std::{collections::BTreeMap, path::Path};
 
     struct World { blocks: BTreeMap<[i32; 3], BlockStateId> }
@@ -50,7 +51,7 @@ mod tests {
         EMPTY.get_or_init(BTreeMap::new)
     }
 
-    fn resources() -> StructureResources {
+    fn resources_at(dir: &Path) -> StructureResources {
         let mut states = vec![Tag::String("minecraft:air".into()), Tag::String("minecraft:dirt".into()),
             Tag::String("tconstruct:earth_slime_dirt".into()), Tag::String("tconstruct:greenheart_log".into())];
         for distance in 1..=7 {
@@ -82,8 +83,10 @@ mod tests {
             ("minecraft:dirt".into(), vec!["minecraft:dirt".into()]),
             ("minecraft:leaves".into(), vec!["tconstruct:earth_slime_leaves".into()]),
         ]);
-        StructureResources::new(registry, StateTransforms::default(), Path::new("/nonexistent"), BTreeMap::new(), &tags)
+        StructureResources::new(registry, StateTransforms::default(), dir, BTreeMap::new(), &tags)
     }
+
+    fn resources() -> StructureResources { resources_at(Path::new("/nonexistent")) }
 
     #[test]
     fn source_tree_writes_logs_canopy_and_leaf_distances_on_slimy_soil() {
@@ -190,5 +193,33 @@ mod tests {
             assert_eq!(block.properties.get("east").map(String::as_str), Some("true"));
             assert_eq!(block.properties.get("stage").map(String::as_str), Some("start"));
         }
+    }
+
+    #[test]
+    fn island_piece_round_trips_marker_state_rotation_and_mirror() {
+        let dir = std::env::temp_dir().join(format!("tconstruct-island-piece-{}", std::process::id()));
+        let fixture_dir = dir.join("tconstruct/test");
+        std::fs::create_dir_all(&fixture_dir).unwrap();
+        std::fs::write(fixture_dir.join("island.nbt"), include_bytes!("../fixtures/slime-island-empty.nbt")).unwrap();
+        let resources = resources_at(&dir);
+        let source: serde_json::Value = serde_json::from_slice(&std::fs::read(
+            "tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/configured_feature/earth_slime_island_tree.json").unwrap()).unwrap();
+        let tree = tconstruct_slime_tree_config::SlimeTreeSpec::from_json("tconstruct:earth_slime_island_tree", &source).unwrap();
+        let markers = tconstruct_slime_island_piece::MarkerConfig { structure: "tconstruct:earth_slime_island".into(),
+            tree: Some(tree), grasses: vec![("tconstruct:earth_slime_tall_grass".into(), 7), ("tconstruct:earth_slime_fern".into(), 1)], vine: None };
+        let piece = tconstruct_slime_island_piece::IslandPiece::new(&resources, "tconstruct:test/island", [8, 80, 24],
+            Rotation::Clockwise90, Mirror::FrontBack, markers, 2).unwrap();
+        let saved = piece.save().unwrap();
+        let read_str = |key: &str| match saved.get(&key.into()).unwrap() { Tag::String(s) => s.to_string_lossy(), _ => panic!("expected string") };
+        let read_int = |key: &str| match saved.get(&key.into()).unwrap() { Tag::Int(v) => *v, _ => panic!("expected int") };
+        let value = serde_json::json!({"Rot":read_str("Rot"), "Mi":read_str("Mi"), "Template":read_str("Template"),
+            "TCMarkers":read_str("TCMarkers"), "NumberOfTreesPlaced":read_int("NumberOfTreesPlaced"),
+            "TPX":read_int("TPX"), "TPY":read_int("TPY"), "TPZ":read_int("TPZ")});
+        let restored = tconstruct_slime_island_piece::IslandPiece::from_saved(&resources, &value).unwrap();
+        assert_eq!(restored.save().unwrap(), saved);
+        let mut invalid = value;
+        invalid["NumberOfTreesPlaced"] = serde_json::json!(4);
+        assert!(tconstruct_slime_island_piece::IslandPiece::from_saved(&resources, &invalid).is_none());
+        std::fs::remove_dir_all(dir).unwrap();
     }
 }

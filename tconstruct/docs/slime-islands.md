@@ -28,8 +28,10 @@ placements. `source-slime-island-marker-world.rs` connects tree markers to
 the tree writer and shared budget, and implements weighted grass selection and
 initial vine attachment/growth. In-memory tests cover three successful trees
 and a skipped fourth, valid/invalid grass soil, and a supported growing vine.
-Persisting the count and invoking these handlers from a template piece remain
-open.
+`source-slime-island-piece.rs` invokes these handlers from the source template
+markers and saves the chosen configuration, rotation, mirror and tree count.
+A synthetic-template test covers piece state round-tripping. Structure start
+and saved-start hooks do not yet create or restore this piece in game.
 
 The original uses `tconstruct:island`, not a vanilla jigsaw: its templates
 include data markers that can place source slime trees, vines and grass. The

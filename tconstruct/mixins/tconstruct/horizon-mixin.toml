@@ -3098,3 +3098,9 @@ id = "slime-tree-config"
 file = "crates/horizon-world/src/worldgen/structure/start.rs"
 name = "tconstruct_slime_tree_config"
 source = "source-slime-tree-config.rs"
+
+[[module]]
+id = "slime-island-piece"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_piece"
+source = "source-slime-island-piece.rs"

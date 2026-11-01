@@ -5,6 +5,35 @@ use crate::worldgen::placement::PlacementQueryError;
 use horizon_core::geometry::Direction;
 use super::{tconstruct_slime_island_markers::{self, TreeBudget, MAX_TREES}, tconstruct_slime_tree_world::{self, TreeConfig}};
 
+/// Reject missing source states before the owning piece writes its template.
+pub(crate) fn validate(ctx: &PieceContext<'_>, tree: Option<TreeConfig<'_>>,
+    grasses: &[(String, u32)], vine: Option<&str>) -> Result<()> {
+    if let Some(tree) = tree { tconstruct_slime_tree_world::validate(ctx, tree)?; }
+    if !grasses.is_empty() && !ctx.resources.block_tags.contains_key("tconstruct:slimy_soil") {
+        return Err(PlacementQueryError::Unavailable);
+    }
+    if !grasses.is_empty() {
+        let total = grasses.iter().try_fold(0u32, |sum, (_, weight)| sum.checked_add(*weight)).ok_or(PlacementQueryError::Unavailable)?;
+        if total == 0 || total > i32::MAX as u32 { return Err(PlacementQueryError::Unavailable); }
+    }
+    for (name, _) in grasses {
+        ctx.resources.registry.default_state(name).ok_or(PlacementQueryError::Unavailable)?;
+    }
+    if let Some(name) = vine {
+        let base = ctx.resources.registry.default_state(name).ok_or(PlacementQueryError::Unavailable)?;
+        for stage in ["start", "middle", "end"] {
+            let base = tconstruct_slime_tree_world::with_property(ctx, base, "stage", stage)?;
+            for bits in 0..32 {
+                let mut state = base;
+                for (bit, key) in [(1, "up"), (2, "north"), (4, "south"), (8, "west"), (16, "east")] {
+                    state = tconstruct_slime_tree_world::with_property(ctx, state, key, if bits & bit == 0 { "false" } else { "true" })?;
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn tree_marker(
     ctx: &mut PieceContext<'_>,
     budget: &mut TreeBudget,
@@ -51,6 +80,7 @@ pub(crate) fn vine_marker(ctx: &mut PieceContext<'_>, vine: Option<&str>, pos: [
     let Some(name) = vine else { return Ok(false); };
     if !ctx.random.boolean() { return Ok(false); }
     let base = ctx.resources.registry.default_state(name).ok_or(PlacementQueryError::Unavailable)?;
+    let base = tconstruct_slime_tree_world::with_property(ctx, base, "stage", "start")?;
     let mut placed = false;
     for (direction, property) in [(Direction::Up, "up"), (Direction::North, "north"),
         (Direction::South, "south"), (Direction::West, "west"), (Direction::East, "east")] {

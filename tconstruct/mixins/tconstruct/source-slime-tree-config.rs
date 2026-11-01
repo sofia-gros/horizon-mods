@@ -4,7 +4,7 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use super::tconstruct_slime_tree_world::TreeConfig;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub(crate) struct SlimeTreeSpec {
     pub id: String,
     pub base_height: i32,
