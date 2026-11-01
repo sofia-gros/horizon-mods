@@ -145,3 +145,13 @@ fn conditional_composite_does_not_bypass_recipe_conditions() {
     let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
     assert!(catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| false).is_none());
 }
+
+#[test]
+fn source_mantle_water_tag_resolves_for_tank_fluids() {
+    let mut raw = BTreeMap::new();
+    tconstruct_source_tags::merge_mantle_fluid_tags(&mut raw);
+    let (fluids, tags) = tconstruct_source_melting_lookup::tank_fluid_tags(&raw, &HashSet::new()).unwrap();
+    assert!(fluids.contains("minecraft:water"));
+    assert!(tags["mantle:water"].contains("minecraft:water"));
+    assert!(tags["mantle:water"].contains("minecraft:flowing_water"));
+}
