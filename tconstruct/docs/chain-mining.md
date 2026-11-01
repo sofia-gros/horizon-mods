@@ -28,6 +28,7 @@ available. Representative checks covered:
   blocks with a seventh retained.
 - Hosted LAN for both tools, including test-only remaining durability of one
   and three; each removed block produced a drop and consumed durability.
+- Normal play retained the expected remaining log after save and reload.
 - A dedicated non-operator's Vein Hammer at the spawn boundary: one protected
   distance-two block remained while four permitted blocks dropped and wore the tool.
 
