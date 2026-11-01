@@ -6,6 +6,16 @@ This work-in-progress port brings Tinkers' Construct's parts and tool stations t
 
 Choose the [Windows guide](docs/windows-playtest.md) or [Linux guide](docs/linux.md) to prepare the mod and use a separate test world. Windows has not been tested on a PC, and a reported launch error is unresolved.
 
+### Native bundle artifact
+
+On a manually run **Mixins validation** workflow, download the `tconstruct-hnmod-<commit>` artifact from that run's **Artifacts** section and extract the downloaded Actions ZIP. It contains `tconstruct.hnmod` and `tconstruct.hmod`. The former is a native Mixins source bundle pinned to the Horizon and Mixins revisions in its manifest. The workflow must complete successfully before its artifact is available.
+
+For a desktop Horizon Launcher that supports native bundles, select your instance, open its **Mods** page and install `tconstruct.hnmod` as a native mod, then build the instance using the launcher's native build flow. Put `tconstruct.hmod` in the instance game folder’s `horizon-mods/`, enable the content mod under **Options > Mods**, and restart. See the [official native-mod guide](https://github.com/horizon-rust/horizon/blob/374b50d48f0968bd08f7026c7fabb117c8ecb8a6/docs/native-mods.md). Native mods run with the player's permissions.
+
+**The two-file installation is experimental and unverified.** The content mod supplies the mod-owned assets and original recipe layers. At startup the native code derives its working tables, GUI sprites and Minecraft recipe/tag adapter from the installed resource root in a separate `.horizon-cache/tconstruct-startup` directory. The workflow artifact, this startup path and its compatibility with a launcher build have not been tested. If startup preparation fails, the game logs the error; the installation is not a validated playtest build.
+
+The official native build documentation lists desktop toolchains; it does not establish a smartphone native build path. Smartphone installation and gameplay remain unverified. For the previously tested manual preparation path, use the [Linux guide](docs/linux.md) or [Windows guide](docs/windows-playtest.md).
+
 ## Make a part
 
 The Part Builder can turn materials and patterns into tool parts. The Tinker Station can assemble and repair supported tools. See [Making parts and tools](docs/playing.md) for an illustrated example. The [Anvil guide](docs/anvil-assembly.md) covers five-input assembly, repair and representative Linux LAN checks; Windows remains untested.

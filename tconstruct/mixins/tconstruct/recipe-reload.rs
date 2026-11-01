@@ -29,9 +29,17 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
-    let forge = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("forge-original-pack"));
+    // A content mod can provide the unflattened source layers as ordinary
+    // assets; manual installations retain precedence when those layers exist.
+    let source_pack = |name: &str| {
+        let manual = game.options.resources.join(name);
+        if manual.is_dir() { manual } else {
+            game.options.resources.join("assets/tconstruct/source-packs").join(name)
+        }
+    };
+    let forge = horizon_client::datapack::DataPack::builtin(&source_pack("forge-original-pack"));
     merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
-    let original = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("tconstruct-original-pack"));
+    let original = horizon_client::datapack::DataPack::builtin(&source_pack("tconstruct-original-pack"));
     merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
     for id in &game.fns.enabled {
         if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) {
