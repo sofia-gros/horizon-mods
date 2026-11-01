@@ -35,3 +35,24 @@ no duplicate primary hit, allied and ineligible target exclusions, damage,
 knockback, wear and breakage, hosted LAN and PvP permissions, plus a vanilla
 sword regression. Off-hand attack, other modifier abilities, armor and ranged
 weapons are future work. Crop shears loot remains unimplemented.
+
+## Planner boundary evidence
+
+Against the pinned Horizon workspace and Mixins CLI `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab`:
+
+* `MODIFY_CONSTANT` targeting
+  `horizon_client::game::lan_pvp::Game<'_>::sweep_players`, selector `9.0`,
+  `ordinal = 0`, `require = 2` returned `E_UNSUPPORTED_CONTROL_FLOW`:
+  `closures, async, try/?, unsafe and const blocks are unsupported injection contexts`.
+* Adding state to `horizon_client::game::lan_pvp::Sweep` with constructor
+  `Game<'_>::player_sweep`, selector `Sweep`, `require = 1` returned the same
+  code and message; its constructor contains a `map_or` closure.
+* `BEFORE_CALL self.weapon_hit` in `Game::attack_mob`, `ordinal = 0`,
+  `require = 1` returned the same code and message. Independent `weapon_hit`
+  HEAD, `attack_mob` HEAD/RETURN, `extra_knockback` RETURN and `pvp_land`
+  RETURN probes were accepted.
+
+In the present prototype a mob primary does **not** damage any player in its
+area: the provisional mob selection only visits mobs. The player-primary path
+likewise does not perform source area attacks. The separate landed-PvP wear
+hook is provisional and does not fix either missing area path.
