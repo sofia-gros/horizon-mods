@@ -121,6 +121,19 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 std::fs::write(path, bytes)?;
             }
         }
+        // Source glow is a six-directional, non-colliding light source.
+        // Use the same empty collision for every orientation in both tables.
+        let glow_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
+            .filter_map(|(id, row)| (row.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:glow")).then_some(id)).collect();
+        if !glow_ids.is_empty() {
+            let air = facts["defaults"]["minecraft:air"].as_u64().ok_or("missing air state")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                super::tconstruct_block_shapes::apply_empty_shape(&mut named.tag, air, &glow_ids)?;
+                std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+            }
+        }
         // Source soul glass has no collision and slows entities while inside.
         let soul_names = ["soul_glass", "soul_glass_pane", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane"];
         let soul_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
@@ -188,6 +201,32 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             }
         }
         super::tconstruct_machine_prepare::apply(&facts, &mut gameplay, out)?;
+        // Glow selection is a 1/16-thick sheet on its supporting face; its
+        // collision stays empty in both collision tables above.
+        if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
+            for (id, state) in states.iter().enumerate() {
+                if state.get(0).and_then(serde_json::Value::as_str) != Some("tconstruct:glow") { continue; }
+                let facing = state.pointer("/4/properties/facing").and_then(serde_json::Value::as_str).ok_or("missing glow facing")?;
+                let b: [f64;6] = match facing {
+                    "down" => [0.0,0.0,0.0,1.0,0.0625,1.0], "up" => [0.0,0.9375,0.0,1.0,1.0,1.0],
+                    "north" => [0.0,0.0,0.0,1.0,1.0,0.0625], "south" => [0.0,0.0,0.9375,1.0,1.0,1.0],
+                    "west" => [0.0,0.0,0.0,0.0625,1.0,1.0], "east" => [0.9375,0.0,0.0,1.0,1.0,1.0],
+                    _ => return Err("invalid glow facing".into()),
+                };
+                let mut edges = Vec::new();
+                for axis in 0..3 { let a = (axis+1)%3; let c = (axis+2)%3;
+                    for aa in [0,1] { for cc in [0,1] {
+                        let mut from = [0.0;3]; from[axis]=b[axis]; from[a]=b[a+3*aa]; from[c]=b[c+3*cc];
+                        let mut to=from; to[axis]=b[axis+3];
+                        edges.push([from[0],from[1],from[2],to[0],to[1],to[2]]);
+                    }}
+                }
+                let row=rows.get_mut(id).ok_or("missing glow gameplay row")?;
+                row["outline"] = serde_json::json!([b]); row["outline_edges"] = serde_json::json!(edges);
+                row["full_collision"] = serde_json::json!(false); row["solid_render"] = serde_json::json!(false);
+                row["can_occlude"] = serde_json::json!(false);
+            }
+        }
         // Source tables have legs and slime-metal blocks declare no occlusion.
         // Apply this to every state of those blocks.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {

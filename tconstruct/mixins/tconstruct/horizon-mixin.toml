@@ -2771,7 +2771,7 @@ source = "source-projectile-stats.rs"
 [[state]]
 id = "material-projectile-context"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32)>,bool,f64,i32)>"
+ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32,bool)>,bool,f64,i32,bool)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
@@ -2784,6 +2784,13 @@ target = "horizon_client::game::creatures::Game<'_>::add_projectile"
 kind = "HEAD"
 helper = "source-projectile-add.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&mut horizon_client::projectiles::Projectile", value = "&mut p" }]
+
+[[injection]]
+id = "glowing-projectile-hit"
+target = "horizon_client::game::creatures::Game<'_>::projectile_hit"
+kind = "HEAD"
+helper = "source-glowing-projectile-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" }, { name = "hit", ty = "horizon_client::projectiles::Hit", value = "hit" }]
 
 [[state]]
 id = "armor-wear-context"
@@ -2918,6 +2925,119 @@ kind = "HEAD"
 cancellable = true
 helper = "source-overslime-craft-remainders.rs"
 bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
+
+[[state]]
+id = "glow-left-held"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "bool"
+initial = "false"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "glow-left-local"
+target = "horizon_client::game::hand::Game<'_>::tick_local_hand"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-local.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "glow-left-remote"
+target = "horizon_client::game::remote::Game<'_>::remote_start_attack"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-remote.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "glow-left-continue"
+target = "horizon_client::game::remote::Game<'_>::remote_continue_attack"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-continue.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "down", ty = "bool", value = "down" }]
+
+[[injection]]
+id = "glow-left-guest"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-guest.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[state]]
+id = "glow-guest-protection"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32,Option<([i32;3],u32)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "glow-resolve-guest-protection"
+target = "horizon_client::game::lan_actions::Game<'_>::enter_guest"
+kind = "HEAD"
+helper = "source-glowing-guest-policy.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }]
+
+[[state]]
+id = "glow-support-checks"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<[i32; 3]>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "glow-queue-support"
+target = "horizon_client::game::<GameLevel<'_> as LevelAccess>::set_raw"
+kind = "HEAD"
+helper = "source-glowing-queue.rs"
+bindings = [{ name = "level", ty = "&mut crate::game::GameLevel<'_>", value = "&mut *self" }, { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" }, { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" }]
+
+[[injection]]
+id = "glow-check-support"
+target = "horizon_client::game::Game<'_>::process_level_events"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-process.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "glowing-boot-walk"
+target = "horizon_client::game::enchant_effects::Game<'_>::location_changed_effects"
+kind = "HEAD"
+helper = "source-glowing-walk.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "from", ty = "[f64;3]", value = "from" }, { name = "_was_on_ground", ty = "bool", value = "was_on_ground" }]
+
+[[module]]
+id = "game-glowing-placement"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_glowing_placement"
+source = "source-glowing-placement.rs"
+
+[[module]]
+id = "game-glowing-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_glowing_world"
+source = "source-glowing-world.rs"
+
+[[state]]
+id = "modifier-wear-cause"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
 
 [[state]]
 id = "overslime-pending"

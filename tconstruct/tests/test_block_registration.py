@@ -42,11 +42,20 @@ class BlockRegistrationTests(unittest.TestCase):
                 item = json.loads((ASSETS / 'items' / f'{name}.json').read_text())
                 walk(item)
                 loot = (CONTENT / 'data/tconstruct/loot_table/blocks' / f'{name}.json').read_text()
-                if not (name.startswith('budding_') and name.endswith('_slime_crystal')):
+                if name != 'glow' and not (name.startswith('budding_') and name.endswith('_slime_crystal')):
                     self.assertIn(f'tconstruct:{name}', loot)
                 else:
                     self.assertNotIn('pools', json.loads(loot))
                 json.loads(loot)
+
+    def test_glow_uses_six_facing_states_light_and_no_drops(self):
+        glow = json.loads((BLOCKS / 'glow.json').read_text())
+        self.assertEqual(glow['template'], 'minecraft:end_rod')
+        self.assertEqual(glow['properties']['light'], 14)
+        states = json.loads((ASSETS / 'blockstates/glow.json').read_text())['variants']
+        self.assertEqual(set(states), {f'facing={face}' for face in ('down', 'up', 'north', 'south', 'west', 'east')})
+        loot = json.loads((CONTENT / 'data/tconstruct/loot_table/blocks/glow.json').read_text())
+        self.assertNotIn('pools', loot)
 
     def test_source_wood_uses_nonfuel_templates(self):
         for wood in ('greenheart', 'skyroot', 'bloodshroom', 'enderbark'):

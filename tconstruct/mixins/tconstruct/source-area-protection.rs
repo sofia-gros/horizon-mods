@@ -21,5 +21,10 @@ pub(super) fn protected_for(game: &super::Game<'_>, host: &super::LanHost, conn:
             if game.under_spawn_protection(host, gi, extra) { protected.insert((extra[0],extra[2])); }
         }
     }
+    // Glowing can place on the adjacent side of the clicked block, possibly
+    // across the spawn-protection boundary even if the click itself is allowed.
+    if let (Some(x), Some(y), Some(z)) = (pos[0].checked_add(face[0]), pos[1].checked_add(face[1]), pos[2].checked_add(face[2])) {
+        if game.under_spawn_protection(host, gi, [x,y,z]) { protected.insert((x,z)); }
+    }
     Some(protected)
 }

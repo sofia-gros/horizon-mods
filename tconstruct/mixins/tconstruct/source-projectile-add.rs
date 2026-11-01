@@ -2,11 +2,23 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     use horizon_client::projectiles::ProjectileKind;
     if !matches!(p.kind, ProjectileKind::Arrow { .. }) { return; }
     let actor = game.lan_acting;
-    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage, crystal)| {
-        if shots.is_empty() { None } else { let (angle, power) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage, *crystal)) }
+    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage, crystal, glowing)| {
+        if shots.is_empty() { None } else { let (angle, power, primary) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage, *crystal, *glowing, primary)) }
     });
-    let Some((velocity, spread, angle, power, bow, damage, crystal)) = shot else { return; };
+    let Some((velocity, spread, angle, power, bow, damage, crystal, glowing, primary)) = shot else { return; };
     if let ProjectileKind::Arrow { ref mut base_damage, .. } = p.kind { *base_damage += damage; }
+    if glowing {
+        if let Some(stack) = game.held().cloned() {
+            if let Some(arrow) = p.arrow.as_mut() { arrow.fired_from_weapon = Some(stack.clone()); }
+            if primary && !game.creative {
+                let (loss, shield) = crate::game::tconstruct_source_overslime_host::damage_with_cause(game, &stack, 5, Some("tconstruct:glowing"));
+                if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) {
+                    crate::game::tconstruct_source_overslime::spend(held, shield);
+                    crate::game::tconstruct_tx::fixed_damage(held, loss);
+                }
+            }
+        }
+    }
     if bow {
         if let ProjectileKind::Arrow { ref mut critical, .. } = p.kind { *critical = power >= 3.0; }
         let (v, on_ground) = game.player.as_ref().map_or((horizon_core::geometry::Vec3::ZERO, true), |pl| (pl.velocity, pl.ground.on_ground));
