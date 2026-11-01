@@ -2423,3 +2423,35 @@ target = "horizon_items::items::Items::mining_speed"
 kind = "RETURN"
 helper = "source-mining-return.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "held" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
+
+[[module]]
+id = "items-source-mining-rules"
+file = "crates/horizon-items/src/items.rs"
+name = "tconstruct_source_mining_rules"
+source = "source-mining-rules.rs"
+
+[[module]]
+id = "game-source-mining-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_mining_rules"
+source = "source-mining-rules.rs"
+
+[[injection]]
+id = "source-host-mining-context"
+target = "horizon_client::game::Game<'_>::tick_mining"
+kind = "MODIFY_VARIABLE"
+variable = { name = "speed", ordinal = 0, at = "STORE" }
+require = 4
+ordinal = 1
+helper = "source-mining-context.rs"
+bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
+
+[[injection]]
+id = "source-client-mining-context"
+target = "horizon_client::game::hand::Game<'_>::destroy_progress"
+kind = "MODIFY_VARIABLE"
+variable = { name = "speed", ordinal = 0, at = "STORE" }
+require = 4
+ordinal = 1
+helper = "source-mining-context.rs"
+bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
