@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for k in ('game','ctl','resources'): p.add_argument('--'+k,type=Path,required=True)
-p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true')
+p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0)
 a=p.parse_args();run=a.run_dir.resolve();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True)
 def cmd(s):
     r=g.call('command',s);g.call('wait','5');return r
@@ -27,6 +27,10 @@ def acquire(name,start,end):
     held=g.call('inventory')['carried'] or {};print('creative item',name,json.dumps(held),flush=True);assert held.get('item')=='tconstruct:'+name and 'tic_mining_tool' in held.get('components',''),held
     screen_click(319,376);g.call('wait','5');g.call('close');g.call('hotbar','1');g.call('wait','5')
 # Each plane is in empty test sky, offset from the saved world's existing fixtures.
+def total_items(item):
+    inv=g.call('inventory')['counts'].get(item,0)
+    ground=sum((e.get('item') or {}).get('count',0) for e in g.call('entities','10','minecraft:item')['entities'] if (e.get('item') or {}).get('item')==item)
+    return inv+ground
 def scenario(block,face):
     cx,cy,cz=20,101,20
     if face[0]: lo=(cx,cy-1,cz-1);hi=(cx,cy+1,cz+1);player=(cx+face[0]*2+.5,cy-1,cz+.5)
@@ -36,21 +40,22 @@ def scenario(block,face):
     if face[1]<0:cmd('setblock 20 99 20 minecraft:air')
     if face[1]<=0:cmd(f'setblock {int(player[0])} {int(player[1])-1} {int(player[2])} minecraft:stone')
     cmd(f'tp @s {player[0]} {player[1]} {player[2]}');g.call('wait','10');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('wait','10')
+    drop='minecraft:cobblestone' if block=='minecraft:stone' else block
+    count_before=total_items(drop)
     r=g.call('break',str(cx),str(cy),str(cz),'--timeout','50',timeout=55);g.call('wait','20')
     positions=[(x,y,z) for x in range(lo[0],hi[0]+1) for y in range(lo[1],hi[1]+1) for z in range(lo[2],hi[2]+1)]
     remaining=[(p,g.call('block',*map(str,p)).get('block')) for p in positions if g.call('block',*map(str,p)).get('block')!='minecraft:air']
     after=g.call('inventory')['held'] or {};print('area',block,face,json.dumps(r),'wear',before.get('damage',0),after.get('damage',0),'remaining',remaining,flush=True)
     assert not remaining,remaining;assert after.get('damage',0)-before.get('damage',0)==9,(before,after)
-    drop='minecraft:cobblestone' if block=='minecraft:stone' else block
-    total=r.get('picked_up',{}).get(drop,0)+sum(i['count'] for i in r.get('on_ground',[]) if i.get('item')==drop)
-    assert total==9,r
+    total=total_items(drop)-count_before
+    print('physical drop delta',drop,total,flush=True);assert total==9,r
     cmd('gamemode creative @s');cmd('tp @s 20.5 100 20.5');g.call('wait','40')
     return r
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     acquire('sledge_hammer',215,237)
-    for face in ([0,0,-1],[0,0,1],[-1,0,0],[1,0,0],[0,1,0],[0,-1,0]):scenario('minecraft:stone',face)
+    for face in ([0,0,-1],[0,0,1],[-1,0,0],[1,0,0],[0,1,0],[0,-1,0])[a.hammer_start:]:scenario('minecraft:stone',face)
     g.call('screenshot',str(run/'area-hammer.png'))
     acquire('excavator',226,252)
     for face in ([0,0,-1],[0,0,1],[-1,0,0],[1,0,0],[0,1,0],[0,-1,0]):scenario('minecraft:dirt',face)
