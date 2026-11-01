@@ -16,7 +16,7 @@ Use a Melter and a casting setup to melt and cast supported materials. The [melt
 
 A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup. The [fluid container guide](docs/fluid-containers.md) explains bucket transfers.
 
-The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct setup. [Mining and durability traits](docs/mining-traits.md) describes representative material effects. [Harvest tier and effective blocks](docs/harvest-rules.md) describes tested drops, saved-tool limitations and LAN results. [Area mining](docs/area-mining.md) covers the tested Creative-obtained Sledge Hammer and Excavator.
+The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct setup. [Mining and durability traits](docs/mining-traits.md) describes representative material effects. [Harvest tier and effective blocks](docs/harvest-rules.md) describes tested drops, saved-tool limitations and LAN results. [Area mining](docs/area-mining.md) covers the tested Creative-obtained Sledge Hammer and Excavator. [Chain mining](docs/chain-mining.md) covers representative Vein Hammer and Broad Axe use.
 
 The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
 

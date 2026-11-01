@@ -2481,10 +2481,16 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_area_shape"
 source = "source-area-shape.rs"
 
+[[module]]
+id = "source-chain-geometry"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_chain_geometry"
+source = "source-chain-geometry.rs"
+
 [[state]]
 id = "area-guest-hits"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<u32,([i32;3],[i32;3],std::collections::HashSet<[i32;3]>)>"
+ty = "std::collections::HashMap<u32,([i32;3],[i32;3],std::collections::HashSet<(i32,i32)>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
