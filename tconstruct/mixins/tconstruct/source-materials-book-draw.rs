@@ -65,8 +65,10 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     for offset in 0..if cover { 0 } else { 2 } {
     let Some(text) = pages.get(base + offset) else { continue; };
     let left = center - 206.0 + offset as f32 * 206.0 + 16.0 - 36.0;
+    let is_graphic = text.spans.first().and_then(|span| span.style.insertion.as_deref()).is_some_and(|id| id.starts_with("tconstruct:book:"));
     for (i, line) in game.gui.atlas.font.split(text, 182.0).iter().take(LINES).enumerate() {
-        batch.text_styled(atlas, line, left + 36.0, top + 12.0 + i as f32 * 9.0, BLACK, false);
+        let x = if is_graphic && i == 0 { left + 36.0 + (182.0 - HudBatch::text_width(atlas, &text.spans.first().map(|s| s.text.as_str()).unwrap_or(""))) / 2.0 } else { left + 36.0 };
+        batch.text_styled(atlas, line, x, top + 12.0 + i as f32 * 9.0, BLACK, false);
     }
     let number = (base + offset + 1).to_string();
     batch.text(atlas, &number, left + 36.0 + (182.0 - HudBatch::text_width(atlas, &number)) / 2.0, top + 178.0, rgba(170, 170, 170, 255), false);
@@ -79,9 +81,15 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         if let Some(rect) = atlas.sprites.get(&sprite) {
             let width = spec.get("width").and_then(|v| v.as_u64()).unwrap_or(rect.w as u64).clamp(1, 4096) as f32;
             let height = spec.get("height").and_then(|v| v.as_u64()).unwrap_or(rect.h as u64).clamp(1, 4096) as f32;
-            let scale = (110.0 / width).min(105.0 / height).min(1.0);
+            let scale = (182.0 / width).min(100.0 / height).min(1.0);
             let (w, h) = (width * scale, height * scale);
-            batch.sprite_scaled(atlas, &sprite, left + 38.0 + (110.0 - w) / 2.0, top + 31.0, w, h, u32::MAX);
+            batch.sprite_scaled(atlas, &sprite, left + 36.0 + (182.0 - w) / 2.0, top + 31.0, w, h, u32::MAX);
+            if let Some(body) = spec.get("body").and_then(|v| v.as_str()) {
+                let content = Text::literal(body);
+                for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
+                    batch.text_styled(atlas, line, left + 36.0, top + 36.0 + h + i as f32 * 9.0, BLACK, false);
+                }
+            }
         }
         return;
     }
@@ -100,7 +108,7 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         if i % 3 >= grid || i / 3 >= grid { continue; }
         let x = ox + (i % 3) as f32 * 18.0;
         let y = oy + (i / 3) as f32 * 18.0;
-        batch.fill(atlas, x, y, 17.0, 17.0, rgba(120, 90, 50, 100));
+        batch.fill(atlas, x, y, 17.0, 17.0, rgba(229, 198, 130, 255));
         let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[cycle % items.len()])).unwrap_or(item);
         let id = chosen.as_str().or_else(|| chosen.get("id").and_then(|v| v.as_str()));
         let damage = chosen.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);

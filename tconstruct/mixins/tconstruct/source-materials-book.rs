@@ -211,7 +211,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
             let Some(raw) = read(&mut zip, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
-            let graphic = value.get("image").and_then(|image| {
+            let mut graphic = value.get("image").and_then(|image| {
                 let file = image.get("file")?.as_str()?;
                 Some(serde_json::json!({"image":file,"width":image.get("width")?.as_u64()?,"height":image.get("height")?.as_u64()?}))
             })
@@ -236,11 +236,6 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                     Some(serde_json::json!({"slots":slots, "result":result, "grid":grid}))
                 })
                 .or_else(|| value.get("item").and_then(|v| v.get("item")).and_then(|v| v.as_str()).map(|id| serde_json::json!({"item":id})));
-            if let Some(graphic) = graphic {
-                chapter_pages.push(Text::styled(title, horizon_client::text::Style {
-                    insertion: Some(format!("tconstruct:book:{}", graphic)), ..Default::default()
-                }));
-            }
             let mut text = String::new();
             if let Some(s) = value.get("subText").and_then(|v| v.as_str()) { text.push_str(s); }
             for key in ["text", "description", "properties", "tooltip"] {
@@ -252,6 +247,18 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                         }
                     }
                 }
+            }
+            // Mantle image_text places the image and its first description on
+            // the same page. Keep overflow on following pages instead of losing it.
+            if let Some(mut graphic) = graphic.take() {
+                if graphic.get("image").is_some() && !text.is_empty() {
+                    let chunks = split_page(&text, 55);
+                    if let Some(first) = chunks.first() { graphic["body"] = serde_json::json!(first); }
+                    text = chunks.into_iter().skip(1).collect::<Vec<_>>().join(" ");
+                }
+                chapter_pages.push(Text::styled(title, horizon_client::text::Style {
+                    insertion: Some(format!("tconstruct:book:{}", graphic)), ..Default::default()
+                }));
             }
             if text.is_empty() { continue; }
             for part in split_page(&text, 120) {
