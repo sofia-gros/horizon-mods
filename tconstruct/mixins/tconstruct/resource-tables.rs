@@ -187,6 +187,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 }
             }
         }
+        super::tconstruct_machine_prepare::apply(&facts, &mut gameplay, out)?;
         // Source tables have legs and slime-metal blocks declare no occlusion.
         // Apply this to every state of those blocks.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
