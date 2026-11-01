@@ -113,7 +113,7 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
             return inv+ground
         for offhand in (False,True):
             console('gamemode creative Guest')
-            for command in (f'fill {cx-2} {cy-1} {cz-2} {cx+2} {cy-1} {cz+2} minecraft:farmland[moisture=7]',f'fill {cx-1} {cy} {cz-1} {cx+1} {cy} {cz+1} minecraft:wheat[age=7]',f'fill {cx-1} {cy+1} {cz-1} {cx+1} {cy+2} {cz+1} minecraft:air',f'setblock {cx} {cy} {cz-2} minecraft:stone',f'tp Guest {cx+.5} {cy+1} {cz-1.5}'):
+            for command in (f'fill {cx-2} {cy-1} {cz-2} {cx+2} {cy-1} {cz+2} minecraft:farmland[moisture=7]',f'fill {cx-1} {cy} {cz-1} {cx+1} {cy} {cz+1} minecraft:wheat[age=7]',f'fill {cx-1} {cy+1} {cz-1} {cx+1} {cy+2} {cz+1} minecraft:air',f'setblock {cx} {cy} {cz-2} minecraft:stone',f'tp Guest {cx+.5} {cy} {cz-1.5}'):
                 console(command)
             for x,z in ((cx+3,cz),(cx+2,cz-1),(cx+2,cz+1)):console(f'setblock {x} {cy} {z} minecraft:stone')
             console(f'setblock {cx+2} {cy-1} {cz} minecraft:water')
@@ -122,7 +122,8 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
                 assert not g.call('inventory')['held'], 'main hand must be empty before offhand test'
                 assert (g.call('status')['offhand'] or {}).get('item')=='tconstruct:scythe'
             before=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);console('gamemode survival Guest');g.call('wait','25')
-            result=g.call('interact',str(cx),str(cy),str(cz),'up');g.call('wait','30')
+            g.call('look-at',str(cx+.5),str(cy+.3),str(cz+.5));hit=g.call('looking-at');assert hit.get('block',{}).get('pos')==[cx,cy,cz],hit
+            result=g.call('use-item');g.call('wait','30')
             for attempt in range(80):
                 states={(x,z):g.call('block',str(x),str(cy),str(z)).get('state','') for x in range(cx-1,cx+2) for z in range(cz-1,cz+2)}
                 if all('age=0' in states[(x,z)] for x in (cx,cx+1) for z in range(cz-1,cz+2)):break
