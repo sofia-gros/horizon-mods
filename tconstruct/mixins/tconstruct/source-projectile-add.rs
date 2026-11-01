@@ -2,10 +2,10 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     use horizon_client::projectiles::ProjectileKind;
     if !matches!(p.kind, ProjectileKind::Arrow { .. }) { return; }
     let actor = game.lan_acting;
-    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage)| {
-        if shots.is_empty() { None } else { let (angle, power) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage)) }
+    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage, crystal)| {
+        if shots.is_empty() { None } else { let (angle, power) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage, *crystal)) }
     });
-    let Some((velocity, spread, angle, power, bow, damage)) = shot else { return; };
+    let Some((velocity, spread, angle, power, bow, damage, crystal)) = shot else { return; };
     if let ProjectileKind::Arrow { ref mut base_damage, .. } = p.kind { *base_damage += damage; }
     if bow {
         if let ProjectileKind::Arrow { ref mut critical, .. } = p.kind { *critical = power >= 3.0; }
@@ -17,4 +17,6 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
         let dir = glam::DQuat::from_axis_angle(up.normalize_or_zero(), angle.to_radians()) * view;
         p.shoot(&mut game.world.random, dir.to_array(), power * velocity, spread);
     }
+    let (direction, yaw) = crate::game::tconstruct_projectile_stats::restrict_direction([p.velocity.x, p.velocity.y, p.velocity.z], crystal);
+    if let Some(yaw) = yaw { p.velocity.x = direction[0]; p.velocity.y = direction[1]; p.velocity.z = direction[2]; p.yaw = yaw; }
 }

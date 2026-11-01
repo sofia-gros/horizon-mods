@@ -396,6 +396,7 @@ pub(super) fn apply_stats(
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
+        fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
     }
     tool.data_mut().set_other("minecraft:custom_data", Some(custom));
     Some(())

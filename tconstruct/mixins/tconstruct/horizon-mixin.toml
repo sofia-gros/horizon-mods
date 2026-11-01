@@ -2771,7 +2771,7 @@ source = "source-projectile-stats.rs"
 [[state]]
 id = "material-projectile-context"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32)>,bool,f64)>"
+ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32)>,bool,f64,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"

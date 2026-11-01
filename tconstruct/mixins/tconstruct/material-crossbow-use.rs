@@ -19,7 +19,7 @@ fn tconstruct_crossbow_use(
                 let angle = crate::game::tconstruct_projectile_stats::crossbow_angle(i, count);
                 (angle, power)
             }).collect();
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus(stack)));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack)));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);
