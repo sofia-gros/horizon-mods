@@ -31,7 +31,7 @@ pub(super) fn button_at(count: usize, x: i32, y: i32) -> Option<usize> {
 
 /// Position occupied inactive inputs in the source still-filled row.
 pub(super) fn dormant_position(index: usize, active: usize, occupied: bool) -> Option<(f32, f32)> {
-    if index >= 4 || index < active || !occupied { return None; }
+    if index >= 6 || index < active || !occupied { return None; }
     Some((112.0 - (index - active) as f32 * 18.0, 62.0))
 }
 

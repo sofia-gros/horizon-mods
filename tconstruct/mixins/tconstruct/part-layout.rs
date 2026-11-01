@@ -20,7 +20,7 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
         9..=35 => (8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0),
         500..=503 if station => (152.0, 20.0 + (slot - 500) as f32 * 18.0),
         504 if station => (132.0, 74.0),
-        300..=303 if station => station_layout.as_ref().and_then(|layout| {
+        300..=305 if station && slot - 300 <= crate::game::tconstruct_ui::station_capacity(game) => station_layout.as_ref().and_then(|layout| {
             if layout.tool_slot.is_some() {
                 if slot == 300 { layout.tool_slot.as_ref() } else { layout.input_slots.get(slot - 301) }
             } else { layout.input_slots.get(slot - 300) }

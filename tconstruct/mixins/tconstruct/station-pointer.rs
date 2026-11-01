@@ -69,7 +69,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     }
     if game.has_shift_down() {
         if station {
-            if let Some(slot @ 300..=303) = game.slot_at(&batch, game.cursor.0, game.cursor.1) {
+            if let Some(slot @ 300..=305) = game.slot_at(&batch, game.cursor.0, game.cursor.1) {
                 let active = crate::game::tconstruct_ui::station_layout(game).map_or(4, |layout| layout.input_slots.len() + usize::from(layout.tool_slot.is_some()));
                 let occupied = game.container_kind().and_then(|entity| entity.slots().get(slot - 300)).and_then(Option::as_ref).is_some();
                 if slot - 300 >= active && occupied && game.carried.is_none() { return Continue(()); }
@@ -118,7 +118,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     }
     let Some(slot) = game.slot_at(&batch, game.cursor.0, game.cursor.1) else { return Continue(()); };
     if !station && (324..=326).contains(&slot) { return Break(true); }
-    let dormant = station && (300..=303).contains(&slot) && crate::game::tconstruct_ui::station_layout(game)
+    let dormant = station && (300..=305).contains(&slot) && crate::game::tconstruct_ui::station_layout(game)
         .is_some_and(|layout| slot - 300 >= layout.input_slots.len() + usize::from(layout.tool_slot.is_some()));
     if dormant && (game.carried.is_some() || game.container_kind().and_then(|entity| entity.slots().get(slot - 300)).and_then(Option::as_ref).is_none()) { return Break(true); }
     if game.remote.is_some() {
@@ -132,8 +132,8 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         }
         return Continue(());
     }
-    let repair_slot = station && slot == 303 && crate::game::tconstruct_ui::station_layout(game).is_some_and(|layout| layout.tool_slot.is_some());
-    if (302..=323).contains(&slot) && (!station && slot != 322 || station && slot != 302 && !repair_slot && !dormant) { return Break(true); }
+    let station_input = station && (300..=300 + crate::game::tconstruct_ui::station_capacity(game)).contains(&slot);
+    if (302..=323).contains(&slot) && (!station && slot != 322 || station && !station_input && !dormant) { return Break(true); }
     if !station && slot == 322 {
         crate::game::tconstruct_source_builder_take::take(game, key);
         return Break(true);
@@ -143,7 +143,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     if right { return Break(true); }
     let mut building = if action == 24 {
         game.world.block_entities.get(&key).and_then(|entity| {
-            crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots())
+            crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game))
         })
     } else { None };
     if let Some((_, output)) = building.as_mut() {
@@ -151,7 +151,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         crate::game::tconstruct_source_station_name::name_result(output, name);
     }
     let repair = if action == 25 {
-        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan(&game.world, entity.slots()))
+        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)))
     } else { None };
     if action == 25 {
         if let Some(plan) = repair { crate::game::tconstruct_source_station_take_host::take(game, key, plan); }

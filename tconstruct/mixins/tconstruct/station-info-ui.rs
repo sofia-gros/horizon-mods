@@ -16,8 +16,8 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
     let mut tool = if game.remote.is_some() {
         slots.get(24).cloned().flatten().or_else(|| slots.get(25).cloned().flatten())
     } else {
-        super::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
-            .or_else(|| super::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output))
+        super::tconstruct_source_station_world::building_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
+            .or_else(|| super::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|plan| plan.output))
     };
     if game.remote.is_none() && !super::tconstruct_source_station_world::has_operation_tool(slots) {
         if let Some(output) = tool.as_mut() {

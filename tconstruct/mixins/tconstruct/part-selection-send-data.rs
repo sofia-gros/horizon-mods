@@ -7,8 +7,11 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         if !menu.slots.valid(world) { continue; }
         let state = world.block(pos.0, pos.1, pos.2).0 as usize;
         let builder = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:part_builder"));
-        let station = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:tinker_station"));
-        if station.is_some() && hub.encoder.block_ids.get(state).copied() == station {
+        let actual = hub.encoder.block_ids.get(state).copied();
+        let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"].into_iter()
+            .find_map(|name| hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(name))
+                .filter(|id| Some(*id) == actual).and_then(|_| crate::tconstruct_source_anvil_capacity::input_capacity(name)));
+        if let Some(capacity) = capacity {
             let (window, old_menu_state) = (menu.window, menu.state);
             let layouts = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref().map(|snapshot| {
                 snapshot.iter().filter(|(id, _)| id.contains(":tinkering/station_layouts/"))
@@ -32,7 +35,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
-            let mut build = crate::tconstruct_source_station_world::building_plan(world, slots).map(|(_, output)| output);
+            let mut build = crate::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output);
             if build.is_none() {
                 world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(hub.guests[i].conn, window, pos));
             }
@@ -40,7 +43,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
                 crate::tconstruct_source_station_name::name_result(output, name);
             }
-            let operation = crate::tconstruct_source_station_world::operation_plan(world, slots).map(|plan| plan.output);
+            let operation = crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output);
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
                 .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);

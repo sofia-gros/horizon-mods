@@ -8,7 +8,7 @@ pub(super) fn available(game: &Game<'_>) -> bool {
     let output = if game.remote.is_some() {
         entity.slots().get(24).and_then(Option::as_ref).cloned()
     } else {
-        super::tconstruct_source_station_world::building_plan(&game.world, entity.slots()).map(|(_, output)| output)
+        super::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
     };
     output.as_ref().is_some_and(|stack| super::tconstruct_ui::station_accepts_output(game, stack))
 }

@@ -278,7 +278,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         }
         if let (Some(layout), Some(entity)) = (active_layout.as_ref(), game.container_kind()) {
             let active = layout.input_slots.len() + usize::from(layout.tool_slot.is_some());
-            for index in active..4 {
+            for index in active..=crate::game::tconstruct_ui::station_capacity(game) {
                 let occupied = entity.slots().get(index).and_then(Option::as_ref).is_some();
                 if let Some((x, y)) = crate::game::tconstruct_source_station_layout::dormant_position(index, active, occupied) {
                     part(batch, 194.0, 0.0, x - 1.0, y - 1.0, u32::MAX);
@@ -300,8 +300,8 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 let output = if game.remote.is_some() {
                     slots.get(action as usize).cloned().flatten()
                 } else if action == 24 {
-                    crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
-                } else { crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output) };
+                    crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
+                } else { crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|plan| plan.output) };
                 if let Some(stack) = output {
                     if action != 24 || crate::game::tconstruct_ui::station_accepts_output(game, &stack) {
                         game.draw_item(batch, &stack, ox + x, oy + 38.0);

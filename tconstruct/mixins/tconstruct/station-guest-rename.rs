@@ -4,11 +4,11 @@ fn station_guest_rename(game: &mut crate::game::Game<'_>, host: &mut crate::game
     let Some(menu) = guest.menu.as_ref() else { return Continue(()); };
     let Some(pos) = menu.pos else { return Continue(()); };
     let block = game.world.block(pos.0, pos.1, pos.2);
-    if &*game.res.facts().get(block).name != "tconstruct:tinker_station" { return Continue(()); }
+    let Some(capacity) = crate::game::tconstruct_source_anvil_capacity::input_capacity(&game.res.facts().get(block).name) else { return Continue(()); };
     if guest.spectator() || !menu.slots.still_valid(&game.world, guest, menu.pos) { return Break(()); }
     let can_name = game.world.block_entities.get(&pos).is_some_and(|entity| {
         !crate::game::tconstruct_source_station_world::has_operation_tool(entity.slots())
-            && crate::game::tconstruct_source_station_world::building_plan(&game.world, entity.slots()).is_some()
+            && crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), capacity).is_some()
     });
     if !can_name { return Break(()); }
     let normalized: String = horizon_client::clipboard::filter_text(name, false).chars().take(50).collect();

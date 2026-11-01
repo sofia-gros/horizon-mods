@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": "tconstruct:hepatizon_block",
+    "s": "#tconstruct:anvil_seared_blocks"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil"
+  }
+}

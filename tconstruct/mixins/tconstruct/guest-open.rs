@@ -48,6 +48,8 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let mut title = match &**name {
         "tconstruct:part_builder" => "TConstruct Part Builder",
         "tconstruct:tinker_station" => "TConstruct Tinker Station",
+        "tconstruct:tinkers_anvil" => "TConstruct Tinkers Anvil",
+        "tconstruct:scorched_anvil" => "TConstruct Scorched Anvil",
         _ => return Continue(()),
     };
     game.ensure_datapacks();

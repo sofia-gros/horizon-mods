@@ -215,9 +215,9 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     let mut result = if station && game.remote.is_some() {
         slots.get(slot - 300).cloned().flatten()
     } else if station && slot == 324 {
-        crate::game::tconstruct_source_station_world::building_plan(&game.world, slots).map(|(_, output)| output)
+        crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
     } else if station {
-        crate::game::tconstruct_source_station_world::operation_plan(&game.world, slots).map(|plan| plan.output)
+        crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|plan| plan.output)
     } else {
         if game.remote.is_some() { slots.get(22).cloned().flatten() }
         else { game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_preview().get(&key).and_then(|(_, _, _, result)| result.clone())) }

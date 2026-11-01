@@ -275,7 +275,7 @@ pub(super) struct StationOperation {
     pub leftover: Option<ItemStack>,
 }
 
-fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<StationOperation> {
+fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
     let tool = slots.first()?.as_ref()?;
     if tool.count != 1 { return None; }
     let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
@@ -292,7 +292,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .sum::<i64>();
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..4)?, i32::try_from(slots_available).ok()?)?;
+    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?)?;
     let mut upgraded = tool.clone();
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
@@ -313,8 +313,13 @@ pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Opti
 
 /// Plan an upgrade, replacement or repair without consuming inputs.
 pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<StationOperation> {
-    if let Some(plan) = upgrade_plan(world, slots) { return Some(plan); }
-    if let Some((output, consumed)) = swap_plan(world, slots).or_else(|| repair_plan(world, slots)) {
+    operation_plan_with_capacity(world, slots, 3)
+}
+
+pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
+    if let Some(plan) = upgrade_plan(world, slots, input_capacity) { return Some(plan); }
+    if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity).or_else(|| repair_plan_with_capacity(world, slots, input_capacity)) {
         return Some(StationOperation { output, consumed, leftover: None });
     }
     let tool = slots.first()?.as_ref()?;

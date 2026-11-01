@@ -7,7 +7,7 @@ pub(super) fn tabbed(name: &str) -> bool {
         | "tconstruct:cast_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil")
 }
 pub(super) fn supported(name: &str) -> bool {
-    matches!(name, "tconstruct:part_builder" | "tconstruct:tinker_station")
+    matches!(name, "tconstruct:part_builder" | "tconstruct:tinker_station" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil")
 }
 pub(super) fn collect(start: Pos, name_at: impl Fn(Pos) -> String) -> Vec<(Pos, String)> {
     let mut visited = std::collections::HashSet::new();

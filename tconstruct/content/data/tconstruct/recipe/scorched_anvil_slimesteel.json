@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": "tconstruct:slimesteel_block",
+    "s": "#tconstruct:anvil_scorched_blocks"
+  },
+  "result": {
+    "id": "tconstruct:scorched_anvil"
+  }
+}
