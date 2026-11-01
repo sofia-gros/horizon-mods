@@ -13,7 +13,8 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
                 .and_then(|tool| crate::game::tconstruct_source_upgrade_rules::extractable(tool).get(index).copied());
             if let Some(id) = choice {
                 if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
-                    let code = match id { "tconstruct:haste" => 35000, "tconstruct:sharpness" => 35001, _ => 35002 };
+                    let Some(index) = crate::game::tconstruct_source_upgrade_rules::selection_index(id) else { return Break(true); };
+                    let code = 35000 + index as i32;
                     game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: code }));
                 } else { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, id.into()); }
             }

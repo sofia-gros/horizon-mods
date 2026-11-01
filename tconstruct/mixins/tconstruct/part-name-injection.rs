@@ -63,7 +63,7 @@ fn tconstruct_part_name(
         .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Byte(n) if *n != 0));
     if !hidden {
         let upgrades = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_upgrades"));
-        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72), ("haste", 45)] {
+        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72), ("haste", 45), ("quick_charge", 5), ("trueshot", 10)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
             let level = (amount + needed - 1) / needed;
