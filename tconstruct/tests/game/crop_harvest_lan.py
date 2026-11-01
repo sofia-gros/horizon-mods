@@ -35,7 +35,8 @@ def wait(fn):
 def total_items(g,item):
     inv=g.call('inventory')['counts'].get(item,0)
     ground=sum((e.get('item') or {}).get('count',0) for e in g.call('entities','10','minecraft:item')['entities'] if (e.get('item') or {}).get('item')==item)
-    return inv+groundtry:
+    return inv+ground
+try:
     h=Game(a,run,'Player',resume=True);games.append(h);h.ready();port=h.call('lan','open','0','commands')['port']
     q=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());games.append(q);q.ready()
     for tool,area in [('kama',False),('scythe',True)]:
