@@ -31,8 +31,9 @@ and a skipped fourth, valid/invalid grass soil, and a supported growing vine.
 `source-slime-island-piece.rs` invokes these handlers from the source template
 markers and saves the chosen configuration, rotation, mirror and tree count.
 A synthetic-template test covers piece state round-tripping. The saved-start
-hook now reconstructs this piece and preserves other structure sets; no start
-hook creates it yet, so in-game restoration has not been tested.
+hook now reconstructs this piece and preserves other structure sets. A start
+hook selects source templates and supported slime trees, but island structure
+sets are not enabled and in-game generation and restoration remain untested.
 
 The original uses `tconstruct:island`, not a vanilla jigsaw: its templates
 include data markers that can place source slime trees, vines and grass. The
@@ -52,8 +53,8 @@ reports `E_UNSUPPORTED_CONTROL_FLOW` because the call is inside a closure.
 Limited cancellable HEAD probes for `try_generate` and
 `StructureState::use_saved_start`, with their registry, context, position and
 saved-piece bindings, both passed transformation and `horizon-world` type
-checking. The saved-start hook has since been connected to the source piece;
-the start probe remains a no-op and neither proves in-game save/reload.
+checking. Both hooks have since been connected to the source piece; their
+limited type checks do not prove natural generation or in-game save/reload.
 An adapter over `dyn PieceWorld` type-checks for basic block and height
 access, but the piece context does not expose the host's named-feature
 catalog or complete tree state-provider bindings. The retained original
