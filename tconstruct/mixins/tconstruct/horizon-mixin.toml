@@ -3068,3 +3068,15 @@ bindings = [
   { name = "x", ty = "f32", value = "x" },
   { name = "y", ty = "f32", value = "y" },
 ]
+
+[[module]]
+id = "slime-tree-shape"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_tree_shape"
+source = "source-slime-tree-shape.rs"
+
+[[module]]
+id = "slime-tree-world"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_tree_world"
+source = "source-slime-tree-world.rs"

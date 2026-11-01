@@ -1,6 +1,6 @@
-//! Source slime-tree canopy operations from SlimeTreeFeature at f4e77d4.
-//! The caller supplies the trunk-top position and performs the original
-//! replaceability checks and randomized vine-state selection.
+// Source slime-tree canopy operations from SlimeTreeFeature at f4e77d4.
+// The caller supplies the trunk-top position and performs the original
+// replaceability checks and randomized vine-state selection.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum Operation {

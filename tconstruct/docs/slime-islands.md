@@ -14,8 +14,11 @@ templates are retained without replacing vanilla structures.
 
 `source-slime-tree-shape.rs` models source tree height, slimy-soil/build-bound
 checks, the ordered diamond canopy, air removals, leaf drippers and shared
-vine-state groups. It is also standalone: randomized vine states, world soil
-queries, block writes and leaf-distance updates are not connected yet.
+vine-state groups. `source-slime-tree-world.rs` uses the structure piece
+world interface for soil checks, randomized vine states, tree block writes
+and source leaf-distance updates. A small in-memory world exercises soil
+rejection and basic tree writes; the function has not been connected to a
+structure marker or validated in the game.
 `source-slime-island-markers.rs` models source weighted selection and the
 per-piece limit of three successful trees, including skipped draws and failed
 placements. Persisting that count and invoking it from marker processing are
