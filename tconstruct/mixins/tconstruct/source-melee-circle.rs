@@ -12,7 +12,7 @@ fn tconstruct_melee_circle(game:&mut crate::game::Game<'_>, index:usize) {
     let bounds=game.mobs[index].bounds().inflate(horizon_core::geometry::Vec3::new(range,0.25,range));
     let primary_pos=[primary.x,primary.y,primary.z];
     let allies=game.player_allies();
-    let uuid=game.level.player_uuid.or(Some([0,0,0,1]));
+    let uuid=Some(game.acting_player_uuid());
     let candidates:Vec<u32>=game.mobs.iter().enumerate().filter(|(i,mob)| {
         shape::eligible(kind,primary_pos,primary_pos,[mob.position.x,mob.position.y,mob.position.z],
             *i==index, mob.alive() && !mob.removed,
