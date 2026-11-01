@@ -24,10 +24,12 @@ their properties, including sky-vine `stage=middle`; missing block states or
 properties fail before tree writes. Other provider types are not approximated.
 `source-slime-island-markers.rs` models source weighted selection and the
 per-piece limit of three successful trees, including skipped draws and failed
-placements. `source-slime-island-marker-world.rs` connects a tree marker to
-the tree writer and shared budget; an in-memory world test checks three
-successful trees and skips a fourth. Persisting the count and invoking the
-marker handler from a template piece are still open.
+placements. `source-slime-island-marker-world.rs` connects tree markers to
+the tree writer and shared budget, and implements weighted grass selection and
+initial vine attachment/growth. In-memory tests cover three successful trees
+and a skipped fourth, valid/invalid grass soil, and a supported growing vine.
+Persisting the count and invoking these handlers from a template piece remain
+open.
 
 The original uses `tconstruct:island`, not a vanilla jigsaw: its templates
 include data markers that can place source slime trees, vines and grass. The

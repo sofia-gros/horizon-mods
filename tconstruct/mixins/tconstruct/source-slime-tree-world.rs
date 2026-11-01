@@ -45,16 +45,22 @@ fn required(ctx: &PieceContext<'_>, name: &str, properties: &BTreeMap<String, St
     registry.id(&state).ok_or(PlacementQueryError::Unavailable)
 }
 
+pub(crate) fn with_property(ctx: &PieceContext<'_>, id: BlockStateId, key: &str, value: &str) -> Result<BlockStateId> {
+    let mut state = ctx.resources.registry.state(id).cloned().ok_or(PlacementQueryError::Unavailable)?;
+    *state.properties.get_mut(key).ok_or(PlacementQueryError::Unavailable)? = value.to_owned();
+    ctx.resources.registry.id(&state).ok_or(PlacementQueryError::Unavailable)
+}
+
 /// Randomize the source vine's horizontal sides once per group. The upward
 /// property is applied independently to the shared state at each position.
 fn random_vine(ctx: &mut PieceContext<'_>, base: BlockStateId) -> Result<BlockStateId> {
     let mut state = base;
     let sides = ["north", "east", "south", "west"];
-    for side in sides { state = ctx.with_property(state, side, "false"); }
+    for side in sides { state = with_property(ctx, state, side, "false")?; }
     let count = ctx.random.int(3) + 1;
     for _ in 0..count {
         let side = sides[ctx.random.int(4) as usize];
-        state = ctx.with_property(state, side, "true");
+        state = with_property(ctx, state, side, "true")?;
     }
     Ok(state)
 }
@@ -137,7 +143,7 @@ pub(crate) fn place(ctx: &mut PieceContext<'_>, origin: [i32; 3], config: TreeCo
                     vines.insert(group, state);
                     state
                 };
-                (offset, ctx.with_property(state, "up", if upward { "true" } else { "false" }))
+                (offset, with_property(ctx, state, "up", if upward { "true" } else { "false" })?)
             }
         };
         let Some(pos) = offset(top, delta) else { return Err(PlacementQueryError::Unavailable); };

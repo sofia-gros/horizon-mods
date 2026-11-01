@@ -40,6 +40,9 @@ mod tests {
         fn max_y(&mut self) -> Result<i32, PlacementQueryError> { Ok(320) }
         fn height(&mut self, _: HeightmapType, _: i32, _: i32) -> Result<i32, PlacementQueryError> { Ok(64) }
         fn block_state(&mut self, p: [i32; 3]) -> Result<BlockStateId, PlacementQueryError> { self.block(p) }
+        fn attachment_at(&mut self, p: [i32; 3], _: horizon_core::geometry::Direction) -> Result<bool, PlacementQueryError> {
+            Ok(self.block(p)? != BlockStateId(0))
+        }
     }
 
     fn empty_properties() -> &'static BTreeMap<String, String> {
@@ -54,9 +57,24 @@ mod tests {
             states.push(Tag::compound([("id", Tag::String("tconstruct:earth_slime_leaves".into())),
                 ("properties", Tag::compound([("distance", Tag::String(distance.to_string().as_str().into()))]))]));
         }
+        states.push(Tag::String("tconstruct:earth_slime_tall_grass".into()));
+        states.push(Tag::String("tconstruct:earth_slime_fern".into()));
+        for stage in ["start", "middle", "end"] {
+            for bits in 0..32 {
+                let flag = |bit| if bits & bit != 0 { "true" } else { "false" };
+                states.push(Tag::compound([("id", Tag::String("tconstruct:sky_slime_vine".into())),
+                    ("properties", Tag::compound([
+                        ("stage", Tag::String(stage.into())), ("up", Tag::String(flag(1).into())),
+                        ("north", Tag::String(flag(2).into())), ("south", Tag::String(flag(4).into())),
+                        ("west", Tag::String(flag(8).into())), ("east", Tag::String(flag(16).into())),
+                    ]))]));
+            }
+        }
         let defaults = Tag::compound([("minecraft:air", Tag::Int(0)), ("minecraft:dirt", Tag::Int(1)),
             ("tconstruct:earth_slime_dirt", Tag::Int(2)), ("tconstruct:greenheart_log", Tag::Int(3)),
-            ("tconstruct:earth_slime_leaves", Tag::Int(10))]);
+            ("tconstruct:earth_slime_leaves", Tag::Int(10)),
+            ("tconstruct:earth_slime_tall_grass", Tag::Int(11)), ("tconstruct:earth_slime_fern", Tag::Int(12)),
+            ("tconstruct:sky_slime_vine", Tag::Int(13))]);
         let registry = Tag::compound([("DataVersion", Tag::Int(horizon_world::DATA_VERSION)), ("states", Tag::List(states)), ("defaults", defaults)]);
         let registry = Box::leak(Box::new(BlockRegistry::from_nbt(&registry).unwrap()));
         let tags = BTreeMap::from([
@@ -141,5 +159,36 @@ mod tests {
         assert_eq!(budget.placed(), 3);
         assert_eq!(random.booleans, 3);
         assert_eq!(world.blocks.values().filter(|id| **id == BlockStateId(3)).count(), 12);
+    }
+
+    #[test]
+    fn grass_marker_uses_weighted_source_plant_and_requires_slimy_soil() {
+        let resources = resources();
+        let mut world = World { blocks: BTreeMap::from([([0, 63, 0], BlockStateId(2)), ([2, 63, 0], BlockStateId(1))]) };
+        let mut random = FixedRandom::default();
+        let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
+            chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
+        let choices = vec![("tconstruct:earth_slime_tall_grass".to_owned(), 7), ("tconstruct:earth_slime_fern".to_owned(), 1)];
+        assert!(tconstruct_slime_island_marker_world::grass_marker(&mut ctx, &choices, [0, 64, 0]).unwrap());
+        assert!(!tconstruct_slime_island_marker_world::grass_marker(&mut ctx, &choices, [2, 64, 0]).unwrap());
+        assert_eq!(world.blocks.get(&[0, 64, 0]), Some(&BlockStateId(11)));
+        assert!(!world.blocks.contains_key(&[2, 64, 0]));
+    }
+
+    #[test]
+    fn vine_marker_attaches_and_grows_down_when_supported() {
+        let resources = resources();
+        let mut world = World { blocks: BTreeMap::from([([1, 64, 0], BlockStateId(1))]) };
+        let mut random = FixedRandom::default();
+        let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
+            chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
+        assert!(tconstruct_slime_island_marker_world::vine_marker(&mut ctx, Some("tconstruct:sky_slime_vine"), [0, 64, 0]).unwrap());
+        for pos in [[0, 64, 0], [0, 63, 0]] {
+            let state = *world.blocks.get(&pos).unwrap();
+            let block = resources.registry.state(state).unwrap();
+            assert_eq!(block.name, "tconstruct:sky_slime_vine");
+            assert_eq!(block.properties.get("east").map(String::as_str), Some("true"));
+            assert_eq!(block.properties.get("stage").map(String::as_str), Some("start"));
+        }
     }
 }
