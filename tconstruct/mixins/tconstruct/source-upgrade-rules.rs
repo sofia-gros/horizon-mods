@@ -236,7 +236,7 @@ pub(super) fn apply_stats(
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
     let quick = effective(tool, "tconstruct:quick_charge", 5);
     if &*tool.item == "tconstruct:crossbow" && quick > 0.0 {
-        let draw = (stats.draw_speed + stats.draw_speed_boost_unit * 0.25 * quick).clamp(0.0, 1024.0);
+        let draw = (stats.draw_speed * (1.0 + 0.25 * quick)).clamp(0.0, 1024.0);
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
     }
     let true_level = effective(tool, "tconstruct:trueshot", 10);
