@@ -117,3 +117,21 @@ fn composite_variant_wildcard_and_precise_variant_follow_source() {
     let resolve = |input| catalog.composite_casting(false, "tconstruct:tool_handle", input, "tconstruct:molten_obsidian", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| true);
     assert!(resolve("tconstruct:wood#oak").is_some()); assert!(resolve("tconstruct:wood#spruce").is_none()); assert!(resolve("tconstruct:wood").is_none());
 }
+
+#[test]
+fn source_composite_uses_item_cost_conditions_and_part_compatibility() {
+    let mut zip = zip::ZipArchive::new(std::fs::File::open("tconstruct/content/reference/tconstruct-recipes.zip").unwrap()).unwrap();
+    let mut recipes = BTreeMap::new();
+    for name in ["data/tconstruct/recipes/tools/parts/casting/tool_handle_composite.json", "data/tconstruct/recipes/tools/materials/composite/nahuatl.json"] {
+        let mut file = zip.by_name(name).unwrap(); let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap(); recipes.insert(name.to_owned(), bytes);
+    }
+    let item_tags = HashMap::new();
+    let fluid_tags = [("tconstruct:molten_obsidian".into(), ["tconstruct:molten_obsidian".into()].into_iter().collect())].into_iter().collect();
+    let known_items = ["tconstruct:tool_handle".into()].into_iter().collect();
+    let known_fluids = ["tconstruct:molten_obsidian".into()].into_iter().collect();
+    let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+    let (_, recipe, _, material) = catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood#oak", "tconstruct:molten_obsidian", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| true).unwrap();
+    assert_eq!((material.as_str(),recipe.fluid.amount), ("tconstruct:nahuatl",250));
+    assert!(catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| false, &|_,_| true, &|_,_| Some(false), &|_| true).is_none());
+    assert!(catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| true, &|_,_| false, &|_,_| Some(false), &|_| true).is_none());
+}
