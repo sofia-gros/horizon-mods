@@ -1,5 +1,17 @@
 fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value: i16) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    // A negative data-slot id is reserved for an acknowledged table-tab switch.
+    if id == usize::MAX {
+        if let (Some(start), Ok(index)) = (crate::game::tconstruct_source_workstation_tabs::start(game), usize::try_from(value)) {
+            let tabs = crate::game::tconstruct_source_workstation_tabs::from_game(game, start);
+            if let Some((pos, name)) = tabs.get(index) {
+                if crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                    crate::game::remote::tconstruct_source_machine_remote::set_position(game, *pos);
+                }
+            }
+        }
+        return Break(());
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     if station {
         let Some(key) = game.container else { return Break(()); };
@@ -65,7 +77,7 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
             } else if id == 31000 && value >= 0 {
                 let pending = game.world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&key);
                 let info = pending.and_then(|words| crate::game::tconstruct_source_builder_wire::decode(value, &words));
-                if let Some(info) = info.filter(|info| info.len() == 6) {
+                if let Some(info) = info.filter(|info| info.len() == 7) {
                     game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().insert(key, info);
                 }
             } else if id > 31000 {

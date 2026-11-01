@@ -81,7 +81,13 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 || registry.names.iter().filter(|id| !id.is_empty()).cloned().collect())
         });
         let preview_key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
-        let info_frame = crate::tconstruct_source_builder_wire::encode(&crate::tconstruct_source_builder_world::display_info(world, pos));
+        let mut info = crate::tconstruct_source_builder_world::display_info(world, pos);
+        let side = match menu.slots { crate::lan::menu::Slots::Double(_, side) => Some(side), _ => None };
+        let custom_name = side.and_then(|side| world.block_names.get(&side)).or_else(||
+            world.chunks.__horizon_mixins_tconstruct_builder_double_partner().get(&pos).and_then(|partner| world.block_names.get(partner)))
+            .cloned().unwrap_or_default();
+        info.push(custom_name);
+        let info_frame = crate::tconstruct_source_builder_wire::encode(&info);
         let info_frame = info_frame.filter(|frame| frame.len() < 1767);
         let info_sent = info_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
         let info_changed = world.chunks.__horizon_mixins_tconstruct_builder_info_sent().get(&preview_key) != Some(&info_sent);

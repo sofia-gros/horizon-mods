@@ -11,19 +11,33 @@ pub(super) fn max_offset(count: usize) -> usize { rows(count).saturating_sub(vis
 pub(super) fn panel_width(count: usize) -> f32 {
     (columns(count) * 22 + 14 + if max_offset(count) > 0 { 10 } else { 0 }) as f32
 }
+/// Connected source side panels overlap their parent by the six-pixel border.
+pub(super) fn panel_left(count: usize) -> f32 { 6.0 - panel_width(count) }
 /// Return the source tank layer under a relative screen y coordinate.
 pub(super) fn fluid_heights(amounts: &[u32], capacity: u32) -> Vec<u32> {
     if amounts.is_empty() { return Vec::new(); }
     let total = amounts.iter().fold(0u32, |sum, amount| sum.saturating_add(*amount));
-    let capacity = capacity.max(total);
+    let capacity = if capacity == 0 { total } else { capacity };
     if capacity == 0 { return vec![0; amounts.len()]; }
     let mut heights: Vec<u32> = amounts.iter().map(|amount|
         ((106.0 * *amount as f64 / capacity as f64).ceil() as u32).max(3)).collect();
     let available = if total < capacity { 103 } else { 106 };
-    while heights.iter().sum::<u32>() > available {
-        let Some(index) = heights.iter().enumerate().max_by_key(|(index, height)| (**height, std::cmp::Reverse(*index))).map(|(index, _)| index) else { break; };
-        if heights[index] == 0 { break; }
-        heights[index] -= 1;
+    if heights.iter().map(|height| u64::from(*height)).sum::<u64>() > u64::from(available) {
+        // The source removes pixels from the tallest layer, choosing the first
+        // on ties. Find the equivalent cutoff without looping once per pixel
+        // when a saved tank exceeds a newly reduced capacity.
+        let (mut low, mut high) = (0, *heights.iter().max().unwrap_or(&0));
+        while low < high {
+            let mid = low + (high - low).div_ceil(2);
+            let sum = heights.iter().map(|height| u64::from((*height).min(mid))).sum::<u64>();
+            if sum <= u64::from(available) { low = mid; } else { high = mid - 1; }
+        }
+        let mut spare = available - heights.iter().map(|height| (*height).min(low)).sum::<u32>();
+        for height in heights.iter_mut().rev() {
+            let original = *height;
+            *height = original.min(low);
+            if spare > 0 && original > low { *height += 1; spare -= 1; }
+        }
     }
     heights
 }
@@ -71,10 +85,19 @@ pub(super) fn position(count: usize, offset: usize, menu_slot: usize) -> Option<
 mod tests {
     use super::*;
     #[test]
+    fn overflow_uses_source_capacity_before_trimming_tallest_layer() {
+        assert_eq!(fluid_heights(&[1800, 200], 1000), vec![84, 22]);
+        assert_eq!(fluid_heights(&[1000, 1000], 1000), vec![53, 53]);
+        assert_eq!(fluid_heights(&[u32::MAX, u32::MAX], 1), vec![53, 53]);
+    }
+    #[test]
     fn source_columns_and_bucket_positions() {
         assert_eq!((columns(1), columns(7), columns(8), columns(28), columns(29)), (1,1,2,4,4));
         assert_eq!(position(1, 0, 0), Some((125.0, 46.0)));
         assert_eq!(position(1, 0, 1), Some((125.0, 104.0)));
+        // HeatingStructureSideInventoryScreen offsets the item by four pixels
+        // inside the slot and the connected panel by border.w - 1.
+        assert_eq!(position(1, 0, 2).unwrap().0 - (panel_left(1) + 7.0), 5.0);
         assert_eq!(melting_index(1, 0, 2), Some(0));
         assert_eq!(melting_index(1, 0, 3), None);
     }

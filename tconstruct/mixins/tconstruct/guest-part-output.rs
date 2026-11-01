@@ -124,6 +124,20 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
         return Break(dropped);
     }
+    // Inactive inputs remain visible only while occupied and can be removed,
+    // never used as a destination. Selection is scoped to this viewer/menu.
+    if is_station && (0..4).contains(&packet.slot) {
+        let operation = world.block_entities.get(&key).is_some_and(|entity| crate::tconstruct_source_station_world::has_operation_tool(entity.slots()));
+        let count = if operation { 4 } else { world.chunks.__horizon_mixins_tconstruct_station_guest_layout_count().get(&(conn, packet.container, key)).copied().unwrap_or(4) };
+        if packet.slot as usize >= count {
+            let occupied = world.block_entities.get(&key).and_then(|entity| entity.slots().get(packet.slot as usize)).and_then(Option::as_ref).is_some();
+            if !occupied || hub.guests[gi].carried.is_some() || !matches!(packet.input, 0 | 1) {
+                if let Some(items) = hub.guests[gi].menu.as_ref().and_then(|m| m.slots.read(world, &hub.guests[gi])) { hub.send_menu_content(gi, items); }
+                return Break(Vec::new());
+            }
+            if packet.input == 1 { return Continue(()); }
+        }
+    }
     // The slot belongs to the underlying Station inventory even before the
     // tool is inserted. Layout selection only controls whether it is visible.
     let repair_slot = is_station && packet.slot == 3;

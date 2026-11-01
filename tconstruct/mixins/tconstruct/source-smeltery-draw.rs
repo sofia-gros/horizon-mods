@@ -15,6 +15,19 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
         .and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos).map(|(_, mode)| *mode)).unwrap_or(0).min(2);
     if let Some(mut sprite) = atlas.sprites.get("gui/tconstruct_heating_structure").copied() {
         let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+        let original = sprite;
+        if game.container_kind().is_some_and(|entity| entity.slots().first().is_none_or(Option::is_none)) {
+            let mut icon = original;
+            icon.u0 += 224.0 * du; icon.v0 += 186.0 * dv;
+            icon.u1 = icon.u0 + 16.0 * du; icon.v1 = icon.v0 + 16.0 * dv;
+            batch.rect_uv(ox + 125.0, oy + 46.0, 16.0, 16.0, icon, u32::MAX);
+        }
+        if (ox + 124.0..ox + 142.0).contains(&game.cursor.0) && (oy + 69.0..oy + 87.0).contains(&game.cursor.1) {
+            let mut hover = original;
+            hover.u0 += 176.0 * du; hover.v0 += 202.0 * dv;
+            hover.u1 = hover.u0 + 18.0 * du; hover.v1 = hover.v0 + 18.0 * dv;
+            batch.rect_uv(ox + 124.0, oy + 69.0, 18.0, 18.0, hover, u32::MAX);
+        }
         sprite.u0 += (176.0 + f32::from(mode) * 16.0) * du; sprite.v0 += 186.0 * dv;
         sprite.u1 = sprite.u0 + 16.0 * du; sprite.v1 = sprite.v0 + 16.0 * dv;
         batch.rect_uv(ox + 125.0, oy + 70.0, 16.0, 16.0, sprite, u32::MAX);
@@ -25,7 +38,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let max = super::tconstruct_source_smeltery_layout::max_offset(count);
     let width = super::tconstruct_source_smeltery_layout::panel_width(count);
     if cols > 0 {
-        let left = -width;
+        let left = super::tconstruct_source_smeltery_layout::panel_left(count);
         let inner_width = width - 14.0;
         let inner_height = rows as f32 * 18.0;
         if let Some(sprite) = atlas.sprites.get("gui/tconstruct_generic").copied() {
@@ -82,6 +95,66 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
                 }
             }
             y += height;
+        }
+    }
+    // HeatingStructureScreen overlays its original 80×106 gauge at the
+    // tank's upper left after drawing its fluid layers.
+    if let Some(mut gauge) = atlas.sprites.get("gui/tconstruct_heating_structure").copied() {
+        let (du, dv) = ((gauge.u1 - gauge.u0) / gauge.w as f32, (gauge.v1 - gauge.v0) / gauge.h as f32);
+        gauge.u0 += 176.0 * du;
+        gauge.u1 = gauge.u0 + 80.0 * du; gauge.v1 = gauge.v0 + 106.0 * dv;
+        batch.rect_uv(ox + 8.0, oy + 16.0, 80.0, 106.0, gauge, u32::MAX);
+    }
+    if (ox + 8.0..ox + 114.0).contains(&game.cursor.0) && (oy + 16.0..oy + 122.0).contains(&game.cursor.1) {
+        let tank = super::tconstruct_source_smeltery_ui::position(game)
+            .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"))
+            .and_then(|tag| tag.get("tank").and_then(super::tconstruct_source_smeltery_tank::SmelteryTank::from_nbt));
+        if let Some(tank) = tank {
+            let amounts = tank.fluids.iter().map(|fluid| fluid.amount).collect::<Vec<_>>();
+            let heights = super::tconstruct_source_smeltery_layout::fluid_heights(&amounts, tank.capacity);
+            let index = super::tconstruct_source_smeltery_layout::fluid_at(&amounts, tank.capacity, game.cursor.1 - oy);
+            let (top, height) = if let Some(index) = index {
+                let below: u32 = heights.iter().take(index).sum();
+                let height = heights[index] as f32;
+                (oy + 122.0 - below as f32 - height, height)
+            } else {
+                (oy + 16.0, 106.0 - heights.iter().sum::<u32>() as f32)
+            };
+            if height > 0.0 { batch.fill(atlas, ox + 8.0, top, 106.0, height, rgba(255, 255, 255, 128)); }
+        }
+    }
+    let data = super::tconstruct_source_smeltery_ui::position(game)
+        .and_then(|pos| super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery"));
+    let view = data.as_ref().and_then(|tag| tag.get("fuel_view"))
+        .and_then(super::tconstruct_source_smeltery_fuel::FuelView::from_nbt);
+    if let Some(view) = view {
+        if let Some(fluid) = view.fluid.as_deref() {
+            if view.capacity > 0 {
+                let height = (90u64 * u64::from(view.amount) / u64::from(view.capacity)).min(90) as f32;
+                let sprite = super::tconstruct_source_melter_render::sprite(fluid);
+                if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
+                    let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                    let mut y = 0.0;
+                    while y < height {
+                        let h = (height - y).min(16.0);
+                        let mut part = sprite; part.u1 = part.u0 + 16.0 * du; part.v1 = part.v0 + h * dv;
+                        batch.rect_uv(ox + 152.0, oy + 122.0 - y - h, 16.0, h, part, super::tconstruct_source_melter_render::color(fluid));
+                        y += h;
+                    }
+                }
+            }
+        }
+        if (ox + 151.0..ox + 169.0).contains(&game.cursor.0) && (oy + 31.0..oy + 123.0).contains(&game.cursor.1) {
+            batch.fill(atlas, ox + 152.0, oy + 32.0, 16.0, 90.0, rgba(255, 255, 255, 128));
+        }
+    }
+    let number = |key: &str| data.as_ref().and_then(|tag| tag.get(key)).and_then(|value| match value {
+        horizon_world::nbt::Tag::Long(value) => u32::try_from(*value).ok(), _ => None,
+    }).unwrap_or(0);
+    super::tconstruct_source_melter_render::draw_fire(batch, atlas, "gui/tconstruct_heating_structure", ox + 153.0, oy + 15.0, number("fuel"), number("fuel_quality"));
+    for (code, x, y) in super::tconstruct_source_smeltery_ui::visible_heat(game) {
+        if let Some((sprite, height, _)) = super::tconstruct_source_melter_render::decode_heat(code) {
+            super::tconstruct_source_melter_render::draw_heat_bar(batch, atlas, "gui/tconstruct_heating_structure", ox + x, oy + y, sprite, height);
         }
     }
 }

@@ -72,6 +72,12 @@ mod tests {
             assert!(origin + left(54) >= 0.0);
             assert!(origin + right <= viewport);
         }
+        for viewport in [480.0, 426.0] {
+            let right = 182.0 + panel_width(viewport, 0, true);
+            let origin = adjusted_origin(viewport, (viewport - 176.0) / 2.0, -132.0, right);
+            assert!(origin - 132.0 >= 0.0);
+            assert!(origin + right <= viewport - 2.0);
+        }
     }
 }
 
@@ -79,5 +85,5 @@ mod tests {
 pub fn panel_width(viewport: f32, count: usize, station: bool) -> f32 {
     let left_width = if station { 132.0 } else if count > 0 { -left(count) } else { 0.0 };
     let middle = if station { 182.0 } else { 180.0 };
-    (viewport - left_width - middle).clamp(80.0, 126.0)
+    (viewport - left_width - middle - 4.0).clamp(80.0, 126.0)
 }

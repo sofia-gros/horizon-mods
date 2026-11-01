@@ -21,14 +21,35 @@ pub(super) fn side_count(game: &Game<'_>) -> usize {
     } else { game.container_size().saturating_sub(27) }
 }
 
-pub(super) fn side_title(game: &Game<'_>) -> &'static str {
+fn display_storage_name(name: &str) -> String {
+    serde_json::from_str::<serde_json::Value>(name).ok()
+        .filter(|value| value.is_string() || value.is_object() || value.is_array())
+        .map(|value| horizon_client::packs::component(&value).plain())
+        .unwrap_or_else(|| name.to_owned())
+}
+
+pub(super) fn side_title(game: &Game<'_>) -> String {
+    if let Some(pos) = game.container {
+        if game.remote.is_some() {
+            if let Some(name) = game.world.chunks.__horizon_mixins_tconstruct_builder_info().get(&pos).and_then(|info| info.get(6)).filter(|name| !name.is_empty()) {
+                return display_storage_name(name);
+            }
+        } else {
+            let side = game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&pos);
+            let partner = game.world.chunks.__horizon_mixins_tconstruct_builder_double_partner().get(&pos);
+            if let Some(name) = side.and_then(|side| game.world.block_names.get(side)).or_else(|| partner.and_then(|partner| game.world.block_names.get(partner))) {
+                return display_storage_name(name);
+            }
+        }
+    }
     let code = if game.remote.is_some() {
         game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_title().get(&pos).copied()).unwrap_or(0)
     } else {
         game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&pos).copied())
             .map(|pos| super::tconstruct_source_side_layout::title_code(&game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name)).unwrap_or(0)
     };
-    super::tconstruct_source_side_layout::title_key(code)
+    let key = super::tconstruct_source_side_layout::title_key(code);
+    game.pack.names.display_get(key).unwrap_or_else(|| "Inventory".to_owned())
 }
 
 pub(super) fn station_layouts(game: &Game<'_>) -> Vec<super::tconstruct_source_station_layout::StationLayout> {

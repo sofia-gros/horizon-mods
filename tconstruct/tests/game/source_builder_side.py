@@ -28,6 +28,8 @@ def wait(label, predicate):
     raise AssertionError((label, g.call('menu')))
 try:
     g.ready()
+    if g.call('block', '0', '71', '1').get('block') == 'tconstruct:smeltery_controller':
+        g.call('command', 'setblock 0 71 1 minecraft:air')
     for command in ('fill -2 70 -2 3 70 3 minecraft:stone', 'clear @s', 'tp @s 0.5 71 0.5',
                     'setblock 0 71 2 minecraft:air', 'setblock 1 71 2 minecraft:air',
                     'setblock 0 71 2 tconstruct:part_builder', f'setblock 1 71 2 {a.side_block}',

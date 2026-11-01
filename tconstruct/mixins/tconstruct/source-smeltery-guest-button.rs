@@ -1,12 +1,27 @@
 fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, window: i32, id: i32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
-    if (1..3).contains(&id) || id < 0 { return Continue(()); }
+    if (30010..30014).contains(&id) {
+        let Some(gi) = host.hub.guests.iter().position(|guest| guest.conn == conn) else { return Break(()); };
+        let Some(menu) = host.hub.guests[gi].menu.as_ref() else { return Break(()); };
+        if menu.window != window || host.hub.guests[gi].spectator() || !menu.slots.still_valid(&game.world, &host.hub.guests[gi], menu.pos) { return Break(()); }
+        let Some(pos) = menu.pos else { return Break(()); };
+        if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:seared_melter" {
+            crate::game::tconstruct_source_fluid_direct::melter_guest(game, host, gi, pos, id >= 30012, id % 2 == 1);
+        }
+        return Break(());
+    }
+    if id < 0 { return Continue(()); }
     let Some(gi) = host.hub.guests.iter().position(|guest| guest.conn == conn) else { return Continue(()); };
     let Some(menu) = host.hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if menu.window != window || !menu.slots.still_valid(&game.world, &host.hub.guests[gi], menu.pos) { return Continue(()); }
     let Some(pos) = menu.pos else { return Continue(()); };
     let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
         .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Continue(()); };
+    if host.hub.guests[gi].spectator() { return Break(()); }
+    if (1..=2).contains(&id) {
+        if host.hub.guests[gi].carried.is_some() { crate::game::tconstruct_source_fluid_direct::fuel_guest(game, host, gi, pos, id == 2); }
+        return Break(());
+    }
     if id == 0 {
         let (mut slots, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
             .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));
