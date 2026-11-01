@@ -1,7 +1,7 @@
 use super::*;
 use std::ops::ControlFlow::{self, Break, Continue};
 
-fn is_crop(game: &Game<'_>, pos: [i32; 3]) -> bool {
+pub(super) fn is_crop(game: &Game<'_>, pos: [i32; 3]) -> bool {
     let name = &game.res.facts().get(game.world.block(pos[0], pos[1], pos[2])).name;
     game.res.items().block_in_tag("tconstruct:source_effective/tconstruct/harvestable/crops", name)
         && !game.res.items().block_in_tag("tconstruct:source_effective/tconstruct/harvestable/interact", name)

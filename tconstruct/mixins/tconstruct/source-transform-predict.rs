@@ -6,6 +6,10 @@ fn tconstruct_transform_predict(game:&mut crate::game::Game<'_>,stack:&horizon_i
     if game.keys.contains(&winit::keyboard::KeyCode::ShiftLeft) {return Break(false);}
     let max=crate::game::tconstruct_source_transform_logic::maximum(stack);
     if max.is_none_or(|max|stack.damage>=max) || !game.may_build() {return Break(false);}
+    // The authoritative crop harvest consumes this interaction. Avoid also
+    // sending an off-hand use while its server-side update is in flight.
+    if matches!(stack.item.as_ref(), "tconstruct:kama" | "tconstruct:scythe")
+        && crate::game::tconstruct_source_crop_harvest::is_crop(game, hit.pos) { return Break(true); }
     let fake=horizon_items::items::ItemStack::new(template,1);
     let probe=|p:[i32;3]|crate::game::tconstruct_source_transform_logic::probe(game,&fake,kind,p,hit.face).map(|(_,sound,_,_,particle,_)|(p,sound,particle));
     let mut feedback=probe(hit.pos);
