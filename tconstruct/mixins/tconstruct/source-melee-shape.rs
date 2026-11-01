@@ -29,6 +29,17 @@ pub(super) fn in_distance(kind:Attack, primary:[f64;3], attacker:[f64;3], candid
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn broken_flag_and_damage_both_stop_actions() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack=ItemStack::new("tconstruct:scythe",1);
+        assert_eq!(intact(&stack),None);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(4))])));
+        assert_eq!(intact(&stack),Some(4));
+        stack.damage=4;assert_eq!(intact(&stack),None);
+        stack.damage=0;stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(4)),("tic_broken",Tag::Byte(1))])));
+        assert_eq!(intact(&stack),None);
+    }
     #[test] fn source_modes_and_strict_distance_boundaries() {
         assert_eq!(attack("tconstruct:scythe"),Some(Attack::Circle(2.0)));
         assert_eq!(attack("tconstruct:kama"),Some(Attack::Circle(1.0)));
