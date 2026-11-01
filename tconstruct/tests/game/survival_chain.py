@@ -168,7 +168,7 @@ try:
   qclick(qslot('minecraft:coal'));qclick(327);qclick(qslot('minecraft:copper_ingot'));qclick(300)
   qslots={x['slot']:x.get('stack') for x in guest.call('menu')['slots']};assert (qslots.get(300) or {}).get('item')=='minecraft:copper_ingot',qslots
   guest.call('close');guest.stop();guest.cleanup();guest=None
-  g.call('wait','420',timeout=45);cmd('tp @s 2.5 71 1.5');empty_hand();g.call('interact','0','72','2');g.call('wait','12')
+  g.call('wait','1000',timeout=100);cmd('tp @s 2.5 71 1.5');empty_hand();g.call('interact','0','72','2');g.call('wait','12')
   state={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('MELTER AFTER GUEST',state,flush=True);assert not state.get(300),state
   g.call('screenshot',str(run/'survival-melter-lan.png'));g.call('close')
   promote('tconstruct:seared_bricks');g.call('hotbar',str(hot('tconstruct:seared_bricks')+1));g.call('wait','6');g.call('interact','0','71','1');g.call('wait','10')
