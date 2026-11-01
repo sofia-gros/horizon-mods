@@ -1,5 +1,5 @@
 """Find naturally generated slime clusters in each dimension, then use them."""
-import argparse,time
+import argparse,time,re
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
@@ -39,7 +39,13 @@ def find(color,dimension,y):
 def harvest(color,dimension,pos):
  x,y,z=pos;in_dimension(dimension,x,y,z-2)
  block=g.call('block',x,y,z);assert block.get('block')==f'tconstruct:{color}_slime_crystal_cluster',block
- for c in ('gamemode creative @s',f'fill {x-1} {y-1} {z-2} {x+1} {y+2} {z-1} minecraft:air',f'setblock {x} {y-1} {z-1} minecraft:stone',f'tp @s {x+0.5} {y} {z-1.5}','gamemode survival @s'):cmd(c)
+ facing=re.search(r'facing=([a-z]+)',block.get('state',''))
+ direction=facing.group(1) if facing else 'up'
+ dx,dz={'north':(0,-1),'south':(0,1),'east':(1,0),'west':(-1,0),'up':(0,-1),'down':(0,-1)}[direction]
+ ax,az=x+dx,z+dz
+ # Approach from the visible side without destroying the supporting block.
+ for c in ('gamemode creative @s',f'fill {ax} {y} {az} {ax} {y+1} {az} minecraft:air',f'setblock {ax} {y-1} {az} minecraft:stone',f'tp @s {ax+0.5} {y} {az+0.5}','gamemode survival @s'):cmd(c)
+ live=g.call('block',x,y,z);assert live.get('block')==f'tconstruct:{color}_slime_crystal_cluster',live
  g.call('hotbar',str(hot('minecraft:diamond_pickaxe')+1));g.call('wait','10');g.call('screenshot',str(run/f'{color}-geode-natural.png'))
  before=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0)
  print('BREAK',color,g.call('break',x,y,z,'--timeout','30',timeout=35),flush=True);g.call('wait','20');print('ENTITIES',g.call('entities'),flush=True);cmd(f'tp @s {x+0.5} {y} {z+0.5}');g.call('wait','60')
