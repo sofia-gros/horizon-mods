@@ -4,7 +4,7 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
     let Some(menu) = g.menu.as_ref().filter(|m| m.window == window) else { return Continue(()); };
     let Some(key) = menu.pos else { return Continue(()); };
     let station_capacity = crate::game::tconstruct_source_anvil_capacity::input_capacity(&game.res.facts().get(game.world.block(key.0, key.1, key.2)).name);
-    if (35000..35011).contains(&id) && &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:modifier_worktable" {
+    if id >= 35000 && crate::game::tconstruct_source_upgrade_rules::selection_id((id - 35000) as usize).is_some() && &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:modifier_worktable" {
         if !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {
             let Some(selected) = crate::game::tconstruct_source_upgrade_rules::selection_id((id - 35000) as usize) else { return Break(()); };
             if game.world.block_entities.get(&key).and_then(|entity| entity.slots().first()).and_then(Option::as_ref)

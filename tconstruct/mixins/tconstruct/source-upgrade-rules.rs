@@ -662,6 +662,7 @@ mod tests {
         let reapplied = plan(&recipes, &tags, &reduced, &[extracted.upgrade.leftover], 2).unwrap();
         assert_eq!(reapplied.amount, 7);
         assert_eq!(selection_index("tconstruct:trueshot").and_then(selection_id), Some("tconstruct:trueshot"));
+        assert_eq!(selection_index("tconstruct:glowing").and_then(selection_id), Some("tconstruct:glowing"));
         assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:war_pick", 1), &[Some(ItemStack::new("minecraft:magma_cream", 1))], 3).is_none());
         assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:javelin", 1), &[Some(ItemStack::new("minecraft:target", 1))], 3).is_none());
     }
