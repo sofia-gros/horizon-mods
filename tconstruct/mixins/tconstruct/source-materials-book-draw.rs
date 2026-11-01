@@ -43,6 +43,10 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
         return;
     }
+    if let Some(item) = spec.get("item").and_then(|v| v.as_str()) {
+        game.draw_item(batch, &ItemStack::new(item, 1), left + 87.0, 72.0);
+        return;
+    }
     let Some(slots) = spec.get("slots").and_then(|v| v.as_array()) else { return; };
     let ox = left + 38.0;
     let oy = 55.0;

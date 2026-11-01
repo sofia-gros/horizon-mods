@@ -208,7 +208,20 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let graphic = value.get("image").and_then(|v| v.get("file")).and_then(|v| v.as_str())
                 .map(|s| serde_json::json!({"image":s}))
-                .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))));
+                .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
+                .or_else(|| {
+                    let rows = value.get("grid")?.as_array()?;
+                    let mut slots: Vec<Option<String>> = vec![None; 9];
+                    for (y, row) in rows.iter().take(3).enumerate() {
+                        for (x, item) in row.as_array()?.iter().take(3).enumerate() {
+                            slots[y * 3 + x] = item.get("item").and_then(|v| v.as_str()).map(str::to_owned);
+                        }
+                    }
+                    let result = value.get("result").and_then(|v| v.get("item")).and_then(|v| v.as_str());
+                    let grid = if value.get("grid_size").and_then(|v| v.as_str()) == Some("small") { 2 } else { 3 };
+                    Some(serde_json::json!({"slots":slots, "result":result, "grid":grid}))
+                })
+                .or_else(|| value.get("item").and_then(|v| v.get("item")).and_then(|v| v.as_str()).map(|id| serde_json::json!({"item":id})));
             if let Some(graphic) = graphic {
                 chapter_pages.push(Text::styled(title, horizon_client::text::Style {
                     insertion: Some(format!("tconstruct:book:{}", graphic)), ..Default::default()
@@ -216,7 +229,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
             }
             let mut text = String::new();
             if let Some(s) = value.get("subText").and_then(|v| v.as_str()) { text.push_str(s); }
-            for key in ["text", "description"] {
+            for key in ["text", "description", "properties", "tooltip"] {
                 if let Some(parts) = value.get(key).and_then(|x| x.as_array()) {
                     for part in parts {
                         if let Some(s) = part.as_str().or_else(|| part.get("text").and_then(|x| x.as_str())) {
