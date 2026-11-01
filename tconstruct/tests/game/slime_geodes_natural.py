@@ -19,7 +19,7 @@ def wait_for(label,pred):
   time.sleep(.2)
  raise AssertionError(label)
 def in_dimension(dim,x,y,z):
- cmd(f'execute in minecraft:{dim} run tp @s {x+0.5} {y} {z+0.5}');g.call('wait-ready','90',timeout=95);g.call('wait','15')
+ cmd(f'execute in minecraft:{dim} run tp @s {x+0.5} {y} {z+0.5}');g.call('wait-ready','90',timeout=95);g.call('wait','15');state=g.call('state');assert state.get('dimension')=='minecraft:'+dim,state
 def find(color,dimension,y,base):
  for i in range(12):
   x=base+(i%4)*64;z=base+(i//4)*64
