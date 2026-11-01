@@ -25,10 +25,11 @@ const UPGRADES: [(&str, i32); 11] = [
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
-const BONUS_SLOTS: [(&str, i32, i32); 5] = [
+const BONUS_SLOTS: [(&str, i32, i32); 6] = [
     ("tconstruct:writable", 1, 0), ("tconstruct:harmonious", 1, 0),
     ("tconstruct:recapitated", 1, 0), ("tconstruct:forecast", 1, 0),
     ("tconstruct:draconic", 0, 1),
+    ("tconstruct:enhanced", 1, 0),
 ];
 
 fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
@@ -70,6 +71,20 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
         Some(Tag::Int(value)) if *value > 0 => *value,
         _ => 0,
     }
+}
+
+/// Recompute free upgrade and ability slots after material traits change.
+fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
+    let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
+    let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>();
+    let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>();
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| *id != "tconstruct:unbreakable")
+        .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
+    (available_upgrades, available_abilities, used_upgrades)
+}
+pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
+    let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
+    used_upgrades <= available_upgrades && amount(tool, "tconstruct:unbreakable") <= available_abilities
 }
 
 /// Validate source Unbreakable dependencies against complete levels and material traits.
@@ -139,14 +154,7 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
-    let upgrade_slots = upgrade_slots + BONUS_SLOTS.iter().map(|(id, upgrades, _)| bonus(id) * upgrades).sum::<i32>();
-    let ability_slots = ability_slots + BONUS_SLOTS.iter().map(|(id, _, abilities)| bonus(id) * abilities).sum::<i32>();
-    let occupied = UPGRADES
-        .iter()
-        .filter(|(id, _)| *id != "tconstruct:unbreakable")
-        .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed)
-        .sum::<i32>();
+    let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
             continue;
@@ -387,6 +395,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn material_change_rechecks_used_slots_against_new_traits() {
+        let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([
+            ("tconstruct:reinforced",Tag::Int(12)),("tconstruct:diamond",Tag::Int(1)),
+        ]))])));
+        assert!(valid_slots(&tool,&BTreeMap::from([("tconstruct:enhanced".into(),1)]),3,1));
+        assert!(!valid_slots(&tool,&BTreeMap::new(),3,1));
+        assert!(valid_slots(&tool,&BTreeMap::new(),4,1));
+    }
+
+    #[test]
     fn overforced_partial_slots_and_crystal_round_trip() {
         let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"needed_per_level":4,"input":{"item":"tconstruct:slimesteel_reinforcement"},"result":"tconstruct:overforced","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
         let recipes = BTreeMap::from([("overforced".into(), recipe)]);
@@ -457,6 +476,8 @@ mod tests {
         assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("minecraft:dragon_head",1))],2,0,&BTreeMap::new()).unwrap().id,"tconstruct:draconic");
         let extra=BTreeMap::from([("tconstruct:writable".into(),1)]);
         assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&extra).unwrap().amount,9);
+        let enhanced=BTreeMap::from([("tconstruct:enhanced".into(),1)]);
+        assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&enhanced).unwrap().amount,9);
         assert!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&BTreeMap::new()).is_none());
         let difference=serde_json::json!({"type":"forge:difference","base":{"tag":"forge:heads"},"subtracted":{"item":"minecraft:dragon_head"}});
         let skulls=HashMap::from([("forge:heads".into(),HashSet::from(["minecraft:dragon_head".into(),"minecraft:skeleton_skull".into()]))]);

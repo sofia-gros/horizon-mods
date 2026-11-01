@@ -178,6 +178,16 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     } else { 0 };
     if !changed && (tool.damage == 0 || repair == 0) { return None; }
     let mut output = assemble(world, definition, &tool.item, &identities, Some(tool))?;
+    let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+    let modules = parsed.get("modules")?.as_array()?;
+    let base_slots = |name: &str| -> Option<i32> {
+        let total = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+            .filter_map(|module| module.get("slots")?.get(name)?.as_i64()).sum::<i64>();
+        i32::try_from(total).ok()
+    };
+    let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+    if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
+        || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
     Some((output, vec![(0, 1), (slot, 1)]))
 }
@@ -254,7 +264,8 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
                 .max_by(f64::total_cmp).map(|v| v as f32)
         }).unwrap_or(0.0);
         let fixed_durability = fixed_repairs.iter().filter(|(id, _)| id.split('#').next() == material.material.split('#').next()).map(|(_, value)| *value).fold(0.0_f32, f32::max);
-        let durability = stat_durability.max(fixed_durability);
+        let stringy = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:stringy").copied()).unwrap_or(0);
+        let durability = stat_durability.max(fixed_durability).max(super::tconstruct_source_material_effects::stringy_repair(&material.material, stringy));
         if durability <= 0.0 { continue; }
         let amount = durability * material.value as f32 * repair_factor / (3.0 * material.needed as f32);
         let (count, repaired) = super::tconstruct_tx::repair_from_slot(remaining, i32::try_from(stack.count).ok()?, amount);

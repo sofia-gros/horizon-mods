@@ -1,5 +1,14 @@
 #[path = "../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
 #[path = "../../mixins/tconstruct/source-material-effects.rs"] mod tconstruct_source_material_effects;
+#[path = "../../mixins/tconstruct/source-overslime.rs"] mod tconstruct_source_overslime;
+#[test]
+fn tanned_limits_primary_loss_before_overslime_and_reinforced() {
+ use tconstruct_source_material_effects::*;
+ let primary=tanned_wear(8,1,None);
+ let (shield, residual)=tconstruct_source_overslime::absorb(3,primary,None);
+ assert_eq!((shield,residual),(2,0));
+ assert_eq!(reinforced_wear(residual,0,0,false,None,||0.5),0);
+}
 #[test]
 fn reinforced_partial_levels_dense_order_and_cause() {
  use tconstruct_source_material_effects::*;
