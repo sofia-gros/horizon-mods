@@ -26,8 +26,8 @@ pub(super) fn probe(game:&super::Game<'_>, fake:&ItemStack, kind:u8, at:[i32;3],
     let above=[at[0],at[1].checked_add(1)?,at[2]];
     let above_state=game.world.block(above[0],above[1],above[2]);
     if game.res.facts().is_air(above_state) || !game.res.facts().get(above_state).replaceable {return None;}
-    struct Projected<'a> { game:&'a super::Game<'a>, at:[i32;3] }
-    impl horizon_client::block_transform::Around for Projected<'_> {
+    struct Projected<'g,'w> { game:&'g super::Game<'w>, at:[i32;3] }
+    impl horizon_client::block_transform::Around for Projected<'_,'_> {
         fn state(&self,o:[i32;3])->horizon_world::chunk::BlockState {
             let registry=self.game.pack.assets.registry;
             if o==[0,1,0] {return registry.state(self.game.res.facts().air).cloned().unwrap();}

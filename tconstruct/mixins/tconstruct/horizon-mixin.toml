@@ -2578,3 +2578,11 @@ id = "source-transform-logic"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_transform_logic"
 source = "source-transform-logic.rs"
+
+[[injection]]
+id = "source-transform-predict"
+target = "horizon_client::game::remote::Game<'_>::predict_item_on_block"
+kind = "HEAD"
+cancellable = true
+helper = "source-transform-predict.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "hit", ty = "&crate::game::Hit", value = "hit" }]
