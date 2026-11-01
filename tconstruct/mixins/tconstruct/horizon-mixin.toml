@@ -2801,3 +2801,20 @@ bindings = [
   { name = "input", ty = "&Input<'_>", value = "input" },
   { name = "recipe", ty = "&Recipe", value = "recipe" },
 ]
+
+[[module]]
+id = "survival-empty-tank"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_survival_empty_tank"
+source = "survival-empty-tank.rs"
+
+[[injection]]
+id = "survival-melter-no-container"
+target = "horizon_client::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "survival-melter-recipe.rs"
+bindings = [
+  { name = "input", ty = "&Input<'_>", value = "input" },
+  { name = "recipe", ty = "&Recipe", value = "recipe" },
+]
