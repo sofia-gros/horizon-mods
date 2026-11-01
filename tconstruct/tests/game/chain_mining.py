@@ -70,6 +70,9 @@ try:
     for pos in selected:cmd('setblock %s %s %s minecraft:oak_log'%tuple(pos))
     cmd('setblock 20 103 21 minecraft:birch_log')
     run_block(selected[0],selected,kept,'minecraft:oak_log');g.call('screenshot',str(run/'chain-tree.png'))
+    setup();selected=[[20,y,20] for y in range(101,107)];kept=[[20,107,20]]
+    for pos in selected+kept:cmd('setblock %s %s %s minecraft:oak_planks'%tuple(pos))
+    run_block(selected[0],selected,kept,'minecraft:oak_planks')
     for tool in ('vein_hammer','broad_axe'):
         for remaining in (1,3):limited(tool,remaining)
     g.call('save');g.stop();g.cleanup()
