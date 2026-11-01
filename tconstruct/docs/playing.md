@@ -78,7 +78,7 @@ A Part Builder can show a connected container alongside its own slots. You can m
 
 ## Other equipment
 
-The resource preparation now registers additional source equipment IDs. A Linux test obtained a Broad Axe, Dagger, Plate Helmet, and Skyslime Staff with commands, displayed their icons, and placed the helmet in the head slot. Other acquisition paths, equipment behavior, and worn armor appearance remain incomplete or unverified. Materials, traits, modifiers, and tool-specific actions are still in development.
+The resource preparation now registers additional source equipment IDs. A Linux test obtained a Broad Axe, Dagger, Plate Helmet, and Skyslime Staff with commands, displayed their icons, and placed the helmet in the head slot. Material armor mitigates damage and loses durability when hit; a broken piece stays in its slot but provides no armor or toughness until repaired at a Tinker Station. Representative repair, fire and LAN cases are described in [material armor damage and repair](armor-durability.md). Other acquisition paths, unique equipment effects, and worn armor appearance remain incomplete or unverified. Materials, traits, modifiers, and tool-specific actions are still in development.
 
 ![A Plate Helmet in the head slot with equipment icons in the hotbar](equipment-registration.png)
 
