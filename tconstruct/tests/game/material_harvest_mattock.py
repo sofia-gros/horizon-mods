@@ -18,7 +18,8 @@ try:
     for i,item in enumerate(('tconstruct:small_axe_head','tconstruct:tool_handle','tconstruct:adze_head')):click(hotbar(item));click(300+i)
     click(324);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:mattock';click(0);g.call('close');g.call('hotbar','1')
     log=mine('minecraft:oak_log');planks=mine('minecraft:oak_planks');print('mattock log vs planks',log,planks,flush=True);assert log<planks,(log,planks)
-    cmd('gamemode creative @s');cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_damage",function:"minecraft:set_damage",damage:0.0}');g.call('wait','20')
+    cmd('gamemode creative @s');cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_damage",function:"minecraft:set_damage",damage:0.01}');g.call('wait','20')
+    mine('minecraft:oak_log')
     held=g.call('inventory')['held'];print('broken mattock',json.dumps(held),flush=True);assert 'tic_broken:1b' in held.get('components',''),held
     broken=mine('minecraft:oak_log');print('broken vs normal',broken,log,flush=True);assert broken>log,(broken,log)
     g.call('screenshot',str(run/'material-harvest-mattock.png'));g.stop();print('PASS mattock effective blocks and broken',flush=True)
