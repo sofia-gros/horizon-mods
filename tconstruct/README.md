@@ -27,3 +27,5 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 ## Develop
 
 See [Build and test](docs/development.md) for source preparation, tests, and the Mixins build.
+
+Sky Geode natural Skyslime Crystal acquisition is under development; generation, harvesting and crystal regrowth are not yet validated.

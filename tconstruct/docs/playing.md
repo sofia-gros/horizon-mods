@@ -161,3 +161,5 @@ The Smeltery fuel gauge shows the available fuel. Hover over it for the fluid, t
 ![Smeltery fuel gauge and tooltip](smeltery-fuel-tooltip.png)
 
 ![A Crossbow receiving Trueshot at an Anvil](ranged-upgrades-station.png)
+
+Sky Geode acquisition is under development; source generation and harvesting have not yet been validated. Crystal regrowth is not connected.

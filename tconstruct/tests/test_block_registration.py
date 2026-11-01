@@ -42,7 +42,10 @@ class BlockRegistrationTests(unittest.TestCase):
                 item = json.loads((ASSETS / 'items' / f'{name}.json').read_text())
                 walk(item)
                 loot = (CONTENT / 'data/tconstruct/loot_table/blocks' / f'{name}.json').read_text()
-                self.assertIn(f'tconstruct:{name}', loot)
+                if name != 'budding_sky_slime_crystal':
+                    self.assertIn(f'tconstruct:{name}', loot)
+                else:
+                    self.assertNotIn('pools', json.loads(loot))
                 json.loads(loot)
 
     def test_source_wood_uses_nonfuel_templates(self):
