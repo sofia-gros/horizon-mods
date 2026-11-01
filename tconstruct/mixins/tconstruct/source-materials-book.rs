@@ -113,10 +113,10 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                 let subtext = labels.get(format!("{key}.subtext").as_str()).copied().unwrap_or("");
                 if !subtext.is_empty() { chapter_pages.extend(split_page(subtext, 120).into_iter().map(Text::literal)); }
                 for (id, name) in materials {
-                    let mut detail = name.clone();
+                    let mut sections: Vec<(String, String)> = Vec::new();
                     if let Some((namespace, material)) = id.split_once(':') {
                         let flavor = game.translate(&format!("material.{namespace}.{material}.flavor"), "");
-                        if !flavor.is_empty() { detail.push_str("\n\n"); detail.push_str(&flavor); }
+                        if !flavor.is_empty() { sections.push((name.clone(), flavor)); }
                         if let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() {
                             let stats_path = format!("{namespace}:tinkering/materials/stats/{material}");
                             let traits_path = format!("{namespace}:tinkering/materials/traits/{material}");
@@ -131,14 +131,15 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                                     for stat in visible {
                                         let Some(fields) = stats.get(*stat) else { continue; };
                                         let kind = stat.strip_prefix("tconstruct:").unwrap_or(stat);
-                                        let heading = game.translate(&format!("stat.tconstruct.{kind}"), kind);
-                                        detail.push_str(&format!("\n\n{heading}"));
+                                        let part = game.translate(&format!("stat.tconstruct.{kind}"), kind);
+                                        let mut detail = String::new();
                                         for (field, value) in fields {
                                             let shown = value.as_f64().map(|number| super::tconstruct_materials_book_stat::number(kind, field, number)).or_else(|| value.as_str().map(str::to_owned));
                                             if let Some(shown) = shown {
                                                 let stat_name = match field.as_str() { "melee_attack" | "melee_damage" => "attack_damage", "melee_speed" => "attack_speed", "mining_tier" => "harvest_tier", other => other };
                                                 let label = game.translate(&format!("tool_stat.tconstruct.{stat_name}"), stat_name);
-                                                detail.push_str(&format!("\n{label}{shown}"));
+                                                if !detail.is_empty() { detail.push('\n'); }
+                                                detail.push_str(&format!("{label}{shown}"));
                                             }
                                         }
                                         if let Some(raw) = &raw_traits {
@@ -147,15 +148,22 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                                             for (trait_id, level) in traits {
                                                 let (ns, id) = trait_id.split_once(':').unwrap_or(("tconstruct", &trait_id));
                                                 let title = game.translate(&format!("modifier.{ns}.{id}"), id);
-                                                detail.push_str(&format!("\n{title} {level}"));
+                                                if !detail.is_empty() { detail.push('\n'); }
+                                                detail.push_str(&format!("{title} {level}"));
                                             }
                                         }
+                                        sections.push((format!("{name} - {part}"), detail));
                                     }
                                 }
                             }
                         }
                     }
-                    for page in split_page(&detail, 120) { chapter_pages.push(Text::literal(page)); }
+                    if sections.is_empty() { chapter_pages.push(Text::literal(name)); }
+                    for (title, detail) in sections {
+                        let chunks = split_page(&detail, 90);
+                        if chunks.is_empty() { chapter_pages.push(Text::literal(title)); }
+                        else { for chunk in chunks { chapter_pages.push(Text::literal(format!("{title}\n\n{chunk}"))); } }
+                    }
                 }
                 if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
             }
