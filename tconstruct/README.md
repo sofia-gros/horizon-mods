@@ -34,6 +34,6 @@ Earthslime, Ichor and Enderslime Geodes have representative Linux natural genera
 
 The early [Smeltery crafting route](docs/playing.md#early-smeltery-crafting) has a representative Linux game check from Grout through Controller casting, Rose Gold and a crafted Tinkers' Anvil, including LAN Melter input. The test used vanilla material and fuel fixtures; see the guide for its scope.
 
-Natural [Nether Cobalt progression](docs/playing.md#nether-cobalt) is in development; its new generation and blasting recipes still need game validation.
+[Nether Cobalt progression](docs/playing.md#nether-cobalt) has a representative Linux check for natural ore generation, iron-tier mining and blasting, with the tools, furnace and fuel supplied as fixtures.
 
-[Metal part casting](docs/playing.md#casting-metal-parts) is in development and awaits integrated gameplay validation.
+[Metal part casting](docs/playing.md#casting-metal-parts) has a representative Linux check from natural Cobalt ore through a Station-built tool, save/reload and LAN guest visibility.
