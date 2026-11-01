@@ -149,7 +149,7 @@ The in-development Cobalt ore generates in new Nether chunks, embedded in Nether
 
 Make a part-shaped cast, place it on a Casting Table, and pour an appropriate molten material into it. The source recipe determines the amount and resulting material. A gold cast is reusable; a sand cast is consumed.
 
-A representative Linux run made a wooden Pick Head in the Part Builder, cast its reusable gold mold, and used naturally mined Cobalt to cast Pick Heads with both gold and sand molds. A Cobalt-headed pickaxe assembled at a Tinker Station remained usable after reload; a LAN guest saw its material in the Station. The Smeltery, fuel, gold, wood, pattern, blank sand cast and other tool parts were supplied as fixtures, and processing ticks were accelerated. Composite material fluids and unsupported material predicates remain unavailable.
+A representative Linux run made a wooden Pick Head in the Part Builder, cast its reusable gold mold, and used naturally mined Cobalt to cast Pick Heads with both gold and sand molds. A Cobalt-headed pickaxe assembled at a Tinker Station remained usable after reload; a LAN guest saw its material in the Station. The Smeltery, fuel, gold, wood, pattern, blank sand cast and other tool parts were supplied as fixtures, and processing ticks were accelerated. A separate ordinary copper casting with a full inventory dropped its output on the ground. Composite material fluids and unsupported material predicates remain unavailable.
 
 ![Casting Table during the Cobalt part test](cobalt-part-casting.png)
 
