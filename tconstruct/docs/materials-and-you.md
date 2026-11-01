@@ -1,7 +1,7 @@
 # Materials and You
 
-This in-progress guide uses the original Materials and You item, English page data and images from TConstruct revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Craft it from a book and a pattern. A source-config-controlled tick advancement is intended to give it once per player, using the host's saved advancement progress.
+This in-progress guide uses the original English Materials and You data and images from TConstruct revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Craft it from a book and a pattern. Its source-config-controlled starting-book advancement uses the host's saved per-player progress.
 
-The reader uses Horizon's book controls. It builds a clickable chapter index, source text pages, image pages and recipe diagrams from the source references. Its initial material lists use the loaded material definitions and tags. These additions have only passed a limited Mixins plan and source-data checks; compilation and gameplay remain unverified.
+The reader uses Horizon's book controls, with clickable chapter and page indexes. It reads original text and illustrations, resolves recipe diagrams from loaded recipes, and builds initial material, trait and tool pages from loaded definitions and tags. A bounded LAN payload requests host-resolved pages when a guest opens the book. The recipe grid uses one representative item from a tag.
 
-The first English guide is still incomplete: generated material pages need their original statistics, traits and source ordering; generated armor/tool sections and detailed page types require further integration. Recipe diagrams and material snapshots need LAN validation. Other languages and other guides are future work. The source describes upstream TConstruct, and some described features remain incomplete in this port.
+The full reader, starting-book reward and LAN exchange have not yet been type-checked or tested in game. Some source layouts and generated material details are simplified; original content can describe features still incomplete in this port. Other languages and other guides are future work.

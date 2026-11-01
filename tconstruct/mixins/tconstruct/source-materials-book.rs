@@ -94,6 +94,23 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
+            if key == "armor" {
+                let item_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
+                if let Some(tools) = item_tags.and_then(|tags| tags.get("tconstruct:modifiable/book_armor/materials_and_you")).filter(|tools| !tools.is_empty()) {
+                    let mut tools: Vec<_> = tools.iter().collect();
+                    tools.sort();
+                    let mut chapter_pages = Vec::new();
+                    if let Some(subtext) = labels.get("armor.subtext") {
+                        chapter_pages.extend(split_page(subtext, 120).into_iter().map(Text::literal));
+                    }
+                    for id in tools {
+                        let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", id));
+                        chapter_pages.push(Text::literal(game.translate(&format!("item.{namespace}.{name}"), name)));
+                    }
+                    if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
+                }
+                continue;
+            }
             if let Some(materials) = dynamic_materials(game, key) {
                 let mut chapter_pages = Vec::new();
                 let subtext = labels.get(format!("{key}.subtext").as_str()).copied().unwrap_or("");
