@@ -8,9 +8,11 @@ The Station and both Anvils have an in-development path for applying and refilli
 
 Overforced uses four Slimesteel Reinforcements per level, up to five levels, with an upgrade slot for each started level. Partial progress contributes capacity. A Modifier Crystal carries one full level and retains any partial progress when extracted. The source recipe casts a consumed Obsidian Pane with 30 mB of molten Slimesteel on a Casting Table. The source alloy uses molten iron, Sky Slime and seared stone.
 
+Representative Linux tests checked partial and full Overforced application with a LAN guest at each Anvil, including unused input, and a Worktable Crystal extraction and reapplication using a supplied crossbow.
+
 The added shield is spent before ordinary durability on the connected tool, armor and ranged wear paths. Overslime without a friendly modifier has source stat penalties; Overforced is a friend. The durability bar has a blue shield display while shield remains. The Glowing modifier and its special bypass are not implemented.
 
-The source Casting Table recipe fills a glass bottle with 250 mB of the matching slime fluid. The four bottle items and their original artwork are registered, and the source Sky bottle casting recipe is covered by a lightweight catalog test. The container interface transfers 250 mB in either direction; its arithmetic and atomicity have lightweight tests. A supplied Ichor bottle was consumed in a Linux game and returned glass while applying Levitation and Slowness. Earth, Sky and Ender drinking remains unimplemented because their source effects are not yet connected.
+The source Casting Table recipe fills a glass bottle with 250 mB of the matching slime fluid. The four bottle items and their original artwork are registered, and the source Sky bottle casting recipe is covered by a lightweight catalog test. A supplied Sky bottle was emptied and filled in a Smeltery on Linux, including save/reload and a LAN guest check. A supplied Ichor bottle was consumed in a Linux game and returned glass while applying Levitation and Slowness. Earth, Sky and Ender drinking remains unimplemented because their source effects are not yet connected.
 
 The crafting-table refill has representative Linux normal-click and shift-click checks, including unused bottle and empty bottle returns. Shift-click was also checked for a LAN guest, with supplied tool and bottles.
 
