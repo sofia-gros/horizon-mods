@@ -252,7 +252,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let modified = ["worldgen/biomes.json", "worldgen/blocks/cached-collision.nbt",
         "cached-collision.nbt", "movement-properties.nbt", "render-definitions.json",
         "registries.json", "gameplay-facts.json", "items.json", "assets/minecraft/textures/gui",
-        "assets/minecraft/textures/block"];
+        "assets/minecraft/textures/block", "data/tconstruct/tags/block"];
     fn mirror(src: &Path, dst: &Path, rel: &Path, modified: &[&str]) -> std::io::Result<()> {
         std::fs::create_dir_all(dst)?;
         for entry in std::fs::read_dir(src)? {
@@ -360,6 +360,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             }
         }
     }
+    crate::tconstruct_source_harvest_tags::prepare(&cache, &original_out, &runtime.join("forge-harvest-tags.zip"))?;
     std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
     // Restore item components beyond the content loader's template and
     // max-stack declarations, using the player's own cloned item table.
