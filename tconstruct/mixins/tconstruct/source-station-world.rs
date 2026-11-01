@@ -72,6 +72,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
     super::tconstruct_source_mining_stack::apply(&mut output, &stats, &levels, &order, has_tag("tconstruct:modifiable/harvest"))?;
+    super::tconstruct_source_overslime::rebuild(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/ranged"), has_tag("tconstruct:modifiable/harvest"))?;
     Some(output)
 }
 
@@ -315,6 +316,52 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     Some(StationOperation { output, consumed: plan.consumed, leftovers: plan.leftover.into_iter().collect() })
 }
 
+/// Apply source overslime refills using only the matching input items.
+fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
+    let tool = slots.first()?.as_ref()?;
+    if tool.count != 1 { return None; }
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    if !tags.get("tconstruct:modifiable/durability").is_some_and(|items| items.contains(tool.item.as_ref())) { return None; }
+    let inputs = slots.get(1..=input_capacity)?.iter().enumerate().filter_map(|(i,s)| s.as_ref().map(|s| (i+1,s))).collect::<Vec<_>>();
+    if inputs.is_empty() { return None; }
+    let item = inputs[0].1.item.to_string();
+    if inputs.iter().any(|(_,s)| s.item.as_ref() != item) { return None; }
+    let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
+    let restore = recipes.values().filter_map(|bytes| serde_json::from_slice::<serde_json::Value>(bytes).ok()).find_map(|value| {
+        (value.get("type")?.as_str()? == "tconstruct:overslime_modifier" && value.pointer("/ingredient/item")?.as_str()? == item.as_str())
+            .then(|| value.get("restore_amount")?.as_u64().and_then(|n| u32::try_from(n).ok())).flatten()
+    })?;
+    let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
+    let identities = materials.iter().map(|v| if let Tag::String(id)=v {Some(id.to_string_lossy().to_string())} else {None}).collect::<Option<Vec<_>>>()?;
+    let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+    let (namespace,name) = tool.item.split_once(':')?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|t|t.levels).unwrap_or_default();
+    let mut upgraded = tool.clone();
+    let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
+    let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str,Tag)>::new()));
+    let Tag::Compound(ref mut fields) = custom else { return None; };
+    let Tag::Compound(ref mut entries) = upgrades else { return None; };
+    entries.insert("tconstruct:overslime".into(),Tag::Int(1));
+    fields.insert("tic_upgrades".into(),upgrades);
+    upgraded.data_mut().set_other("minecraft:custom_data",Some(custom));
+    let mut output = assemble(world,definition,&tool.item,&identities,Some(&upgraded))?;
+    let cap = super::tconstruct_source_overslime::amount(&output,"tic_overslime_capacity") as u32;
+    let before = super::tconstruct_source_overslime::amount(tool,"tic_overslime") as u32;
+    let available = inputs.iter().map(|(_,s)|s.count).sum();
+    let overworked = traits.get("tconstruct:overworked").copied().unwrap_or(0).max(0) as u32;
+    let (after, mut remaining) = super::tconstruct_source_overslime::refill(before,cap,restore,available,overworked)?;
+    let mut consumed = vec![(0,1)];
+    for (index,stack) in inputs { let count = stack.count.min(remaining); if count>0 {consumed.push((index,count));remaining-=count;} }
+    let bottles = if item.ends_with("_slime_bottle") { consumed.iter().skip(1).map(|(_,n)|*n).sum() } else { 0 };
+    let leftovers = if bottles>0 {vec![ItemStack::new("minecraft:glass_bottle",bottles)]} else {Vec::new()};
+    let mut custom=output.data()?.other("minecraft:custom_data")?.clone();
+    let Tag::Compound(ref mut fields)=custom else {return None;};
+    fields.insert("tic_overslime".into(),Tag::Int(after as i32));
+    output.data_mut().set_other("minecraft:custom_data",Some(custom));
+    Some(StationOperation {output,consumed,leftovers})
+}
+
 /// Construct the worktable extraction output without changing inventory.
 pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], id: &str) -> Option<StationOperation> {
     let tool = slots.first()?.as_ref()?;
@@ -343,15 +390,16 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
 
 /// Revalidate and commit a planned operation; return any item to give to the player.
 pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, plan: StationOperation) -> Option<Vec<ItemStack>> {
-    let bottle_slots: Vec<usize> = plan.consumed.iter().filter_map(|&(slot, _)|
-        slots.get(slot).and_then(Option::as_ref).filter(|s| &*s.item == "minecraft:dragon_breath").map(|_| slot)).collect();
+    let bottle_slots: Vec<(usize, u32)> = plan.consumed.iter().filter_map(|&(slot, count)|
+        slots.get(slot).and_then(Option::as_ref).filter(|s| &*s.item == "minecraft:dragon_breath" || s.item.ends_with("_slime_bottle")).map(|_| (slot, count))).collect();
     if !take_repair(slots, carried, plan.output, &plan.consumed) { return None; }
     let mut leftovers = plan.leftovers;
     if let Some(index) = leftovers.iter().position(|s| &*s.item == "minecraft:glass_bottle") {
-        for slot in bottle_slots {
+        for (slot, count) in bottle_slots {
             if slots[slot].is_none() && leftovers[index].count > 0 {
-                slots[slot] = Some(ItemStack::new("minecraft:glass_bottle", 1));
-                leftovers[index].count -= 1;
+                let count = count.min(leftovers[index].count);
+                slots[slot] = Some(ItemStack::new("minecraft:glass_bottle", count));
+                leftovers[index].count -= count;
             }
         }
         if leftovers[index].count == 0 { leftovers.remove(index); }
@@ -366,6 +414,7 @@ pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Op
 
 pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
     if !matches!(input_capacity, 3 | 5) { return None; }
+    if let Some(plan) = overslime_plan(world, slots, input_capacity) { return Some(plan); }
     if let Some(plan) = upgrade_plan(world, slots, input_capacity) { return Some(plan); }
     if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity).or_else(|| repair_plan_with_capacity(world, slots, input_capacity)) {
         return Some(StationOperation { output, consumed, leftovers: Vec::new() });

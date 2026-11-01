@@ -52,8 +52,8 @@ fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_item
                     if !game.creative {
                         let held=game.held().cloned();
                         if let Some(held)=held {
-                            let loss=game.durability_loss(&held,1);
-                            if let Some(current)=game.held_mut().as_mut().filter(|current|current.item==item) {crate::game::tconstruct_tx::fixed_damage(current,loss);}
+                            let (loss,overslime)=crate::game::tconstruct_source_overslime_host::damage(game,&held,1);
+                            if let Some(current)=game.held_mut().as_mut().filter(|current|current.item==item) {crate::game::tconstruct_source_overslime::spend(current,overslime);crate::game::tconstruct_tx::fixed_damage(current,loss);}
                         }
                     }
                     game.post_block_game_event("minecraft:block_change",at,game.sculk_actor(),Some(new));

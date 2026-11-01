@@ -82,6 +82,8 @@ for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 
 icon_sources = json.loads((repository / 'content/assets/tconstruct/runtime/modifier-icon-sources.json').read_text())
 for name in icon_sources['mod']:
     (gui / ('tconstruct_modifier_' + name + '.png')).write_bytes((repository / 'assets/tconstruct/gui/modifiers' / (name + '.png')).read_bytes())
+for name, source in icon_sources['mod_item'].items():
+    (gui / ('tconstruct_modifier_' + name + '.png')).write_bytes((repository / 'assets/tconstruct/textures' / (source + '.png')).read_bytes())
 for name, source in icon_sources['vanilla'].items():
     (gui / ('tconstruct_modifier_' + name + '.png')).write_bytes((src / 'assets/minecraft/textures/item' / (source + '.png')).read_bytes())
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as source_smeltery:

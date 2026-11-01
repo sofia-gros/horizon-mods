@@ -47,6 +47,8 @@ def package(output):
     icon_sources = json.loads((MOD / 'content/assets/tconstruct/runtime/modifier-icon-sources.json').read_text())
     for name in icon_sources['mod']:
         add(runtime + 'gui/tconstruct_modifier_' + name + '.png', (MOD / 'assets/tconstruct/gui/modifiers' / (name + '.png')).read_bytes())
+    for name, source in icon_sources['mod_item'].items():
+        add(runtime + 'gui/tconstruct_modifier_' + name + '.png', (MOD / 'assets/tconstruct/textures' / (source + '.png')).read_bytes())
     for rel, source in tracked('tconstruct/assets/tconstruct/gui/patterns'):
         add(runtime + 'gui/tconstruct_patterns/' + rel.name, source.read_bytes())
     with zipfile.ZipFile(MOD / 'content/reference/tconstruct-plate-armor-textures.zip') as archive:

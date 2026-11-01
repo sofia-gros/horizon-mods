@@ -48,6 +48,9 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                     top.push((format!("{label}{number}"), game.pack.names.display_get(&format!("{key}.description"))));
                 }
             }
+            if let (Some(Tag::Int(amount)), Some(Tag::Int(capacity))) = (data.get("tic_overslime"), data.get("tic_overslime_capacity")) {
+                if *capacity > 0 && matches!(data.get("tic_overslime_active"), Some(Tag::Byte(v)) if *v != 0) { top.push((format!("Overslime: {amount}/{capacity}"), None)); }
+            }
             let traits = if game.remote.is_some() {
                 game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info().get(&pos))
                     .and_then(|frame| frame.first()).and_then(|json| serde_json::from_str::<std::collections::BTreeMap<String, i32>>(json).ok())
@@ -69,7 +72,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
                         let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
                         let tip = key.and_then(|key| game.pack.names.display_get(&format!("{key}.description")));
-                        let needed = match id.as_ref() { "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72, "tconstruct:haste" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" => 10, "tconstruct:reinforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
+                        let needed = match id.as_ref() { "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72, "tconstruct:haste" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
                         let shown = if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic") { label } else { format!("{label}: {amount}/{needed}") };
                         bottom.push((shown, tip));
                     }

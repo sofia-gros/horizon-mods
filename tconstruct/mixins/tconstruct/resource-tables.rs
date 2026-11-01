@@ -320,6 +320,9 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         let name = name.as_str().filter(|name| safe_name(name)).ok_or("invalid mod icon name")?;
         if !runtime.join(format!("gui/tconstruct_modifier_{name}.png")).is_file() { return Err(format!("missing modifier sprite {name}").into()); }
     }
+    for (name, _) in icons.get("mod_item").and_then(serde_json::Value::as_object).ok_or("missing mod item icon map")? {
+        if !safe_name(name) || !runtime.join(format!("gui/tconstruct_modifier_{name}.png")).is_file() { return Err(format!("missing or invalid modifier sprite {name}").into()); }
+    }
     for (name, source) in icons.get("vanilla").and_then(serde_json::Value::as_object).ok_or("missing vanilla icon map")? {
         let source = source.as_str().filter(|source| safe_name(source)).ok_or("invalid vanilla icon source")?;
         if !safe_name(name) { return Err("invalid modifier icon name".into()); }
@@ -458,6 +461,8 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
         let harvest = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/harvest", &raw_tags, &registry)?;
         let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
         let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
+        let armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
+        let ranged = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
         let creative_path = out.join("creative-inventory.json");
         if creative_path.is_file() {
             let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
@@ -489,6 +494,7 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
                                     if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
+                                    if crate::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }
                                 }
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }
