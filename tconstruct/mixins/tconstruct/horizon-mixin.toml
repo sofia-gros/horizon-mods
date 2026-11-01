@@ -2944,6 +2944,13 @@ cancellable = true
 helper = "source-glowing-process.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
+[[injection]]
+id = "glowing-boot-walk"
+target = "horizon_client::game::enchant_effects::Game<'_>::location_changed_effects"
+kind = "HEAD"
+helper = "source-glowing-walk.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "from", ty = "[f64;3]", value = "from" }, { name = "_was_on_ground", ty = "bool", value = "was_on_ground" }]
+
 [[module]]
 id = "game-glowing-placement"
 file = "crates/horizon-client/src/game.rs"

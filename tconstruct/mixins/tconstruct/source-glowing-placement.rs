@@ -19,6 +19,21 @@ pub(super) fn support_direction(
         })
 }
 
+/// Original armor walk radius: X advances inside Z, at feet Y + 0.5.
+pub(super) fn walk_candidates(at: [f64;3], level: i32, expanded: i32) -> Vec<[i32;3]> {
+    if level <= 0 || at.iter().any(|v| !v.is_finite()) { return Vec::new(); }
+    let radius = (2i32.saturating_add(level).saturating_add(expanded)).clamp(0,16);
+    let center = [at[0].floor() as i32, (at[1]+0.5).floor() as i32, at[2].floor() as i32];
+    let mut positions=Vec::new();
+    for dz in -radius..=radius { for dx in -radius..=radius {
+        let Some(x)=center[0].checked_add(dx) else { continue; };
+        let Some(z)=center[2].checked_add(dz) else { continue; };
+        let distance=(f64::from(x)+0.5-at[0]).powi(2)+(f64::from(center[1])+0.5-at[1]).powi(2)+(f64::from(z)+0.5-at[2]).powi(2);
+        if distance < f64::from(radius*radius) { positions.push([x,center[1],z]); }
+    }}
+    positions
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -40,6 +55,15 @@ mod tests {
             assert_eq!(support_direction(pos, down, replaceable, liquid, existing, |_,_| panic!("invalid destination")), None);
         }
         assert_eq!(support_direction(pos, down, true, false, false, |_,_| false), None);
+    }
+    #[test]
+    fn walk_uses_source_radius_height_and_order() {
+        let positions = walk_candidates([0.5,64.0,0.5],1,0);
+        assert_eq!(positions.first(),Some(&[-2,64,-2]));
+        assert!(positions.contains(&[0,64,0]));
+        assert!(!positions.contains(&[3,64,0]));
+        assert!(walk_candidates([0.0,0.0,0.0],0,0).is_empty());
+        assert!(walk_candidates([f64::NAN,0.0,0.0],1,0).is_empty());
     }
     #[test]
     fn overflow_does_not_wrap_into_a_support() {
