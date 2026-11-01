@@ -330,6 +330,10 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         }
         Ok(())
     }
+    if std::fs::symlink_metadata(cache.join("minecraft-original-pack")).is_ok()
+        || std::fs::symlink_metadata(cache.join("tconstruct-melter-fluids.json")).is_ok() {
+        return Err("source resource root already contains reserved generated paths".into());
+    }
     for (source, destination) in [("recipe", "recipes"), ("tags/item", "tags/items"),
         ("tags/fluid", "tags/fluids"), ("tags/block", "tags/blocks")] {
         copy_json_tree(&base.join("data/minecraft").join(source),
