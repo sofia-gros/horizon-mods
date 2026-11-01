@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidFuel, FluidSpec, FoundryRecipe, MeltingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, Output};
 
 pub(super) struct Catalog<'a> {
     pub recipes: &'a BTreeMap<String, Vec<u8>>,
@@ -129,6 +129,34 @@ impl Catalog<'_> {
                     || previous.consumes_cast != recipe.consumes_cast || previous.switch_slots != recipe.switch_slots || previous.retextured != recipe.retextured
                     || previous_output != &output { return None; }
             } else { found = Some((id.clone(), recipe, output)); }
+        }
+        found
+    }
+
+    /// Join the original part-cast and fluid-to-material recipes. Composite
+    /// fluids and non-default material predicates remain rejected by parsing.
+    pub(super) fn material_casting(&self, input: &str, fluid: &str, supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found = None;
+        for (id, bytes) in self.recipes {
+            let Some(part) = MaterialCastingRecipe::parse(bytes, conditions) else { continue; };
+            if !part.cast.matches(input, &in_tag) || !self.known_items.contains(&part.result) { continue; }
+            for fluid_bytes in self.recipes.values() {
+                let Some(material) = MaterialFluidRecipe::parse(fluid_bytes, conditions) else { continue; };
+                if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, &part.result) { continue; }
+                let Some(amount) = material.fluid.amount.checked_mul(part.item_cost) else { continue; };
+                let factor = ((amount as f32) / 90.0_f32).sqrt();
+                let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
+                if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+                let mut spec = material.fluid.clone(); spec.amount = amount;
+                let recipe = CastingRecipe { basin: false, retextured: false, cast: Some(part.cast.clone()),
+                    consumes_cast: part.consumes_cast, switch_slots: part.switch_slots, fluid: spec,
+                    output: Output::Item(part.result.clone()), cooling_time: time as u32 };
+                let value = (id.clone(), recipe, part.result.clone(), material.material.clone());
+                if found.as_ref().is_some_and(|old| old != &value) { return None; }
+                found = Some(value);
+            }
         }
         found
     }

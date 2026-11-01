@@ -49,3 +49,24 @@ pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &s
         catalog.casting(basin, input, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
     })?
 }
+
+/// Resolve the completed stack before reserving fluid. Both normal item
+/// casting and material casting then use the same persistent transaction.
+pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&str>, fluid: &str) -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
+    if let Some((id, recipe, output)) = casting(world, basin, input, fluid) {
+        return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
+    }
+    if basin { return None; }
+    let cast = input?;
+    let (id, recipe, output, material) = with_catalog(world, |catalog, registries, config| {
+        catalog.material_casting(cast, fluid,
+            &|material, output| super::tconstruct_source_builder_world::supported_material(world, material)
+                .ok().is_some_and(|(_, parts)| parts.contains(output)),
+            &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })??;
+    let mut stack = horizon_items::items::ItemStack::new(&output, 1);
+    stack.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
+        ("Material", horizon_world::nbt::Tag::String(material.as_str().into()))
+    ])));
+    Some((id, recipe, stack))
+}

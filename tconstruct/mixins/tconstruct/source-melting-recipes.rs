@@ -22,6 +22,16 @@ impl Ingredient {
             if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
             return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
         }
+        // With the default ANY predicate the source material ingredient only
+        // tests its nested item or tag, without reading material NBT.
+        if obj.get("type").and_then(Value::as_str) == Some("tconstruct:material") {
+            if obj.keys().any(|key| key != "type" && key != "item" && key != "tag") { return None; }
+            return match (obj.get("item"), obj.get("tag")) {
+                (Some(id), None) => Some(Self::Item(id.as_str()?.to_owned())),
+                (None, Some(id)) => Some(Self::Tag(id.as_str()?.to_owned())),
+                _ => None,
+            };
+        }
         // NBT/custom ingredients need their own semantics; do not silently
         // accept them as a plain item or tag.
         if obj.keys().any(|key| key != "item" && key != "tag") { return None; }
@@ -220,6 +230,40 @@ pub(super) enum Output { Item(String), Tag(String) }
 pub(super) struct CastingRecipe {
     pub basin: bool, pub retextured: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
     pub switch_slots: bool, pub fluid: FluidSpec, pub output: Output, pub cooling_time: u32,
+}
+
+/// The source material casting recipe and the independent fluid-to-material
+/// recipe are joined only after the current world's tags are resolved.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MaterialCastingRecipe {
+    pub cast: Ingredient, pub item_cost: u32, pub result: String,
+    pub consumes_cast: bool, pub switch_slots: bool,
+}
+impl MaterialCastingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.get("type")?.as_str()? != "tconstruct:table_casting_material" || !enabled(&v, conditions) { return None; }
+        // Predicates require the original material predicate evaluator; never
+        // accept them as unrestricted while it is unavailable here.
+        if v.get("allowed_materials").is_some() { return None; }
+        let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
+        if item_cost == 0 { return None; }
+        Some(Self { cast: Ingredient::parse(v.get("cast")?)?, item_cost,
+            result: v.get("result")?.as_str()?.to_owned(),
+            consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
+            switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false) })
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MaterialFluidRecipe { pub fluid: FluidSpec, pub material: String, pub temperature: u32 }
+impl MaterialFluidRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.get("type")?.as_str()? != "tconstruct:material_fluid" || !enabled(&v, conditions) || v.get("input").is_some() { return None; }
+        Some(Self { fluid: FluidSpec::parse(v.get("fluid")?)?, material: v.get("output")?.as_str()?.to_owned(),
+            temperature: u32::try_from(v.get("temperature")?.as_u64()?).ok()? })
+    }
 }
 impl CastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {

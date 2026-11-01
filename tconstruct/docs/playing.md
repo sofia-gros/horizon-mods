@@ -139,11 +139,19 @@ Cast molten copper over a Seared Bricks block in a basin to make a Smeltery Cont
 
 ### Nether Cobalt
 
-The in-development Cobalt ore generates in new Nether chunks, embedded in Netherrack. An iron-tier or stronger pickaxe can mine it for Raw Cobalt; Silk Touch retains the ore. A blast furnace can process the ore or raw material into Cobalt ingots, and Cobalt Shards into nuggets. A representative Linux run found and mined naturally generated ore in a newly generated Nether area using an iron pickaxe, then blasted the recovered raw Cobalt into an ingot. The test used a supplied pickaxe, blast furnace and coal; mining access was cleared in creative mode. Metallic part casting remains incomplete on this branch.
+The in-development Cobalt ore generates in new Nether chunks, embedded in Netherrack. An iron-tier or stronger pickaxe can mine it for Raw Cobalt; Silk Touch retains the ore. A blast furnace can process the ore or raw material into Cobalt ingots, and Cobalt Shards into nuggets. A representative Linux run found and mined naturally generated ore in a newly generated Nether area using an iron pickaxe, then blasted the recovered raw Cobalt into an ingot. The test used a supplied pickaxe, blast furnace and coal; mining access was cleared in creative mode. A combined run also used natural Cobalt to cast parts and assemble a tool; see [Casting metal parts](#casting-metal-parts).
 
 ![A Cobalt ingot made from naturally mined ore in a blast furnace](cobalt-blasting.png)
 
 ![Naturally generated Nether Cobalt Ore before mining](cobalt-natural-ore.png)
+
+### Casting metal parts
+
+Make a part-shaped cast, place it on a Casting Table, and pour an appropriate molten material into it. The source recipe determines the amount and resulting material. A gold cast is reusable; a sand cast is consumed.
+
+A representative Linux run made a wooden Pick Head in the Part Builder, cast its reusable gold mold, and used naturally mined Cobalt to cast Pick Heads with both gold and sand molds. A Cobalt-headed pickaxe assembled at a Tinker Station remained usable after reload; a LAN guest saw its material in the Station. The Smeltery, fuel, gold, wood, pattern, blank sand cast and other tool parts were supplied as fixtures, and processing ticks were accelerated. A separate ordinary copper casting with a full inventory dropped its output on the ground. Composite material fluids and unsupported material predicates remain unavailable.
+
+![Casting Table during the Cobalt part test](cobalt-part-casting.png)
 
 ### Reinforced
 
