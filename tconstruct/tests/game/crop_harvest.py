@@ -61,6 +61,14 @@ try:
     assert 'age=0' in at(*positions[0]) and before.get('damage',0)==after.get('damage',0),(before,after,at(*positions[0]))
     harvest('kama','carrots',7,'minecraft:carrot')
     harvest('scythe','wheat',7,'minecraft:wheat',True);g.call('screenshot',str(run/'crop-harvest.png'))
+    # Left-click uses the ordinary authoritative block break path and its
+    # source effective predicate, rather than the replant interaction.
+    positions=setup('scythe','wheat',7,True);before=g.call('inventory')['held'];count=total('minecraft:wheat')
+    g.call('break','20','100','20','--timeout','50',timeout=55);g.call('wait','20');after=g.call('inventory')['held']
+    assert all(at(*pos)=='minecraft:air' for pos in positions),[(pos,at(*pos)) for pos in positions]
+    assert after.get('damage',0)-before.get('damage',0)==9,(before,after)
+    assert total('minecraft:wheat')-count==9
+    print('scythe crop area break and drop',flush=True)
     positions=setup('scythe','wheat',7,True);before=g.call('inventory')['held'];maximum=before.get('damage',0)+3
     cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}')
     g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held'];states=[at(*pos) for pos in positions]
