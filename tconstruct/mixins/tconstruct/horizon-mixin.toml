@@ -3068,3 +3068,25 @@ bindings = [
   { name = "x", ty = "f32", value = "x" },
   { name = "y", ty = "f32", value = "y" },
 ]
+
+[[module]]
+id = "materials-book"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book"
+source = "source-materials-book.rs"
+
+[[injection]]
+id = "materials-book-use"
+target = "horizon_client::game::books::Game<'_>::use_book"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-use.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
+
+[[injection]]
+id = "materials-book-remote"
+target = "horizon_client::game::books::Game<'_>::remote_use_book"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-remote.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
