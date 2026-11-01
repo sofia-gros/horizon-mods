@@ -24,7 +24,7 @@ pub(super) fn full_face(game: &super::Game<'_>, at: [i32;3], toward: [i32;3]) ->
     shape.join_is_not_empty(&VoxelShape::block(), ShapeOp::XOR).is_ok_and(|difference| !difference)
 }
 
-pub(super) fn place(game: &mut super::Game<'_>, at: [i32;3], preferred: [i32;3]) -> anyhow::Result<bool> {
+pub(super) fn place(game: &mut super::Game<'_>, at: [i32;3], preferred: [i32;3]) -> horizon_client::Result<bool> {
     let permitted = match game.lan_acting {
         Some(conn) => game.world.chunks.__horizon_mixins_tconstruct_glow_guest_protection().get(&conn)
             .is_some_and(|policy| super::tconstruct_glowing_placement::outside_protection(*policy, at)),
@@ -66,7 +66,7 @@ pub(super) fn survives(game: &super::Game<'_>, at: [i32;3]) -> bool {
     full_face(game, [x,y,z], [-facing[0],-facing[1],-facing[2]])
 }
 
-pub(super) fn process_support_changes(game: &mut super::Game<'_>) -> anyhow::Result<()> {
+pub(super) fn process_support_changes(game: &mut super::Game<'_>) -> horizon_client::Result<()> {
     let pending = std::mem::take(game.world.chunks.__horizon_mixins_tconstruct_glow_support_checks_mut());
     for at in pending {
         if !game.world.loaded(at[0],at[2]) { continue; }
@@ -105,11 +105,11 @@ pub(super) fn off_cooldown(game: &super::Game<'_>, stack: &horizon_items::items:
 }
 
 /// Right-click after the tool's ordinary block interaction has passed.
-pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3]) -> Option<anyhow::Result<bool>> {
+pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3]) -> Option<horizon_client::Result<bool>> {
     activate_for(game,stack,clicked,face,false,false)
 }
 
-pub(super) fn activate_for(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3], left: bool, guest_checked: bool) -> Option<anyhow::Result<bool>> {
+pub(super) fn activate_for(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3], left: bool, guest_checked: bool) -> Option<horizon_client::Result<bool>> {
     if !game.may_build() || !eligible(game,stack,left) || !off_cooldown(game,stack) { return None; }
     if direction(face).is_none() { return Some(Ok(true)); }
     let Some(x) = clicked[0].checked_add(face[0]) else { return Some(Ok(true)); };
@@ -121,7 +121,7 @@ pub(super) fn activate_for(game: &mut super::Game<'_>, stack: &horizon_items::it
             .is_some_and(|(target, blocked)| *target == clicked && !blocked.contains(&(x,z)));
         if !allowed { return Some(Ok(true)); }
     }
-    let result = (|| -> anyhow::Result<bool> {
+    let result = (|| -> horizon_client::Result<bool> {
         if place(game, at, [-face[0], -face[1], -face[2]])? {
             if !game.creative {
                 let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, stack, 5, Some("tconstruct:glowing"));
