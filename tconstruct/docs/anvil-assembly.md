@@ -4,7 +4,7 @@
 
 *The Station screen shown above uses the same tool and material workflow. The Anvil has five input slots.*
 
-Craft either Anvil with three matching alloy blocks across the top, one seared or scorched block in the center, and three matching-category blocks across the bottom. Use seared blocks for the Tinker’s Anvil and scorched blocks for the Scorched Anvil. Supported alloy blocks include Slimesteel, Amethyst Bronze and Manyullyn; Netherite blocks also work.
+Craft either Anvil with three alloy blocks across the top, one seared or scorched block in the center, and three matching-category blocks across the bottom. Matching alloy blocks give the Anvil their appearance; mixed alloys use the fallback appearance. Use seared blocks for the Tinker’s Anvil and scorched blocks for the Scorched Anvil. Supported alloy blocks include Slimesteel, Amethyst Bronze and Manyullyn; Netherite blocks also work.
 
 Open the Anvil and choose a tool layout. Make its parts at a Part Builder, then place them in the displayed slots and take the result. Large tools such as the Sledge Hammer need four parts and require an Anvil. Place an existing tool in the tool slot to repair it or exchange a part; the Anvil also lets you name the resulting tool.
 
