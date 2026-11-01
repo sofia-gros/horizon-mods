@@ -25,8 +25,15 @@ def node(label):
  raise AssertionError('missing '+label)
 def where(dim,x,y,z):
  cmd(f'execute in minecraft:{dim} run tp @s {x+0.5} {y} {z+0.5}');g.call('wait-ready','90',timeout=95);g.call('wait','10')
+def sprint(ticks):
+ start=g.call('state')['ticks'];g.call('command',f'tick sprint {ticks}')
+ for _ in range(360):
+  time.sleep(.5)
+  if g.call('state',timeout=50)['ticks']>=start+ticks:break
+ else:raise AssertionError('tick sprint did not finish')
+ g.call('wait','10')
 def smelt(item):
- cmd('tp @s 2048.5 80 2046.5');empty();g.call('interact','2048','80','2048');g.call('wait','10');click(hot(item));click(302);g.call('wait','650',timeout=65)
+ cmd('tp @s 2048.5 80 2046.5');empty();g.call('interact','2048','80','2048');g.call('wait','10');click(hot(item));click(302);sprint(2200)
  slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert not slots.get(302),(item,slots);g.call('close')
 def take_casting(result,cast=None):
  cmd('tp @s 2050.5 80 2051.5')
@@ -41,7 +48,7 @@ try:
    where('the_nether',x,35,z);r=g.call('find-block','tconstruct:cobalt_ore','64',timeout=90);print('SEARCH',42,x,z,r,flush=True)
    if r['nearest']:found=r['nearest'][0]['pos'];break
   assert found, 'no natural ore in bounded seed-42 search'
-  for i in range(2):
+  for i in range(4):
    if i:
     r=g.call('find-block','tconstruct:cobalt_ore','64',timeout=90);assert r['nearest'],r;found=r['nearest'][0]['pos']
    x,y,z=found;assert g.call('block',x,y,z).get('block')=='tconstruct:cobalt_ore';print('NATURAL_ORE',42,found,flush=True)
@@ -52,11 +59,11 @@ try:
      positions=[v for v in g.call('entities')['entities'] if v.get('id')==e.get('id')]
      if positions: q=positions[0]['pos'];cmd(f'tp @s {q[0]} {q[1]} {q[2]}')
    g.call('wait','15')
-  assert count('tconstruct:raw_cobalt')>=2,inv();g.call('save');g.stop();print('PASS natural cobalt ore and drops',flush=True)
+  assert count('tconstruct:raw_cobalt')>=4,inv();g.call('save');g.stop();print('PASS natural cobalt ore and drops',flush=True)
  elif a.phase=='cast':
-  assert count('tconstruct:raw_cobalt')>=2,inv();where('overworld',2048,80,2046)
+  assert count('tconstruct:raw_cobalt')>=4,inv();where('overworld',2048,80,2046)
   # All equipment, fuel, gold, wood, pattern and secondary parts are fixtures;
-  # the two raw Cobalt units were mined from naturally generated ore.
+  # all raw Cobalt units were mined from naturally generated ore.
   for c in ('gamemode creative @s','fill 2045 79 2045 2051 82 2053 minecraft:air','fill 2045 78 2045 2051 78 2053 minecraft:stone','setblock 2048 79 2049 tconstruct:seared_bricks','setblock 2047 80 2049 tconstruct:seared_bricks','setblock 2049 80 2049 tconstruct:seared_fuel_tank','setblock 2048 80 2050 tconstruct:seared_drain[facing=south]','setblock 2048 80 2048 tconstruct:smeltery_controller[facing=north,lit=false]','setblock 2048 80 2051 tconstruct:seared_faucet[facing=south]','setblock 2048 79 2051 tconstruct:seared_table','setblock 2045 80 2048 tconstruct:part_builder','setblock 2046 80 2048 tconstruct:tinker_station','give @s minecraft:lava_bucket 1','give @s minecraft:gold_ingot 1','give @s minecraft:oak_planks 2','give @s tconstruct:pattern 1'):cmd(c)
   # Create the sacrificial wooden pick head from the real Part Builder.
   cmd('tp @s 2045.5 80 2046.5');empty();g.call('interact','2045','80','2048');g.call('wait','10');click(hot('tconstruct:pattern'));click(300);click(hot('minecraft:oak_planks'));click(301);g.call('click',node('Pick Head')['id']);g.call('wait','10');click(322);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:pick_head';click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close')
@@ -66,6 +73,10 @@ try:
   part=next(x for x in inv()['hotbar'] if x.get('item')=='tconstruct:pick_head');assert 'tconstruct:cobalt' in part.get('components',''),part
   # Empty table to recover the reusable gold cast.
   g.call('interact','2048','79','2051');g.call('wait','8');assert count('tconstruct:pick_head_cast')>=1
+  # Shape an explicitly supplied blank sand cast in the existing builder,
+  # then verify that the source single-use cast is consumed on casting.
+  cmd('give @s tconstruct:blank_sand_cast 1');cmd('tp @s 2045.5 80 2046.5');empty();g.call('interact','2045','80','2048');g.call('wait','10');click(hot('tconstruct:blank_sand_cast'));click(300);g.call('click',node('Pick Head')['id']);g.call('wait','10');click(322);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:pick_head_sand_cast';click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close')
+  take_casting('tconstruct:pick_head','tconstruct:pick_head_sand_cast');assert count('tconstruct:pick_head_sand_cast')==0
   for c in ('give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1','give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"}] 1','tp @s 2046.5 80 2046.5'):cmd(c)
   empty();g.call('interact','2046','80','2048');g.call('wait','10');g.call('click',node('Pickaxe')['id']);g.call('wait','10')
   for item,slot in [('tconstruct:pick_head',300),('tconstruct:tool_handle',301),('tconstruct:tool_binding',302)]:click(hot(item));click(slot)
