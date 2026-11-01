@@ -218,24 +218,36 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
     }
     if chapters.is_empty() { return None; }
     // The host's existing book click handler understands ChangePage links.
-    let index_count = (chapters.len() + 4) / 5;
+    let sizes: Vec<_> = chapters.iter().map(|(_, pages)| pages.len()).collect();
+    let (_, locations) = super::tconstruct_materials_book_index::layout(&sizes)?;
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
-    let mut target = i32::try_from(index_count + 1).ok()?;
     let mut contents = Text::styled("Materials & You\n\n", horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
     for (index, (heading, chapter)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
             contents = Text::literal("Materials & You\n\n");
         }
+        let (chapter_page, first_page) = locations[index];
         let link = Text::styled(format!("{heading}\n"), horizon_client::text::Style {
-            click: Some(horizon_client::text::ClickEvent::ChangePage(target)),
+            click: Some(horizon_client::text::ClickEvent::ChangePage(i32::try_from(chapter_page).ok()?)),
             underlined: Some(true), ..Default::default()
         });
         contents.push(link);
-        pages.push(Text::literal(heading));
+        let first_page = i32::try_from(first_page).ok()?;
+        for (group, entries) in chapter.chunks(5).enumerate() {
+            let mut section = Text::literal(format!("{heading}\n\n"));
+            for (offset, entry) in entries.iter().enumerate() {
+                let title = entry.spans.first().and_then(|s| s.text.lines().next()).unwrap_or("");
+                let destination = first_page + i32::try_from(group * 5 + offset).ok()?;
+                section.push(Text::styled(format!("{title}\n"), horizon_client::text::Style {
+                    click: Some(horizon_client::text::ClickEvent::ChangePage(destination)),
+                    underlined: Some(true), ..Default::default()
+                }));
+            }
+            pages.push(section);
+        }
         pages.extend(chapter);
-        target = i32::try_from(index_count + pages.len() + 1).ok()?;
     }
     indexes.push(contents);
     indexes.extend(pages);

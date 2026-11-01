@@ -3121,3 +3121,15 @@ kind = "HEAD"
 cancellable = true
 helper = "source-materials-book-response.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
+
+[[module]]
+id = "materials-book-index"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_index"
+source = "source-materials-book-index.rs"
+
+[[module]]
+id = "materials-book-wire"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_wire"
+source = "source-materials-book-wire.rs"

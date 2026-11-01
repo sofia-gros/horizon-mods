@@ -11,13 +11,7 @@ fn tconstruct_materials_book_request(game: &mut Game<'_>, host: &mut LanHost, co
     if !held.is_some_and(|item| &*item.item == "tconstruct:materials_and_you") { return Break(()); }
     let path = game.options.resources.join("assets/tconstruct/materials-and-you.zip");
     let Some(pages) = super::books::tconstruct_materials_book::source_pages(game, &path) else { return Break(()); };
-    if pages.len() > 512 { return Break(()); }
-    let pages: Vec<Vec<serde_json::Value>> = pages.iter().map(|page| page.spans.iter().map(|span| {
-        let click = match &span.style.click { Some(horizon_client::text::ClickEvent::ChangePage(page)) => Some(*page), _ => None };
-        serde_json::json!({"text":span.text, "page":click, "insertion":span.style.insertion})
-    }).collect()).collect();
-    let Ok(data) = serde_json::to_vec(&pages) else { return Break(()); };
-    if data.len() > 262_144 { return Break(()); }
+    let Some(data) = super::books::tconstruct_materials_book_wire::encode(&pages) else { return Break(()); };
     guest.send(&C::CustomPayload(horizon_protocol::packets::configuration::CustomPayload {
         channel: "tconstruct:materials_book".into(), data,
     }));
