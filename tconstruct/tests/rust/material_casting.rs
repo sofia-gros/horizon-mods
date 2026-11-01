@@ -24,11 +24,11 @@ fn pinned_material_casts_join_multiple_fluids_and_preserve_source_costs() {
     let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
     for (cast, consumed) in [("tconstruct:pick_head_cast", false), ("tconstruct:pick_head_sand_cast", true)] {
         for (fluid, expected) in [("tconstruct:molten_cobalt", "tconstruct:cobalt"), ("tconstruct:molten_iron", "tconstruct:iron")] {
-            let (_, recipe, part, material) = catalog.material_casting(cast, fluid, &|_,_| true, &|_| true).unwrap();
+            let (_, recipe, part, material) = catalog.material_casting(cast, fluid, &|_,_| true, &|_,_| true, &|_| true).unwrap();
             assert_eq!((part.as_str(), material.as_str(), recipe.fluid.amount, recipe.consumes_cast), ("tconstruct:pick_head", expected, 180, consumed));
             assert!(recipe.cooling_time > 0);
             if expected == "tconstruct:cobalt" { assert_eq!(recipe.cooling_time, 92); }
-            assert!(catalog.material_casting(cast, fluid, &|_,_| false, &|_| true).is_none());
+            assert!(catalog.material_casting(cast, fluid, &|_,_| false, &|_,_| true, &|_| true).is_none());
         }
     }
 }

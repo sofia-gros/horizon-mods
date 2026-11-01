@@ -410,7 +410,7 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
     if !ensure(game, target, &target_name) { return false; }
     let Some((kind, mut casting)) = casting_at(game, target) else { return false; };
     if casting.recipe.is_none() {
-        let input = casting.input.as_ref().map(|stack| &*stack.item);
+        let input = casting.input.as_ref();
         let Some(id) = fluid.fluid.as_deref() else { return true; };
         let Some((recipe_id, recipe, output)) = super::tconstruct_source_melter_world::casting_stack(&game.world, kind == "tconstruct:basin", input, id) else { return true; };
         if !casting.prepare(&recipe_id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
@@ -452,7 +452,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some((casting_kind, mut casting)) = casting_at(game, target) else { return false; };
     let Some(fluid) = melter.tank.fluid.clone() else { return true; };
     if casting.recipe.is_none() {
-        let input = casting.input.as_ref().map(|stack| &*stack.item);
+        let input = casting.input.as_ref();
         let Some((id, recipe, output)) = super::tconstruct_source_melter_world::casting_stack(&game.world, casting_kind == "tconstruct:basin", input, &fluid) else { return true; };
         if !casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
@@ -489,7 +489,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
 pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     let Some((kind, mut casting)) = casting_at(game, pos) else { return; };
     let Some(fluid) = casting.tank.fluid.as_deref() else { return; };
-    let input = casting.input.as_ref().map(|stack| &*stack.item);
+    let input = casting.input.as_ref();
     let valid = super::tconstruct_source_melter_world::casting_stack(&game.world, kind == "tconstruct:basin", input, fluid)
         .is_some_and(|(id, recipe, result)| casting.recipe.as_deref() == Some(&id)
             && casting.tank.capacity == recipe.fluid.amount && casting.cooling_time == recipe.cooling_time

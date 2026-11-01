@@ -237,19 +237,16 @@ pub(super) struct CastingRecipe {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MaterialCastingRecipe {
     pub cast: Ingredient, pub item_cost: u32, pub result: String,
-    pub consumes_cast: bool, pub switch_slots: bool,
+    pub consumes_cast: bool, pub switch_slots: bool, pub allowed_materials: Option<Value>,
 }
 impl MaterialCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
         if v.get("type")?.as_str()? != "tconstruct:table_casting_material" || !enabled(&v, conditions) { return None; }
-        // Predicates require the original material predicate evaluator; never
-        // accept them as unrestricted while it is unavailable here.
-        if v.get("allowed_materials").is_some() { return None; }
         let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
         if item_cost == 0 { return None; }
         Some(Self { cast: Ingredient::parse(v.get("cast")?)?, item_cost,
-            result: v.get("result")?.as_str()?.to_owned(),
+            result: v.get("result")?.as_str()?.to_owned(), allowed_materials: v.get("allowed_materials").cloned(),
             consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
             switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false) })
     }
@@ -265,6 +262,41 @@ impl MaterialFluidRecipe {
             temperature: u32::try_from(v.get("temperature")?.as_u64()?).ok()? })
     }
 }
+/// Composite casting consumes a material-bearing copy of its result item.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct CompositeCastingRecipe {
+    pub basin: bool, pub item_cost: u32, pub result: String,
+    pub allowed_materials: Option<Value>, pub casting_stat_conflict: Option<String>,
+}
+impl CompositeCastingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        let basin = match v.get("type")?.as_str()? {
+            "tconstruct:table_casting_composite" => false,
+            "tconstruct:basin_casting_composite" => true,
+            _ => return None,
+        };
+        if !enabled(&v, conditions) { return None; }
+        let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
+        if item_cost == 0 { return None; }
+        Some(Self { basin, item_cost, result: v.get("result")?.as_str()?.to_owned(),
+            allowed_materials: v.get("allowed_materials").cloned(),
+            casting_stat_conflict: match v.get("casting_stat_conflict") {
+                Some(value) => Some(value.as_str()?.to_owned()), None => None,
+            } })
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct CompositeFluidRecipe { pub fluid: FluidSpec, pub input: String, pub material: String, pub temperature: u32 }
+impl CompositeFluidRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.get("type")?.as_str()? != "tconstruct:material_fluid" || !enabled(&v, conditions) { return None; }
+        Some(Self { fluid: FluidSpec::parse(v.get("fluid")?)?, input: v.get("input")?.as_str()?.to_owned(),
+            material: v.get("output")?.as_str()?.to_owned(), temperature: u32::try_from(v.get("temperature")?.as_u64()?).ok()? })
+    }
+}
+
 impl CastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;

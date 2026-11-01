@@ -4,7 +4,40 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, Output};
+
+/// Supported source material predicates. Unknown forms fail closed, including
+/// inside negation, rather than becoming unrestricted.
+pub(super) fn material_predicate(value: Option<&Value>, material: &str,
+    tagged: &impl Fn(&str, &str) -> bool, supports: &impl Fn(&str, &str) -> bool) -> Option<bool> {
+    fn test(v: &Value, material: &str, tagged: &impl Fn(&str, &str) -> bool,
+        supports: &impl Fn(&str, &str) -> bool) -> Option<bool> {
+        let obj = v.as_object()?;
+        let id = obj.get("type")?.as_str()?;
+        let base = material.split_once('#').map_or(material, |(base, _)| base);
+        let values = |name: &str| -> Option<Vec<&str>> {
+            let v = obj.get(name)?;
+            if let Some(s) = v.as_str() { Some(vec![s]) }
+            else { v.as_array()?.iter().map(Value::as_str).collect() }
+        };
+        match id {
+            "mantle:any" => Some(true), "mantle:none" => Some(false),
+            "mantle:tag" => Some(tagged(obj.get("tag")?.as_str()?, base)),
+            "tconstruct:id" => Some(values("id")?.contains(&base)),
+            "tconstruct:variant" => Some(values("variant")?.contains(&material)),
+            "tconstruct:has_part" => Some(supports(material, obj.get("part")?.as_str()?)),
+            "mantle:and" | "mantle:or" => {
+                let children = obj.get("predicates")?.as_array()?;
+                if children.len() < 2 { return None; }
+                let results: Vec<bool> = children.iter().map(|v| test(v, material, tagged, supports)).collect::<Option<_>>()?;
+                Some(if id == "mantle:and" { results.iter().all(|v| *v) } else { results.iter().any(|v| *v) })
+            },
+            "mantle:inverted" => Some(!test(obj.get("inverted_type")?, material, tagged, supports)?),
+            _ => None,
+        }
+    }
+    match value { None | Some(Value::Null) => Some(true), Some(v) => test(v, material, tagged, supports) }
+}
 
 pub(super) struct Catalog<'a> {
     pub recipes: &'a BTreeMap<String, Vec<u8>>,
@@ -133,9 +166,53 @@ impl Catalog<'_> {
         found
     }
 
+    /// Composite casting transforms one material-bearing item of the same
+    /// kind. Material variants are matched using the source wildcard rules.
+    pub(super) fn composite_casting(&self, basin: bool, input: &str, input_material: &str, fluid: &str,
+        supports: &impl Fn(&str, &str) -> bool,
+        allowed: &impl Fn(Option<&Value>, &str) -> bool,
+        stat_supported: &impl Fn(&str, &str) -> Option<bool>,
+        conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        let split = |id: &str| { let (base, variant) = id.split_once('#').unwrap_or((id, "")); (base.to_owned(), variant.to_owned()) };
+        let (input_base, input_variant) = split(input_material);
+        let mut found = None;
+        for (id, bytes) in self.recipes {
+            let Some(part) = CompositeCastingRecipe::parse(bytes, conditions) else { continue; };
+            if part.basin != basin || part.result != input || !supports(input_material, input) { continue; }
+            if let Some(stat) = part.casting_stat_conflict.as_deref() {
+                let normal = self.recipes.values().filter_map(|bytes| MaterialFluidRecipe::parse(bytes, conditions))
+                    .find(|recipe| self.matches_fluid(&recipe.fluid, fluid));
+                if normal.as_ref().is_some_and(|recipe| stat_supported(&recipe.material, stat).unwrap_or(true)) { continue; }
+            }
+            for bytes in self.recipes.values() {
+                let Some(material) = CompositeFluidRecipe::parse(bytes, conditions) else { continue; };
+                let (wanted_base, wanted_variant) = split(&material.input);
+                let (output_base, output_variant) = split(&material.material);
+                let input_matches = wanted_base == input_base && (wanted_variant.is_empty() ||
+                    wanted_variant == input_variant || wanted_variant == "default" && input_variant.is_empty());
+                if !input_matches || (output_base == input_base && output_variant == input_variant)
+                    || !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, &part.result)
+                    || !allowed(part.allowed_materials.as_ref(), &material.material) { continue; }
+                let amount = material.fluid.amount.checked_mul(part.item_cost)?;
+                let factor = ((amount as f32) / 90.0_f32).sqrt();
+                let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
+                if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+                let mut spec = material.fluid.clone(); spec.amount = amount;
+                let recipe = CastingRecipe { basin, retextured: false, cast: Some(Ingredient::Item(input.to_owned())),
+                    consumes_cast: true, switch_slots: false, fluid: spec,
+                    output: Output::Item(part.result.clone()), cooling_time: time as u32 };
+                let value = (id.clone(), recipe, part.result.clone(), material.material.clone());
+                if found.as_ref().is_some_and(|old| old != &value) { return None; }
+                found = Some(value);
+            }
+        }
+        found
+    }
+
     /// Join the original part-cast and fluid-to-material recipes. Composite
     /// fluids and non-default material predicates remain rejected by parsing.
-    pub(super) fn material_casting(&self, input: &str, fluid: &str, supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
+    pub(super) fn material_casting(&self, input: &str, fluid: &str, supports: &impl Fn(&str, &str) -> bool, allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
         if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found = None;
@@ -144,7 +221,7 @@ impl Catalog<'_> {
             if !part.cast.matches(input, &in_tag) || !self.known_items.contains(&part.result) { continue; }
             for fluid_bytes in self.recipes.values() {
                 let Some(material) = MaterialFluidRecipe::parse(fluid_bytes, conditions) else { continue; };
-                if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, &part.result) { continue; }
+                if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, &part.result) || !allowed(part.allowed_materials.as_ref(), &material.material) { continue; }
                 let Some(amount) = material.fluid.amount.checked_mul(part.item_cost) else { continue; };
                 let factor = ((amount as f32) / 90.0_f32).sqrt();
                 let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
