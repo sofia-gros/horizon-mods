@@ -27,6 +27,7 @@ pub(crate) struct IslandPiece {
 }
 
 impl IslandPiece {
+    pub(crate) fn structure_name(&self) -> &str { &self.markers.structure }
     pub(crate) fn new(resources: &StructureResources, template_id: &str, pos: [i32; 3],
         rotation: Rotation, mirror: Mirror, markers: MarkerConfig, trees: u32) -> Option<Self> {
         let budget = TreeBudget::from_saved(trees)?;

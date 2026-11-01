@@ -3104,3 +3104,11 @@ id = "slime-island-piece"
 file = "crates/horizon-world/src/worldgen/structure/start.rs"
 name = "tconstruct_slime_island_piece"
 source = "source-slime-island-piece.rs"
+
+[[injection]]
+id = "slime-island-resume"
+target = "horizon_world::worldgen::generator_structures::StructureState::use_saved_start"
+kind = "HEAD"
+cancellable = true
+helper = "source-slime-island-resume.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "context", ty = "&mut impl super::structure::start::StartContext", value = "context" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "structure", ty = "&str", value = "structure" }, { name = "pieces", ty = "&[Value]", value = "pieces" }]
