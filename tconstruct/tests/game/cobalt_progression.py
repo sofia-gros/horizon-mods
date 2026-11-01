@@ -83,7 +83,12 @@ try:
   for item,slot in [('tconstruct:pick_head',300),('tconstruct:tool_handle',301),('tconstruct:tool_binding',302)]:click(hot(item));click(slot)
   click(324);out=g.call('menu')['carried'] or {};assert out.get('item')=='tconstruct:pickaxe',out;click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close');g.call('screenshot',str(run/'cobalt-crafted-tool.png'))
   part=next(x for x in inv()['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert 'tconstruct:cobalt' in part.get('components',''),part
-  g.call('save');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready();cmd('tp Guest 2048.5 80 2047.5');guest.call('wait','15');assert guest.call('block','2048','80','2048').get('block')=='tconstruct:smeltery_controller';guest.stop();guest.cleanup();guest=None
+  # Leave the actual assembled tool in the Station for the guest to inspect.
+  empty();g.call('interact','2046','80','2048');g.call('wait','10');click(hot('tconstruct:pickaxe'));click(300);g.call('close');g.call('save')
+  port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready();cmd('tp Guest 2046.5 80 2046.5');guest.call('wait','15');guest.call('hotbar','9');guest.call('interact','2046','80','2048');guest.call('wait','15')
+  guest_tool=next((w.get('stack') for w in guest.call('ui')['widgets'] if w.get('id')=='slot-300'),None);assert guest_tool and 'tconstruct:cobalt' in guest_tool.get('components',''),guest_tool
+  guest.call('close');guest.stop();guest.cleanup();guest=None
+  empty();g.call('interact','2046','80','2048');g.call('wait','10');click(300);click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close')
   g.call('save');g.stop();print('PASS cast cobalt part, assemble and LAN',flush=True)
  elif a.phase=='reload':
   part=next(x for x in inv()['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert 'tconstruct:cobalt' in part.get('components',''),part
