@@ -51,7 +51,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
             });
             if !intact { break; }
             let is_box = matches!(&area, Area::Box(_));
-            let same = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).name == center_name;
+            let same = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).name.as_ref() == center_name.as_str();
             let occludes = |p: [i32;3]| game.res.facts().get(game.world.block(p[0],p[1],p[2])).can_occlude;
             let next = match &mut area { Area::Box(iter) => iter.next(), Area::Vein(iter) => iter.next(same), Area::Tree(iter) => iter.next(same, occludes) };
             let Some(extra) = next else { break; };
