@@ -14,7 +14,7 @@ def slots():return {s['slot']:s['stack'] for s in g.call('menu')['slots'] if s.g
 try:
  g.ready()
  if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
- for command in ('gamemode creative @s','clear @s','tp @s 0.5 71 0.5','fill -2 71 -1 2 72 3 minecraft:air','setblock 0 71 2 tconstruct:modifier_worktable','give @s tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85,tic_upgrades:{"tconstruct:sharpness":54}},minecraft:max_damage=85] 1','give @s minecraft:wet_sponge 1','give @s tconstruct:sky_slime_crystal 1'):
+ for command in ('gamemode creative @s','time set day','clear @s','tp @s 0.5 71 0.5','fill -2 71 -1 2 72 3 minecraft:air','setblock 0 71 2 tconstruct:modifier_worktable','give @s tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85,tic_upgrades:{"tconstruct:sharpness":54}},minecraft:max_damage=85] 1','give @s minecraft:wet_sponge 1','give @s tconstruct:sky_slime_crystal 1'):
   cmd(command)
  print('BLOCK',g.call('block','0','71','2'),flush=True); print('INTERACT',g.call('interact','0','71','2'),flush=True);g.call('wait','15');print('UI',g.call('ui'),flush=True)
  for item,slot in [('tconstruct:pickaxe',300),('minecraft:wet_sponge',301),('tconstruct:sky_slime_crystal',302)]:click(hot(item));click(slot)
