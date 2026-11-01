@@ -1,6 +1,6 @@
 // The hopper placement template points horizontal facings toward its support;
 // the source faucet points away from it. Vertical placement already agrees.
-fn tconstruct_faucet_placement_facing(game: &mut crate::game::Game<'_>, pos: [i32; 3], state: horizon_world::registry::BlockStateId, stack: &horizon_client::items::ItemStack) -> std::ops::ControlFlow<Result<horizon_world::registry::BlockStateId>> {
+fn tconstruct_faucet_placement_facing(game: &mut crate::game::Game<'_>, pos: [i32; 3], state: horizon_world::registry::BlockStateId, stack: &horizon_client::items::ItemStack) -> std::ops::ControlFlow<Result<BlockStateId>> {
     use std::ops::ControlFlow::{Break, Continue};
     if game.remote.is_some() || &*stack.item != "tconstruct:seared_faucet" { return Continue(()); }
     if &*game.res.facts().get(state).name != "tconstruct:seared_faucet" { return Continue(()); }
