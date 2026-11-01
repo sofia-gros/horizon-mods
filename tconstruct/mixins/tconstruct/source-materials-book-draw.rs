@@ -71,12 +71,15 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let ox = left + 38.0;
     let oy = 55.0;
     let grid = if spec.get("grid").and_then(|v| v.as_u64()) == Some(2) { 2 } else { 3 };
+    // Book screens pause the local world. Cycle on real elapsed time so tag
+    // candidates still change while the reader is open.
+    let cycle = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs() as usize);
     for (i, item) in slots.iter().take(9).enumerate() {
         if i % 3 >= grid || i / 3 >= grid { continue; }
         let x = ox + (i % 3) as f32 * 18.0;
         let y = oy + (i / 3) as f32 * 18.0;
         batch.fill(atlas, x, y, 17.0, 17.0, rgba(120, 90, 50, 100));
-        let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[(game.ticks / 20) as usize % items.len()])).unwrap_or(item);
+        let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[cycle % items.len()])).unwrap_or(item);
         let id = chosen.as_str().or_else(|| chosen.get("id").and_then(|v| v.as_str()));
         let damage = chosen.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
         let maximum = chosen.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
