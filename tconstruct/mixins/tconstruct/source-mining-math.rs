@@ -9,7 +9,7 @@ pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32
         * (1.0 - 0.1 * vintage.max(0) as f32)).clamp(0.1, 2048.0)
 }
 
-/// Conditionals are applied in first material-trait insertion order.
+/// Source priority: maintained (100) before percent traits (75), stable within a priority.
 pub(super) fn conditional_speed(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
     mining_all: f32, modifiers: &[Conditional]) -> f32 {
     let wear = (loss as f32 / durability_all.max(f32::MIN_POSITIVE)).sqrt() * 0.01;
@@ -17,10 +17,15 @@ pub(super) fn conditional_speed(mut speed: f32, loss: u32, maximum: u32, durabil
     let remaining = maximum.saturating_sub(loss) as f32;
     let maintained = if half > 0.0 { ((remaining - half) / half).clamp(0.0, 1.0) } else { 0.0 };
     for modifier in modifiers {
+        if let Conditional::Maintained(level) = *modifier {
+            speed += maintained * level.max(0) as f32 * 6.0 * mining_all;
+        }
+    }
+    for modifier in modifiers {
         match *modifier {
             Conditional::Jagged(level) => speed *= 1.0 - wear * level.max(0) as f32,
             Conditional::Stonebound(level) => speed *= 1.0 + wear * level.max(0) as f32,
-            Conditional::Maintained(level) => speed += maintained * level.max(0) as f32 * 6.0 * mining_all,
+            Conditional::Maintained(_) => {},
         }
     }
     speed.max(0.0)
@@ -41,7 +46,11 @@ mod tests {
         assert!((conditional_speed(4.0, 100, 100, 1.0, 1.0, &[Conditional::Jagged(1)]) - 3.6).abs() < 0.0001);
         assert!((conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Stonebound(1)]) - 4.2).abs() < 0.0001);
         assert!((conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Maintained(1)]) - 7.0).abs() < 0.0001);
-        assert_ne!(conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Jagged(1), Conditional::Maintained(1)]),
-            conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Maintained(1), Conditional::Jagged(1)]));
+        let mixed = conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Jagged(1), Conditional::Maintained(1)]);
+        assert!((mixed - 6.65).abs() < 0.0001);
+        assert_eq!(mixed, conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Maintained(1), Conditional::Jagged(1)]));
+        let mixed_stone = conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Stonebound(1), Conditional::Maintained(1)]);
+        assert!((mixed_stone - 7.35).abs() < 0.0001);
+        assert_eq!(mixed_stone, conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Maintained(1), Conditional::Stonebound(1)]));
     }
 }

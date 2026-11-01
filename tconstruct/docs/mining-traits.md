@@ -18,8 +18,7 @@ validation or CI has been performed for this draft.
 ## Draft implementation and limits
 
 Station and Creative regeneration store the original harvest-tagged tool's
-Lightweight/Heavy/Vintage/Entangled stat and ordered Jagged/Stonebound/Maintained
-levels on the item. A shared item boundary recognizes effective per-stack tool
+Lightweight/Heavy/Vintage/Entangled stat and Jagged/Stonebound/Maintained levels on the item. A shared item boundary recognizes effective per-stack tool
 rules for both the client and host; separate context hooks apply conditional
 speed after mining efficiency and potion effects, before underwater/airborne
 penalties. Materials and part swaps rebuild the stored values. Previously saved
@@ -43,3 +42,5 @@ authorized later transform/build and representative game checks. Applied
 modifier mining effects not listed above and all other trait modules remain
 incomplete. Overlord/Overslime, Windows, and every-material coverage are not
 claimed here.
+
+Original modifier priority runs Maintained before the percentage-based Jagged and Stonebound effects; equal-priority effects retain source insertion order.
