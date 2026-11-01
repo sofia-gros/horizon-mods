@@ -59,7 +59,7 @@ The Tinker Station uses source-derived layouts for supported three-part tools an
 [station design](station-design.md) and [validation notes](validation.md) for
 additional implementation and test details.
 
-The playtest now derives Minecraft recipe and item/fluid tag data from prepared Horizon 26.3 resources rather than requiring a 1.20.1 client. Ordinary sand and red sand each craft four blank casts. These two native inputs are a 26.3 adaptation, not a claim that every original Forge tag or datapack override is supported. Other materials, world reload interactions, other materials and world reload interactions remain to be validated; representative production-binary gameplay passed on Linux, while Windows remains unverified.
+The playtest now derives Minecraft recipe and item/fluid tag data from prepared Horizon 26.3 resources rather than requiring a 1.20.1 client. Ordinary sand and red sand each craft four blank casts. These two native inputs are a 26.3 adaptation, not a claim that every original Forge tag or datapack override is supported. Other materials and world reload interactions remain to be validated; representative production-binary gameplay passed on Linux, while Windows remains unverified.
 
 CI reuses Cargo dependency and build caches. Run the Mixins validation workflow
 manually for the final commit of a change; it performs the full checks. Verify
