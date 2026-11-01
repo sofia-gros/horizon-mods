@@ -135,9 +135,14 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
 
 /// Replace one part, rebuilding base stats and preserving the original stack.
 pub(super) fn swap_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    swap_plan_with_capacity(world, slots, 3)
+}
+
+fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
     let tool = slots.first()?.as_ref()?;
     if !tool.item.starts_with("tconstruct:") || tool.count != 1 { return None; }
-    let mut inputs = (1..=3).filter_map(|index| slots.get(index).and_then(Option::as_ref).map(|stack| (index, stack)));
+    let mut inputs = (1..=input_capacity).filter_map(|index| slots.get(index).and_then(Option::as_ref).map(|stack| (index, stack)));
     let (slot, part) = inputs.next()?;
     if inputs.next().is_some() { return None; }
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
@@ -173,6 +178,11 @@ pub(super) fn swap_plan(world: &super::tconstruct_world::World, slots: &[Option<
 
 /// Compute material repair from the tool definition and world recipes.
 pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    repair_plan_with_capacity(world, slots, 3)
+}
+
+fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
     let mut tool = slots.first()?.as_ref()?.clone();
     if !tool.item.starts_with("tconstruct:") || tool.count != 1 || tool.damage == 0 { return None; }
     let custom = tool.data()?.other("minecraft:custom_data")?;
@@ -225,7 +235,7 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
         * super::tconstruct_source_material_effects::dense_repair_factor(dense);
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
-    for index in 1..=3 {
+    for index in 1..=input_capacity {
         let Some(stack) = slots.get(index).and_then(Option::as_ref) else { continue; };
         let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
         if material.needed <= 0 { return None; }
