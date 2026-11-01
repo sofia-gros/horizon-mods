@@ -3,7 +3,7 @@
 Kama harvests the clicked mature crop; Scythe uses its source 3×3×3 area.
 Generated drops provide one seed for replanting. If no dropped item belongs to
 the source seed tag, the crop is removed and all generated drops are released.
-Each successful harvest consumes durability in survival, and a broken tool
+Each successful harvest applies one point of durability loss in survival, subject to the usual durability rules, and a broken tool
 stops further harvesting. Sneaking passes the interaction. The original item
 tag packs must be available: if their seed tag is not resolved, harvesting fails
 closed. Scythe also uses the existing block-breaking path for its source area.
@@ -16,10 +16,13 @@ blocks with nine drops. Wheat has zero hardness, so that left-click test had no
 wear with an unmodified Scythe, matching the source rule. A Scythe with three
 remaining durability harvested three crops, retained its broken item and left
 the other six crops. The world was saved and reopened. Hosted LAN covered Kama,
-Scythe and guest off-hand harvesting.
+Scythe and guest off-hand harvesting. On a dedicated server, a non-operator
+Scythe user on either hand left three protected crops mature and harvested
+the six allowed crops, with six wheat drops and six durability loss.
 
 ![Scythe harvesting wheat](crop-harvest.png)
 ![Guest harvesting with a Scythe](crop-harvest-lan.png)
+![Server protection boundary](crop-harvest-protection.png)
 
 The source Kama shears action and conditional Scythe Silky shears action are
 not connected to block loot, and Silky acquisition is not implemented. Leaf
