@@ -291,7 +291,7 @@ fn prepare_tconstruct_resources() {
         std::fs::rename(temp, path)?;
         let path = out.join("render-definitions.json");
         let mut render: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
-        for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
+        for name in ["tconstruct:part_builder", "tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"] {
             let row = render.get_mut(name).and_then(serde_json::Value::as_object_mut).ok_or("missing station render definition")?;
             row.insert("can_occlude".into(), serde_json::Value::Bool(false));
         }
