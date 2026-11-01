@@ -51,6 +51,13 @@ name = "tconstruct_block_shapes"
 source = "source-block-shapes.rs"
 
 [[module]]
+id = "source-resource-tables"
+file = "crates/horizon-client/src/logging.rs"
+name = "tconstruct_resource_tables"
+source = "resource-tables.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-machine-shapes"
 file = "crates/horizon-client/src/logging.rs"
 name = "tconstruct_machine_shapes"
@@ -2843,3 +2850,10 @@ bindings = [
   { name = "input", ty = "&Input<'_>", value = "input" },
   { name = "recipe", ty = "&Recipe", value = "recipe" },
 ]
+
+[[injection]]
+id = "startup-content-tables"
+target = "horizon_client::game::load_resources"
+kind = "HEAD"
+helper = "resource-startup.rs"
+bindings = [{ name = "root", ty = "&mut std::path::PathBuf", value = "&mut root" }]
