@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'):p.add_argument('--'+n,type=Path,required=True)
-p.add_argument('--in-frame',action='store_true');p.add_argument('--resume-after-earth',action='store_true');a=p.parse_args();a.natural_world=True;a.world_seed=42
+p.add_argument('--in-frame',action='store_true');p.add_argument('--resume-after-earth',action='store_true');p.add_argument('--resume-after-builder',action='store_true');a=p.parse_args();a.natural_world=True;a.world_seed=42
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve());world=run/'Sky'
 assert (world/'Player/saves/Probe').is_dir(),'requires the existing disposable seed-42 world'
 g=Game(a,world,'Player',in_frame=a.in_frame,resume=True);guest=None
@@ -62,27 +62,32 @@ def harvest(color,dimension,pos):
  count=g.call('inventory')['counts'].get(item,0);print('HARVEST',color,before,count,flush=True);assert count-before>=4,(color,before,count,broken)
 try:
  g.ready();cmd('gamemode creative @s');cmd('gamerule minecraft:spawn_mobs false')
- if a.resume_after_earth:
-  inv=g.call('inventory')['counts'];assert inv.get('tconstruct:earth_slime_crystal',0)>=4 and inv.get('minecraft:diamond_pickaxe',0)>=1,inv
+ if a.resume_after_builder:
+  inv=g.call('inventory');assert any(x.get('item')=='tconstruct:arrow_head' and 'tconstruct:earthslime' in x.get('components','') for x in inv['hotbar']),inv
+  assert inv['counts'].get('tconstruct:ichor_slime_crystal',0)>=4 and inv['counts'].get('tconstruct:ender_slime_crystal',0)>=4,inv['counts']
+  in_dimension('overworld',2048,80,2048);cmd('tp @s 2048.5 80 2047.5')
  else:
-  cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
-  earth=find('earth','overworld',-32);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
-  g.call('save');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
-  cmd(f'tp Guest {earth[0]+0.5} {earth[1]} {earth[2]-1.5}');guest.call('wait','30');state=guest.call('block',*earth);print('LAN',state,flush=True);assert state.get('block')=='tconstruct:earth_slime_crystal_cluster',state
-  guest.stop();guest.cleanup();guest=None
-  harvest('earth','overworld',earth);g.call('save')
- ichor=find('ichor','the_nether',96);harvest('ichor','the_nether',ichor);g.call('save')
- ender=find('ender','the_end',40);harvest('ender','the_end',ender);g.call('save')
- # Reuse the same world. Test fixtures are the builder and blank pattern; the
- # Earthslime input was picked up from the naturally generated cluster.
- in_dimension('overworld',2048,80,2048)
- for c in ('gamemode creative @s','fill 2046 79 2046 2051 79 2051 minecraft:stone','fill 2046 80 2046 2051 82 2051 minecraft:air','tp @s 2048.5 80 2047.5','setblock 2048 80 2049 tconstruct:part_builder','give @s tconstruct:pattern 1'):cmd(c)
- g.call('hotbar','9');g.call('wait','10');g.call('interact','2048','80','2049');g.call('wait','15')
- click(hot('tconstruct:pattern'));click(300);click(hot('tconstruct:earth_slime_crystal'));click(301)
- def arrow():return next((n for n in g.call('ui')['widgets'] if n.get('label')=='Arrow Head' and n.get('enabled')),None)
- node=wait_for('Earthslime Arrow Head option',arrow);g.call('click',node['id']);g.call('wait','15');g.call('screenshot',str(run/'earth-geode-builder.png'));click(322)
- part=g.call('menu').get('carried') or {};print('BUILDER RESULT',part,flush=True);assert part.get('item')=='tconstruct:arrow_head' and 'tconstruct:earthslime' in part.get('components',''),part
- empty=next(s['slot'] for s in g.call('inventory')['hotbar'] if not s.get('item'));click(empty);g.call('close')
+  if a.resume_after_earth:
+   inv=g.call('inventory')['counts'];assert inv.get('tconstruct:earth_slime_crystal',0)>=4 and inv.get('minecraft:diamond_pickaxe',0)>=1,inv
+  else:
+   cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
+   earth=find('earth','overworld',-32);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
+   g.call('save');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
+   cmd(f'tp Guest {earth[0]+0.5} {earth[1]} {earth[2]-1.5}');guest.call('wait','30');state=guest.call('block',*earth);print('LAN',state,flush=True);assert state.get('block')=='tconstruct:earth_slime_crystal_cluster',state
+   guest.stop();guest.cleanup();guest=None
+   harvest('earth','overworld',earth);g.call('save')
+  ichor=find('ichor','the_nether',96);harvest('ichor','the_nether',ichor);g.call('save')
+  ender=find('ender','the_end',40);harvest('ender','the_end',ender);g.call('save')
+  # Reuse the same world. Test fixtures are the builder and blank pattern; the
+  # Earthslime input was picked up from the naturally generated cluster.
+  in_dimension('overworld',2048,80,2048)
+  for c in ('gamemode creative @s','fill 2046 79 2046 2051 79 2051 minecraft:stone','fill 2046 80 2046 2051 82 2051 minecraft:air','tp @s 2048.5 80 2047.5','setblock 2048 80 2049 tconstruct:part_builder','give @s tconstruct:pattern 1'):cmd(c)
+  g.call('hotbar','9');g.call('wait','10');g.call('interact','2048','80','2049');g.call('wait','15')
+  click(hot('tconstruct:pattern'));click(300);click(hot('tconstruct:earth_slime_crystal'));click(301)
+  def arrow():return next((n for n in g.call('ui')['widgets'] if n.get('label')=='Arrow Head' and n.get('enabled')),None)
+  node=wait_for('Earthslime Arrow Head option',arrow);g.call('click',node['id']);g.call('wait','15');g.call('screenshot',str(run/'earth-geode-builder.png'));click(322)
+  part=g.call('menu').get('carried') or {};print('BUILDER RESULT',part,flush=True);assert part.get('item')=='tconstruct:arrow_head',part
+  empty=next(s['slot'] for s in g.call('inventory')['hotbar'] if not s.get('item'));click(empty);g.call('close');assert any(s.get('item')=='tconstruct:arrow_head' and 'tconstruct:earthslime' in s.get('components','') for s in g.call('inventory')['hotbar'])
  # Craft a block from four natural Ichor crystals; no recipe input is supplied.
  cmd('setblock 2048 80 2049 minecraft:crafting_table');g.call('hotbar','9');g.call('wait','10');g.call('interact','2048','80','2049');g.call('wait','10')
  source=hot('tconstruct:ichor_slime_crystal');click(source)
