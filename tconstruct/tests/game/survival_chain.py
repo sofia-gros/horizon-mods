@@ -90,6 +90,8 @@ try:
   click(slot('tconstruct:pattern'));click(300);click(slot('minecraft:oak_log'));click(301)
   g.call('click',wait_widget('Tool Handle')['id']);g.call('wait','10');click(322);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:tool_handle';click(empty())
   # The remaining planks from the log provide a binding; a vanilla flint makes the head.
+  st={x['slot']:x.get('stack') for x in g.call('menu')['slots']}
+  if st.get(301):click(301);click(empty())
   click(slot('minecraft:oak_planks'));click(301);g.call('click',wait_widget('Tool Binding')['id']);g.call('wait','10');click(322);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:tool_binding';click(empty())
   # Return any unconsumed material before changing the input.
   st={x['slot']:x.get('stack') for x in g.call('menu')['slots']};
