@@ -29,6 +29,8 @@ def fire(kind, v, accuracy):
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
+    cmd('fill -3 99 -3 3 99 3 minecraft:stone')
+    cmd('fill -3 100 -3 3 104 3 minecraft:air')
     for kind in ('longbow','crossbow'):
         slow=fire(kind,0.5,1.0);fast=fire(kind,1.5,1.0)
         assert math.hypot(*fast)>math.hypot(*slow)*2.0,(kind,slow,fast)
