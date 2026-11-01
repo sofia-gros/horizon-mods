@@ -59,8 +59,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
     }
     let stack = input?;
     let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
-    let supports = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
-        .ok().is_some_and(|(_, parts)| parts.contains(output));
+    let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
+        .ok().map(|(_, parts)| parts.contains(output));
+    let supports = |material: &str, output: &str| supports_checked(material, output).unwrap_or(false);
     let material = stack.data().and_then(|data| data.other("minecraft:custom_data"))
         .and_then(|tag| tag.get("Material"))
         .and_then(|tag| match tag { horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None });
@@ -104,7 +105,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 }
             };
             super::tconstruct_source_melting_lookup::material_predicate(value, material,
-                &|tag, id| material_tags.get(tag).is_some_and(|values| values.contains(id)), &supports, &extra).unwrap_or(false)
+                &|tag, id| material_tags.get(tag).is_some_and(|values| values.contains(id)), &supports_checked, &extra).unwrap_or(false)
         };
         let composite = material.as_deref().and_then(|material| catalog.composite_casting(basin, &stack.item, material, fluid,
             &supports, &allowed,

@@ -80,7 +80,7 @@ fn pinned_composite_converts_one_existing_part_and_preserves_variant() {
 fn source_material_predicates_reject_unknown_nested_conditions() {
     use tconstruct_source_melting_lookup::material_predicate;
     let tags = |tag: &str, id: &str| tag == "tconstruct:metal" && id == "tconstruct:copper";
-    let parts = |_: &str, part: &str| part == "tconstruct:pick_head";
+    let parts = |_: &str, part: &str| Some(part == "tconstruct:pick_head");
     let predicate = serde_json::json!({"type":"mantle:and","predicates":[
         {"type":"mantle:tag","tag":"tconstruct:metal"},
         {"type":"tconstruct:has_part","part":"tconstruct:pick_head"},
@@ -91,6 +91,8 @@ fn source_material_predicates_reject_unknown_nested_conditions() {
     assert_eq!(material_predicate(Some(&serde_json::json!("mantle:any")), "tconstruct:copper", &tags, &parts, &|_,_,_| None), Some(true));
     let unknown = serde_json::json!({"type":"mantle:inverted","inverted_type":"example:unsupported"});
     assert_eq!(material_predicate(Some(&unknown), "tconstruct:copper", &tags, &parts, &|_,_,_| None), None);
+    let missing = serde_json::json!({"type":"mantle:inverted","inverted_type":"tconstruct:has_part","part":"tconstruct:pick_head"});
+    assert_eq!(material_predicate(Some(&missing), "tconstruct:copper", &tags, &|_,_| None, &|_,_,_| None), None);
 }
 
 #[test]

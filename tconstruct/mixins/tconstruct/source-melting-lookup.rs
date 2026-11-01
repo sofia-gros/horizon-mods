@@ -9,9 +9,10 @@ use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, Compo
 /// Supported source material predicates. Unknown forms fail closed, including
 /// inside negation, rather than becoming unrestricted.
 pub(super) fn material_predicate(value: Option<&Value>, material: &str,
-    tagged: &impl Fn(&str, &str) -> bool, supports: &impl Fn(&str, &str) -> bool, extra: &impl Fn(&str, &Value, &str) -> Option<bool>) -> Option<bool> {
+    tagged: &impl Fn(&str, &str) -> bool, supports: &impl Fn(&str, &str) -> Option<bool>, extra: &impl Fn(&str, &Value, &str) -> Option<bool>) -> Option<bool> {
     fn test(v: &Value, material: &str, tagged: &impl Fn(&str, &str) -> bool,
-        supports: &impl Fn(&str, &str) -> bool, extra: &impl Fn(&str, &Value, &str) -> Option<bool>) -> Option<bool> {
+        supports: &impl Fn(&str, &str) -> Option<bool>, extra: &impl Fn(&str, &Value, &str) -> Option<bool>) -> Option<bool> {
+        if v.is_null() { return Some(true); }
         let compact;
         let obj = if let Some(id) = v.as_str() {
             compact = serde_json::json!({"type": id}); compact.as_object()?
@@ -28,7 +29,7 @@ pub(super) fn material_predicate(value: Option<&Value>, material: &str,
             "mantle:tag" => Some(tagged(obj.get("tag")?.as_str()?, base)),
             "tconstruct:id" => Some(values("id")?.contains(&base)),
             "tconstruct:variant" => Some(values("variant")?.contains(&material)),
-            "tconstruct:has_part" => Some(supports(material, obj.get("part")?.as_str()?)),
+            "tconstruct:has_part" => supports(material, obj.get("part")?.as_str()?),
             "mantle:and" | "mantle:or" => {
                 let children = obj.get("predicates")?.as_array()?;
                 if children.len() < 2 { return None; }
