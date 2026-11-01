@@ -47,7 +47,8 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     let action = if station { slot.filter(|s| (324..=325).contains(s)).map(|s| (s - 300) as i16) } else { None };
     let Some(action) = action else { return Continue(()); };
     if button != 0 { return Break(true); }
-    let mut build = if action == 24 {
+    let worktable = crate::game::tconstruct_ui::is_worktable(game);
+    let mut build = if action == 24 && !worktable {
         game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)))
     } else { None };
     if let Some((_, output)) = build.as_mut() {
@@ -55,7 +56,10 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         crate::game::tconstruct_source_station_name::name_result(output, name);
     }
     let mut operation = if action == 25 {
-        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)))
+        game.world.block_entities.get(&key).and_then(|entity| if worktable {
+            game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key)
+                .and_then(|selected| crate::game::tconstruct_source_station_world::extraction_plan(&game.world, entity.slots(), selected))
+        } else { crate::game::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)) })
     } else { None };
     if crate::game::tconstruct_ui::station_capacity(game) == 5 {
         if let Some(plan) = operation.as_mut() {

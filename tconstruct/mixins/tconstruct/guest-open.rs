@@ -50,6 +50,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         "tconstruct:tinker_station" => "TConstruct Tinker Station",
         "tconstruct:tinkers_anvil" => "TConstruct Tinkers Anvil",
         "tconstruct:scorched_anvil" => "TConstruct Scorched Anvil",
+        "tconstruct:modifier_worktable" => "TConstruct Modifier Worktable",
         _ => return Continue(()),
     };
     game.ensure_datapacks();

@@ -29,6 +29,11 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
     }
 }
 
+pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
+    [("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72)]
+        .into_iter().filter_map(|(id, needed)| (amount(tool, id) >= needed).then_some(id)).collect()
+}
+
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
     amount(tool, id) as f32 / needed as f32
 }

@@ -2,6 +2,7 @@
 pub(super) fn input_capacity(block: &str) -> Option<usize> {
     match block {
         "tconstruct:tinker_station" => Some(3),
+        "tconstruct:modifier_worktable" => Some(2),
         "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" => Some(5),
         _ => None,
     }
@@ -16,6 +17,7 @@ mod tests {
         assert_eq!(input_capacity("tconstruct:tinker_station"), Some(3));
         assert_eq!(input_capacity("tconstruct:tinkers_anvil"), Some(5));
         assert_eq!(input_capacity("tconstruct:scorched_anvil"), Some(5));
+        assert_eq!(input_capacity("tconstruct:modifier_worktable"), Some(2));
         assert_eq!(input_capacity("tconstruct:part_builder"), None);
     }
 }

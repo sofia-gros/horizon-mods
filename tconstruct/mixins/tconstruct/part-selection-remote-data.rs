@@ -15,6 +15,12 @@ fn part_selection_remote_data(game: &mut crate::game::Game<'_>, id: usize, value
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     if station {
         let Some(key) = game.container else { return Break(()); };
+        if id == 29999 && crate::game::tconstruct_ui::is_worktable(game) {
+            let selected = usize::try_from(value).ok().and_then(|index| ["tconstruct:haste", "tconstruct:sharpness", "tconstruct:swiftstrike"].get(index));
+            if let Some(selected) = selected { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, (*selected).into()); }
+            else { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().remove(&key); }
+            return Break(());
+        }
         if id >= 31000 {
             if id == 31000 && value == -1 {
                 game.world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&key);

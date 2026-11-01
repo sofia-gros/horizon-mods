@@ -1,21 +1,29 @@
 use super::*;
+pub(super) fn is_worktable(game: &Game<'_>) -> bool {
+    if game.remote.is_some() {
+        return game.remote_menu_title().is_some_and(|title| title.plain() == "TConstruct Modifier Worktable");
+    }
+    game.container.is_some_and(|pos| &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:modifier_worktable")
+}
+
 pub(super) fn kind(game: &Game<'_>) -> Option<bool> {
     if game.remote.is_some() {
         return match game.remote_menu_title().map(|t| t.plain()).as_deref() {
             Some("TConstruct Part Builder" | "TConstruct Part Builder Double") => Some(false),
-            Some("TConstruct Tinker Station" | "TConstruct Tinkers Anvil" | "TConstruct Scorched Anvil") => Some(true),
+            Some("TConstruct Tinker Station" | "TConstruct Tinkers Anvil" | "TConstruct Scorched Anvil" | "TConstruct Modifier Worktable") => Some(true),
             _ => None,
         };
     }
     let key = game.container?;
     match &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name {
         "tconstruct:part_builder" => Some(false),
-        "tconstruct:tinker_station" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" => Some(true),
+        "tconstruct:tinker_station" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" => Some(true),
         _ => None,
     }
 }
 
 pub(super) fn station_capacity(game: &Game<'_>) -> usize {
+    if is_worktable(game) { return 2; }
     if game.remote.is_some() {
         return match game.remote_menu_title().map(|title| title.plain()).as_deref() {
             Some("TConstruct Tinkers Anvil" | "TConstruct Scorched Anvil") => 5,
