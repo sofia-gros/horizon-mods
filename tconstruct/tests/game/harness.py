@@ -16,9 +16,10 @@ class Game:
             folder = self.root / key.lower(); folder.mkdir(exist_ok=resume); self.env[key] = str(folder)
         width, height = os.environ.get('HORIZON_TEST_SIZE_' + label.upper(), os.environ.get('HORIZON_TEST_SIZE', '960x540')).split('x', 1)
         command = [str(args.game.resolve()), '--resources', str(args.resources.resolve()),
-                   '--control-socket', str(self.endpoint), '--test-terrain', '--render-distance', '2',
+                   '--control-socket', str(self.endpoint), '--render-distance', '2',
                    '--offscreen', '--width', width, '--height', height, '--name', label]
-        command += ['--server', server] if server else ['--world','Probe','--seed','42','--creative']
+        if not getattr(args, 'natural_world', False): command.append('--test-terrain')
+        command += ['--server', server] if server else ['--world','Probe','--seed',str(getattr(args, 'world_seed', 42)),'--creative']
         if in_frame: command.append('--in-frame')
         self.log = (self.root / 'game.log').open('a' if resume else 'w')
         self.proc = subprocess.Popen(command, cwd=self.root, env=self.env, stdout=self.log, stderr=subprocess.STDOUT)
