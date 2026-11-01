@@ -312,6 +312,14 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
+        if short == 'ichor_slime_bottle':
+            item['minecraft:food'] = {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0}
+            item['minecraft:consumable'] = {'animation': 'drink', 'consume_seconds': 1.6,
+                'has_consume_particles': False, 'sound': 'minecraft:entity.generic.drink',
+                'on_consume_effects': [{'type': 'minecraft:apply_effects', 'effects': [
+                    {'id': 'minecraft:levitation', 'duration': 200},
+                    {'id': 'minecraft:slowness', 'duration': 200, 'amplifier': 1},
+                ]}]}
     if short == 'venom_bottle':
         # TinkerFood.VENOM_BOTTLE and ContainerFoodItem (1.20.1): no
         # nutrition, always drinkable, 32 ticks, strength and poison.

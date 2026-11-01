@@ -97,6 +97,10 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual(slime_bottle['minecraft:crafting_remainder'], {'id': 'minecraft:glass_bottle'})
                 texture = 'ichor' if kind == 'ichor' else f'{kind}_slime'
                 self.assertTrue((out / f'assets/tconstruct/textures/item/bottle/{texture}_contents.png').is_file())
+            ichor = items['tconstruct:ichor_slime_bottle']
+            self.assertEqual(ichor['minecraft:consumable']['on_consume_effects'][0]['effects'], [
+                {'id': 'minecraft:levitation', 'duration': 200},
+                {'id': 'minecraft:slowness', 'duration': 200, 'amplifier': 1}])
             for name in ('cobalt_ingot', 'cobalt_nugget'):
                 self.assertEqual(items['tconstruct:' + name]['minecraft:item_model'], 'tconstruct:' + name)
                 self.assertNotIn('minecraft:provides_trim_material', items['tconstruct:' + name])
