@@ -62,6 +62,10 @@ try:
     try:q.call('interact','30','100','30','up');q.call('wait','20')
     finally:q.call('key','shift','up')
     assert h.call('block','30','100','30').get('block','').split('[')[0]=='minecraft:dirt';assert q.call('status')['offhand']['damage']==off['damage']
+    q.call('interact','30','100','30','up');q.call('wait','20')
+    wait(lambda:h.call('block','30','100','30').get('block','').split('[')[0]=='minecraft:farmland')
+    assert q.call('status')['offhand']['damage']==off['damage']+1
+    print('LAN normal offhand till',flush=True)
     q.call('screenshot',str(run/'tool-transform-lan.png'));q.stop();q.cleanup();games.remove(q);h.call('save');h.stop();print('PASS LAN tool transforms and sneaking',flush=True)
 finally:
     for g in reversed(games):g.cleanup()

@@ -67,12 +67,15 @@ def sneak_pass():
     try:g.call('interact','20','100','20','up');g.call('wait','20')
     finally:g.call('key','shift','up')
     assert at(20,100,20).split('[')[0]=='minecraft:dirt';assert g.call('status')['offhand']['damage']==off['damage']
-    print('sneak PASS main, offhand and other use',flush=True)
+    g.call('interact','20','100','20','up');g.call('wait','20')
+    assert at(20,100,20).split('[')[0]=='minecraft:farmland';assert g.call('status')['offhand']['damage']==off['damage']+1
+    print('sneak PASS main, offhand, other use and normal offhand till',flush=True)
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     for name,source,target,area in [('mattock','minecraft:dirt','minecraft:farmland',False),('kama','minecraft:dirt','minecraft:farmland',False),('scythe','minecraft:dirt','minecraft:farmland',True),('excavator','minecraft:grass_block','minecraft:dirt_path',True),('hand_axe','minecraft:oak_log','minecraft:stripped_oak_log',False),('broad_axe','minecraft:oak_log','minecraft:stripped_oak_log',False)]:scene(name,source,target,area)
     for source,target in [('minecraft:oxidized_copper','minecraft:weathered_copper'),('minecraft:waxed_copper_block','minecraft:copper_block')]:scene('hand_axe',source,target)
     pathing_obstacles();broken_area();sneak_pass()
-    g.call('screenshot',str(run/'tool-transform.png'));g.call('save');g.stop();print('PASS source tools',flush=True)
+    cmd('gamemode creative @s');cmd('clear @s');cmd('give @s minecraft:wooden_hoe 1');g.call('hotbar','1');cmd('setblock 20 100 20 minecraft:dirt');cmd('gamemode survival @s');g.call('wait','10');before=g.call('inventory')['held'];g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held'];assert at(20,100,20).split('[')[0]=='minecraft:farmland' and after.get('damage',0)==before.get('damage',0)+1,(before,after)
+    g.call('screenshot',str(run/'tool-transform.png'));g.call('save');g.stop();g.cleanup();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();assert at(20,100,20).split('[')[0]=='minecraft:farmland';g.stop();print('PASS source tools and reload',flush=True)
 finally:g.cleanup()
