@@ -18,7 +18,7 @@ try:
  g.call('screenshot',str(run/'gem-armor.png'));click(500);g.call('close');g.call('wait','8');armor=g.call('inventory')['armor'][0];print('armor',armor,flush=True)
  assert '"tconstruct:diamond":1' in armor.get('components','') and 'tconstruct:diamond_armor' in armor.get('components',''),armor
  cmd('gamemode survival @s');hit=hurt();print('hit',hit,flush=True);assert hit['armor']>0,hit
- cmd('gamemode creative @s');cmd('item modify entity @s armor.head {type:"minecraft:set_damage",function:"minecraft:set_damage",damage:0.001}');cmd('gamemode survival @s');hurt();helmet=g.call('inventory')['armor'][0];print('broken',helmet,flush=True)
+ cmd('gamemode creative @s');cmd('item replace entity @s armor.head with tconstruct:plate_helmet[minecraft:damage=414,minecraft:max_damage=415,minecraft:custom_data={tic_materials:["tconstruct:iron","tconstruct:iron"],tic_max_damage:415,tic_armor:3.0f,tic_armor_toughness:0.0f,tic_upgrades:{"tconstruct:diamond":1},"tconstruct:diamond_armor":1b}]');cmd('gamemode survival @s');hurt();helmet=g.call('inventory')['armor'][0];print('broken',helmet,flush=True)
  assert helmet.get('item')=='tconstruct:plate_helmet' and 'tic_broken:1b' in helmet.get('components',''),helmet
  g.call('save');g.stop();g.cleanup();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();helmet=g.call('inventory')['armor'][0];assert helmet.get('item')=='tconstruct:plate_helmet' and 'tic_broken:1b' in helmet.get('components',''),helmet
  g.stop();print('PASS Diamond armor damage and broken retention',flush=True)
