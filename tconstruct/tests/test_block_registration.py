@@ -42,7 +42,7 @@ class BlockRegistrationTests(unittest.TestCase):
                 item = json.loads((ASSETS / 'items' / f'{name}.json').read_text())
                 walk(item)
                 loot = (CONTENT / 'data/tconstruct/loot_table/blocks' / f'{name}.json').read_text()
-                if name != 'budding_sky_slime_crystal':
+                if not (name.startswith('budding_') and name.endswith('_slime_crystal')):
                     self.assertIn(f'tconstruct:{name}', loot)
                 else:
                     self.assertNotIn('pools', json.loads(loot))
