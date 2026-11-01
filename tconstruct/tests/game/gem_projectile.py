@@ -1,5 +1,5 @@
 """Compare actual crossbow arrow hits before and after Diamond."""
-import argparse
+import argparse,re
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
@@ -8,6 +8,10 @@ p.add_argument('--in-frame',action='store_true');a=p.parse_args();run=a.run_dir.
 def cmd(s):g.call('command',s);g.call('wait','7')
 def click(n):g.call('click-slot',str(n));g.call('wait','7')
 def hot(i):return next(x['slot'] for x in g.call('inventory')['hotbar'] if x.get('item')==i)
+def arrow_base():
+ for c in ('gamemode creative @s','kill @e[type=minecraft:arrow]','kill @e[tag=gem_arrow_target]','tp @s 20.5 100 18.5','fill 17 100 17 24 110 40 minecraft:air','give @s minecraft:arrow 4','gamemode survival @s'):cmd(c)
+ g.call('hotbar','1');g.call('look','0','-10');g.call('wait','20');g.call('mouse','right','down');g.call('wait','40');g.call('mouse','right','up');g.call('wait','5');g.call('mouse','right','down');g.call('wait','1');g.call('mouse','right','up');g.call('wait','1')
+ nbt=g.call('command','data get entity @e[type=minecraft:arrow,sort=nearest,limit=1] damage');m=re.search(r'([0-9.]+)d',str(nbt));assert m,nbt;return float(m.group(1))
 def hit():
  for c in ('gamemode creative @s','kill @e[type=minecraft:arrow]','kill @e[tag=gem_arrow_target]','tp @s 20.5 100 18.5','fill 17 99 17 24 99 40 minecraft:stone','fill 17 100 17 24 110 40 minecraft:air','give @s minecraft:arrow 8','summon minecraft:iron_golem 20.5 100 23.5 {NoAI:1b,Tags:["gem_arrow_target"]}','gamemode survival @s'):cmd(c)
  g.call('hotbar','1');targets=g.call('entities','15','minecraft:iron_golem')['entities'];target=min(targets,key=lambda e:abs(e['pos'][2]-23.5));g.call('look-at','20.5','101.2','23.5');g.call('wait','20');g.call('mouse','right','down');g.call('wait','40');g.call('mouse','right','up');g.call('wait','5');g.call('mouse','right','down');g.call('wait','1');g.call('mouse','right','up');g.call('wait','15')
@@ -17,9 +21,9 @@ try:
  g.ready()
  if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
  for c in ('gamemode creative @s','clear @s','tp @s 0.5 71 0.5','fill -2 71 -1 2 72 3 minecraft:air','setblock 0 71 2 tconstruct:tinker_station','give @s tconstruct:crossbow[minecraft:custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:string"],tic_max_damage:120,tic_draw_speed:1.0f,tic_velocity:1.0f,tic_accuracy:1.0f},minecraft:max_damage=120] 1'):cmd(c)
- base=hit()
+ base_arrow=arrow_base();base=hit()
  for c in ('gamemode creative @s','tp @s 0.5 71 0.5','setblock 0 71 2 tconstruct:tinker_station','give @s minecraft:diamond 1'):cmd(c)
  g.call('interact','0','71','2');g.call('wait','12');click(hot('tconstruct:crossbow'));click(300);click(hot('minecraft:diamond'));click(301);click(325);out=g.call('menu')['carried'] or {};assert out.get('item')=='tconstruct:crossbow',out
- g.call('screenshot',str(run/'gem-crossbow.png'));click(0);g.call('close');g.call('wait','10');gem=hit();assert gem>base,(base,gem)
- g.call('save');g.stop();print('PASS Diamond actual arrow damage',base,gem,flush=True)
+ g.call('screenshot',str(run/'gem-crossbow.png'));click(0);g.call('close');g.call('wait','10');gem_arrow=arrow_base();gem=hit();assert (base_arrow,gem_arrow)==(2.0,2.5),(base_arrow,gem_arrow)
+ g.call('save');g.stop();print('PASS Diamond actual arrow damage',base,gem,'base values',base_arrow,gem_arrow,flush=True)
 finally:g.cleanup()

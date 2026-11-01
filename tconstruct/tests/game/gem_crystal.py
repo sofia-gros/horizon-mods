@@ -26,12 +26,12 @@ try:
  click(0);g.call('close');g.call('wait','10');inv=g.call('inventory');print('INVENTORY',inv,flush=True)
  assert any(x.get('item')=='tconstruct:modifier_crystal' for x in inv['hotbar']),inv
  assert any(x.get('item')=='minecraft:sponge' for x in inv['hotbar']),inv
- assert any(x.get('item')=='tconstruct:pickaxe' and '"tconstruct:diamond"' not in x.get('components','') for x in inv['hotbar']),inv
+ assert any(x.get('item')=='tconstruct:pickaxe' and '"tconstruct:diamond"' not in x.get('components','') and 'tic_max_damage:85' in x.get('components','') for x in inv['hotbar']),inv
  cmd('setblock 0 71 2 tconstruct:tinker_station');g.call('interact','0','71','2');g.call('wait','12')
  click(hot('tconstruct:pickaxe'));click(300);click(hot('tconstruct:modifier_crystal'));click(301);click(325)
  assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:pickaxe'
  click(0);g.call('close');g.call('wait','8');inv=g.call('inventory')
- assert any(x.get('item')=='tconstruct:pickaxe' and '"tconstruct:diamond":1' in x.get('components','') for x in inv['hotbar']),inv
+ assert any(x.get('item')=='tconstruct:pickaxe' and '"tconstruct:diamond":1' in x.get('components','') and 'tic_max_damage:585' in x.get('components','') for x in inv['hotbar']),inv
  assert inv['counts'].get('tconstruct:modifier_crystal',0)==0,inv
  print('PASS Diamond Crystal extraction and reapplication',flush=True)
  g.call('save');g.stop()
