@@ -12,6 +12,11 @@ pub(super) struct UpgradePlan {
     pub leftover: Option<ItemStack>,
 }
 
+pub(super) struct ExtractionPlan {
+    pub upgrade: UpgradePlan,
+    pub sponge: ItemStack,
+}
+
 fn amount(tool: &ItemStack, id: &str) -> i32 {
     match tool
         .data()
@@ -32,7 +37,7 @@ pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
 pub(super) fn extract_upgrade(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str,
-) -> Option<UpgradePlan> {
+) -> Option<ExtractionPlan> {
     let needed = match id {
         "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72,
         "tconstruct:haste" => 45, _ => return None,
@@ -47,7 +52,9 @@ pub(super) fn extract_upgrade(
     let sponge = present.iter().find(|(_, item)| &*item.item == "minecraft:wet_sponge")?.0;
     let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
     crystal.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String(id.into()))])));
-    Some(UpgradePlan { id: id.into(), amount: old - needed, consumed: vec![(0, 1), (slime, 1), (sponge, 1)], leftover: Some(crystal) })
+    Some(ExtractionPlan { upgrade: UpgradePlan { id: id.into(), amount: old - needed,
+        consumed: vec![(0, 1), (slime, 1), (sponge, 1)], leftover: Some(crystal) },
+        sponge: ItemStack::new("minecraft:sponge", 1) })
 }
 
 pub(super) fn plan(
@@ -415,9 +422,10 @@ mod tests {
         let inputs = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
         assert!(extract_upgrade(&tags, &tool(18), &inputs, "tconstruct:sharpness").is_none());
         let plan = extract_upgrade(&tags, &tool(54), &inputs, "tconstruct:sharpness").unwrap();
-        assert_eq!(plan.amount, 18);
-        assert_eq!(plan.consumed, [(0, 1), (2, 1), (1, 1)]);
-        let crystal = plan.leftover.unwrap();
+        assert_eq!(plan.upgrade.amount, 18);
+        assert_eq!(plan.upgrade.consumed, [(0, 1), (2, 1), (1, 1)]);
+        assert_eq!(&*plan.sponge.item, "minecraft:sponge");
+        let crystal = plan.upgrade.leftover.unwrap();
         assert_eq!(&*crystal.item, "tconstruct:modifier_crystal");
         assert!(matches!(crystal.data().unwrap().other("minecraft:custom_data").unwrap().get("modifier"), Some(Tag::String(id)) if id.to_string_lossy() == "tconstruct:sharpness"));
     }
