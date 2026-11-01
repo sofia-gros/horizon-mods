@@ -32,7 +32,7 @@ try:
     cmd('gamemode creative @s');cmd('give @s minecraft:iron_ingot 1');g.call('interact','0','71','2');g.call('wait','10');click(500);click(300)
     slot=next(x['slot'] for x in g.call('inventory')['hotbar'] if x.get('item')=='minecraft:iron_ingot');click(slot);click(301);click(325)
     repaired=g.call('menu')['carried'] or {};print('repair result',json.dumps(repaired),flush=True);assert repaired.get('item')=='tconstruct:plate_helmet' and repaired.get('damage',2)<2,repaired
-    click(500);g.call('close');g.call('wait','10');restored=item(0);print('restored',json.dumps(restored),flush=True);assert restored.get('item')=='tconstruct:plate_helmet' and 'tic_broken:0b' in restored.get('components',''),restored
+    g.call('screenshot',str(root/'armor-station-repair.png'));click(500);g.call('close');g.call('wait','10');restored=item(0);print('restored',json.dumps(restored),flush=True);assert restored.get('item')=='tconstruct:plate_helmet' and 'tic_broken:0b' in restored.get('components',''),restored
     cmd('effect give @s minecraft:instant_health 1 4 true');cmd('gamemode survival @s');third=damage();assert third['armor']==8 and third['toughness']==4,third
     g.call('screenshot',str(root/'armor-repair.png'));g.call('save');g.stop();g.cleanup();g=Game(a,root,'Player',in_frame=a.in_frame,resume=True);g.ready();saved=item(0);print('saved',json.dumps(saved),flush=True);assert saved.get('item')=='tconstruct:plate_helmet',saved
     g.stop();print('PASS material armor break repair and save',flush=True)
