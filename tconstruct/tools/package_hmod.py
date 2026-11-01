@@ -35,6 +35,31 @@ def package(output):
     for rel, source in tracked('tconstruct/content/assets', 'tconstruct/content/data'):
         add(rel.relative_to('tconstruct/content').as_posix(), source.read_bytes())
 
+    # GUI and fluid atlas sprites must be exposed under vanilla atlas keys at
+    # startup. Store our own source pixels in our namespace until then.
+    runtime = 'assets/tconstruct/runtime/'
+    for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
+        add(runtime + 'gui/tconstruct_' + name + '.png', (MOD / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
+    for name in ('haste', 'sharpness', 'swiftstrike', 'quick_charge', 'trueshot', 'reinforced'):
+        add(runtime + 'gui/tconstruct_modifier_' + name + '.png', (MOD / 'assets/tconstruct/gui/modifiers' / (name + '.png')).read_bytes())
+    for rel, source in tracked('tconstruct/assets/tconstruct/gui/patterns'):
+        add(runtime + 'gui/tconstruct_patterns/' + rel.name, source.read_bytes())
+    with zipfile.ZipFile(MOD / 'content/reference/tconstruct-plate-armor-textures.zip') as archive:
+        for item in archive.infolist():
+            if item.is_dir():
+                continue
+            if '/' in item.filename or not item.filename.endswith('.png'):
+                raise ValueError('invalid plate sprite')
+            add(runtime + 'gui/tconstruct_plate_' + item.filename, archive.read(item))
+    with zipfile.ZipFile(MOD / 'content/reference/tconstruct-smeltery-assets.zip') as archive:
+        add(runtime + 'gui/tconstruct_heating_structure.png', archive.read('assets/tconstruct/textures/gui/heating_structure.png'))
+    with zipfile.ZipFile(MOD / 'content/reference/tconstruct-melter-assets.zip') as archive:
+        add(runtime + 'gui/tconstruct_melter.png', archive.read('assets/tconstruct/textures/gui/melter.png'))
+        add(runtime + 'block/tconstruct_fluid_fallback.png', archive.read('assets/tconstruct/textures/fluid/molten/still.png'))
+        fluids = json.loads(archive.read('assets/tconstruct/melter-fluid-textures.json'))
+        for fluid, texture in fluids.items():
+            add(runtime + 'block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png', archive.read('assets/tconstruct/' + texture))
+
     # The source visual archives are owned by the mod and do not contain the
     # player's Minecraft textures. Retain Forge models in the paths read by
     # our renderer instead of asking the vanilla model loader to interpret them.
