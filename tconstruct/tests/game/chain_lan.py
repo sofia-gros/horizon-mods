@@ -48,7 +48,7 @@ try:
         before=q.call('inventory')['held']
         if limit:
             maximum=before.get('damage',0)+limit
-            cmd(h,'item modify entity Guest weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}')
+            cmd(q,'item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}')
             wait(lambda: 'tic_max_damage:'+str(maximum) in (q.call('inventory')['held'] or {}).get('components',''))
         count=total_items(q,block);cmd(h,'gamemode survival Guest');q.call('wait','20')
         result=q.call('break','30','101','30','--timeout','50',timeout=55);q.call('wait','20')
