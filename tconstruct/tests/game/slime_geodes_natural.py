@@ -1,10 +1,10 @@
 """Find naturally generated slime clusters in each dimension, then use them."""
-import argparse,time,re
+import argparse,time,re,subprocess
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'):p.add_argument('--'+n,type=Path,required=True)
-p.add_argument('--in-frame',action='store_true');a=p.parse_args();a.natural_world=True;a.world_seed=42
+p.add_argument('--in-frame',action='store_true');p.add_argument('--resume-after-earth',action='store_true');a=p.parse_args();a.natural_world=True;a.world_seed=42
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve());world=run/'Sky'
 assert (world/'Player/saves/Probe').is_dir(),'requires the existing disposable seed-42 world'
 g=Game(a,world,'Player',in_frame=a.in_frame,resume=True);guest=None
@@ -49,7 +49,10 @@ def harvest(color,dimension,pos):
  g.call('hotbar',str(hot('minecraft:diamond_pickaxe')+1));g.call('wait','10');g.call('screenshot',str(run/f'{color}-geode-natural.png'))
  before=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0)
  item=f'tconstruct:{color}_slime_crystal'
- broken=g.call('break',x,y,z,'--timeout','30',timeout=35);print('BREAK',color,broken,flush=True);assert broken.get('drops',{}).get(item)==4,broken
+ try:broken=g.call('break',x,y,z,'--timeout','30',timeout=35)
+ except subprocess.CalledProcessError as e:
+  print('BREAK ERROR',color,e.stdout,e.stderr,'BLOCK',g.call('block',x,y,z),'STATE',g.call('state'),flush=True);raise
+ print('BREAK',color,broken,flush=True);assert broken.get('drops',{}).get(item)==4,broken
  ids={entry['id'] for entry in broken.get('on_ground',[]) if entry.get('item')==item}
  for _ in range(8):
   if g.call('inventory')['counts'].get(item,0)-before>=4:break
@@ -58,14 +61,18 @@ def harvest(color,dimension,pos):
   px,py,pz=drops[0]['pos'];cmd(f'tp @s {px} {py} {pz}');g.call('wait','12')
  count=g.call('inventory')['counts'].get(item,0);print('HARVEST',color,before,count,flush=True);assert count-before>=4,(color,before,count,broken)
 try:
- g.ready();cmd('gamemode creative @s');cmd('gamerule minecraft:spawn_mobs false');cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
- earth=find('earth','overworld',-32);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
- g.call('save');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
- cmd(f'tp Guest {earth[0]+0.5} {earth[1]} {earth[2]-1.5}');guest.call('wait','30');state=guest.call('block',*earth);print('LAN',state,flush=True);assert state.get('block')=='tconstruct:earth_slime_crystal_cluster',state
- guest.stop();guest.cleanup();guest=None
- harvest('earth','overworld',earth)
- ichor=find('ichor','the_nether',96);harvest('ichor','the_nether',ichor)
- ender=find('ender','the_end',40);harvest('ender','the_end',ender)
+ g.ready();cmd('gamemode creative @s');cmd('gamerule minecraft:spawn_mobs false')
+ if a.resume_after_earth:
+  inv=g.call('inventory')['counts'];assert inv.get('tconstruct:earth_slime_crystal',0)>=4 and inv.get('minecraft:diamond_pickaxe',0)>=1,inv
+ else:
+  cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
+  earth=find('earth','overworld',-32);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
+  g.call('save');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
+  cmd(f'tp Guest {earth[0]+0.5} {earth[1]} {earth[2]-1.5}');guest.call('wait','30');state=guest.call('block',*earth);print('LAN',state,flush=True);assert state.get('block')=='tconstruct:earth_slime_crystal_cluster',state
+  guest.stop();guest.cleanup();guest=None
+  harvest('earth','overworld',earth);g.call('save')
+ ichor=find('ichor','the_nether',96);harvest('ichor','the_nether',ichor);g.call('save')
+ ender=find('ender','the_end',40);harvest('ender','the_end',ender);g.call('save')
  # Reuse the same world. Test fixtures are the builder and blank pattern; the
  # Earthslime input was picked up from the naturally generated cluster.
  in_dimension('overworld',2048,80,2048)
