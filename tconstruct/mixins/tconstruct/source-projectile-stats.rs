@@ -18,6 +18,9 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
 }
 
 pub(crate) fn diamond_damage(stack: &ItemStack) -> f64 {
+    if let Some(value) = stat(stack, "tic_projectile_damage") {
+        if value.is_finite() { return (value as f64 - 2.0).max(-2.0); }
+    }
     match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:diamond")) {
         Some(Tag::Int(value)) if *value > 0 => 0.5,
         _ => 0.0,

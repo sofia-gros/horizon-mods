@@ -1,6 +1,6 @@
-# Ranged material traits (planned)
+# Ranged material traits (in progress)
 
-This unit targets source effects on the existing Longbow and Crossbow paths. It is not yet implemented or verified.
+This unit connects source effects to the existing Longbow and Crossbow paths. The combined stat and firing arithmetic has lightweight tests; actual game behavior is not yet verified.
 
 | Trait | Source ranged stat effect per level |
 | --- | --- |
@@ -13,3 +13,5 @@ This unit targets source effects on the existing Longbow and Crossbow paths. It 
 | Ductile | +0.25 projectile damage |
 
 These are selected stat modules, not the complete modifiers. Entangled's unequip damage, Crystalbound's angle restriction, armor and movement effects, ammunition-specific effects and unsupported source tools remain open. Source: TConstruct revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, `ModifierProvider.java`.
+
+Assembly and part replacement rebuild draw speed, velocity, accuracy and projectile damage from the material base and source trait levels. Existing Quick Charge, Trueshot, Diamond, Emerald and Netherite are applied in the same stat calculation; the resulting values feed draw timing and arrow creation. Existing saved bows must be rebuilt before these new values are present. Conversion, build, save and LAN tests remain pending.
