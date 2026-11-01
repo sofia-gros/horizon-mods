@@ -2772,3 +2772,9 @@ target = "horizon_client::game::Game<'_>::hurt_armor"
 kind = "RETURN"
 helper = "source-armor-wear-end.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-armor-wear"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_armor_wear"
+source = "source-armor-wear.rs"
