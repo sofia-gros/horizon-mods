@@ -8,6 +8,10 @@ ROOT = Path(__file__).resolve().parents[1]
 DATA = ROOT / 'content/data/tconstruct'
 
 class AnvilRecipes(unittest.TestCase):
+    def test_anvils_are_mineable_with_pickaxes(self):
+        tag = json.loads((ROOT / 'content/data/minecraft/tags/block/mineable/pickaxe.json').read_text())
+        self.assertTrue({'tconstruct:tinkers_anvil', 'tconstruct:scorched_anvil'} <= set(tag['values']))
+
     def test_source_pattern_and_registered_ingredients(self):
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as materials:
             source_alloys = json.loads(materials.read('data/tconstruct/tinkering/tags/materials/compatibility_metals/alloys.json'))['values']
