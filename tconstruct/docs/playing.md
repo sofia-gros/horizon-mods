@@ -186,7 +186,7 @@ Unbreakable takes two Shulker Shells, Dragon's Breath and two Netherite Ingots i
 
 Both modifiers support extraction into and application from a Modifier Crystal. While Unbreakable remains on a tool, removing Netherite or enough Reinforced to invalidate its prerequisites is rejected; remove Unbreakable first. A Crystal uses one input slot, so it can be applied at a Station when the requirements and slots are met.
 
-This branch has lightweight recipe and stat checks only. The new recipes, rarity, dropped-item protection, effective mining and combat, persistence and LAN have **not yet been verified in the game**. Worktable selection uses letter labels for Netherite and Unbreakable until dedicated icons are supplied. Advancement criteria remain unimplemented; other equipment and modifiers still have the limits described below.
+This branch has lightweight recipe and stat checks only. The new recipes, rarity, dropped-item protection, effective mining and combat, persistence and LAN have **not yet been verified in the game**. Worktable selection uses the original layered icons. Advancement criteria remain unimplemented; other equipment and modifiers still have the limits described below.
 
 ## Extract a modifier
 

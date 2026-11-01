@@ -78,10 +78,11 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-plate-armor-text
         (gui / ('tconstruct_plate_' + name)).write_bytes(armor_textures.read(name))
 for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
-for name in ('haste', 'sharpness', 'swiftstrike', 'quick_charge', 'trueshot', 'reinforced'):
+for name in ('haste', 'sharpness', 'swiftstrike', 'quick_charge', 'trueshot', 'reinforced', 'unbreakable', 'book', 'tier'):
     (gui / ('tconstruct_modifier_' + name + '.png')).write_bytes((repository / 'assets/tconstruct/gui/modifiers' / (name + '.png')).read_bytes())
 for name in ('diamond', 'emerald'):
     (gui / ('tconstruct_modifier_' + name + '.png')).write_bytes((src / 'assets/minecraft/textures/item' / (name + '.png')).read_bytes())
+(gui / 'tconstruct_modifier_netherite.png').write_bytes((src / 'assets/minecraft/textures/item/netherite_ingot.png').read_bytes())
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as source_smeltery:
     (gui / 'tconstruct_heating_structure.png').write_bytes(source_smeltery.read('assets/tconstruct/textures/gui/heating_structure.png'))
 # Use the original Melter screen in the shared GUI atlas.

@@ -28,7 +28,7 @@ class ResourceOverlay(unittest.TestCase):
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
             (src / 'assets/minecraft/textures/gui').mkdir(parents=True)
             (src / 'assets/minecraft/textures/item').mkdir(parents=True)
-            for gem in ('diamond', 'emerald'):
+            for gem in ('diamond', 'emerald', 'netherite_ingot'):
                 (src / 'assets/minecraft/textures/item' / (gem + '.png')).write_bytes(gem.encode())
             subprocess.run([sys.executable, str(SCRIPT), str(src), str(out)], check=True)
             self.assertEqual(json.loads((src / 'items.json').read_text()), raw)
@@ -45,7 +45,8 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_modifier_reinforced.png').read_bytes(), source.read_bytes())
             for gem in ('diamond', 'emerald'):
                 self.assertEqual((out / 'assets/minecraft/textures/gui' / ('tconstruct_modifier_' + gem + '.png')).read_bytes(), gem.encode())
-            for modifier in ('quick_charge', 'trueshot'):
+            self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_modifier_netherite.png').read_bytes(), b'netherite_ingot')
+            for modifier in ('quick_charge', 'trueshot', 'unbreakable', 'book', 'tier'):
                 self.assertEqual(
                     (out / 'assets/minecraft/textures/gui' / ('tconstruct_modifier_' + modifier + '.png')).read_bytes(),
                     (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/modifiers' / (modifier + '.png')).read_bytes(),
