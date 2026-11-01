@@ -66,7 +66,7 @@ def wait_widget(label):
   w=widget(label)
   if w:return w
   time.sleep(.2)
- raise AssertionError('missing widget '+label)
+ raise AssertionError('missing widget '+label+' menu='+repr(g.call('menu'))+' ui='+repr(g.call('ui')))
 def sprint(ticks):
  start=g.call('state')['ticks'];print('SPRINT',ticks,'FROM',start,flush=True);g.call('command',f'tick sprint {ticks}')
  # Poll the actual simulation counter rather than guessing from wall time.
