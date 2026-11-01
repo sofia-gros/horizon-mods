@@ -76,7 +76,7 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-plate-armor-text
         if '/' in name or not name.endswith('.png'):
             raise ValueError('Invalid plate armor texture name: ' + name)
         (gui / ('tconstruct_plate_' + name)).write_bytes(armor_textures.read(name))
-for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
+for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as source_smeltery:
     (gui / 'tconstruct_heating_structure.png').write_bytes(source_smeltery.read('assets/tconstruct/textures/gui/heating_structure.png'))
