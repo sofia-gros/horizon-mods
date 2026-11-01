@@ -76,7 +76,11 @@ pub(super) fn plan(
             .enumerate()
             .filter_map(|(i, stack)| stack.as_ref().map(|stack| (i + 1, stack)))
             .collect();
-        if present.is_empty() || present.iter().any(|(_, stack)| !matches(stack)) {
+        let crystal = value.get("allow_crystal").and_then(Value::as_bool).unwrap_or(true)
+            && present.len() == 1 && &*present[0].1.item == "tconstruct:modifier_crystal"
+            && matches!(present[0].1.data().and_then(|data| data.other("minecraft:custom_data"))
+                .and_then(|data| data.get("modifier")), Some(Tag::String(value)) if value.to_string_lossy() == id);
+        if present.is_empty() || (!crystal && present.iter().any(|(_, stack)| !matches(stack))) {
             continue;
         }
         let Some(needed) = value
@@ -108,6 +112,11 @@ pub(super) fn plan(
             .and_then(|v| i32::try_from(v).ok())
             .unwrap_or(0);
         let old = amount(tool, id);
+        if crystal {
+            if old.saturating_add(needed) > needed.saturating_mul(max) || occupied + cost > upgrade_slots { continue; }
+            return Some(UpgradePlan { id: id.to_owned(), amount: old + needed,
+                consumed: vec![(0, 1), (present[0].0, 1)], leftover: None });
+        }
         if old >= needed * max || (old % needed == 0 && occupied + cost > upgrade_slots) {
             continue;
         }
@@ -360,5 +369,21 @@ mod tests {
             ("tconstruct:sharpness", Tag::Int(36)), ("tconstruct:haste", Tag::Int(45)),
         ]))])));
         assert!(plan(&recipes, &tags, &item, &inputs, 2).is_none());
+    }
+
+    #[test]
+    fn crystal_adds_one_level_preserving_partial_and_requires_a_slot() {
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"needed_per_level":36,"input":{"item":"minecraft:quartz"},"result":"tconstruct:sharpness","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/melee"}}"#.to_vec();
+        let recipes = BTreeMap::from([("sharpness".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/melee".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 2);
+        crystal.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String("tconstruct:sharpness".into()))])));
+        let inputs = [Some(crystal.clone())];
+        let result = plan(&recipes, &tags, &tool(18), &inputs, 2).unwrap();
+        assert_eq!(result.amount, 54);
+        assert_eq!(result.consumed, [(0, 1), (1, 1)]);
+        assert!(plan(&recipes, &tags, &tool(18), &inputs, 1).is_none());
+        assert!(plan(&recipes, &tags, &tool(162), &inputs, 9).is_none());
+        assert!(plan(&recipes, &tags, &tool(18), &[Some(crystal.clone()), Some(crystal)], 9).is_none());
     }
 }
