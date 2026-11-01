@@ -12,19 +12,9 @@ On a manually run **Mixins validation** workflow, download the `tconstruct-hnmod
 
 For a desktop Horizon Launcher that supports native bundles, select your instance, open its **Mods** page and install `tconstruct.hnmod` as a native mod, then build the instance using the launcher's native build flow. Put `tconstruct.hmod` in the instance game folder’s `horizon-mods/`, enable the content mod under **Options > Mods**, and restart. See the [official native-mod guide](https://github.com/horizon-rust/horizon/blob/374b50d48f0968bd08f7026c7fabb117c8ecb8a6/docs/native-mods.md). Native mods run with the player's permissions.
 
-**Phone-ready distribution is not available yet.** The `.hnmod` alone does not install the resources. The companion content `.hmod` is an incomplete first step: this port also generates item and biome tables from the player’s resources and reads separate original recipe and tag layers. Those paths need an actual integration with the content overlay and native code before two files can replace the preparation below. The official native build documentation lists desktop toolchains; it does not establish a smartphone native build path.
+**The two-file installation is experimental and unverified.** The content mod supplies the mod-owned assets and original recipe layers. At startup the native code derives its working tables, GUI sprites and Minecraft recipe/tag adapter from the installed resource root in a separate `.horizon-cache/tconstruct-startup` directory. The workflow artifact, this startup path and its compatibility with a launcher build have not been tested. If startup preparation fails, the game logs the error; the installation is not a validated playtest build.
 
-**Resource preparation is still manual.** The bundle includes `mixins/tconstruct_native/data/tconstruct-support.zip`; installing the native bundle does not apply those assets or recipes automatically. On a desktop with Python 3, extract that ZIP from the `.hnmod` into an empty folder. It contains `tconstruct/` and `pluto-lib/`. With a prepared Horizon 26.3 resource folder and the native-built game executable, run the following from that folder; choose new, separate output paths for `OVERLAY` and `GAME_RESOURCES`:
-
-```text
-python3 tconstruct/tools/resources.py BASE_RESOURCES OVERLAY
-NATIVE_GAME --tconstruct-prepare OVERLAY tconstruct/content GAME_RESOURCES
-python3 tconstruct/tools/prepare_horizon_source_data.py BASE_RESOURCES GAME_RESOURCES/minecraft-original-pack
-python3 tconstruct/tools/prepare_bundled_forge.py GAME_RESOURCES/forge-original-pack
-NATIVE_GAME --resources GAME_RESOURCES
-```
-
-Replace `BASE_RESOURCES` with the prepared resource directory, `NATIVE_GAME` with the native-built game executable and the two output names with paths that do not already exist. This manual desktop route and the Actions artifact have not been validated as an installed launcher bundle. Smartphone installation, native building, resource preparation and gameplay are unverified; the bundle does not establish smartphone compatibility.
+The official native build documentation lists desktop toolchains; it does not establish a smartphone native build path. Smartphone installation and gameplay remain unverified. For the previously tested manual preparation path, use the [Linux guide](docs/linux.md) or [Windows guide](docs/windows-playtest.md).
 
 ## Make a part
 
