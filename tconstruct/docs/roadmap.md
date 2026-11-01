@@ -19,12 +19,12 @@ untested content as complete merely because it uses the same framework.
 
 Material attack damage, attack speed, and armor attributes have been tested with representative equipment on Linux. A longbow can be drawn and fired using the existing bow behavior; switching hands cancels its shot. Material draw speed for longbows and crossbows, along with crossbow charging and firing, has been tested with representative values on Linux. Command-supplied wood-material bows were tested for survival wear, broken retention and use rejection, limb-material repair, save/reload, and Creative wear exemption. Projectile velocity and accuracy are not connected; an earlier Mixins planner rejected the shot argument site, and the current revision has not yet been checked for that use. Most modifier effects remain unimplemented. Vanilla weapons can currently heal targets under sufficiently strong Weakness in the underlying game; material weapons clamp their basic damage to zero.
 
-A Creative block tab now lists the registered block items. Linux tests covered representative placement and LAN synchronization, a slimewood door, a seared brick drop and save/reload, and the appearance of the three layered slime-metal blocks. Connected glass, source slime bounce and piston behavior, machine operation, and remaining blocks are still incomplete. The [block registration guide](block-registration.md) describes the limits.
+A Creative block tab now lists the registered block items. Linux tests covered representative placement and LAN synchronization, a slimewood door, a seared brick drop and save/reload, and the appearance of the three layered slime-metal blocks. Connected glass has representative Linux and LAN checks; source slime bounce and piston behavior, other machine operation, and remaining blocks are still incomplete. The [block registration guide](block-registration.md) describes the limits.
 
 ## Implementation order
 
 1. Register the original tools, weapons, and armor using the shared source data.
-2. Add **pluto lib** as a shared library, initially implementing only Creative tab registration and use by Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR. Item, block, armor, effect, GUI, and inventory APIs are future library scope after Tinkers is complete; do not add placeholder APIs now.
+2. Add **pluto lib** as a shared library, initially implementing only Creative tab registration and use by Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR. Broader PlutoLib development is deferred until after v1.0; do not add placeholder APIs now.
 3. Implement tool-specific actions and material traits.
 4. Complete the tool station interfaces.
 5. Add the remaining blocks.
@@ -52,7 +52,7 @@ an input changes; material-recipe caching was tested with a flint value change a
 works for supported cases with either mouse button. Single 27-slot and 9-slot side containers and 5-slot hoppers have a preliminary shared path; Linux LAN checks covered hopper and dispenser synchronization and contention. The hopper guest displayed five slots in a Linux LAN test. A shulker side inventory was tested with nesting rejected for an in-frame host and LAN guest. Linux LAN tests covered player-to-hopper Shift move and clicks, synchronization and a result race with both halves of a double chest. Other Shift-click paths, drag and pickup-all remain incomplete. The information panels and full visual parity
 are also unfinished.
 
-The Tinker Station uses source-derived layouts for supported three-part tools and separate assembly and repair/part-swap icons. The original naming, modifier interface and full layout interactions are incomplete. See the
+The Tinker Station uses source-derived layouts for supported three-part tools and separate assembly and repair/part-swap icons. Naming and representative modifier and layout interactions work; other modifiers and exact source parity remain incomplete. See the
 [station design](station-design.md) and [validation notes](validation.md) for
 additional implementation and test details.
 
