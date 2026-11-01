@@ -122,7 +122,17 @@ Place a tool in the Tinker Station. Add quartz shards or quartz blocks for Sharp
 
 Put the tool and material in the input slots, then take the result on the right.
 
-Sharpness needs 36 quartz per level; Swiftstrike needs 72 amethyst shards per level. The in-development Haste path accepts redstone dust or blocks and needs 45 dust per level; mining speed changes for harvest tools and chestplates, with game validation pending. Partial additions count toward the level. This has been tested in a Linux single-player game and with a LAN guest. The experimental Modifier Worktable can be crafted with supported source rock variants and seared blocks; its legs retain their rock appearance. It can extract a completed Sharpness, Swiftstrike or Haste level with a Skyslime Crystal and wet sponge, returning a modifier crystal and sponge; applying the crystal uses another upgrade slot and preserves partial progress. Worktable extraction, crystal use and LAN validation are pending. Other upgrades remain unsupported.
+Sharpness needs 36 quartz per level, Swiftstrike needs 72 amethyst shards, and Haste needs 45 redstone dust. Blocks add multiple units and return unused material. Haste increases mining speed on harvest tools and chestplates. Partial additions use an upgrade slot.
+
+## Extract a modifier
+
+Craft a Modifier Worktable with seared blocks and matching source rock. Its legs retain the rock texture. Add a tool, a Skyslime Crystal and a wet sponge, then select a completed Sharpness, Swiftstrike or Haste level. Take the tool to receive the modifier crystal and a sponge. A partial level alone cannot be extracted.
+
+![A modifier selected in the Modifier Worktable](modifier-worktable.png)
+
+Apply one matching modifier crystal at a Station or Anvil to add a level. This uses a slot and preserves any partial progress already on the tool. The recipe, extraction and LAN guest flow have representative Linux tests; natural Skyslime Crystal generation and other modifiers remain unfinished.
+
+![A basalt Modifier Worktable](modifier-worktable-basalt.png)
 
 The Smeltery fuel gauge shows the available fuel. Hover over it for the fluid, temperature and amount; the small bar beside an input shows its heating state.
 
