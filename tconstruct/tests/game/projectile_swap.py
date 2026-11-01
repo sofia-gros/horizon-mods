@@ -41,8 +41,8 @@ try:
     for c in ('gamemode creative @s','kill @e[tag=source_melee_test]','fill 17 99 17 24 99 40 minecraft:stone','fill 17 100 17 24 110 40 minecraft:air','clear @s','tp @s 20.5 100 18.5','setblock 20 100 16 tconstruct:tinker_station','item replace entity @s weapon.mainhand with tconstruct:crossbow[minecraft:custom_data={tic_materials:["tconstruct:wood","tconstruct:wood","tconstruct:string"],tic_draw_speed:1.0f,tic_velocity:1.0f,tic_accuracy:1.0f,tic_max_damage:200},minecraft:max_damage=200]','give @s tconstruct:bow_limb[minecraft:custom_data={Material:"tconstruct:cobalt"}] 1','give @s minecraft:arrow 8','gamemode survival @s'):cmd(c)
     before=shoot_current();cmd('gamemode creative @s');g.call('interact','20','100','16');g.call('wait','10');click(0);click(300)
     slot=next(s['slot'] for s in g.call('inventory')['hotbar'] if s.get('item')=='tconstruct:bow_limb');click(slot);click(301);click(325)
-    out=g.call('menu')['carried'] or {};print('swapped output',json.dumps(out),flush=True);assert out.get('item')=='tconstruct:crossbow' and 'tconstruct:cobalt' in out.get('components',''),out
-    click(0);g.call('close');g.call('wait','10');cmd('gamemode survival @s');after=shoot_current();print('swap speeds',before,after,flush=True);assert after>before*1.015,(before,after)
+    out=g.call('menu')['carried'] or {};print('swapped output',json.dumps(out),flush=True);assert out.get('item')=='tconstruct:crossbow',out
+    click(0);g.call('close');g.call('wait','10');swapped=g.call('inventory')['held'];print('swapped held',json.dumps(swapped),flush=True);assert 'tconstruct:cobalt' in swapped.get('components',''),swapped;cmd('gamemode survival @s');after=shoot_current();print('swap speeds',before,after,flush=True);assert after>before*1.015,(before,after)
     g.call('save');g.stop();g.cleanup();g=Game(a,a.run_dir.resolve(),'Player',in_frame=a.in_frame,resume=True);g.ready();saved=g.call('inventory')['held'];print('saved',json.dumps(saved),flush=True);assert 'tconstruct:cobalt' in saved.get('components',''),saved
     g.stop();print('PASS material swap and saved projectile stat',flush=True)
 finally:g.cleanup()
