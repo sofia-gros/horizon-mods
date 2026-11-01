@@ -56,3 +56,13 @@ In the present prototype a mob primary does **not** damage any player in its
 area: the provisional mob selection only visits mobs. The player-primary path
 likewise does not perform source area attacks. The separate landed-PvP wear
 hook is provisional and does not fix either missing area path.
+
+Further bounded probes: `Game<'_>::guest_attack` RETURN and
+`Game<'_>::lan_guest_packet` RETURN in `lan_actions` both returned the same
+closure `E_UNSUPPORTED_CONTROL_FLOW`. `Game<'_>::flush_sweeps` HEAD and
+`Game<'_>::attack_guest` RETURN were accepted. The flush boundary occurs after
+`self.lan` is restored and could host a separate player-action queue, but that
+queue still needs a proven way to preserve the attacking guest's original tool,
+per-target ordering and primary durability loss if the guest disconnects or
+several hits are pending. Planner acceptance alone does not verify those
+semantics.
