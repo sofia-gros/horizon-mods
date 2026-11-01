@@ -387,6 +387,27 @@ mod tests {
     use super::*;
 
     #[test]
+    fn overforced_partial_slots_and_crystal_round_trip() {
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"needed_per_level":4,"input":{"item":"tconstruct:slimesteel_reinforcement"},"result":"tconstruct:overforced","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
+        let recipes = BTreeMap::from([("overforced".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/durability".into(), HashSet::from(["tconstruct:pickaxe".into()])), ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        let set = |tool: &mut ItemStack, amount| tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:overforced", Tag::Int(amount))]))])));
+        let ingredients = [Some(ItemStack::new("tconstruct:slimesteel_reinforcement", 9))];
+        assert!(plan(&recipes, &tags, &tool, &ingredients, 0).is_none());
+        let first = plan(&recipes, &tags, &tool, &ingredients, 1).unwrap();
+        assert_eq!(first.amount, 4);
+        assert_eq!(first.consumed, [(0, 1), (1, 4)]);
+        set(&mut tool, 7);
+        let extracted = extract_upgrade(&tags, &tool, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:overforced").unwrap();
+        assert_eq!(extracted.upgrade.amount, 3);
+        set(&mut tool, 3);
+        assert_eq!(plan(&recipes, &tags, &tool, &[extracted.upgrade.leftover], 2).unwrap().amount, 7);
+        set(&mut tool, 20);
+        assert!(plan(&recipes, &tags, &tool, &ingredients, 10).is_none());
+    }
+
+    #[test]
     fn netherite_and_unbreakable_recipes_and_dependencies() {
         let netherite = br#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"item":"minecraft:netherite_upgrade_smithing_template"},{"tag":"forge:ingots/netherite"}],"level":1,"result":"tconstruct:netherite","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
         let unbreakable = br#"{"type":"tconstruct:modifier","allow_crystal":true,"check_trait_level":true,"inputs":[{"item":"minecraft:shulker_shell"},{"item":"minecraft:dragon_breath"},{"item":"minecraft:shulker_shell"},{"tag":"forge:ingots/netherite"},{"tag":"forge:ingots/netherite"}],"level":1,"result":"tconstruct:unbreakable","slots":{"abilities":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();

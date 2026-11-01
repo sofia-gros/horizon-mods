@@ -34,6 +34,8 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Netherite and Unbreakable](docs/playing.md#netherite-and-unbreakable) have representative Linux Station, Anvil, equipment, Crystal, save and LAN checks with supplied materials; see the guide for their scope.
 
+[Overslime and Overforced](docs/overslime.md) are under development. Their new transactions and shield arithmetic have lightweight tests; the complete acquisition and in-game paths are not yet verified.
+
 [Reinforced](docs/playing.md#reinforced) has representative Linux casting, Station, Crystal and LAN checks; Glowing and its modifier-caused wear remain unimplemented. Diamond and Emerald upgrades have representative Linux Station, Anvil, Crystal, mining, armor and ranged checks; see [gem upgrades](docs/playing.md#gem-upgrades). Windows and other source-tagged ranged tools remain unverified or unsupported. [Haste and Modifier Crystal extraction](docs/playing.md#upgrade-a-tool) have representative Linux single-player and LAN tests. Quick Charge and Trueshot have representative Crossbow transaction and save tests on Linux, including LAN Trueshot and Quick Charge crystal reapplication. A Longbow retained Trueshot after reload and showed less lateral arrow spread at level II than level I in a small Linux sample. Trueshot Crystal reapplication with partial progress was checked at all three stations. The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
 
 ## Develop
