@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "key": {
+    "#": "#forge:ingots/cobalt",
+    "*": "tconstruct:cobalt_ingot"
+  },
+  "result": {
+    "id": "tconstruct:cobalt_block"
+  }
+}

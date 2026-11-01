@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:ore",
+  "size": 6,
+  "discard_chance_on_air_exposure": 0.0,
+  "targets": [
+    {
+      "state": "tconstruct:cobalt_ore",
+      "target": {
+        "predicate_type": "minecraft:block_match",
+        "block": "minecraft:netherrack"
+      }
+    }
+  ]
+}

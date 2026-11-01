@@ -148,9 +148,10 @@ fn prepare_tconstruct_resources() {
             std::fs::remove_file(&creative_path)?;
             std::fs::rename(temp, creative_path)?;
         }
-        // Project the source geode biome modifiers into the generated bundle,
+        // Project source geode and cobalt biome modifiers into the generated bundle,
         // preserving source registration order and the vanilla base pack.
-        if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file() {
+        if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file()
+            || content_path.join("data/tconstruct/worldgen/placed_feature/cobalt_ore_small.json").is_file() {
             fn tag_members(tags: &serde_json::Value, id: &str, visited: &mut std::collections::HashSet<String>, out: &mut std::collections::HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
                 if !visited.insert(id.to_owned()) { return Ok(()); }
                 let raw = tags.get(id).and_then(|v| v.as_str()).ok_or_else(|| format!("missing biome tag {id}"))?;
@@ -190,6 +191,21 @@ fn prepare_tconstruct_resources() {
                     if !local.iter().any(|v| v.as_str() == Some(&feature)) {
                         local.push(serde_json::Value::String(feature.clone()));
                     }
+                    *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
+                }
+            }
+            // TConstruct adds both ore variants to Nether underground decoration.
+            for name in ["cobalt_ore_small", "cobalt_ore_large"] {
+                if !content_path.join(format!("data/tconstruct/worldgen/placed_feature/{name}.json")).is_file() { continue; }
+                if nether.is_empty() { return Err("no eligible cobalt ore biomes".into()); }
+                let feature = format!("tconstruct:{name}");
+                for id in &nether {
+                    let raw = biomes.get_mut(id).ok_or_else(|| format!("missing biome {id}"))?;
+                    let mut biome: serde_json::Value = serde_json::from_str(raw.as_str().ok_or("invalid biome")?)?;
+                    let features = biome["features"].as_array_mut().ok_or("missing biome features")?;
+                    while features.len() < 8 { features.push(serde_json::json!([])); }
+                    let underground = features.get_mut(7).and_then(|v| v.as_array_mut()).ok_or("missing underground decoration")?;
+                    if !underground.iter().any(|v| v.as_str() == Some(&feature)) { underground.push(serde_json::Value::String(feature.clone())); }
                     *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
                 }
             }

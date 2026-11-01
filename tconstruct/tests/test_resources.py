@@ -20,6 +20,7 @@ class ResourceOverlay(unittest.TestCase):
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
                    'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
+            raw['minecraft:copper_ingot']['minecraft:provides_trim_material'] = 'minecraft:copper'
             creative = {'tabs': [{'id': 'minecraft:hotbar', 'type': 'HOTBAR', 'row': 'TOP', 'column': 5}]}
             (src / 'creative-inventory.json').write_text(json.dumps(creative))
             (src / 'items.json').write_text(json.dumps(raw))
@@ -87,6 +88,9 @@ class ResourceOverlay(unittest.TestCase):
             for name, limit in (('dagger', 2), ('shuriken', 16), ('throwing_axe', 16), ('arrow', 64)):
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], limit)
             bottle = items['tconstruct:venom_bottle']
+            for name in ('cobalt_ingot', 'cobalt_nugget'):
+                self.assertEqual(items['tconstruct:' + name]['minecraft:item_model'], 'tconstruct:' + name)
+                self.assertNotIn('minecraft:provides_trim_material', items['tconstruct:' + name])
             self.assertEqual(bottle['minecraft:max_stack_size'], 16)
             self.assertEqual(bottle['minecraft:food'], {'can_always_eat': True, 'nutrition': 0, 'saturation': 0.0})
             self.assertEqual(bottle['minecraft:consumable']['consume_seconds'], 1.6)
