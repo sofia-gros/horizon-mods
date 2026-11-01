@@ -5,3 +5,12 @@ This draft covers the existing source-derived material trait dispatcher and the 
 Acceptance requires representative material/level combinations, source operation order, actual attack damage and cooldown, part replacement, saving/reloading, a Station-upgrade interaction and an ordinary LAN transaction. Group source-data and calculation checks; do not repeat every tool/material combination. The build and game checks are pending.
 
 Only these melee-stat portions are in scope. Mining speed, draw speed, projectile velocity/damage, protection, movement, Pierce's mob effect, Vintage's extra slots and other modifier modules are not implied to work. Existing Preserved, Ductile, Jagged, Stonebound, Cultivated and vanilla behavior require representative regression checks. No new GUI, world generation or PlutoLib API is included.
+
+The source melee stat modules covered in this unit are Cobalt Lightweight
+(+8% attack speed per level), Invar Solid (+15% attack damage per level),
+Bone Pierce (+0.5 attack damage per level), and Ancient Vintage (-10% attack
+speed per level). The original melee/weapon tags gate their application.
+The shared calculation rebuilds trait and Sharpness/Swiftstrike effects from
+the material baseline rather than applying them repeatedly. Other modules of
+these traits are still unimplemented. These code changes have only lightweight
+tests so far; the official transform, client build and gameplay are pending.

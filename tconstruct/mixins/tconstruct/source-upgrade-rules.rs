@@ -237,6 +237,31 @@ mod tests {
     }
 
     #[test]
+    fn trait_levels_rebuild_without_double_application_or_crossing_tag_boundaries() {
+        let definition = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:pick_head","tconstruct:tool_handle"]},{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_speed":1.2}}]}"#;
+        let head = serde_json::json!({"tconstruct:head":{"durability":100,"melee_attack":4}}).as_object().unwrap().clone();
+        let handle = serde_json::json!({"tconstruct:handle":{"melee_damage":0.25}}).as_object().unwrap().clone();
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[head, handle]).unwrap();
+        let mut tool = tool(18);
+        let levels = BTreeMap::from([
+            ("tconstruct:ductile".to_string(), 2), ("tconstruct:solid".to_string(), 1),
+            ("tconstruct:pierce".to_string(), 1), ("tconstruct:lightweight".to_string(), 2),
+            ("tconstruct:vintage".to_string(), 1),
+        ]);
+        apply_stats(&mut tool, &stats, &levels, true, true).unwrap();
+        let first = tool.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+        apply_stats(&mut tool, &stats, &levels, true, true).unwrap();
+        assert_eq!(&first, tool.data().unwrap().other("minecraft:custom_data").unwrap());
+        let Tag::Float(damage) = first.get("tic_attack_damage").unwrap() else { panic!() };
+        let Tag::Float(speed) = first.get("tic_attack_speed").unwrap() else { panic!() };
+        assert!((f32::from_bits(*damage) - 7.708594).abs() < 0.0001);
+        assert!((f32::from_bits(*speed) - 1.2528).abs() < 0.0001);
+        // Ineligible tools retain their preexisting values.
+        apply_stats(&mut tool, &stats, &BTreeMap::new(), false, false).unwrap();
+        assert_eq!(&first, tool.data().unwrap().other("minecraft:custom_data").unwrap());
+    }
+
+    #[test]
     fn swiftstrike_uses_both_input_slots_and_source_tool_tag() {
         let recipe = br#"{"type":"tconstruct:incremental_modifier","amount_per_item":1,"needed_per_level":72,"input":{"item":"minecraft:amethyst_shard"},"result":"tconstruct:swiftstrike","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/melee/weapon"}}"#.to_vec();
         let recipes = BTreeMap::from([("swift".into(), recipe)]);
