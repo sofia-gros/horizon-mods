@@ -42,3 +42,19 @@ fn source_ranged_traits_combine_with_upgrades_and_reach_firing_stats() {
  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&traits,false,false).unwrap();
  assert_eq!(projectile::projectile_bonus(&bow),1.0);
 }
+
+#[test]
+fn source_additive_traits_respect_definition_stat_multipliers() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:draw_speed":1.0,"tconstruct:velocity":1.0,"tconstruct:accuracy":0.5}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:draw_speed":2.0,"tconstruct:velocity":3.0,"tconstruct:accuracy":0.5,"tconstruct:projectile_damage":4.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();let mut bow=ItemStack::new("tconstruct:longbow",1);
+ bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ let levels=BTreeMap::from([("tconstruct:lightweight".into(),1),("tconstruct:heavy".into(),1),("tconstruct:ductile".into(),1)]);
+ tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+ let data=bow.data().unwrap().other("minecraft:custom_data").unwrap();
+ let n=|key| match data.get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("missing {key}")};
+ assert!((n("tic_draw_speed")-2.06).abs()<0.0001);
+ assert!((n("tic_velocity")-3.09).abs()<0.0001);
+ assert!((n("tic_accuracy")-0.3).abs()<0.0001);
+ assert_eq!(projectile::projectile_bonus(&bow),7.0);
+}
