@@ -1,4 +1,4 @@
-//! Shared post-processing for manually prepared and startup content roots.
+// Shared post-processing for manually prepared and startup content roots.
 pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         // Project source geode and cobalt biome modifiers into the generated bundle,
         // preserving source registration order and the vanilla base pack.
