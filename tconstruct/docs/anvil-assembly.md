@@ -1,5 +1,11 @@
-# Tinker's Anvil and Scorched Anvil
+# Tinker’s Anvil and Scorched Anvil
 
-This work is in progress. The original anvils have one tool slot and five input slots, compared with the Tinker Station's one tool slot and three inputs. The target is source-derived anvil blocks and acquisition recipes, layouts, four-part assembly, repair and part exchange, with authoritative inventory transactions, save/reload and LAN.
+![The Tinker Station repair screen](armor-station-repair.png)
 
-Four-part survival assembly and both anvils are not yet implemented or verified. The existing source layouts and shared Station recipe and tool-stat paths provide the starting point; current input, display and transaction limits must be expanded without changing the Station's capacity.
+*The Station screen shown above uses the same tool and material workflow. The Anvil has five input slots.*
+
+Craft either Anvil with three matching alloy blocks across the top, one seared or scorched block in the center, and three matching-category blocks across the bottom. Use seared blocks for the Tinker’s Anvil and scorched blocks for the Scorched Anvil. Supported alloy blocks include Slimesteel, Amethyst Bronze and Manyullyn; Netherite blocks also work.
+
+Open the Anvil and choose a tool layout. Make its parts at a Part Builder, then place them in the displayed slots and take the result. Large tools such as the Sledge Hammer need four parts and require an Anvil. Place an existing tool in the tool slot to repair it or exchange a part.
+
+The Anvil implementation is under review. Its GUI, recipes, server transactions, save and LAN behavior have not yet been verified in a game; do not treat this guide as a completed acceptance test. Texture re-coloring by the selected alloy is not implemented.

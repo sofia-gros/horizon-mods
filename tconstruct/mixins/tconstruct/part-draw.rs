@@ -176,7 +176,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             }
         }
     }
-    let (title_key, fallback) = if station { ("gui.tconstruct.tinker_station", "Tinker Station") } else { ("gui.tconstruct.part_builder", "Part Builder") };
+    let (title_key, fallback) = if station && crate::game::tconstruct_ui::station_capacity(game) == 5 { ("block.tconstruct.tinkers_anvil", "Tinker's Anvil") } else if station { ("gui.tconstruct.tinker_station", "Tinker Station") } else { ("gui.tconstruct.part_builder", "Part Builder") };
     let title = game.pack.names.display_get(title_key).unwrap_or_else(|| fallback.to_owned());
     let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".to_owned());
     batch.text(atlas, &title, ox + 8.0, oy + 6.0, horizon_client::hud::rgba(64, 64, 64, 255), false);
@@ -214,20 +214,23 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
             // The original top beams and decorations frame the button and
             // information modules; they do not create additional slots.
             let panel_width = crate::game::tconstruct_builder_info_ui::panel_width(game, true);
+            let metal = crate::game::tconstruct_ui::station_capacity(game) == 5;
+            let beam_y = if metal { 209.0 } else { 202.0 };
+            let decoration_x = if metal { 36.0 } else { 0.0 };
             for (left, width) in [(-132.0, 128.0), (180.0, panel_width)] {
-                region(batch, 0.0, 202.0, 2.0, 7.0, left, 0.0, 2.0, 7.0);
-                region(batch, 2.0, 202.0, 129.0, 7.0, left + 2.0, 0.0, width, 7.0);
-                region(batch, 131.0, 202.0, 2.0, 7.0, left + width + 2.0, 0.0, 2.0, 7.0);
+                region(batch, 0.0, beam_y, 2.0, 7.0, left, 0.0, 2.0, 7.0);
+                region(batch, 2.0, beam_y, 129.0, 7.0, left + 2.0, 0.0, width, 7.0);
+                region(batch, 131.0, beam_y, 2.0, 7.0, left + width + 2.0, 0.0, 2.0, 7.0);
             }
             for y in [1.0, 90.0] {
-                region(batch, 0.0, 196.0, 5.0, 4.0, 187.0, y, 5.0, 4.0);
-                region(batch, 9.0, 196.0, 9.0, 4.0, 168.0 + panel_width, y, 9.0, 4.0);
+                region(batch, decoration_x, 196.0, 5.0, 4.0, 187.0, y, 5.0, 4.0);
+                region(batch, 9.0 + decoration_x, 196.0, 9.0, 4.0, 168.0 + panel_width, y, 9.0, 4.0);
             }
             let count = crate::game::tconstruct_ui::station_layouts(game).len();
             for index in 0..count {
                 let Some((x, y)) = crate::game::tconstruct_source_station_layout::button_position(index) else { break; };
-                region(batch, 0.0, 198.0, 18.0, 2.0, x as f32, y as f32 - 2.0, 18.0, 2.0);
-                if index + 6 < count { region(batch, 0.0, 196.0, 18.0, 2.0, x as f32, y as f32 + 18.0, 18.0, 2.0); }
+                region(batch, decoration_x, 198.0, 18.0, 2.0, x as f32, y as f32 - 2.0, 18.0, 2.0);
+                if index + 6 < count { region(batch, decoration_x, 196.0, 18.0, 2.0, x as f32, y as f32 + 18.0, 18.0, 2.0); }
             }
         }
         crate::game::tconstruct_station_info_ui::draw(game, batch, ox, oy);
