@@ -58,4 +58,11 @@ class MaterialsBookSourceTest(unittest.TestCase):
             self.assertTrue(armor['text'])
             self.assertTrue(armor['properties'])
 
+    def test_original_repair_example_preserves_damage_values(self):
+        with zipfile.ZipFile(ARCHIVE) as archive:
+            repair = json.loads(archive.read(PREFIX + 'en_us/tools/repairing.json'))
+            self.assertEqual(repair['grid'][0][0]['nbt']['Damage'], 70)
+            self.assertEqual(repair['result']['nbt']['Damage'], 10)
+            self.assertEqual(repair['result']['nbt']['tic_stats']['tconstruct:durability'], 100)
+
 if __name__ == '__main__': unittest.main()
