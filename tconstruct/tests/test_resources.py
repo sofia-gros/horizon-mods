@@ -35,6 +35,11 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             items = json.loads((out / 'items.json').read_text())
+            for short in ('modifier_crystal', 'sky_slime_crystal'):
+                self.assertIn('tconstruct:' + short, items)
+                model = json.loads((out / 'assets/tconstruct/models/item' / (short + '.json')).read_text())
+                self.assertEqual(model['textures']['layer0'], 'tconstruct:item/materials/' + short)
+                self.assertTrue((out / 'assets/tconstruct/textures/item/materials' / (short + '.png')).is_file())
             self.assertEqual(items['tconstruct:amethyst_bronze_ingot']['minecraft:max_stack_size'], 64)
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
                 self.assertEqual((out / 'assets/tconstruct/textures/item/amethyst_bronze_ingot.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
