@@ -145,6 +145,35 @@ fn apply_material(
     Some(())
 }
 
+/// Source mining tier is the maximum of material stats actually applied as heads.
+pub(super) fn mining_tier(definition: &[u8], materials: &[Map<String, Value>]) -> Option<Option<&'static str>> {
+    let definition: Value = serde_json::from_slice(definition).ok()?;
+    let mut best: Option<(u8, &'static str)> = None;
+    for module in definition.get("modules")?.as_array()? {
+        let (field, material_stats) = match module.get("type")?.as_str()? {
+            "tconstruct:part_stats" => ("parts", false),
+            "tconstruct:material_stats" => ("stat_types", true),
+            _ => continue,
+        };
+        let parts = module.get(field)?.as_array()?;
+        if parts.len() != materials.len() { return None; }
+        for (part, material) in parts.iter().zip(materials) {
+            let id = part.as_str().or_else(|| part.get(if material_stats { "stat" } else { "item" }).and_then(Value::as_str))?;
+            let head = if material_stats { id == "tconstruct:head" } else { part_kind(id)? == "head" };
+            if !head { continue; }
+            let tier = material.get("tconstruct:head")?.get("mining_tier")?.as_str()?;
+            let candidate = match tier {
+                "minecraft:wood" => (0, "wooden"), "minecraft:gold" => (0, "gold"),
+                "minecraft:stone" => (1, "stone"), "minecraft:iron" => (2, "iron"),
+                "minecraft:diamond" => (3, "diamond"), "minecraft:netherite" => (4, "netherite"),
+                _ => return None,
+            };
+            if best.is_none_or(|(level, _)| candidate.0 > level) { best = Some(candidate); }
+        }
+    }
+    Some(best.map(|(_, tier)| tier))
+}
+
 /// Compute the supported shared material-derived numeric base. `materials` contains the
 /// already merged source stats object for each ordered part material.
 pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option<BaseStats> {

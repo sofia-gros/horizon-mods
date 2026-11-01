@@ -72,12 +72,7 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }
-    let tier = stat_maps.iter().filter_map(|map| map.get("tconstruct:head"))
-        .filter_map(|head| head.get("mining_tier").and_then(serde_json::Value::as_str))
-        .filter_map(|tier| match tier { "minecraft:wood" => Some((0, "wooden")), "minecraft:gold" => Some((0, "gold")),
-            "minecraft:stone" => Some((1, "stone")), "minecraft:iron" => Some((2, "iron")),
-            "minecraft:diamond" => Some((3, "diamond")), "minecraft:netherite" => Some((4, "netherite")), _ => None })
-        .max_by_key(|(level, _)| *level).map(|(_, tier)| tier);
+    let tier = super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?;
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let mut rules = Vec::new();
     let source_effective = definition_json.get("modules")?.as_array()?.iter().find(|module|

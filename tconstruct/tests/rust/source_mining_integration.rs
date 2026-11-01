@@ -77,3 +77,16 @@ fn material_tier_effectiveness_and_broken_state_control_real_harvest() {
     let vanilla = ItemStack::new("minecraft:iron_pickaxe", 1);
     assert!(tconstruct_material_correct_for_drops(true, Some(&vanilla), "minecraft:stone", &items));
 }
+
+#[test]
+fn harvest_tier_uses_only_materials_applied_as_head_stats() {
+    use serde_json::{json, Map, Value};
+    let mat = |tier: &str| -> Map<String, Value> { json!({"tconstruct:head":{"mining_tier":tier}}).as_object().unwrap().clone() };
+    let parts = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:pick_head","tconstruct:tool_handle","tconstruct:tool_binding"]}]}"#;
+    let flint = mat("minecraft:stone"); let cobalt = mat("minecraft:diamond");
+    assert_eq!(tconstruct_source_station_stats::mining_tier(parts, &[flint.clone(), cobalt.clone(), cobalt.clone()]), Some(Some("stone")));
+    assert_eq!(tconstruct_source_station_stats::mining_tier(parts, &[cobalt.clone(), flint.clone(), flint.clone()]), Some(Some("diamond")));
+    let multi = br#"{"modules":[{"type":"tconstruct:material_stats","stat_types":["tconstruct:head","tconstruct:head","tconstruct:handle"]}]}"#;
+    assert_eq!(tconstruct_source_station_stats::mining_tier(multi, &[flint.clone(), cobalt.clone(), flint.clone()]), Some(Some("diamond")));
+    assert_eq!(tconstruct_source_station_stats::mining_tier(multi, &[flint.clone(), flint, cobalt]), Some(Some("stone")));
+}
