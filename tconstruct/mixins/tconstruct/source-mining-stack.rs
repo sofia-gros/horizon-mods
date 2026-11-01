@@ -14,7 +14,10 @@ pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_stat
         Some(Tag::Int(amount)) => (*amount).max(0) as f32 / 45.0,
         _ => 0.0,
     };
-    let speed = super::tconstruct_source_mining_math::base_speed(stats.mining_speed + 4.0 * haste * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
+    let has_gem = |id| matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get(id)), Some(Tag::Int(v)) if *v > 0);
+    let diamond = has_gem("tconstruct:diamond");
+    let emerald = has_gem("tconstruct:emerald");
+    let speed = super::tconstruct_source_mining_math::base_speed(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
         level("tconstruct:lightweight"), level("tconstruct:heavy"), vintage, level("tconstruct:entangled") > 0);
     // Some harvest-tagged equipment has no supported per-stack tool rules yet.
     // Preserve assembly instead of rejecting the item when those rules are absent.
@@ -35,7 +38,7 @@ pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_stat
     // rules in synchronized custom data for client prediction and the host.
     fields.insert("tic_mining_tool".into(), tool.clone());
     fields.insert("tic_mining_traits".into(), Tag::List(dynamic));
-    fields.insert("tic_mining_all".into(), Tag::Float((stats.mining_speed_all_multiplier * (1.0 - 0.1 * vintage.max(0) as f32)).to_bits()));
+    fields.insert("tic_mining_all".into(), Tag::Float((stats.mining_speed_all_multiplier * (1.0 - 0.1 * vintage.max(0) as f32) * if emerald { 1.25 } else { 1.0 }).to_bits()));
     fields.insert("tic_durability_all".into(), Tag::Float(stats.durability_multiplier_unit.to_bits()));
     stack.data_mut().set_other("minecraft:tool", Some(tool));
     stack.data_mut().set_other("minecraft:custom_data", Some(custom));

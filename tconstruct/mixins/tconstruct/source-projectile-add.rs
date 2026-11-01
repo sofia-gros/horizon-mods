@@ -2,10 +2,11 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     use horizon_client::projectiles::ProjectileKind;
     if !matches!(p.kind, ProjectileKind::Arrow { .. }) { return; }
     let actor = game.lan_acting;
-    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow)| {
-        if shots.is_empty() { None } else { let (angle, power) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow)) }
+    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage)| {
+        if shots.is_empty() { None } else { let (angle, power) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage)) }
     });
-    let Some((velocity, spread, angle, power, bow)) = shot else { return; };
+    let Some((velocity, spread, angle, power, bow, damage)) = shot else { return; };
+    if let ProjectileKind::Arrow { ref mut base_damage, .. } = p.kind { *base_damage += damage; }
     if bow {
         if let ProjectileKind::Arrow { ref mut critical, .. } = p.kind { *critical = power >= 3.0; }
         let (v, on_ground) = game.player.as_ref().map_or((horizon_core::geometry::Vec3::ZERO, true), |pl| (pl.velocity, pl.ground.on_ground));

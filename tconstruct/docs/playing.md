@@ -124,6 +124,18 @@ Put the tool and material in the input slots, then take the result on the right.
 
 Sharpness needs 36 quartz per level, Swiftstrike needs 72 amethyst shards, and Haste needs 45 redstone dust. Blocks add multiple units and return unused material. Haste increases mining speed on harvest tools and chestplates. Partial additions use an upgrade slot.
 
+### Gem upgrades
+
+Put one diamond or emerald with a compatible durable tool at a Tinker Station or Anvil. Each upgrade uses one upgrade slot and cannot be applied twice. A Modifier Worktable can extract the upgrade into a Crystal for another compatible tool.
+
+![A diamond upgrade at the Anvil](gem-upgrade-station.png)
+
+Representative Linux checks covered both gems on a pickaxe, duplicate and full-slot rejection, Crystal round trips and LAN guest application. Diamond improved a flint pickaxe's harvest tier and its arrow damage on a Crossbow. Emerald increased a sample repair amount and an armor helmet's toughness; a conditional mining test used temporary source-trait test data. A five-shot Longbow accuracy comparison is a small sample. Diamond armor wear and broken retention were also checked using a near-broken test fixture.
+
+![A diamond upgrade selected for Crystal extraction](gem-crystal-extraction.png)
+
+The advancement system and Emerald's conditional attack traits are not implemented. Other ranged tools and fireworks remain unsupported; Windows has not been tested.
+
 The in-development ranged upgrades use magma cream for Quick Charge on Crossbows and target blocks for Trueshot on Longbows and Crossbows. Their partial levels and crystals use the same slots and Worktable flow. Linux tests covered both upgrades on a Crossbow at the Station and both Anvils, save and reload, Quick Charge crystal extraction and reapplication, and LAN guest Trueshot progress and ingredient recovery. Crossbow loading was faster after reapplying Quick Charge. A Longbow retained Trueshot after reload, and its measured lateral arrow velocity decreased between Trueshot I and II in a three-shot sample. Trueshot Crystal reapplication with partial progress was checked on all three stations. Wider spread sampling remains useful. Staffs, fishing rods and other ranged tools are not yet supported by this path.
 
 ## Extract a modifier
