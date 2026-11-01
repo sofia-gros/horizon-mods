@@ -25,6 +25,9 @@ pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_stat
         if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained") { return None; }
         Some(Tag::compound([("id", Tag::String(id.as_str().into())), ("level", Tag::Int(level(id)))]))
     }).collect();
+    // The current wire codec skips the tool component. Retain the generated
+    // rules in synchronized custom data for client prediction and the host.
+    fields.insert("tic_mining_tool".into(), tool.clone());
     fields.insert("tic_mining_traits".into(), Tag::List(dynamic));
     fields.insert("tic_mining_all".into(), Tag::Float((stats.mining_speed_all_multiplier * (1.0 - 0.1 * vintage.max(0) as f32)).to_bits()));
     fields.insert("tic_durability_all".into(), Tag::Float(stats.durability_multiplier_unit.to_bits()));

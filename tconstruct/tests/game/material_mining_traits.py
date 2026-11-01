@@ -101,7 +101,7 @@ try:
     (pack / 'pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"temporary mining trait test"}}')
     created = True
     cmd('reload'); cmd('datapack enable "file/trait-mining-followup-test"'); g.call('wait', '50')
-    set_trait(''); build(); baseline = mine()[0]
+    set_trait(''); build(); mine(); baseline = mine()[0]
     set_trait('lightweight', 2); build(); lightweight = mine()[0]
     set_trait('heavy', 2); build(); heavy = mine()[0]
     set_trait('vintage', 2); build(); vintage = mine()[0]

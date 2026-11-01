@@ -24,6 +24,9 @@ fn per_stack_rules_respect_effective_blocks_broken_and_material_swap() {
     let order = vec!["tconstruct:lightweight".to_string(), "tconstruct:jagged".to_string()];
     tconstruct_source_mining_stack::apply(&mut stack, &stats, &levels, &order, true).unwrap();
     assert!((tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items) - 3.78).abs() < 0.0001);
+    // The vanilla wire codec may omit the tool patch; synchronized custom data retains the rules.
+    stack.data_mut().set_other("minecraft:tool", None);
+    assert!((tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items) - 3.78).abs() < 0.0001);
     assert_eq!(tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:dirt", &items), 1.0);
     stack.damage = 25;
     let base = tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items);
@@ -34,6 +37,8 @@ fn per_stack_rules_respect_effective_blocks_broken_and_material_swap() {
     stack.damage = 100;
     assert_eq!(tconstruct_material_mining_speed(0.3, Some(&stack), "minecraft:stone", &items), 0.3);
     stack.damage = 25;
+    let cached = stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_mining_tool").unwrap().clone();
+    stack.data_mut().set_other("minecraft:tool", Some(cached));
     tconstruct_source_mining_stack::apply(&mut stack, &stats, &BTreeMap::new(), &[], true).unwrap();
     assert!((tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items) - 3.5).abs() < 0.0001);
 }
