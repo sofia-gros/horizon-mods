@@ -251,7 +251,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     std::fs::write(&marker, b"incomplete")?;
     let modified = ["worldgen/biomes.json", "worldgen/blocks/cached-collision.nbt",
         "cached-collision.nbt", "movement-properties.nbt", "render-definitions.json",
-        "registries.json", "gameplay-facts.json", "assets/minecraft/textures/gui",
+        "registries.json", "gameplay-facts.json", "items.json", "assets/minecraft/textures/gui",
         "assets/minecraft/textures/block"];
     fn mirror(src: &Path, dst: &Path, rel: &Path, modified: &[&str]) -> std::io::Result<()> {
         std::fs::create_dir_all(dst)?;
@@ -340,6 +340,41 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             &cache.join("minecraft-original-pack/data/minecraft").join(destination))?;
     }
     std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
+    // Restore item components beyond the content loader's template and
+    // max-stack declarations, using the player's own cloned item table.
+    let item_path = cache.join("items.json");
+    let mut items: serde_json::Value = serde_json::from_slice(&std::fs::read(&item_path)?)?;
+    let equipment: Vec<String> = serde_json::from_slice(&std::fs::read(runtime.join("equipment.json"))?)?;
+    for short in equipment {
+        if short == "pickaxe" { continue; }
+        let Some(item) = items.get_mut(format!("tconstruct:{short}")) else { continue; };
+        let Some(fields) = item.as_object_mut() else { continue; };
+        fields.remove("minecraft:cooking_fuel");
+        let slot = [("_helmet", "head"), ("_chestplate", "chest"), ("_leggings", "legs"), ("_boots", "feet")]
+            .iter().find_map(|(suffix, slot)| short.ends_with(suffix).then_some(*slot))
+            .or_else(|| (short == "slime_wings").then_some("chest"));
+        if let Some(slot) = slot {
+            fields.insert("minecraft:equippable".into(), serde_json::json!({"slot": slot, "equip_sound": "minecraft:item.armor.equip_generic"}));
+        }
+    }
+    for short in ["pickaxe", "flint_pickaxe"] {
+        if let Some(item) = items.get_mut(format!("tconstruct:{short}")) {
+            item["minecraft:max_damage"] = serde_json::json!(85);
+            if let Some(rules) = item["minecraft:tool"]["rules"].as_array_mut() {
+                if let Some(rule) = rules.last_mut() { rule["speed"] = serde_json::json!(3.5); }
+            }
+        }
+    }
+    if let Some(item) = items.get_mut("tconstruct:venom_bottle") {
+        item["minecraft:food"] = serde_json::json!({"can_always_eat":true,"nutrition":0,"saturation":0.0});
+        item["minecraft:consumable"] = serde_json::json!({"animation":"drink","consume_seconds":1.6,
+            "has_consume_particles":false,"sound":"minecraft:entity.generic.drink","on_consume_effects":[
+            {"type":"minecraft:apply_effects","effects":[{"id":"minecraft:strength","duration":600},
+            {"id":"minecraft:poison","duration":250}]}]});
+        item["minecraft:max_stack_size"] = serde_json::json!(16);
+        item["minecraft:use_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
+    }
+    std::fs::write(item_path, serde_json::to_vec(&items)?)?;
     apply(&cache, &base)?;
     std::fs::write(&marker, fingerprint)?;
     *root = PathBuf::from(cache);

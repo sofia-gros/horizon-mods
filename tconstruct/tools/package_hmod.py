@@ -131,6 +131,8 @@ def package(output):
                                       2 if short == 'dagger' else 1)
         add(declaration, json.dumps(data, separators=(',', ':')).encode())
 
+    add(runtime + 'equipment.json', json.dumps(sorted(equipment)).encode())
+
     # Make the source sprites addressable by the same vanilla model aliases
     # used by the material and tool renderers in the desktop overlay.
     forge_model = json.loads((MOD / 'content/reference/forge-default-item-model.json').read_text())
