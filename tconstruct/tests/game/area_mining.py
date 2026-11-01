@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for k in ('game','ctl','resources'): p.add_argument('--'+k,type=Path,required=True)
-p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0);p.add_argument('--limits-only',action='store_true')
+p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'));p.add_argument('--in-frame',action='store_true');p.add_argument('--hammer-start',type=int,default=0);p.add_argument('--limits-only',action='store_true');p.add_argument('--smoke',action='store_true')
 a=p.parse_args();run=a.run_dir.resolve();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True)
 def cmd(s):
     r=g.call('command',s);g.call('wait','5');return r
@@ -51,6 +51,16 @@ def scenario(block,face):
     print('physical drop delta',drop,total,flush=True);assert total==9,r
     cmd('gamemode creative @s');cmd('tp @s 20.5 100 20.5');g.call('wait','40')
     return r
+def vanilla():
+    cmd('gamemode creative @s');cmd('clear @s');cmd('give @s minecraft:iron_pickaxe 1');g.call('hotbar','1')
+    cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('fill 19 100 20 21 102 20 minecraft:stone');cmd('tp @s 20.5 100 18.5')
+    g.call('wait','10');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('wait','10')
+    count_before=total_items('minecraft:cobblestone');result=g.call('break','20','101','20','--timeout','50',timeout=55);g.call('wait','20')
+    remain=[(x,y) for y in (100,101,102) for x in (19,20,21) if g.call('block',str(x),str(y),'20').get('block')=='minecraft:stone']
+    after=g.call('inventory')['held'] or {};total=total_items('minecraft:cobblestone')-count_before
+    print('vanilla single',json.dumps(result),'remaining',len(remain),'wear',after.get('damage',0)-before.get('damage',0),'drops',total,flush=True)
+    assert len(remain)==8 and after.get('damage',0)-before.get('damage',0)==1 and total==1,(remain,after,total)
+
 def limits():
     cmd('gamemode creative @s');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('fill 19 100 20 21 102 20 minecraft:netherrack')
     for x,block in ((19,'minecraft:dirt'),(20,'minecraft:stone'),(21,'minecraft:bedrock')):cmd(f'setblock {x} 100 20 {block}')
@@ -79,12 +89,14 @@ try:
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     acquire('sledge_hammer',215,237)
     if not a.limits_only:
-        for face in ([0,0,-1],[0,0,1],[-1,0,0],[1,0,0],[0,1,0],[0,-1,0])[a.hammer_start:]:scenario('minecraft:stone',face)
+        faces=([0,0,-1],[0,0,1],[-1,0,0],[1,0,0],[0,1,0],[0,-1,0])
+        for face in (faces[:1] if a.smoke else faces[a.hammer_start:]):scenario('minecraft:stone',face)
         g.call('screenshot',str(run/'area-hammer.png'))
     else:limits()
     if not a.limits_only:
         acquire('excavator',226,252)
-        for face in ([0,0,-1],[0,0,1],[-1,0,0],[1,0,0],[0,1,0],[0,-1,0]):scenario('minecraft:dirt',face)
+        for face in (faces[:1] if a.smoke else faces):scenario('minecraft:dirt',face)
         g.call('screenshot',str(run/'area-excavator.png'))
+        if a.smoke:vanilla()
     g.call('save');g.stop();print('PASS area directions or limits',flush=True)
 finally:g.cleanup()
