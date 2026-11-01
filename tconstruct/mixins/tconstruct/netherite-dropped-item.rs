@@ -2,9 +2,9 @@
 // Horizon's item environment tick handles fire, lava and cactus damage; void
 // removal occurs outside this tick and remains unaffected.
 fn tconstruct_netherite_dropped_item(
-    mut result: crate::entities::ItemEnvironmentTick,
+    mut result: ItemEnvironmentTick,
     entity: &mut crate::entities::ItemEntity,
-) -> crate::entities::ItemEnvironmentTick {
+) -> ItemEnvironmentTick {
     use horizon_world::nbt::Tag;
     let netherite = matches!(entity.stack.data().and_then(|d| d.other("minecraft:custom_data"))
         .and_then(|d| d.get("tconstruct:netherite")), Some(Tag::Byte(v)) if *v != 0);

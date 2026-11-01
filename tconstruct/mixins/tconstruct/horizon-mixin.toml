@@ -2850,7 +2850,7 @@ target = "horizon_client::entities::ItemEntity::environment_tick"
 kind = "RETURN"
 helper = "netherite-dropped-item.rs"
 bindings = [
-  { name = "result", ty = "crate::entities::ItemEnvironmentTick", value = "$value" },
+  { name = "result", ty = "ItemEnvironmentTick", value = "$value" },
   { name = "entity", ty = "&mut crate::entities::ItemEntity", value = "&mut *self" },
 ]
 
