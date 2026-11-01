@@ -1,4 +1,4 @@
-// Incremental recipes used by the source Sharpness and Swiftstrike upgrades.
+// Incremental recipes for supported source stat upgrades.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use serde_json::Value;
@@ -35,7 +35,7 @@ pub(super) fn plan(
     inputs: &[Option<ItemStack>],
     upgrade_slots: i32,
 ) -> Option<UpgradePlan> {
-    let occupied = [("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72)]
+    let occupied = [("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72), ("tconstruct:haste", 45)]
         .iter()
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed)
         .sum::<i32>();
@@ -49,18 +49,18 @@ pub(super) fn plan(
         let Some(id) = value.get("result").and_then(Value::as_str) else {
             continue;
         };
-        if !matches!(id, "tconstruct:sharpness" | "tconstruct:swiftstrike") {
+        if !matches!(id, "tconstruct:sharpness" | "tconstruct:swiftstrike" | "tconstruct:haste") {
             continue;
         }
-        let Some(tool_tag) = value.pointer("/tools/tag").and_then(Value::as_str) else {
-            continue;
-        };
-        if !tags
-            .get(tool_tag)
-            .is_some_and(|items| items.contains(tool.item.as_ref()))
-        {
+        let Some(tools) = value.get("tools") else { continue; };
+        let matches_tool = |entry: &Value| entry.get("tag").and_then(Value::as_str)
+            .and_then(|tag| tags.get(tag)).is_some_and(|items| items.contains(tool.item.as_ref()));
+        if !(matches_tool(tools) || tools.as_array().is_some_and(|entries| entries.iter().any(matches_tool))) {
             continue;
         }
+        // Haste's non-harvest equipment uses a player attribute that is not connected yet.
+        if id == "tconstruct:haste" && !tags.get("tconstruct:modifiable/harvest")
+            .is_some_and(|items| items.contains(tool.item.as_ref())) { continue; }
         let Some(input) = value.get("input") else {
             continue;
         };
@@ -343,5 +343,25 @@ mod tests {
             )
             .is_none()
         );
+    }
+
+    #[test]
+    fn haste_uses_array_tags_partial_progress_and_shared_slots() {
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","amount_per_item":9,"needed_per_level":45,"input":{"item":"minecraft:redstone_block"},"leftover":"minecraft:redstone","result":"tconstruct:haste","level":{"max":5},"slots":{"upgrades":1},"tools":[{"tag":"tconstruct:modifiable/harvest"},{"tag":"tconstruct:modifiable/armor/chestplate"}]}"#.to_vec();
+        let recipes = BTreeMap::from([("haste".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/harvest".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let mut item = tool(36);
+        item.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([
+            ("tconstruct:sharpness", Tag::Int(36)), ("tconstruct:haste", Tag::Int(44)),
+        ]))])));
+        let inputs = [None, None, Some(ItemStack::new("minecraft:redstone_block", 1))];
+        let result = plan(&recipes, &tags, &item, &inputs, 2).unwrap();
+        assert_eq!(result.amount, 45);
+        assert_eq!(result.consumed, [(0, 1), (3, 1)]);
+        assert_eq!(result.leftover.unwrap().count, 8);
+        item.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([
+            ("tconstruct:sharpness", Tag::Int(36)), ("tconstruct:haste", Tag::Int(45)),
+        ]))])));
+        assert!(plan(&recipes, &tags, &item, &inputs, 2).is_none());
     }
 }
