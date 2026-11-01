@@ -35,6 +35,30 @@ def package(output):
     for rel, source in tracked('tconstruct/content/assets', 'tconstruct/content/data'):
         add(rel.relative_to('tconstruct/content').as_posix(), source.read_bytes())
 
+    # The source visual archives are owned by the mod and do not contain the
+    # player's Minecraft textures. Retain Forge models in the paths read by
+    # our renderer instead of asking the vanilla model loader to interpret them.
+    for rel, source in tracked('tconstruct/assets/tconstruct/textures'):
+        name = rel.relative_to('tconstruct').as_posix()
+        if name not in files:
+            add(name, source.read_bytes())
+    for archive_name, model_dir in (
+        ('tconstruct-part-visuals.zip', 'source_part_models'),
+        ('tconstruct-tool-visuals.zip', 'source_tool_models'),
+    ):
+        with zipfile.ZipFile(MOD / 'content/reference' / archive_name) as archive:
+            for info in archive.infolist():
+                if info.is_dir() or not info.filename.startswith('assets/tconstruct/'):
+                    continue
+                relative = info.filename.removeprefix('assets/tconstruct/')
+                if relative.startswith('models/item/') and relative.endswith('.json'):
+                    relative = 'tinkering/' + model_dir + '/' + PurePosixPath(relative).name
+                elif not relative.startswith(('textures/', 'tinkering/materials/')):
+                    continue
+                name = 'assets/tconstruct/' + relative
+                if name not in files:
+                    add(name, archive.read(info))
+
     # Derive declarations from the same source lists as the desktop overlay.
     # Horizon resolves each vanilla template on the player's own installation.
     source = ast.parse((MOD / 'tools/resources.py').read_text(encoding='utf-8'))
