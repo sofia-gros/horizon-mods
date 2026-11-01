@@ -17,6 +17,12 @@ def build(head, handle):
     for i,item in enumerate(('tconstruct:pick_head','tconstruct:tool_handle','tconstruct:tool_binding')): click(hotbar(item)); click(300+i)
     click(324); result=g.call('menu')['carried'] or {}; print('assembled',json.dumps(result),flush=True); assert result.get('item')=='tconstruct:pickaxe',result
     click(0); g.call('close'); g.call('hotbar','1'); g.call('wait','10')
+def swap_head(material):
+    cmd('gamemode creative @s'); cmd('tp @s 0.5 71 0.5'); cmd('setblock 0 71 2 tconstruct:tinker_station')
+    cmd(f'give @s tconstruct:pick_head[minecraft:custom_data={{Material:"tconstruct:{material}"}}] 1')
+    g.call('interact','0','71','2'); g.call('wait','10'); click(0); click(300); click(hotbar('tconstruct:pick_head')); click(301); click(325)
+    out=g.call('menu')['carried'] or {}; print('swap',json.dumps(out),flush=True); assert out.get('item')=='tconstruct:pickaxe',out
+    click(0); g.call('close'); g.call('hotbar','1'); g.call('wait','10')
 def mine(ore, expected):
     for x in ('gamemode creative @s','clear @s minecraft:diamond','tp @s 0.5 71 0.5','setblock 0 71 2 '+ore): cmd(x)
     cmd('gamemode survival @s'); g.call('wait','20')
@@ -27,6 +33,7 @@ try:
     g.ready()
     if g.call('status')['screen']=='dead': g.call('respawn'); g.call('wait','20')
     build('flint','cobalt'); mine('minecraft:diamond_ore',False)
+    swap_head('cobalt'); mine('minecraft:diamond_ore',True)
     build('cobalt','flint'); mine('minecraft:diamond_ore',True)
     g.call('save'); g.stop(); g.cleanup(); g=Game(a,run,'Player',resume=True); g.ready(); mine('minecraft:diamond_ore',True)
     cmd('gamemode creative @s'); cmd('clear @s'); cmd('give @s minecraft:iron_pickaxe 1'); g.call('hotbar','1'); mine('minecraft:diamond_ore',True)
