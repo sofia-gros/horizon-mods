@@ -66,3 +66,11 @@ queue still needs a proven way to preserve the attacking guest's original tool,
 per-target ordering and primary durability loss if the guest disconnects or
 several hits are pending. Planner acceptance alone does not verify those
 semantics.
+
+A separate official planner probe accepted both HEAD and RETURN at
+`lan_actions::Game<'_>::leave_guest`. HEAD runs while the guest is the acting
+player; RETURN runs after the host state is restored. This may permit a safe
+handoff at a narrower boundary, but applying damage to the host while the
+guest is still installed would target the wrong player. Source wear ordering,
+subsequent target eligibility and actor disconnect behavior have not been
+implemented or validated through this candidate.
