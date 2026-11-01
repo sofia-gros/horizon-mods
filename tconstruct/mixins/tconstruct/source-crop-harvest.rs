@@ -15,7 +15,8 @@ pub(super) fn harvest(game: &mut Game<'_>, hit: Option<&Hit>) -> ControlFlow<Res
     if !matches!(stack.item.as_ref(), "tconstruct:kama" | "tconstruct:scythe") || !is_crop(game, hit.pos) { return Continue(()); }
     let Some(max) = tconstruct_source_transform_logic::maximum(&stack) else { return Continue(()); };
     if stack.damage >= max || !game.may_build() { return Continue(()); }
-    if game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().is_none() { tconstruct_recipe_reload::capture(game); }
+    // The ordinary datapack reload owns tag initialization. If it has not
+    // completed, fail closed without consuming crops or generating loot.
     let Some(seeds) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
         .and_then(|tags| tags.as_ref().ok()).and_then(|tags| tags.get("tconstruct:seeds")).cloned() else { return Continue(()); };
     let actor = game.lan_acting;
