@@ -22,7 +22,7 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Material projectile stats](docs/projectile-stats.md) describes tested Longbow and Crossbow arrow speed, accuracy and current limits.
 
-[Haste and Modifier Crystal extraction](docs/playing.md#upgrade-a-tool) have representative Linux single-player and LAN tests. Quick Charge and Trueshot have representative Crossbow transaction and save tests on Linux, including LAN Trueshot and Quick Charge crystal reapplication. Longbow upgrade behavior and actual Trueshot spread still need validation. The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
+[Haste and Modifier Crystal extraction](docs/playing.md#upgrade-a-tool) have representative Linux single-player and LAN tests. Quick Charge and Trueshot have representative Crossbow transaction and save tests on Linux, including LAN Trueshot and Quick Charge crystal reapplication. A Longbow retained Trueshot after reload and showed less lateral arrow spread at level II than level I in a small Linux sample. Trueshot Crystal reapplication still needs a game check. The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
 
 ## Develop
 
