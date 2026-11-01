@@ -2920,6 +2920,43 @@ helper = "source-overslime-craft-remainders.rs"
 bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
 
 [[state]]
+id = "glow-support-checks"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<[i32; 3]>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "glow-queue-support"
+target = "horizon_client::game::<GameLevel<'_> as LevelAccess>::set_raw"
+kind = "HEAD"
+helper = "source-glowing-queue.rs"
+bindings = [{ name = "level", ty = "&mut crate::game::GameLevel<'_>", value = "&mut *self" }, { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" }, { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" }]
+
+[[injection]]
+id = "glow-check-support"
+target = "horizon_client::game::Game<'_>::process_level_events"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-process.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "game-glowing-placement"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_glowing_placement"
+source = "source-glowing-placement.rs"
+
+[[module]]
+id = "game-glowing-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_glowing_world"
+source = "source-glowing-world.rs"
+
+[[state]]
 id = "modifier-wear-cause"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>, String>"
