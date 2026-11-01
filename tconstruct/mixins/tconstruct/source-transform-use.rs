@@ -2,6 +2,9 @@
 fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_items::items::ItemStack, pos:[i32;3], face:[i32;3]) -> std::ops::ControlFlow<Result<bool>> {
     use std::ops::ControlFlow::{Break,Continue};
     let Some((template,kind))=crate::game::tconstruct_source_transform_mode::mode(stack.item.as_ref()) else {return Continue(());};
+    // Source afterBlockUse passes while sneaking; suppress the inherited
+    // vanilla transformer too, allowing the remaining interaction to proceed.
+    if game.keys.contains(&winit::keyboard::KeyCode::ShiftLeft) {return Break(Ok(false));}
     let max=crate::game::tconstruct_source_transform_logic::maximum(stack);
     if max.is_none_or(|max|stack.damage>=max) || !game.may_build() { return Break(Ok(false)); }
     let item=stack.item.clone();
