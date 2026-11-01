@@ -130,7 +130,9 @@ Combine a clay ball, sand and gravel for two Grout, then smelt Grout into Seared
 
 ![A crafted Melter and Faucet above a Casting Basin](survival-controller-casting.png)
 
-On Linux, a representative game test crafted the early equipment and cast a Controller using the preceding outputs; a LAN guest supplied the Melter inputs. Vanilla raw materials, fuel, furnace and crafting table were test fixtures, and furnace time was accelerated. The alloy-to-Anvil continuation is still being checked.
+On Linux, a representative game test crafted the early equipment and cast a Controller using the preceding outputs; a LAN guest supplied the Melter inputs. The same equipment then produced Rose Gold blocks for a crafted and placed Tinkers' Anvil. The test recovered one mistakenly cast Copper Block with the vanilla recipe and refilled the Smeltery fuel before continuing. Vanilla raw materials, fuel, furnace and crafting table were test fixtures, and processing time was accelerated.
+
+![The crafted Tinkers' Anvil open in the game](survival-crafted-anvil.png)
 
 Cast molten copper over a Seared Bricks block in a basin to make a Smeltery Controller. This first implementation accepts the ordinary Seared Bricks cast; the original's other controller textures are not yet supported. A Smeltery can alloy copper and gold into Rose Gold for the blocks used in an Anvil. Nether Grout can be made from magma cream, gravel and soul sand or soul soil, then smelted into Scorched Bricks for the Scorched Anvil.
 
