@@ -39,7 +39,9 @@ pub(super) fn plan(grid: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<Option<
     output.data_mut().set_other("minecraft:custom_data", Some(custom));
     let mut remainder = vec![None; grid.len()];
     for (index, slot) in bottles.into_iter().enumerate() {
-        remainder[slot] = Some(ItemStack::new(if index < count as usize { "minecraft:glass_bottle" } else { kind?.0 }, 1));
+        remainder[slot] = Some(if index < count as usize { ItemStack::new("minecraft:glass_bottle", 1) } else {
+            let mut original = grid[slot].as_ref()?.clone(); original.count = 1; original
+        });
     }
     Some((output, remainder))
 }
