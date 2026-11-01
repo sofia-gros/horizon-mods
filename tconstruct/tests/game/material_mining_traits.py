@@ -80,6 +80,11 @@ def mine(fraction=1.0, block='minecraft:stone', haste=False):
     assert result.get('block') == 'minecraft:air', result
     return result['ticks'], before.get('damage', 0), after.get('damage', 0)
 
+def efficiency():
+    cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_enchantments",enchantments:{"minecraft:efficiency":2}}')
+    held = g.call('inventory')['held']
+    assert 'minecraft:efficiency' in held.get('components', ''), held
+
 def repair(fraction=0.4):
     cmd('gamemode creative @s'); cmd('setblock 0 71 2 tconstruct:tinker_station')
     cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_damage",function:"minecraft:set_damage",damage:' + str(fraction) + '}')
@@ -115,8 +120,8 @@ try:
     print('conditional ticks', fresh, worn, stone_fresh, stone_worn, maintained_fresh, maintained_worn, flush=True)
     assert worn > fresh and stone_worn < stone_fresh and maintained_worn > maintained_fresh
     # The conditional percentages run after mining efficiency and Haste.
-    set_trait(''); build(); cmd('enchant @s minecraft:efficiency 2'); enchanted_base = mine(0.7, haste=True)[0]
-    set_trait('jagged', 3); build(); cmd('enchant @s minecraft:efficiency 2'); enchanted_jagged = mine(0.7, haste=True)[0]
+    set_trait(''); build(); efficiency(); enchanted_base = mine(0.7, haste=True)[0]
+    set_trait('jagged', 3); build(); efficiency(); enchanted_jagged = mine(0.7, haste=True)[0]
     print('efficiency and haste ticks', enchanted_base, enchanted_jagged, flush=True)
     assert enchanted_jagged > enchanted_base
     for other in ('jagged', 'stonebound'):
