@@ -22,4 +22,9 @@ spread has already been applied. It must not merely scale the noisy vector:
 that would not reproduce source accuracy or multi-shot direction. A safe
 shot context and source-direction/actor handoff must be validated before
 connecting that boundary. Firework rockets use a separate launch path.
-The source stat reader is a standalone prototype and is not wired to gameplay.
+A draft scoped shot context now reruns arrow launch with source speed, spread
+and fan angles at that boundary using Horizon's RNG; it consumes additional
+random draws after the original vanilla launch. It has not been formally
+type-checked or tested in game. Firework rockets remain unimplemented. The
+existing vanilla bow minimum-charge threshold can reject a low-charge shot
+that source velocity would allow, and conditional stat modifiers remain open.

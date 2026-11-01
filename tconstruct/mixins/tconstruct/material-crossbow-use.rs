@@ -16,7 +16,7 @@ fn tconstruct_crossbow_use(
             let count = data.charged.len();
             let power = 3.0;
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {
-                let angle = (i as f64 - (count.saturating_sub(1) as f64 / 2.0)) * 10.0;
+                let angle = crate::game::tconstruct_projectile_stats::crossbow_angle(i, count);
                 (angle, power)
             }).collect();
             game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false));
