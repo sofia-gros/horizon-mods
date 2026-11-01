@@ -132,6 +132,29 @@ try:
   craft([(brick,[100,102,106,108]),('minecraft:copper_ingot',[103,105])],'tconstruct:seared_drain')
   craft([(brick,[100]*7+[101]*7+[103]*7+[104]*7)],'tconstruct:seared_bricks',many=True)
   assert count('tconstruct:seared_bricks')==7,inventory();checkpoint()
+ elif a.phase=='controller':
+  # Replace only our disposable fixture table/work area; every placed mod
+  # block below is the item crafted in the previous phase.
+  for c in ('gamemode creative @s','fill -2 71 0 2 74 4 minecraft:air','tp @s 2.5 71 0.5','gamemode survival @s'):cmd(c)
+  place('tconstruct:seared_basin',0,71,1)
+  place('tconstruct:seared_heater',0,71,2)
+  place('tconstruct:seared_melter',0,72,2)
+  place('tconstruct:seared_faucet',0,72,1)
+  port=g.call('lan','open','0','commands')['port']
+  guest=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());guest.ready()
+  for c in ('tp Guest 2.5 71 1.5','give Guest minecraft:coal 1','give Guest minecraft:copper_ingot 4'):cmd(c)
+  guest.call('hotbar','9');guest.call('wait','10');guest.call('interact','0','72','2');guest.call('wait','12')
+  def qslot(item):return next(s['slot'] for s in guest.call('inventory')['hotbar'] if s.get('item')==item)
+  def qclick(n):guest.call('click-slot',str(n));guest.call('wait','6')
+  qclick(qslot('minecraft:coal'));qclick(327);qclick(qslot('minecraft:copper_ingot'));qclick(300)
+  qslots={x['slot']:x.get('stack') for x in guest.call('menu')['slots']};assert (qslots.get(300) or {}).get('item')=='minecraft:copper_ingot',qslots
+  guest.call('close');guest.stop();guest.cleanup();guest=None
+  g.call('wait','420',timeout=45);cmd('tp @s 2.5 71 1.5');empty_hand();g.call('interact','0','72','2');g.call('wait','12')
+  state={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('MELTER AFTER GUEST',state,flush=True);assert not state.get(300),state
+  g.call('screenshot',str(run/'survival-melter-lan.png'));g.call('close')
+  promote('tconstruct:seared_bricks');g.call('hotbar',str(hot('tconstruct:seared_bricks')+1));g.call('wait','6');g.call('interact','0','71','1');g.call('wait','10')
+  empty_hand();g.call('interact','0','72','1');g.call('wait','180',timeout=30);g.call('screenshot',str(run/'survival-controller-casting.png'));g.call('interact','0','71','1');g.call('wait','12')
+  assert count('tconstruct:smeltery_controller')==1,inventory();assert count('tconstruct:seared_bricks')==6,inventory();checkpoint()
  else:raise RuntimeError('phase not yet implemented')
 finally:
  if guest:guest.cleanup()
