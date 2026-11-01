@@ -15,13 +15,15 @@ def screen_click(xp,yp,drag_y=None):
     x.XSetInputFocus(d,window,1,0);x.XWarpPointer(d,0,window,0,0,0,0,xp,yp);x.XFlush(d);time.sleep(.15);xt.XTestFakeButtonEvent(d,1,1,0);x.XFlush(d);time.sleep(.1)
     if drag_y is not None:x.XWarpPointer(d,0,window,0,0,0,0,xp,drag_y);x.XFlush(d);time.sleep(.15)
     xt.XTestFakeButtonEvent(d,1,0,0);x.XFlush(d);x.XCloseDisplay(d)
+scroll_positions={}
 def acquire(name,start,end):
     cmd('gamemode creative @s');cmd('clear @s');g.call('open-inventory');g.call('wait','10');screen_click(596,105);g.call('wait','10')
     found=None
-    for y in range(start,end):
+    for y in ([scroll_positions[name]] if name in scroll_positions else []) + list(range(start,end)):
         screen_click(649,186,drag_y=y);g.call('wait','3')
         nodes=g.call('ui')['widgets'];found=next((n for n in nodes if (n.get('stack') or {}).get('item')=='tconstruct:'+name),None)
-        if found:break
+        if found:
+            scroll_positions[name]=y;break
     assert found is not None,(name,[(n.get('id'),(n.get('stack') or {}).get('item')) for n in nodes])
     i=int(found['id'].split('-')[1])-900;screen_click(285+(17+(i%9)*18)*2,136+(26+(i//9)*18)*2);g.call('wait','5')
     held=g.call('inventory')['carried'] or {};print('creative item',name,json.dumps(held),flush=True);assert held.get('item')=='tconstruct:'+name and 'tic_mining_tool' in held.get('components',''),held
