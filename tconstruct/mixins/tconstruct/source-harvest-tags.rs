@@ -68,6 +68,15 @@ pub(super) fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Resu
             }
         }
     }
+    // A prepared resource root can contain links to shared base assets. Never
+    // write generated aliases through one of those links.
+    let mut directory = out.to_path_buf();
+    for part in ["data", "tconstruct", "tags", "block"] {
+        directory.push(part);
+        if std::fs::symlink_metadata(&directory).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+            return Err("harvest alias destination contains a symlink".into());
+        }
+    }
     for tag in &wanted {
         let alias = alias(tag).ok_or("invalid effective tag ID")?;
         let blocks = super::tconstruct_source_tags::resolve_available_blocks(tag, &tags, &registry)?;
