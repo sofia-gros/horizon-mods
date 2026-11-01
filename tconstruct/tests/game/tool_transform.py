@@ -41,9 +41,24 @@ def scene(name,block,result,area=False):
     print('transform',name,block,result,'converted',len(converted),'wear',after.get('damage',0)-before.get('damage',0),'result',out,flush=True)
     assert len(converted)==len(positions),(name,converted,[at(*p) for p in positions])
     assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
+def sneak_pass():
+    acquire('mattock',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 103 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:dirt');cmd('tp @s 20.5 101 18.5');cmd('give @s minecraft:torch 1')
+    g.call('hotbar','2');g.call('key','f','tap');g.call('hotbar','1');g.call('wait','15');cmd('gamemode survival @s');g.call('wait','10')
+    before=g.call('inventory')['held'];g.call('key','shift','down')
+    try:g.call('interact','20','100','20','up');g.call('wait','20')
+    finally:g.call('key','shift','up')
+    after=g.call('inventory')['held'];assert at(20,100,20).split('[')[0]=='minecraft:dirt';assert after.get('damage',0)==before.get('damage',0)
+    assert at(20,101,20).split('[')[0]=='minecraft:torch','offhand use did not receive PASS'
+    cmd('gamemode creative @s');cmd('setblock 20 101 20 minecraft:air');g.call('key','f','tap');g.call('wait','10');off=g.call('status')['offhand'];assert off and off['item']=='tconstruct:mattock',off
+    cmd('gamemode survival @s');g.call('key','shift','down')
+    try:g.call('interact','20','100','20','up');g.call('wait','20')
+    finally:g.call('key','shift','up')
+    assert at(20,100,20).split('[')[0]=='minecraft:dirt';assert g.call('status')['offhand']['damage']==off['damage']
+    print('sneak PASS main, offhand and other use',flush=True)
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     for name,source,target,area in [('mattock','minecraft:dirt','minecraft:farmland',False),('kama','minecraft:dirt','minecraft:farmland',False),('scythe','minecraft:dirt','minecraft:farmland',True),('excavator','minecraft:grass_block','minecraft:dirt_path',True),('hand_axe','minecraft:oak_log','minecraft:stripped_oak_log',False),('broad_axe','minecraft:oak_log','minecraft:stripped_oak_log',False)]:scene(name,source,target,area)
+    sneak_pass()
     g.call('screenshot',str(run/'tool-transform.png'));g.call('save');g.stop();print('PASS source tools',flush=True)
 finally:g.cleanup()
