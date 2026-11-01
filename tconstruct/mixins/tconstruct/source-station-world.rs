@@ -342,7 +342,9 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str,Tag)>::new()));
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let Tag::Compound(ref mut entries) = upgrades else { return None; };
-    entries.insert("tconstruct:overslime".into(),Tag::Int(1));
+    if traits.get("tconstruct:overslime").copied().unwrap_or(0) <= 0 && !matches!(entries.get(&"tconstruct:overslime".into()), Some(Tag::Int(level)) if *level > 0) {
+        entries.insert("tconstruct:overslime".into(), Tag::Int(1));
+    }
     fields.insert("tic_upgrades".into(),upgrades);
     upgraded.data_mut().set_other("minecraft:custom_data",Some(custom));
     let mut output = assemble(world,definition,&tool.item,&identities,Some(&upgraded))?;
