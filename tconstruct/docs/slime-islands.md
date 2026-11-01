@@ -19,3 +19,13 @@ Tree/foliage registration, original drops and survival acquisition, marker
 processing, worldgen integration, save/LAN and real-world validation remain
 open. Sky/End slime mob spawn overrides also require their own entity support.
 No island or slime-plant natural generation is claimed by this draft.
+
+The existing `TemplatePiece::place_at` can return original data markers, but
+its `PieceContext` exposes `dyn PieceWorld` rather than the configured-feature
+callback needed for a marker's tree. An official Mixins limited plan for
+`horizon_world::worldgen::structure::start::place_in_chunk` reports
+`E_UNSUPPORTED_SIGNATURE` because that function is generic. A separate plan
+for the `place_in_chunk` call in `generator_decoration::Decoration::decorate`
+reports `E_UNSUPPORTED_CONTROL_FLOW` because the call is inside a closure.
+The `try_generate` HEAD probe accepts its `impl StartContext` binding in a
+limited plan; that alone does not connect markers or prove save/reload.
