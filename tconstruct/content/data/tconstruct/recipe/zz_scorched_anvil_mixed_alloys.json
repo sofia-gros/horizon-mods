@@ -1,0 +1,26 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "mmm",
+    " s ",
+    "sss"
+  ],
+  "key": {
+    "m": [
+      "tconstruct:slimesteel_block",
+      "tconstruct:amethyst_bronze_block",
+      "tconstruct:rose_gold_block",
+      "tconstruct:cinderslime_block",
+      "tconstruct:queens_slime_block",
+      "tconstruct:manyullyn_block",
+      "tconstruct:hepatizon_block",
+      "tconstruct:knightslime_block",
+      "minecraft:netherite_block"
+    ],
+    "s": "#tconstruct:anvil_scorched_blocks"
+  },
+  "result": {
+    "id": "tconstruct:scorched_anvil"
+  }
+}

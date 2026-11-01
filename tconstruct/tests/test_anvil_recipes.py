@@ -16,6 +16,10 @@ class AnvilRecipes(unittest.TestCase):
             for anvil, material in [('tinkers_anvil', 'seared'), ('scorched_anvil', 'scorched')]:
                 source = json.loads(archive.read(f'data/tconstruct/recipes/tables/{anvil}.json'))
                 recipes = sorted((DATA / 'recipe').glob(f'{anvil}_*.json'))
+                fallback = json.loads((DATA / 'recipe' / f'zz_{anvil}_mixed_alloys.json').read_text())
+                self.assertEqual(fallback['pattern'], source['pattern'])
+                self.assertGreater(len(fallback['key']['m']), 1)
+                self.assertEqual(fallback['result'], {'id': f'tconstruct:{anvil}'})
                 self.assertGreater(len(recipes), 0)
                 tag = json.loads((DATA / 'tags/item' / f'anvil_{material}_blocks.json').read_text())['values']
                 self.assertTrue(tag)

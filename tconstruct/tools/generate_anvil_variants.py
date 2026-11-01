@@ -31,3 +31,11 @@ for anvil, tag in [('tinkers_anvil', 'anvil_seared_blocks'), ('scorched_anvil', 
                'Metal': material, 'RequiredMaterial': material, 'Variant': variant, 'Texture': texture}},
                'minecraft:item_model': f'tconstruct:{name}'}}}
   (data / 'recipe' / f'{name}.json').write_text(json.dumps(value, indent=2) + '\n')
+
+# Mixed ordinary alloy blocks match the original shaped recipe but use its
+# fallback appearance. Sorted after the specific material-preserving variants.
+for anvil, tag in [('tinkers_anvil', 'anvil_seared_blocks'), ('scorched_anvil', 'anvil_scorched_blocks')]:
+ blocks = [f'tconstruct:{metal}_block' for metal in metals if metal != 'netherite'] + ['minecraft:netherite_block']
+ value = {'type': 'minecraft:crafting_shaped', 'category': 'misc', 'pattern': ['mmm', ' s ', 'sss'],
+          'key': {'m': blocks, 's': f'#tconstruct:{tag}'}, 'result': {'id': f'tconstruct:{anvil}'}}
+ (data / 'recipe' / f'zz_{anvil}_mixed_alloys.json').write_text(json.dumps(value, indent=2) + '\n')
