@@ -95,6 +95,11 @@ pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items:
     let Some(y) = clicked[1].checked_add(face[1]) else { return Some(Ok(true)); };
     let Some(z) = clicked[2].checked_add(face[2]) else { return Some(Ok(true)); };
     let at = [x,y,z];
+    if let Some(conn) = game.lan_acting {
+        let allowed = game.world.chunks.__horizon_mixins_tconstruct_transform_guest_hits().get(&conn)
+            .is_some_and(|(target, blocked)| *target == clicked && !blocked.contains(&(x,z)));
+        if !allowed { return Some(Ok(true)); }
+    }
     let result = (|| -> anyhow::Result<bool> {
         if place(game, at, [-face[0], -face[1], -face[2]])? {
             if !game.creative {
