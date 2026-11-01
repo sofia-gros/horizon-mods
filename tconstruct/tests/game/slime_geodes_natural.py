@@ -22,7 +22,7 @@ def in_dimension(dim,x,y,z):
  cmd(f'execute in minecraft:{dim} run tp @s {x+0.5} {y} {z+0.5}');g.call('wait-ready','90',timeout=95);g.call('wait','15');state=g.call('state');assert state.get('dimension')=='minecraft:'+dim,state
 def find(color,dimension,y,base):
  for i in range(12):
-  x=base+(i%4)*64;z=base+(i//4)*64
+  x=base+(i%4)*128;z=base+(i//4)*128
   in_dimension(dimension,x,y,z)
   result=g.call('find-block',f'tconstruct:{color}_slime_crystal_cluster','64',timeout=90)
   print('SEARCH',dimension,42,x,z,result,flush=True)
