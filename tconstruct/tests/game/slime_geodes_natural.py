@@ -48,8 +48,15 @@ def harvest(color,dimension,pos):
  live=g.call('block',x,y,z);assert live.get('block')==f'tconstruct:{color}_slime_crystal_cluster',live
  g.call('hotbar',str(hot('minecraft:diamond_pickaxe')+1));g.call('wait','10');g.call('screenshot',str(run/f'{color}-geode-natural.png'))
  before=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0)
- print('BREAK',color,g.call('break',x,y,z,'--timeout','30',timeout=35),flush=True);g.call('wait','20');print('ENTITIES',g.call('entities'),flush=True);cmd(f'tp @s {x+0.5} {y} {z+0.5}');g.call('wait','60')
- count=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0);print('HARVEST',color,before,count,flush=True);assert count-before==4,(color,before,count)
+ item=f'tconstruct:{color}_slime_crystal'
+ broken=g.call('break',x,y,z,'--timeout','30',timeout=35);print('BREAK',color,broken,flush=True);assert broken.get('drops',{}).get(item)==4,broken
+ ids={entry['id'] for entry in broken.get('on_ground',[]) if entry.get('item')==item}
+ for _ in range(8):
+  if g.call('inventory')['counts'].get(item,0)-before>=4:break
+  entities=g.call('entities')['entities'];drops=[e for e in entities if e.get('id') in ids]
+  if not drops:break
+  px,py,pz=drops[0]['pos'];cmd(f'tp @s {px} {py} {pz}');g.call('wait','12')
+ count=g.call('inventory')['counts'].get(item,0);print('HARVEST',color,before,count,flush=True);assert count-before>=4,(color,before,count,broken)
 try:
  g.ready();cmd('gamemode creative @s');cmd('gamerule minecraft:spawn_mobs false');cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
  earth=find('earth','overworld',-32);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
