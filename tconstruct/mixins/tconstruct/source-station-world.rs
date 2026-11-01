@@ -175,14 +175,42 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
     let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
-        .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item)?;
-    let parts = recipe.parts(definition)?;
-    let repair_parts: Vec<_> = parts.iter().zip(ids).filter_map(|(part, id)| {
-        let kind = super::tconstruct_source_station_stats::part_kind(part)?;
-        if !matches!(kind, "head" | "limb") { return None; }
-        let Tag::String(id) = id else { return None; };
-        Some((id.to_string_lossy().to_string(), kind))
-    }).collect();
+        .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item);
+    let mut repair_parts: Vec<(String, String)> = Vec::new();
+    if let Some(parts) = recipe.as_ref().and_then(|recipe| recipe.parts(definition)) {
+        for (part, id) in parts.iter().zip(ids) {
+            let Some(kind) = super::tconstruct_source_station_stats::part_kind(part) else { continue; };
+            if !matches!(kind, "head" | "limb" | "slime" | "skull") && !kind.starts_with("plating_") { continue; }
+            if let Tag::String(id) = id { repair_parts.push((id.to_string_lossy().to_string(), kind.to_owned())); }
+        }
+    } else {
+        let definition: serde_json::Value = serde_json::from_slice(definition).ok()?;
+        for module in definition.get("modules")?.as_array()? {
+            if module.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:material_stats") { continue; }
+            for (entry, id) in module.get("stat_types")?.as_array()?.iter().zip(ids) {
+                let name = entry.as_str().or_else(|| entry.get("stat").and_then(serde_json::Value::as_str))?;
+                let Some(kind) = name.strip_prefix("tconstruct:") else { continue; };
+                if !matches!(kind, "head" | "limb" | "slime" | "skull") && !kind.starts_with("plating_") { continue; }
+                if let Tag::String(id) = id { repair_parts.push((id.to_string_lossy().to_string(), kind.to_owned())); }
+            }
+        }
+    }
+    // Independent source material-repair hooks use fixed material/value pairs.
+    let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+    let mut fixed_repairs = Vec::<(String, f32)>::new();
+    for module in parsed.get("modules")?.as_array()? {
+        match module.get("type").and_then(serde_json::Value::as_str) {
+            Some("tconstruct:material_repair") => {
+                if let (Some(id), Some(value)) = (module.get("material").and_then(serde_json::Value::as_str), module.get("durability").and_then(serde_json::Value::as_f64)) { fixed_repairs.push((id.to_owned(), value as f32)); }
+            }
+            Some("tconstruct:statless_part_repair") => {
+                if let (Some(index), Some(value)) = (module.get("part_index").and_then(serde_json::Value::as_u64), module.get("repair_amount").and_then(serde_json::Value::as_f64)) {
+                    if let Some(Tag::String(id)) = ids.get(index as usize) { fixed_repairs.push((id.to_string_lossy().to_string(), value as f32)); }
+                }
+            }
+            _ => {}
+        }
+    }
     let traits = super::tconstruct_source_material_traits::levels(world, &tool);
     let cultivated = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:cultivated").copied()).unwrap_or(0);
     let preserved = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:preserved").copied()).unwrap_or(0);
@@ -195,13 +223,16 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
         let Some(stack) = slots.get(index).and_then(Option::as_ref) else { continue; };
         let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
         if material.needed <= 0 { return None; }
-        let (namespace, path) = material.material.split_once(':')?;
-        let stat_layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", path.split('#').next()?))?;
-        let stats = super::tconstruct_tx::source_merge_material_stats(stat_layers).ok()?;
-        // Original material repair uses the strongest matching repairable stat.
-        let durability = repair_parts.iter().filter(|(id, _)| id == &material.material)
-            .filter_map(|(_, kind)| stats.get(&format!("tconstruct:{kind}"))?.get("durability")?.as_f64())
-            .max_by(f64::total_cmp)? as f32;
+        let stat_durability = material.material.split_once(':').and_then(|(namespace, path)| {
+            let layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", path.split('#').next()?))?;
+            let stats = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
+            repair_parts.iter().filter(|(id, _)| id.split('#').next() == material.material.split('#').next())
+                .filter_map(|(_, kind)| stats.get(&format!("tconstruct:{kind}"))?.get("durability")?.as_f64())
+                .max_by(f64::total_cmp).map(|v| v as f32)
+        }).unwrap_or(0.0);
+        let fixed_durability = fixed_repairs.iter().filter(|(id, _)| id.split('#').next() == material.material.split('#').next()).map(|(_, value)| *value).fold(0.0_f32, f32::max);
+        let durability = stat_durability.max(fixed_durability);
+        if durability <= 0.0 { continue; }
         let amount = durability * material.value as f32 * repair_factor / (3.0 * material.needed as f32);
         let (count, repaired) = super::tconstruct_tx::repair_from_slot(remaining, i32::try_from(stack.count).ok()?, amount);
         if count > 0 { consumed.push((index, count as u32)); remaining = (remaining - repaired).max(0); }
