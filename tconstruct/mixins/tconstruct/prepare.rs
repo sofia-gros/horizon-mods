@@ -97,6 +97,7 @@ fn prepare_tconstruct_resources() {
         let mut raw_tags = std::collections::BTreeMap::new();
         crate::tconstruct_source_tags::merge_pack_tags(&mut raw_tags, tag_files, |path| std::fs::read(original_pack.join(path)).ok());
         let registry: std::collections::HashSet<String> = items.as_object().ok_or("invalid item registry")?.keys().cloned().collect();
+        let harvest = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/harvest", &raw_tags, &registry)?;
         let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
         let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
         let creative_path = out.join("creative-inventory.json");
@@ -122,13 +123,14 @@ fn prepare_tconstruct_resources() {
                             }
                             if maps.len() != ids.len() { continue; }
                             if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
-                                let traits = crate::tconstruct_source_material_traits::levels_from_definition(&definition, &ids, |id| {
+                                let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
                                     let (namespace, path) = id.split_once(':')?;
                                     std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
                                 });
-                                if let (Some(traits), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
+                                if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
                                     if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
+                                    if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
                                 }
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }
