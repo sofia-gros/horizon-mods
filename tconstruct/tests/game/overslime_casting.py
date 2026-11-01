@@ -25,8 +25,9 @@ try:
  g.ready()
  if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
  for xyz in ((0,71,1),(1,71,2),(0,71,3),(0,71,4),(0,70,4)):cmd('setblock %d %d %d minecraft:air'%xyz)
+ cmd('kill @e[type=minecraft:item]')
  for c in ('gamemode creative @s','clear @s','tp @s 2.5 71 1.5','fill -2 71 -2 2 73 0 minecraft:air','fill -3 70 -3 3 70 5 minecraft:stone','setblock 0 70 2 tconstruct:seared_bricks','setblock 0 71 2 minecraft:air','setblock -1 71 2 tconstruct:seared_bricks','setblock 1 71 2 tconstruct:seared_fuel_tank','setblock 0 71 3 tconstruct:seared_drain[facing=south]','setblock 0 71 1 tconstruct:smeltery_controller[facing=north,lit=false]','setblock 0 71 4 tconstruct:seared_faucet[facing=south]','setblock 0 70 4 tconstruct:seared_table','give @s minecraft:lava_bucket 1','give @s minecraft:obsidian 1','give @s minecraft:iron_ingot 1','give @s tconstruct:sky_slime_crystal 1','give @s tconstruct:seared_brick 1'):cmd(c)
- select('minecraft:lava_bucket');g.call('interact','1','71','2');g.call('wait','10')
+ select('minecraft:lava_bucket');cmd('gamemode survival @s');print('FUEL INPUT',g.call('interact','1','71','2'),g.call('inventory'),flush=True);g.call('wait','10');assert count('minecraft:bucket')==1,'fuel tank did not accept lava';cmd('gamemode creative @s')
  smelt('minecraft:obsidian')
  for _ in range(4):table('tconstruct:obsidian_pane')
  assert count('tconstruct:obsidian_pane')==4
