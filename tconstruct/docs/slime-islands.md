@@ -61,3 +61,17 @@ catalog or complete tree state-provider bindings. The retained original
 `tconstruct:slime_tree` definition currently returns `Field("basic feature
 type")` from the host feature decoder. A vanilla tree is not a substitute
 for the source algorithm and is not installed here.
+
+The source templates also contain custom slime fluid blocks. The pinned host's
+`FluidKind` is a closed water/lava enum, and `FluidState::from_block` recognizes
+only those vanilla fluid block names. The content block declaration copies a
+vanilla template's existing states; it cannot declare the source vine's five
+direction properties plus its three-valued `stage`. No vanilla template in the
+prepared registry has that property set. A Mixins state probe targeting
+`horizon_world::fluid::FluidKind` reports `E_BRIDGE_TARGET` (state targets must
+be structs); it does not provide an additional fluid enum variant. Assigning
+water to slime fluid or dropping the vine stage would change source behavior,
+so neither substitution enables island generation here. These boundaries also
+need an implementation for the original clay island's vanilla tree features
+and the blood island's fungus; the current start hook rejects unsupported tree
+types instead of generating incomplete islands.
