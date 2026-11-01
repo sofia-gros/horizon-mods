@@ -2571,4 +2571,4 @@ target = "horizon_client::game::Game<'_>::use_block_transformer"
 kind = "HEAD"
 cancellable = true
 helper = "source-transform-use.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::stack::ItemStack", value = "stack" }, { name = "pos", ty = "[i32;3]", value = "pos" }, { name = "face", ty = "[i32;3]", value = "face" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "pos", ty = "[i32;3]", value = "pos" }, { name = "face", ty = "[i32;3]", value = "face" }]
