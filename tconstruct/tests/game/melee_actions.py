@@ -47,12 +47,23 @@ def scene(tool,second_x,third_x,limited=None):
     cmd('gamemode survival @s');g.call('wait','30');g.call('attack',str(target));g.call('wait','8')
     after={e['id']:e for e in entities()}; tool_after=g.call('inventory')['held']; log=g.call('hurtlog')['players'][0]['attacks']
     print('MELEE',tool,'before',json.dumps(before),'after',json.dumps(after),'held',json.dumps(tool_after),'attacklog',json.dumps(log[-5:]),flush=True)
-    g.call('screenshot',str(run/'melee-'+tool+'.png'))
+    g.call('screenshot',str(run/('melee-'+tool+'.png')))
     return before,after,held,tool_after,log,target
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     for tool in ('scythe','kama','sword','cleaver'):
-        scene(tool,21.3,24.5)
+        before,after,held,used,log,target=scene(tool,21.3,24.5)
+        other=min((e for e in before.values() if e['id']!=target),key=lambda e:e['pos'][0])['id']
+        far=max(before.values(),key=lambda e:e['pos'][0])['id']
+        assert after[target]['health']<before[target]['health'],(tool,before,after)
+        assert after[other]['health']<before[other]['health'],(tool,before,after)
+        assert after[far]['health']==before[far]['health'],(tool,before,after)
+        cost={'scythe':2,'kama':4,'sword':1,'cleaver':1}[tool]
+        assert used.get('damage',0)-held.get('damage',0)==cost,(tool,held,used)
+        if tool in ('scythe','kama'):
+            hits=[entry for entry in log if entry['id'] in (target,other)][-2:]
+            assert len(hits)==2 and hits[0]['id']!=hits[1]['id'],hits
+            assert abs(hits[0]['scale']-hits[1]['scale'])<0.0001,hits
     g.stop();print('PASS observed melee scenes',flush=True)
 finally:g.cleanup()
