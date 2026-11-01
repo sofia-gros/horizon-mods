@@ -25,6 +25,6 @@ connecting that boundary. Firework rockets use a separate launch path.
 A draft scoped shot context now reruns arrow launch with source speed, spread
 and fan angles at that boundary using Horizon's RNG; it consumes additional
 random draws after the original vanilla launch. It has not been formally
-type-checked or tested in game. Firework rockets remain unimplemented. The
-existing vanilla bow minimum-charge threshold can reject a low-charge shot
-that source velocity would allow, and conditional stat modifiers remain open.
+type-checked or tested in game. Firework rockets remain unimplemented. The draft permits source-valid low-charge shots through the existing vanilla
+dispatch threshold; this boundary and conditional stat modifiers remain
+unverified.
