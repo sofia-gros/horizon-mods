@@ -14,12 +14,22 @@ including tools in the off hand. Pathing also attempts the source behavior for
 replaceable vegetation above the block. Client prediction ends the interaction
 on a successful transform so that the other hand does not act as well.
 
-**Verification status:** the changes and client prediction are implemented but
-have not passed an official full transformation, Rust type check, or in-game
-validation. Targeted source mapping, geometry and server-protection tests pass;
-they are not proof of game behavior. Test normal and LAN uses, conditions above
-the block, transformation areas, durability and breakage, offhand behavior,
-spawn boundaries, save/reload, and vanilla tool regression using one build.
+**Verification status:** the official Mixins revision
+`a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab` was used for the full transform
+and client/ctl build. On Linux, normal play verified all six tools, a Scythe
+3×3 till, Excavator 3×3 pathing, Broad Axe trunk and branch stripping,
+copper scraping and wax removal, replaceable and solid obstacles, a near-broken
+Scythe, sneak pass-through and offhand use, vanilla hoe behavior and save/reload.
+A non-operator on a dedicated server retained three protected blocks while six
+permitted blocks were tilled, for both main and off hands. Hosted LAN final
+verification remains in progress; these results are representative, not
+exhaustive material or multiplayer coverage.
+
+![Scythe area tilling](tool-transform-scythe.png)
+
+![Excavator area pathing](tool-transform-excavator.png)
+
+![Offhand Scythe at the spawn-protection boundary](tool-transform-protection.png)
 
 Creative currently supplies four-part tools; their survival assembly remains
 unfinished. Expanded modifiers, crop harvesting/replanting, Scythe attacks,
