@@ -37,8 +37,8 @@ def total_items(g,item):
 try:
     h=Game(a,run,'Player',resume=True);games.append(h);h.ready();port=h.call('lan','open','0','commands')['port']
     q=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());games.append(q);q.ready()
-    for s in ('gamemode creative @a','clear Guest','tp @s 37.5 100 27.5','tp Guest 30.5 100 28.5','fill 28 99 28 32 99 32 minecraft:stone','fill 29 100 30 31 102 30 minecraft:stone'):cmd(h,s)
-    acquire(q);cmd(h,'gamemode survival Guest');q.call('wait','20');before=q.call('inventory')['held'];count=total_items(q,'minecraft:cobblestone')
+    for s in ('gamemode creative @a','clear Guest','fill 28 99 28 32 99 32 minecraft:stone','fill 29 100 30 31 102 30 minecraft:stone','setblock 37 99 27 minecraft:stone','tp @s 37.5 100 27.5','tp Guest 30.5 100 28.5'):cmd(h,s)
+    acquire(q);cmd(h,'tp Guest 30.5 100 28.5');cmd(h,'gamemode survival Guest');q.call('wait','20');before=q.call('inventory')['held'];count=total_items(q,'minecraft:cobblestone')
     result=q.call('break','30','101','30','--timeout','50',timeout=55);q.call('wait','20')
     positions=[(x,y,30) for x in (29,30,31) for y in (100,101,102)]
     wait(lambda:all(h.call('block',*map(str,pos)).get('block')=='minecraft:air' and q.call('block',*map(str,pos)).get('block')=='minecraft:air' for pos in positions))
