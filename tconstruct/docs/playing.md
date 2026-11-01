@@ -184,7 +184,11 @@ To gain upgrade slots, use the source Writable (Writable Book), Harmonious (musi
 
 Unbreakable takes two Shulker Shells, Dragon's Breath and two Netherite Ingots in an Anvil. It requires Netherite and **five completed levels** of Reinforced and consumes an ability slot. The empty Dragon's Breath bottle is returned. Normal tool, armor and bow wear is prevented; the original modifier-caused bypass still applies. Glowing, the current bypass cause, is not implemented.
 
+![Unbreakable recipe at the Tinkers' Anvil](netherite-unbreakable.png)
+
 Both modifiers support extraction into and application from a Modifier Crystal. While Unbreakable remains on a tool, removing Netherite or enough Reinforced to invalidate its prerequisites is rejected; remove Unbreakable first. A Crystal uses one input slot, so it can be applied at a Station when the requirements and slots are met.
+
+![Unbreakable selected in the Modifier Worktable](netherite-crystal.png)
 
 This branch has lightweight recipe and stat checks only. The new recipes, rarity, dropped-item protection, effective mining and combat, persistence and LAN have **not yet been verified in the game**. Worktable selection uses the original layered icons. Advancement criteria remain unimplemented; other equipment and modifiers still have the limits described below.
 
