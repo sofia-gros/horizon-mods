@@ -11,6 +11,8 @@ import zipfile
 
 from package_hnmod import MOD, tracked, write_zip_file
 from import_part_visuals import MATERIAL_MODELS
+from creative_materials import build_variants
+from creative_blocks import add_block_items
 
 MANIFEST = b'''id = "tconstruct"
 name = "Tinkers' Construct content"
@@ -132,6 +134,10 @@ def package(output):
                                       2 if short == 'dagger' else 1)
         add(declaration, json.dumps(data, separators=(',', ':')).encode())
 
+    tabs = json.loads((MOD / 'content/creative-tabs.json').read_text())
+    tabs = build_variants(tabs, MOD / 'content/reference/tconstruct-tool-definitions.zip', MOD / 'content/reference/tconstruct-materials.zip')
+    tabs = add_block_items(tabs, MOD / 'content/data/tconstruct/horizon/block')
+    add(runtime + 'creative-tabs.json', json.dumps(tabs).encode())
     add(runtime + 'equipment.json', json.dumps(sorted(equipment)).encode())
 
     # Make the source sprites addressable by the same vanilla model aliases

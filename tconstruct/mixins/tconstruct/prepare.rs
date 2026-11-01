@@ -80,74 +80,7 @@ fn prepare_tconstruct_resources() {
         // Project original harvest predicates onto installed blocks under
         // TConstruct-only aliases; native vanilla tags stay untouched.
         crate::tconstruct_source_harvest_tags::prepare(&out, &original_pack, &content_path.join("reference/forge-47.4.0-harvest-tags.zip"))?;
-        // Give supported Creative tool variants the same source-derived base
-        // stats and mining rules as a tool assembled in the station. Other tool
-        // categories keep their material identities until their stats are ported.
-        // Resolve the same source item tags used by station assembly, against
-        // the actual generated registry rather than guessing tool categories.
-        fn collect_tag_files(root: &std::path::Path, dir: &std::path::Path, files: &mut Vec<String>) -> std::io::Result<()> {
-            for entry in std::fs::read_dir(dir)? {
-                let path = entry?.path();
-                if path.is_dir() { collect_tag_files(root, &path, files)?; }
-                else if let Ok(relative) = path.strip_prefix(root) {
-                    files.push(relative.to_string_lossy().replace('\\', "/"));
-                }
-            }
-            Ok(())
-        }
-        let mut tag_files = Vec::new();
-        collect_tag_files(&original_pack, &original_pack.join("data"), &mut tag_files)?;
-        let mut raw_tags = std::collections::BTreeMap::new();
-        crate::tconstruct_source_tags::merge_pack_tags(&mut raw_tags, tag_files, |path| std::fs::read(original_pack.join(path)).ok());
-        let registry: std::collections::HashSet<String> = items.as_object().ok_or("invalid item registry")?.keys().cloned().collect();
-        let harvest = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/harvest", &raw_tags, &registry)?;
-        let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
-        let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
-        let creative_path = out.join("creative-inventory.json");
-        if creative_path.is_file() {
-            let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
-            if let Some(tabs) = creative.get_mut("tabs").and_then(serde_json::Value::as_array_mut) {
-                for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
-                    if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
-                        for value in stacks {
-                            let Some(raw) = value.as_str() else { continue; };
-                            let Ok(raw) = serde_json::from_str::<serde_json::Value>(raw) else { continue; };
-                            let Some(item) = raw.get("id").and_then(serde_json::Value::as_str) else { continue; };
-                            let Some(short) = item.strip_prefix("tconstruct:") else { continue; };
-                            let Some(ids) = raw.pointer("/components/minecraft:custom_data/tic_materials").and_then(serde_json::Value::as_array) else { continue; };
-                            let Some(ids) = ids.iter().map(|id| id.as_str().map(str::to_owned)).collect::<Option<Vec<_>>>() else { continue; };
-                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{short}.json"))) else { continue; };
-                            let mut maps = Vec::new();
-                            for id in &ids {
-                                let Some(name) = id.strip_prefix("tconstruct:") else { maps.clear(); break; };
-                                let Ok(bytes) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/materials/stats/{name}.json"))) else { maps.clear(); break; };
-                                let Ok(merged) = crate::tconstruct_tx::source_merge_material_stats(&[bytes]) else { maps.clear(); break; };
-                                maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
-                            }
-                            if maps.len() != ids.len() { continue; }
-                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
-                                let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
-                                    let (namespace, path) = id.split_once(':')?;
-                                    std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
-                                });
-                                if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
-                                    if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
-                                    if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
-                                    if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
-                                }
-                                *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
-                            }
-                        }
-                    }
-                }
-            }
-            // The prepared output initially links to the input overlay. Replace
-            // the link itself so the original creative data stays untouched.
-            let temp = out.join("creative-inventory.json.tmp");
-            std::fs::write(&temp, serde_json::to_vec(&creative)?)?;
-            std::fs::remove_file(&creative_path)?;
-            std::fs::rename(temp, creative_path)?;
-        }
+        tconstruct_resource_tables::creative(&out, &original_pack)?;
         for warning in warnings { eprintln!("{warning}"); }
         tconstruct_resource_tables::apply(&out, &content_path)?;
         Ok(())
