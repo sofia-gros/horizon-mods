@@ -2632,3 +2632,57 @@ target = "horizon_client::game::enchant_effects::Game<'_>::extra_knockback"
 kind = "RETURN"
 helper = "source-melee-knockback-return.rs"
 bindings = [{ name = "value", ty = "(f32,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-melee-shape"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melee_shape"
+source = "source-melee-shape.rs"
+
+[[state]]
+id = "melee-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>,(u32,u32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "melee-active"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-melee-attack-head"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "source-melee-attack-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-melee-attack-return"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "source-melee-attack-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-melee-circle"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+helper = "source-melee-circle.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-melee-damage-return"
+target = "horizon_client::game::Game<'_>::melee_damage"
+kind = "RETURN"
+helper = "source-melee-damage-return.rs"
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
