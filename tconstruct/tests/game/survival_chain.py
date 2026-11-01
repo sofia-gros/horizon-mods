@@ -20,7 +20,22 @@ def count(item):return inventory()['counts'].get(item,0)
 def slots(item):return [s for s in inventory()['hotbar']+inventory()['main'] if s.get('item')==item]
 def slot(item):return slots(item)[0]['slot']
 def hot(item):return next(s['slot'] for s in inventory()['hotbar'] if s.get('item')==item)
-def empty():return next(s['slot'] for s in inventory()['hotbar'] if not s.get('item'))
+def empty_any():return next(s['slot'] for s in inventory()['hotbar']+inventory()['main'] if not s.get('item'))
+def empty():
+ inv=inventory();free=next((s['slot'] for s in inv['hotbar'] if not s.get('item')),None)
+ if free is not None:return free
+ target=next(s['slot'] for s in inv['main'] if not s.get('item'))
+ g.call('open-inventory');g.call('wait','8');click(8);click(target);g.call('close');return 8
+def promote(item):
+ inv=inventory();found=next((s['slot'] for s in inv['hotbar'] if s.get('item')==item),None)
+ if found is not None:return found
+ source=next(s['slot'] for s in inv['main'] if s.get('item')==item);target=empty()
+ g.call('open-inventory');g.call('wait','8');click(source);click(target);g.call('close');return target
+def place(item,x,y,z):
+ promote(item);before=count(item);g.call('place',str(x),str(y),str(z),'--item',item);g.call('wait','10')
+ assert g.call('block',str(x),str(y),str(z)).get('block')==item,(item,x,y,z)
+ assert count(item)==before-1,(item,before,count(item))
+def empty_hand():g.call('hotbar',str(empty()+1));g.call('wait','8')
 def open_table():
  cmd('tp @s 0.5 71 0.5');g.call('hotbar',str(empty()+1));g.call('wait','5');g.call('interact','0','71','2');g.call('wait','10')
 def craft(ingredients,result,amount=1,many=False):
@@ -36,7 +51,7 @@ def craft(ingredients,result,amount=1,many=False):
  if many:click(200,'shift')
  else:
   click(200);output=g.call('menu')['carried'];assert output and output.get('item')==result and output.get('count')==amount,output
-  click(empty())
+  click(empty_any())
  g.call('close');g.call('wait','8');print('CRAFT',result,count(result),flush=True)
 def widget(label):return next((w for w in g.call('ui')['widgets'] if w.get('label')==label and w.get('enabled')),None)
 def wait_widget(label):
@@ -93,6 +108,30 @@ try:
   click(302,'shift');click(slot('tconstruct:grout'));click(300);sprint(4300)
   state={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('FURNACE SECOND',state,flush=True);assert (state.get(302) or {}).get('item')=='tconstruct:seared_brick' and state[302].get('count')==20,state
   click(302,'shift');g.call('close');assert count('tconstruct:seared_brick')==84,inventory();g.call('screenshot',str(run/'survival-bricks.png'));checkpoint()
+ elif a.phase=='devices':
+  for c in ('gamemode creative @s','give @s minecraft:glass 6','give @s minecraft:copper_ingot 2',
+            'give @s tconstruct:seared_fuel_gauge[minecraft:custom_data={"tconstruct:tank":{fluid:"minecraft:lava",amount:1000}}] 1'):cmd(c)
+  # A command-supplied filled gauge is a guard fixture, not a crafted product.
+  before=count('tconstruct:seared_brick');open_table()
+  source=slot('tconstruct:seared_brick');click(source)
+  for dst in (100,102,103,104,105):click(dst,'right')
+  if g.call('menu')['carried']:click(source)
+  click(slot('tconstruct:seared_fuel_gauge'));click(101)
+  preview={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert not preview.get(200),preview
+  g.call('screenshot',str(run/'survival-filled-gauge-rejected.png'));g.call('close');g.call('wait','10')
+  filled=slots('tconstruct:seared_fuel_gauge');assert len(filled)==1 and '1000' in filled[0].get('components',''),filled
+  assert count('tconstruct:seared_brick')==before,inventory();cmd('clear @s tconstruct:seared_fuel_gauge')
+  brick='tconstruct:seared_brick';glass='minecraft:glass'
+  craft([(brick,[100,101,102,103,105,106,107,108])],'tconstruct:seared_heater')
+  craft([(brick,[100,102,106,108]),(glass,[101,103,104,105,107])],'tconstruct:seared_fuel_gauge')
+  craft([(brick,[100,102,103,104,105]),('tconstruct:seared_fuel_gauge',[101])],'tconstruct:seared_melter')
+  assert count('tconstruct:seared_fuel_gauge')==0
+  craft([(brick,[100,102,104])],'tconstruct:seared_faucet',3)
+  for _ in range(2):craft([(brick,[100,102,103,105,106,107,108])],'tconstruct:seared_basin')
+  craft([(brick,[100,101,102,103,105,106,107,108]),(glass,[104])],'tconstruct:seared_fuel_tank')
+  craft([(brick,[100,102,106,108]),('minecraft:copper_ingot',[103,105])],'tconstruct:seared_drain')
+  craft([(brick,[100]*7+[101]*7+[103]*7+[104]*7)],'tconstruct:seared_bricks',many=True)
+  assert count('tconstruct:seared_bricks')==7,inventory();checkpoint()
  else:raise RuntimeError('phase not yet implemented')
 finally:
  if guest:guest.cleanup()
