@@ -11,6 +11,15 @@ pub(super) fn attack(item:&str)->Option<Attack> {
         _=>None,
     }
 }
+// Original ToolAttackUtil charges one wear for melee-primary tools and two
+// for the remaining harvest-primary tools when a living target was hit.
+pub(super) fn builtin_attack_wear(item:&str)->Option<u32> {
+    match item {
+        "tconstruct:scythe" | "tconstruct:sword" | "tconstruct:cleaver" | "tconstruct:battlesign" => Some(1),
+        "tconstruct:kama" | "tconstruct:excavator" => Some(2),
+        _ => None,
+    }
+}
 // Dynamic tool records retain a broken stack instead of deleting it.
 pub(super) fn intact(stack:&horizon_items::items::ItemStack)->Option<u32> {
     use horizon_world::nbt::Tag;
@@ -33,6 +42,12 @@ pub(super) fn eligible(kind:Attack, primary:[f64;3], attacker:[f64;3], candidate
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test] fn source_melee_and_nonprimary_costs() {
+        assert_eq!(builtin_attack_wear("tconstruct:scythe"),Some(1));
+        assert_eq!(builtin_attack_wear("tconstruct:kama"),Some(2));
+        assert_eq!(builtin_attack_wear("tconstruct:cleaver"),Some(1));
+        assert_eq!(builtin_attack_wear("minecraft:iron_sword"),None);
+    }
     #[test] fn broken_flag_and_damage_both_stop_actions() {
         use horizon_items::items::ItemStack;
         use horizon_world::nbt::Tag;

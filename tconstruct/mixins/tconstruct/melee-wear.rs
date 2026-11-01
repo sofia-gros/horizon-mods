@@ -6,7 +6,10 @@ fn tconstruct_melee_wear(game: &mut crate::game::Game<'_>, stack: &ItemStack) ->
     if !game.creative {
         // Preserve each registered tool's attack cost while keeping the
         // material-derived broken tool instead of deleting its stack.
-        let cost = if dynamic { game.res.items().get(&stack.item).and_then(|item| item.weapon_damage).unwrap_or(0) } else { 2 };
+        let cost = if dynamic {
+            crate::game::tconstruct_source_melee_shape::builtin_attack_wear(stack.item.as_ref())
+                .unwrap_or_else(|| game.res.items().get(&stack.item).and_then(|item| item.weapon_damage).unwrap_or(0))
+        } else { 2 };
         let loss = game.durability_loss(stack, cost);
         if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) {
             crate::game::tconstruct_tx::fixed_damage(held, loss);
