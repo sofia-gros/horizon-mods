@@ -153,34 +153,29 @@ pub(super) fn plan(
 pub(super) fn apply_stats(
     tool: &mut ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
-    ductile: i32,
+    levels: &std::collections::BTreeMap<String, i32>,
+    melee: bool,
+    melee_weapon: bool,
 ) -> Option<()> {
-    let sharpness = effective(tool, "tconstruct:sharpness", 36);
-    let swiftstrike = effective(tool, "tconstruct:swiftstrike", 72);
-    if sharpness == 0.0 && swiftstrike == 0.0 {
-        return Some(());
-    }
+    let level = |id: &str| levels.get(id).copied().unwrap_or(0);
+    let (damage, speed) = super::tconstruct_source_melee_stat_ops::melee_stats(
+        super::tconstruct_source_melee_stat_ops::MeleeInputs {
+            damage: stats.attack_damage,
+            damage_add_multiplier: stats.attack_damage_multiplier,
+            speed: stats.attack_speed,
+            ductile: level("tconstruct:ductile"), solid: level("tconstruct:solid"),
+            pierce: level("tconstruct:pierce"), lightweight: level("tconstruct:lightweight"),
+            vintage: level("tconstruct:vintage"),
+            sharpness: effective(tool, "tconstruct:sharpness", 36),
+            swiftstrike: effective(tool, "tconstruct:swiftstrike", 72),
+            melee, melee_weapon,
+        },
+    );
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
-    let attack = match custom.get("tic_attack_damage") {
-        Some(Tag::Float(bits)) => Some(f32::from_bits(*bits)),
-        _ => None,
-    };
-    let Tag::Compound(ref mut fields) = custom else {
-        return None;
-    };
-    if sharpness > 0.0 {
-        let attack = attack?;
-        let multiplier = stats.attack_damage_multiplier
-            + stats.attack_damage_multiplier_unit * 0.05 * ductile as f32;
-        let damage = attack + 0.75 * sharpness * multiplier;
-        fields.insert("tic_attack_damage".into(), Tag::Float(damage.to_bits()));
-    }
-    if swiftstrike > 0.0 {
-        let speed = stats.attack_speed + stats.attack_speed_boost_unit * 0.05 * swiftstrike;
-        fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits()));
-    }
-    tool.data_mut()
-        .set_other("minecraft:custom_data", Some(custom));
+    let Tag::Compound(ref mut fields) = custom else { return None; };
+    if melee { fields.insert("tic_attack_damage".into(), Tag::Float(damage.to_bits())); }
+    if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
+    tool.data_mut().set_other("minecraft:custom_data", Some(custom));
     Some(())
 }
 
@@ -229,7 +224,7 @@ mod tests {
                 ),
             ])),
         );
-        apply_stats(&mut tool, &stats, 0).unwrap();
+        apply_stats(&mut tool, &stats, &std::collections::BTreeMap::new(), true, true).unwrap();
         let data = tool.data().unwrap().other("minecraft:custom_data").unwrap();
         let Some(Tag::Float(damage)) = data.get("tic_attack_damage") else {
             panic!("missing damage")
@@ -239,6 +234,31 @@ mod tests {
         };
         assert!((f32::from_bits(*damage) - 5.46875).abs() < 0.00001);
         assert!((f32::from_bits(*speed) - 1.23).abs() < 0.00001);
+    }
+
+    #[test]
+    fn trait_levels_rebuild_without_double_application_or_crossing_tag_boundaries() {
+        let definition = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:pick_head","tconstruct:tool_handle"]},{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_speed":1.2}}]}"#;
+        let head = serde_json::json!({"tconstruct:head":{"durability":100,"melee_attack":4}}).as_object().unwrap().clone();
+        let handle = serde_json::json!({"tconstruct:handle":{"melee_damage":0.25}}).as_object().unwrap().clone();
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[head, handle]).unwrap();
+        let mut tool = tool(18);
+        let levels = BTreeMap::from([
+            ("tconstruct:ductile".to_string(), 2), ("tconstruct:solid".to_string(), 1),
+            ("tconstruct:pierce".to_string(), 1), ("tconstruct:lightweight".to_string(), 2),
+            ("tconstruct:vintage".to_string(), 1),
+        ]);
+        apply_stats(&mut tool, &stats, &levels, true, true).unwrap();
+        let first = tool.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+        apply_stats(&mut tool, &stats, &levels, true, true).unwrap();
+        assert_eq!(&first, tool.data().unwrap().other("minecraft:custom_data").unwrap());
+        let Tag::Float(damage) = first.get("tic_attack_damage").unwrap() else { panic!() };
+        let Tag::Float(speed) = first.get("tic_attack_speed").unwrap() else { panic!() };
+        assert!((f32::from_bits(*damage) - 7.708594).abs() < 0.0001);
+        assert!((f32::from_bits(*speed) - 1.2528).abs() < 0.0001);
+        // Ineligible tools retain their preexisting values.
+        apply_stats(&mut tool, &stats, &BTreeMap::new(), false, false).unwrap();
+        assert_eq!(&first, tool.data().unwrap().other("minecraft:custom_data").unwrap());
     }
 
     #[test]

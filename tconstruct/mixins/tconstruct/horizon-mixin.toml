@@ -1872,6 +1872,18 @@ name = "tconstruct_source_material_trait_select"
 source = "source-material-trait-select.rs"
 
 [[module]]
+id = "host-source-melee-stat-ops"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melee_stat_ops"
+source = "source-melee-stat-ops.rs"
+
+[[module]]
+id = "server-source-melee-stat-ops"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_melee_stat_ops"
+source = "source-melee-stat-ops.rs"
+
+[[module]]
 id = "host-source-material-effects"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_material_effects"
