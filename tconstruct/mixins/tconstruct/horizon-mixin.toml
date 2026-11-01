@@ -2613,3 +2613,9 @@ id = "source-crop-age"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_crop_age"
 source = "source-crop-age.rs"
+
+[[module]]
+id = "source-crop-loot"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_crop_loot"
+source = "source-crop-loot.rs"
