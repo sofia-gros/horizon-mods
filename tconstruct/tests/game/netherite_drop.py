@@ -15,9 +15,21 @@ try:
   'give @s tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:100,"tconstruct:netherite":1b,tic_upgrades:{"tconstruct:netherite":1}},minecraft:max_damage=100] 1'):
   cmd(command)
  g.call('hotbar','1');g.call('look','0','-35');g.call('wait','5');g.call('key','q','tap');g.call('wait','5')
- cmd('tp @s 0.5 80 0.5');g.call('wait','120')
+ cmd('tp @s 0.5 80 0.5')
+ touched = None
+ for _ in range(30):
+  g.call('wait','5')
+  entities=g.call('entities','25','minecraft:item')['entities']
+  items=[e for e in entities if (e.get('item') or {}).get('item')=='tconstruct:pickaxe']
+  for item in items:
+   x,y,z=item['pos']
+   if -8 <= x < 9 and -8 <= z < 9 and 70.0 <= y + 0.1 < 71.0:
+    touched=item['id'];break
+  if touched is not None:break
+ assert touched is not None, ('no observed lava contact',items)
+ g.call('wait','120')
  entities=g.call('entities','25','minecraft:item')['entities']
- items=[e for e in entities if (e.get('item') or {}).get('item')=='tconstruct:pickaxe']
+ items=[e for e in entities if e.get('id')==touched]
  print('DROPPED_ITEMS',items,flush=True);assert items,entities
  g.call('screenshot',str(run/'netherite-lava-drop.png'))
  g.call('save');g.stop();print('PASS Netherite-tagged dropped tool remains after lava exposure',flush=True)
