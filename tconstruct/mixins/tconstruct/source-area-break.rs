@@ -7,7 +7,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
     if game.world.chunks.__horizon_mixins_tconstruct_area_active().contains(&actor) { return Continue(()); }
     let effective = |game: &crate::game::Game<'_>, block: &str| -> bool {
         let Some(stack) = game.held() else { return false; };
-        if !matches!(stack.item.as_ref(), "tconstruct:sledge_hammer" | "tconstruct:excavator" | "tconstruct:vein_hammer" | "tconstruct:broad_axe") { return false; }
+        if !matches!(stack.item.as_ref(), "tconstruct:sledge_hammer" | "tconstruct:excavator" | "tconstruct:vein_hammer" | "tconstruct:broad_axe" | "tconstruct:scythe") { return false; }
         let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return false; };
         let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return false; };
         if *max <= 0 || stack.damage >= *max as u32 { return false; }
@@ -30,6 +30,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
     };
     enum Area { Box(std::vec::IntoIter<[i32;3]>), Vein(crate::game::tconstruct_source_chain_geometry::Vein), Tree(crate::game::tconstruct_source_chain_geometry::Tree) }
     let area = match tool_name.as_str() {
+        "tconstruct:scythe" => { let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_transform_geometry::box_area(pos, face, game.yaw, 2)) else { return Continue(()); }; Area::Box(positions.into_iter()) },
         "tconstruct:vein_hammer" => Area::Vein(crate::game::tconstruct_source_chain_geometry::Vein::new(pos, 2)),
         "tconstruct:broad_axe" if is_tree => Area::Tree(crate::game::tconstruct_source_chain_geometry::Tree::new(pos)),
         "tconstruct:broad_axe" => Area::Box((1..=5).filter_map(|dy| pos[1].checked_add(dy).map(|y| [pos[0],y,pos[2]])).collect::<Vec<_>>().into_iter()),

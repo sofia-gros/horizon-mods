@@ -73,6 +73,9 @@ pub(super) fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Resu
             }
         }
     }
+    // Crop actions use the same source tags without changing vanilla tags.
+    wanted.insert("tconstruct:harvestable/crops".to_owned());
+    wanted.insert("tconstruct:harvestable/interact".to_owned());
     // A prepared resource root can contain links to shared base assets. Never
     // write generated aliases through one of those links.
     let mut directory = out.to_path_buf();
