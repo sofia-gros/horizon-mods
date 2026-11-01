@@ -2593,3 +2593,17 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_transform_mode"
 source = "source-transform-mode.rs"
 
+
+[[module]]
+id = "source-crop-harvest"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_crop_harvest"
+source = "source-crop-harvest.rs"
+
+[[injection]]
+id = "source-crop-use"
+target = "horizon_client::game::Game<'_>::use_hand"
+kind = "HEAD"
+cancellable = true
+helper = "source-crop-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "hit", ty = "Option<&crate::game::Hit>", value = "block_hit" }]
