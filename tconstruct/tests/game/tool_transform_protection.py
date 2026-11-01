@@ -121,7 +121,10 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
                 assert (g.call('status')['offhand'] or {}).get('item')=='tconstruct:scythe'
             before=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);console('gamemode survival Guest');g.call('wait','25')
             result=g.call('interact',str(cx),str(cy),str(cz),'up');g.call('wait','30')
-            states={(x,z):g.call('block',str(x),str(cy),str(z)).get('block','').split('[')[0] for x in range(cx-1,cx+2) for z in range(cz-1,cz+2)}
+            for attempt in range(80):
+                states={(x,z):g.call('block',str(x),str(cy),str(z)).get('block','').split('[')[0] for x in range(cx-1,cx+2) for z in range(cz-1,cz+2)}
+                if all(states[(x,z)]=='minecraft:farmland' for x in (cx,cx+1) for z in range(cz-1,cz+2)):break
+                time.sleep(.2)
             after=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);print('transform boundary',offhand,states,after,result,flush=True)
             assert all(states[(cx-1,z)]=='minecraft:dirt' for z in range(cz-1,cz+2)),states
             assert all(states[(x,z)]=='minecraft:farmland' for x in (cx,cx+1) for z in range(cz-1,cz+2)),states
