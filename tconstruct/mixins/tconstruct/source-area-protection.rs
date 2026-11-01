@@ -5,7 +5,7 @@ pub(super) fn protected(game: &super::Game<'_>, host: &super::LanHost, conn: u32
     let guest = &host.hub.guests[gi];
     let tool = guest.inventory.get(guest.selected).and_then(Option::as_ref).map(|stack| stack.item.as_ref()).unwrap_or("");
     let mut protected = std::collections::HashSet::new();
-    let radius = match tool { "tconstruct:vein_hammer" => 2, "tconstruct:broad_axe" => 10, _ => 0 };
+    let radius = match tool { "tconstruct:vein_hammer" => 2, "tconstruct:scythe" => 3, "tconstruct:broad_axe" => 10, _ => 0 };
     if radius > 0 {
         for dx in -radius..=radius { for dz in -radius..=radius {
             if i32::abs(dx) + i32::abs(dz) > radius { continue; }
