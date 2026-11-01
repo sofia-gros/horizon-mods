@@ -16,7 +16,7 @@ def smelt(item):
  cmd('tp @s 0.5 71 -1.5');empty();g.call('wait','30')
  try:g.call('interact','0','71','1')
  except subprocess.CalledProcessError as e:print('CONTROLLER',e.stdout,e.stderr,'BLOCK',g.call('block','0','71','1'),'STATUS',g.call('status'),flush=True);raise
- g.call('wait','15');click(hot(item));click(302);g.call('wait','600',timeout=50);slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert not slots.get(302),(item,slots);g.call('close')
+ g.call('wait','15');click(hot(item));click(302);g.call('wait','600',timeout=50);menu=g.call('menu');slots={x['slot']:x.get('stack') for x in menu['slots']};assert not slots.get(302),(item,menu,g.call('block','1','71','2'));g.call('close')
 def table(output,cast=None):
  cmd('tp @s 2.5 71 4.5')
  if cast:select(cast);g.call('interact','0','70','4');g.call('wait','5')
