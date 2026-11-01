@@ -30,4 +30,4 @@ See [Build and test](docs/development.md) for source preparation, tests, and the
 
 Sky Geodes provide [Skyslime Crystals](docs/playing.md#skyslime-crystals) in newly generated land areas. Natural generation, mining, Worktable use, reload and LAN visibility have representative Linux checks; crystal regrowth is not implemented.
 
-Earthslime, Ichor and Enderslime Geodes and their crystal recipes are in development; natural generation and use are not yet validated in game. Crystal regrowth remains unimplemented.
+Earthslime, Ichor and Enderslime Geodes have representative Linux natural generation, mining and crystal-use checks. Crystal regrowth and many material traits remain unimplemented.
