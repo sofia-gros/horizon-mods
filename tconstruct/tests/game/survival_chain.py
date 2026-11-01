@@ -127,7 +127,7 @@ try:
   for dst in (100,102,103,104,105):click(dst,'right')
   if g.call('menu')['carried']:click(source)
   click(slot('tconstruct:seared_fuel_gauge'));click(101)
-  preview={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert not preview.get(200),preview
+  preview={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('GAUGE REJECT GRID',preview,'BEFORE',before,flush=True);assert not preview.get(200),preview
   g.call('screenshot',str(run/'survival-filled-gauge-rejected.png'));g.call('close');g.call('wait','10')
   filled=slots('tconstruct:seared_fuel_gauge');assert len(filled)==1 and '1000' in filled[0].get('components',''),filled
   assert count('tconstruct:seared_brick')==before,inventory();cmd('clear @s tconstruct:seared_fuel_gauge')
