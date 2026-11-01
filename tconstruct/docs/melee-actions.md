@@ -13,8 +13,10 @@ sprinting suppressed Sword sweep. Hosted LAN confirmed a guest Scythe against
 mobs. Battlesign and Excavator produced observed knockback velocities 0.7 and
 1.2 respectively, with one and two durability consumed. A vanilla iron sword
 regression passed. These are representative tests, not all weapons or targets.
-Allied exclusions, critical hits, broader LAN combinations and Windows have not
-been individually verified in game. Expanded and Sweeping remain unfinished.
+A same-team mob was excluded from Scythe and Sword secondary attacks. A falling
+critical Scythe hit retained a non-critical secondary hit; a critical Sword hit
+did not sweep. Broader allied cases, LAN combinations and Windows remain
+individually unverified. Expanded and Sweeping remain unfinished.
 
 PvP primary and secondary targets are not connected. The current player sweep
 queue stores the attacker position and hardcodes a three-block distance;
@@ -32,8 +34,8 @@ that constructor contains a closure. This describes
 one attempted injection, not all possible hooks. The draft does not replace
 that limit with a misleading vanilla approximation.
 
-Remaining acceptance includes player targets and PvP permissions, allied target
-exclusions, additional critical and LAN cases, and other modifier behavior. Off-hand attack, other modifier abilities, armor and ranged
+Remaining acceptance includes player targets and PvP permissions, broader allied
+and critical cases, additional LAN cases, and other modifier behavior. Off-hand attack, other modifier abilities, armor and ranged
 weapons are future work. Crop shears loot remains unimplemented.
 
 ## Planner boundary evidence
