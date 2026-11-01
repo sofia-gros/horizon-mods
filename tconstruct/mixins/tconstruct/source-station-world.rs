@@ -173,7 +173,9 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
     let traits = super::tconstruct_source_material_traits::levels(world, &tool);
     let cultivated = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:cultivated").copied()).unwrap_or(0);
     let preserved = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:preserved").copied()).unwrap_or(0);
-    let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved);
+    let dense = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:dense").copied()).unwrap_or(0);
+    let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved)
+        * super::tconstruct_source_material_effects::dense_repair_factor(dense);
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
     for index in 1..=3 {

@@ -3,6 +3,20 @@ pub(super) fn repair_factor(cultivated: i32, preserved: i32) -> f32 {
     (1.0 + cultivated as f32 * 0.5) * (1.0 + preserved as f32 * 0.15)
 }
 
+/// Dense repair follows the two level ranges in the original repair module.
+pub(super) fn dense_repair_factor(level: i32) -> f32 {
+    match level {
+        i32::MIN..=0 => 1.0,
+        1..=5 => 1.0 - 0.025 * level as f32 * (11 - level) as f32,
+        _ => (0.5 - 0.05 * level as f32).max(0.0),
+    }
+}
+
+/// Chance that one point of tool damage is prevented by Dense.
+pub(super) fn dense_reduction_probability(level: i32) -> f32 {
+    if level <= 0 { 0.0 } else { 1.0 - 1.5f32.powi(-level) }
+}
+
 pub(super) fn durability_boost(preserved: i32, ductile: i32) -> f32 {
     preserved as f32 * 0.15 + ductile as f32 * 0.1
 }
@@ -165,6 +179,13 @@ mod tests {
     #[test]
     fn source_repair_and_wear_effects_scale_with_levels() {
         assert_eq!(repair_factor(0, 0), 1.0);
+        assert_eq!(dense_repair_factor(0), 1.0);
+        assert!((dense_repair_factor(1) - 0.75).abs() < 0.00001);
+        assert!((dense_repair_factor(5) - 0.25).abs() < 0.00001);
+        assert!((dense_repair_factor(6) - 0.20).abs() < 0.00001);
+        assert_eq!(dense_repair_factor(10), 0.0);
+        assert!((dense_reduction_probability(1) - 1.0 / 3.0).abs() < 0.00001);
+        assert!((dense_reduction_probability(2) - 5.0 / 9.0).abs() < 0.00001);
         assert_eq!(repair_factor(2, 0), 2.0);
         assert!((durability_boost(1, 1) - 0.25).abs() < 0.00001);
         assert_eq!(boosted_durability(125.0, 100.0, 1, 0), 140);

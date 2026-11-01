@@ -2379,3 +2379,10 @@ target = "horizon_client::game::Game<'_>::inventory_mouse_release"
 kind = "HEAD"
 helper = "station-armor-release.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "dense-durability-loss"
+target = "horizon_client::game::enchant_effects::Game<'_>::durability_loss"
+kind = "RETURN"
+helper = "source-dense-wear.rs"
+bindings = [{ name = "loss", ty = "u32", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
