@@ -5,9 +5,16 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let atlas = &game.gui.atlas;
     let center = batch.width / 2.0;
     let top = (batch.height / 2.0 - 100.0).floor();
-    let base = (*page / 2) * 2;
+    let cover = *page == usize::MAX;
+    let base = if cover { 0 } else { (*page / 2) * 2 };
     batch.fill(atlas, 0.0, 0.0, batch.width, batch.height, rgba(16, 16, 16, 160));
-    if let Some(rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_pages").copied() {
+    if cover {
+        if let Some(mut rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_cover").copied() {
+            let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
+            rect.u1 = rect.u0 + 206.0 * du; rect.v1 = rect.v0 + 200.0 * dv;
+            batch.rect_uv(center - 103.0, top, 206.0, 200.0, rect, u32::MAX);
+        }
+    } else if let Some(rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_pages").copied() {
         let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
         let mut under = rect;
         under.u1 = under.u0 + 412.0 * du; under.v1 = under.v0 + 200.0 * dv;
@@ -17,11 +24,20 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         batch.rect_uv(center - 206.0, top, 412.0, 200.0, paper, u32::MAX);
     }
     let (mx, my) = game.cursor;
-    for (show, x, name) in [(base + 2 < pages.len(), center + 160.0, "page_forward"), (base > 0, center - 184.0, "page_backward")] {
-        if show {
-            let hover = mx >= x && mx < x + 23.0 && my >= top + 178.0 && my < top + 191.0;
-            let sprite = format!("gui/sprites/widget/{}{}", name, if hover { "_highlighted" } else { "" });
-            batch.sprite(atlas, &sprite, x, top + 178.0);
+    if let Some(rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_pages").copied() {
+        let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
+        for (show, x, sy, w, h) in [
+            (cover || base + 2 < pages.len(), center + if cover { 80.0 } else { 165.0 }, 0.0, 18.0, 10.0),
+            (!cover, center - 184.0, 10.0, 18.0, 10.0),
+            (!cover, center - 215.0, 40.0, 18.0, 18.0),
+        ] {
+            if show {
+                let mut arrow = rect;
+                arrow.u0 = rect.u0 + 412.0 * du; arrow.u1 = arrow.u0 + w * du;
+                arrow.v0 = rect.v0 + sy * dv; arrow.v1 = arrow.v0 + h * dv;
+                let y = if sy == 40.0 { top } else { top + 175.0 };
+                batch.rect_uv(x, y, w, h, arrow, u32::MAX);
+            }
         }
     }
     let button_x = center - 100.0;
@@ -46,12 +62,14 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
         game.draw_item(batch, &stack, x, y);
     };
-    for offset in 0..2 {
+    for offset in 0..if cover { 0 } else { 2 } {
     let Some(text) = pages.get(base + offset) else { continue; };
     let left = center - 206.0 + offset as f32 * 206.0 + 16.0 - 36.0;
-    for (i, line) in game.page_lines(text).iter().take(LINES).enumerate() {
+    for (i, line) in game.gui.atlas.font.split(text, 182.0).iter().take(LINES).enumerate() {
         batch.text_styled(atlas, line, left + 36.0, top + 12.0 + i as f32 * 9.0, BLACK, false);
     }
+    let number = (base + offset + 1).to_string();
+    batch.text(atlas, &number, left + 36.0 + (182.0 - HudBatch::text_width(atlas, &number)) / 2.0, top + 178.0, rgba(170, 170, 170, 255), false);
     let Some(spec) = text.spans.first().and_then(|s| s.style.insertion.as_deref()).and_then(|s| s.strip_prefix("tconstruct:book:")).and_then(|s| serde_json::from_str::<serde_json::Value>(s).ok()) else { continue; };
     (|| {
     if let Some(id) = spec.get("image").and_then(|v| v.as_str()) {

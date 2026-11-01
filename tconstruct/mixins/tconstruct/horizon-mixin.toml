@@ -3161,3 +3161,9 @@ kind = "HEAD"
 cancellable = true
 helper = "source-materials-book-turn.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "forward", ty = "bool", value = "forward" }]
+
+[[module]]
+id = "materials-book-spread"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_spread"
+source = "source-materials-book-spread.rs"

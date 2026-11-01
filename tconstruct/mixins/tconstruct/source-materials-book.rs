@@ -303,7 +303,7 @@ pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.join("assets/tconstruct/materials-and-you.zip");
         let Some(pages) = source_pages(game, &path) else { return false; };
-        game.open_book(BookScreen::View { pages, page: 0, lectern: None });
+        game.open_book(BookScreen::View { pages, page: usize::MAX, lectern: None });
         if remote {
             let hand = u8::from(game.hand == Hand::Off);
             game.send(S::CustomPayload(horizon_protocol::packets::configuration::CustomPayload {
