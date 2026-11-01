@@ -31,7 +31,7 @@ def set_trait(name, level=1):
     g.call('wait', '50')
 
 def build():
-    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie]', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'clear @s', 'kill @e[type=minecraft:item]', 'tp @s 0.5 71 0.5', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1', 'give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
+    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie,tag=tconstruct_melee_trait_test]', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'clear @s', 'tp @s 0.5 71 0.5', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1', 'give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):
         cmd(x)
     g.call('hotbar', '1')
     g.call('interact', '0', '71', '2')
@@ -54,10 +54,10 @@ def val(item, name):
     return float(m.group(1))
 
 def attack():
-    cmd('kill @e[type=minecraft:zombie]')
+    cmd('kill @e[type=minecraft:zombie,tag=tconstruct_melee_trait_test]')
     cmd('tp @s 0.5 71 0.5')
     cmd('gamemode survival @s')
-    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b}')
+    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b,Tags:["tconstruct_melee_trait_test"]}')
     g.call('wait', '30')
     g.call('hurtlog')
     entities = g.call('entities', '8', 'minecraft:zombie')['entities']
