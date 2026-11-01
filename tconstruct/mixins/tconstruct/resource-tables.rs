@@ -121,6 +121,19 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 std::fs::write(path, bytes)?;
             }
         }
+        // Source glow is a six-directional, non-colliding light source.
+        // Use the same empty collision for every orientation in both tables.
+        let glow_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
+            .filter_map(|(id, row)| (row.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:glow")).then_some(id)).collect();
+        if !glow_ids.is_empty() {
+            let air = facts["defaults"]["minecraft:air"].as_u64().ok_or("missing air state")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                super::tconstruct_block_shapes::apply_empty_shape(&mut named.tag, air, &glow_ids)?;
+                std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+            }
+        }
         // Source soul glass has no collision and slows entities while inside.
         let soul_names = ["soul_glass", "soul_glass_pane", "seared_soul_glass", "seared_soul_glass_pane", "scorched_soul_glass", "scorched_soul_glass_pane"];
         let soul_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
