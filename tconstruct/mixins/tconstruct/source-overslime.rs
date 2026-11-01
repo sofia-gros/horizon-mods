@@ -105,6 +105,7 @@ pub(super) fn rebuild(stack: &mut horizon_items::items::ItemStack,
     let Tag::Compound(ref mut fields) = custom else { return None; };
     fields.insert("tic_overslime_capacity".into(), Tag::Int(cap as i32));
     fields.insert("tic_overslime_active".into(), Tag::Byte(i8::from(has)));
+    fields.insert("tic_overslime_overworked".into(), Tag::Int(levels.get("tconstruct:overworked").copied().unwrap_or(0).max(0)));
     if has {
         let amount = match fields.get(&"tic_overslime".into()) { Some(Tag::Int(n)) => (*n).max(0).min(cap as i32), _ => 0 };
         fields.insert("tic_overslime".into(), Tag::Int(amount));
