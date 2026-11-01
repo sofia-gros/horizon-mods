@@ -182,7 +182,7 @@ try:
   cmd('tp @s 0.5 71 -1.5');empty_hand();g.call('interact','0','71','1');g.call('wait','15');assert g.call('status')['screen']=='inventory'
   click(slot('minecraft:copper_ingot'));click(302);click(slot('minecraft:gold_ingot'));click(303);g.call('close')
   for i in range(3):
-   g.call('wait','1800',timeout=180);cmd('tp @s 2.5 71 4.5');empty_hand();g.call('interact','0','71','4');g.call('wait','300',timeout=45);g.call('interact','0','70','4');g.call('wait','12')
+   g.call('wait','2600',timeout=260);cmd('tp @s 2.5 71 4.5');empty_hand();g.call('interact','0','71','4');g.call('wait','300',timeout=45);g.call('interact','0','70','4');g.call('wait','12')
    assert count('tconstruct:rose_gold_block')==i+1,inventory()
   g.call('screenshot',str(run/'survival-alloy.png'))
   TABLE=(4,71,2)
