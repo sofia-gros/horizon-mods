@@ -14,6 +14,12 @@ pub(super) fn has_operation_tool(slots: &[Option<ItemStack>]) -> bool {
 
 /// Resolve supported tools against source recipes and material stats.
 pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(BuildingMatch, ItemStack)> {
+    building_plan_with_capacity(world, slots, 3)
+}
+
+/// The authoritative caller must select the capacity from the workstation block.
+pub(super) fn building_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(BuildingMatch, ItemStack)> {
+    if !matches!(input_capacity, 3 | 5) { return None; }
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let registered = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
@@ -23,7 +29,7 @@ pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Opt
         let Some((namespace, name)) = recipe.result.split_once(':') else { continue; };
         let Some(definition) = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()) else { continue; };
         let Some(parts) = recipe.parts(definition) else { continue; };
-        let Some(inputs) = slots.get(..3) else { return None; };
+        let Some(inputs) = slots.get(..input_capacity) else { return None; };
         let Some(matched) = recipe.match_inputs(&parts, parts.len(), inputs, |stack| {
             match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("Material")) {
                 Some(Tag::String(material)) => Some(material.to_string_lossy().to_string()),
