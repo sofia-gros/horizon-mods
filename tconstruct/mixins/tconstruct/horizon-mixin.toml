@@ -2592,3 +2592,17 @@ id = "source-transform-mode"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_transform_mode"
 source = "source-transform-mode.rs"
+
+[[module]]
+id = "source-shear"
+file = "crates/horizon-items/src/items.rs"
+name = "tconstruct_source_shear"
+source = "source-shear.rs"
+
+[[injection]]
+id = "source-shear-loot"
+target = "horizon_items::items::LootContext<'_>::condition"
+kind = "HEAD"
+cancellable = true
+helper = "source-shear-loot.rs"
+bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "self.held" }, { name = "condition", ty = "&serde_json::Value", value = "c" }]
