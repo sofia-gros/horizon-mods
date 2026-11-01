@@ -26,7 +26,7 @@ def acquire(name,start,end):
             scroll_positions[name]=y;break
     assert found is not None,(name,[(n.get('id'),(n.get('stack') or {}).get('item')) for n in nodes])
     i=int(found['id'].split('-')[1])-900;screen_click(285+(17+(i%9)*18)*2,136+(26+(i//9)*18)*2);g.call('wait','5')
-    held=g.call('inventory')['carried'] or {};print('creative item',name,json.dumps(held),flush=True);assert held.get('item')=='tconstruct:'+name and 'tic_mining_tool' in held.get('components',''),held
+    held=g.call('inventory')['carried'] or {};print('creative item',name,json.dumps(held),flush=True);assert held.get('item')=='tconstruct:'+name and 'tic_max_damage' in held.get('components',''),held
     screen_click(319,376);g.call('wait','5');g.call('close');g.call('hotbar','1');g.call('wait','5')
 
 try:
