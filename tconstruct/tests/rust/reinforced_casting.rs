@@ -6,8 +6,10 @@ fn pinned_source_melting_and_casting_resolve_without_vanilla_recipe_changes() {
  use std::collections::{BTreeMap,HashMap,HashSet};use std::io::Read;
  let file=std::fs::File::open("tconstruct/content/reference/tconstruct-recipes.zip").unwrap();let mut zip=zip::ZipArchive::new(file).unwrap();
  let mut recipes=BTreeMap::new();
- for name in ["smeltery/melting/obsidian/block","smeltery/melting/emerald/gem","smeltery/casting/obsidian/pane","tools/modifiers/emerald_reinforcement"] {
-  let mut data=Vec::new();zip.by_name(&format!("data/tconstruct/recipes/{name}.json")).unwrap().read_to_end(&mut data).unwrap();recipes.insert(name.to_string(),data);
+ for index in 0..zip.len() {
+  let mut file=zip.by_index(index).unwrap();let name=file.name().to_owned();
+  if !name.starts_with("data/tconstruct/recipes/") || !name.ends_with(".json") {continue;}
+  let mut data=Vec::new();file.read_to_end(&mut data).unwrap();recipes.insert(name,data);
  }
  let items:HashSet<String>=["minecraft:obsidian","minecraft:emerald","tconstruct:obsidian_pane","tconstruct:emerald_reinforcement"].into_iter().map(str::to_owned).collect();
  let fluids:HashSet<String>=["tconstruct:molten_obsidian","tconstruct:molten_emerald"].into_iter().map(str::to_owned).collect();
