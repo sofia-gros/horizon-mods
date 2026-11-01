@@ -33,7 +33,7 @@ def total(item):
     ground=sum((e.get('item') or {}).get('count',0) for e in g.call('entities','10','minecraft:item')['entities'] if (e.get('item') or {}).get('item')==item)
     return inv+ground
 def setup():
-    cmd('gamemode creative @s');cmd('fill 16 100 17 24 105 23 minecraft:air');cmd('fill 16 99 17 24 99 23 minecraft:stone');cmd('tp @s 20.5 100 18.5');g.call('wait','10')
+    cmd('gamemode creative @s');cmd('time set day');cmd('weather clear');cmd('fill 16 100 17 24 105 23 minecraft:air');cmd('fill 16 99 17 24 99 23 minecraft:stone');cmd('tp @s 20.5 100 18.5');g.call('wait','10')
 def run_block(center, selected, kept, drop):
     before=g.call('inventory')['held']; baseline=total(drop);cmd('gamemode survival @s');g.call('wait','10')
     result=g.call('break',*map(str,center),'--timeout','50',timeout=55);g.call('wait','20')

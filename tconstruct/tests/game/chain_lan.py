@@ -40,7 +40,7 @@ try:
     for name in ('vein_hammer','broad_axe'):
       for limit in (None,1,3):
         block='minecraft:netherrack' if name=='vein_hammer' else 'minecraft:oak_log'
-        for command in ('gamemode creative @a','clear Guest','fill 26 100 27 34 105 33 minecraft:air','fill 26 99 27 34 99 33 minecraft:stone','tp @s 37.5 100 27.5','tp Guest 30.5 100 28.5'):
+        for command in ('gamemode creative @a','time set day','weather clear','clear Guest','fill 26 100 27 34 105 33 minecraft:air','fill 26 99 27 34 99 33 minecraft:stone','tp @s 37.5 100 27.5','tp Guest 30.5 100 28.5'):
             cmd(h,command)
         acquire(q,name)
         positions=[(30,101+i,30) for i in range(4)]

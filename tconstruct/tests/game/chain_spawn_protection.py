@@ -105,7 +105,7 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
         proxy=EarlyStopProxy(port)
         g=Game(a,run,'Guest',server='127.0.0.1:'+str(proxy.port),resume=(run/'Guest').exists());g.ready()
         def console(s):server.stdin.write(s+'\n');server.stdin.flush();time.sleep(.5)
-        console('gamemode creative Guest');g.call('wait','20');acquire(g)
+        console('time set day');console('weather clear');console('gamemode creative Guest');g.call('wait','20');acquire(g)
         cx,cy,cz=sx+4,101,sz
         for s in (f'fill {cx-2} {cy-2} {cz-2} {cx+2} {cy-2} {cz+2} minecraft:stone',f'fill {cx-2} {cy} {cz} {cx+2} {cy} {cz} minecraft:netherrack',f'setblock {cx} {cy-2} {cz-2} minecraft:stone',f'tp Guest {cx+.5} {cy-1} {cz-1.5}','gamemode survival Guest'):console(s)
         g.call('wait','30');before=g.call('inventory')['held']
