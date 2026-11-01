@@ -39,7 +39,10 @@ def scenario(block,face):
     positions=[(x,y,z) for x in range(lo[0],hi[0]+1) for y in range(lo[1],hi[1]+1) for z in range(lo[2],hi[2]+1)]
     remaining=[(p,g.call('block',*map(str,p)).get('block')) for p in positions if g.call('block',*map(str,p)).get('block')!='minecraft:air']
     after=g.call('inventory')['held'] or {};print('area',block,face,json.dumps(r),'wear',before.get('damage',0),after.get('damage',0),'remaining',remaining,flush=True)
-    assert not remaining,remaining;assert after.get('damage',0)-before.get('damage',0)==9,(before,after);return r
+    assert not remaining,remaining;assert after.get('damage',0)-before.get('damage',0)==9,(before,after)
+    drop='minecraft:cobblestone' if block=='minecraft:stone' else block
+    assert r.get('drops',{}).get(drop,0)==9,r
+    return r
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
