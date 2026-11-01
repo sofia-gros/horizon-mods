@@ -40,7 +40,12 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     }
     let resolved_tags = game.res.rest.get().map(|rest| {
         let registry = rest.items.registry_order.iter().map(|id| id.to_string()).collect();
-        crate::game::tconstruct_source_tags::resolve_registry(&tags, &registry)
+        let mut resolved = crate::game::tconstruct_source_tags::resolve_registry(&tags, &registry)?;
+        if !game.cmds.vanilla_disabled {
+            let playable = rest.items.items.iter().filter(|(_, info)| info.jukebox_song.is_some()).map(|(id, _)| id.to_string());
+            crate::game::tconstruct_source_tags::fallback_music_discs(&tags, &mut resolved, playable);
+        }
+        Ok(resolved)
     });
     // Resolve against the actual Horizon built-in registry. This may be a
     // strict subset of the original mod's fluids until those are ported.

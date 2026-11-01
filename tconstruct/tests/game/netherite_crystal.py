@@ -27,12 +27,16 @@ try:
  g.call('click-gui','67','19');g.call('wait','12');assert 325 in slots(),slots()
  g.call('screenshot',str(run/'netherite-crystal-icons.png'))
  click(325);result=g.call('menu')['carried'];assert result and result['item']=='tconstruct:pickaxe',result
- assert '"tconstruct:unbreakable"' not in result.get('components',''),result
  click(0);g.call('close');g.call('wait','8')
+ loaded=next(x for x in g.call('inventory')['hotbar'] if x.get('item')=='tconstruct:pickaxe')
+ assert '"tconstruct:unbreakable"' not in loaded.get('components',''),loaded
  inv=g.call('inventory');assert any(x.get('item')=='tconstruct:modifier_crystal' and 'tconstruct:unbreakable' in x.get('components','') for x in inv['hotbar']),inv
  cmd('setblock 0 71 2 tconstruct:tinker_station');g.call('interact','0','71','2');g.call('wait','12')
  click(hot('tconstruct:pickaxe'));click(300);click(hot('tconstruct:modifier_crystal'));click(301)
  assert 325 in slots(),slots();click(325);result=g.call('menu')['carried']
- assert result and '"tconstruct:unbreakable":1' in result.get('components',''),result
- click(0);g.call('close');g.call('save');g.stop();print('PASS Unbreakable Crystal and dependency protection',flush=True)
+ assert result and result.get('item')=='tconstruct:pickaxe',result
+ click(0);g.call('close');g.call('wait','8')
+ loaded=next(x for x in g.call('inventory')['hotbar'] if x.get('item')=='tconstruct:pickaxe')
+ assert '"tconstruct:unbreakable":1' in loaded.get('components',''),loaded
+ g.call('save');g.stop();print('PASS Unbreakable Crystal and dependency protection',flush=True)
 finally:g.cleanup()

@@ -374,3 +374,30 @@ mod tests {
         assert_eq!(tags.len(), 1);
     }
 }
+
+/// Restore the source music-disc tag when the host data version no longer
+/// exposes it. Explicit pack definitions retain complete precedence.
+pub(super) fn fallback_music_discs(
+    raw: &BTreeMap<String, Vec<Vec<u8>>>,
+    resolved: &mut std::collections::HashMap<String, std::collections::HashSet<String>>,
+    playable: impl IntoIterator<Item = String>,
+) {
+    if !raw.contains_key("minecraft:music_discs") {
+        resolved.insert("minecraft:music_discs".into(), playable.into_iter().collect());
+    }
+}
+
+#[cfg(test)]
+mod music_disc_fallback_tests {
+    use super::*;
+    #[test]
+    fn missing_tag_uses_host_playable_items_but_explicit_tag_wins() {
+        let mut resolved = std::collections::HashMap::new();
+        fallback_music_discs(&BTreeMap::new(), &mut resolved, ["minecraft:music_disc_13".to_owned()]);
+        assert!(resolved["minecraft:music_discs"].contains("minecraft:music_disc_13"));
+        let raw = BTreeMap::from([("minecraft:music_discs".to_owned(), vec![br#"{"replace":true,"values":[]}"#.to_vec()])]);
+        resolved.insert("minecraft:music_discs".into(), Default::default());
+        fallback_music_discs(&raw, &mut resolved, ["minecraft:music_disc_13".to_owned()]);
+        assert!(resolved["minecraft:music_discs"].is_empty());
+    }
+}

@@ -7,6 +7,7 @@ p = argparse.ArgumentParser()
 for name in ('game', 'ctl', 'resources', 'run-dir'):
     p.add_argument('--' + name, type=Path, required=True)
 p.add_argument('--in-frame', action='store_true')
+p.add_argument('--skip-harmonious', action='store_true')
 a = p.parse_args()
 run = a.run_dir.resolve()
 assert run.is_relative_to((Path(__file__).resolve().parents[2] / 'target').resolve())
@@ -40,10 +41,10 @@ def apply(table, ingredient_slots, expected, reject=False):
     click(325)
     result = g.call('menu').get('carried')
     assert result and result['item'] == 'tconstruct:pickaxe', (expected, result, slots())
-    assert f'"tconstruct:{expected}"' in result.get('components', ''), result
     if expected == 'unbreakable':
         assert slots().get(302, {}).get('item') == 'minecraft:glass_bottle', slots()
     click(0); g.call('close'); g.call('wait', '8')
+    assert f'"tconstruct:{expected}"' in current().get('components', ''), current()
     print('APPLIED', expected, current(), flush=True)
 def hot_empty():
     inv = g.call('inventory')['hotbar']
@@ -57,6 +58,7 @@ try:
                     'give @s tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85},minecraft:max_damage=85] 1'):
         cmd(command)
     for modifier, item in [('writable','minecraft:writable_book'), ('harmonious','minecraft:music_disc_13'), ('recapitated','minecraft:skeleton_skull'), ('forecast','minecraft:diamond_ore')]:
+        if modifier == 'harmonious' and a.skip_harmonious: continue
         cmd('give @s ' + item + ' 1')
         apply('tinker_station', [(item, [301])], modifier)
     cmd('give @s minecraft:netherite_upgrade_smithing_template 1')
