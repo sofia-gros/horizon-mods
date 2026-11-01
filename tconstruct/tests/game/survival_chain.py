@@ -18,7 +18,7 @@ def click(slot,*flags):g.call('click-slot',str(slot),*flags);g.call('wait','4')
 def inventory():return g.call('inventory')
 def count(item):return inventory()['counts'].get(item,0)
 def slots(item):return [s for s in inventory()['hotbar']+inventory()['main'] if s.get('item')==item]
-def slot(item):return slots(item)[0]['slot']
+def slot(item):return max(slots(item),key=lambda s:s.get('count',0))['slot']
 def hot(item):return next(s['slot'] for s in inventory()['hotbar'] if s.get('item')==item)
 def empty_any():return next(s['slot'] for s in inventory()['hotbar']+inventory()['main'] if not s.get('item'))
 def empty():
@@ -36,8 +36,15 @@ def place(item,x,y,z):
  assert g.call('block',str(x),str(y),str(z)).get('block')==item,(item,x,y,z)
  assert count(item)==before-1,(item,before,count(item))
 def empty_hand():g.call('hotbar',str(empty()+1));g.call('wait','8')
+def merge_stacks(item):
+ found=slots(item)
+ if len(found)<2:return
+ found=sorted(found,key=lambda s:s.get('count',0));g.call('open-inventory');g.call('wait','8');click(found[0]['slot']);click(found[-1]['slot'])
+ if g.call('menu')['carried']:click(found[0]['slot'])
+ g.call('close')
+TABLE=(0,71,2)
 def open_table():
- cmd('tp @s 0.5 71 0.5');g.call('hotbar',str(empty()+1));g.call('wait','5');g.call('interact','0','71','2');g.call('wait','10')
+ x,y,z=TABLE;cmd(f'tp @s {x+0.5} {y} {z-1.5}');g.call('hotbar',str(empty()+1));g.call('wait','5');g.call('interact',str(x),str(y),str(z));g.call('wait','10')
 def craft(ingredients,result,amount=1,many=False):
  open_table()
  for item,positions in ingredients:
@@ -130,7 +137,7 @@ try:
   for _ in range(2):craft([(brick,[100,102,103,105,106,107,108])],'tconstruct:seared_basin')
   craft([(brick,[100,101,102,103,105,106,107,108]),(glass,[104])],'tconstruct:seared_fuel_tank')
   craft([(brick,[100,102,106,108]),('minecraft:copper_ingot',[103,105])],'tconstruct:seared_drain')
-  craft([(brick,[100]*7+[101]*7+[103]*7+[104]*7)],'tconstruct:seared_bricks',many=True)
+  merge_stacks(brick);craft([(brick,[100]*7+[101]*7+[103]*7+[104]*7)],'tconstruct:seared_bricks',many=True)
   assert count('tconstruct:seared_bricks')==7,inventory();checkpoint()
  elif a.phase=='controller':
   # Replace only our disposable fixture table/work area; every placed mod
