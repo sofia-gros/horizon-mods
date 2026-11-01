@@ -36,6 +36,17 @@ class SlimeIslandReferenceTest(unittest.TestCase):
                     raw = gzip.decompress(archive.read(f'data/tconstruct/structures/{name}.nbt'))
                     self.assertEqual(raw[0], 10)  # Named NBT compound root.
 
+    def test_slime_island_biome_and_tree_references_are_retained(self):
+        data_root = SOURCE.parent
+        for definition in ('earth_slime_island', 'sky_slime_island',
+                           'end_slime_island', 'blood_island', 'ocean_skyslime_island'):
+            data = json.loads((SOURCE / f'structure/{definition}.json').read_text())
+            biome = data['biomes'].removeprefix('#tconstruct:')
+            self.assertTrue((data_root / f'tags/worldgen/biome/{biome}.json').is_file())
+            for tree in data['trees']:
+                feature = tree['data'].removeprefix('tconstruct:')
+                self.assertTrue((SOURCE / f'configured_feature/{feature}.json').is_file())
+
 
 if __name__ == '__main__':
     unittest.main()
