@@ -411,6 +411,10 @@ mod tests {
         let mut crystal=ItemStack::new("tconstruct:modifier_crystal",1);
         crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String("tconstruct:unbreakable".into()))])));
         assert_eq!(plan_with_traits(&recipes,&tags,&tool,&[Some(crystal)],6,1,&BTreeMap::new()).unwrap().id,"tconstruct:unbreakable");
+        // A two-upgrade, zero-ability base can reach the recipe through the
+        // source bonus modifiers instead of changing its intrinsic slots.
+        let bonuses = BTreeMap::from([("tconstruct:writable".into(),1), ("tconstruct:harmonious".into(),1), ("tconstruct:recapitated".into(),1), ("tconstruct:forecast".into(),1), ("tconstruct:draconic".into(),1)]);
+        assert_eq!(plan_with_traits(&recipes,&tags,&tool,&five,2,0,&bonuses).unwrap().id,"tconstruct:unbreakable");
         tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:netherite",Tag::Int(1)),("tconstruct:reinforced",Tag::Int(20)),("tconstruct:unbreakable",Tag::Int(1))]))])));
         let inputs=[Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
         assert!(extract_upgrade(&tags,&tool,&inputs,"tconstruct:reinforced").is_none());

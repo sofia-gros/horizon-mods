@@ -115,7 +115,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                     region.u1 = region.u0 + 18.0 * du; region.v1 = region.v0 + 18.0 * dv;
                     batch.rect_uv(x, y, 18.0, 18.0, region, u32::MAX);
                 }
-                batch.sprite(atlas, &format!("gui/tconstruct_modifier_{}", id.rsplit(':').next().unwrap_or("")), x + 1.0, y + 1.0);
+                let sprite = format!("gui/tconstruct_modifier_{}", id.rsplit(':').next().unwrap_or(""));
+                if atlas.sprites.contains_key(&sprite) { batch.sprite(atlas, &sprite, x + 1.0, y + 1.0); }
+                else {
+                    let label = match *id { "tconstruct:netherite" => "N", "tconstruct:unbreakable" => "U", _ => "?" };
+                    batch.text(atlas, label, x + 5.0, y + 5.0, color, false);
+                }
             }
             let output = if game.remote.is_some() { slots.get(25).cloned().flatten() }
                 else { game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos))

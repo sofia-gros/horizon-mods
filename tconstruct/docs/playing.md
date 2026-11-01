@@ -178,7 +178,7 @@ The in-development ranged upgrades use magma cream for Quick Charge on Crossbows
 
 ## Netherite and Unbreakable
 
-Netherite takes one Netherite Upgrade Smithing Template and one Netherite Ingot with a durable tool in a Tinker Station or either Anvil. It consumes one upgrade slot. The original modifier improves durability, mining, melee, armor toughness and knockback resistance, and Longbow/Crossbow projectile speed where those stats apply. A Netherite tool retains the original rare rarity and dropped-item protection in the supported paths.
+Netherite takes one Netherite Upgrade Smithing Template and one Netherite Ingot with a durable tool in a Tinker Station or either Anvil. It consumes one upgrade slot. The original modifier improves durability, mining, melee, armor toughness and knockback resistance, and Longbow/Crossbow projectile speed where those stats apply. Netherite uses rare rarity for workstation tooltips and held names. Dropped-item fire, lava and cactus protection is connected; other damage sources and the full entity lifecycle await game verification.
 
 To gain upgrade slots, use the source Writable (Writable Book), Harmonious (music disc), Forecast (diamond, emerald or Cobalt ore), and Recapitated (a non-dragon head) recipes on eligible equipment. Each adds one upgrade slot. Draconic, made with a Dragon Head, adds an ability slot; this is particularly useful for armor, which starts without one. These recipes follow the source equipment tags and one-time limits.
 
@@ -186,7 +186,7 @@ Unbreakable takes two Shulker Shells, Dragon's Breath and two Netherite Ingots i
 
 Both modifiers support extraction into and application from a Modifier Crystal. While Unbreakable remains on a tool, removing Netherite or enough Reinforced to invalidate its prerequisites is rejected; remove Unbreakable first. A Crystal uses one input slot, so it can be applied at a Station when the requirements and slots are met.
 
-This branch has lightweight recipe and stat checks only. The new recipes, rarity, dropped-item protection, effective mining and combat, persistence and LAN have **not yet been verified in the game**. Advancement criteria remain unimplemented; other equipment and modifiers still have the limits described below.
+This branch has lightweight recipe and stat checks only. The new recipes, rarity, dropped-item protection, effective mining and combat, persistence and LAN have **not yet been verified in the game**. Worktable selection uses letter labels for Netherite and Unbreakable until dedicated icons are supplied. Advancement criteria remain unimplemented; other equipment and modifiers still have the limits described below.
 
 ## Extract a modifier
 
