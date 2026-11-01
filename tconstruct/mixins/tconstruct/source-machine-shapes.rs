@@ -1,6 +1,6 @@
 // Shapes from the pinned TConstruct FaucetBlock and casting blocks.
 #[derive(Clone)]
-pub(super) struct Shape { pub grid: Vec<i8>, pub boxes: Vec<[f64; 6]>, pub edges: Vec<[f64; 6]> }
+pub(super) struct Shape { pub grid: Vec<u8>, pub boxes: Vec<[f64; 6]>, pub edges: Vec<[f64; 6]> }
 
 fn inside(p: [usize; 3], b: [usize; 6]) -> bool {
     (0..3).all(|i| p[i] >= b[i] && p[i] < b[i+3])
@@ -27,7 +27,7 @@ fn filled(kind: &str, facing: &str, p: [usize; 3]) -> bool {
 pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
     if !matches!(kind, "tconstruct:seared_faucet" | "tconstruct:seared_basin" | "tconstruct:seared_table") { return None; }
     if kind.ends_with("faucet") && !matches!(facing, "down"|"north"|"south"|"west"|"east") { return None; }
-    let mut grid = vec![0i8; 4096];
+    let mut grid = vec![0u8; 4096];
     let mut boxes = Vec::new();
     let scale = |v: usize| v as f64 / 16.0;
     for x in 0..16 { for y in 0..16 { for z in 0..16 {
