@@ -72,6 +72,8 @@ def mine(fraction=1.0, block='minecraft:stone', haste=False):
     if haste: cmd('effect give @s minecraft:haste 30 0 true')
     before = g.call('inventory')['held']
     cmd('gamemode survival @s')
+    g.call('wait', '30')
+    print('held before mining', json.dumps(before), flush=True)
     result = g.call('break', '0', '71', '2', '--timeout', '30', timeout=35)
     after = g.call('inventory')['held']
     print('mine', block, fraction, haste, 'damage', before.get('damage', 0), after.get('damage', 0), 'result', json.dumps(result), flush=True)
