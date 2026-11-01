@@ -72,5 +72,8 @@ try:
     run_block(selected[0],selected,kept,'minecraft:oak_log');g.call('screenshot',str(run/'chain-tree.png'))
     for tool in ('vein_hammer','broad_axe'):
         for remaining in (1,3):limited(tool,remaining)
-    g.call('save');g.stop();print('PASS chain representative',flush=True)
+    g.call('save');g.stop();g.cleanup()
+    g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready()
+    assert at([20,104,20])=='minecraft:oak_log'
+    g.stop();print('PASS chain representative and reload',flush=True)
 finally:g.cleanup()
