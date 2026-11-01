@@ -11,6 +11,14 @@ pub(super) fn attack(item:&str)->Option<Attack> {
         _=>None,
     }
 }
+// Dynamic tool records retain a broken stack instead of deleting it.
+pub(super) fn intact(stack:&horizon_items::items::ItemStack)->Option<u32> {
+    use horizon_world::nbt::Tag;
+    let custom=stack.data()?.other("minecraft:custom_data")?;
+    let max=match custom.get("tic_max_damage")? { Tag::Int(n) if *n>0=>*n as u32,_=>return None };
+    if stack.damage>=max || matches!(custom.get("tic_broken"),Some(Tag::Byte(value)) if *value!=0) {return None;}
+    Some(max)
+}
 // The caller also checks intersection with the primary target's expanded box,
 // the entity's eligibility, team, and the original tool's live durability.
 pub(super) fn in_distance(kind:Attack, primary:[f64;3], attacker:[f64;3], candidate:[f64;3])->bool {
