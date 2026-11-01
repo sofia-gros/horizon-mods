@@ -2702,3 +2702,11 @@ kind = "HEAD"
 cancellable = true
 helper = "source-melee-sweep.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "target" }, { name = "_scale", ty = "f32", value = "scale" }]
+
+[[injection]]
+id = "source-melee-extra-hit"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+cancellable = true
+helper = "source-melee-extra-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "_index", ty = "usize", value = "index" }]
