@@ -36,10 +36,13 @@ def apply(table, ingredient_slots, expected, reject=False):
         assert 325 not in slots(), (expected, slots())
         g.call('close'); g.call('wait', '8'); return
     assert 325 in slots(), (expected, slots())
+    if expected == 'unbreakable': g.call('screenshot', str(run / 'netherite-unbreakable.png'))
     click(325)
     result = g.call('menu').get('carried')
     assert result and result['item'] == 'tconstruct:pickaxe', (expected, result, slots())
     assert f'"tconstruct:{expected}"' in result.get('components', ''), result
+    if expected == 'unbreakable':
+        assert slots().get(302, {}).get('item') == 'minecraft:glass_bottle', slots()
     click(0); g.call('close'); g.call('wait', '8')
     print('APPLIED', expected, current(), flush=True)
 def hot_empty():
