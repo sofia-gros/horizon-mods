@@ -2798,6 +2798,6 @@ kind = "HEAD"
 cancellable = true
 helper = "anvil-material-recipe.rs"
 bindings = [
-  { name = "input", ty = "&crate::crafting::Input<'_>", value = "input" },
-  { name = "recipe", ty = "&crate::crafting::Recipe", value = "recipe" },
+  { name = "input", ty = "&Input<'_>", value = "input" },
+  { name = "recipe", ty = "&Recipe", value = "recipe" },
 ]
