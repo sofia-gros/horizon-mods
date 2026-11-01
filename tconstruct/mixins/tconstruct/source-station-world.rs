@@ -72,25 +72,35 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }
-    let tier = stat_maps.iter().filter_map(|map| map.get("tconstruct:head"))
-        .filter_map(|head| head.get("mining_tier").and_then(serde_json::Value::as_str))
-        .filter_map(|tier| match tier { "minecraft:wood" => Some((0, "wooden")), "minecraft:gold" => Some((0, "gold")),
-            "minecraft:stone" => Some((1, "stone")), "minecraft:iron" => Some((2, "iron")),
-            "minecraft:diamond" => Some((3, "diamond")), "minecraft:netherite" => Some((4, "netherite")), _ => None })
-        .max_by_key(|(level, _)| *level).map(|(_, tier)| tier);
+    let tier = super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?;
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let mut rules = Vec::new();
-    if let Some(tier) = tier {
-        rules.push(Tag::compound([("blocks", Tag::String(format!("#minecraft:incorrect_for_{tier}_tool").as_str().into())), ("correct_for_drops", Tag::Byte(0))]));
+    let source_effective = definition_json.get("modules")?.as_array()?.iter().find(|module|
+        module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:is_effective"));
+    let ignore_tier = source_effective.and_then(|module| module.get("ignore_tier")).and_then(serde_json::Value::as_bool).unwrap_or(false);
+    if !ignore_tier {
+        if let Some(tier) = tier {
+            rules.push(Tag::compound([("blocks", Tag::String(format!("#minecraft:incorrect_for_{tier}_tool").as_str().into())), ("correct_for_drops", Tag::Byte(0))]));
+        }
     }
-    for action in definition_json.get("modules")?.as_array()?.iter()
-        .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:tool_actions"))
-        .flat_map(|module| module.get("tool_actions").and_then(serde_json::Value::as_array).into_iter().flatten()) {
-        let tag = match action.as_str()? { "pickaxe_dig" => "pickaxe", "axe_dig" => "axe", "shovel_dig" => "shovel", "hoe_dig" => "hoe", _ => continue };
-        if tier.is_none() { return None; }
-        rules.push(Tag::compound([("blocks", Tag::String(format!("#minecraft:mineable/{tag}").as_str().into())), ("speed", Tag::Float(stats.mining_speed.to_bits())), ("correct_for_drops", Tag::Byte(1))]));
+    if let Some(module) = source_effective {
+        if module.get("predicate_type").and_then(serde_json::Value::as_str) != Some("mantle:tag") { return None; }
+        if tier.is_none() && !ignore_tier { return None; }
+        let tag = module.get("tag").and_then(serde_json::Value::as_str)?;
+        let alias = super::tconstruct_source_harvest_tags::alias(tag)?;
+        rules.push(Tag::compound([("blocks", Tag::String(format!("#{alias}").as_str().into())), ("speed", Tag::Float(stats.mining_speed.to_bits())), ("correct_for_drops", Tag::Byte(1))]));
+    } else {
+        // Keep the previously supported action-based fallback for definitions
+        // without an original effective predicate; it is not source parity.
+        for action in definition_json.get("modules")?.as_array()?.iter()
+            .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:tool_actions"))
+            .flat_map(|module| module.get("tool_actions").and_then(serde_json::Value::as_array).into_iter().flatten()) {
+            let tag = match action.as_str()? { "pickaxe_dig" => "pickaxe", "axe_dig" => "axe", "shovel_dig" => "shovel", "hoe_dig" => "hoe", _ => continue };
+            if tier.is_none() { return None; }
+            rules.push(Tag::compound([("blocks", Tag::String(format!("#minecraft:mineable/{tag}").as_str().into())), ("speed", Tag::Float(stats.mining_speed.to_bits())), ("correct_for_drops", Tag::Byte(1))]));
+        }
     }
-    if rules.len() == 1 { rules.clear(); }
+    if !rules.iter().any(|rule| rule.get("speed").is_some()) { rules.clear(); }
     let mut output = original.cloned().unwrap_or_else(|| ItemStack::new(item, 1));
     let mut custom = output.data().and_then(|data| data.other("minecraft:custom_data")).cloned()
         .unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));

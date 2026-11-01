@@ -6,5 +6,5 @@ fn tconstruct_material_mining_speed(speed: f32, held: Option<&ItemStack>, block:
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return speed; };
     if *max <= 0 || stack.damage >= *max as u32 || custom.get("tic_mining_traits").is_none() { return speed; }
     let Some(tool) = custom.get("tic_mining_tool") else { return speed; };
-    self::tconstruct_source_mining_rules::effective_speed(tool, block, |tag, block| items.block_in_tag(tag, block)).unwrap_or(speed)
+    self::tconstruct_source_mining_rules::effective_speed(tool, block, |tag, block| items.block_in_tag(tag, block)).unwrap_or(1.0).max(1.0)
 }

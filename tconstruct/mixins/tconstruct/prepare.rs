@@ -77,6 +77,9 @@ fn prepare_tconstruct_resources() {
                 }
             }
         }
+        // Project original harvest predicates onto installed blocks under
+        // TConstruct-only aliases; native vanilla tags stay untouched.
+        crate::tconstruct_source_harvest_tags::prepare(&out, &original_pack, &content_path.join("reference/forge-47.4.0-harvest-tags.zip"))?;
         // Give supported Creative tool variants the same source-derived base
         // stats and mining rules as a tool assembled in the station. Other tool
         // categories keep their material identities until their stats are ported.

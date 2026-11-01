@@ -2,15 +2,27 @@
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_mining_math::{Conditional, conditional_speed};
 
+fn matches(rule: &Tag, block: &str, in_tag: &impl Fn(&str, &str) -> bool) -> bool {
+    let Some(Tag::String(blocks)) = rule.get("blocks") else { return false; };
+    let blocks = blocks.to_string_lossy();
+    blocks.strip_prefix('#').map_or_else(|| blocks == block, |tag| in_tag(tag, block))
+}
+
+pub(super) fn harvestable(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<bool> {
+    let Some(Tag::List(rules)) = tool.get("rules") else { return None; };
+    for rule in rules {
+        if !matches(rule, block, &in_tag) { continue; }
+        if let Some(Tag::Byte(correct)) = rule.get("correct_for_drops") { return Some(*correct != 0); }
+    }
+    Some(false)
+}
+
 pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<f32> {
     let Some(Tag::List(rules)) = tool.get("rules") else { return None; };
     for rule in rules {
-        let Some(Tag::String(blocks)) = rule.get("blocks") else { continue; };
-        let Some(Tag::Float(value)) = rule.get("speed") else { continue; };
-        let blocks = blocks.to_string_lossy();
-        if blocks.strip_prefix('#').map_or_else(|| blocks == block, |tag| in_tag(tag, block)) {
-            return Some(f32::from_bits(*value));
-        }
+        if !matches(rule, block, &in_tag) { continue; }
+        if matches!(rule.get("correct_for_drops"), Some(Tag::Byte(0))) { return None; }
+        if let Some(Tag::Float(value)) = rule.get("speed") { return Some(f32::from_bits(*value)); }
     }
     None
 }

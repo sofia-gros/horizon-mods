@@ -2455,3 +2455,22 @@ require = 4
 ordinal = 1
 helper = "source-mining-context.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
+
+[[module]]
+id = "game-source-harvest-tags"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_harvest_tags"
+source = "source-harvest-tags.rs"
+
+[[module]]
+id = "lib-source-harvest-tags"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_source_harvest_tags"
+source = "source-harvest-tags.rs"
+
+[[injection]]
+id = "source-material-harvest-tier"
+target = "horizon_items::items::Items::correct_for_drops"
+kind = "RETURN"
+helper = "source-harvest-return.rs"
+bindings = [{ name = "correct", ty = "bool", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "held" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
