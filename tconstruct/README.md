@@ -24,7 +24,7 @@ In Creative, the Tinkers blocks tab also offers registered building blocks. See 
 
 The Faucet, Casting Basin and Casting Table have source-derived selection and collision shapes with representative Linux checks. Use a Melter and a casting setup to melt and cast supported materials. The [melting and casting guide](docs/melter-casting.md) shows the tested copper example.
 
-A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup. The [fluid container guide](docs/fluid-containers.md) explains bucket transfers.
+A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup. The [fluid container guide](docs/fluid-containers.md) explains bucket transfers. The source-derived [composite casting](docs/composite-casting.md) has representative Linux and LAN checks.
 
 The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct setup. [Mining and durability traits](docs/mining-traits.md) describes representative material effects. [Harvest tier and effective blocks](docs/harvest-rules.md) describes tested drops, saved-tool limitations and LAN results. [Area mining](docs/area-mining.md) covers the tested Creative-obtained Sledge Hammer and Excavator. [Chain mining](docs/chain-mining.md) covers representative Vein Hammer and Broad Axe use. [Tool transformations](docs/tool-transform.md) describes tested tilling, pathing and stripping. [Crop harvesting](docs/crop-harvest.md) covers tested Kama and Scythe replanting and its remaining shears limitation.
 

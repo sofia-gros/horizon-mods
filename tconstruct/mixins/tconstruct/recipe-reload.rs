@@ -28,6 +28,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
         merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
     }
+    crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
     // A content mod can provide the unflattened source layers as ordinary
     // assets; manual installations retain precedence when those layers exist.
     let source_pack = |name: &str| {

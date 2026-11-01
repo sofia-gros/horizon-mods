@@ -52,21 +52,74 @@ pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &s
 
 /// Resolve the completed stack before reserving fluid. Both normal item
 /// casting and material casting then use the same persistent transaction.
-pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&str>, fluid: &str) -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
-    if let Some((id, recipe, output)) = casting(world, basin, input, fluid) {
+pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str) -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
+    let input_id = input.map(|stack| &*stack.item);
+    if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid) {
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
-    if basin { return None; }
-    let cast = input?;
-    let (id, recipe, output, material) = with_catalog(world, |catalog, registries, config| {
-        catalog.material_casting(cast, fluid,
-            &|material, output| super::tconstruct_source_builder_world::supported_material(world, material)
-                .ok().is_some_and(|(_, parts)| parts.contains(output)),
-            &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    let stack = input?;
+    let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
+    let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
+        .ok().map(|(_, parts)| parts.contains(output));
+    let supports = |material: &str, output: &str| supports_checked(material, output).unwrap_or(false);
+    let material = stack.data().and_then(|data| data.other("minecraft:custom_data"))
+        .and_then(|tag| tag.get("Material"))
+        .and_then(|tag| match tag { horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None });
+    let resolved = with_catalog(world, |catalog, registries, config| {
+        let conditions = |values: &[serde_json::Value]| super::tconstruct_tx::source_conditions_match(values, registries, config).unwrap_or(false);
+        let allowed = |value: Option<&serde_json::Value>, material: &str| {
+            let extra = |kind: &str, value: &serde_json::Value, material: &str| -> Option<bool> {
+                let base = material.split_once('#').map_or(material, |(base, _)| base);
+                let defs = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.0;
+                let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+                match kind {
+                    "tconstruct:registered" => Some(defs.contains_key(base)),
+                    "tconstruct:craftable" => Some(defs.get(base)?.0),
+                    "tconstruct:not_hidden" => Some(!defs.get(base)?.1),
+                    "tconstruct:stat_type" => Some(stats.get(base)?.contains_key(value.get("stat_type")?.as_str()?)),
+                    "tconstruct:tier" => {
+                        let tier = defs.get(base)?.2 as i64; let range = value.get("tier")?;
+                        let (min,max) = if let Some(n) = range.as_i64() { (n,n) } else {
+                            let map = range.as_object()?;
+                            (match map.get("min") { Some(v) => v.as_i64()?, None => 0 },
+                             match map.get("max") { Some(v) => v.as_i64()?, None => i32::MAX as i64 })
+                        };
+                        if min < 0 || max > i32::MAX as i64 || min > max { return None; }
+                        Some((min..=max).contains(&tier))
+                    },
+                    "tconstruct:castable" | "tconstruct:composite" => {
+                        let matches = |output: &str| {
+                            let (wanted_base, wanted_variant) = material.split_once('#').unwrap_or((material, ""));
+                            let (output_base, output_variant) = output.split_once('#').unwrap_or((output, ""));
+                            wanted_base == output_base && (wanted_variant.is_empty() || wanted_variant == output_variant || wanted_variant == "default" && output_variant.is_empty())
+                        };
+                        Some(catalog.recipes.values().any(|bytes| {
+                            if kind == "tconstruct:castable" {
+                                super::tconstruct_source_melting_recipes::MaterialFluidRecipe::parse(bytes, &conditions).is_some_and(|r| matches(&r.material))
+                            } else {
+                                super::tconstruct_source_melting_recipes::CompositeFluidRecipe::parse(bytes, &conditions).is_some_and(|r| matches(&r.material))
+                            }
+                        }))
+                    },
+                    _ => None,
+                }
+            };
+            super::tconstruct_source_melting_lookup::material_predicate(value, material,
+                &|tag, id| material_tags.get(tag).is_some_and(|values| values.contains(id)), &supports_checked, &extra).unwrap_or(false)
+        };
+        let composite = material.as_deref().and_then(|material| catalog.composite_casting(basin, &stack.item, material, fluid,
+            &supports, &allowed,
+            &|material, stat| {
+                let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+                let base = material.split_once('#').map_or(material, |(base, _)| base);
+                Some(stats.get(base)?.contains_key(stat))
+            }, &conditions));
+        composite.or_else(|| if basin { None } else { catalog.material_casting(&stack.item, fluid, &supports, &allowed, &conditions) })
     })??;
-    let mut stack = horizon_items::items::ItemStack::new(&output, 1);
-    stack.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
+    let (id, recipe, output, material) = resolved;
+    let mut output_stack = horizon_items::items::ItemStack::new(&output, 1);
+    output_stack.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
         ("Material", horizon_world::nbt::Tag::String(material.as_str().into()))
     ])));
-    Some((id, recipe, stack))
+    Some((id, recipe, output_stack))
 }
