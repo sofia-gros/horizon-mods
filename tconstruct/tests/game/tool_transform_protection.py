@@ -115,6 +115,8 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
             console('gamemode creative Guest')
             for command in (f'fill {cx-2} {cy-1} {cz-2} {cx+2} {cy-1} {cz+2} minecraft:stone',f'fill {cx-1} {cy} {cz-1} {cx+1} {cy} {cz+1} minecraft:dirt',f'fill {cx-1} {cy+1} {cz-1} {cx+1} {cy+2} {cz+1} minecraft:air',f'setblock {cx} {cy} {cz-2} minecraft:stone',f'tp Guest {cx+.5} {cy+1} {cz-1.5}'):
                 console(command)
+            for x,z in ((cx+3,cz),(cx+2,cz-1),(cx+2,cz+1)):console(f'setblock {x} {cy} {z} minecraft:stone')
+            console(f'setblock {cx+2} {cy} {cz} minecraft:water')
             if offhand:
                 g.call('key','f','tap');g.call('wait','20')
                 assert not g.call('inventory')['held'], 'main hand must be empty before offhand test'

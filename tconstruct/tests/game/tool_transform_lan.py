@@ -43,6 +43,9 @@ try:
         for command in ('gamemode creative @a','clear Guest','time set day','fill 28 100 28 32 104 32 minecraft:air','fill 28 99 28 32 99 32 minecraft:stone','tp @s 37.5 100 27.5','tp Guest 30.5 101 28.5'):cmd(h,command)
         acquire(q,name)
         cmd(h,('fill 29 100 29 31 100 31 ' if area else 'setblock 30 100 30 ')+source)
+        if target=='minecraft:farmland':
+            for x,z in ((27,30),(28,29),(28,31)):cmd(h,f'setblock {x} 100 {z} minecraft:stone')
+            cmd(h,'setblock 28 100 30 minecraft:water')
         q.call('wait','15');before=q.call('inventory')['held'];cmd(h,'gamemode survival Guest');q.call('wait','10')
         result=q.call('interact','30','100','30','up');q.call('wait','20')
         positions=[(x,100,z) for x in (29,30,31) for z in (29,30,31)] if area else [(30,100,30)]
