@@ -17,9 +17,10 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 5] = [
+const UPGRADES: [(&str, i32); 7] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
+    ("tconstruct:diamond", 1), ("tconstruct:emerald", 1),
 ];
 
 pub(super) fn selection_id(index: usize) -> Option<&'static str> {
@@ -96,9 +97,8 @@ pub(super) fn plan(
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
             continue;
         };
-        if value.get("type").and_then(Value::as_str) != Some("tconstruct:incremental_modifier") {
-            continue;
-        }
+        let recipe_type = value.get("type").and_then(Value::as_str);
+        if !matches!(recipe_type, Some("tconstruct:incremental_modifier" | "tconstruct:modifier")) { continue; }
         let Some(id) = value.get("result").and_then(Value::as_str) else {
             continue;
         };
@@ -110,6 +110,22 @@ pub(super) fn plan(
             .and_then(|tag| tags.get(tag)).is_some_and(|items| items.contains(tool.item.as_ref()));
         if !(matches_tool(tools) || tools.as_array().is_some_and(|entries| entries.iter().any(matches_tool))) {
             continue;
+        }
+        if recipe_type == Some("tconstruct:modifier") {
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald") || amount(tool, id) != 0 { continue; }
+            let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
+            if occupied + cost > upgrade_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
+            let Some(ingredient) = value.get("inputs").and_then(Value::as_array).filter(|v| v.len() == 1).and_then(|v| v.first()) else { continue; };
+            let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, stack)| stack.as_ref().map(|stack| (i + 1, stack))).collect();
+            if present.len() != 1 { continue; }
+            let (index, stack) = present[0];
+            let crystal = value.get("allow_crystal").and_then(Value::as_bool).unwrap_or(true)
+                && &*stack.item == "tconstruct:modifier_crystal"
+                && matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("modifier")), Some(Tag::String(value)) if value.to_string_lossy() == id);
+            let ingredient_match = ingredient.get("item").and_then(Value::as_str).is_some_and(|item| item == &*stack.item)
+                || ingredient.get("tag").and_then(Value::as_str).and_then(|tag| tags.get(tag)).is_some_and(|items| items.contains(stack.item.as_ref()));
+            if !crystal && !ingredient_match { continue; }
+            return Some(UpgradePlan { id: id.to_owned(), amount: 1, consumed: vec![(0, 1), (index, 1)], leftover: None });
         }
         let Some(input) = value.get("input") else {
             continue;
