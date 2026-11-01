@@ -2467,3 +2467,10 @@ id = "lib-source-harvest-tags"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_source_harvest_tags"
 source = "source-harvest-tags.rs"
+
+[[injection]]
+id = "source-material-harvest-tier"
+target = "horizon_items::items::Items::correct_for_drops"
+kind = "RETURN"
+helper = "source-harvest-return.rs"
+bindings = [{ name = "correct", ty = "bool", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "held" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
