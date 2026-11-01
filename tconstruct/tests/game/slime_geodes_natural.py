@@ -20,9 +20,16 @@ def wait_for(label,pred):
  raise AssertionError(label)
 def in_dimension(dim,x,y,z):
  cmd(f'execute in minecraft:{dim} run tp @s {x+0.5} {y} {z+0.5}');g.call('wait-ready','90',timeout=95);g.call('wait','15');state=g.call('state');assert state.get('dimension')=='minecraft:'+dim,state
-def find(color,dimension,y,base):
- for i in range(12):
-  x=base+(i%4)*128;z=base+(i//4)*128
+# Preselected seed-42 chunk areas where the game's decoration RNG contains
+# rarity-filter candidates across possible feature indices. Actual biome,
+# geometry and generated clusters are still checked in the running world.
+CANDIDATES={
+ 'earth': [(3968,3200),(3968,3712),(2432,2688),(2048,2176),(3072,2176),(3840,3584),(3712,3840),(2304,2048),(3712,2304),(2688,2688),(2560,2816),(2304,2944)],
+ 'ichor': [(1408,1792),(256,384),(1664,1152),(768,1664),(1024,1664),(1152,512),(0,1920),(1664,1920),(1792,640),(384,1408),(1536,1664),(384,1792)],
+ 'ender': [(3968,3200),(3968,3712),(2432,2688),(2048,2176),(3072,2176),(3840,3584),(3712,3840),(2304,2048),(3712,2304),(2688,2688),(2560,2816),(2304,2944)],
+}
+def find(color,dimension,y):
+ for x,z in CANDIDATES[color]:
   in_dimension(dimension,x,y,z)
   result=g.call('find-block',f'tconstruct:{color}_slime_crystal_cluster','64',timeout=90)
   print('SEARCH',dimension,42,x,z,result,flush=True)
@@ -39,13 +46,13 @@ def harvest(color,dimension,pos):
  count=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0);print('HARVEST',color,before,count,flush=True);assert count-before==4,(color,before,count)
 try:
  g.ready();cmd('gamemode creative @s');cmd('gamerule minecraft:spawn_mobs false');cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
- earth=find('earth','overworld',-32,2048);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
+ earth=find('earth','overworld',-32);in_dimension('overworld',earth[0],earth[1],earth[2]-2)
  g.call('save');port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
  cmd(f'tp Guest {earth[0]+0.5} {earth[1]} {earth[2]-1.5}');guest.call('wait','30');state=guest.call('block',*earth);print('LAN',state,flush=True);assert state.get('block')=='tconstruct:earth_slime_crystal_cluster',state
  guest.stop();guest.cleanup();guest=None
  harvest('earth','overworld',earth)
- ichor=find('ichor','the_nether',96,0);harvest('ichor','the_nether',ichor)
- ender=find('ender','the_end',40,2048);harvest('ender','the_end',ender)
+ ichor=find('ichor','the_nether',96);harvest('ichor','the_nether',ichor)
+ ender=find('ender','the_end',40);harvest('ender','the_end',ender)
  # Reuse the same world. Test fixtures are the builder and blank pattern; the
  # Earthslime input was picked up from the naturally generated cluster.
  in_dimension('overworld',2048,80,2048)
