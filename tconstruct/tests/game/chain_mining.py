@@ -44,6 +44,19 @@ def run_block(center, selected, kept, drop):
     assert all(b!='minecraft:air' for _,b in hold),hold
     assert after.get('damage',0)-before.get('damage',0)==len(selected),(before,after)
     assert count==len(selected),count
+def limited(name, remaining):
+    acquire(name,185,260);setup()
+    block='minecraft:netherrack' if name=='vein_hammer' else 'minecraft:oak_log'
+    positions=[[20,101,20],[20,102,20],[20,103,20],[20,104,20]]
+    for pos in positions:cmd('setblock %s %s %s '%tuple(pos)+block)
+    held=g.call('inventory')['held'];maximum=held.get('damage',0)+remaining
+    cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}')
+    count=total(block);cmd('gamemode survival @s');g.call('wait','10')
+    g.call('break','20','101','20','--timeout','50',timeout=55);g.call('wait','20')
+    after=g.call('inventory')['held'];missing=sum(at(p)=='minecraft:air' for p in positions)
+    drops=total(block)-count
+    print('limited',name,remaining,'broken blocks',missing,'drops',drops,'held',after,flush=True)
+    assert missing==remaining and drops==remaining and after.get('damage')==maximum and 'tic_broken:1b' in after.get('components',''),(missing,drops,after)
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
@@ -57,5 +70,7 @@ try:
     for pos in selected:cmd('setblock %s %s %s minecraft:oak_log'%tuple(pos))
     cmd('setblock 20 103 21 minecraft:birch_log')
     run_block(selected[0],selected,kept,'minecraft:oak_log');g.call('screenshot',str(run/'chain-tree.png'))
+    for tool in ('vein_hammer','broad_axe'):
+        for remaining in (1,3):limited(tool,remaining)
     g.call('save');g.stop();print('PASS chain representative',flush=True)
 finally:g.cleanup()
