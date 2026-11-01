@@ -98,31 +98,46 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         return;
     }
     let Some(slots) = spec.get("slots").and_then(|v| v.as_array()) else { return; };
-    let ox = left + 38.0;
-    let oy = top + 35.0;
     let grid = if spec.get("grid").and_then(|v| v.as_u64()) == Some(2) { 2 } else { 3 };
+    let frame_width = if grid == 2 { 155.0 } else { 183.0 };
+    let frame_height = if grid == 2 { 78.0 } else { 114.0 };
+    let ox = left + 36.0 + (182.0 - frame_width) / 2.0;
+    let oy = top + 31.0;
+    if let Some(mut rect) = atlas.sprites.get("gui/tconstruct_book_mantle_crafting").copied() {
+        let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
+        rect.u1 = rect.u0 + frame_width * du;
+        if grid == 2 { rect.v0 += 114.0 * dv; }
+        rect.v1 = rect.v0 + frame_height * dv;
+        batch.rect_uv(ox, oy, frame_width, frame_height, rect, rgba(229, 198, 130, 255));
+    }
     // Book screens pause the local world. Cycle on real elapsed time so tag
     // candidates still change while the reader is open.
     let cycle = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs() as usize);
     for (i, item) in slots.iter().take(9).enumerate() {
         if i % 3 >= grid || i / 3 >= grid { continue; }
-        let x = ox + (i % 3) as f32 * 18.0;
-        let y = oy + (i / 3) as f32 * 18.0;
-        batch.fill(atlas, x, y, 17.0, 17.0, rgba(229, 198, 130, 255));
+        let x = ox + 5.0 + (i % 3) as f32 * 36.0;
+        let y = oy + 5.0 + (i / 3) as f32 * 36.0;
         let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[cycle % items.len()])).unwrap_or(item);
         let id = chosen.as_str().or_else(|| chosen.get("id").and_then(|v| v.as_str()));
         let damage = chosen.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
         let maximum = chosen.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
-        if let Some(id) = id { draw_stack(batch, id, 1, damage, maximum, x, y); }
+        if let Some(id) = id {
+            let start = batch.vertices.len();
+            draw_stack(batch, id, 1, damage, maximum, x, y);
+            batch.scale_since(start, x, y, 2.0, 2.0);
+        }
     }
     if let Some(result) = spec.get("result") {
         let id = result.as_str().or_else(|| result.get("id").and_then(|v| v.as_str()));
         if let Some(id) = id {
-            batch.text(atlas, "→", ox + 57.0, oy + 18.0, BLACK, false);
             let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
             let damage = result.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
             let maximum = result.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
-            draw_stack(batch, id, count, damage, maximum, ox + 78.0, oy + 18.0);
+            let x = ox + if grid == 2 { 118.0 } else { 146.0 };
+            let y = oy + if grid == 2 { 23.0 } else { 41.0 };
+            let start = batch.vertices.len();
+            draw_stack(batch, id, count, damage, maximum, x, y);
+            batch.scale_since(start, x, y, 2.0, 2.0);
         }
     }
     })();
