@@ -9,10 +9,13 @@ use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, Compo
 /// Supported source material predicates. Unknown forms fail closed, including
 /// inside negation, rather than becoming unrestricted.
 pub(super) fn material_predicate(value: Option<&Value>, material: &str,
-    tagged: &impl Fn(&str, &str) -> bool, supports: &impl Fn(&str, &str) -> bool) -> Option<bool> {
+    tagged: &impl Fn(&str, &str) -> bool, supports: &impl Fn(&str, &str) -> bool, extra: &impl Fn(&str, &Value, &str) -> Option<bool>) -> Option<bool> {
     fn test(v: &Value, material: &str, tagged: &impl Fn(&str, &str) -> bool,
-        supports: &impl Fn(&str, &str) -> bool) -> Option<bool> {
-        let obj = v.as_object()?;
+        supports: &impl Fn(&str, &str) -> bool, extra: &impl Fn(&str, &Value, &str) -> Option<bool>) -> Option<bool> {
+        let compact;
+        let obj = if let Some(id) = v.as_str() {
+            compact = serde_json::json!({"type": id}); compact.as_object()?
+        } else { v.as_object()? };
         let id = obj.get("type")?.as_str()?;
         let base = material.split_once('#').map_or(material, |(base, _)| base);
         let values = |name: &str| -> Option<Vec<&str>> {
@@ -29,14 +32,19 @@ pub(super) fn material_predicate(value: Option<&Value>, material: &str,
             "mantle:and" | "mantle:or" => {
                 let children = obj.get("predicates")?.as_array()?;
                 if children.len() < 2 { return None; }
-                let results: Vec<bool> = children.iter().map(|v| test(v, material, tagged, supports)).collect::<Option<_>>()?;
+                let results: Vec<bool> = children.iter().map(|v| test(v, material, tagged, supports, extra)).collect::<Option<_>>()?;
                 Some(if id == "mantle:and" { results.iter().all(|v| *v) } else { results.iter().any(|v| *v) })
             },
-            "mantle:inverted" => Some(!test(obj.get("inverted_type")?, material, tagged, supports)?),
-            _ => None,
+            "mantle:inverted" => {
+                let mut inner = obj.clone();
+                let inner_type = inner.remove("inverted_type")?.as_str()?.to_owned();
+                inner.insert("type".into(), Value::String(inner_type));
+                Some(!test(&Value::Object(inner), material, tagged, supports, extra)?)
+            },
+            _ => extra(id, v, material),
         }
     }
-    match value { None | Some(Value::Null) => Some(true), Some(v) => test(v, material, tagged, supports) }
+    match value { None | Some(Value::Null) => Some(true), Some(v) => test(v, material, tagged, supports, extra) }
 }
 
 pub(super) struct Catalog<'a> {

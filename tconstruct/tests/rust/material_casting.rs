@@ -54,3 +54,41 @@ fn original_gold_cast_creation_accepts_the_material_part() {
     assert_eq!(result, "tconstruct:pick_head_cast");
     assert!(recipe.consumes_cast && recipe.switch_slots);
 }
+
+#[test]
+fn pinned_composite_converts_one_existing_part_and_preserves_variant() {
+    let mut zip = zip::ZipArchive::new(std::fs::File::open("tconstruct/content/reference/tconstruct-recipes.zip").unwrap()).unwrap();
+    let mut recipes = BTreeMap::new();
+    for name in ["data/tconstruct/recipes/tools/parts/casting/pick_head_composite.json", "data/tconstruct/recipes/tools/materials/composite/copper_oxidized.json"] {
+        let mut file = zip.by_name(name).unwrap(); let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap(); recipes.insert(name.to_owned(), bytes);
+    }
+    let item_tags = HashMap::new();
+    let fluid_tags = [("mantle:water".into(), ["minecraft:water".into()].into_iter().collect())].into_iter().collect();
+    let known_items = ["tconstruct:pick_head".into()].into_iter().collect();
+    let known_fluids = ["minecraft:water".into()].into_iter().collect();
+    let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+    let resolve = |input: &str| catalog.composite_casting(false, "tconstruct:pick_head", input, "minecraft:water", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| true);
+    let (_, recipe, item, material) = resolve("tconstruct:copper").unwrap();
+    assert_eq!((item.as_str(), material.as_str(), recipe.fluid.amount), ("tconstruct:pick_head", "tconstruct:copper#oxidized", 500));
+    assert!(recipe.consumes_cast); assert!(!recipe.switch_slots);
+    assert!(resolve("tconstruct:copper#oxidized").is_none());
+    assert!(resolve("tconstruct:iron").is_none());
+    assert!(catalog.composite_casting(true, "tconstruct:pick_head", "tconstruct:copper", "minecraft:water", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| true).is_none());
+}
+
+#[test]
+fn source_material_predicates_reject_unknown_nested_conditions() {
+    use tconstruct_source_melting_lookup::material_predicate;
+    let tags = |tag: &str, id: &str| tag == "tconstruct:metal" && id == "tconstruct:copper";
+    let parts = |_: &str, part: &str| part == "tconstruct:pick_head";
+    let predicate = serde_json::json!({"type":"mantle:and","predicates":[
+        {"type":"mantle:tag","tag":"tconstruct:metal"},
+        {"type":"tconstruct:has_part","part":"tconstruct:pick_head"},
+        {"type":"mantle:inverted","inverted_type":"tconstruct:variant","variant":"tconstruct:copper#oxidized"}
+    ]});
+    assert_eq!(material_predicate(Some(&predicate), "tconstruct:copper", &tags, &parts, &|_,_,_| None), Some(true));
+    assert_eq!(material_predicate(Some(&predicate), "tconstruct:copper#oxidized", &tags, &parts, &|_,_,_| None), Some(false));
+    assert_eq!(material_predicate(Some(&serde_json::json!("mantle:any")), "tconstruct:copper", &tags, &parts, &|_,_,_| None), Some(true));
+    let unknown = serde_json::json!({"type":"mantle:inverted","inverted_type":"example:unsupported"});
+    assert_eq!(material_predicate(Some(&unknown), "tconstruct:copper", &tags, &parts, &|_,_,_| None), None);
+}
