@@ -117,7 +117,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 }
                 let sprite = format!("gui/tconstruct_modifier_{}", id.rsplit(':').next().unwrap_or(""));
                 batch.sprite(atlas, &sprite, x + 1.0, y + 1.0);
-                let overlay = match *id { "tconstruct:netherite" => Some("tier"), "tconstruct:unbreakable" => Some("book"), _ => None };
+                let overlay = match *id { "tconstruct:netherite" => Some("tier"), "tconstruct:unbreakable" | "tconstruct:overforced" | "tconstruct:overslime" => Some("book"), _ => None };
                 if let Some(overlay) = overlay {
                     batch.sprite(atlas, &format!("gui/tconstruct_modifier_{overlay}"), x + 1.0, y + 1.0);
                 }

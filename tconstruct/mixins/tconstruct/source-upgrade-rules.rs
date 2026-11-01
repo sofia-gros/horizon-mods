@@ -17,11 +17,11 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 10] = [
+const UPGRADES: [(&str, i32); 11] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
-    ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1),
+    ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -385,6 +385,27 @@ pub(super) fn apply_stats(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn overforced_partial_slots_and_crystal_round_trip() {
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"needed_per_level":4,"input":{"item":"tconstruct:slimesteel_reinforcement"},"result":"tconstruct:overforced","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
+        let recipes = BTreeMap::from([("overforced".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/durability".into(), HashSet::from(["tconstruct:pickaxe".into()])), ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        let set = |tool: &mut ItemStack, amount| tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:overforced", Tag::Int(amount))]))])));
+        let ingredients = [Some(ItemStack::new("tconstruct:slimesteel_reinforcement", 9))];
+        assert!(plan(&recipes, &tags, &tool, &ingredients, 0).is_none());
+        let first = plan(&recipes, &tags, &tool, &ingredients, 1).unwrap();
+        assert_eq!(first.amount, 4);
+        assert_eq!(first.consumed, [(0, 1), (1, 4)]);
+        set(&mut tool, 7);
+        let extracted = extract_upgrade(&tags, &tool, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:overforced").unwrap();
+        assert_eq!(extracted.upgrade.amount, 3);
+        set(&mut tool, 3);
+        assert_eq!(plan(&recipes, &tags, &tool, &[extracted.upgrade.leftover], 2).unwrap().amount, 7);
+        set(&mut tool, 20);
+        assert!(plan(&recipes, &tags, &tool, &ingredients, 10).is_none());
+    }
 
     #[test]
     fn netherite_and_unbreakable_recipes_and_dependencies() {

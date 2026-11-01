@@ -48,8 +48,8 @@ pub(super) fn harvest(game: &mut Game<'_>, hit: Option<&Hit>) -> ControlFlow<Res
             for drop in drops.into_iter().filter(|item| item.count > 0) { game.pop_resource(pos, drop); }
             if !game.creative {
                 let held = game.held().cloned();
-                let loss = held.as_ref().map(|held| game.durability_loss(held, 1)).unwrap_or(0);
-                if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) { tconstruct_tx::fixed_damage(held, loss); }
+                let (loss, overslime) = held.as_ref().map(|held| crate::game::tconstruct_source_overslime_host::damage(game, held, 1)).unwrap_or((0,0));
+                if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) { crate::game::tconstruct_source_overslime::spend(held, overslime); tconstruct_tx::fixed_damage(held, loss); }
             }
         }
         game.swing_arm();
