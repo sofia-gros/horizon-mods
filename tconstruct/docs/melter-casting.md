@@ -14,4 +14,6 @@ The copper sequence, saving and reloading, and shared input and casting in LAN h
 
 The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; animated fluid frames and the casting cooling fade are not yet implemented.
 
-Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. The source Faucet, Casting Basin and Casting Table selection and collision shapes are prepared from the original geometry, including Faucet direction and the hollow openings. This change has not yet been checked in the game; other machine shapes remain to be compared.
+Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. The Faucet, Casting Basin and Casting Table use the original selection and collision shapes. A Linux game check covered all five Faucet directions, right-click targeting, the Basin and Table recesses, walking against one Faucet, and falling into the Basin and Table. The Melter screen still opened. Other machine shapes remain to be compared.
+
+![Casting Basin selection in the Linux test world](casting-basin-selection.png)
