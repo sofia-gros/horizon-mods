@@ -152,7 +152,7 @@ Craft a Modifier Worktable with seared blocks and matching source rock. Its legs
 
 ![A modifier selected in the Modifier Worktable](modifier-worktable.png)
 
-Apply one matching modifier crystal at a Station or Anvil to add a level. This uses a slot and preserves any partial progress already on the tool. The recipe, extraction and LAN guest flow have representative Linux tests; natural Skyslime Crystal generation and other modifiers remain unfinished.
+Apply one matching modifier crystal at a Station or Anvil to add a level. This uses a slot and preserves any partial progress already on the tool. The recipe, extraction and LAN guest flow have representative Linux tests; other modifiers remain unfinished.
 
 ![A basalt Modifier Worktable](modifier-worktable-basalt.png)
 
@@ -161,3 +161,11 @@ The Smeltery fuel gauge shows the available fuel. Hover over it for the fluid, t
 ![Smeltery fuel gauge and tooltip](smeltery-fuel-tooltip.png)
 
 ![A Crossbow receiving Trueshot at an Anvil](ranged-upgrades-station.png)
+
+### Skyslime Crystals
+
+Find Sky Geodes underground in newly generated overworld land, away from oceans, rivers and beaches. Mine a fully grown Skyslime Crystal Cluster with a pickaxe to obtain crystals; they work in the Modifier Worktable. Existing generated chunks do not gain new geodes. The budding blocks and smaller buds do not yet grow, so collect the clusters already present. Other slime geodes and full world progression are unfinished.
+
+![A naturally generated Sky Geode cluster](sky-geode-natural.png)
+
+![Using a mined crystal at the Modifier Worktable](sky-geode-worktable.png)
