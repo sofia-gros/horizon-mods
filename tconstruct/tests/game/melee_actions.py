@@ -65,5 +65,11 @@ try:
             hits=[entry for entry in log if entry['id'] in (target,other)][-2:]
             assert len(hits)==2 and hits[0]['id']!=hits[1]['id'],hits
             assert abs(hits[0]['scale']-hits[1]['scale'])<0.0001,hits
+    before,after,held,used,log,target=scene('scythe',21.3,21.7,limited=1)
+    damaged=[e for e in before if after[e]['health']<before[e]['health']]
+    assert target in damaged and len(damaged)==2,(before,after,used)
+    assert 'tic_broken:1b' in used.get('components',''),used
+    assert used.get('damage',0)-held.get('damage',0)==1,(held,used)
+    print('circle stops on tool break',flush=True)
     g.stop();print('PASS observed melee scenes',flush=True)
 finally:g.cleanup()
