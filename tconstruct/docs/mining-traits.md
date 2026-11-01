@@ -1,11 +1,7 @@
 # Mining, durability and repair trait follow-up
 
-This draft extends material traits from original Tinkers' Construct revision
-`f4e77d43` using shared calculation and the existing mining, wear and repair
-paths. The intended mining modules are Lightweight, Heavy, Vintage, Entangled,
-Jagged, Stonebound and Maintained. Dense is included if its source repair and
-wear formulas can use the existing authoritative transaction paths. Overlord
-requires functional Overslime and is not represented as completed here.
+Material mining, durability and repair traits use original Tinkers' Construct
+revision `f4e77d43` with shared mining, wear and repair paths.
 
 This unit covers the mining modules of Lightweight, Heavy, Vintage, Entangled,
 Jagged, Stonebound and Maintained, plus Dense repair and durability prevention.
@@ -33,8 +29,9 @@ and Stonebound effects; equal-priority effects retain source insertion order.
 The synchronized custom tool data includes the generated mining rules because
 the current network codec does not preserve the per-stack `minecraft:tool`
 patch. Existing saved tools need a supported regeneration or part replacement
-before the new fields are added. Per-stack mining-tier and drop-correctness
-behavior remains limited by the existing host path and is not claimed complete.
+before the new fields are added. See [Harvest tiers and effective blocks](harvest-rules.md)
+for representative tier, drop and LAN validation; not all tools and materials
+have been individually tested.
 
 ## Representative Linux verification
 
