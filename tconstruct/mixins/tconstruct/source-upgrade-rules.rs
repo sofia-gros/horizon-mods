@@ -28,6 +28,28 @@ pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
     amount(tool, id) as f32 / needed as f32
 }
 
+/// The upgrade extraction recipe returns the complete level and preserves any partial level.
+pub(super) fn extract_upgrade(
+    tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
+    inputs: &[Option<ItemStack>], id: &str,
+) -> Option<UpgradePlan> {
+    let needed = match id {
+        "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72,
+        "tconstruct:haste" => 45, _ => return None,
+    };
+    let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
+    if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
+    let old = amount(tool, id);
+    if old < needed { return None; }
+    let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, input)| input.as_ref().map(|input| (i + 1, input))).collect();
+    if present.len() != 2 { return None; }
+    let slime = present.iter().find(|(_, item)| &*item.item == "tconstruct:sky_slime_crystal")?.0;
+    let sponge = present.iter().find(|(_, item)| &*item.item == "minecraft:wet_sponge")?.0;
+    let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
+    crystal.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String(id.into()))])));
+    Some(UpgradePlan { id: id.into(), amount: old - needed, consumed: vec![(0, 1), (slime, 1), (sponge, 1)], leftover: Some(crystal) })
+}
+
 pub(super) fn plan(
     recipes: &BTreeMap<String, Vec<u8>>,
     tags: &HashMap<String, HashSet<String>>,
@@ -385,5 +407,18 @@ mod tests {
         assert!(plan(&recipes, &tags, &tool(18), &inputs, 1).is_none());
         assert!(plan(&recipes, &tags, &tool(162), &inputs, 9).is_none());
         assert!(plan(&recipes, &tags, &tool(18), &[Some(crystal.clone()), Some(crystal)], 9).is_none());
+    }
+
+    #[test]
+    fn extraction_requires_a_complete_level_and_retains_partial_progress() {
+        let tags = HashMap::from([("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let inputs = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+        assert!(extract_upgrade(&tags, &tool(18), &inputs, "tconstruct:sharpness").is_none());
+        let plan = extract_upgrade(&tags, &tool(54), &inputs, "tconstruct:sharpness").unwrap();
+        assert_eq!(plan.amount, 18);
+        assert_eq!(plan.consumed, [(0, 1), (2, 1), (1, 1)]);
+        let crystal = plan.leftover.unwrap();
+        assert_eq!(&*crystal.item, "tconstruct:modifier_crystal");
+        assert!(matches!(crystal.data().unwrap().other("minecraft:custom_data").unwrap().get("modifier"), Some(Tag::String(id)) if id.to_string_lossy() == "tconstruct:sharpness"));
     }
 }
