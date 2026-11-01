@@ -111,9 +111,8 @@ pub(super) fn eligible(game: &super::Game<'_>, stack: &horizon_items::items::Ite
             let root = if manual.is_dir() { manual } else { game.options.resources.join("assets/tconstruct/source-packs").join(name) };
             merge(&horizon_client::datapack::DataPack::builtin(&root));
         }
-        for id in &game.fns.enabled {
-            if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) { merge(pack); }
-        }
+        // Per-world enabled datapacks are private to the host's function
+        // state; only the authoritative server can inspect those layers.
         let registry = rest.items.registry_order.iter().map(|id| id.to_string()).collect();
         let mut resolved = std::collections::HashMap::new();
         for id in ["tconstruct:modifiable/interactable/left", "tconstruct:modifiable/interactable/right", "tconstruct:modifiable/interactable/dual"] {
