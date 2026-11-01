@@ -7,8 +7,9 @@ fn tconstruct_melee_attack_head(game:&mut crate::game::Game<'_>, index:usize) {
             && crate::game::tconstruct_source_melee_shape::intact(stack).is_some()
     });
     if enabled {
+        let speed=game.player.as_mut().and_then(|player|player.attribute("minecraft:movement_speed").ok()).unwrap_or(0.0) as f32;
         if let Some(target)=game.mobs.get(index) {
-            game.world.chunks.__horizon_mixins_tconstruct_melee_context_mut().insert(actor,(target.id,game.attack_ticks));
+            game.world.chunks.__horizon_mixins_tconstruct_melee_context_mut().insert(actor,(target.id,game.attack_ticks,speed));
         }
     } else { game.world.chunks.__horizon_mixins_tconstruct_melee_context_mut().remove(&actor); }
 }

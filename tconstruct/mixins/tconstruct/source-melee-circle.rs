@@ -3,7 +3,7 @@ fn tconstruct_melee_circle(game:&mut crate::game::Game<'_>, index:usize) {
     if game.remote.is_some() {return;}
     let actor=game.lan_acting;
     if game.world.chunks.__horizon_mixins_tconstruct_melee_active().contains(&actor) {return;}
-    let Some((target,ticks))=game.world.chunks.__horizon_mixins_tconstruct_melee_context().get(&actor).copied() else {return;};
+    let Some((target,ticks,_speed))=game.world.chunks.__horizon_mixins_tconstruct_melee_context().get(&actor).copied() else {return;};
     if game.mobs.get(index).is_none_or(|mob|mob.id!=target) {return;}
     let Some(stack)=game.held().cloned() else{return;};
     let Some(kind @ Attack::Circle(range))=shape::attack(stack.item.as_ref()) else{return;};

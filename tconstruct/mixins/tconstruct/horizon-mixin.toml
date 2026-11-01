@@ -2642,7 +2642,7 @@ source = "source-melee-shape.rs"
 [[state]]
 id = "melee-context"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<Option<u32>,(u32,u32)>"
+ty = "std::collections::HashMap<Option<u32>,(u32,u32,f32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
