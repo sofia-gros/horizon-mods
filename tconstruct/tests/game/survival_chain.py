@@ -8,7 +8,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'):p.add_argument('--'+n,type=Path,required=True)
-p.add_argument('--phase',required=True,choices=['base','grout','furnace','devices','controller','alloy','alloy-resume','lan','reload'])
+p.add_argument('--phase',required=True,choices=['base','grout','furnace','devices','controller','alloy','alloy-resume','alloy-fuel','inspect','lan','reload'])
 p.add_argument('--in-frame',action='store_true');a=p.parse_args();run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve())
 g=Game(a,run,'Player',in_frame=a.in_frame,resume=(run/'Player').exists());guest=None
 
@@ -184,6 +184,8 @@ try:
    # A one-block Smeltery has one input slot. Melt matching batches in
    # sequence so the tank never fills with copper before gold can enter.
    for metal in ('minecraft:copper_ingot','minecraft:gold_ingot'):
+    if i==2 and metal=='minecraft:gold_ingot':
+     cmd('give @s minecraft:lava_bucket 1');cmd('tp @s 2.5 71 2.5');promote('minecraft:lava_bucket');g.call('hotbar',str(hot('minecraft:lava_bucket')+1));g.call('interact','1','71','2');g.call('wait','10')
     cmd('tp @s 0.5 71 -1.5');empty_hand();g.call('interact','0','71','1');g.call('wait','15');assert g.call('status')['screen']=='inventory'
     source=slot(metal);click(source)
     for _ in range(5 if i<2 else 4):click(302,'right')
@@ -202,6 +204,8 @@ try:
   craft([('minecraft:copper_block',[100])],'minecraft:copper_ingot',9);sprint(800)
   for i in range(3):
    for metal,amount in ((('minecraft:gold_ingot',5),) if i==0 else (('minecraft:copper_ingot',5 if i==1 else 4),('minecraft:gold_ingot',5 if i==1 else 4))):
+    if i==2 and metal=='minecraft:gold_ingot':
+     cmd('give @s minecraft:lava_bucket 1');cmd('tp @s 2.5 71 2.5');promote('minecraft:lava_bucket');g.call('hotbar',str(hot('minecraft:lava_bucket')+1));g.call('interact','1','71','2');g.call('wait','10')
     cmd('tp @s 0.5 71 -1.5');empty_hand();g.call('interact','0','71','1');g.call('wait','15')
     source=slot(metal);click(source)
     for _ in range(amount):click(302,'right')
@@ -212,6 +216,15 @@ try:
   g.call('screenshot',str(run/'survival-alloy.png'))
   craft([('tconstruct:rose_gold_block',[100,101,102]),('tconstruct:seared_bricks',[104,106,107,108])],'tconstruct:tinkers_anvil')
   cmd('tp @s 2.5 71 0.5');place('tconstruct:tinkers_anvil',2,71,1);empty_hand();g.call('interact','2','71','1');g.call('wait','15');g.call('screenshot',str(run/'survival-anvil.png'));checkpoint()
+ elif a.phase=='alloy-fuel':
+  # Refill exhausted fuel; the four gold ingots remain in the input.
+  assert count('tconstruct:rose_gold_block')==2
+  cmd('give @s minecraft:lava_bucket 1');cmd('tp @s 2.5 71 2.5');promote('minecraft:lava_bucket');g.call('hotbar',str(hot('minecraft:lava_bucket')+1));g.call('interact','1','71','2');g.call('wait','10');sprint(1500)
+  cmd('tp @s 2.5 71 4.5');empty_hand();g.call('interact','0','71','4');g.call('wait','300',timeout=45);g.call('interact','0','70','4');g.call('wait','12');assert count('tconstruct:rose_gold_block')==3,inventory()
+  TABLE=(4,71,2);craft([('tconstruct:rose_gold_block',[100,101,102]),('tconstruct:seared_bricks',[104,106,107,108])],'tconstruct:tinkers_anvil')
+  cmd('tp @s 2.5 71 0.5');place('tconstruct:tinkers_anvil',2,71,1);empty_hand();g.call('interact','2','71','1');g.call('wait','15');g.call('screenshot',str(run/'survival-anvil.png'));checkpoint()
+ elif a.phase=='inspect':
+  cmd('tp @s 0.5 71 -1.5');empty_hand();g.call('interact','0','71','1');g.call('wait','15');print('INSPECT UI',g.call('ui'),'MENU',g.call('menu'),flush=True);g.call('screenshot',str(run/'survival-alloy-inspect.png'));checkpoint()
  elif a.phase=='reload':
   assert g.call('block','2','71','1').get('block')=='tconstruct:tinkers_anvil'
   cmd('tp @s 2.5 71 0.5');empty_hand();g.call('interact','2','71','1');g.call('wait','15');assert g.call('status')['screen']=='inventory';checkpoint()
