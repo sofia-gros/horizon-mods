@@ -47,7 +47,10 @@ def package(output):
     horizon = config['compatibility']['horizon_revision']
     if mod['id'] != 'tconstruct' or horizon != compatibility['horizon_revision']:
         raise ValueError('native bundle identity or pinned Horizon revision differs')
-    manifest = {'schema': 1, 'id': mod['id'], 'version': mod['version'], 'game': '26.3',
+    # The content companion owns tconstruct; use a distinct native ID so the
+    # launcher does not suppress the content mod when native code is installed.
+    native_id = 'tconstruct_native'
+    manifest = {'schema': 1, 'id': native_id, 'version': mod['version'], 'game': '26.3',
                 'horizon': horizon, 'mixins': MIXINS_REVISION}
 
     # Keep the thousands of original asset files inside one permitted data
@@ -68,8 +71,12 @@ def package(output):
         inside = rel.relative_to('tconstruct/mixins/tconstruct')
         if source.suffix not in ('.rs', '.toml'):
             raise ValueError(f'unsupported native source: {rel}')
-        files.append((f'mixins/tconstruct/{inside.as_posix()}', source.read_bytes()))
-    files.append(('mixins/tconstruct/data/tconstruct-support.zip', support.getvalue()))
+        # Generated accessors are namespaced by the native mod ID.
+        payload = source.read_bytes().replace(b'__horizon_mixins_tconstruct_', b'__horizon_mixins_tconstruct_native_')
+        if inside.as_posix() == 'horizon-mixin.toml':
+            payload = payload.replace(b'id = "tconstruct"', b'id = "tconstruct_native"', 1)
+        files.append((f'mixins/{native_id}/{inside.as_posix()}', payload))
+    files.append((f'mixins/{native_id}/data/tconstruct-support.zip', support.getvalue()))
     if len(files) > MAX_ENTRIES or sum(len(data) for _, data in files) > MAX_UNPACKED:
         raise ValueError('native bundle exceeds the official entry or size limit')
     output.parent.mkdir(parents=True, exist_ok=True)
