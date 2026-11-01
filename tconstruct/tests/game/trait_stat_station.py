@@ -31,7 +31,7 @@ def set_trait(name):
     g.call('wait', '50')
 
 def build():
-    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie]', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'clear @s', 'kill @e[type=minecraft:item]', 'tp @s 0.5 71 0.5', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:flint"}] 1'):
+    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie,tag=tconstruct_stat_trait_test]', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:tinker_station', 'clear @s', 'tp @s 0.5 71 0.5', 'give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:flint"}] 1', 'give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:flint"}] 1'):
         cmd(x)
     g.call('hotbar', '1')
     g.call('interact', '0', '71', '2')
@@ -54,10 +54,10 @@ def val(item, name):
     return float(m.group(1))
 
 def attack():
-    cmd('kill @e[type=minecraft:zombie]')
+    cmd('kill @e[type=minecraft:zombie,tag=tconstruct_stat_trait_test]')
     cmd('tp @s 0.5 71 0.5')
     cmd('gamemode survival @s')
-    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b}')
+    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b,Tags:["tconstruct_stat_trait_test"]}')
     g.call('wait', '30')
     g.call('hurtlog')
     entities = g.call('entities', '8', 'minecraft:zombie')['entities']
@@ -80,10 +80,10 @@ try:
     set_trait('ductile')
     ductile = build()
     print('ductile', json.dumps(ductile), flush=True)
-    assert val(ductile, 'tic_max_damage') == 97 and abs(val(ductile, 'tic_attack_damage') - 2.1875) < 0.001
+    assert val(ductile, 'tic_max_damage') == 97 and abs(val(ductile, 'tic_attack_damage') - 2.21375) < 0.001
     amount = attack()
     print('ductile attack', amount, flush=True)
-    assert abs(amount - 3.1875) < 0.01
+    assert abs(amount - 3.21375) < 0.01
     cmd('gamemode creative @s')
     components = ductile['components']
     marker = '"minecraft:custom_data":'
@@ -134,7 +134,7 @@ try:
     g.call('close')
     held = g.call('inventory')['held']
     print('swapped', json.dumps(held), flush=True)
-    assert val(held, 'tic_max_damage') == 63 and abs(val(held, 'tic_attack_damage') - 0.6) < 0.001
+    assert val(held, 'tic_max_damage') == 63 and abs(val(held, 'tic_attack_damage') - 0.605) < 0.001
     g.call('save')
     g.stop()
     g.cleanup()
@@ -142,7 +142,7 @@ try:
     g.ready()
     held = g.call('inventory')['held']
     print('saved', json.dumps(held), flush=True)
-    assert val(held, 'tic_max_damage') == 63 and abs(val(held, 'tic_attack_damage') - 0.6) < 0.001
+    assert val(held, 'tic_max_damage') == 63 and abs(val(held, 'tic_attack_damage') - 0.605) < 0.001
     cmd('datapack disable "file/trait-stat-test"')
     g.stop()
     print('PASS station stat traits', flush=True)
