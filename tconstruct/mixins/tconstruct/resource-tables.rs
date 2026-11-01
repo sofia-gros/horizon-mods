@@ -400,6 +400,12 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             }
         }
     }
+    for short in ["earth_slime_bottle", "sky_slime_bottle", "ichor_slime_bottle", "ender_slime_bottle"] {
+        if let Some(item) = items.get_mut(format!("tconstruct:{short}")) {
+            item["minecraft:max_stack_size"] = serde_json::json!(16);
+            item["minecraft:use_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
+        }
+    }
     if let Some(item) = items.get_mut("tconstruct:venom_bottle") {
         item["minecraft:food"] = serde_json::json!({"can_always_eat":true,"nutrition":0,"saturation":0.0});
         item["minecraft:consumable"] = serde_json::json!({"animation":"drink","consume_seconds":1.6,

@@ -104,6 +104,11 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime'):
+    relative = Path('item/bottle') / (contents + '_contents.png')
+    destination = mod_assets / 'textures' / relative
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(repository / 'content/assets/tconstruct/textures' / relative, destination)
 with zipfile.ZipFile(repository / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
     (mod_assets / 'textures/item/amethyst_bronze_ingot.png').write_bytes(smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
 shutil.copytree(repository / 'content/assets/tconstruct/sounds', mod_assets / 'sounds')
@@ -181,6 +186,10 @@ entries = [
     ('tconstruct:sky_slime_ball', 'minecraft:flint', 'Sky Slime Ball'),
     ('tconstruct:ichor_slime_ball', 'minecraft:flint', 'Ichor Slime Ball'),
     ('tconstruct:ender_slime_ball', 'minecraft:flint', 'Ender Slime Ball'),
+    ('tconstruct:earth_slime_bottle', 'minecraft:flint', 'Earth Slime Bottle'),
+    ('tconstruct:sky_slime_bottle', 'minecraft:flint', 'Sky Slime Bottle'),
+    ('tconstruct:ichor_slime_bottle', 'minecraft:flint', 'Ichor Slime Bottle'),
+    ('tconstruct:ender_slime_bottle', 'minecraft:flint', 'Ender Slime Bottle'),
     ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
     ('tconstruct:emerald_reinforcement', 'minecraft:flint', 'Emerald Reinforcement'),
     ('tconstruct:slimesteel_reinforcement', 'minecraft:flint', 'Slimesteel Reinforcement'),
@@ -260,6 +269,9 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
     elif short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
+        contents = 'ichor' if short == 'ichor_slime_bottle' else short.removesuffix('_bottle')
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/' + contents + '_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('emerald_reinforcement', 'slimesteel_reinforcement'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
     elif short in ('sky_slime_crystal', 'modifier_crystal', 'steel_shard', 'earth_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal', 'cobalt_shard', 'cobalt_ingot', 'cobalt_nugget', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball', 'seared_brick', 'scorched_brick'):
@@ -296,6 +308,9 @@ for name, template, title in entries:
         layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
         native_model = {'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}
     (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps(native_model))
+    if short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
+        item['minecraft:max_stack_size'] = 16
+        item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
     if short == 'venom_bottle':
         # TinkerFood.VENOM_BOTTLE and ContainerFoodItem (1.20.1): no
         # nutrition, always drinkable, 32 ticks, strength and poison.
