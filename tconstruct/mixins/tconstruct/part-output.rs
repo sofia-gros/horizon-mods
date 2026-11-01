@@ -65,8 +65,9 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
     }
     if action == 25 {
         if let Some(plan) = operation {
-            crate::game::tconstruct_source_station_take_host::take(game, key, plan);
-            game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
+            if crate::game::tconstruct_source_station_take_host::take(game, key, plan) {
+                game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
+            }
         }
         return Break(true);
     }

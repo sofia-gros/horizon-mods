@@ -161,8 +161,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     }
     if action == 25 {
         if let Some(plan) = repair {
-            crate::game::tconstruct_source_station_take_host::take(game, key, plan);
-            game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
+            if crate::game::tconstruct_source_station_take_host::take(game, key, plan) {
+                game.world.chunks.__horizon_mixins_tconstruct_station_name_edit_mut().remove(&key);
+            }
         }
         return Break(true);
     }
