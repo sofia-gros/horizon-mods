@@ -53,7 +53,36 @@ fn dynamic_materials(game: &Game<'_>, key: &str) -> Option<Vec<(String, String)>
     }).collect())
 }
 
-fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
+fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_json::Value> {
+    let recipes = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
+    let recipe: serde_json::Value = serde_json::from_slice(recipes.get(id)?).ok()?;
+    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
+    let ingredient = |v: &serde_json::Value| -> Option<String> {
+        let value = v.as_array().and_then(|a| a.first()).unwrap_or(v);
+        if let Some(id) = value.as_str().or_else(|| value.get("item").and_then(|v| v.as_str())) {
+            if let Some(tag) = id.strip_prefix('#') { return tags?.get(tag)?.iter().min().cloned(); }
+            return Some(id.to_owned());
+        }
+        tags?.get(value.get("tag")?.as_str()?)?.iter().min().cloned()
+    };
+    let grid = if grid_size == "small" { 2 } else { 3 };
+    let mut slots: Vec<Option<String>> = vec![None; 9];
+    if let (Some(pattern), Some(keys)) = (recipe.get("pattern").and_then(|v| v.as_array()), recipe.get("key").and_then(|v| v.as_object())) {
+        for (y, line) in pattern.iter().take(3).enumerate() {
+            for (x, ch) in line.as_str()?.chars().take(3).enumerate() {
+                if ch != ' ' { slots[y * 3 + x] = keys.get(&ch.to_string()).and_then(&ingredient); }
+            }
+        }
+    } else {
+        for (i, value) in recipe.get("ingredients")?.as_array()?.iter().take(grid * grid).enumerate() {
+            slots[(i / grid) * 3 + i % grid] = ingredient(value);
+        }
+    }
+    let result = recipe.get("result").and_then(|v| v.get("id").or_else(|| v.get("item"))).and_then(|v| v.as_str());
+    Some(serde_json::json!({"slots": slots, "result": result, "grid": if grid_size == "small" { 2 } else { 3 }}))
+}
+
+pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
     let mut zip = zip::ZipArchive::new(std::fs::File::open(path).ok()?).ok()?;
     let root = "assets/tconstruct/book/materials_and_you/";
     let index: serde_json::Value = serde_json::from_str(&read(&mut zip, &format!("{root}index.json"))?).ok()?;
@@ -86,9 +115,10 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
                                     for stat in visible {
                                         if let Some(fields) = stats.get(*stat) {
                                             for (field, value) in fields {
-                                                if let Some(number) = value.as_f64() {
+                                                let shown = value.as_f64().map(|number| number.to_string()).or_else(|| value.as_str().map(str::to_owned));
+                                                if let Some(shown) = shown {
                                                     let label = game.translate(&format!("tool_stat.tconstruct.{field}"), field);
-                                                    detail.push_str(&format!("\n{label}{number}"));
+                                                    detail.push_str(&format!("\n{label}{shown}"));
                                                 }
                                             }
                                         }
@@ -161,7 +191,7 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let graphic = value.get("image").and_then(|v| v.get("file")).and_then(|v| v.as_str())
                 .map(|s| serde_json::json!({"image":s}))
-                .or_else(|| value.get("recipe").and_then(|v| v.as_str()).map(|s| serde_json::json!({"recipe":s})));
+                .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))));
             if let Some(graphic) = graphic {
                 chapter_pages.push(Text::styled(title, horizon_client::text::Style {
                     insertion: Some(format!("tconstruct:book:{}", graphic)), ..Default::default()
@@ -192,7 +222,7 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
     let mut target = i32::try_from(index_count + 1).ok()?;
-    let mut contents = Text::literal("Materials & You\n\n");
+    let mut contents = Text::styled("Materials & You\n\n", horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
     for (index, (heading, chapter)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
@@ -218,6 +248,12 @@ pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool
         let path = game.options.resources.join("assets/tconstruct/materials-and-you.zip");
         let Some(pages) = source_pages(game, &path) else { return false; };
         game.open_book(BookScreen::View { pages, page: 0, lectern: None });
+        if remote {
+            let hand = u8::from(game.hand == Hand::Off);
+            game.send(S::CustomPayload(horizon_protocol::packets::configuration::CustomPayload {
+                channel: "tconstruct:materials_book".into(), data: vec![hand],
+            }));
+        }
     }
     true
 }

@@ -3105,3 +3105,19 @@ target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
 kind = "HEAD"
 helper = "source-materials-starting-book.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "materials-book-request"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-request.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&S", value = "&packet" }]
+
+[[injection]]
+id = "materials-book-response"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-response.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
