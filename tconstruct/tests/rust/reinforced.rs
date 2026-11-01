@@ -9,7 +9,8 @@ fn reinforced_partial_levels_dense_order_and_cause() {
  let mut draws=[0.1,0.9,0.1,0.9, 0.2,0.8].into_iter();
  assert_eq!(reinforced_wear(4,1,4,false,None,||draws.next().unwrap()),1);
  assert_eq!(reinforced_wear(2,0,20,false,Some("tconstruct:glowing"),||panic!("bypassed cause must not roll")),2);
- assert_eq!(reinforced_wear(2,0,20,true,None,||panic!("unbreakable must not roll")),2);
+ assert_eq!(reinforced_wear(2,1,20,true,None,||panic!("unbreakable must not roll")),0);
+ assert_eq!(reinforced_wear(2,0,20,true,Some("tconstruct:glowing"),||panic!("bypassed cause must not roll")),2);
 }
 #[test]
 fn source_cause_bypasses_reinforced_only_for_glowing() {
