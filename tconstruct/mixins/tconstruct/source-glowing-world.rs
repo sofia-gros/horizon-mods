@@ -71,14 +71,17 @@ pub(super) fn process_support_changes(game: &mut super::Game<'_>) -> anyhow::Res
     Ok(())
 }
 
+pub(super) fn has_glowing(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack) -> bool {
+    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack);
+    super::tconstruct_source_overslime::upgrade(stack, "tconstruct:glowing")
+        + traits.as_ref().and_then(|data| data.levels.get("tconstruct:glowing").copied()).unwrap_or(0) > 0
+}
+
 /// Right-click after the tool's ordinary block interaction has passed.
 pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3]) -> Option<anyhow::Result<bool>> {
     use horizon_world::nbt::Tag;
     if super::tconstruct_source_ranged_wear::is_broken(stack) || !game.may_build() { return None; }
-    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack);
-    let level = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:glowing")
-        + traits.as_ref().and_then(|data| data.levels.get("tconstruct:glowing").copied()).unwrap_or(0);
-    if level <= 0 { return None; }
+    if !has_glowing(game, stack) { return None; }
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     if !tags.get("tconstruct:modifiable/interactable/right").is_some_and(|values| values.contains(stack.item.as_ref())) { return None; }
     // Dual-option interaction may move Glowing from right-click to left-click.
