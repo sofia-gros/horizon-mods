@@ -12,6 +12,11 @@ surface samples. It is tested as a standalone rule and is not connected to
 world generation. The 20 original earth, sky, ender and blood island NBT
 templates are retained without replacing vanilla structures.
 
+`source-slime-tree-shape.rs` preserves the original ordered diamond canopy,
+air removals, leaf drippers and shared vine-state groups as placement
+operations. It is also standalone: tree height, soil checks, randomized vine
+states, block writes and leaf-distance updates are not connected yet.
+
 The original uses `tconstruct:island`, not a vanilla jigsaw: its templates
 include data markers that can place source slime trees, vines and grass. The
 current Horizon structure registry recognizes the type as unsupported.
@@ -29,3 +34,9 @@ for the `place_in_chunk` call in `generator_decoration::Decoration::decorate`
 reports `E_UNSUPPORTED_CONTROL_FLOW` because the call is inside a closure.
 The `try_generate` HEAD probe accepts its `impl StartContext` binding in a
 limited plan; that alone does not connect markers or prove save/reload.
+An adapter over `dyn PieceWorld` type-checks for basic block and height
+access, but the piece context does not expose the host's named-feature
+catalog or complete tree state-provider bindings. The retained original
+`tconstruct:slime_tree` definition currently returns `Field("basic feature
+type")` from the host feature decoder. A vanilla tree is not a substitute
+for the source algorithm and is not installed here.
