@@ -30,10 +30,10 @@ An ordinary hosted LAN guest mined the full 3×3 with nine drops and nine wear;
 both players saw the result, which persisted after save/reload. A non-operator
 on a dedicated test server mined across a spawn-protection boundary: three
 protected blocks remained and only the six allowed blocks dropped and caused
-wear. To exercise delayed destruction, a test-only TCP proxy inserted an early
-STOP immediately after START; the same unmodified product binary processed the
-result. The saved world and existing accepted dedicated-test configuration were
-reused.
+wear. A test-only TCP proxy inserted an early STOP immediately after START using the
+same unmodified product binary. The resulting area and protection were checked,
+but the server’s internal delayed-destruction branch was not directly measured.
+The saved world and existing accepted dedicated-test configuration were reused.
 
 These are representative checks, not exhaustive material or multiplayer
 coverage. Windows has not been tested.
