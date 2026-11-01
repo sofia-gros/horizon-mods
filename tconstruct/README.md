@@ -34,7 +34,7 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Material projectile stats](docs/projectile-stats.md) describes tested Longbow and Crossbow arrow speed, accuracy and current limits.
 
-[Ranged material traits](docs/ranged-material-traits.md) describes in-progress source stat effects and their unverified game paths.
+[Ranged material traits](docs/ranged-material-traits.md) describes the implemented Longbow and Crossbow material effects, representative Linux checks, and remaining gaps.
 
 [Netherite and Unbreakable](docs/playing.md#netherite-and-unbreakable) have representative Linux Station, Anvil, equipment, Crystal, save and LAN checks with supplied materials; see the guide for their scope.
 
