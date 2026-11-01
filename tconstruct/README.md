@@ -22,7 +22,7 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Material projectile stats](docs/projectile-stats.md) describes tested Longbow and Crossbow arrow speed, accuracy and current limits.
 
-The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
+A harvest-tool Haste upgrade is in development; game validation and modifier crystals remain pending. The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
 
 ## Develop
 
