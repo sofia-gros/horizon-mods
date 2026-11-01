@@ -148,8 +148,8 @@ fn prepare_tconstruct_resources() {
             std::fs::remove_file(&creative_path)?;
             std::fs::rename(temp, creative_path)?;
         }
-        // Forge's source biome modifier adds this feature to land overworld
-        // biomes. Extend the generated bundle, keeping the base pack intact.
+        // Project the source geode biome modifiers into the generated bundle,
+        // preserving source registration order and the vanilla base pack.
         if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file() {
             fn tag_members(tags: &serde_json::Value, id: &str, visited: &mut std::collections::HashSet<String>, out: &mut std::collections::HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
                 if !visited.insert(id.to_owned()) { return Ok(()); }
@@ -163,27 +163,36 @@ fn prepare_tconstruct_resources() {
                 Ok(())
             }
             let tags: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("worldgen/biome_tags.json"))?)?;
-            let mut land = std::collections::HashSet::new();
-            tag_members(&tags, "minecraft:is_overworld", &mut Default::default(), &mut land)?;
+            let mut overworld = std::collections::HashSet::new();
+            let mut nether = std::collections::HashSet::new();
+            let mut end = std::collections::HashSet::new();
+            tag_members(&tags, "minecraft:is_overworld", &mut Default::default(), &mut overworld)?;
+            tag_members(&tags, "minecraft:is_nether", &mut Default::default(), &mut nether)?;
+            tag_members(&tags, "minecraft:is_end", &mut Default::default(), &mut end)?;
             let mut excluded = std::collections::HashSet::new();
             for id in ["minecraft:is_ocean", "minecraft:is_deep_ocean", "minecraft:is_beach", "minecraft:is_river"] {
                 tag_members(&tags, id, &mut Default::default(), &mut excluded)?;
             }
+            let sky: std::collections::HashSet<_> = overworld.difference(&excluded).cloned().collect();
+            end.remove("minecraft:the_end");
             let path = out.join("worldgen/biomes.json");
             let mut biomes: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
-            let mut added = 0;
-            for id in land.difference(&excluded) {
-                let raw = biomes.get_mut(id).ok_or_else(|| format!("missing biome {id}"))?;
-                let mut biome: serde_json::Value = serde_json::from_str(raw.as_str().ok_or("invalid biome")?)?;
-                let features = biome["features"].as_array_mut().ok_or("missing biome features")?;
-                let local = features.get_mut(2).and_then(|v| v.as_array_mut()).ok_or("missing local modifications")?;
-                if !local.iter().any(|v| v.as_str() == Some("tconstruct:sky_geode")) {
-                    local.push(serde_json::Value::String("tconstruct:sky_geode".into()));
+            for (name, eligible) in [("earth", &overworld), ("sky", &sky), ("ichor", &nether), ("ender", &end)] {
+                if !content_path.join(format!("data/tconstruct/worldgen/placed_feature/{name}_geode.json")).is_file() { continue; }
+                if eligible.is_empty() { return Err(format!("no eligible {name} geode biomes").into()); }
+                let feature = format!("tconstruct:{name}_geode");
+                for id in eligible {
+                    let raw = biomes.get_mut(id).ok_or_else(|| format!("missing biome {id}"))?;
+                    let mut biome: serde_json::Value = serde_json::from_str(raw.as_str().ok_or("invalid biome")?)?;
+                    let features = biome["features"].as_array_mut().ok_or("missing biome features")?;
+                    while features.len() < 3 { features.push(serde_json::json!([])); }
+                    let local = features.get_mut(2).and_then(|v| v.as_array_mut()).ok_or("missing local modifications")?;
+                    if !local.iter().any(|v| v.as_str() == Some(&feature)) {
+                        local.push(serde_json::Value::String(feature.clone()));
+                    }
+                    *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
                 }
-                *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
-                added += 1;
             }
-            if added == 0 { return Err("no eligible Sky Geode biomes".into()); }
             let temp = out.join("worldgen/biomes.json.tmp");
             std::fs::write(&temp, serde_json::to_vec(&biomes)?)?;
             std::fs::rename(temp, path)?;

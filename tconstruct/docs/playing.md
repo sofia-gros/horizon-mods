@@ -164,8 +164,16 @@ The Smeltery fuel gauge shows the available fuel. Hover over it for the fluid, t
 
 ### Skyslime Crystals
 
-Find Sky Geodes underground in newly generated overworld land, away from oceans, rivers and beaches. Mine a fully grown Skyslime Crystal Cluster with a pickaxe to obtain crystals; they work in the Modifier Worktable. Existing generated chunks do not gain new geodes. The budding blocks and smaller buds do not yet grow, so collect the clusters already present. Other slime geodes and full world progression are unfinished.
+Find Sky Geodes underground in newly generated overworld land, away from oceans, rivers and beaches. Mine a fully grown Skyslime Crystal Cluster with a pickaxe to obtain crystals; they work in the Modifier Worktable. Existing generated chunks do not gain new geodes. The budding blocks and smaller buds do not yet grow, so collect the clusters already present. Earthslime Geodes appear underground across the Overworld, Ichor Geodes high in the Nether, and Enderslime Geodes in the outer End. Their crystals can be made into crystal blocks or processed in a blast furnace. Earthslime crystals can also make an Arrow Head in the Part Builder. A representative Linux test covered these uses; crystal regrowth, many material traits and full world progression remain unfinished.
 
 ![A naturally generated Sky Geode cluster](sky-geode-natural.png)
 
 ![Using a mined crystal at the Modifier Worktable](sky-geode-worktable.png)
+
+![Naturally generated Earthslime Geode](earth-geode-natural.png)
+
+![Naturally generated Ichor Geode](ichor-geode-natural.png)
+
+![Naturally generated Enderslime Geode](ender-geode-natural.png)
+
+![Making an Earthslime Arrow Head](earth-geode-builder.png)
