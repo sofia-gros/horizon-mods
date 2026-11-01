@@ -17,6 +17,7 @@ def data(kind,reinforced):
  up=',tic_upgrades:{"tconstruct:reinforced":20}' if reinforced else ''
  return f'tconstruct:{kind}[minecraft:custom_data={{tic_materials:{parts},tic_max_damage:100,tic_draw_speed:2.0f,tic_velocity:1.0f,tic_accuracy:1.0f{up}}},minecraft:max_damage=100]'
 def setup(kind,reinforced):
+ g.call('hotbar','1');g.call('wait','5')
  for c in ('gamemode creative @s','clear @s','effect clear @s','effect give @s minecraft:instant_health 1 4 true','kill @e[tag=gem_arrow_target]','tp @s 0.5 71 0.5','fill -2 71 -1 2 72 3 minecraft:air','item replace entity @s weapon.mainhand with '+data(kind,reinforced),'give @s minecraft:arrow 32','gamemode survival @s'):cmd(c)
  g.call('hotbar','1');g.call('look','0','-60');g.call('wait','10')
 def shoot(kind):
