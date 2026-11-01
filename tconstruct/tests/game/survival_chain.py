@@ -3,7 +3,7 @@
 Vanilla raw inputs, furnace, crafting table, fuel and a pickaxe are fixtures.
 All TConstruct outputs used later must come from prior crafting or casting.
 """
-import argparse,os,sys,time
+import argparse,os,subprocess,sys,time
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
@@ -32,7 +32,10 @@ def promote(item):
  source=next(s['slot'] for s in inv['main'] if s.get('item')==item);target=empty()
  g.call('open-inventory');g.call('wait','8');click(source);click(target);g.call('close');return target
 def place(item,x,y,z):
- promote(item);before=count(item);g.call('place',str(x),str(y),str(z),'--item',item);g.call('wait','10')
+ promote(item);before=count(item)
+ try:g.call('place',str(x),str(y),str(z),'--item',item)
+ except subprocess.CalledProcessError as error:raise RuntimeError(f'place {item} at {(x,y,z)} failed: {error.stdout} {error.stderr}; inventory={inventory()}') from error
+ g.call('wait','10')
  assert g.call('block',str(x),str(y),str(z)).get('block')==item,(item,x,y,z)
  assert count(item)==before-1,(item,before,count(item))
 def empty_hand():g.call('hotbar',str(empty()+1));g.call('wait','8')
