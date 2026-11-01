@@ -130,6 +130,46 @@ pub(super) fn merge_pack_block_tags(
     }
 }
 
+/// Project a source block tag onto the actual block registry. Unregistered
+/// source block IDs cannot be encountered in this world and are ignored;
+/// unresolved required nested tags and cycles remain errors.
+pub(super) fn resolve_available_blocks(
+    id: &str,
+    tags: &BTreeMap<String, Vec<Vec<u8>>>,
+    registry: &std::collections::HashSet<String>,
+) -> Result<Vec<String>, String> {
+    fn canonical(id: &str) -> String {
+        if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
+    }
+    fn resolve(id: &str, tags: &BTreeMap<String, Vec<Vec<u8>>>, registry: &std::collections::HashSet<String>, visiting: &mut Vec<String>) -> Result<Vec<String>, String> {
+        if visiting.iter().any(|value| value == id) { return Err(format!("cyclic block tag {id}")); }
+        let files = tags.get(id).ok_or_else(|| format!("missing block tag {id}"))?;
+        if !files.iter().any(|file| parse_file(file).is_some()) { return Err(format!("invalid block tag {id}")); }
+        visiting.push(id.to_owned());
+        let mut result = Vec::new();
+        for entry in merge_tag_files(files) {
+            let values = if let Some(tag) = entry.id.strip_prefix('#') {
+                match resolve(&canonical(tag), tags, registry, visiting) {
+                    Ok(values) => values,
+                    Err(error) if error.starts_with("cyclic block tag ") => { visiting.pop(); return Err(error); }
+                    Err(_) if entry.remove || !entry.required => continue,
+                    Err(error) => { visiting.pop(); return Err(error); }
+                }
+            } else {
+                let block = canonical(&entry.id);
+                if registry.contains(&block) { vec![block] } else { Vec::new() }
+            };
+            for value in values {
+                if entry.remove { result.retain(|existing| existing != &value); }
+                else if !result.contains(&value) { result.push(value); }
+            }
+        }
+        visiting.pop();
+        Ok(result)
+    }
+    resolve(&canonical(id), tags, registry, &mut Vec::new())
+}
+
 /// Resolve an acyclic tag against the current registry. Missing required
 /// entries fail the tag; missing removals are optional in Forge. Cycles are
 /// explicitly unsupported for now and must not be treated as an empty tag.
@@ -249,6 +289,16 @@ mod tests {
         assert_eq!(tags["forge:creosote"], [b"base".to_vec(), b"override".to_vec()]);
         assert_eq!(tags.len(), 1);
     }
+    #[test]
+    fn effective_blocks_project_missing_ids_and_honor_nested_removal() {
+        let mut tags = BTreeMap::new();
+        tags.insert("minecraft:hoe".into(), vec![br#"{"values":["minecraft:pumpkin","minecraft:wheat","tconstruct:unported"]}"#.to_vec()]);
+        tags.insert("tconstruct:scythe".into(), vec![br##"{"values":["#minecraft:hoe"],"remove":["minecraft:pumpkin"]}"##.to_vec()]);
+        let registry = std::collections::HashSet::from(["minecraft:pumpkin".into(), "minecraft:wheat".into()]);
+        assert_eq!(resolve_available_blocks("tconstruct:scythe", &tags, &registry).unwrap(), ["minecraft:wheat"]);
+        assert!(resolve_available_blocks("tconstruct:missing", &tags, &registry).is_err());
+    }
+
     #[test]
     fn block_tags_preserve_pack_layers_without_reading_item_tags() {
         let mut tags = BTreeMap::new();
