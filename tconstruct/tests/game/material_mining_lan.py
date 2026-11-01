@@ -79,14 +79,14 @@ try:
     click(q, 325)
     assert (q.call('menu')['carried'] or {}).get('item') == 'tconstruct:pickaxe'
     click(q, 0)
-    q.call('screenshot', str(run / 'material-melee-lan.png'))
+    q.call('screenshot', str(run / 'material-mining-lan.png'))
     q.call('close')
     q.call('wait', '10')
     held = q.call('inventory')['held']
     print('guest full', json.dumps(held), 'counts', json.dumps(q.call('inventory')['counts']), flush=True)
     assert re.search('sharpness[^0-9]*36', held.get('components', ''))
     assert q.call('inventory')['counts'].get('minecraft:quartz', 0) == 1
-    assert 'tic_mining_traits' in held.get('components', ''), held
+    assert 'tic_mining_traits' in held.get('components', '') and 'tic_mining_tool' in held.get('components', ''), held
     cmd(h, 'setblock 0 71 2 minecraft:stone')
     cmd(h, 'gamemode survival Guest')
     q.call('wait', '20')

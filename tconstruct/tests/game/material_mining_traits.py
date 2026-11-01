@@ -89,6 +89,7 @@ def repair(fraction=0.4):
     result = g.call('menu')['carried'] or {}
     assert result.get('item') == 'tconstruct:pickaxe', result
     repaired = result.get('damage', 0)
+    g.call('screenshot', str(run / 'material-mining-repair.png'))
     click(0); g.call('close')
     print('repair', before, repaired, flush=True)
     return before - repaired
