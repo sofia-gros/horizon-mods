@@ -51,6 +51,14 @@ try:
         print('LAN crop',tool,len(positions),'wear',after.get('damage',0)-before.get('damage',0),'wheat',count,flush=True)
         assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
         assert count==len(positions),count
+    # The same authoritative path must act on the guest's off hand.
+    cmd(h,'gamemode creative Guest');cmd(h,'setblock 30 100 30 minecraft:wheat[age=7]')
+    q.call('key','f','tap');q.call('wait','20');off=q.call('status')['offhand']
+    assert off and off['item']=='tconstruct:scythe' and not q.call('inventory')['held'],off
+    cmd(h,'gamemode survival Guest');q.call('wait','10');q.call('interact','30','100','30','up');q.call('wait','20')
+    wait(lambda:'age=0' in h.call('block','30','100','30').get('state',''))
+    after=q.call('status')['offhand'];assert after.get('damage',0)-off.get('damage',0)==1,(off,after)
+    print('LAN offhand crop harvest',flush=True)
     q.call('screenshot',str(run/'crop-harvest-lan.png'));q.stop();q.cleanup();games.remove(q);h.call('save');h.stop()
     print('PASS LAN crop harvest',flush=True)
 finally:
