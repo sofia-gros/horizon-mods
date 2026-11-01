@@ -121,7 +121,7 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
                 g.call('key','f','tap');g.call('wait','20')
                 assert not g.call('inventory')['held'], 'main hand must be empty before offhand test'
                 assert (g.call('status')['offhand'] or {}).get('item')=='tconstruct:scythe'
-            before=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);console('gamemode survival Guest');g.call('wait','25')
+            before=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);before_wheat=total_items('minecraft:wheat');console('gamemode survival Guest');g.call('wait','25')
             result=g.call('interact',str(cx),str(cy),str(cz),'up');g.call('wait','30')
             for attempt in range(80):
                 states={(x,z):g.call('block',str(x),str(cy),str(z)).get('state','') for x in range(cx-1,cx+2) for z in range(cz-1,cz+2)}
@@ -131,6 +131,8 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
             assert all('age=7' in states[(cx-1,z)] for z in range(cz-1,cz+2)),states
             assert all('age=0' in states[(x,z)] for x in (cx,cx+1) for z in range(cz-1,cz+2)),states
             assert after.get('damage',0)-before.get('damage',0)==6,(before,after)
+            wheat=total_items('minecraft:wheat')-before_wheat;assert wheat==6,wheat
+            print('protected crop wheat drop',offhand,wheat,flush=True)
         g.call('screenshot',str(run/'crop-harvest-protection.png'));g.stop();print('PASS server crop protection boundary and offhand',flush=True)
     finally:
         if g is not None:g.cleanup()
