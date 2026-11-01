@@ -76,4 +76,17 @@ mod tests {
         assert!(!tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg).unwrap());
         assert_eq!(world.blocks.len(), 1);
     }
+
+    #[test]
+    fn missing_tree_state_is_reported_before_any_writes() {
+        let resources = resources();
+        let mut world = World { blocks: BTreeMap::from([([0, 63, 0], BlockStateId(2))]) };
+        let mut random = LegacyRandom::new(0);
+        let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
+            chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
+        let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
+            vines: false, trunk: "tconstruct:missing_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
+        assert!(matches!(tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg), Err(PlacementQueryError::Unavailable)));
+        assert_eq!(world.blocks.len(), 1);
+    }
 }
