@@ -132,6 +132,8 @@ try:
     click(0); g.call('screenshot', str(run / 'material-melee-followup.png')); g.call('close')
     before = g.call('inventory')['held']
     assert 'tic_upgrades' in before.get('components', '')
+    assert abs(val(before, 'tic_attack_damage') - 1.25) < 0.001, before
+    print('swapped', json.dumps(before), flush=True)
     g.call('save'); g.stop(); g.cleanup()
     g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
     saved = g.call('inventory')['held']
