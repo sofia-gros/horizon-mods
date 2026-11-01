@@ -81,3 +81,12 @@ their vanilla grass marker accepts dirt. Clay shares the overworld sky set with
 Sky Slime Island at the source 1:4 weight, so enabling clay alone would alter
 the source set and is not done. Clay's selected vanilla tree features and its
 Terracube spawn override are still unconnected.
+
+The first official host revision with content `state_properties` and
+`default_state` is `e7f4440f05461c8975bebd2d185e3e9c6214aa4a`. Relative to
+the pinned host it changes 1,533 files; 11 of this mod's 14 module target files
+change, and a name-only scan finds 27 injection/constructor targets requiring
+inspection. This is a static estimate, not a count of confirmed broken
+signatures. The island start's `try_generate` signature and valid-biome API do
+change. The host is not upgraded on this draft; custom world-fluid identity,
+feature execution, registration, acquisition and validation remain open.
