@@ -6,6 +6,7 @@ use std::collections::{BTreeMap, HashSet};
 #[path = "../../mixins/tconstruct/source-mining-stack.rs"] mod tconstruct_source_mining_stack;
 #[path = "../../mixins/tconstruct/source-mining-rules.rs"] mod tconstruct_source_mining_rules;
 include!("../../mixins/tconstruct/source-mining-return.rs");
+include!("../../mixins/tconstruct/source-harvest-return.rs");
 
 #[test]
 fn per_stack_rules_respect_effective_blocks_broken_and_material_swap() {
@@ -49,4 +50,30 @@ fn unsupported_harvest_tool_without_rules_still_builds() {
     let stats = tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
     let mut stack = ItemStack::new("tconstruct:flint_and_brick", 1);
     assert!(tconstruct_source_mining_stack::apply(&mut stack, &stats, &BTreeMap::new(), &[], true).is_some());
+}
+
+#[test]
+fn material_tier_effectiveness_and_broken_state_control_real_harvest() {
+    let mut items = Items::tags_only(std::path::Path::new("/tmp")).unwrap();
+    items.block_tags.insert("minecraft:incorrect_for_stone_tool".into(), HashSet::from(["minecraft:diamond_ore".into()]));
+    items.block_tags.insert("tconstruct:source_effective/minecraft/mineable/pickaxe".into(), HashSet::from(["minecraft:stone".into(), "minecraft:diamond_ore".into()]));
+    let rules = |tier: &str| Tag::compound([("rules", Tag::List(vec![
+        Tag::compound([("blocks", Tag::String(format!("#minecraft:incorrect_for_{tier}_tool").as_str().into())), ("correct_for_drops", Tag::Byte(0))]),
+        Tag::compound([("blocks", Tag::String("#tconstruct:source_effective/minecraft/mineable/pickaxe".into())), ("speed", Tag::Float(7.0f32.to_bits())), ("correct_for_drops", Tag::Byte(1))]),
+    ]))]);
+    let mut pick = ItemStack::new("tconstruct:pickaxe", 1);
+    let data = |tier: &str| Tag::compound([("tic_max_damage", Tag::Int(100)), ("tic_mining_traits", Tag::List(vec![])), ("tic_mining_tool", rules(tier))]);
+    pick.data_mut().set_other("minecraft:custom_data", Some(data("stone")));
+    assert!(tconstruct_material_correct_for_drops(false, Some(&pick), "minecraft:stone", &items));
+    assert!(!tconstruct_material_correct_for_drops(true, Some(&pick), "minecraft:diamond_ore", &items));
+    assert_eq!(tconstruct_material_mining_speed(3.5, Some(&pick), "minecraft:diamond_ore", &items), 1.0);
+    pick.data_mut().set_other("minecraft:custom_data", Some(data("diamond")));
+    assert!(tconstruct_material_correct_for_drops(false, Some(&pick), "minecraft:diamond_ore", &items));
+    assert_eq!(tconstruct_material_mining_speed(3.5, Some(&pick), "minecraft:diamond_ore", &items), 7.0);
+    assert!(!tconstruct_material_correct_for_drops(true, Some(&pick), "minecraft:dirt", &items));
+    pick.damage = 100;
+    assert!(!tconstruct_material_correct_for_drops(false, Some(&pick), "minecraft:stone", &items));
+    assert_eq!(tconstruct_material_mining_speed(0.3, Some(&pick), "minecraft:stone", &items), 0.3);
+    let vanilla = ItemStack::new("minecraft:iron_pickaxe", 1);
+    assert!(tconstruct_material_correct_for_drops(true, Some(&vanilla), "minecraft:stone", &items));
 }
