@@ -15,17 +15,6 @@ pub(in crate::game) fn selected(game: &Game<'_>) -> Option<horizon_client::items
     }.or_else(|| crate::game::tconstruct_source_station_world::has_operation_tool(slots).then(|| slots.first().cloned().flatten()).flatten())
 }
 
-// Source trim modifiers store registry IDs in persistent tool data.
-pub(in crate::game) fn source_trim(game: &Game<'_>, stack: &horizon_client::items::ItemStack) -> Option<horizon_client::trims::TrimTexture> {
-    use horizon_world::nbt::Tag;
-    if !matches!(stack.item.as_ref(), "tconstruct:plate_helmet" | "tconstruct:plate_chestplate" | "tconstruct:plate_leggings" | "tconstruct:plate_boots") { return None; }
-    let persistent = stack.data()?.other("minecraft:custom_data")?.get("tic_persistent")?;
-    let Tag::String(pattern) = persistent.get("tconstruct:trim_pattern")? else { return None; };
-    let Tag::String(material) = persistent.get("tconstruct:trim_material")? else { return None; };
-    let kind = if stack.item.as_ref() == "tconstruct:plate_leggings" { "humanoid_leggings" } else { "humanoid" };
-    horizon_client::trims::TrimTexture::resolve(&game.armor_stand_assets.trims, &[], &material.to_string_lossy(), &pattern.to_string_lossy(), kind)
-}
-
 pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
     let assets = &game.armor_stand_assets;
     let Some(model) = assets.main.as_ref() else { return; };
@@ -105,9 +94,6 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
                         super::apply_pose(&mut layer_poses, &stand.pose);
                         for (sprite, color) in [plating, maille] {
                             render::draw(part, base, &layer_poses, uv(sprite), color, light, 0, &mut verts);
-                        }
-                        if let Some(trim) = source_trim(game, stack).and_then(|trim| sprites.get(&trim.sprite())) {
-                            render::draw(part, base, &layer_poses, uv(trim), u32::MAX, light, 0, &mut verts);
                         }
                     }
                 }
