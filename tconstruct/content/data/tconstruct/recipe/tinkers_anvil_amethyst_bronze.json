@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "amethyst_bronze",
+          "Metal": "tconstruct:amethyst_bronze_block",
+          "Variant": "amethyst_bronze",
           "Texture": "tconstruct:block/storage/amethyst_bronze"
         }
       },

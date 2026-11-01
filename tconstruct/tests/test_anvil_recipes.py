@@ -27,7 +27,8 @@ class AnvilRecipes(unittest.TestCase):
                     variant = path.stem
                     self.assertEqual(components['minecraft:item_model'], f'tconstruct:{variant}')
                     visual = components['minecraft:custom_data']['tconstruct:anvil']
-                    self.assertEqual(visual['Metal'], variant.removeprefix(anvil + '_'))
+                    self.assertEqual(visual['Metal'], recipe['key']['m'])
+                    self.assertEqual(visual['Variant'], variant.removeprefix(anvil + '_'))
                     item = json.loads((ROOT / 'content/assets/tconstruct/items' / f'{variant}.json').read_text())
                     self.assertEqual(item['model']['model'], f'tconstruct:item/{variant}')
                     model = json.loads((ROOT / 'content/assets/tconstruct/models/block/table' / f'{variant}.json').read_text())

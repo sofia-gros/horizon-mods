@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "knightslime",
+          "Metal": "tconstruct:knightslime_block",
+          "Variant": "knightslime",
           "Texture": "tconstruct:block/storage/knightslime"
         }
       },

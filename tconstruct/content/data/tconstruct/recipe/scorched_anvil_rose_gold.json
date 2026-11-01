@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "rose_gold",
+          "Metal": "tconstruct:rose_gold_block",
+          "Variant": "rose_gold",
           "Texture": "tconstruct:block/storage/rose_gold"
         }
       },

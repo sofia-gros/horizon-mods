@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "slimesteel",
+          "Metal": "tconstruct:slimesteel_block",
+          "Variant": "slimesteel",
           "Texture": "tconstruct:block/storage/slimesteel"
         }
       },

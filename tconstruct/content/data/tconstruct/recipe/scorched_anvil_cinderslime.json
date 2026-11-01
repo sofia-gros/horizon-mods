@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "cinderslime",
+          "Metal": "tconstruct:cinderslime_block",
+          "Variant": "cinderslime",
           "Texture": "tconstruct:block/storage/cinderslime"
         }
       },

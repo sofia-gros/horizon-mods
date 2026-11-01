@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "manyullyn",
+          "Metal": "tconstruct:manyullyn_block",
+          "Variant": "manyullyn",
           "Texture": "tconstruct:block/storage/manyullyn"
         }
       },

@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "queens_slime",
+          "Metal": "tconstruct:queens_slime_block",
+          "Variant": "queens_slime",
           "Texture": "tconstruct:block/storage/queens_slime_side"
         }
       },

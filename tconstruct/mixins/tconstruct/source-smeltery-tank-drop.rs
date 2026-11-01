@@ -7,7 +7,7 @@ fn smeltery_tank_drop(pending: &mut crate::game::spill::Pending, pos: [i32; 3], 
                     let mut data = match stack.data().and_then(|d| d.other("minecraft:custom_data")) {
                         Some(Tag::Compound(data)) => data.clone(), _ => Compound::new(),
                     };
-                    if let Some(Tag::String(metal)) = value.get("Metal") {
+                    if let Some(Tag::String(metal)) = value.get("Variant") {
                         let model = format!("{}_{}", stack.item, metal.to_string_lossy());
                         stack.data_mut().set_other("minecraft:item_model", Some(Tag::String(model.as_str().into())));
                     }

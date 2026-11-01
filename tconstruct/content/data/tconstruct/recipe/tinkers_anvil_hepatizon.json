@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "hepatizon",
+          "Metal": "tconstruct:hepatizon_block",
+          "Variant": "hepatizon",
           "Texture": "tconstruct:block/storage/hepatizon"
         }
       },

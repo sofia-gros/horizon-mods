@@ -10,4 +10,4 @@ for anvil in ('tinkers_anvil','scorched_anvil'):
   models={f'models/block/table/{name}.json':{'parent':f'tconstruct:block/table/{anvil}','textures':{'particle':texture,'top':texture}},f'models/item/{name}.json':{'parent':f'tconstruct:block/table/{name}'},f'items/{name}.json':{'model':{'type':'minecraft:model','model':f'tconstruct:item/{name}'}}}
   for path,value in models.items():
    dest=asset/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(json.dumps(value,separators=(',',':'))+'\n')
-  file=data/'recipe'/f'{name}.json';value=json.loads(file.read_text());value['result']['components']={'minecraft:custom_data':{'tconstruct:anvil':{'Metal':metal,'Texture':texture}},'minecraft:item_model':f'tconstruct:{name}'};file.write_text(json.dumps(value,indent=2)+'\n')
+  file=data/'recipe'/f'{name}.json';value=json.loads(file.read_text());value['result']['components']={'minecraft:custom_data':{'tconstruct:anvil':{'Metal':value['key']['m'],'Variant':metal,'Texture':texture}},'minecraft:item_model':f'tconstruct:{name}'};file.write_text(json.dumps(value,indent=2)+'\n')

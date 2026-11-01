@@ -15,7 +15,8 @@
     "components": {
       "minecraft:custom_data": {
         "tconstruct:anvil": {
-          "Metal": "netherite",
+          "Metal": "minecraft:netherite_block",
+          "Variant": "netherite",
           "Texture": "minecraft:block/netherite_block"
         }
       },
