@@ -88,7 +88,41 @@ pub(super) fn has_glowing(game: &super::Game<'_>, stack: &horizon_items::items::
 pub(super) fn eligible(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack, left: bool) -> bool {
     use horizon_world::nbt::Tag;
     if super::tconstruct_source_ranged_wear::is_broken(stack) || !has_glowing(game, stack) { return false; }
-    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { return false; };
+    // Remote clients do not run the server recipe snapshot. Resolve their
+    // locally available source tag layers for click prediction; the server
+    // still independently checks its authoritative tags before acting.
+    let local_tags;
+    let tags = if let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) {
+        tags
+    } else {
+        if game.remote.is_none() { return false; }
+        let Some(rest) = game.res.rest.get() else { return false; };
+        let mut layers = std::collections::BTreeMap::new();
+        let mut merge = |pack: &horizon_client::datapack::DataPack| {
+            let files = pack.__horizon_mixins_tconstruct_recipe_files(&["tags"]);
+            super::tconstruct_source_tags::merge_pack_tags(&mut layers, files, |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
+        };
+        if !game.cmds.vanilla_disabled {
+            merge(&horizon_client::datapack::DataPack::builtin(&game.options.resources));
+            merge(&horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack")));
+        }
+        for name in ["forge-original-pack", "tconstruct-original-pack"] {
+            let manual = game.options.resources.join(name);
+            let root = if manual.is_dir() { manual } else { game.options.resources.join("assets/tconstruct/source-packs").join(name) };
+            merge(&horizon_client::datapack::DataPack::builtin(&root));
+        }
+        for id in &game.fns.enabled {
+            if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) { merge(pack); }
+        }
+        let registry = rest.items.registry_order.iter().map(|id| id.to_string()).collect();
+        let mut resolved = std::collections::HashMap::new();
+        for id in ["tconstruct:modifiable/interactable/left", "tconstruct:modifiable/interactable/right", "tconstruct:modifiable/interactable/dual"] {
+            let Ok(values) = super::tconstruct_source_tags::resolve_tag(id, &layers, &registry) else { return false; };
+            resolved.insert(id.to_owned(), values.into_iter().collect());
+        }
+        local_tags = resolved;
+        &local_tags
+    };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|values| values.contains(stack.item.as_ref()));
     let persisted = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|n| n.get("tic_persistent"));
     let toggled = |key: &str| matches!(persisted.and_then(|n| n.get(key)), Some(Tag::List(values)) if values.iter().any(|v| matches!(v, Tag::String(s) if s.to_string_lossy() == "tconstruct:glowing")));
