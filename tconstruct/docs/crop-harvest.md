@@ -12,7 +12,7 @@ Implementation and in-game verification are pending.
 ## Implementation status
 
 The scythe has been connected to the existing area-break path in source code;
-this change has not yet received a formal transform, build, or game test. Crop
+the existing area injection passed an isolated official Mixins plan (four injections, three modules, two states). It has not received a formal transform, build, or game test. Crop
 harvesting and replanting are not implemented. The shearing selector in
 `source-shear.rs` is an unconnected prototype and does not affect loot.
 
