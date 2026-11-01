@@ -11,6 +11,15 @@
     "s": "#tconstruct:anvil_seared_blocks"
   },
   "result": {
-    "id": "tconstruct:tinkers_anvil"
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "queens_slime",
+          "Texture": "tconstruct:block/storage/queens_slime_side"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_queens_slime"
+    }
   }
 }

@@ -11,6 +11,15 @@
     "s": "#tconstruct:anvil_seared_blocks"
   },
   "result": {
-    "id": "tconstruct:tinkers_anvil"
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "rose_gold",
+          "Texture": "tconstruct:block/storage/rose_gold"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_rose_gold"
+    }
   }
 }

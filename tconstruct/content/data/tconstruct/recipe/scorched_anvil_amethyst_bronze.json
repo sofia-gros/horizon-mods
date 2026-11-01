@@ -11,6 +11,15 @@
     "s": "#tconstruct:anvil_scorched_blocks"
   },
   "result": {
-    "id": "tconstruct:scorched_anvil"
+    "id": "tconstruct:scorched_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "amethyst_bronze",
+          "Texture": "tconstruct:block/storage/amethyst_bronze"
+        }
+      },
+      "minecraft:item_model": "tconstruct:scorched_anvil_amethyst_bronze"
+    }
   }
 }

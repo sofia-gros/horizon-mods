@@ -170,7 +170,8 @@ fn prepare_tconstruct_resources() {
         // Register the source machine IDs for persisted block entities. The
         // five machines use chest-like live inventories, but their custom IDs
         // keep machine metadata outside vanilla chest canonicalization.
-        let machines = [("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
+        let machines = [("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
+            ("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
             ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
             ("tconstruct:seared_basin", "tconstruct:basin"), ("tconstruct:smeltery_controller", "tconstruct:smeltery"),
             ("tconstruct:foundry_controller", "tconstruct:smeltery"),

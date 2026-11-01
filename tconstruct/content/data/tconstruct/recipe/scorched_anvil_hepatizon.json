@@ -11,6 +11,15 @@
     "s": "#tconstruct:anvil_scorched_blocks"
   },
   "result": {
-    "id": "tconstruct:scorched_anvil"
+    "id": "tconstruct:scorched_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "hepatizon",
+          "Texture": "tconstruct:block/storage/hepatizon"
+        }
+      },
+      "minecraft:item_model": "tconstruct:scorched_anvil_hepatizon"
+    }
   }
 }

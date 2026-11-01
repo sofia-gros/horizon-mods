@@ -23,6 +23,15 @@ class AnvilRecipes(unittest.TestCase):
                     self.assertEqual(recipe['pattern'], source['pattern'])
                     self.assertEqual(recipe['result']['id'], f'tconstruct:{anvil}')
                     self.assertEqual(recipe['key']['s'], f'#tconstruct:anvil_{material}_blocks')
+                    components = recipe['result']['components']
+                    variant = path.stem
+                    self.assertEqual(components['minecraft:item_model'], f'tconstruct:{variant}')
+                    visual = components['minecraft:custom_data']['tconstruct:anvil']
+                    self.assertEqual(visual['Metal'], variant.removeprefix(anvil + '_'))
+                    item = json.loads((ROOT / 'content/assets/tconstruct/items' / f'{variant}.json').read_text())
+                    self.assertEqual(item['model']['model'], f'tconstruct:item/{variant}')
+                    model = json.loads((ROOT / 'content/assets/tconstruct/models/block/table' / f'{variant}.json').read_text())
+                    self.assertEqual(model['textures']['top'], visual['Texture'])
                     metal = recipe['key']['m']
                     if metal.startswith('tconstruct:'):
                         self.assertTrue((DATA / 'horizon/block' / (metal.split(':')[1] + '.json')).is_file())
