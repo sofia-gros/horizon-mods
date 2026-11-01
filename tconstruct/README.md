@@ -6,6 +6,24 @@ This work-in-progress port brings Tinkers' Construct's parts and tool stations t
 
 Choose the [Windows guide](docs/windows-playtest.md) or [Linux guide](docs/linux.md) to prepare the mod and use a separate test world. Windows has not been tested on a PC, and a reported launch error is unresolved.
 
+### Native bundle artifact
+
+On a manually run **Mixins validation** workflow, download the `tconstruct-hnmod-<commit>` artifact from that run's **Artifacts** section and extract the downloaded Actions ZIP. It contains `tconstruct.hnmod`, a native Mixins source bundle pinned to the Horizon and Mixins revisions in its manifest. The workflow must complete successfully before its artifact is available.
+
+For a desktop Horizon Launcher that supports native bundles, select your instance, open its **Mods** page and install `tconstruct.hnmod` as a native mod, then build the instance using the launcher's native build flow. See the [official native-mod guide](https://github.com/horizon-rust/horizon/blob/374b50d48f0968bd08f7026c7fabb117c8ecb8a6/docs/native-mods.md). Native mods run with the player's permissions.
+
+**Resource preparation is still manual.** The bundle includes `mixins/tconstruct/data/tconstruct-support.zip`; installing the native bundle does not apply those assets or recipes automatically. On a desktop with Python 3, extract that ZIP from the `.hnmod` into an empty folder. It contains `tconstruct/` and `pluto-lib/`. With a prepared Horizon 26.3 resource folder and the native-built game executable, run the following from that folder; choose new, separate output paths for `OVERLAY` and `GAME_RESOURCES`:
+
+```text
+python3 tconstruct/tools/resources.py BASE_RESOURCES OVERLAY
+NATIVE_GAME --tconstruct-prepare OVERLAY tconstruct/content GAME_RESOURCES
+python3 tconstruct/tools/prepare_horizon_source_data.py BASE_RESOURCES GAME_RESOURCES/minecraft-original-pack
+python3 tconstruct/tools/prepare_bundled_forge.py GAME_RESOURCES/forge-original-pack
+NATIVE_GAME --resources GAME_RESOURCES
+```
+
+Replace `BASE_RESOURCES` with the prepared resource directory, `NATIVE_GAME` with the native-built game executable and the two output names with paths that do not already exist. This manual desktop route and the Actions artifact have not been validated as an installed launcher bundle. Smartphone installation, native building, resource preparation and gameplay are unverified; the bundle does not establish smartphone compatibility.
+
 ## Make a part
 
 The Part Builder can turn materials and patterns into tool parts. The Tinker Station can assemble and repair supported tools. See [Making parts and tools](docs/playing.md) for an illustrated example. The [Anvil guide](docs/anvil-assembly.md) covers five-input assembly, repair and representative Linux LAN checks; Windows remains untested.
