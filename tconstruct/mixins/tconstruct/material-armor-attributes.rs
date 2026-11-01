@@ -3,6 +3,7 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
     let mut values = Vec::new();
     for (stack, slot) in game.armor.iter().zip(["head", "chest", "legs", "feet"]) {
         let Some(stack) = stack.as_ref().filter(|stack| stack.item.starts_with("tconstruct:")) else { continue; };
+        if crate::game::tconstruct_source_ranged_wear::is_broken(stack) { continue; }
         let Some(data) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { continue; };
         for (key, attribute) in [("tic_armor", "minecraft:armor"), ("tic_armor_toughness", "minecraft:armor_toughness"), ("tic_knockback_resistance", "minecraft:knockback_resistance")] {
             if let Some(Tag::Float(bits)) = data.get(key) {

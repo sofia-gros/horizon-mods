@@ -2740,3 +2740,35 @@ target = "horizon_client::game::creatures::Game<'_>::add_projectile"
 kind = "HEAD"
 helper = "source-projectile-add.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&mut horizon_client::projectiles::Projectile", value = "&mut p" }]
+
+[[state]]
+id = "armor-wear-context"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>,Vec<(horizon_client::items::ItemStack,u32)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "armor-wear-start"
+target = "horizon_client::game::Game<'_>::hurt_armor"
+kind = "HEAD"
+helper = "source-armor-wear-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "armor-wear-record"
+target = "horizon_client::game::enchant_effects::Game<'_>::durability_loss"
+kind = "RETURN"
+priority = 90
+helper = "source-armor-wear-record.rs"
+bindings = [{ name = "loss", ty = "u32", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "armor-wear-end"
+target = "horizon_client::game::Game<'_>::hurt_armor"
+kind = "RETURN"
+helper = "source-armor-wear-end.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
