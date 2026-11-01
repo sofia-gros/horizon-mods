@@ -10,6 +10,21 @@ pub(crate) enum Operation {
     Vine { offset: [i32; 3], group: u8, upward: bool },
 }
 
+/// Source draws one height value and, only when allowed, a one-in-ten
+/// double-height value. `double_draw` is absent when that draw is not made.
+pub(crate) fn height(base: i32, random_height: u32, draw: u32, double_draw: Option<u32>) -> Option<i32> {
+    if random_height == 0 || draw >= random_height || double_draw.is_some_and(|value| value >= 10) { return None; }
+    let height = base.checked_add(i32::try_from(draw).ok()?)?;
+    if double_draw == Some(0) { height.checked_mul(2) } else { Some(height) }
+}
+
+/// The source places only above slimy soil and inside world build bounds.
+pub(crate) fn valid_site(y: i32, height: i32, min_y: i32, max_y: i32, slimy_soil: bool) -> bool {
+    if !slimy_soil || height <= 0 { return false; }
+    min_y.checked_add(1).zip(y.checked_add(height).and_then(|v| v.checked_add(1)))
+        .is_some_and(|(minimum, top)| y >= minimum && top <= max_y)
+}
+
 pub(crate) fn canopy(has_vines: bool) -> Vec<Operation> {
     let mut result = Vec::new();
     for layer in 0i32..4 {
@@ -75,5 +90,18 @@ mod tests {
         for group in 4..8 {
             assert_eq!(vines.iter().filter(|(g, _)| *g == group).copied().collect::<Vec<_>>(), [(group, true), (group, false)]);
         }
+    }
+
+    #[test]
+    fn source_height_and_soil_bounds_use_only_valid_draws() {
+        assert_eq!(height(5, 4, 3, Some(0)), Some(16));
+        assert_eq!(height(5, 4, 3, Some(1)), Some(8));
+        assert_eq!(height(4, 3, 2, None), Some(6));
+        assert_eq!(height(4, 3, 3, None), None);
+        assert_eq!(height(5, 4, 0, Some(10)), None);
+        assert!(valid_site(65, 6, -64, 320, true));
+        assert!(!valid_site(65, 6, -64, 320, false));
+        assert!(!valid_site(-64, 6, -64, 320, true));
+        assert!(!valid_site(315, 6, -64, 320, true));
     }
 }

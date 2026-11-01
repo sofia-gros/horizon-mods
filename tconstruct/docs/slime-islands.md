@@ -12,10 +12,10 @@ surface samples. It is tested as a standalone rule and is not connected to
 world generation. The 20 original earth, sky, ender and blood island NBT
 templates are retained without replacing vanilla structures.
 
-`source-slime-tree-shape.rs` preserves the original ordered diamond canopy,
-air removals, leaf drippers and shared vine-state groups as placement
-operations. It is also standalone: tree height, soil checks, randomized vine
-states, block writes and leaf-distance updates are not connected yet.
+`source-slime-tree-shape.rs` models source tree height, slimy-soil/build-bound
+checks, the ordered diamond canopy, air removals, leaf drippers and shared
+vine-state groups. It is also standalone: randomized vine states, world soil
+queries, block writes and leaf-distance updates are not connected yet.
 `source-slime-island-markers.rs` models source weighted selection and the
 per-piece limit of three successful trees, including skipped draws and failed
 placements. Persisting that count and invoking it from marker processing are

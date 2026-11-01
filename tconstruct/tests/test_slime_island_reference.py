@@ -47,6 +47,14 @@ class SlimeIslandReferenceTest(unittest.TestCase):
                 feature = tree['data'].removeprefix('tconstruct:')
                 self.assertTrue((SOURCE / f'configured_feature/{feature}.json').is_file())
 
+    def test_overworld_slime_tree_height_settings(self):
+        earth = json.loads((SOURCE / 'configured_feature/earth_slime_island_tree.json').read_text())['config']
+        sky = json.loads((SOURCE / 'configured_feature/sky_slime_island_tree.json').read_text())['config']
+        self.assertEqual((earth['base_height'], earth['random_height'], earth['can_double_height'], earth['has_vines']),
+                         (4, 3, False, False))
+        self.assertEqual((sky['base_height'], sky['random_height'], sky['can_double_height'], sky['has_vines']),
+                         (5, 4, True, True))
+
 
 if __name__ == '__main__':
     unittest.main()
