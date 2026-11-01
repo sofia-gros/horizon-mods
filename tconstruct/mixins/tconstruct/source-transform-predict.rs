@@ -2,7 +2,7 @@
 // transforms so a successful main-hand use does not also use the off hand.
 fn tconstruct_transform_predict(game:&mut crate::game::Game<'_>,stack:&horizon_items::items::ItemStack,hit:&crate::game::Hit)->std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break,Continue};
-    let Some((template,kind))=crate::game::tconstruct_source_transform_logic::mode(stack.item.as_ref()) else {return Continue(());};
+    let Some((template,kind))=crate::game::tconstruct_source_transform_mode::mode(stack.item.as_ref()) else {return Continue(());};
     let max=crate::game::tconstruct_source_transform_logic::maximum(stack);
     if max.is_none_or(|max|stack.damage>=max) || !game.may_build() {return Break(false);}
     let fake=horizon_items::items::ItemStack::new(template,1);

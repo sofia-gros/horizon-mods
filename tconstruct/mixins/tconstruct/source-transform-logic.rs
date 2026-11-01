@@ -2,14 +2,6 @@ use horizon_items::items::ItemStack;
 use horizon_world::registry::BlockStateId;
 use horizon_world::nbt::Tag;
 
-pub(super) fn mode(id:&str)->Option<(&'static str,u8)> {
-    match id {
-        "tconstruct:mattock"|"tconstruct:kama"|"tconstruct:scythe"=>Some(("minecraft:wooden_hoe",0)),
-        "tconstruct:excavator"=>Some(("minecraft:wooden_shovel",1)),
-        "tconstruct:hand_axe"|"tconstruct:broad_axe"=>Some(("minecraft:wooden_axe",2)),
-        _=>None,
-    }
-}
 pub(super) fn maximum(stack:&ItemStack)->Option<u32> {
     stack.data().and_then(|d|d.other("minecraft:custom_data")).and_then(|d|match d.get("tic_max_damage") { Some(Tag::Int(n)) if *n>0=>Some(*n as u32),_=>None })
 }

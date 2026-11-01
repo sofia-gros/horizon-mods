@@ -2586,3 +2586,9 @@ kind = "HEAD"
 cancellable = true
 helper = "source-transform-predict.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "hit", ty = "&crate::game::Hit", value = "hit" }]
+
+[[module]]
+id = "source-transform-mode"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_transform_mode"
+source = "source-transform-mode.rs"

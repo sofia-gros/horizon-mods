@@ -1,7 +1,7 @@
 // Use source tool traits and area rules with Horizon's existing block transformer.
 fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_items::items::ItemStack, pos:[i32;3], face:[i32;3]) -> std::ops::ControlFlow<Result<bool>> {
     use std::ops::ControlFlow::{Break,Continue};
-    let Some((template,kind))=crate::game::tconstruct_source_transform_logic::mode(stack.item.as_ref()) else {return Continue(());};
+    let Some((template,kind))=crate::game::tconstruct_source_transform_mode::mode(stack.item.as_ref()) else {return Continue(());};
     let max=crate::game::tconstruct_source_transform_logic::maximum(stack);
     if max.is_none_or(|max|stack.damage>=max) || !game.may_build() { return Break(Ok(false)); }
     let item=stack.item.clone();

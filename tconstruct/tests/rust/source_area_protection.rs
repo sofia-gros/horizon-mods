@@ -36,3 +36,12 @@ fn distant_tree_columns_are_checked_at_every_height() {
     assert!(blocked.contains(&(1,0)));
     assert!(!blocked.contains(&(2,0)));
 }
+
+#[test]
+fn scythe_checks_protected_columns_at_depth_and_width() {
+    let game=Game {marker:std::marker::PhantomData};
+    let host=LanHost {hub:Hub {guests:vec![Guest {conn:3,yaw:0.0,op:false,inventory:vec![Some(Stack {item:"tconstruct:scythe".into()})],selected:0}]}};
+    let blocked=area_protection::protected(&game,&host,3,[4,70,0],[1,0,0]).unwrap();
+    assert!(blocked.contains(&(1,0)));
+    assert!(!blocked.contains(&(2,0)));
+}
