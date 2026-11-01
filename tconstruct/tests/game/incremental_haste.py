@@ -22,5 +22,8 @@ try:
  cmd('give @s minecraft:redstone_block 1');station();click(0);click(300);click(hot('minecraft:redstone_block'));click(301);click(325);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:pickaxe';click(0);g.call('close');g.call('hotbar','1');g.call('wait','7')
  held=g.call('inventory')['held'];print('HASTE',held,flush=True);assert '"tconstruct:haste":45' in held.get('components',''),held;assert g.call('inventory')['counts'].get('minecraft:redstone',0)==8
  upgraded=mine();print('TICKS',baseline,upgraded,flush=True);assert upgraded<baseline,(baseline,upgraded)
- g.call('save');g.stop()
+ g.call('save');g.stop();g.cleanup()
+ g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();saved=g.call('inventory')['held']
+ assert '"tconstruct:haste":45' in saved.get('components',''),saved
+ print('PASS saved Haste',flush=True);g.stop()
 finally:g.cleanup()
