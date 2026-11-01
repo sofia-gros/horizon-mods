@@ -260,7 +260,7 @@ mod tests {
         let tags = HashMap::from([
             ("tconstruct:modifiable/ranged/quick_charge".into(), HashSet::from(["tconstruct:crossbow".into(), "tconstruct:war_pick".into()])),
             ("tconstruct:modifiable/ranged".into(), HashSet::from(["tconstruct:crossbow".into(), "tconstruct:longbow".into(), "tconstruct:javelin".into()])),
-            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:crossbow".into()])),
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:crossbow".into(), "tconstruct:longbow".into()])),
         ]);
         let mut bow = ItemStack::new("tconstruct:crossbow", 1);
         bow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([
@@ -283,6 +283,11 @@ mod tests {
         let partial = plan(&recipes, &tags, &ItemStack::new("tconstruct:longbow", 1), &[Some(ItemStack::new("minecraft:target", 3))], 1).unwrap();
         assert_eq!(partial.amount, 3);
         assert_eq!(partial.consumed, [(0, 1), (1, 3)]);
+        longbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:trueshot", Tag::Int(13))]))])));
+        let taken = extract_upgrade(&tags, &longbow, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:trueshot").unwrap();
+        assert_eq!(taken.upgrade.amount, 3);
+        longbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:trueshot", Tag::Int(3))]))])));
+        assert_eq!(plan(&recipes, &tags, &longbow, &[taken.upgrade.leftover], 2).unwrap().amount, 13);
         let extracted = extract_upgrade(&tags, &full, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:quick_charge").unwrap();
         assert_eq!(extracted.upgrade.amount, 15);
         let mut original = bow.clone();
