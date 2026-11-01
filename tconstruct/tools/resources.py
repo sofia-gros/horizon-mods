@@ -166,6 +166,7 @@ entries = [
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
     ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
     ('tconstruct:sky_slime_crystal', 'minecraft:flint', 'Skyslime Crystal'),
+    ('tconstruct:steel_shard', 'minecraft:iron_nugget', 'Steel Shard'),
     ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
     ('tconstruct:emerald_reinforcement', 'minecraft:flint', 'Emerald Reinforcement'),
 ]
@@ -242,7 +243,7 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
     elif short == 'emerald_reinforcement':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/emerald'}}
-    elif short in ('sky_slime_crystal', 'modifier_crystal'):
+    elif short in ('sky_slime_crystal', 'modifier_crystal', 'steel_shard'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + short}}
     elif name in casts or short.endswith('_plating_dummy'):
         native_model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())

@@ -148,6 +148,46 @@ fn prepare_tconstruct_resources() {
             std::fs::remove_file(&creative_path)?;
             std::fs::rename(temp, creative_path)?;
         }
+        // Forge's source biome modifier adds this feature to land overworld
+        // biomes. Extend the generated bundle, keeping the base pack intact.
+        if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file() {
+            fn tag_members(tags: &serde_json::Value, id: &str, visited: &mut std::collections::HashSet<String>, out: &mut std::collections::HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
+                if !visited.insert(id.to_owned()) { return Ok(()); }
+                let raw = tags.get(id).and_then(|v| v.as_str()).ok_or_else(|| format!("missing biome tag {id}"))?;
+                let value: serde_json::Value = serde_json::from_str(raw)?;
+                for entry in value["values"].as_array().ok_or("invalid biome tag")? {
+                    let entry = entry.as_str().or_else(|| entry["id"].as_str()).ok_or("invalid biome tag member")?;
+                    if let Some(nested) = entry.strip_prefix('#') { tag_members(tags, nested, visited, out)?; }
+                    else { out.insert(entry.to_owned()); }
+                }
+                Ok(())
+            }
+            let tags: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("worldgen/biome_tags.json"))?)?;
+            let mut land = std::collections::HashSet::new();
+            tag_members(&tags, "minecraft:is_overworld", &mut Default::default(), &mut land)?;
+            let mut excluded = std::collections::HashSet::new();
+            for id in ["minecraft:is_ocean", "minecraft:is_deep_ocean", "minecraft:is_beach", "minecraft:is_river"] {
+                tag_members(&tags, id, &mut Default::default(), &mut excluded)?;
+            }
+            let path = out.join("worldgen/biomes.json");
+            let mut biomes: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+            let mut added = 0;
+            for id in land.difference(&excluded) {
+                let raw = biomes.get_mut(id).ok_or_else(|| format!("missing biome {id}"))?;
+                let mut biome: serde_json::Value = serde_json::from_str(raw.as_str().ok_or("invalid biome")?)?;
+                let features = biome["features"].as_array_mut().ok_or("missing biome features")?;
+                let local = features.get_mut(2).and_then(|v| v.as_array_mut()).ok_or("missing local modifications")?;
+                if !local.iter().any(|v| v.as_str() == Some("tconstruct:sky_geode")) {
+                    local.push(serde_json::Value::String("tconstruct:sky_geode".into()));
+                }
+                *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
+                added += 1;
+            }
+            if added == 0 { return Err("no eligible Sky Geode biomes".into()); }
+            let temp = out.join("worldgen/biomes.json.tmp");
+            std::fs::write(&temp, serde_json::to_vec(&biomes)?)?;
+            std::fs::rename(temp, path)?;
+        }
         for warning in warnings { eprintln!("{warning}"); }
         // The vanilla table templates do not declare block entities. Our
         // containers must be visited by Horizon's normal removal/save path.
