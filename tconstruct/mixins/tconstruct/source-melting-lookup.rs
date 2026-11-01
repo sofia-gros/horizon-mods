@@ -219,8 +219,8 @@ impl Catalog<'_> {
         found
     }
 
-    /// Join the original part-cast and fluid-to-material recipes. Composite
-    /// fluids and non-default material predicates remain rejected by parsing.
+    /// Join the original part-cast and non-composite fluid-to-material recipes.
+    /// Predicates are evaluated against the caller's world snapshot.
     pub(super) fn material_casting(&self, input: &str, fluid: &str, supports: &impl Fn(&str, &str) -> bool, allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
         if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
