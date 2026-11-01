@@ -33,7 +33,7 @@ try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     for tool in ('battlesign','excavator'):
-        acquire(tool,115,260)
+        acquire(tool,260 if tool=='battlesign' else 185,341 if tool=='battlesign' else 260)
         for command in ('gamemode creative @s','kill @e[type=minecraft:husk,tag=source_melee_test]',
                         'fill 17 99 17 26 99 24 minecraft:stone','fill 17 100 17 26 104 24 minecraft:air',
                         'tp @s 20.5 100 18.5','summon minecraft:husk 20.5 100 20.5 {NoAI:1b,Tags:["source_melee_test"]}',
