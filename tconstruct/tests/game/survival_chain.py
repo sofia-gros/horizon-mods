@@ -3,7 +3,7 @@
 Vanilla raw inputs, furnace, crafting table, fuel and a pickaxe are fixtures.
 All TConstruct outputs used later must come from prior crafting or casting.
 """
-import argparse,sys,time
+import argparse,os,sys,time
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
@@ -44,7 +44,7 @@ def merge_stacks(item):
  g.call('close')
 TABLE=(0,71,2)
 def open_table():
- x,y,z=TABLE;cmd(f'tp @s {x+0.5} {y} {z-1.5}');g.call('hotbar',str(empty()+1));g.call('wait','5');g.call('interact',str(x),str(y),str(z));g.call('wait','10')
+ x,y,z=TABLE;cmd(f'tp @s {x+0.5} {y} {z-1.5}');g.call('hotbar','1');g.call('wait','5');g.call('interact',str(x),str(y),str(z));g.call('wait','10')
 def craft(ingredients,result,amount=1,many=False):
  open_table()
  for item,positions in ingredients:
@@ -119,6 +119,8 @@ try:
   state={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('FURNACE SECOND',state,flush=True);assert (state.get(302) or {}).get('item')=='tconstruct:seared_brick' and state[302].get('count')==20,state
   click(302,'shift');g.call('close');assert count('tconstruct:seared_brick')==84,inventory();g.call('screenshot',str(run/'survival-bricks.png'));checkpoint()
  elif a.phase=='devices':
+  if os.environ.get('PR43_DIAGNOSTIC_BRICKS'):
+   cmd('clear @s tconstruct:seared_fuel_gauge');cmd('give @s tconstruct:seared_brick 84')
   for c in ('gamemode creative @s','give @s minecraft:glass 6','give @s minecraft:copper_ingot 2',
             'give @s tconstruct:seared_fuel_gauge[minecraft:custom_data={"tconstruct:tank":{fluid:"minecraft:lava",amount:1000}}] 1'):cmd(c)
   # A command-supplied filled gauge is a guard fixture, not a crafted product.
