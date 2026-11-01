@@ -135,3 +135,13 @@ fn source_composite_uses_item_cost_conditions_and_part_compatibility() {
     assert!(catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| false, &|_,_| true, &|_,_| Some(false), &|_| true).is_none());
     assert!(catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| true, &|_,_| false, &|_,_| Some(false), &|_| true).is_none());
 }
+
+#[test]
+fn conditional_composite_does_not_bypass_recipe_conditions() {
+    let part = br#"{"type":"tconstruct:table_casting_composite","item_cost":1,"result":"tconstruct:tool_handle"}"#;
+    let fluid = br#"{"type":"tconstruct:material_fluid","conditions":[{"type":"mantle:tag_filled","tag":"forge:ingots/uranium"}],"input":"tconstruct:wood","output":"tconstruct:necronium","temperature":830,"fluid":{"fluid":"tconstruct:molten_obsidian","amount":90}}"#;
+    let recipes = [("part".to_owned(), part.to_vec()), ("fluid".to_owned(), fluid.to_vec())].into_iter().collect();
+    let tags = HashMap::new(); let items = ["tconstruct:tool_handle".into()].into_iter().collect(); let fluids = ["tconstruct:molten_obsidian".into()].into_iter().collect();
+    let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+    assert!(catalog.composite_casting(false, "tconstruct:tool_handle", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| false).is_none());
+}
