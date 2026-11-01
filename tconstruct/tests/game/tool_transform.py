@@ -41,6 +41,7 @@ def scene(name,block,result,area=False):
     print('transform',name,block,result,'converted',len(converted),'wear',after.get('damage',0)-before.get('damage',0),'result',out,flush=True)
     assert len(converted)==len(positions),(name,converted,[at(*p) for p in positions])
     assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
+    if name in ('scythe','excavator','broad_axe'):g.call('screenshot',str(run/('tool-transform-'+name+'.png')))
 def pathing_obstacles():
     acquire('excavator',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('fill 19 100 19 21 100 21 minecraft:grass_block');cmd('setblock 21 101 20 minecraft:short_grass');cmd('setblock 19 101 20 minecraft:stone');cmd('tp @s 20.5 101 18.5');g.call('wait','15')
     before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held']
