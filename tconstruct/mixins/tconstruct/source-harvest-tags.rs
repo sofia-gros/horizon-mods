@@ -62,6 +62,11 @@ pub(super) fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Resu
     for path in paths {
         let value: serde_json::Value = serde_json::from_slice(&std::fs::read(path)?)?;
         for module in value.get("modules").and_then(serde_json::Value::as_array).into_iter().flatten() {
+            if module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:conditional_aoe")
+                && module.pointer("/if_true/type").and_then(serde_json::Value::as_str) == Some("tconstruct:tree_aoe")
+                && module.pointer("/condition/type").and_then(serde_json::Value::as_str) == Some("mantle:tag") {
+                wanted.insert(module.pointer("/condition/tag").and_then(serde_json::Value::as_str).ok_or("missing tree tag")?.to_owned());
+            }
             if module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:is_effective")
                 && module.get("predicate_type").and_then(serde_json::Value::as_str) == Some("mantle:tag") {
                 wanted.insert(module.get("tag").and_then(serde_json::Value::as_str).ok_or("missing effective tag")?.to_owned());
