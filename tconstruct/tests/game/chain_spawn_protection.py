@@ -25,7 +25,7 @@ def acquire(g):
         found=next((n for n in nodes if (n.get('stack') or {}).get('item')=='tconstruct:vein_hammer'),None)
         if found:break
     assert found is not None,[(n.get('id'),(n.get('stack') or {}).get('item')) for n in nodes]
-    i=int(found['id'].split('-')[1])-900;screen_click(285+(17+(i%9)*18)*2,136+(26+(i//9)*18)*2);g.call('wait','5')
+    i=int(found['id'].split('-')[1])-900;screen_click(285+(17+(i%9)*18)*2,136+(26+(i//9)*18)*2);g.call('wait','20')
     held=g.call('inventory')['carried'] or {};assert held.get('item')=='tconstruct:vein_hammer' and 'tic_mining_tool' in held.get('components',''),held
     screen_click(319,376);g.call('wait','5');g.call('close');g.call('hotbar','1');g.call('wait','5')
 
