@@ -39,7 +39,11 @@ def scene(name,block,result,area=False):
     cmd('tp @s 20.5 101 18.5');g.call('wait','15');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('wait','10')
     out=g.call('interact','20','100','20','up');g.call('wait','25')
     positions=[(x,100,z) for x in (19,20,21) for z in (19,20,21)] if area else [(20,100,20)]
-    converted=[p for p in positions if at(*p).split('[')[0]==result];after=g.call('inventory')['held']
+    for _ in range(80):
+        converted=[p for p in positions if at(*p).split('[')[0]==result]
+        if len(converted)==len(positions):break
+        time.sleep(.2)
+    after=g.call('inventory')['held']
     print('transform',name,block,result,'converted',len(converted),'wear',after.get('damage',0)-before.get('damage',0),'result',out,flush=True)
     assert len(converted)==len(positions),(name,converted,[at(*p) for p in positions])
     assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
