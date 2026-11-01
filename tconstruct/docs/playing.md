@@ -108,7 +108,7 @@ The materials used for a tool affect its traits. Wood's Cultivated trait increas
 
 ![A repaired pickaxe held on the cursor at the Tinker Station](material-traits-repair.png)
 
-These effects were tested on Linux; some station tests used temporary test data. Previously saved tools do not automatically update their maximum durability or stat bonuses: rebuild the tool or replace a part to recalculate them. The mining effects of Jagged and Stonebound, Ductile projectile damage, and other material traits remain incomplete.
+These effects were tested on Linux; some station tests used temporary test data. Previously saved tools do not automatically update their maximum durability or stat bonuses: rebuild the tool or replace a part to recalculate them. Representative mining effects of Jagged, Stonebound, Lightweight, Heavy, Vintage, Entangled and Maintained, plus Dense repair and wear reduction, were tested on Linux. Ductile projectile damage and other material trait modules remain incomplete. See [Mining and durability traits](mining-traits.md).
 
 ![Material variants in the Tinkers Creative tab](trait-stat-creative.png)
 

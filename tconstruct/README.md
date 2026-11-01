@@ -16,7 +16,7 @@ Use a Melter and a casting setup to melt and cast supported materials. The [melt
 
 A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup. The [fluid container guide](docs/fluid-containers.md) explains bucket transfers.
 
-The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct setup.
+The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct setup. [Mining and durability traits](docs/mining-traits.md) describes the representative material effects and their limits.
 
 The mod is still in development. The Smeltery and Foundry are not complete, and material traits and modifiers are not fully implemented. The tested build does not include sound.
 
