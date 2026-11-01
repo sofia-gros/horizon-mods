@@ -11,7 +11,7 @@ a=p.parse_args();a.natural_world=True;a.world_seed=a.seed
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve())
 world=run/'Sky';world.mkdir(exist_ok=True)
 assert not (world/'Player/saves/Probe').exists(), 'requires a new disposable Sky world'
-g=Game(a,world,'Player',in_frame=a.in_frame,resume=(world/'Player').exists())
+g=Game(a,world,'Player',in_frame=a.in_frame,resume=(world/'Player').exists());guest=None
 def cmd(s):g.call('command',s);g.call('wait','8')
 def hot(i):return next(x['slot'] for x in g.call('inventory')['hotbar'] if x.get('item')==i)
 def click(i):g.call('click-slot',str(i));g.call('wait','8')
@@ -30,6 +30,9 @@ try:
  g.call('save');g.call('wait','15');g.stop();g.cleanup()
  g=Game(a,world,'Player',in_frame=a.in_frame,resume=True);g.ready()
  info=g.call('block',x,y,z);print('RELOADED BLOCK',info,flush=True);assert info['block']=='tconstruct:sky_slime_crystal_cluster',info
+ port=g.call('lan','open','0','commands')['port'];guest=Game(a,world,'Guest',server='127.0.0.1:'+str(port),resume=(world/'Guest').exists());guest.ready()
+ cmd(f'tp Guest {x+0.5} {y} {z-1.5}');guest.call('wait','30');view=guest.call('block',x,y,z);print('LAN GUEST BLOCK',view,flush=True);assert view['block']=='tconstruct:sky_slime_crystal_cluster',view
+ guest.stop();guest.cleanup();guest=None
  # The target is natural; clear only an adjacent approach to make the GUI-driven
  # mining fixture repeatable without changing the target or its loot.
  for c in (f'fill {x-1} {y-1} {z-2} {x+1} {y+2} {z-1} minecraft:air',f'tp @s {x+0.5} {y} {z-1.5}','clear @s','give @s minecraft:diamond_pickaxe 1','gamemode survival @s'):cmd(c)
@@ -44,4 +47,6 @@ try:
  click(325);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:crossbow';click(0);g.call('close');g.call('wait','10')
  assert g.call('inventory')['counts'].get('tconstruct:modifier_crystal',0)>0
  g.call('save');g.stop();print('PASS natural Sky Geode cluster, reload, harvesting and Worktable',flush=True)
-finally:g.cleanup()
+finally:
+ if guest:guest.cleanup()
+ g.cleanup()
