@@ -33,9 +33,21 @@ pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
     for x in 0..16 { for y in 0..16 { for z in 0..16 {
         if filled(kind, facing, [x,y,z]) {
             grid[(x*16+y)*16+z] = 1;
-            boxes.push([scale(x),scale(y),scale(z),scale(x+1),scale(y+1),scale(z+1)]);
+
         }
     }}}
+    // Collapse adjacent Z cells into boxes; selection tests need the union,
+    // not thousands of individual voxel boxes.
+    for x in 0..16 { for y in 0..16 {
+        let mut start = None;
+        for z in 0..=16 {
+            let full = z < 16 && grid[(x*16+y)*16+z] != 0;
+            if full && start.is_none() { start = Some(z); }
+            if !full { if let Some(first) = start.take() {
+                boxes.push([scale(x),scale(y),scale(first),scale(x+1),scale(y+1),scale(z)]);
+            }}
+        }
+    }}
     let at = |p: [i32;3]| -> bool {
         if p.iter().any(|v| *v < 0 || *v >= 16) { return false; }
         grid[(p[0] as usize*16+p[1] as usize)*16+p[2] as usize] != 0
