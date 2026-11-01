@@ -17,10 +17,9 @@ fn tconstruct_crossbow_use(
             let power = 3.0;
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {
                 let angle = crate::game::tconstruct_projectile_stats::crossbow_angle(i, count);
-                (angle, power, i == 0)
+                (angle, power)
             }).collect();
-            let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack)));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);

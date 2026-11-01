@@ -99,13 +99,18 @@ pub(super) fn eligible(game: &super::Game<'_>, stack: &horizon_items::items::Ite
     )
 }
 
+pub(super) fn off_cooldown(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack) -> bool {
+    game.res.items().get(&stack.item).is_some_and(|info|
+        !game.cooldowns.is_on_cooldown(&horizon_client::cooldowns::group(stack, info.use_cooldown.as_ref())))
+}
+
 /// Right-click after the tool's ordinary block interaction has passed.
 pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3]) -> Option<anyhow::Result<bool>> {
     activate_for(game,stack,clicked,face,false,false)
 }
 
 pub(super) fn activate_for(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3], left: bool, guest_checked: bool) -> Option<anyhow::Result<bool>> {
-    if !game.may_build() || !eligible(game,stack,left) { return None; }
+    if !game.may_build() || !eligible(game,stack,left) || !off_cooldown(game,stack) { return None; }
     if direction(face).is_none() { return Some(Ok(true)); }
     let Some(x) = clicked[0].checked_add(face[0]) else { return Some(Ok(true)); };
     let Some(y) = clicked[1].checked_add(face[1]) else { return Some(Ok(true)); };

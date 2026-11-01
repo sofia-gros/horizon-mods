@@ -17,8 +17,7 @@ fn tconstruct_bow_release(
             let power = crate::game::tconstruct_projectile_stats::bow_charge(ticks, draw_ticks) * 3.0;
             if power * velocity < 0.3 { return Break(()); }
             dispatch_ticks = adjusted.max(3);
-            let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, vec![(0.0, power, true)], true, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, vec![(0.0, power)], true, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack)));
         }
         game.release_bow(dispatch_ticks);
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);

@@ -2771,7 +2771,7 @@ source = "source-projectile-stats.rs"
 [[state]]
 id = "material-projectile-context"
 target = "horizon_client::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32,bool)>,bool,f64,i32,bool)>"
+ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32)>,bool,f64,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
@@ -2784,13 +2784,6 @@ target = "horizon_client::game::creatures::Game<'_>::add_projectile"
 kind = "HEAD"
 helper = "source-projectile-add.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&mut horizon_client::projectiles::Projectile", value = "&mut p" }]
-
-[[injection]]
-id = "glowing-projectile-hit"
-target = "horizon_client::game::creatures::Game<'_>::projectile_hit"
-kind = "HEAD"
-helper = "source-glowing-projectile-hit.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" }, { name = "hit", ty = "horizon_client::projectiles::Hit", value = "hit" }]
 
 [[state]]
 id = "armor-wear-context"
