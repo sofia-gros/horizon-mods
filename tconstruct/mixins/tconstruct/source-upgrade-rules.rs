@@ -17,6 +17,27 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
+const UPGRADES: [(&str, i32); 5] = [
+    ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
+    ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
+];
+
+pub(super) fn selection_id(index: usize) -> Option<&'static str> {
+    UPGRADES.get(index).map(|(id, _)| *id)
+}
+
+pub(super) fn selection_index(id: &str) -> Option<usize> {
+    UPGRADES.iter().position(|(candidate, _)| *candidate == id)
+}
+
+fn supported(id: &str, item: &str) -> bool {
+    match id {
+        "tconstruct:quick_charge" => item == "tconstruct:crossbow",
+        "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        _ => UPGRADES.iter().any(|(name, _)| *name == id),
+    }
+}
+
 fn amount(tool: &ItemStack, id: &str) -> i32 {
     match tool
         .data()
@@ -30,8 +51,8 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 }
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
-    [("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72)]
-        .into_iter().filter_map(|(id, needed)| (amount(tool, id) >= needed).then_some(id)).collect()
+    UPGRADES.into_iter().filter_map(|(id, needed)|
+        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -43,10 +64,8 @@ pub(super) fn extract_upgrade(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str,
 ) -> Option<ExtractionPlan> {
-    let needed = match id {
-        "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72,
-        "tconstruct:haste" => 45, _ => return None,
-    };
+    if !supported(id, &tool.item) { return None; }
+    let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     let old = amount(tool, id);
@@ -69,7 +88,7 @@ pub(super) fn plan(
     inputs: &[Option<ItemStack>],
     upgrade_slots: i32,
 ) -> Option<UpgradePlan> {
-    let occupied = [("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72), ("tconstruct:haste", 45)]
+    let occupied = UPGRADES
         .iter()
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed)
         .sum::<i32>();
@@ -83,7 +102,7 @@ pub(super) fn plan(
         let Some(id) = value.get("result").and_then(Value::as_str) else {
             continue;
         };
-        if !matches!(id, "tconstruct:sharpness" | "tconstruct:swiftstrike" | "tconstruct:haste") {
+        if !supported(id, &tool.item) {
             continue;
         }
         let Some(tools) = value.get("tools") else { continue; };
@@ -215,6 +234,16 @@ pub(super) fn apply_stats(
     let Tag::Compound(ref mut fields) = custom else { return None; };
     if melee { fields.insert("tic_attack_damage".into(), Tag::Float(damage.to_bits())); }
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
+    let quick = effective(tool, "tconstruct:quick_charge", 5);
+    if &*tool.item == "tconstruct:crossbow" && quick > 0.0 {
+        let draw = (stats.draw_speed * (1.0 + 0.25 * quick)).clamp(0.0, 1024.0);
+        fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
+    }
+    let true_level = effective(tool, "tconstruct:trueshot", 10);
+    if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") && true_level > 0.0 {
+        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * 0.1 * true_level).clamp(0.1, 1.0);
+        fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
+    }
     tool.data_mut().set_other("minecraft:custom_data", Some(custom));
     Some(())
 }
@@ -222,6 +251,78 @@ pub(super) fn apply_stats(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ranged_transactions_share_slots_crystals_and_source_limits() {
+        let quick = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"input":{"item":"minecraft:magma_cream"},"level":{"max":4},"needed_per_level":5,"result":"tconstruct:quick_charge","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/ranged/quick_charge"}}"#.to_vec();
+        let true_recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"input":{"item":"minecraft:target"},"level":{"max":3},"needed_per_level":10,"result":"tconstruct:trueshot","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/ranged"}}"#.to_vec();
+        let recipes = BTreeMap::from([("quick".into(), quick), ("true".into(), true_recipe)]);
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/ranged/quick_charge".into(), HashSet::from(["tconstruct:crossbow".into(), "tconstruct:war_pick".into()])),
+            ("tconstruct:modifiable/ranged".into(), HashSet::from(["tconstruct:crossbow".into(), "tconstruct:longbow".into(), "tconstruct:javelin".into()])),
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:crossbow".into(), "tconstruct:longbow".into()])),
+        ]);
+        let mut bow = ItemStack::new("tconstruct:crossbow", 1);
+        bow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([
+            ("tconstruct:sharpness", Tag::Int(36)), ("tconstruct:quick_charge", Tag::Int(2)),
+        ]))])));
+        let result = plan(&recipes, &tags, &bow, &[Some(ItemStack::new("minecraft:magma_cream", 9))], 2).unwrap();
+        assert_eq!(result.amount, 5);
+        assert_eq!(result.consumed, [(0, 1), (1, 3)]);
+        assert!(plan(&recipes, &tags, &bow, &[Some(ItemStack::new("minecraft:target", 1))], 2).is_none());
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
+        crystal.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String("tconstruct:quick_charge".into()))])));
+        assert!(plan(&recipes, &tags, &bow, &[Some(crystal.clone())], 2).is_none());
+        assert_eq!(plan(&recipes, &tags, &bow, &[Some(crystal)], 3).unwrap().amount, 7);
+        let mut full = bow.clone();
+        full.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:quick_charge", Tag::Int(20))]))])));
+        assert!(plan(&recipes, &tags, &full, &[Some(ItemStack::new("minecraft:magma_cream", 1))], 9).is_none());
+        let mut longbow = ItemStack::new("tconstruct:longbow", 1);
+        longbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:trueshot", Tag::Int(30))]))])));
+        assert!(plan(&recipes, &tags, &longbow, &[Some(ItemStack::new("minecraft:target", 1))], 9).is_none());
+        let partial = plan(&recipes, &tags, &ItemStack::new("tconstruct:longbow", 1), &[Some(ItemStack::new("minecraft:target", 3))], 1).unwrap();
+        assert_eq!(partial.amount, 3);
+        assert_eq!(partial.consumed, [(0, 1), (1, 3)]);
+        longbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:trueshot", Tag::Int(13))]))])));
+        let taken = extract_upgrade(&tags, &longbow, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:trueshot").unwrap();
+        assert_eq!(taken.upgrade.amount, 3);
+        longbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:trueshot", Tag::Int(3))]))])));
+        assert_eq!(plan(&recipes, &tags, &longbow, &[taken.upgrade.leftover], 2).unwrap().amount, 13);
+        let extracted = extract_upgrade(&tags, &full, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:quick_charge").unwrap();
+        assert_eq!(extracted.upgrade.amount, 15);
+        let mut original = bow.clone();
+        original.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:quick_charge", Tag::Int(7))]))])));
+        let extracted = extract_upgrade(&tags, &original, &[Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))], "tconstruct:quick_charge").unwrap();
+        assert_eq!(extracted.upgrade.amount, 2);
+        let mut reduced = original.clone();
+        reduced.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:quick_charge", Tag::Int(extracted.upgrade.amount))]))])));
+        let reapplied = plan(&recipes, &tags, &reduced, &[extracted.upgrade.leftover], 2).unwrap();
+        assert_eq!(reapplied.amount, 7);
+        assert_eq!(selection_index("tconstruct:trueshot").and_then(selection_id), Some("tconstruct:trueshot"));
+        assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:war_pick", 1), &[Some(ItemStack::new("minecraft:magma_cream", 1))], 3).is_none());
+        assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:javelin", 1), &[Some(ItemStack::new("minecraft:target", 1))], 3).is_none());
+    }
+
+    #[test]
+    fn fractional_ranged_stats_use_source_order_and_accuracy_cap() {
+        let definition = br#"{"modules":[{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:draw_speed":1.5,"tconstruct:accuracy":1.2}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut crossbow = ItemStack::new("tconstruct:crossbow", 1);
+        crossbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([
+            ("tconstruct:quick_charge", Tag::Int(2)), ("tconstruct:trueshot", Tag::Int(3)),
+        ]))])));
+        for _ in 0..2 {
+            apply_stats(&mut crossbow, &stats, &BTreeMap::new(), false, false).unwrap();
+            let data = crossbow.data().unwrap().other("minecraft:custom_data").unwrap();
+            let (Some(Tag::Float(draw)), Some(Tag::Float(accuracy))) = (data.get("tic_draw_speed"), data.get("tic_accuracy")) else { panic!() };
+            assert!((f32::from_bits(*draw) - 1.65).abs() < 0.00001);
+            assert!((f32::from_bits(*accuracy) - 0.936).abs() < 0.00001);
+        }
+        crossbow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:trueshot", Tag::Int(30))]))])));
+        apply_stats(&mut crossbow, &stats, &BTreeMap::new(), false, false).unwrap();
+        let Some(Tag::Float(accuracy)) = crossbow.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_accuracy") else { panic!() };
+        assert_eq!(f32::from_bits(*accuracy), 1.0);
+    }
 
     fn tool(amount: i32) -> ItemStack {
         let mut tool = ItemStack::new("tconstruct:pickaxe", 1);

@@ -16,7 +16,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             let (window, old_menu_state) = (menu.window, menu.state);
             if worktable {
                 let selected = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).map(String::as_str);
-                let index = match selected { Some("tconstruct:haste") => 0, Some("tconstruct:sharpness") => 1, Some("tconstruct:swiftstrike") => 2, _ => -1 };
+                let index = selected.and_then(crate::tconstruct_source_upgrade_rules::selection_index).map(|index| index as i16).unwrap_or(-1);
                 hub.guests[i].send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 29999, value: index }));
             }
             let layouts = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref().map(|snapshot| {

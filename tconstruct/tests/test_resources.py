@@ -35,6 +35,11 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             items = json.loads((out / 'items.json').read_text())
+            for modifier in ('quick_charge', 'trueshot'):
+                self.assertEqual(
+                    (out / 'assets/minecraft/textures/gui' / ('tconstruct_modifier_' + modifier + '.png')).read_bytes(),
+                    (Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/modifiers' / (modifier + '.png')).read_bytes(),
+                )
             for short in ('modifier_crystal', 'sky_slime_crystal'):
                 self.assertIn('tconstruct:' + short, items)
                 model = json.loads((out / 'assets/tconstruct/models/item' / (short + '.json')).read_text())

@@ -20,6 +20,7 @@ pub(super) struct BaseStats {
     pub draw_speed: f32,
     pub velocity: f32,
     pub accuracy: f32,
+    pub accuracy_add_multiplier: f32,
     pub armor: f32,
     pub armor_toughness: f32,
     pub knockback_resistance: f32,
@@ -274,6 +275,7 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
         draw_speed: stats[4].result(),
         velocity: stats[5].result(),
         accuracy: stats[6].result(),
+        accuracy_add_multiplier: (1.0 + stats[6].percent) * stats[6].multiply,
         armor: stats[7].result(),
         armor_toughness: stats[8].result(),
         knockback_resistance: stats[9].result(),
@@ -345,6 +347,7 @@ mod tests {
                 draw_speed: 1.0,
                 velocity: 1.0,
                 accuracy: 0.75,
+                accuracy_add_multiplier: 1.0,
                 armor: 0.0,
                 armor_toughness: 0.0,
                 knockback_resistance: 0.0
