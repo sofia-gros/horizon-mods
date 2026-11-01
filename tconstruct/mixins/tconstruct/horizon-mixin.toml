@@ -3145,3 +3145,19 @@ id = "materials-book-stat"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_stat"
 source = "source-materials-book-stat.rs"
+
+[[injection]]
+id = "materials-book-click"
+target = "horizon_client::game::books::Game<'_>::book_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-click.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "size", ty = "[u32; 2]", value = "size" }]
+
+[[injection]]
+id = "materials-book-turn"
+target = "horizon_client::game::books::Game<'_>::turn_page"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-turn.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "forward", ty = "bool", value = "forward" }]
