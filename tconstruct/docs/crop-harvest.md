@@ -1,38 +1,39 @@
-# Kama and Scythe harvest
+# Kama and Scythe crop harvesting
 
-This draft covers source crop harvest and replanting, Scythe area mining, and
-source-conditioned shears loot for Kama and Scythe. Each successful action
-consumes tool durability and stops on breakage. Server spawn protection applies
-to every affected position. Four-part survival assembly and Silky acquisition
-remain unfinished; Silky-dependent behavior must not be granted by default.
-Combat, armor and projectile-specific actions remain on the roadmap.
+Kama harvests the clicked mature crop; Scythe uses its source 3×3×3 area.
+Generated drops provide one seed for replanting. If no dropped item belongs to
+the source seed tag, the crop is removed and all generated drops are released.
+Each successful harvest consumes durability in survival, and a broken tool
+stops further harvesting. Sneaking passes the interaction. The original item
+tag packs must be available: if their seed tag is not resolved, harvesting fails
+closed. Scythe also uses the existing block-breaking path for its source area.
 
-Implementation and in-game verification are pending.
+On Linux, Kama wheat and carrots were harvested and replanted; an immature
+wheat crop was retained. A mature torchflower crop with no seed in the pinned
+source seed tag was removed and its seed dropped. Scythe harvested nine wheat
+crops with nine durability loss, and its left-click area broke nine wheat
+blocks with nine drops. Wheat has zero hardness, so that left-click test had no
+wear with an unmodified Scythe, matching the source rule. A Scythe with three
+remaining durability harvested three crops, retained its broken item and left
+the other six crops. The world was saved and reopened. Hosted LAN covered Kama,
+Scythe and guest off-hand harvesting.
 
-## Implementation status
+![Scythe harvesting wheat](crop-harvest.png)
+![Guest harvesting with a Scythe](crop-harvest-lan.png)
 
-The scythe has been connected to the existing area-break path in source code;
-the existing area injection passed an isolated official Mixins plan (four injections, three modules, two states). It has not received a formal transform, build, or game test. Crop harvesting and replanting are connected in source code, including seed
-consumption and server protection, but have not been type-checked or tested in
-the game. They require the existing original item-tag packs; missing seed tags
-fail closed. The shearing selector in
-`source-shear.rs` is an unconnected prototype and does not affect loot.
+The source Kama shears action and conditional Scythe Silky shears action are
+not connected to block loot, and Silky acquisition is not implemented. Leaf
+drops therefore do not yet claim source parity. Original berry/vine and other
+special harvest interactions, area expansion, four-part survival assembly,
+combat, armor and projectile features remain outstanding. Other crops,
+multiplayer combinations and Windows have not all been individually tested.
 
 The official Mixins CLI at `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab`
 rejected a `HEAD` injection into
 `horizon_items::items::LootContext<'_>::condition` with
-`E_UNSUPPORTED_SIGNATURE`: the target has the generic parameter
-`R: RandomSource`. The rejected injection was removed. A supported way to
-change only the `minecraft:tool/can_shear` capability needs to be established;
-substituting a shears item into the entire loot context would also change other
-conditions and is not an acceptable substitute. This is a constraint on the
-attempted target, not proof that all alternative hooks are unavailable.
-
-
-Before delivery, verify mature and immature wheat and another age range,
-seed-present and seed-absent loot, durability one and interrupted Scythe area,
-Kama center and Scythe area, LAN and protected candidates, save/reload and
-vanilla use. The source crop/interact tags use TConstruct-only aliases. Berry,
-vine and other special harvest interactions remain separate work. The source
-Kama shears action and conditional Scythe Silky shears action are not yet
-connected to block loot; do not treat leaf drops as source-complete.
+`E_UNSUPPORTED_SIGNATURE` because the target has a generic random-source
+parameter. The rejected injection was removed. A supported way to change only
+the `minecraft:tool/can_shear` capability remains to be found; substituting a
+shears item into the whole loot context would also change other conditions.
+This is a restriction of the attempted target, not proof that every alternative
+hook is unavailable.
