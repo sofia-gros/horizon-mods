@@ -70,6 +70,7 @@ try:
     assert g.call('status')['screen'] == 'inventory', 'formed Smeltery menu did not open'
     assert any(widget.get('id') == 'slot-302' for widget in g.call('ui')['widgets']), 'real input slot is missing'
     g.call('click-slot', str(hotbar('tconstruct:sky_slime_bottle')), 'shift'); g.call('wait', '5')
+    print('TRANSFER UI', g.call('ui'), flush=True)
     assert any(w.get('id') == 'slot-301' and (w.get('stack') or {}).get('item') == 'minecraft:glass_bottle' for w in g.call('ui')['widgets']), 'empty bucket was not returned'
     g.call('screenshot', str(run / 'fluid-containers.png'))
     click(301); click(300)
