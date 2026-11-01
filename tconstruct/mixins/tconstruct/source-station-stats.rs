@@ -18,9 +18,13 @@ pub(super) struct BaseStats {
     pub attack_speed: f32,
     pub attack_speed_boost_unit: f32,
     pub draw_speed: f32,
+    pub draw_speed_add_multiplier: f32,
     pub velocity: f32,
+    pub velocity_add_multiplier: f32,
     pub accuracy: f32,
     pub accuracy_add_multiplier: f32,
+    pub projectile_damage: f32,
+    pub projectile_damage_add_multiplier: f32,
     pub armor: f32,
     pub armor_add_multiplier: f32,
     pub armor_toughness: f32,
@@ -75,7 +79,7 @@ impl Accumulator {
 }
 
 fn apply_material(
-    stats: &mut [Accumulator; 10],
+    stats: &mut [Accumulator; 11],
     kind: &str,
     material: &Map<String, Value>,
     scale: f32,
@@ -202,6 +206,7 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
         Accumulator::new(0.0),
         Accumulator::new(0.0),
         Accumulator::new(0.0),
+        Accumulator::new(2.0),
     ];
     let keys = [
         "tconstruct:durability",
@@ -214,6 +219,7 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
         "tconstruct:armor",
         "tconstruct:armor_toughness",
         "tconstruct:knockback_resistance",
+        "tconstruct:projectile_damage",
     ];
     for module in definition.get("modules")?.as_array()? {
         match module.get("type")?.as_str()? {
@@ -285,9 +291,13 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
         attack_speed: stats[3].result(),
         attack_speed_boost_unit: (stats[3].base + stats[3].add) * stats[3].multiply,
         draw_speed: stats[4].result(),
+        draw_speed_add_multiplier: (1.0 + stats[4].percent) * stats[4].multiply,
         velocity: stats[5].result(),
+        velocity_add_multiplier: (1.0 + stats[5].percent) * stats[5].multiply,
         accuracy: stats[6].result(),
         accuracy_add_multiplier: (1.0 + stats[6].percent) * stats[6].multiply,
+        projectile_damage: stats[10].result(),
+        projectile_damage_add_multiplier: (1.0 + stats[10].percent) * stats[10].multiply,
         armor: stats[7].result(),
         armor_add_multiplier: (1.0 + stats[7].percent) * stats[7].multiply,
         armor_toughness: stats[8].result(),
@@ -360,9 +370,13 @@ mod tests {
                 attack_speed: 1.2,
                 attack_speed_boost_unit: 1.2,
                 draw_speed: 1.0,
+                draw_speed_add_multiplier: 1.0,
                 velocity: 1.0,
+                velocity_add_multiplier: 1.0,
                 accuracy: 0.75,
                 accuracy_add_multiplier: 1.0,
+                projectile_damage: 2.0,
+                projectile_damage_add_multiplier: 1.0,
                 armor: 0.0,
                 armor_add_multiplier: 1.0,
                 armor_toughness: 0.0,

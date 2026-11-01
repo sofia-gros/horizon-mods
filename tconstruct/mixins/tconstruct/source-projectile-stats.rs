@@ -17,10 +17,31 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     Some((velocity, 3.0 * (1.0 / accuracy - 1.0)))
 }
 
-pub(crate) fn diamond_damage(stack: &ItemStack) -> f64 {
+pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
+    if let Some(value) = stat(stack, "tic_projectile_damage") {
+        if value.is_finite() { return (value as f64 - 2.0).max(-2.0); }
+    }
     match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:diamond")) {
         Some(Tag::Int(value)) if *value > 0 => 0.5,
         _ => 0.0,
+    }
+}
+
+/// Pinned RestrictAngleModule rounds the horizontal direction after launch.
+pub(crate) fn restrict_direction(direction: [f64; 3], level: i32) -> ([f64; 3], Option<f32>) {
+    if level <= 0 { return (direction, None); }
+    let count = 1u32 << (6 - level).clamp(2, 6);
+    let increment = std::f64::consts::TAU / f64::from(count);
+    let old = direction[0].atan2(direction[2]);
+    // Java Math.round uses floor(value + 0.5), including negative ties.
+    let new = (old / increment + 0.5).floor() * increment;
+    let (sin, cos) = (new - old).sin_cos();
+    ([direction[0] * cos + direction[2] * sin, direction[1], direction[2] * cos - direction[0] * sin], Some(new.to_degrees() as f32))
+}
+
+pub(crate) fn crystalbound_level(stack: &ItemStack) -> i32 {
+    match stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_crystalbound_angle")) {
+        Some(Tag::Int(level)) => (*level).max(0), _ => 0,
     }
 }
 
@@ -47,9 +68,14 @@ mod tests {
     #[test]
     fn diamond_damage_comes_from_the_firing_stack() {
         let mut stack = bow("tconstruct:crossbow", 1.0, 1.0);
-        assert_eq!(diamond_damage(&stack), 0.0);
+        assert_eq!(projectile_bonus(&stack), 0.0);
         stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:diamond", Tag::Int(1))]))])));
-        assert_eq!(diamond_damage(&stack), 0.5);
+        assert_eq!(projectile_bonus(&stack), 0.5);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:diamond", Tag::Int(1))])),
+            ("tic_projectile_damage", Tag::Float(2.75f32.to_bits())),
+        ])));
+        assert_eq!(projectile_bonus(&stack), 0.75);
     }
     #[test]
     fn reads_source_stats_and_spread() {
@@ -71,6 +97,18 @@ mod tests {
     fn source_fan_angles() {
         assert_eq!((0..3).map(|i| crossbow_angle(i, 3)).collect::<Vec<_>>(), vec![-10.0, 0.0, 10.0]);
         assert_eq!(crossbow_angle(0, 1), 0.0);
+    }
+    #[test]
+    fn crystalbound_rounds_horizontal_direction_after_spread() {
+        let original=[0.12f64.sin(),0.4,0.12f64.cos()];
+        assert_eq!(restrict_direction(original,0),(original,None));
+        let (rounded,yaw)=restrict_direction(original,1);
+        assert!((rounded[0].atan2(rounded[2])-std::f64::consts::PI/16.0).abs()<1e-9);
+        assert_eq!(rounded[1],0.4);
+        assert!((rounded[0]*rounded[0]+rounded[2]*rounded[2]-1.0).abs()<1e-9);
+        assert!((yaw.unwrap()-11.25).abs()<0.001);
+        let (coarse,_) = restrict_direction(original,4);
+        assert!(coarse[0].abs()<1e-9);
     }
     #[test]
     fn excludes_vanilla_and_invalid_stats() {

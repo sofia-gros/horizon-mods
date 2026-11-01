@@ -373,18 +373,30 @@ pub(super) fn apply_stats(
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let netherite = amount(tool, "tconstruct:netherite") > 0 || level("tconstruct:netherite") > 0;
     if melee { fields.insert("tic_attack_damage".into(), Tag::Float((damage * if netherite { 1.2 } else { 1.0 }).clamp(0.0, 2048.0).to_bits())); }
-    if netherite && matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") { fields.insert("tic_velocity".into(), Tag::Float((stats.velocity * 1.1).clamp(0.0, 1024.0).to_bits())); }
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
     let quick = effective(tool, "tconstruct:quick_charge", 5);
-    if &*tool.item == "tconstruct:crossbow" && quick > 0.0 {
-        let draw = (stats.draw_speed * (1.0 + 0.25 * quick)).clamp(0.0, 1024.0);
-        fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
-    }
     let true_level = effective(tool, "tconstruct:trueshot", 10);
     let emerald = effective(tool, "tconstruct:emerald", 1).min(1.0);
-    if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") && (true_level > 0.0 || emerald > 0.0) {
-        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * 0.1 * (true_level + emerald)).clamp(0.1, 1.0);
+    if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {
+        let light = level("tconstruct:lightweight").max(0) as f32;
+        let feather = level("tconstruct:featherweight").max(0) as f32;
+        let heavy = level("tconstruct:heavy").max(0) as f32;
+        let vintage = level("tconstruct:vintage").max(0) as f32;
+        let crystal = level("tconstruct:crystalbound").max(0) as f32;
+        let entangled = if level("tconstruct:entangled") > 0 { 0.15 } else { 0.0 };
+        let draw = ((stats.draw_speed + stats.draw_speed_add_multiplier * (0.03 * light + 0.05 * feather + entangled))
+            * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
+            * (1.0 - 0.1 * vintage)).clamp(0.0, 1024.0);
+        let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal))
+            * if netherite { 1.1 } else { 1.0 }).clamp(0.0, 1024.0);
+        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy) + 0.05 * feather)).clamp(0.1, 1.0);
+        let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
+            * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32)).clamp(0.0, 1024.0);
+        fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
+        fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
+        fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
+        fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
     }
     tool.data_mut().set_other("minecraft:custom_data", Some(custom));
     Some(())
