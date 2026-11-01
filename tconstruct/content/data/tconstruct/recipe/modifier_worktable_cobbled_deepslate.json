@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "key": {
+    "s": "#tconstruct:anvil_seared_blocks",
+    "r": "minecraft:cobbled_deepslate"
+  },
+  "result": {
+    "id": "tconstruct:modifier_worktable",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Rock": "minecraft:cobbled_deepslate",
+          "Variant": "cobbled_deepslate",
+          "Texture": "minecraft:block/cobbled_deepslate",
+          "TextureTop": "minecraft:block/cobbled_deepslate"
+        }
+      },
+      "minecraft:item_model": "tconstruct:modifier_worktable_cobbled_deepslate"
+    }
+  }
+}

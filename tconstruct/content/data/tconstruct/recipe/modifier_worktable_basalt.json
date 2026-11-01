@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "key": {
+    "s": "#tconstruct:anvil_seared_blocks",
+    "r": "minecraft:basalt"
+  },
+  "result": {
+    "id": "tconstruct:modifier_worktable",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Rock": "minecraft:basalt",
+          "Variant": "basalt",
+          "Texture": "minecraft:block/basalt_side",
+          "TextureTop": "minecraft:block/basalt_top"
+        }
+      },
+      "minecraft:item_model": "tconstruct:modifier_worktable_basalt"
+    }
+  }
+}

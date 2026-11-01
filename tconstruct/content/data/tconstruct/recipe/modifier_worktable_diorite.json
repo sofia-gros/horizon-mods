@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "key": {
+    "s": "#tconstruct:anvil_seared_blocks",
+    "r": "minecraft:diorite"
+  },
+  "result": {
+    "id": "tconstruct:modifier_worktable",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Rock": "minecraft:diorite",
+          "Variant": "diorite",
+          "Texture": "minecraft:block/diorite",
+          "TextureTop": "minecraft:block/diorite"
+        }
+      },
+      "minecraft:item_model": "tconstruct:modifier_worktable_diorite"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 fn material_block_wire_type(name: &str) -> std::ops::ControlFlow<Option<&'static str>> {
     let kind = match name {
         "tconstruct:fake_storage_block" => "tconstruct:material_block",
-        "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" => "tconstruct:anvil",
+        "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" => "tconstruct:anvil",
         "tconstruct:seared_melter" => "tconstruct:melter",
         "tconstruct:seared_heater" => "tconstruct:heater",
         "tconstruct:seared_faucet" => "tconstruct:faucet",

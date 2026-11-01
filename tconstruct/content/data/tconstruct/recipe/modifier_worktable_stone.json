@@ -1,1 +1,27 @@
-{"type":"minecraft:crafting_shaped","category":"misc","pattern":["sss","r r","r r"],"key":{"s":"tconstruct:seared_bricks","r":"minecraft:stone"},"result":{"id":"tconstruct:modifier_worktable"}}
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "key": {
+    "s": "#tconstruct:anvil_seared_blocks",
+    "r": "minecraft:stone"
+  },
+  "result": {
+    "id": "tconstruct:modifier_worktable",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Rock": "minecraft:stone",
+          "Variant": "stone",
+          "Texture": "minecraft:block/stone",
+          "TextureTop": "minecraft:block/stone"
+        }
+      },
+      "minecraft:item_model": "tconstruct:modifier_worktable_stone"
+    }
+  }
+}

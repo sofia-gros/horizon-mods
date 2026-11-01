@@ -5,19 +5,22 @@ fn tconstruct_storage_mesh_face(
     use horizon_world::nbt::Tag;
     use std::ops::ControlFlow::{Break, Continue};
     let Some(base_layer) = mesher.render.sprite_layers.get("tconstruct:block/storage/fallback") else { return Continue(()); };
-    if face.layer != *base_layer { return Continue(()); }
+    let bottom_layer = mesher.render.sprite_layers.get("tconstruct:block/storage/fallback_worktable_bottom");
+    let is_bottom = bottom_layer.is_some_and(|layer| face.layer == *layer);
+    if face.layer != *base_layer && !is_bottom { return Continue(()); }
     let Some(chunk) = tints.region[1][1] else { return Continue(()); };
     let Some(saved) = chunk.saved.as_deref() else { return Continue(()); };
     let world = (tints.origin[0] * 16 + pos[0], tints.origin[2] + pos[1], tints.origin[1] * 16 + pos[2]);
     let anvil = saved.block_entity_sources.iter().find_map(|(at, tag)| {
         if *at != world || tag.get("id") != Some(&Tag::String("tconstruct:anvil".into())) { return None; }
-        match tag.get("tconstruct:anvil").and_then(|value| value.get("Texture")) {
+        match tag.get("tconstruct:anvil").and_then(|value| value.get(if is_bottom { "TextureTop" } else { "Texture" })) {
             Some(Tag::String(id)) => Some(id.to_string_lossy().to_string()), _ => None,
         }
     });
     let (sprite, color, emission) = if let Some(sprite) = anvil {
         (sprite, 0xffffffff, 0)
     } else {
+        if is_bottom { return Continue(()); }
         let material = saved.block_entities.iter().find_map(|raw| {
             if raw.get("id") != Some(&Tag::String("tconstruct:material_block".into())) { return None; }
             match (raw.get("x"), raw.get("y"), raw.get("z"), raw.get("Material")) {

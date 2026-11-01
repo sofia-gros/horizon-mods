@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "key": {
+    "s": "#tconstruct:anvil_seared_blocks",
+    "r": "minecraft:cobblestone"
+  },
+  "result": {
+    "id": "tconstruct:modifier_worktable",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Rock": "minecraft:cobblestone",
+          "Variant": "cobblestone",
+          "Texture": "minecraft:block/cobblestone",
+          "TextureTop": "minecraft:block/cobblestone"
+        }
+      },
+      "minecraft:item_model": "tconstruct:modifier_worktable_cobblestone"
+    }
+  }
+}

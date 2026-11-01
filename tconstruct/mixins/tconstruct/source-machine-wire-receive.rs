@@ -2,7 +2,7 @@ fn tconstruct_machine_wire_receive(game: &mut crate::game::Game<'_>, pos: [i32; 
     use std::ops::ControlFlow::{Break, Continue};
     let name = game.remote.as_ref().and_then(|r| r.builtin.get("minecraft:block_entity_type")?.name(kind));
     let blocks: &[&str] = match name {
-        Some("tconstruct:anvil") => &["tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"],
+        Some("tconstruct:anvil") => &["tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"],
         Some("tconstruct:melter") => &["tconstruct:seared_melter"],
         Some("tconstruct:heater") => &["tconstruct:seared_heater"],
         Some("tconstruct:faucet") => &["tconstruct:seared_faucet"],
