@@ -1,5 +1,9 @@
 # Overslime and Overforced (in progress)
 
+![A pickaxe showing 20 of 68 Overslime in the Tinker Station](overslime-station.png)
+
+This Linux test used supplied ingredients and a supplied pickaxe.
+
 The Station and both Anvils have an in-development path for applying and refilling Overslime using source slime ingredients. A slime ball restores 20 points for Earth, 50 for Sky, 60 for Ichor and 80 for Ender. Matching blocks restore more. The operation should consume only what fits and return empty bottles when a supported bottle is used.
 
 Overforced uses four Slimesteel Reinforcements per level, up to five levels, with an upgrade slot for each started level. Partial progress contributes capacity. A Modifier Crystal carries one full level and retains any partial progress when extracted. The source recipe casts a consumed Obsidian Pane with 30 mB of molten Slimesteel on a Casting Table. The source alloy uses molten iron, Sky Slime and seared stone.

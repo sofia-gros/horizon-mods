@@ -35,6 +35,10 @@ try:
     armor = g.call('inventory')['armor']; print('OVERSLIME ARMOR', armor, flush=True)
     for stack in armor[:2]:
         assert stack and stack.get('damage', 0) == 0 and shield(stack), armor
-    g.call('save'); g.stop(); print('PASS supplied shield before Unbreakable', flush=True)
+    g.call('save'); g.stop(); g.cleanup()
+    g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True); g.ready()
+    armor = g.call('inventory')['armor']
+    for stack in armor[:2]: assert stack and shield(stack), armor
+    g.stop(); print('PASS supplied shield before Unbreakable and armor reload', flush=True)
 finally:
     g.cleanup()

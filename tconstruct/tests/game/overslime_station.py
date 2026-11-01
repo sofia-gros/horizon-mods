@@ -39,9 +39,11 @@ try:
         click(hot(name)); click(slot)
     g.call('screenshot', str(run / 'overslime-station.png'))
     click(325); item = g.call('menu')['carried']; assert item and item['item'] == 'tconstruct:pickaxe', slots()
-    print('OVERSLIME OUTPUT', item, flush=True)
-    assert 'tic_overslime' in str(item), item
-    click(0); g.call('close'); g.call('save'); g.stop()
+    click(0); g.call('close'); g.call('wait', '8')
+    inventory = g.call('inventory'); print('OVERSLIME OUTPUT', inventory, flush=True)
+    item = next(stack for stack in inventory['hotbar'] if stack.get('item') == 'tconstruct:pickaxe')
+    assert 'tic_overslime:20' in item.get('components', '') and 'tic_overslime_capacity:68' in item.get('components', ''), item
+    g.call('save'); g.stop()
     print('PASS fixture Station Overforced and Overslime', flush=True)
 finally:
     g.cleanup()
