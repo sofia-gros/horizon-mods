@@ -55,10 +55,23 @@ try:
  def arrow():return next((n for n in g.call('ui')['widgets'] if n.get('label')=='Arrow Head' and n.get('enabled')),None)
  node=wait_for('Earthslime Arrow Head option',arrow);g.call('click',node['id']);g.call('wait','15');g.call('screenshot',str(run/'earth-geode-builder.png'));click(322)
  part=g.call('menu').get('carried') or {};print('BUILDER RESULT',part,flush=True);assert part.get('item')=='tconstruct:arrow_head' and 'tconstruct:earthslime' in part.get('components',''),part
- empty=next(s['slot'] for s in g.call('inventory')['hotbar'] if not s.get('item'));click(empty);g.call('close');g.call('save');g.stop();g.cleanup()
+ empty=next(s['slot'] for s in g.call('inventory')['hotbar'] if not s.get('item'));click(empty);g.call('close')
+ # Craft a block from four natural Ichor crystals; no recipe input is supplied.
+ cmd('setblock 2048 80 2049 minecraft:crafting_table');g.call('hotbar','9');g.call('wait','10');g.call('interact','2048','80','2049');g.call('wait','10')
+ source=hot('tconstruct:ichor_slime_crystal');click(source)
+ for slot in (100,101,103,104):click(slot,'right')
+ if g.call('menu')['carried']:click(source)
+ preview={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert (preview.get(200) or {}).get('item')=='tconstruct:ichor_slime_crystal_block',preview
+ click(200);empty=next(s['slot'] for s in g.call('inventory')['hotbar'] if not s.get('item'));click(empty);g.call('close');print('CRAFTED Ichor crystal block',flush=True)
+ # The furnace and fuel are fixtures; Enderslime crystal is naturally mined.
+ cmd('setblock 2048 80 2049 minecraft:blast_furnace');cmd('give @s minecraft:coal 1');g.call('hotbar','9');g.call('wait','10');g.call('interact','2048','80','2049');g.call('wait','10')
+ source=hot('tconstruct:ender_slime_crystal');click(source);click(300,'right');click(source);click(hot('minecraft:coal'));click(301);g.call('wait','240',timeout=40)
+ slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('BLAST SLOTS',slots,flush=True);assert (slots.get(302) or {}).get('item')=='tconstruct:ender_slime_ball',slots
+ click(302);empty=next(s['slot'] for s in g.call('inventory')['hotbar'] if not s.get('item'));click(empty);g.call('close');g.call('save');g.stop();g.cleanup()
  g=Game(a,world,'Player',in_frame=a.in_frame,resume=True);g.ready();inv=g.call('inventory');print('RELOAD',inv['counts'],flush=True)
  assert any(s.get('item')=='tconstruct:arrow_head' and 'tconstruct:earthslime' in s.get('components','') for s in inv['hotbar'])
- for c in ('ichor','ender'):assert inv['counts'].get(f'tconstruct:{c}_slime_crystal',0)>=4,inv['counts']
+ assert inv['counts'].get('tconstruct:ichor_slime_crystal_block',0)>=1,inv['counts']
+ assert inv['counts'].get('tconstruct:ender_slime_crystal',0)>=3 and inv['counts'].get('tconstruct:ender_slime_ball',0)>=1,inv['counts']
  g.stop();print('PASS natural Earth, Ichor and Ender geodes, LAN, builder and reload',flush=True)
 finally:
  if guest:guest.cleanup()
