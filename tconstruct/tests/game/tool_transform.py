@@ -31,11 +31,16 @@ def acquire(name,start,end):
 
 
 def at(x,y,z):return g.call('block',str(x),str(y),str(z)).get('block','')
+def hydrate():
+    # Keep newly tilled moisture=0 farmland from randomly reverting to dirt.
+    for x,z in ((17,20),(18,19),(18,21)):cmd(f'setblock {x} 100 {z} minecraft:stone')
+    cmd('setblock 18 100 20 minecraft:water')
 def scene(name,block,result,area=False):
     acquire(name,185,260);cmd('gamemode creative @s');cmd('time set day');cmd('weather clear')
     cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone')
     if area:cmd('fill 19 100 19 21 100 21 '+block)
     else:cmd('setblock 20 100 20 '+block)
+    if result=='minecraft:farmland':hydrate()
     cmd('tp @s 20.5 101 18.5');g.call('wait','15');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('wait','10')
     out=g.call('interact','20','100','20','up');g.call('wait','25')
     positions=[(x,100,z) for x in (19,20,21) for z in (19,20,21)] if area else [(20,100,20)]
@@ -49,7 +54,7 @@ def scene(name,block,result,area=False):
     assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
     if name in ('scythe','excavator','broad_axe'):g.call('screenshot',str(run/('tool-transform-'+name+'.png')))
 def center_pass_area_success():
-    acquire('scythe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:stone');cmd('setblock 21 100 20 minecraft:dirt');cmd('tp @s 20.5 101 18.5');g.call('wait','15');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held']
+    acquire('scythe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:stone');cmd('setblock 21 100 20 minecraft:dirt');hydrate();cmd('tp @s 20.5 101 18.5');g.call('wait','15');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held']
     assert at(20,100,20)=='minecraft:stone' and at(21,100,20).split('[')[0]=='minecraft:farmland';assert after.get('damage',0)-before.get('damage',0)==1,(before,after)
     print('unchanged center with successful nearby transform',flush=True)
 def broad_tree():
@@ -68,13 +73,13 @@ def pathing_obstacles():
     assert after.get('damage',0)-before.get('damage',0)==8,(before,after)
     print('source pathing replaceable and solid above',flush=True)
 def broken_area():
-    acquire('scythe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('fill 19 100 19 21 100 21 minecraft:dirt');cmd('tp @s 20.5 101 18.5')
+    acquire('scythe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('fill 19 100 19 21 100 21 minecraft:dirt');hydrate();cmd('tp @s 20.5 101 18.5')
     held=g.call('inventory')['held'];maximum=held.get('damage',0)+1;cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}');cmd('gamemode survival @s');g.call('wait','10');g.call('interact','20','100','20','up');g.call('wait','20')
     after=g.call('inventory')['held'];converted=[(x,z) for x in (19,20,21) for z in (19,20,21) if at(x,100,z).split('[')[0]=='minecraft:farmland']
     assert len(converted)==1 and after.get('damage')==maximum and 'tic_broken:1b' in after.get('components',''),(converted,after)
     print('broken scythe stops area',flush=True)
 def sneak_pass():
-    acquire('mattock',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 103 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:dirt');cmd('tp @s 20.5 101 18.5');cmd('give @s minecraft:torch 1')
+    acquire('mattock',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 103 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:dirt');hydrate();cmd('tp @s 20.5 101 18.5');cmd('give @s minecraft:torch 1')
     g.call('hotbar','2');g.call('key','f','tap');g.call('hotbar','1');g.call('wait','15');cmd('gamemode survival @s');g.call('wait','10')
     before=g.call('inventory')['held'];g.call('key','shift','down')
     try:g.call('interact','20','100','20','up');g.call('wait','20')
@@ -96,6 +101,6 @@ try:
         if index>=a.start_case:scene(name,source,target,area)
     for source,target in [('minecraft:oxidized_copper','minecraft:weathered_copper'),('minecraft:waxed_copper_block','minecraft:copper_block')]:scene('hand_axe',source,target)
     center_pass_area_success();broad_tree();pathing_obstacles();broken_area();sneak_pass()
-    cmd('gamemode creative @s');cmd('clear @s');cmd('give @s minecraft:wooden_hoe 1');g.call('hotbar','1');cmd('setblock 20 100 20 minecraft:dirt');cmd('gamemode survival @s');g.call('wait','10');before=g.call('inventory')['held'];g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held'];assert at(20,100,20).split('[')[0]=='minecraft:farmland' and after.get('damage',0)==before.get('damage',0)+1,(before,after)
+    cmd('gamemode creative @s');cmd('clear @s');cmd('give @s minecraft:wooden_hoe 1');g.call('hotbar','1');cmd('setblock 20 100 20 minecraft:dirt');hydrate();cmd('gamemode survival @s');g.call('wait','10');before=g.call('inventory')['held'];g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held'];assert at(20,100,20).split('[')[0]=='minecraft:farmland' and after.get('damage',0)==before.get('damage',0)+1,(before,after)
     g.call('screenshot',str(run/'tool-transform.png'));g.call('save');g.stop();g.cleanup();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();assert at(20,100,20).split('[')[0]=='minecraft:farmland';g.stop();print('PASS source tools and reload',flush=True)
 finally:g.cleanup()
