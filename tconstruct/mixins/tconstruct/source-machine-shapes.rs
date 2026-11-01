@@ -1,4 +1,4 @@
-//! Shapes from the pinned TConstruct FaucetBlock and casting blocks.
+// Shapes from the pinned TConstruct FaucetBlock and casting blocks.
 #[derive(Clone)]
 pub(super) struct Shape { pub grid: Vec<i8>, pub boxes: Vec<[f64; 6]>, pub edges: Vec<[f64; 6]> }
 
