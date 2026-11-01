@@ -126,7 +126,11 @@ Sharpness needs 36 quartz per level, Swiftstrike needs 72 amethyst shards, and H
 
 ### Early Smeltery crafting
 
-This route is in development and has not yet been checked end to end in game. Combine a clay ball, sand and gravel for two Grout, then smelt Grout into Seared Bricks. Four Seared Bricks make a Seared Bricks block. Use individual bricks and glass to craft an empty Seared Fuel Gauge, and combine the gauge with bricks to make a Melter. A Seared Heater beneath it supplies solid fuel. Craft a Seared Faucet and Casting Basin to pour the melted metal.
+Combine a clay ball, sand and gravel for two Grout, then smelt Grout into Seared Bricks. Four Seared Bricks make a Seared Bricks block. Use individual bricks and glass to craft an empty Seared Fuel Gauge, and combine the gauge with bricks to make a Melter. A Seared Heater beneath it supplies solid fuel. Craft a Seared Faucet and Casting Basin to pour the melted metal.
+
+![A crafted Melter and Faucet above a Casting Basin](survival-controller-casting.png)
+
+On Linux, a representative game test crafted the early equipment and cast a Controller using the preceding outputs; a LAN guest supplied the Melter inputs. Vanilla raw materials, fuel, furnace and crafting table were test fixtures, and furnace time was accelerated. The alloy-to-Anvil continuation is still being checked.
 
 Cast molten copper over a Seared Bricks block in a basin to make a Smeltery Controller. This first implementation accepts the ordinary Seared Bricks cast; the original's other controller textures are not yet supported. A Smeltery can alloy copper and gold into Rose Gold for the blocks used in an Anvil. Nether Grout can be made from magma cream, gravel and soul sand or soul soil, then smelted into Scorched Bricks for the Scorched Anvil.
 

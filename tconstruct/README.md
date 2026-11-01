@@ -32,4 +32,4 @@ Sky Geodes provide [Skyslime Crystals](docs/playing.md#skyslime-crystals) in new
 
 Earthslime, Ichor and Enderslime Geodes have representative Linux natural generation, mining and crystal-use checks. Crystal regrowth and many material traits remain unimplemented.
 
-The early [Smeltery crafting route](docs/playing.md#early-smeltery-crafting) is being connected; recipe and controller casting checks are currently limited to source data and lightweight tests.
+The early [Smeltery crafting route](docs/playing.md#early-smeltery-crafting) has a representative Linux game check through Controller casting, including LAN Melter input; the alloy-to-Anvil continuation is still being checked.
