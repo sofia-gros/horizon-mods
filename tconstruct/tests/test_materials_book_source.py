@@ -49,4 +49,13 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 if isinstance(image, dict) and image.get('file', '').startswith('tconstruct:book/images/'):
                     self.assertIn('assets/tconstruct/' + image['file'].split(':', 1)[1], names)
 
+    def test_original_tool_and_armor_descriptions_are_retained(self):
+        with zipfile.ZipFile(ARCHIVE) as archive:
+            tool = json.loads(archive.read(PREFIX + 'en_us/tools/tconstruct_pickaxe.json'))
+            armor = json.loads(archive.read('assets/tconstruct/book/encyclopedia/en_us/armor/tconstruct_travelers_helmet.json'))
+            self.assertTrue(tool['text'])
+            self.assertTrue(tool['properties'])
+            self.assertTrue(armor['text'])
+            self.assertTrue(armor['properties'])
+
 if __name__ == '__main__': unittest.main()

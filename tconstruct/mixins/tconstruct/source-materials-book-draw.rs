@@ -31,6 +31,20 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let button_x = batch.width / 2.0 - 100.0;
     let hover = mx >= button_x && mx < button_x + 200.0 && (196.0..216.0).contains(&my);
     ui::button(batch, atlas, button_x, 196.0, 200.0, 20.0, &Text::literal(game.translate("gui.done", "Done")), true, hover);
+    let draw_stack = |batch: &mut HudBatch, id: &str, count: u32, x: f32, y: f32| {
+        let mut stack = ItemStack::new(id, count);
+        if id.starts_with("tconstruct:") {
+            use horizon_world::nbt::Tag;
+            let materials = ["head", "handle", "extra", "large", "extra_large"].into_iter()
+                .map(|kind| Tag::String(format!("tconstruct:ui_render#{kind}").as_str().into())).collect();
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_display", Tag::Byte(1)),
+                ("tic_materials", Tag::List(materials)),
+                ("Material", Tag::String("tconstruct:ui_render#head".into())),
+            ])));
+        }
+        game.draw_item(batch, &stack, x, y);
+    };
     (|| {
     if let Some(id) = spec.get("image").and_then(|v| v.as_str()) {
         let Some(name) = id.strip_prefix("tconstruct:book/images/").and_then(|s| s.strip_suffix(".png")) else { return; };
@@ -44,7 +58,7 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         return;
     }
     if let Some(item) = spec.get("item").and_then(|v| v.as_str()) {
-        game.draw_item(batch, &ItemStack::new(item, 1), left + 87.0, 72.0);
+        draw_stack(batch, item, 1, left + 87.0, 72.0);
         return;
     }
     let Some(slots) = spec.get("slots").and_then(|v| v.as_array()) else { return; };
@@ -57,12 +71,12 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let y = oy + (i / 3) as f32 * 18.0;
         batch.fill(atlas, x, y, 17.0, 17.0, rgba(120, 90, 50, 100));
         let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[(game.ticks / 20) as usize % items.len()])).and_then(|v| v.as_str()).or_else(|| item.as_str());
-        if let Some(item) = chosen { game.draw_item(batch, &ItemStack::new(item, 1), x, y); }
+        if let Some(item) = chosen { draw_stack(batch, item, 1, x, y); }
     }
     if let Some(id) = spec.get("result").and_then(|v| v.as_str()) {
         batch.text(atlas, "→", ox + 57.0, oy + 18.0, BLACK, false);
         let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
-        game.draw_item(batch, &ItemStack::new(id, count), ox + 78.0, oy + 18.0);
+        draw_stack(batch, id, count, ox + 78.0, oy + 18.0);
     }
     })();
     Break(())
