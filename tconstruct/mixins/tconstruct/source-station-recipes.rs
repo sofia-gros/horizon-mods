@@ -92,6 +92,23 @@ mod tests {
     }
 
     #[test]
+    fn four_part_recipe_respects_capacity_and_consumes_each_input_once() {
+        let recipe = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:sledge_hammer"}"#).unwrap();
+        let parts: Vec<String> = ["tconstruct:hammer_head", "tconstruct:tough_handle", "tconstruct:large_plate", "tconstruct:large_plate"]
+            .into_iter().map(str::to_owned).collect();
+        let mut inputs: Vec<_> = parts.iter().map(|part| Some(ItemStack::new(part, 1))).collect();
+        inputs.push(None);
+        let match_recipe = |slots: &[Option<ItemStack>]| recipe.match_inputs(&parts, 4, slots, |_| Some("tconstruct:iron".into()), |_, _| true, |_, _| false);
+        assert!(match_recipe(&inputs[..3]).is_none());
+        let matched = match_recipe(&inputs).unwrap();
+        assert_eq!(matched.consumed_slots, [0, 1, 2, 3]);
+        let mut carried = None;
+        assert!(take_built_tool(&mut inputs, &mut carried, &matched, ItemStack::new("tconstruct:sledge_hammer", 1), 1));
+        assert!(inputs.iter().all(Option::is_none));
+        assert_eq!(carried.unwrap().item.as_ref(), "tconstruct:sledge_hammer");
+    }
+
+    #[test]
     fn multi_item_results_obey_capacity_before_consuming_parts() {
         let recipe = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:dagger","result_count":2}"#).unwrap();
         let parts = vec!["tconstruct:small_blade".to_owned(), "tconstruct:tool_handle".to_owned()];
