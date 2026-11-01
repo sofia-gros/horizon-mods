@@ -12,5 +12,10 @@ Bone Pierce (+0.5 attack damage per level), and Ancient Vintage (-10% attack
 speed per level). The original melee/weapon tags gate their application.
 The shared calculation rebuilds trait and Sharpness/Swiftstrike effects from
 the material baseline rather than applying them repeatedly. Other modules of
-these traits are still unimplemented. These code changes have only lightweight
-tests so far; the official transform, client build and gameplay are pending.
+these traits are still unimplemented. The official Mixins `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab` release transform and Linux client build passed. Representative gameplay used a temporary test datapack to attach each source trait to a flint head while retaining identical base materials: Solid level 1 changed damage 1.75 to 2.0125; Pierce level 2 changed it to 2.75; Lightweight level 2 changed speed 1.2 to 1.392; and Vintage level 1 changed it to 1.08. Solid and Pierce were also checked by attacking a test-tagged zombie; cooldown comparisons exercised Lightweight and Vintage. Sharpness plus Solid, part replacement, and save/reload passed. A LAN guest upgraded a command-supplied cobalt-head tool and retained its source Lightweight speed of about 1.296; partial and completed Sharpness and the block remainder were checked.
+
+A separate temporary-datapack regression checked Preserved maximum durability and Ductile damage, broken retention, repair, part replacement and save/reload. The shared source operation order changes the tested Ductile damage from the previous implementation's 2.1875 to 2.21375. The saved, already-created tools do not automatically recalculate until a supported regeneration operation. These are representative Linux checks, not individual tests of every material or tool.
+
+![Station part replacement after an upgrade](material-melee-followup.png)
+
+![LAN cobalt tool upgrade](material-melee-lan.png)
