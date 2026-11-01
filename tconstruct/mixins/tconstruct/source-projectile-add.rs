@@ -7,7 +7,7 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     });
     let Some((velocity, spread, angle, power, bow)) = shot else { return; };
     if bow {
-        let (v, on_ground) = game.player.as_ref().map_or((glam::Vec3::ZERO, true), |pl| (pl.velocity, pl.ground.on_ground));
+        let (v, on_ground) = game.player.as_ref().map_or((horizon_core::geometry::Vec3::ZERO, true), |pl| (pl.velocity, pl.ground.on_ground));
         p.shoot_from_rotation(&mut game.world.random, game.pitch, game.yaw, 0.0, power * velocity, spread, v, on_ground);
     } else {
         let view = glam::DVec3::from_array(super::view_vector(game.yaw, game.pitch));

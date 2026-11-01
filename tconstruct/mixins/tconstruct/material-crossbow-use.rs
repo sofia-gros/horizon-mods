@@ -14,9 +14,9 @@ fn tconstruct_crossbow_use(
         let actor = game.lan_acting;
         if let (Some((velocity, spread)), Some(data)) = (crate::game::tconstruct_projectile_stats::projectile_stats(stack), stack.data()) {
             let count = data.charged.len();
-            let power = if data.charged.iter().any(|s| &*s.item == "minecraft:firework_rocket") { 1.6 } else { 3.15 };
+            let power = 3.0;
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {
-                let angle = if count == 3 { [0.0, -10.0, 10.0][i] } else if count > 1 { -10.0 + 20.0 * i as f64 / (count - 1) as f64 } else { 0.0 };
+                let angle = (i as f64 - (count.saturating_sub(1) as f64 / 2.0)) * 10.0;
                 (angle, power)
             }).collect();
             game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false));
