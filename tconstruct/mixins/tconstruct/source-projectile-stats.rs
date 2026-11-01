@@ -17,7 +17,7 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     Some((velocity, 3.0 * (1.0 / accuracy - 1.0)))
 }
 
-pub(crate) fn diamond_damage(stack: &ItemStack) -> f64 {
+pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
     if let Some(value) = stat(stack, "tic_projectile_damage") {
         if value.is_finite() { return (value as f64 - 2.0).max(-2.0); }
     }
@@ -50,9 +50,14 @@ mod tests {
     #[test]
     fn diamond_damage_comes_from_the_firing_stack() {
         let mut stack = bow("tconstruct:crossbow", 1.0, 1.0);
-        assert_eq!(diamond_damage(&stack), 0.0);
+        assert_eq!(projectile_bonus(&stack), 0.0);
         stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:diamond", Tag::Int(1))]))])));
-        assert_eq!(diamond_damage(&stack), 0.5);
+        assert_eq!(projectile_bonus(&stack), 0.5);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:diamond", Tag::Int(1))])),
+            ("tic_projectile_damage", Tag::Float(2.75f32.to_bits())),
+        ])));
+        assert_eq!(projectile_bonus(&stack), 0.75);
     }
     #[test]
     fn reads_source_stats_and_spread() {

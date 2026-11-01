@@ -38,7 +38,7 @@ fn source_ranged_traits_combine_with_upgrades_and_reach_firing_stats() {
  assert_eq!(number("tic_accuracy"),1.0);
  assert_eq!(draw::draw_ticks(&bow),15);
  assert!((projectile::projectile_stats(&bow).unwrap().0-1.276).abs()<0.0001);
- assert_eq!(projectile::diamond_damage(&bow),1.0);
+ assert_eq!(projectile::projectile_bonus(&bow),1.0);
  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&traits,false,false).unwrap();
- assert_eq!(projectile::diamond_damage(&bow),1.0);
+ assert_eq!(projectile::projectile_bonus(&bow),1.0);
 }
