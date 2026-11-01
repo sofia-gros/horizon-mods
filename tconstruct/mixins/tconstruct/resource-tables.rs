@@ -339,6 +339,27 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         copy_json_tree(&base.join("data/minecraft").join(source),
             &cache.join("minecraft-original-pack/data/minecraft").join(destination))?;
     }
+    let original_src = base.join("assets/tconstruct/source-packs/tconstruct-original-pack");
+    let original_out = cache.join("tconstruct-original-pack");
+    if std::fs::symlink_metadata(&original_out).is_ok() { return Err("original pack output exists".into()); }
+    copy_json_tree(&original_src, &original_out)?;
+    // Match the manual preparation's Horizon copper-nugget adaptation.
+    let item_table: serde_json::Value = serde_json::from_slice(&std::fs::read(cache.join("items.json"))?)?;
+    if item_table.get("minecraft:copper_nugget").is_some() {
+        let tag = original_out.join("data/forge/tags/items/nuggets/copper.json");
+        let text = std::fs::read_to_string(&tag)?;
+        std::fs::write(tag, text.replace("tconstruct:copper_nugget", "minecraft:copper_nugget"))?;
+        for (original, native) in [("copper_ingot_from_nuggets", "copper_ingot_from_nuggets"),
+            ("copper_nugget_from_ingot", "copper_nugget")] {
+            let path = original_out.join(format!("data/tconstruct/recipes/common/materials/{original}.json"));
+            if base.join(format!("data/minecraft/recipe/{native}.json")).is_file() {
+                std::fs::remove_file(path)?;
+            } else {
+                let text = std::fs::read_to_string(&path)?;
+                std::fs::write(path, text.replace("tconstruct:copper_nugget", "minecraft:copper_nugget"))?;
+            }
+        }
+    }
     std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
     // Restore item components beyond the content loader's template and
     // max-stack declarations, using the player's own cloned item table.
