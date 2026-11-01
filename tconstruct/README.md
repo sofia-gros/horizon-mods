@@ -30,6 +30,8 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Material armor damage and repair](docs/armor-durability.md) covers tested defense, retained breakage and repair.
 
+[Material trait expansion](docs/material-trait-expansion.md) describes the in-progress Tanned, Stringy and Enhanced effects and their current limits.
+
 [Material projectile stats](docs/projectile-stats.md) describes tested Longbow and Crossbow arrow speed, accuracy and current limits.
 
 [Netherite and Unbreakable](docs/playing.md#netherite-and-unbreakable) have representative Linux Station, Anvil, equipment, Crystal, save and LAN checks with supplied materials; see the guide for their scope.

@@ -25,10 +25,11 @@ const UPGRADES: [(&str, i32); 11] = [
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
-const BONUS_SLOTS: [(&str, i32, i32); 5] = [
+const BONUS_SLOTS: [(&str, i32, i32); 6] = [
     ("tconstruct:writable", 1, 0), ("tconstruct:harmonious", 1, 0),
     ("tconstruct:recapitated", 1, 0), ("tconstruct:forecast", 1, 0),
     ("tconstruct:draconic", 0, 1),
+    ("tconstruct:enhanced", 1, 0),
 ];
 
 fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
@@ -457,6 +458,8 @@ mod tests {
         assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("minecraft:dragon_head",1))],2,0,&BTreeMap::new()).unwrap().id,"tconstruct:draconic");
         let extra=BTreeMap::from([("tconstruct:writable".into(),1)]);
         assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&extra).unwrap().amount,9);
+        let enhanced=BTreeMap::from([("tconstruct:enhanced".into(),1)]);
+        assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&enhanced).unwrap().amount,9);
         assert!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&BTreeMap::new()).is_none());
         let difference=serde_json::json!({"type":"forge:difference","base":{"tag":"forge:heads"},"subtracted":{"item":"minecraft:dragon_head"}});
         let skulls=HashMap::from([("forge:heads".into(),HashSet::from(["minecraft:dragon_head".into(),"minecraft:skeleton_skull".into()]))]);

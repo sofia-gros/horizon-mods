@@ -254,7 +254,8 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
                 .max_by(f64::total_cmp).map(|v| v as f32)
         }).unwrap_or(0.0);
         let fixed_durability = fixed_repairs.iter().filter(|(id, _)| id.split('#').next() == material.material.split('#').next()).map(|(_, value)| *value).fold(0.0_f32, f32::max);
-        let durability = stat_durability.max(fixed_durability);
+        let stringy = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:stringy").copied()).unwrap_or(0);
+        let durability = stat_durability.max(fixed_durability).max(super::tconstruct_source_material_effects::stringy_repair(&material.material, stringy));
         if durability <= 0.0 { continue; }
         let amount = durability * material.value as f32 * repair_factor / (3.0 * material.needed as f32);
         let (count, repaired) = super::tconstruct_tx::repair_from_slot(remaining, i32::try_from(stack.count).ok()?, amount);

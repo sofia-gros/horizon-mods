@@ -25,6 +25,19 @@ pub(super) fn dense_reduce(mut loss: u32, level: i32, mut next: impl FnMut() -> 
     loss
 }
 
+/// Source secondary-durability causes bypass the primary clamp and are
+/// suppressed by Tanned's second, higher-priority range module.
+pub(super) fn tanned_wear(loss: u32, level: i32, cause: Option<&str>) -> u32 {
+    if level <= 0 { return loss; }
+    if matches!(cause, Some("tconstruct:protection" | "tconstruct:thorns" | "tconstruct:fiery" | "tconstruct:freezing" | "tconstruct:springy" | "tconstruct:pierce" | "tconstruct:venom" | "tconstruct:conductive" | "tconstruct:shock" | "tconstruct:necrotic" | "tconstruct:restore" | "tconstruct:enderporting")) { 0 }
+    else { loss.min(1) }
+}
+
+/// Stringy's original material-repair module contributes 140 per level.
+pub(super) fn stringy_repair(material: &str, level: i32) -> f32 {
+    if material.split('#').next() == Some("tconstruct:string") { 140.0 * level.max(0) as f32 } else { 0.0 }
+}
+
 /// Source Reinforced chance uses the effective incremental level.
 pub(super) fn reinforced_probability(amount: i32) -> f32 {
     let level = amount.max(0) as f32 / 4.0;
@@ -126,6 +139,21 @@ pub(super) fn apply_stat_traits(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn tanned_primary_and_secondary_cause_ranges_precede_shield() {
+        assert_eq!(tanned_wear(7, 0, None), 7);
+        assert_eq!(tanned_wear(7, 1, None), 1);
+        assert_eq!(tanned_wear(0, 1, None), 0);
+        assert_eq!(tanned_wear(7, 1, Some("tconstruct:glowing")), 1);
+        assert_eq!(tanned_wear(7, 1, Some("tconstruct:protection")), 0);
+        assert_eq!(tanned_wear(7, 1, Some("tconstruct:thorns")), 0);
+    }
+    #[test]
+    fn stringy_provides_only_source_string_repair() {
+        assert_eq!(stringy_repair("tconstruct:string",2),280.0);
+        assert_eq!(stringy_repair("tconstruct:string#variant",1),140.0);
+        assert_eq!(stringy_repair("tconstruct:wood",1),0.0);
+    }
     #[test]
     fn durability_boost_updates_both_components_and_preserves_stack_data() {
         use horizon_items::items::ItemStack;
