@@ -12,7 +12,7 @@ The Part Builder can turn materials and patterns into tool parts. The Tinker Sta
 
 In Creative, the Tinkers blocks tab also offers registered building blocks. See [the block guide](docs/block-registration.md) for the tested selection and its limits. See [Connected glass](docs/connected-glass.md) for windows and panes.
 
-Use a Melter and a casting setup to melt and cast supported materials. The [melting and casting guide](docs/melter-casting.md) shows the tested copper example.
+The Faucet, Casting Basin and Casting Table have source-derived selection and collision shapes with representative Linux checks. Use a Melter and a casting setup to melt and cast supported materials. The [melting and casting guide](docs/melter-casting.md) shows the tested copper example.
 
 A small Smeltery can also melt copper and amethyst into an alloy. See [Smeltery and alloys](docs/smeltery.md) for the tested setup. The [fluid container guide](docs/fluid-containers.md) explains bucket transfers. The source-derived [composite casting lookup](docs/composite-casting.md) has lightweight tests and awaits game validation.
 
