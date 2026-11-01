@@ -1,8 +1,8 @@
 # Tinker’s Anvil and Scorched Anvil
 
-![The Tinker Station repair screen](armor-station-repair.png)
+![A crafted Slimesteel Tinker’s Anvil](anvil-alloy-placement.png)
 
-*The Station screen shown above uses the same tool and material workflow. The Anvil has five input slots.*
+*A Tinker’s Anvil made with Slimesteel blocks.*
 
 Craft either Anvil with three alloy blocks across the top, one seared or scorched block in the center, and three matching-category blocks across the bottom. Matching alloy blocks give the Anvil their appearance; mixed alloys use the fallback appearance. Use seared blocks for the Tinker’s Anvil and scorched blocks for the Scorched Anvil. Supported alloy blocks include Slimesteel, Amethyst Bronze and Manyullyn; Netherite blocks also work.
 
