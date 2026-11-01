@@ -42,7 +42,7 @@ def harvest(color,dimension,pos):
  for c in ('gamemode creative @s',f'fill {x-1} {y-1} {z-2} {x+1} {y+2} {z-1} minecraft:air',f'setblock {x} {y-1} {z-1} minecraft:stone',f'tp @s {x+0.5} {y} {z-1.5}','gamemode survival @s'):cmd(c)
  g.call('hotbar',str(hot('minecraft:diamond_pickaxe')+1));g.call('wait','10');g.call('screenshot',str(run/f'{color}-geode-natural.png'))
  before=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0)
- g.call('break',x,y,z,'--timeout','30',timeout=35);g.call('wait','20');cmd(f'tp @s {x+0.5} {y} {z+0.5}');g.call('wait','60')
+ print('BREAK',color,g.call('break',x,y,z,'--timeout','30',timeout=35),flush=True);g.call('wait','20');print('ENTITIES',g.call('entities'),flush=True);cmd(f'tp @s {x+0.5} {y} {z+0.5}');g.call('wait','60')
  count=g.call('inventory')['counts'].get(f'tconstruct:{color}_slime_crystal',0);print('HARVEST',color,before,count,flush=True);assert count-before==4,(color,before,count)
 try:
  g.ready();cmd('gamemode creative @s');cmd('gamerule minecraft:spawn_mobs false');cmd('clear @s');cmd('give @s minecraft:diamond_pickaxe 1')
