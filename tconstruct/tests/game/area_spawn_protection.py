@@ -1,5 +1,5 @@
 """Dedicated-server spawn-protection boundary using the existing fixed world."""
-import argparse, ctypes, gzip, json, os, re, shutil, socket, struct, subprocess, tempfile, time
+import argparse, ctypes, gzip, json, os, re, shutil, socket, struct, subprocess, tempfile, threading, time
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
@@ -29,11 +29,67 @@ def acquire(g):
     held=g.call('inventory')['carried'] or {};assert held.get('item')=='tconstruct:sledge_hammer' and 'tic_mining_tool' in held.get('components',''),held
     screen_click(319,376);g.call('wait','5');g.call('close');g.call('hotbar','1');g.call('wait','5')
 
-server=None;g=None
+class EarlyStopProxy:
+    # Uncompressed offline protocol: inject STOP immediately after the target
+    # START to exercise the server's existing delayed-destruction branch.
+    def __init__(self, server_port):
+        self.listener=socket.socket();self.listener.bind(('127.0.0.1',0));self.listener.listen(1)
+        self.port=self.listener.getsockname()[1];self.server_port=server_port;self.expected=None;self.injected=0
+        self.thread=threading.Thread(target=self.run,daemon=True);self.thread.start()
+    @staticmethod
+    def varint(value):
+        out=bytearray()
+        while value>127:out.append((value&127)|128);value>>=7
+        out.append(value);return bytes(out)
+    @staticmethod
+    def unpack(buf):
+        value=0
+        for i,b in enumerate(buf[:5]):
+            value|=(b&127)<<(7*i)
+            if not b&128:return value,i+1
+        return None
+    def run(self):
+        try:
+            client,_=self.listener.accept();server=socket.create_connection(('127.0.0.1',self.server_port));self.client=client;self.server=server
+            def downstream():
+                try:
+                    while data:=server.recv(65536):client.sendall(data)
+                except OSError:pass
+                finally:
+                    try:client.shutdown(socket.SHUT_RDWR)
+                    except OSError:pass
+            threading.Thread(target=downstream,daemon=True).start();buf=bytearray()
+            while data:=client.recv(65536):
+                buf.extend(data)
+                while (header:=self.unpack(buf)) is not None:
+                    length,n=header
+                    if len(buf)<n+length:break
+                    frame=bytes(buf[:n+length]);body=bytes(buf[n:n+length]);del buf[:n+length]
+                    if self.expected is not None and len(body)>=11 and body[0]==41 and body[1]==0 and body[2:10]==self.expected:
+                        stop=body[:1]+b'\x03'+body[2:];frame+=self.varint(len(stop))+stop;self.expected=None;self.injected+=1
+                    server.sendall(frame)
+        except OSError:pass
+        finally:
+            for sock in (getattr(self,'client',None),getattr(self,'server',None),self.listener):
+                if sock:
+                    try:sock.close()
+                    except OSError:pass
+    def arm(self,pos):
+        x,y,z=pos;packed=((x&0x3ffffff)<<38)|((z&0x3ffffff)<<12)|(y&0xfff);self.expected=packed.to_bytes(8,'big')
+    def close(self):
+        for sock in (getattr(self,'client',None),getattr(self,'server',None),self.listener):
+            if sock:
+                try:sock.shutdown(socket.SHUT_RDWR)
+                except OSError:pass
+                try:sock.close()
+                except OSError:pass
+        self.thread.join(timeout=5)
+
+server=None;g=None;proxy=None
 with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
     d=Path(temp);shutil.copy2(eula,d/'eula.txt')
     (d/'ops.json').write_text(json.dumps([{'uuid':'00000000-0000-4000-8000-000000000001','name':'AreaTestOperator','level':4,'bypassesPlayerLimit':False}]))
-    (d/'server.properties').write_text('online-mode=false\nwhite-list=false\nenforce-secure-profile=false\nspawn-protection=2\nview-distance=3\nsimulation-distance=3\nallow-flight=true\nlevel-name=Probe\npause-when-empty-seconds=-1\n')
+    (d/'server.properties').write_text('online-mode=false\nwhite-list=false\nenforce-secure-profile=false\nspawn-protection=2\nnetwork-compression-threshold=-1\nview-distance=3\nsimulation-distance=3\nallow-flight=true\nlevel-name=Probe\npause-when-empty-seconds=-1\n')
     sock=socket.socket();sock.bind(('127.0.0.1',0));port=sock.getsockname()[1];sock.close()
     logpath=run/'area-dedicated.log';logfile=logpath.open('w+');args=[str(a.game.resolve()),'--resources',str(a.resources.resolve()),'--dedicated','--nogui','--universe',str(world.parent),'--world','Probe','--port',str(port)]
     try:
@@ -44,7 +100,8 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
             if 'For help, type' in logpath.read_text():break
             time.sleep(.25)
         else:raise TimeoutError('dedicated server startup')
-        g=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());g.ready()
+        proxy=EarlyStopProxy(port)
+        g=Game(a,run,'Guest',server='127.0.0.1:'+str(proxy.port),resume=(run/'Guest').exists());g.ready()
         def console(s):server.stdin.write(s+'\n');server.stdin.flush();time.sleep(.5)
         console('gamemode creative Guest');g.call('wait','20');acquire(g)
         cx,cy,cz=sx+3,101,sz
@@ -54,9 +111,9 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
             inv=g.call('inventory')['counts'].get(item,0)
             ground=sum((e.get('item') or {}).get('count',0) for e in g.call('entities','10','minecraft:item')['entities'] if (e.get('item') or {}).get('item')==item)
             return inv+ground
-        count_before=total_items('minecraft:cobblestone');result=g.call('break',str(cx),str(cy),str(cz),'--timeout','50',timeout=55);g.call('wait','20')
+        count_before=total_items('minecraft:cobblestone');proxy.arm([cx,cy,cz]);result=g.call('break',str(cx),str(cy),str(cz),'--timeout','50',timeout=55);g.call('wait','20')
         remain={(x,y):g.call('block',str(x),str(y),str(cz)).get('block') for x in range(cx-1,cx+2) for y in range(cy-1,cy+2)}
-        after=g.call('inventory')['held'];print('boundary',json.dumps({'result':result,'remaining':str(remain),'wear':after.get('damage',0)-before.get('damage',0)}),flush=True)
+        after=g.call('inventory')['held'];assert proxy.injected==1,('early STOP not injected',proxy.injected);print('early STOP injected for delayed break',flush=True);print('boundary',json.dumps({'result':result,'remaining':str(remain),'wear':after.get('damage',0)-before.get('damage',0)}),flush=True)
         assert all(remain[(cx-1,y)]=='minecraft:stone' for y in range(cy-1,cy+2)),remain
         assert all(remain[(x,y)]=='minecraft:air' for x in (cx,cx+1) for y in range(cy-1,cy+2)),remain
         assert after.get('damage',0)-before.get('damage',0)==6,(before,after)
@@ -65,6 +122,7 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
         g.call('screenshot',str(run/'area-spawn-protection.png'));g.stop();print('PASS server spawn protection boundary',flush=True)
     finally:
         if g is not None:g.cleanup()
+        if proxy is not None:proxy.close()
         if server is not None and server.poll() is None:
             server.stdin.write('stop\n');server.stdin.flush()
             try:server.wait(timeout=45)
