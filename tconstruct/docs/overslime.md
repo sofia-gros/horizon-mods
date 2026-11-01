@@ -6,4 +6,6 @@ Overforced uses four Slimesteel Reinforcements per level, up to five levels, wit
 
 The added shield is spent before ordinary durability on the connected tool, armor and ranged wear paths. Overslime without a friendly modifier has source stat penalties; Overforced is a friend. The durability bar has a blue shield display while shield remains. The Glowing modifier and its special bypass are not implemented.
 
-This is not yet a verified survival route. Slimesteel's natural fluid supply and casting chain, slime-bottle acquisition and the source bottle recipe in the crafting table still need to be connected or verified. The Station transactions, display, actual equipment wear, persistence and LAN behavior need the planned game tests. The source traits and modifier effects outside these paths remain incomplete.
+The source Casting Table recipe fills a glass bottle with 250 mB of the matching slime fluid. The four bottle items and their original artwork are registered, and the source Sky bottle casting recipe is covered by a lightweight catalog test. The fluid-transfer and drinking behavior are not yet implemented, and the source bottle refill recipe in the crafting table is not yet connected.
+
+This is not yet a verified survival route. Slimesteel's natural fluid supply and casting chain, Station transactions, display, actual equipment wear, persistence and LAN behavior need the planned game tests. The source traits and modifier effects outside these paths remain incomplete.
