@@ -85,6 +85,9 @@ try:
     (pack / 'data/tconstruct/tinkering/materials/traits').mkdir(parents=True)
     (pack / 'pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"temporary trait stat test"}}')
     created = True
+    cmd('reload')
+    cmd('datapack enable "file/trait-melee-followup-test"')
+    g.call('wait', '50')
     set_trait('')
     baseline = build()
     base_damage = val(baseline, 'tic_attack_damage')
