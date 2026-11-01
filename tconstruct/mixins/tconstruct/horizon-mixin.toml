@@ -2790,3 +2790,14 @@ id = "source-armor-wear"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_armor_wear"
 source = "source-armor-wear.rs"
+
+[[injection]]
+id = "anvil-material-recipe"
+target = "horizon_client::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "anvil-material-recipe.rs"
+bindings = [
+  { name = "input", ty = "&crate::crafting::Input<'_>", value = "input" },
+  { name = "recipe", ty = "&crate::crafting::Recipe", value = "recipe" },
+]
