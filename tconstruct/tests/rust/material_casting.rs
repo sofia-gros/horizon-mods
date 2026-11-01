@@ -92,3 +92,26 @@ fn source_material_predicates_reject_unknown_nested_conditions() {
     let unknown = serde_json::json!({"type":"mantle:inverted","inverted_type":"example:unsupported"});
     assert_eq!(material_predicate(Some(&unknown), "tconstruct:copper", &tags, &parts, &|_,_,_| None), None);
 }
+
+#[test]
+fn source_shield_conflict_uses_normal_casting_material_stat() {
+    let composite = br#"{"type":"tconstruct:table_casting_composite","item_cost":4,"result":"tconstruct:shield_core","casting_stat_conflict":"tconstruct:plating_shield"}"#;
+    let transform = br#"{"type":"tconstruct:material_fluid","input":"tconstruct:wood","output":"tconstruct:nahuatl","temperature":1000,"fluid":{"fluid":"tconstruct:molten_obsidian","amount":250}}"#;
+    let normal = br#"{"type":"tconstruct:material_fluid","output":"tconstruct:obsidian","temperature":1000,"fluid":{"fluid":"tconstruct:molten_obsidian","amount":250}}"#;
+    let recipes = [("part".to_owned(), composite.to_vec()), ("transform".to_owned(), transform.to_vec()), ("normal".to_owned(), normal.to_vec())].into_iter().collect();
+    let tags = HashMap::new(); let items = ["tconstruct:shield_core".into()].into_iter().collect(); let fluids = ["tconstruct:molten_obsidian".into()].into_iter().collect();
+    let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+    let resolve = |conflict| catalog.composite_casting(false, "tconstruct:shield_core", "tconstruct:wood", "tconstruct:molten_obsidian", &|_,_| true, &|_,_| true, &|_,_| conflict, &|_| true);
+    assert!(resolve(Some(true)).is_none()); assert!(resolve(None).is_none()); assert!(resolve(Some(false)).is_some());
+}
+
+#[test]
+fn composite_variant_wildcard_and_precise_variant_follow_source() {
+    let part = br#"{"type":"tconstruct:table_casting_composite","item_cost":1,"result":"tconstruct:tool_handle"}"#;
+    let transform = br#"{"type":"tconstruct:material_fluid","input":"tconstruct:wood#oak","output":"tconstruct:nahuatl","temperature":1000,"fluid":{"fluid":"tconstruct:molten_obsidian","amount":250}}"#;
+    let recipes = [("part".to_owned(), part.to_vec()), ("fluid".to_owned(), transform.to_vec())].into_iter().collect();
+    let tags = HashMap::new(); let items = ["tconstruct:tool_handle".into()].into_iter().collect(); let fluids = ["tconstruct:molten_obsidian".into()].into_iter().collect();
+    let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+    let resolve = |input| catalog.composite_casting(false, "tconstruct:tool_handle", input, "tconstruct:molten_obsidian", &|_,_| true, &|_,_| true, &|_,_| Some(false), &|_| true);
+    assert!(resolve("tconstruct:wood#oak").is_some()); assert!(resolve("tconstruct:wood#spruce").is_none()); assert!(resolve("tconstruct:wood").is_none());
+}
