@@ -9,7 +9,7 @@ p.add_argument('--in-frame', action='store_true')
 a = p.parse_args()
 run = a.run_dir.resolve()
 g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True)
-pack = g.root / 'saves/Probe/datapacks/trait-stat-test'
+pack = g.root / 'saves/Probe/datapacks/trait-melee-followup-test'
 created = False
 
 def cmd(x):
@@ -130,7 +130,7 @@ try:
     saved = g.call('inventory')['held']
     assert abs(val(saved, 'tic_attack_damage') - val(before, 'tic_attack_damage')) < 0.001
     assert abs(val(saved, 'tic_attack_speed') - val(before, 'tic_attack_speed')) < 0.001
-    cmd('datapack disable "file/trait-stat-test"')
+    cmd('datapack disable "file/trait-melee-followup-test"')
     g.stop()
     print('PASS source melee trait stats, upgrade, swap and save', flush=True)
 finally:
