@@ -134,9 +134,10 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                                         let heading = game.translate(&format!("stat.tconstruct.{kind}"), kind);
                                         detail.push_str(&format!("\n\n{heading}"));
                                         for (field, value) in fields {
-                                            let shown = value.as_f64().map(|number| number.to_string()).or_else(|| value.as_str().map(str::to_owned));
+                                            let shown = value.as_f64().map(|number| super::tconstruct_materials_book_stat::number(kind, field, number)).or_else(|| value.as_str().map(str::to_owned));
                                             if let Some(shown) = shown {
-                                                let label = game.translate(&format!("tool_stat.tconstruct.{field}"), field);
+                                                let stat_name = match field.as_str() { "melee_attack" | "melee_damage" => "attack_damage", "melee_speed" => "attack_speed", "mining_tier" => "harvest_tier", other => other };
+                                                let label = game.translate(&format!("tool_stat.tconstruct.{stat_name}"), stat_name);
                                                 detail.push_str(&format!("\n{label}{shown}"));
                                             }
                                         }
