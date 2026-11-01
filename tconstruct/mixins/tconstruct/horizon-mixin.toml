@@ -2686,3 +2686,19 @@ target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "source-melee-damage-return.rs"
 bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-melee-sweep-position"
+target = "horizon_client::game::Game<'_>::sweep_attack_position"
+kind = "HEAD"
+cancellable = true
+helper = "source-melee-sweep-position.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "scale", ty = "f32", value = "scale" }, { name = "crit", ty = "bool", value = "crit" }]
+
+[[injection]]
+id = "source-melee-sweep"
+target = "horizon_client::game::Game<'_>::sweep_damage"
+kind = "HEAD"
+cancellable = true
+helper = "source-melee-sweep.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "target" }, { name = "_scale", ty = "f32", value = "scale" }]
