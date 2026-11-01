@@ -102,6 +102,13 @@ pub(super) fn merge_pack_tags(
     }
 }
 
+/// Mantle 1.20's generated water tag, absent from the retained TConstruct
+/// and Forge source archives. Later datapack layers may still replace it.
+pub(super) fn merge_mantle_fluid_tags(tags: &mut BTreeMap<String, Vec<Vec<u8>>>) {
+    tags.entry("mantle:water".into()).or_default().push(
+        br#"{"values":["minecraft:water","minecraft:flowing_water"]}"#.to_vec());
+}
+
 pub(super) fn merge_pack_fluid_tags(
     tags: &mut BTreeMap<String, Vec<Vec<u8>>>,
     files: impl IntoIterator<Item = String>,
@@ -307,6 +314,15 @@ mod tests {
         merge_pack_block_tags(&mut tags, [block.into()], |_| Some(b"override".to_vec()));
         assert_eq!(tags["tconstruct:smeltery/wall"], [b"base".to_vec(), b"override".to_vec()]);
         assert_eq!(tags.len(), 1);
+    }
+    #[test]
+    fn mantle_water_is_source_defined_and_world_packs_can_replace_it() {
+        let mut raw = BTreeMap::new();
+        merge_mantle_fluid_tags(&mut raw);
+        let registry = ["minecraft:water".to_owned(), "minecraft:flowing_water".to_owned(), "minecraft:lava".to_owned()].into_iter().collect();
+        assert_eq!(resolve_tag("mantle:water", &raw, &registry).unwrap(), ["minecraft:water", "minecraft:flowing_water"]);
+        raw.get_mut("mantle:water").unwrap().push(br#"{"replace":true,"values":["minecraft:lava"]}"#.to_vec());
+        assert_eq!(resolve_tag("mantle:water", &raw, &registry).unwrap(), ["minecraft:lava"]);
     }
     #[test]
     fn pack_priority_replace_and_forge_removal() {
