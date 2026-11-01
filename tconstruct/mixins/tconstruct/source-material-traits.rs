@@ -103,13 +103,11 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         );
     }
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
-    let preserved = resolved.get("tconstruct:preserved").copied().unwrap_or(0);
-    let ductile = resolved.get("tconstruct:ductile").copied().unwrap_or(0);
-    let boost = super::tconstruct_source_material_effects::durability_boost(preserved, ductile);
+    // Original stat_multiplier is the product of multiply_all operations;
+    // material percentages and multiply_base traits do not change it.
     Some(Traits {
         levels: resolved,
         order,
-        durability_multiplier: stats.durability_multiplier
-            + stats.durability_multiplier_unit * boost,
+        durability_multiplier: stats.durability_multiplier_unit,
     })
 }
