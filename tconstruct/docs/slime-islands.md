@@ -16,6 +16,10 @@ templates are retained without replacing vanilla structures.
 air removals, leaf drippers and shared vine-state groups as placement
 operations. It is also standalone: tree height, soil checks, randomized vine
 states, block writes and leaf-distance updates are not connected yet.
+`source-slime-island-markers.rs` models source weighted selection and the
+per-piece limit of three successful trees, including skipped draws and failed
+placements. Persisting that count and invoking it from marker processing are
+still open.
 
 The original uses `tconstruct:island`, not a vanilla jigsaw: its templates
 include data markers that can place source slime trees, vines and grass. The
