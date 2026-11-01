@@ -192,7 +192,7 @@ Both modifiers support extraction into and application from a Modifier Crystal. 
 
 A representative Linux test used supplied materials and equipment to add four upgrade slots, apply Netherite, complete Reinforced V and apply Unbreakable at a Tinkers' Anvil. It checked the returned bottle, missing-slot and prerequisite rejection, both Crystal round trips and save/reload. Separate fixture tests checked armor toughness on damage, actual melee and Longbow/Crossbow arrow speed, tool, armor and bow wear, diamond ore drops, and a dropped Netherite tool surviving observed lava contact. A LAN guest applied Netherite at a Scorched Anvil and extracted and reapplied an Unbreakable Crystal. These are representative checks, not a full survival playthrough; the ranged comparison used a small number of shots.
 
-Worktable selection uses the original layered icons. Glowing, advancement criteria, other dropped-item damage sources and Windows remain unverified or unimplemented; other equipment and modifiers retain the limits described below.
+Worktable selection uses the original layered icons. Manual and automatic resource preparation share an icon-source manifest; the automatic distribution path has only been checked statically. Glowing, advancement criteria, other dropped-item damage sources and Windows remain unverified or unimplemented; other equipment and modifiers retain the limits described below.
 
 ## Extract a modifier
 
