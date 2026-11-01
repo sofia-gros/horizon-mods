@@ -9,7 +9,7 @@ islands use their own original structure sets and biome tags.
 `source-slime-island-placement.rs` implements the original sea height and sky
 height calculation, including the rotation-dependent offsets and the four
 surface samples. It is tested as a standalone rule and is not connected to
-world generation. The 20 original earth, sky, ender and blood island NBT
+world generation. The 25 original clay, earth, sky, ender and blood island NBT
 templates are retained without replacing vanilla structures.
 
 `source-slime-tree-shape.rs` models source tree height, slimy-soil/build-bound
@@ -75,3 +75,9 @@ so neither substitution enables island generation here. These boundaries also
 need an implementation for the original clay island's vanilla tree features
 and the blood island's fungus; the current start hook rejects unsupported tree
 types instead of generating incomplete islands.
+
+The five clay templates use vanilla water rather than custom slime fluid, and
+their vanilla grass marker accepts dirt. Clay shares the overworld sky set with
+Sky Slime Island at the source 1:4 weight, so enabling clay alone would alter
+the source set and is not done. Clay's selected vanilla tree features and its
+Terracube spawn override are still unconnected.

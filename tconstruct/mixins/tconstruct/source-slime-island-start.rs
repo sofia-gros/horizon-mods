@@ -38,7 +38,11 @@ pub(crate) fn generate(registry: &StructureRegistry, resources: &StructureResour
     if source.get("type")?.as_str()? != "tconstruct:island" { return None; }
     let templates = entries(&source, "templates")?;
     let trees = entries(&source, "trees")?;
-    let grasses = entries(&source, "grasses")?;
+    let mut grasses = entries(&source, "grasses")?;
+    // Vanilla renamed the short grass block after the source version.
+    for (name, _) in &mut grasses {
+        if name == "minecraft:grass" { *name = "minecraft:short_grass".into(); }
+    }
     let mut random = WorldgenRandom::new(LegacyRandom::new(0));
     random.set_large_feature_seed(context.seed(), chunk.x, chunk.z);
     let template = draw(&templates, &mut random)?;

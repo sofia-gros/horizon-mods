@@ -23,7 +23,8 @@ class SlimeIslandReferenceTest(unittest.TestCase):
 
     def test_template_references_exist_and_are_gzip_nbt(self):
         with zipfile.ZipFile(TEMPLATES) as archive:
-            for variant, definition in [('earth', 'earth_slime_island'),
+            for variant, definition in [('dirt', 'clay_island'),
+                                        ('earth', 'earth_slime_island'),
                                         ('sky', 'sky_slime_island'),
                                         ('ender', 'end_slime_island'),
                                         ('blood', 'blood_island')]:
@@ -35,6 +36,15 @@ class SlimeIslandReferenceTest(unittest.TestCase):
                     self.assertTrue(name.startswith(f'islands/{variant}/'))
                     raw = gzip.decompress(archive.read(f'data/tconstruct/structures/{name}.nbt'))
                     self.assertEqual(raw[0], 10)  # Named NBT compound root.
+
+    def test_clay_templates_use_vanilla_liquids(self):
+        with zipfile.ZipFile(TEMPLATES) as archive:
+            for name in archive.namelist():
+                if '/islands/dirt/' in name:
+                    raw = gzip.decompress(archive.read(name))
+                    self.assertIn(b'minecraft:water', raw)
+                    self.assertNotIn(b'tconstruct:sky_slime_fluid', raw)
+                    self.assertNotIn(b'tconstruct:earth_slime_fluid', raw)
 
     def test_slime_island_biome_and_tree_references_are_retained(self):
         data_root = SOURCE.parent

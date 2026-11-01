@@ -71,11 +71,12 @@ mod tests {
                     ]))]));
             }
         }
+        states.push(Tag::String("minecraft:short_grass".into()));
         let defaults = Tag::compound([("minecraft:air", Tag::Int(0)), ("minecraft:dirt", Tag::Int(1)),
             ("tconstruct:earth_slime_dirt", Tag::Int(2)), ("tconstruct:greenheart_log", Tag::Int(3)),
             ("tconstruct:earth_slime_leaves", Tag::Int(10)),
             ("tconstruct:earth_slime_tall_grass", Tag::Int(11)), ("tconstruct:earth_slime_fern", Tag::Int(12)),
-            ("tconstruct:sky_slime_vine", Tag::Int(13))]);
+            ("tconstruct:sky_slime_vine", Tag::Int(13)), ("minecraft:short_grass", Tag::Int(109))]);
         let registry = Tag::compound([("DataVersion", Tag::Int(horizon_world::DATA_VERSION)), ("states", Tag::List(states)), ("defaults", defaults)]);
         let registry = Box::leak(Box::new(BlockRegistry::from_nbt(&registry).unwrap()));
         let tags = BTreeMap::from([
@@ -176,6 +177,20 @@ mod tests {
         assert!(!tconstruct_slime_island_marker_world::grass_marker(&mut ctx, &choices, [2, 64, 0]).unwrap());
         assert_eq!(world.blocks.get(&[0, 64, 0]), Some(&BlockStateId(11)));
         assert!(!world.blocks.contains_key(&[2, 64, 0]));
+    }
+
+    #[test]
+    fn clay_island_grass_uses_vanilla_dirt_instead_of_slimy_soil() {
+        let resources = resources();
+        let mut world = World { blocks: BTreeMap::from([([0, 63, 0], BlockStateId(1)), ([2, 63, 0], BlockStateId(2))]) };
+        let mut random = FixedRandom::default();
+        let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
+            chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
+        let choices = vec![("minecraft:short_grass".to_owned(), 7)];
+        tconstruct_slime_island_marker_world::validate(&ctx, None, &choices, None).unwrap();
+        assert!(tconstruct_slime_island_marker_world::grass_marker(&mut ctx, &choices, [0, 64, 0]).unwrap());
+        assert!(!tconstruct_slime_island_marker_world::grass_marker(&mut ctx, &choices, [2, 64, 0]).unwrap());
+        assert_eq!(world.blocks.get(&[0, 64, 0]), Some(&BlockStateId(109)));
     }
 
     #[test]

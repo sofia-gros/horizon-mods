@@ -9,15 +9,15 @@ use super::{tconstruct_slime_island_markers::{self, TreeBudget, MAX_TREES}, tcon
 pub(crate) fn validate(ctx: &PieceContext<'_>, tree: Option<TreeConfig<'_>>,
     grasses: &[(String, u32)], vine: Option<&str>) -> Result<()> {
     if let Some(tree) = tree { tconstruct_slime_tree_world::validate(ctx, tree)?; }
-    if !grasses.is_empty() && !ctx.resources.block_tags.contains_key("tconstruct:slimy_soil") {
-        return Err(PlacementQueryError::Unavailable);
-    }
     if !grasses.is_empty() {
         let total = grasses.iter().try_fold(0u32, |sum, (_, weight)| sum.checked_add(*weight)).ok_or(PlacementQueryError::Unavailable)?;
         if total == 0 || total > i32::MAX as u32 { return Err(PlacementQueryError::Unavailable); }
     }
     for (name, _) in grasses {
         ctx.resources.registry.default_state(name).ok_or(PlacementQueryError::Unavailable)?;
+        if !ctx.resources.block_tags.contains_key(grass_soil_tag(name)) {
+            return Err(PlacementQueryError::Unavailable);
+        }
     }
     if let Some(name) = vine {
         let base = ctx.resources.registry.default_state(name).ok_or(PlacementQueryError::Unavailable)?;
@@ -32,6 +32,14 @@ pub(crate) fn validate(ctx: &PieceContext<'_>, tree: Option<TreeConfig<'_>>,
         }
     }
     Ok(())
+}
+
+fn grass_soil_tag(name: &str) -> &'static str {
+    if matches!(name, "minecraft:grass" | "minecraft:fern" | "minecraft:short_grass") {
+        "minecraft:dirt"
+    } else {
+        "tconstruct:slimy_soil"
+    }
 }
 
 pub(crate) fn tree_marker(
@@ -60,7 +68,7 @@ pub(crate) fn grass_marker(ctx: &mut PieceContext<'_>, choices: &[(String, u32)]
     let state = ctx.resources.registry.default_state(&choices[index].0).ok_or(PlacementQueryError::Unavailable)?;
     let Some(y) = pos[1].checked_sub(1) else { return Ok(false); };
     let soil = ctx.world.block([pos[0], y, pos[2]])?;
-    let allowed = ctx.resources.block_tags.get("tconstruct:slimy_soil").ok_or(PlacementQueryError::Unavailable)?;
+    let allowed = ctx.resources.block_tags.get(grass_soil_tag(&choices[index].0)).ok_or(PlacementQueryError::Unavailable)?;
     if !allowed.contains(ctx.name(soil)) { return Ok(false); }
     ctx.world.set(pos, state, 2)?;
     Ok(true)
