@@ -289,7 +289,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
         for (group, entries) in chapter.chunks(5).enumerate() {
             let mut section = Text::literal(format!("{heading}\n\n"));
             for (offset, entry) in entries.iter().enumerate() {
-                let title = entry.spans.first().and_then(|s| s.text.lines().next()).unwrap_or("");
+                let title = super::tconstruct_materials_book_index::label(entry.spans.first().map(|s| s.text.as_str()).unwrap_or(""));
                 let destination = first_page + i32::try_from(group * 5 + offset).ok()?;
                 section.push(Text::styled(format!("{title}\n"), horizon_client::text::Style {
                     click: Some(horizon_client::text::ClickEvent::ChangePage(destination)),
