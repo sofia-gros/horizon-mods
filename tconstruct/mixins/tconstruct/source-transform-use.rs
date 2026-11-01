@@ -1,10 +1,16 @@
 // Use source tool traits and area rules with Horizon's existing block transformer.
 fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_items::items::ItemStack, pos:[i32;3], face:[i32;3]) -> std::ops::ControlFlow<Result<bool>> {
     use std::ops::ControlFlow::{Break,Continue};
-    let Some((template,kind))=crate::game::tconstruct_source_transform_mode::mode(stack.item.as_ref()) else {return Continue(());};
+    let Some((template,kind))=crate::game::tconstruct_source_transform_mode::mode(stack.item.as_ref()) else {
+        return match crate::game::tconstruct_glowing_world::activate(game, stack, pos, face) {
+            Some(result) => Break(result), None => Continue(()),
+        };
+    };
     // Source afterBlockUse passes while sneaking; suppress the inherited
     // vanilla transformer too, allowing the remaining interaction to proceed.
-    if game.keys.contains(&winit::keyboard::KeyCode::ShiftLeft) {return Break(Ok(false));}
+    if game.keys.contains(&winit::keyboard::KeyCode::ShiftLeft) {
+        return Break(crate::game::tconstruct_glowing_world::activate(game, stack, pos, face).unwrap_or(Ok(false)));
+    }
     let max=crate::game::tconstruct_source_transform_logic::maximum(stack);
     if max.is_none_or(|max|stack.damage>=max) || !game.may_build() { return Break(Ok(false)); }
     let item=stack.item.clone();
@@ -68,5 +74,8 @@ fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_item
         Ok(transformed)
     })();
     if let Some(conn)=actor {game.world.chunks.__horizon_mixins_tconstruct_transform_guest_hits_mut().remove(&conn);}
-    Break(result)
+    match result {
+        Ok(false) => Break(crate::game::tconstruct_glowing_world::activate(game, stack, pos, face).unwrap_or(Ok(false))),
+        other => Break(other),
+    }
 }

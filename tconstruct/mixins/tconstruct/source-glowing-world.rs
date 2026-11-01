@@ -70,3 +70,42 @@ pub(super) fn process_support_changes(game: &mut super::Game<'_>) -> anyhow::Res
     }
     Ok(())
 }
+
+/// Right-click after the tool's ordinary block interaction has passed.
+pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3]) -> Option<anyhow::Result<bool>> {
+    use horizon_world::nbt::Tag;
+    if super::tconstruct_source_ranged_wear::is_broken(stack) || !game.may_build() { return None; }
+    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack);
+    let level = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:glowing")
+        + traits.as_ref().and_then(|data| data.levels.get("tconstruct:glowing").copied()).unwrap_or(0);
+    if level <= 0 { return None; }
+    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    if !tags.get("tconstruct:modifiable/interactable/right").is_some_and(|values| values.contains(stack.item.as_ref())) { return None; }
+    // Dual-option interaction may move Glowing from right-click to left-click.
+    if tags.get("tconstruct:modifiable/interactable/dual").is_some_and(|values| values.contains(stack.item.as_ref())) {
+        let toggled = stack.data().and_then(|d| d.other("minecraft:custom_data"))
+            .and_then(|n| n.get("tic_persistent")).and_then(|n| n.get("tconstruct:attack_modifiers"));
+        if matches!(toggled, Some(Tag::List(values)) if values.iter().any(|v| matches!(v, Tag::String(s) if s.to_string_lossy() == "tconstruct:glowing"))) { return None; }
+    }
+    if direction(face).is_none() { return Some(Ok(true)); }
+    let Some(x) = clicked[0].checked_add(face[0]) else { return Some(Ok(true)); };
+    let Some(y) = clicked[1].checked_add(face[1]) else { return Some(Ok(true)); };
+    let Some(z) = clicked[2].checked_add(face[2]) else { return Some(Ok(true)); };
+    let at = [x,y,z];
+    let result = (|| -> anyhow::Result<bool> {
+        if place(game, at, [-face[0], -face[1], -face[2]])? {
+            if !game.creative {
+                let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, stack, 5, Some("tconstruct:glowing"));
+                if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) {
+                    super::tconstruct_source_overslime::spend(held, shield);
+                    super::tconstruct_tx::fixed_damage(held, loss);
+                }
+            }
+            let sound = game.res.facts().get(game.world.block(x,y,z)).sounds.place.clone();
+            game.audio.play(&sound, Some([f64::from(x)+0.5,f64::from(y)+0.5,f64::from(z)+0.5]), 1.0, 1.0);
+        }
+        // Source consumes the interaction even when no support was found.
+        Ok(true)
+    })();
+    Some(result)
+}

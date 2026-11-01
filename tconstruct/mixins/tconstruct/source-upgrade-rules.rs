@@ -17,11 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 11] = [
+const UPGRADES: [(&str, i32); 12] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
+    ("tconstruct:glowing", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -74,17 +75,20 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing") }
+fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum() }
+
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
     let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>();
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>();
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| *id != "tconstruct:unbreakable")
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id))
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
-    used_upgrades <= available_upgrades && amount(tool, "tconstruct:unbreakable") <= available_abilities
+    used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
 
 /// Validate source Unbreakable dependencies against complete levels and material traits.
@@ -170,14 +174,14 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             if amount(tool, id) != 0 { continue; }
             if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
                 && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
             let ability_cost = value.pointer("/slots/abilities").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
-            if occupied + cost > upgrade_slots || amount(tool, "tconstruct:unbreakable") + ability_cost > ability_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
+            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
             if id == "tconstruct:unbreakable" {
                 let level = |name: &str, needed: i32| amount(tool, name) / needed + traits.get(name).copied().unwrap_or(0);
                 if level("tconstruct:netherite", 1) < 1 || level("tconstruct:reinforced", 4) < 5 { continue; }
@@ -436,6 +440,32 @@ mod tests {
         assert_eq!(plan(&recipes, &tags, &tool, &[extracted.upgrade.leftover], 2).unwrap().amount, 7);
         set(&mut tool, 20);
         assert!(plan(&recipes, &tags, &tool, &ingredients, 10).is_none());
+    }
+
+    #[test]
+    fn glowing_recipe_respects_ability_capacity_target_and_trait() {
+        let recipe = br#"{"type":"tconstruct:modifier","allow_crystal":true,"check_trait_level":true,"inputs":[{"item":"minecraft:glowstone"},{"item":"minecraft:daylight_detector"},{"item":"minecraft:shroomlight"}],"level":1,"result":"tconstruct:glowing","slots":{"abilities":1},"tools":{"type":"forge:intersection","children":[{"tag":"tconstruct:modifiable/durability"},[{"tag":"tconstruct:modifiable/interactable"},{"tag":"tconstruct:modifiable/armor/boots"}]]}}"#.to_vec();
+        let recipes = BTreeMap::from([("glowing".into(),recipe)]);
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/durability".into(), HashSet::from(["tconstruct:pickaxe".into(),"tconstruct:plate_boots".into(),"tconstruct:helmet".into()])),
+            ("tconstruct:modifiable/interactable".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+            ("tconstruct:modifiable/armor/boots".into(), HashSet::from(["tconstruct:plate_boots".into()])),
+        ]);
+        let ingredients = ["minecraft:glowstone","minecraft:daylight_detector","minecraft:shroomlight"].map(|id| Some(ItemStack::new(id,1)));
+        let pick=ItemStack::new("tconstruct:pickaxe",1);
+        assert_eq!(plan_with_traits(&recipes,&tags,&pick,&ingredients,0,1,&BTreeMap::new()).unwrap().id,"tconstruct:glowing");
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal",1);
+        crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String("tconstruct:glowing".into()))])));
+        assert!(plan_with_traits(&recipes,&tags,&pick,&[Some(crystal)],0,1,&BTreeMap::new()).is_some());
+        assert!(plan_with_traits(&recipes,&tags,&pick,&ingredients,10,0,&BTreeMap::new()).is_none());
+        assert!(plan_with_traits(&recipes,&tags,&ItemStack::new("tconstruct:helmet",1),&ingredients,0,1,&BTreeMap::new()).is_none());
+        assert!(plan_with_traits(&recipes,&tags,&ItemStack::new("tconstruct:plate_boots",1),&ingredients,0,1,&BTreeMap::new()).is_some());
+        assert!(plan_with_traits(&recipes,&tags,&pick,&ingredients,0,1,&BTreeMap::from([("tconstruct:glowing".into(),1)])).is_none());
+        let mut occupied=pick.clone();occupied.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:unbreakable",Tag::Int(1))]))])));
+        assert!(plan_with_traits(&recipes,&tags,&occupied,&ingredients,0,1,&BTreeMap::new()).is_none());
+        occupied.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:unbreakable",Tag::Int(1)),("tconstruct:glowing",Tag::Int(1))]))])));
+        assert!(!valid_slots(&occupied,&BTreeMap::new(),0,1));
+        assert!(valid_slots(&occupied,&BTreeMap::new(),0,2));
     }
 
     #[test]
