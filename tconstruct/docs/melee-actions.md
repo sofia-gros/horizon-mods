@@ -19,10 +19,14 @@ queue stores the attacker position and hardcodes a three-block distance;
 source Scythe needs distance from the primary target, and Cleaver needs a
 four-block attacker distance. Guest sweeps are deferred until the acting player
 is restored, so per-target circle attacks also need the original attacker's
-item and durability to be handled in source order. The tested official Mixins
+item and durability to be handled in source order. The existing player-victim
+path has no `weapon_hit` / `weapon_wear` call, so source PvP wear must also be
+connected rather than assumed. The tested official Mixins
 `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab` planner rejected a correctly
 selected `MODIFY_CONSTANT` of the existing `sweep_players` distance with
-`E_UNSUPPORTED_CONTROL_FLOW` due to a closure in that function. This describes
+`E_UNSUPPORTED_CONTROL_FLOW` due to a closure in that function. A separate
+state-addition attempt on `Sweep` at `player_sweep` also failed planning because
+that constructor contains a closure. This describes
 one attempted injection, not all possible hooks. The draft does not replace
 that limit with a misleading vanilla approximation.
 
