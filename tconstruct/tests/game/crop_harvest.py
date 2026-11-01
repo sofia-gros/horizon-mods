@@ -73,7 +73,8 @@ try:
     positions=setup('scythe','wheat',7,True);before=g.call('inventory')['held'];count=total('minecraft:wheat')
     g.call('break','20','100','20','--timeout','50',timeout=55);g.call('wait','20');after=g.call('inventory')['held']
     assert all(at(*pos)=='minecraft:air' for pos in positions),[(pos,at(*pos)) for pos in positions]
-    assert after.get('damage',0)-before.get('damage',0)==9,(before,after)
+    # Source zero-hardness crops cause no break wear without a shears action.
+    assert after.get('damage',0)==before.get('damage',0),(before,after)
     assert total('minecraft:wheat')-count==9
     print('scythe crop area break and drop',flush=True)
     positions=setup('scythe','wheat',7,True);before=g.call('inventory')['held'];maximum=before.get('damage',0)+3
