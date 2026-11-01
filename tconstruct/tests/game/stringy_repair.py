@@ -21,5 +21,13 @@ try:
  shown={x['slot']:x['stack'] for x in g.call('menu')['slots'] if x.get('stack')};print('STRINGY OUTPUT',shown,flush=True)
  assert shown.get(325,{}).get('item')=='tconstruct:pickaxe' and shown[325].get('damage')==4,shown
  click(325);assert (g.call('menu')['carried'] or {}).get('damage')==4
- click(0);g.call('close');g.call('save');g.stop();print('PASS Stringy source String repair',flush=True)
+ click(0);g.call('close');g.call('wait','8')
+ for v in ('clear @s',
+           'give @s tconstruct:pickaxe[minecraft:damage=50,minecraft:max_damage=85,minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:flint","tconstruct:leather"],tic_max_damage:85}] 1',
+           'give @s minecraft:string 4'):cmd(v)
+ g.call('interact','0','71','2');g.call('wait','12')
+ for item,slot in [('tconstruct:pickaxe',300),('minecraft:string',301)]:click(hot(item));click(slot)
+ without={x['slot']:x['stack'] for x in g.call('menu')['slots'] if x.get('stack')}
+ assert 325 not in without and 300 in without and 301 in without,without
+ g.call('close');g.call('save');g.stop();print('PASS Stringy source String repair and material rejection',flush=True)
 finally:g.cleanup()

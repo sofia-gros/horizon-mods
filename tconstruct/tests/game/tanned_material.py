@@ -34,5 +34,8 @@ try:
  build(False);tool=hit();print('TANNED NORMAL',tool,flush=True);assert tool.get('damage')==1,tool
  build(True);before=g.call('inventory')['held'];assert 'tic_overslime:20' in before.get('components',''),before
  after=hit();print('TANNED SHIELD',after,flush=True);assert after.get('damage',0)==0 and 'tic_overslime:19' in after.get('components',''),after
- g.call('screenshot',str(run/'tanned-material.png'));g.call('save');g.stop();print('PASS built leather Tanned wear before Overslime',flush=True)
+ g.call('screenshot',str(run/'tanned-material.png'));g.call('save');g.stop();g.cleanup()
+ g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();saved=g.call('inventory')['held']
+ assert 'tconstruct:leather' in saved.get('components','') and 'tic_overslime:19' in saved.get('components',''),saved
+ g.stop();print('PASS built leather Tanned wear before Overslime and reload',flush=True)
 finally:g.cleanup()

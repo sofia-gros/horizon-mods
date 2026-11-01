@@ -30,7 +30,7 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Material armor damage and repair](docs/armor-durability.md) covers tested defense, retained breakage and repair.
 
-[Material trait expansion](docs/material-trait-expansion.md) describes the in-progress Tanned, Stringy and Enhanced effects and their current limits.
+[Material trait expansion](docs/material-trait-expansion.md) describes representative Linux tests for Tanned, Stringy and Enhanced and their current limits.
 
 [Material projectile stats](docs/projectile-stats.md) describes tested Longbow and Crossbow arrow speed, accuracy and current limits.
 
