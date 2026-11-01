@@ -7,17 +7,6 @@ pub(super) fn is_crop(game: &Game<'_>, pos: [i32; 3]) -> bool {
         && !game.res.items().block_in_tag("tconstruct:source_effective/tconstruct/harvestable/interact", name)
 }
 
-// A crop is mature only when the next age is not a registered state. Reset
-// only its age; retain any other original properties.
-fn mature_reset(registry: &horizon_world::registry::BlockRegistry, state: horizon_world::registry::BlockStateId) -> Option<horizon_world::registry::BlockStateId> {
-    let mut crop = registry.state(state)?.clone();
-    let age: u32 = crop.properties.get("age")?.parse().ok()?;
-    crop.properties.insert("age".into(), age.checked_add(1)?.to_string());
-    if registry.id(&crop).is_some() { return None; }
-    let default = registry.state(registry.default_state(&crop.name)?)?;
-    crop.properties.insert("age".into(), default.properties.get("age")?.clone());
-    registry.id(&crop)
-}
 
 pub(super) fn harvest(game: &mut Game<'_>, hit: Option<&Hit>) -> ControlFlow<Result<bool>> {
     if game.remote.is_some() || game.keys.contains(&KeyCode::ShiftLeft) { return Continue(()); }
@@ -46,7 +35,7 @@ pub(super) fn harvest(game: &mut Game<'_>, hit: Option<&Hit>) -> ControlFlow<Res
             if !game.held().is_some_and(|held| held.item == stack.item && held.damage < max) { break; }
             if blocked.contains(&(pos[0],pos[2])) || !is_crop(game, pos) { continue; }
             let state = game.world.block(pos[0],pos[1],pos[2]);
-            let Some(reset) = mature_reset(game.pack.assets.registry, state) else { continue; };
+            let Some(reset) = tconstruct_source_crop_age::mature_reset(game.pack.assets.registry, state) else { continue; };
             let mut drops = game.block_loot_at(pos, state, Some(&stack));
             let seed = drops.iter_mut().find(|item| item.count > 0 && seeds.contains(item.item.as_ref()));
             if let Some(seed) = seed {

@@ -2607,3 +2607,9 @@ kind = "HEAD"
 cancellable = true
 helper = "source-crop-use.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "hit", ty = "Option<&crate::game::Hit>", value = "block_hit" }]
+
+[[module]]
+id = "source-crop-age"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_crop_age"
+source = "source-crop-age.rs"
