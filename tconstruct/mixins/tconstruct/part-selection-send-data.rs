@@ -36,14 +36,20 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
             let mut build = crate::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output);
-            if build.is_none() {
-                world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(hub.guests[i].conn, window, pos));
-            }
             if let Some(output) = build.as_mut() {
                 let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
                 crate::tconstruct_source_station_name::name_result(output, name);
             }
-            let operation = crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output);
+            let mut operation = crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output);
+            if capacity == 5 {
+                if let Some(output) = operation.as_mut() {
+                    let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
+                    crate::tconstruct_source_station_name::name_result(output, name);
+                }
+            }
+            if build.is_none() && operation.is_none() {
+                world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(hub.guests[i].conn, window, pos));
+            }
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
                 .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);

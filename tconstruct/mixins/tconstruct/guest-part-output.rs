@@ -188,9 +188,15 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
             let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(conn, packet.container, key)).map(String::as_str);
             crate::tconstruct_source_station_name::name_result(output, name);
         }
-        let repair = if action == 25 {
+        let mut repair = if action == 25 {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan_with_capacity(world, entity.slots(), capacity))
         } else { None };
+        if capacity == 5 {
+            if let Some(plan) = repair.as_mut() {
+                let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(conn, packet.container, key)).map(String::as_str);
+                crate::tconstruct_source_station_name::name_result(&mut plan.output, name);
+            }
+        }
         if let Some(BlockEntity::Chest(stacks)) = world.block_entities.get_mut(&key) {
             let give = if action == 24 {
                 building.and_then(|(matched, output)| {
@@ -199,7 +205,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 })
             } else { repair.and_then(|plan| crate::tconstruct_source_station_world::take_operation(stacks, &mut hub.guests[gi].carried, plan)) };
             if let Some(give) = give {
-                if action == 24 { world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(conn, packet.container, key)); }
+                world.chunks.__horizon_mixins_tconstruct_station_guest_names_mut().remove(&(conn, packet.container, key));
                 for stack in give {
                     let max = rules.max_stack(&stack.item);
                     let can_stack = rules.items().get(&stack.item).is_some_and(|info| max > 1 && !(info.max_damage > 0 && stack.damage > 0));

@@ -1,16 +1,19 @@
 use super::*;
 
-/// The original Station only names a newly assembled tool, not a repair.
+/// The Anvil also names a result when modifying an existing tool.
 pub(super) fn available(game: &Game<'_>) -> bool {
     if super::tconstruct_ui::kind(game) != Some(true) { return false; }
     let Some(entity) = game.container_kind() else { return false; };
-    if super::tconstruct_source_station_world::has_operation_tool(entity.slots()) { return false; }
+    let operation = super::tconstruct_source_station_world::has_operation_tool(entity.slots());
+    let capacity = super::tconstruct_ui::station_capacity(game);
+    if operation && capacity != 5 { return false; }
     let output = if game.remote.is_some() {
-        entity.slots().get(24).and_then(Option::as_ref).cloned()
+        entity.slots().get(if operation { 25 } else { 24 }).and_then(Option::as_ref).cloned()
     } else {
-        super::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
+        if operation { super::tconstruct_source_station_world::operation_plan_with_capacity(&game.world, entity.slots(), capacity).map(|plan| plan.output) }
+        else { super::tconstruct_source_station_world::building_plan_with_capacity(&game.world, entity.slots(), capacity).map(|(_, output)| output) }
     };
-    output.as_ref().is_some_and(|stack| super::tconstruct_ui::station_accepts_output(game, stack))
+    output.as_ref().is_some_and(|stack| operation || super::tconstruct_ui::station_accepts_output(game, stack))
 }
 
 pub(super) fn new_box(ox: f32, oy: f32) -> horizon_client::ui::EditBox {
