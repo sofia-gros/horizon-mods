@@ -11,5 +11,5 @@ only the correct drops, part replacement and save/reload, Mattock source
 included/excluded blocks, broken behavior, LAN and representative vanilla
 regression. Registered definitions alone are not evidence of working behavior.
 Older saved tools need supported regeneration or part replacement to acquire
-the new synchronized fields; no automatic migration is added here. The draft
-is not yet implemented or verified.
+the new synchronized fields; no automatic migration is added here. The common calculation and tag preparation are implemented and have lightweight
+tests; the official build and game acceptance are still pending.
