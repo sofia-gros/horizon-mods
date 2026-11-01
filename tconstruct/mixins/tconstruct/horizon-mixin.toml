@@ -2474,3 +2474,64 @@ target = "horizon_items::items::Items::correct_for_drops"
 kind = "RETURN"
 helper = "source-harvest-return.rs"
 bindings = [{ name = "correct", ty = "bool", value = "$value" }, { name = "held", ty = "Option<&ItemStack>", value = "held" }, { name = "block", ty = "&str", value = "block" }, { name = "items", ty = "&Items", value = "self" }]
+
+[[module]]
+id = "source-area-shape"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_area_shape"
+source = "source-area-shape.rs"
+
+[[state]]
+id = "area-guest-hits"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32,([i32;3],[i32;3],std::collections::HashSet<[i32;3]>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "area-active"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-area-guest-hit"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+helper = "source-area-guest-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[injection]]
+id = "source-area-break"
+target = "horizon_client::game::Game<'_>::break_block_as_player"
+kind = "HEAD"
+cancellable = true
+helper = "source-area-break.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32;3]", value = "pos" }]
+
+[[injection]]
+id = "source-area-guest-left"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+kind = "HEAD"
+helper = "source-area-guest-left.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "guest", ty = "&mut horizon_client::lan::guest::Guest", value = "&mut *g" }]
+
+[[module]]
+id = "source-area-protection"
+file = "crates/horizon-client/src/game/lan_actions.rs"
+name = "tconstruct_source_area_protection"
+source = "source-area-protection.rs"
+
+[[injection]]
+id = "source-area-guest-destroy"
+target = "horizon_client::game::lan_actions::Game<'_>::guest_destroy"
+kind = "HEAD"
+helper = "source-area-guest-destroy.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "pos", ty = "[i32;3]", value = "pos" }]
