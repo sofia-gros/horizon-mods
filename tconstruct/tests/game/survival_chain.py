@@ -162,6 +162,23 @@ try:
   promote('tconstruct:seared_bricks');g.call('hotbar',str(hot('tconstruct:seared_bricks')+1));g.call('wait','6');g.call('interact','0','71','1');g.call('wait','10')
   empty_hand();g.call('interact','0','72','1');g.call('wait','180',timeout=30);g.call('screenshot',str(run/'survival-controller-casting.png'));g.call('interact','0','71','1');g.call('wait','12')
   assert count('tconstruct:smeltery_controller')==1,inventory();assert count('tconstruct:seared_bricks')==6,inventory();checkpoint()
+ elif a.phase=='alloy':
+  # Clear our test area and supply only vanilla raw materials and fuel.
+  for c in ('gamemode creative @s','fill -2 71 0 2 74 4 minecraft:air','setblock 0 70 2 minecraft:air','setblock 0 70 4 minecraft:air','setblock 0 69 2 minecraft:stone','setblock 0 69 4 minecraft:stone','setblock 4 71 2 minecraft:crafting_table','give @s minecraft:lava_bucket 1','give @s minecraft:copper_ingot 14','give @s minecraft:gold_ingot 14','tp @s 2.5 71 1.5','gamemode survival @s'):cmd(c)
+  for item,x,y,z in [('tconstruct:seared_bricks',0,70,2),('tconstruct:seared_bricks',-1,71,2),('tconstruct:seared_fuel_tank',1,71,2),('tconstruct:seared_drain',0,71,3),('tconstruct:smeltery_controller',0,71,1),('tconstruct:seared_faucet',0,71,4),('tconstruct:seared_basin',0,70,4)]:place(item,x,y,z)
+  promote('minecraft:lava_bucket');g.call('hotbar',str(hot('minecraft:lava_bucket')+1));g.call('interact','1','71','2');g.call('wait','10');assert count('minecraft:bucket')>=1
+  cmd('tp @s 0.5 71 -1.5');empty_hand();g.call('interact','0','71','1');g.call('wait','15');assert g.call('status')['screen']=='inventory'
+  click(slot('minecraft:copper_ingot'));click(302);click(slot('minecraft:gold_ingot'));click(303);g.call('close')
+  for i in range(3):
+   g.call('wait','1800',timeout=180);cmd('tp @s 2.5 71 4.5');empty_hand();g.call('interact','0','71','4');g.call('wait','300',timeout=45);g.call('interact','0','70','4');g.call('wait','12')
+   assert count('tconstruct:rose_gold_block')==i+1,inventory()
+  g.call('screenshot',str(run/'survival-alloy.png'))
+  TABLE=(4,71,2)
+  craft([('tconstruct:rose_gold_block',[100,101,102]),('tconstruct:seared_bricks',[104,106,107,108])],'tconstruct:tinkers_anvil')
+  cmd('tp @s 2.5 71 0.5');place('tconstruct:tinkers_anvil',2,71,1);empty_hand();g.call('interact','2','71','1');g.call('wait','15');g.call('screenshot',str(run/'survival-anvil.png'));checkpoint()
+ elif a.phase=='reload':
+  assert g.call('block','2','71','1').get('block')=='tconstruct:tinkers_anvil'
+  cmd('tp @s 2.5 71 0.5');empty_hand();g.call('interact','2','71','1');g.call('wait','15');assert g.call('status')['screen']=='inventory';checkpoint()
  else:raise RuntimeError('phase not yet implemented')
 finally:
  if guest:guest.cleanup()
