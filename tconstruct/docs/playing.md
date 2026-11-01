@@ -124,6 +124,14 @@ Put the tool and material in the input slots, then take the result on the right.
 
 Sharpness needs 36 quartz per level, Swiftstrike needs 72 amethyst shards, and Haste needs 45 redstone dust. Blocks add multiple units and return unused material. Haste increases mining speed on harvest tools and chestplates. Partial additions use an upgrade slot.
 
+### Reinforced
+
+Melt obsidian and cast an Obsidian Pane, then cast molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. Ordinary tool, armor and ranged weapon wear can be prevented. Extract and reapply Reinforced with a Modifier Crystal. Glowing and its modifier-caused wear are not implemented.
+
+![Casting Emerald Reinforcements](reinforced-natural-cast.png)
+
+![Extracting Reinforced into a Modifier Crystal](reinforced-crystal-extraction.png)
+
 ### Gem upgrades
 
 Put one diamond or emerald with a compatible durable tool at a Tinker Station or Anvil. Each upgrade uses one upgrade slot and cannot be applied twice. A Modifier Worktable can extract the upgrade into a Crystal for another compatible tool.
