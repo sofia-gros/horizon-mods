@@ -27,7 +27,7 @@ Each stage is split into playable PRs with shared source-derived behavior and re
 
 1. **Material traits:** expand the existing attack, durability and repair dispatcher from original definitions. Accept source-value and level checks, part replacement, save/reload, representative combat and LAN. Current work covers the melee stat portions of Lightweight, Solid, Pierce and Vintage; their other effects remain open.
 2. **Equipment actions:** implement original tool, weapon and armor actions, area mining, projectiles and armor effects. Accept representative use, wear, save/reload and multiplayer by shared behavior type.
-3. **Modifier and part processing:** expand Station modifier recipes, crystals, parts and materials, and dyeing. Accept source ingredients and slots, partial progress, outputs, effects and persistence.
+3. **Modifier and part processing:** implement the higher-tier Station and survival assembly for four-part tools, then expand Station modifier recipes, crystals, parts and materials, and dyeing. Accept source ingredients and slots, partial progress, outputs, effects and persistence.
 4. **Smelting, casting and remaining blocks:** implement special recipes, remaining containers, transport/automation and source-specific block actions. Accept complete input-to-output loops with conservation, save/reload and LAN.
 5. **Acquisition and world:** add necessary ores, slime terrain, creatures and resources while reusing appropriate vanilla content. Accept survival acquisition and world persistence.
 6. **Progression and remaining content:** implement guidebook, advancements, gadgets and remaining original feature-matrix entries. Accept a coherent progression through their normal prerequisites.
