@@ -177,6 +177,8 @@ entries = [
     ('tconstruct:ender_slime_ball', 'minecraft:flint', 'Ender Slime Ball'),
     ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
     ('tconstruct:emerald_reinforcement', 'minecraft:flint', 'Emerald Reinforcement'),
+    ('tconstruct:seared_brick', 'minecraft:flint', 'Seared Brick'),
+    ('tconstruct:scorched_brick', 'minecraft:flint', 'Scorched Brick'),
 ]
 # Original material-bearing part and fake-ingot IDs share MaterialItem behavior.
 # Their rendering and tooltip name paths are connected; stats, traits and
@@ -251,7 +253,7 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
     elif short == 'emerald_reinforcement':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/emerald'}}
-    elif short in ('sky_slime_crystal', 'modifier_crystal', 'steel_shard', 'earth_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal', 'cobalt_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball'):
+    elif short in ('sky_slime_crystal', 'modifier_crystal', 'steel_shard', 'earth_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal', 'cobalt_shard', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball', 'seared_brick', 'scorched_brick'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + short}}
     elif name in casts or short.endswith('_plating_dummy'):
         native_model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())
