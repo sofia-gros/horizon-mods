@@ -19,6 +19,9 @@ world interface for soil checks, randomized vine states, tree block writes
 and source leaf-distance updates. A small in-memory world exercises soil
 rejection and basic tree writes; the function has not been connected to a
 structure marker or validated in the game.
+`source-slime-tree-config.rs` reads the original simple-state providers and
+their properties, including sky-vine `stage=middle`; missing block states or
+properties fail before tree writes. Other provider types are not approximated.
 `source-slime-island-markers.rs` models source weighted selection and the
 per-piece limit of three successful trees, including skipped draws and failed
 placements. `source-slime-island-marker-world.rs` connects a tree marker to

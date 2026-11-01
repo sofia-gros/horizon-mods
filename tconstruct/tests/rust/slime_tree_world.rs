@@ -4,6 +4,7 @@ pub use horizon_world::{registry, worldgen};
 #[path = "../../mixins/tconstruct/source-slime-tree-world.rs"] mod tconstruct_slime_tree_world;
 #[path = "../../mixins/tconstruct/source-slime-island-markers.rs"] mod tconstruct_slime_island_markers;
 #[path = "../../mixins/tconstruct/source-slime-island-marker-world.rs"] mod tconstruct_slime_island_marker_world;
+#[path = "../../mixins/tconstruct/source-slime-tree-config.rs"] mod tconstruct_slime_tree_config;
 
 #[cfg(test)]
 mod tests {
@@ -41,6 +42,11 @@ mod tests {
         fn block_state(&mut self, p: [i32; 3]) -> Result<BlockStateId, PlacementQueryError> { self.block(p) }
     }
 
+    fn empty_properties() -> &'static BTreeMap<String, String> {
+        static EMPTY: std::sync::OnceLock<BTreeMap<String, String>> = std::sync::OnceLock::new();
+        EMPTY.get_or_init(BTreeMap::new)
+    }
+
     fn resources() -> StructureResources {
         let mut states = vec![Tag::String("minecraft:air".into()), Tag::String("minecraft:dirt".into()),
             Tag::String("tconstruct:earth_slime_dirt".into()), Tag::String("tconstruct:greenheart_log".into())];
@@ -69,7 +75,7 @@ mod tests {
         let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
             chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
         let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
-            vines: false, trunk: "tconstruct:greenheart_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
+            vines: false, trunk: "tconstruct:greenheart_log", trunk_properties: empty_properties(), leaves: "tconstruct:earth_slime_leaves", leaves_properties: empty_properties(), vine: None, vine_properties: empty_properties() };
         assert!(tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg).unwrap());
         let logs = world.blocks.values().filter(|id| **id == BlockStateId(3)).count();
         let leaves: Vec<_> = world.blocks.values().filter(|id| (4..=10).contains(&id.0)).collect();
@@ -86,7 +92,7 @@ mod tests {
         let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
             chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
         let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
-            vines: false, trunk: "tconstruct:greenheart_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
+            vines: false, trunk: "tconstruct:greenheart_log", trunk_properties: empty_properties(), leaves: "tconstruct:earth_slime_leaves", leaves_properties: empty_properties(), vine: None, vine_properties: empty_properties() };
         assert!(!tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg).unwrap());
         assert_eq!(world.blocks.len(), 1);
     }
@@ -99,7 +105,22 @@ mod tests {
         let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
             chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
         let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
-            vines: false, trunk: "tconstruct:missing_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
+            vines: false, trunk: "tconstruct:missing_log", trunk_properties: empty_properties(), leaves: "tconstruct:earth_slime_leaves", leaves_properties: empty_properties(), vine: None, vine_properties: empty_properties() };
+        assert!(matches!(tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg), Err(PlacementQueryError::Unavailable)));
+        assert_eq!(world.blocks.len(), 1);
+    }
+
+    #[test]
+    fn missing_provider_property_is_reported_before_any_writes() {
+        let resources = resources();
+        let mut world = World { blocks: BTreeMap::from([([0, 63, 0], BlockStateId(2))]) };
+        let mut random = LegacyRandom::new(0);
+        let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
+            chunk_box: BoundingBox::new([-16, -64, -16], [31, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
+        let props = BTreeMap::from([("stage".to_owned(), "middle".to_owned())]);
+        let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
+            vines: false, trunk: "tconstruct:greenheart_log", trunk_properties: &props,
+            leaves: "tconstruct:earth_slime_leaves", leaves_properties: empty_properties(), vine: None, vine_properties: empty_properties() };
         assert!(matches!(tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg), Err(PlacementQueryError::Unavailable)));
         assert_eq!(world.blocks.len(), 1);
     }
@@ -113,7 +134,7 @@ mod tests {
         let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
             chunk_box: BoundingBox::new([-16, -64, -16], [100, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
         let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
-            vines: false, trunk: "tconstruct:greenheart_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
+            vines: false, trunk: "tconstruct:greenheart_log", trunk_properties: empty_properties(), leaves: "tconstruct:earth_slime_leaves", leaves_properties: empty_properties(), vine: None, vine_properties: empty_properties() };
         assert!(!tconstruct_slime_island_marker_world::tree_marker(&mut ctx, &mut budget, None, [0, 64, 0]).unwrap());
         for i in 0..3 { assert!(tconstruct_slime_island_marker_world::tree_marker(&mut ctx, &mut budget, Some(cfg), [i * 20, 64, 0]).unwrap()); }
         assert!(!tconstruct_slime_island_marker_world::tree_marker(&mut ctx, &mut budget, Some(cfg), [60, 64, 0]).unwrap());

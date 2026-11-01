@@ -13,8 +13,11 @@ pub(crate) struct TreeConfig<'a> {
     pub double_height: bool,
     pub vines: bool,
     pub trunk: &'a str,
+    pub trunk_properties: &'a BTreeMap<String, String>,
     pub leaves: &'a str,
+    pub leaves_properties: &'a BTreeMap<String, String>,
     pub vine: Option<&'a str>,
+    pub vine_properties: &'a BTreeMap<String, String>,
 }
 
 fn offset(pos: [i32; 3], delta: [i32; 3]) -> Option<[i32; 3]> {
@@ -31,8 +34,15 @@ fn replaceable(ctx: &mut PieceContext<'_>, pos: [i32; 3]) -> Result<bool> {
     Ok(ctx.is_air(block) || in_tag(ctx, "minecraft:leaves", block)?)
 }
 
-fn required(ctx: &PieceContext<'_>, name: &str) -> Result<BlockStateId> {
-    ctx.resources.registry.default_state(name).ok_or(PlacementQueryError::Unavailable)
+fn required(ctx: &PieceContext<'_>, name: &str, properties: &BTreeMap<String, String>) -> Result<BlockStateId> {
+    let registry = ctx.resources.registry;
+    let id = registry.default_state(name).ok_or(PlacementQueryError::Unavailable)?;
+    let mut state = registry.state(id).cloned().ok_or(PlacementQueryError::Unavailable)?;
+    for (name, value) in properties {
+        let property = state.properties.get_mut(name).ok_or(PlacementQueryError::Unavailable)?;
+        *property = value.clone();
+    }
+    registry.id(&state).ok_or(PlacementQueryError::Unavailable)
 }
 
 /// Randomize the source vine's horizontal sides once per group. The upward
@@ -100,12 +110,13 @@ pub(crate) fn place(ctx: &mut PieceContext<'_>, origin: [i32; 3], config: TreeCo
     if !shape::valid_site(origin[1], height, min_y, max_y, in_tag(ctx, "tconstruct:slimy_soil", soil)?) { return Ok(false); }
 
     // Resolve all required states before modifying the world.
-    let trunk = required(ctx, config.trunk)?;
-    let leaves = required(ctx, config.leaves)?;
-    let air = required(ctx, "minecraft:air")?;
-    let vine = if config.vines { Some(required(ctx, config.vine.ok_or(PlacementQueryError::Unavailable)?)?) } else { None };
+    let trunk = required(ctx, config.trunk, config.trunk_properties)?;
+    let leaves = required(ctx, config.leaves, config.leaves_properties)?;
+    let empty = BTreeMap::new();
+    let air = required(ctx, "minecraft:air", &empty)?;
+    let vine = if config.vines { Some(required(ctx, config.vine.ok_or(PlacementQueryError::Unavailable)?, config.vine_properties)?) } else { None };
     if in_tag(ctx, "minecraft:dirt", soil)? {
-        let dirt = required(ctx, "minecraft:dirt")?;
+        let dirt = required(ctx, "minecraft:dirt", &empty)?;
         ctx.world.set(below, dirt, 2)?;
     }
 
