@@ -103,6 +103,11 @@ try:
     set_trait('maintained'); build(); maintained_fresh = mine(1.0)[0]; maintained_worn = mine(0.2)[0]
     print('conditional ticks', fresh, worn, stone_fresh, stone_worn, maintained_fresh, maintained_worn, flush=True)
     assert worn > fresh and stone_worn < stone_fresh and maintained_worn > maintained_fresh
+    # The conditional percentages run after mining efficiency and Haste.
+    set_trait(''); build(); cmd('enchant @s minecraft:efficiency 2'); enchanted_base = mine(0.7, haste=True)[0]
+    set_trait('jagged', 3); build(); cmd('enchant @s minecraft:efficiency 2'); enchanted_jagged = mine(0.7, haste=True)[0]
+    print('efficiency and haste ticks', enchanted_base, enchanted_jagged, flush=True)
+    assert enchanted_jagged > enchanted_base
     set_trait(''); build(); ineffective_base = mine(block='minecraft:dirt')[0]
     set_trait('entangled'); build(); ineffective_trait = mine(block='minecraft:dirt')[0]
     assert ineffective_base == ineffective_trait, (ineffective_base, ineffective_trait)
