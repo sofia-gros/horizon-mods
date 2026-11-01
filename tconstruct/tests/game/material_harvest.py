@@ -35,6 +35,7 @@ try:
     build('flint','cobalt'); mine('minecraft:diamond_ore',False)
     swap_head('cobalt'); mine('minecraft:diamond_ore',True)
     build('cobalt','flint'); mine('minecraft:diamond_ore',True)
+    g.call('screenshot',str(run/'material-harvest-cobalt.png'))
     g.call('save'); g.stop(); g.cleanup(); g=Game(a,run,'Player',resume=True); g.ready(); mine('minecraft:diamond_ore',True)
     cmd('gamemode creative @s'); cmd('clear @s'); cmd('give @s minecraft:iron_pickaxe 1'); g.call('hotbar','1'); mine('minecraft:diamond_ore',True)
     g.call('screenshot',str(run/'material-harvest.png')); g.stop(); print('PASS material harvest and vanilla',flush=True)
