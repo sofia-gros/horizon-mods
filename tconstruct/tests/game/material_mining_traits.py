@@ -55,6 +55,14 @@ def val(item, name):
     return float(m.group(1))
 
 
+def set_pair(head, handle):
+    traits = pack / 'data/tconstruct/tinkering/materials/traits'
+    (traits / 'flint.json').write_text(json.dumps({'default': [{'name': 'tconstruct:' + head, 'level': 3}]}))
+    (traits / 'wood.json').write_text(json.dumps({'default': [], 'perStat': {
+        'tconstruct:handle': [{'name': 'tconstruct:' + handle, 'level': 3}]
+    }}))
+    cmd('reload'); g.call('wait', '50')
+
 def mine(fraction=1.0, block='minecraft:stone', haste=False):
     cmd('gamemode creative @s')
     cmd('effect clear @s minecraft:haste')
@@ -108,6 +116,12 @@ try:
     set_trait('jagged', 3); build(); cmd('enchant @s minecraft:efficiency 2'); enchanted_jagged = mine(0.7, haste=True)[0]
     print('efficiency and haste ticks', enchanted_base, enchanted_jagged, flush=True)
     assert enchanted_jagged > enchanted_base
+    for other in ('jagged', 'stonebound'):
+        set_pair(other, 'maintained'); build(); first = mine(0.7, 'minecraft:iron_block')[0]
+        set_pair('maintained', other); build(); second = mine(0.7, 'minecraft:iron_block')[0]
+        print('modifier priority', other, first, second, flush=True)
+        assert first == second, (other, first, second)
+    (pack / 'data/tconstruct/tinkering/materials/traits/wood.json').unlink()
     set_trait(''); build(); ineffective_base = mine(block='minecraft:dirt')[0]
     set_trait('entangled'); build(); ineffective_trait = mine(block='minecraft:dirt')[0]
     assert ineffective_base == ineffective_trait, (ineffective_base, ineffective_trait)
@@ -121,5 +135,6 @@ finally:
     g.cleanup()
     if created:
         (pack / 'data/tconstruct/tinkering/materials/traits/flint.json').unlink(missing_ok=True)
+        (pack / 'data/tconstruct/tinkering/materials/traits/wood.json').unlink(missing_ok=True)
         (pack / 'pack.mcmeta').unlink(missing_ok=True)
         for sub in ('data/tconstruct/tinkering/materials/traits', 'data/tconstruct/tinkering/materials', 'data/tconstruct/tinkering', 'data/tconstruct', 'data', ''): (pack / sub).rmdir()
