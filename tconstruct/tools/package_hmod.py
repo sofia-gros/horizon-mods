@@ -38,6 +38,7 @@ def package(output):
     # GUI and fluid atlas sprites must be exposed under vanilla atlas keys at
     # startup. Store our own source pixels in our namespace until then.
     runtime = 'assets/tconstruct/runtime/'
+    add(runtime + 'tconstruct-melter-fluids.json', (MOD / 'content/reference/tconstruct-melter-fluids.json').read_bytes())
     for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
         add(runtime + 'gui/tconstruct_' + name + '.png', (MOD / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
     for name in ('haste', 'sharpness', 'swiftstrike', 'quick_charge', 'trueshot', 'reinforced'):

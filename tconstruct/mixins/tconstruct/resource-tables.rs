@@ -317,6 +317,25 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         if std::fs::symlink_metadata(&dest).is_ok() { return Err("modifier sprite exists".into()); }
         std::fs::copy(base.join(format!("assets/minecraft/textures/item/{name}.png")), dest)?;
     }
+    // Adapt the player's prepared 26.3 data locally; no vanilla data is
+    // included in either published archive.
+    fn copy_json_tree(src: &Path, dst: &Path) -> std::io::Result<()> {
+        std::fs::create_dir_all(dst)?;
+        for entry in std::fs::read_dir(src)? {
+            let entry = entry?;
+            let source = entry.path();
+            let target = dst.join(entry.file_name());
+            if source.is_dir() { copy_json_tree(&source, &target)?; }
+            else if source.extension().is_some_and(|ext| ext == "json") { std::fs::copy(source, target)?; }
+        }
+        Ok(())
+    }
+    for (source, destination) in [("recipe", "recipes"), ("tags/item", "tags/items"),
+        ("tags/fluid", "tags/fluids"), ("tags/block", "tags/blocks")] {
+        copy_json_tree(&base.join("data/minecraft").join(source),
+            &cache.join("minecraft-original-pack/data/minecraft").join(destination))?;
+    }
+    std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
     apply(&cache, &base)?;
     std::fs::write(&marker, fingerprint)?;
     *root = PathBuf::from(cache);
