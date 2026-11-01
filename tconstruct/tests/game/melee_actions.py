@@ -44,7 +44,7 @@ def scene(tool,second_x,third_x,limited=None):
         cmd('item modify entity @s weapon.mainhand {type:"minecraft:set_custom_data",function:"minecraft:set_custom_data",tag:{tic_max_damage:'+str(maximum)+'}}')
     g.call('wait','40');before={e['id']:e for e in entities()};assert len(before)==3,before
     target=min(before.values(),key=lambda e:abs(e['pos'][0]-20.5))['id'];held=g.call('inventory')['held']
-    cmd('gamemode survival @s');g.call('wait','30');g.call('attack',str(target));g.call('wait','8')
+    cmd('gamemode survival @s');g.call('wait','30');print('SCENE STATUS',tool,json.dumps(g.call('status')),flush=True);g.call('attack',str(target));g.call('wait','8')
     after={e['id']:e for e in entities()}; tool_after=g.call('inventory')['held']; log=g.call('hurtlog')['players'][0]['attacks']
     print('MELEE',tool,'before',json.dumps(before),'after',json.dumps(after),'held',json.dumps(tool_after),'attacklog',json.dumps(log[-5:]),flush=True)
     g.call('screenshot',str(run/('melee-'+tool+'.png')))
@@ -52,7 +52,8 @@ def scene(tool,second_x,third_x,limited=None):
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
-    for tool in ('scythe','kama','sword','cleaver'):
+    for case,tool in enumerate(('scythe','kama','sword','cleaver')):
+        if case<a.start_case: continue
         before,after,held,used,log,target=scene(tool,21.3,24.5)
         other=min((e for e in before.values() if e['id']!=target),key=lambda e:e['pos'][0])['id']
         far=max(before.values(),key=lambda e:e['pos'][0])['id']
