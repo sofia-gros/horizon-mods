@@ -27,7 +27,7 @@ def held_tool(materials, damage):
     return 'tconstruct:pickaxe[minecraft:damage=' + str(damage) + ',minecraft:max_damage=200,minecraft:custom_data={tic_materials:[' + mat + '],tic_attack_damage:1.75f,tic_attack_speed:1.2f,tic_max_damage:200}]'
 
 def prep():
-    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie]', 'clear @s', 'tp @s 0.5 71 0.5'):
+    for x in ('gamemode creative @s', 'effect clear @s', 'effect give @s minecraft:instant_health 1 4 true', 'kill @e[type=minecraft:zombie,tag=tconstruct_material_trait_test]', 'clear @s', 'tp @s 0.5 71 0.5'):
         cmd(x)
     g.call('hotbar', '1')
     g.call('wait', '3')
@@ -37,11 +37,12 @@ def attack(materials, damage):
     cmd('item replace entity @s weapon.mainhand with ' + held_tool(materials, damage))
     print('held', json.dumps(g.call('inventory')['held']), flush=True)
     cmd('gamemode survival @s')
-    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b}')
+    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b,Tags:["tconstruct_material_trait_test"]}')
     g.call('wait', '30')
     g.call('hurtlog')
     entities = g.call('entities', '8', 'minecraft:zombie')['entities']
-    g.call('attack', str(entities[0]['id']))
+    target = min(entities, key=lambda entity: abs(entity['pos'][0] - 1.5) + abs(entity['pos'][2] - 0.5))
+    g.call('attack', str(target['id']))
     log = g.call('hurtlog')
     entry = log['players'][0]['attacks'][-1]
     print('attack', materials, damage, json.dumps(entry), flush=True)
