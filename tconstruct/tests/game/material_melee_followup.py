@@ -63,6 +63,18 @@ def attack():
     entities = g.call('entities', '8', 'minecraft:zombie')['entities']
     g.call('attack', str(entities[0]['id']))
     return g.call('hurtlog')['players'][0]['attacks'][-1]['amount']
+def cooldown_scale():
+    cmd('kill @e[type=minecraft:zombie,tag=tconstruct_melee_trait_test]')
+    cmd('tp @s 0.5 71 0.5')
+    cmd('gamemode survival @s')
+    cmd('summon minecraft:zombie 1.5 71 0.5 {NoAI:1b,Tags:["tconstruct_melee_trait_test"]}')
+    g.call('wait', '35'); g.call('hurtlog')
+    target = g.call('entities', '8', 'minecraft:zombie')['entities'][0]['id']
+    g.call('attack', str(target)); g.call('wait', '5'); g.call('attack', str(target))
+    result = g.call('hurtlog')['players'][0]['attacks'][-1]['scale']
+    cmd('gamemode creative @s')
+    return result
+
 try:
     g.ready()
     if g.call('status')['screen'] == 'dead':
@@ -78,6 +90,7 @@ try:
     base_damage = val(baseline, 'tic_attack_damage')
     base_speed = val(baseline, 'tic_attack_speed')
     assert abs(base_damage - 1.75) < 0.001 and abs(base_speed - 1.2) < 0.001
+    baseline_scale = cooldown_scale()
     for name, level, expected_damage, expected_speed in [
         ('solid', 1, base_damage * 1.15, base_speed),
         ('pierce', 2, base_damage + 1.0, base_speed),
@@ -89,6 +102,10 @@ try:
         print(name, json.dumps(tool), flush=True)
         assert abs(val(tool, 'tic_attack_damage') - expected_damage) < 0.001
         assert abs(val(tool, 'tic_attack_speed') - expected_speed) < 0.001
+        if name in ('lightweight', 'vintage'):
+            scale = cooldown_scale()
+            print('cooldown', name, baseline_scale, scale, flush=True)
+            assert scale > baseline_scale if name == 'lightweight' else scale < baseline_scale
         if name in ('solid', 'pierce'):
             amount = attack()
             assert abs(amount - (1.0 + expected_damage)) < 0.01, amount
