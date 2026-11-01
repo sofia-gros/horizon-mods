@@ -21,26 +21,30 @@ Material attack damage, attack speed, and armor attributes have been tested with
 
 A Creative block tab now lists the registered block items. Linux tests covered representative placement and LAN synchronization, a slimewood door, a seared brick drop and save/reload, and the appearance of the three layered slime-metal blocks. Connected glass has representative Linux and LAN checks; source slime bounce and piston behavior, other machine operation, and remaining blocks are still incomplete. The [block registration guide](block-registration.md) describes the limits.
 
-## Implementation order
+## v0.5 implementation order
 
-1. Register the original tools, weapons, and armor using the shared source data.
-2. Add **pluto lib** as a shared library, initially implementing only Creative tab registration and use by Tinkers' Construct. A mod must be able to register a tab name, icon, ordered items, and material-bearing variants; players must be able to select the tab and obtain its items in the Creative screen. Keep the library in the repository's shared area and Tinkers-specific tab data under `tconstruct/`. Include an illustrated player guide and a minimal example for another mod in the same PR. Broader PlutoLib development is deferred until after v1.0; do not add placeholder APIs now.
-3. Implement tool-specific actions and material traits.
-4. Complete the tool station interfaces.
-5. Add the remaining blocks.
-6. Implement melting, casting, alloys, and their interfaces.
-7. Complete acquisition, world generation, and progression.
+Each stage is split into playable PRs with shared source-derived behavior and representative tests. Registration, working behavior, and individual verification are different milestones; untested variants are not automatically complete. Existing Horizon vanilla resources and progression are retained.
+
+1. **Material traits:** expand the existing attack, durability and repair dispatcher from original definitions. Accept source-value and level checks, part replacement, save/reload, representative combat and LAN. Current work covers the melee stat portions of Lightweight, Solid, Pierce and Vintage; their other effects remain open.
+2. **Equipment actions:** implement original tool, weapon and armor actions, area mining, projectiles and armor effects. Accept representative use, wear, save/reload and multiplayer by shared behavior type.
+3. **Modifier and part processing:** expand Station modifier recipes, crystals, parts and materials, and dyeing. Accept source ingredients and slots, partial progress, outputs, effects and persistence.
+4. **Smelting, casting and remaining blocks:** implement special recipes, remaining containers, transport/automation and source-specific block actions. Accept complete input-to-output loops with conservation, save/reload and LAN.
+5. **Acquisition and world:** add necessary ores, slime terrain, creatures and resources while reusing appropriate vanilla content. Accept survival acquisition and world persistence.
+6. **Progression and remaining content:** implement guidebook, advancements, gadgets and remaining original feature-matrix entries. Accept a coherent progression through their normal prerequisites.
+7. **Release validation:** run a new survival playthrough, save/reload and LAN, and verify Linux and Windows startup before release claims.
+
+GUI polish, including Station naming and representative connected-glass rendering, is already available; Station preview trim remains blocked pending a supported atlas preparation boundary. Other unfinished GUI or source behavior remains tracked in the [GUI review](gui-review.md), rather than being declared complete. Broader PlutoLib development is deferred until v1.0 or later.
 
 Each PR updates the relevant user and developer documentation. `main` is the official branch for both Windows and Linux; platform behavior must be verified before claiming it works.
 
 | Area | Current status | Next work |
 | --- | --- | --- |
 | Part Builder | Source-derived recipes drive a scrolling selection grid, preview and ordinary result pickup for supported inputs. Tested examples include an oak log yielding a wood handle and three planks, an oak plank yielding a wood handle, and limited damageable-item recycling. | Complete material and item support, recycling and Pattern identity; complete material-recipe caching and tag behavior across remaining inputs and reload cases; finish side inventories, remaining click modes, item-specific and non-vanilla custom container behavior, callbacks and detailed information panels. |
-| Tinker Station | A shared source-recipe path derives partial base stats and supports three-part tool creation, repair and part replacement. A Linux official build tested the pickaxe lifecycle in both modes and a guest’s Part Builder-to-Station transition; a LAN guest selected and assembled a mattock from command-supplied parts, with its 106-point base maximum durability verified. A crafted mattock was also tested through melee break, repair and save/reload in normal Linux gameplay. | Complete traits/modifiers, combat behavior, layout interactions and naming; verify other tool lifecycles, material combinations and multiplayer. |
+| Tinker Station | A shared source-recipe path derives partial base stats and supports three-part tool creation, repair and part replacement. A Linux official build tested the pickaxe lifecycle in both modes and a guest’s Part Builder-to-Station transition; a LAN guest selected and assembled a mattock from command-supplied parts, with its 106-point base maximum durability verified. A crafted mattock was also tested through melee break, repair and save/reload in normal Linux gameplay. | Complete traits/modifiers, combat behavior and remaining layout interactions; verify other tool lifecycles, material combinations and multiplayer. |
 | Durability | Pickaxe maximum durability is derived from its selected materials; a representative Linux lifecycle passed in both modes. | Complete traits, original broken behavior, visuals and other tool interactions. |
 | Models and tooltips | Tested parts use source material sprites in GUI slots, and tested part tooltips display material names. Original tool textures and static table models are present. | Complete material and variant rendering, 3D models, resource reload, orientation, names, traits and detailed tooltips. |
 | Other tools, armor, materials and modifiers | The 45 equipment IDs are registered; representative icons and armor placement were tested. Some shared material stats and traits work, but equipment actions and most modifiers remain incomplete. | Expand shared stats and traits, then implement tool-specific actions and the remaining modifiers. |
-| Smeltery and foundry | A small Smeltery casts amethyst bronze; a small Foundry melts copper ore and retains a gold byproduct. Both representative paths were tested on Linux, including LAN. | Complete container slots, other fuels and recipes, larger structures, automation and machine visuals. |
+| Smeltery and foundry | A small Smeltery casts amethyst bronze; a small Foundry melts copper ore and retains a gold byproduct. Both representative paths were tested on Linux, including LAN. | Expand beyond representative standard bucket transfers to other containers, recipes, larger structures, automation and machine visuals. |
 | Progression and world content | Not implemented. | Port ores, mobs, books, advancements, recipes and gadgets. |
 | Persistence and multiplayer | Tested table inputs, tool name and custom data survive save/reload; representative two-player result races consume inputs once. | Complete original state and component handling, click modes, synchronization and dedicated-server validation. |
 
@@ -49,14 +53,13 @@ list with scrolling, selection and a separate result slot. In both game modes,
 representative ordinary crafting, recycling, saving and two-player contention
 have been tested. An open table retains its cached recipe across reload until
 an input changes; material-recipe caching was tested with a flint value change and an oak-log tag change; other material and tag interactions remain incomplete. Minecraft copper nugget references use the native 26.3 item when present. Minecraft crafting containers use the Horizon 26.3 item registry; item-specific component overrides remain unsupported. Unsupported recipe contexts are rejected. Result Shift-click
-works for supported cases with either mouse button. Single 27-slot and 9-slot side containers and 5-slot hoppers have a preliminary shared path; Linux LAN checks covered hopper and dispenser synchronization and contention. The hopper guest displayed five slots in a Linux LAN test. A shulker side inventory was tested with nesting rejected for an in-frame host and LAN guest. Linux LAN tests covered player-to-hopper Shift move and clicks, synchronization and a result race with both halves of a double chest. Other Shift-click paths, drag and pickup-all remain incomplete. The information panels and full visual parity
-are also unfinished.
+works for supported cases with either mouse button. Single 27-slot and 9-slot side containers and 5-slot hoppers have a preliminary shared path; Linux LAN checks covered hopper and dispenser synchronization and contention. The hopper guest displayed five slots in a Linux LAN test. A shulker side inventory was tested with nesting rejected for an in-frame host and LAN guest. Linux LAN tests covered player-to-hopper Shift move and clicks, synchronization and a result race with both halves of a double chest. Other Shift-click paths, drag and pickup-all remain incomplete. Information panels are implemented for supported cases; remaining source visual and interaction differences are tracked in the GUI review.
 
 The Tinker Station uses source-derived layouts for supported three-part tools and separate assembly and repair/part-swap icons. Naming and representative modifier and layout interactions work; other modifiers and exact source parity remain incomplete. See the
 [station design](station-design.md) and [validation notes](validation.md) for
 additional implementation and test details.
 
-The playtest now derives Minecraft recipe and item/fluid tag data from prepared Horizon 26.3 resources rather than requiring a 1.20.1 client. Ordinary sand and red sand each craft four blank casts. These two native inputs are a 26.3 adaptation, not a claim that every original Forge tag or datapack override is supported. Other materials, world reload interactions, official production-binary gameplay and Windows remain to be validated.
+The playtest now derives Minecraft recipe and item/fluid tag data from prepared Horizon 26.3 resources rather than requiring a 1.20.1 client. Ordinary sand and red sand each craft four blank casts. These two native inputs are a 26.3 adaptation, not a claim that every original Forge tag or datapack override is supported. Other materials, world reload interactions, other materials and world reload interactions remain to be validated; representative production-binary gameplay passed on Linux, while Windows remains unverified.
 
 CI reuses Cargo dependency and build caches. Run the Mixins validation workflow
 manually for the final commit of a change; it performs the full checks. Verify
