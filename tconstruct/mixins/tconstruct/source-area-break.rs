@@ -18,10 +18,12 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
     let facts = game.res.facts().get(state);
     let hardness = facts.hardness;
     if hardness < 0.0 || !effective(game, &facts.name) { return Continue(()); }
-    let face = match actor {
-        Some(conn) => game.world.chunks.__horizon_mixins_tconstruct_area_guest_hits().get(&conn)
-            .filter(|(target, _)| *target == pos).map(|(_, face)| *face),
-        None => game.pick().filter(|hit| hit.pos == pos).map(|hit| hit.face),
+    let (face, protected) = match actor {
+        Some(conn) => match game.world.chunks.__horizon_mixins_tconstruct_area_guest_hits().get(&conn) {
+            Some((target, face, protected)) if *target == pos => (Some(*face), protected.clone()),
+            _ => return Continue(()),
+        },
+        None => (game.pick().filter(|hit| hit.pos == pos).map(|hit| hit.face), Default::default()),
     };
     let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_area_shape::plane(pos, face, game.yaw)) else { return Continue(()); };
     game.world.chunks.__horizon_mixins_tconstruct_area_active_mut().insert(actor);
@@ -29,6 +31,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         game.break_block_as_player(pos)?;
         if game.world.block(pos[0], pos[1], pos[2]) == state { return Ok(()); }
         for extra in positions {
+            if protected.contains(&extra) { continue; }
             let state = game.world.block(extra[0], extra[1], extra[2]);
             if game.res.facts().is_air(state) { continue; }
             let facts = game.res.facts().get(state);
