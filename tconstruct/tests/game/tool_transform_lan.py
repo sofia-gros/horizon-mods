@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for k in ('game','ctl','resources'):p.add_argument('--'+k,type=Path,required=True)
-p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
+p.add_argument('--sneak-only',action='store_true');p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
 a=p.parse_args();run=a.run_dir.resolve();games=[]
 def screen_click(xp,yp,drag_y=None):
     tree=subprocess.check_output(['xwininfo','-root','-tree'],text=True);window=int(re.search(r'(0x[0-9a-f]+) "Horizon"',tree).group(1),16)
@@ -39,7 +39,7 @@ def total_items(g,item):
 try:
     h=Game(a,run,'Player',resume=True);games.append(h);h.ready();port=h.call('lan','open','0','commands')['port']
     q=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());games.append(q);q.ready()
-    for name,source,target,area in [('mattock','minecraft:dirt','minecraft:farmland',False),('kama','minecraft:dirt','minecraft:farmland',False),('scythe','minecraft:dirt','minecraft:farmland',True),('excavator','minecraft:grass_block','minecraft:dirt_path',True),('hand_axe','minecraft:oak_log','minecraft:stripped_oak_log',False),('broad_axe','minecraft:oak_log','minecraft:stripped_oak_log',False)]:
+    for name,source,target,area in ([] if a.sneak_only else [('mattock','minecraft:dirt','minecraft:farmland',False),('kama','minecraft:dirt','minecraft:farmland',False),('scythe','minecraft:dirt','minecraft:farmland',True),('excavator','minecraft:grass_block','minecraft:dirt_path',True),('hand_axe','minecraft:oak_log','minecraft:stripped_oak_log',False),('broad_axe','minecraft:oak_log','minecraft:stripped_oak_log',False)]):
         for command in ('gamemode creative @a','clear Guest','time set day','fill 28 100 28 32 104 32 minecraft:air','fill 28 99 28 32 99 32 minecraft:stone','tp @s 37.5 100 27.5','tp Guest 30.5 101 28.5'):cmd(h,command)
         acquire(q,name)
         cmd(h,('fill 29 100 29 31 100 31 ' if area else 'setblock 30 100 30 ')+source)
@@ -55,9 +55,15 @@ try:
     # A sneaking main hand must pass through to an offhand torch; swapping the
     # tool to offhand must also leave dirt and tool durability unchanged.
     for command in ('gamemode creative @a','clear Guest','fill 28 100 28 32 103 32 minecraft:air','setblock 30 100 30 minecraft:dirt','tp Guest 30.5 101 28.5'):cmd(h,command)
-    acquire(q,'mattock');cmd(q,'give @s minecraft:torch 1');q.call('hotbar','2');q.call('key','f','tap');q.call('hotbar','1');q.call('wait','20');cmd(h,'gamemode survival Guest')
+    acquire(q,'mattock');cmd(q,'give @s minecraft:torch 1')
+    wait(lambda:q.call('inventory')['counts'].get('minecraft:torch',0)>=1)
+    q.call('hotbar','2');q.call('wait','10');q.call('key','f','tap')
+    wait(lambda:(q.call('status')['offhand'] or {}).get('item')=='minecraft:torch')
+    q.call('hotbar','1');wait(lambda:(q.call('inventory')['held'] or {}).get('item')=='tconstruct:mattock');q.call('wait','20');cmd(h,'gamemode survival Guest')
+    print('sneak fixture hands',q.call('inventory')['held'],q.call('status')['offhand'],flush=True)
     before=q.call('inventory')['held'];q.call('key','shift','down');q.call('wait','10')
-    try:q.call('interact','30','100','30','up');q.call('wait','20')
+    try:
+        result=q.call('interact','30','100','30','up');q.call('wait','20');print('sneak interaction',result,'target',h.call('block','30','100','30'),'above',h.call('block','30','101','30'),flush=True)
     finally:q.call('key','shift','up')
     wait(lambda:h.call('block','30','101','30').get('block','').split('[')[0]=='minecraft:torch')
     assert h.call('block','30','100','30').get('block','').split('[')[0]=='minecraft:dirt'
