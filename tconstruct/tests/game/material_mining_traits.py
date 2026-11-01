@@ -114,7 +114,7 @@ try:
     set_trait('entangled', 1); build(); entangled = mine()[0]
     print('static ticks', baseline, lightweight, heavy, vintage, entangled, flush=True)
     assert lightweight < baseline and heavy < baseline and vintage > baseline and entangled < baseline
-    set_trait('jagged', 3); build(); fresh = mine(1.0)[0]; worn = mine(0.7)[0]
+    set_trait('jagged', 3); build(); fresh = mine(1.0)[0]; worn = mine(0.7)[0]; near, before_near, after_near = mine(0.01); assert before_near == 84 and after_near == 85 and near > worn
     set_trait('stonebound', 3); build(); stone_fresh = mine(1.0)[0]; stone_worn = mine(0.7)[0]
     set_trait('maintained'); build(); maintained_fresh = mine(1.0)[0]; maintained_worn = mine(0.2)[0]
     print('conditional ticks', fresh, worn, stone_fresh, stone_worn, maintained_fresh, maintained_worn, flush=True)
