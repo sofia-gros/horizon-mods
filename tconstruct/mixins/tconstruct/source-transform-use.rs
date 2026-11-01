@@ -46,7 +46,6 @@ fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_item
                         game.pop_resource([at[0]+face[0],at[1]+face[1],at[2]+face[2]],horizon_items::items::ItemStack::new("minecraft:hanging_roots",1));
                     }
                     game.audio.play(&sound,Some([f64::from(at[0])+0.5,f64::from(at[1])+0.5,f64::from(at[2])+0.5]),1.0,1.0);
-                    game.stats.add("used",&item,1);
                     if !game.creative {
                         let held=game.held().cloned();
                         if let Some(held)=held {
@@ -62,6 +61,7 @@ fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_item
             let occludes=|p:[i32;3]|game.res.facts().get(game.world.block(p[0],p[1],p[2])).can_occlude;
             next=match &mut area {Area::List(iter)=>iter.next(),Area::Tree(iter)=>iter.next(same,occludes)};
         }
+        if transformed {game.stats.add("used",&item,1);}
         Ok(transformed)
     })();
     if let Some(conn)=actor {game.world.chunks.__horizon_mixins_tconstruct_transform_guest_hits_mut().remove(&conn);}
