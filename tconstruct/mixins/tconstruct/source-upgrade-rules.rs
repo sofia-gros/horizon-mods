@@ -419,6 +419,11 @@ mod tests {
         assert!(plan(&recipes, &tags, &tool(18), &inputs, 1).is_none());
         assert!(plan(&recipes, &tags, &tool(162), &inputs, 9).is_none());
         assert!(plan(&recipes, &tags, &tool(18), &[Some(crystal.clone()), Some(crystal)], 9).is_none());
+        let mut wrong = ItemStack::new("tconstruct:modifier_crystal", 1);
+        wrong.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String("tconstruct:haste".into()))])));
+        assert!(plan(&recipes, &tags, &tool(0), &[Some(wrong)], 9).is_none());
+        let block = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":false,"amount_per_item":4,"needed_per_level":36,"input":{"item":"minecraft:quartz_block"},"result":"tconstruct:sharpness","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/melee"}}"#.to_vec();
+        assert!(plan(&BTreeMap::from([("block".into(), block)]), &tags, &tool(0), &inputs, 9).is_none());
     }
 
     #[test]

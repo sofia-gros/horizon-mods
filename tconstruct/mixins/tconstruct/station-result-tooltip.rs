@@ -214,6 +214,9 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     let Some(BlockEntity::Chest(slots)) = game.container_kind() else { return Break(()); };
     let mut result = if station && game.remote.is_some() {
         slots.get(slot - 300).cloned().flatten()
+    } else if station && crate::game::tconstruct_ui::is_worktable(game) {
+        game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key))
+            .and_then(|selected| crate::game::tconstruct_source_station_world::extraction_plan(&game.world, slots, selected)).map(|plan| plan.output)
     } else if station && slot == 324 {
         crate::game::tconstruct_source_station_world::building_plan_with_capacity(&game.world, slots, crate::game::tconstruct_ui::station_capacity(game)).map(|(_, output)| output)
     } else if station {

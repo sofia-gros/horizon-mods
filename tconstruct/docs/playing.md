@@ -122,7 +122,7 @@ Place a tool in the Tinker Station. Add quartz shards or quartz blocks for Sharp
 
 Put the tool and material in the input slots, then take the result on the right.
 
-Sharpness needs 36 quartz per level; Swiftstrike needs 72 amethyst shards per level. The in-development Haste path accepts redstone dust or blocks and needs 45 dust per level; mining speed changes for harvest tools and chestplates, with game validation pending. Partial additions count toward the level. This has been tested in a Linux single-player game and with a LAN guest. Modifier crystals and other upgrades remain unsupported by this path.
+Sharpness needs 36 quartz per level; Swiftstrike needs 72 amethyst shards per level. The in-development Haste path accepts redstone dust or blocks and needs 45 dust per level; mining speed changes for harvest tools and chestplates, with game validation pending. Partial additions count toward the level. This has been tested in a Linux single-player game and with a LAN guest. The experimental Modifier Worktable can extract a completed Sharpness, Swiftstrike or Haste level with a Skyslime Crystal and wet sponge, returning a modifier crystal and sponge; applying the crystal uses another upgrade slot and preserves partial progress. Worktable extraction, crystal use and LAN validation are pending. Other upgrades remain unsupported.
 
 The Smeltery fuel gauge shows the available fuel. Hover over it for the fluid, temperature and amount; the small bar beside an input shows its heating state.
 
