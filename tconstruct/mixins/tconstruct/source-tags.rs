@@ -401,3 +401,49 @@ mod music_disc_fallback_tests {
         assert!(resolved["minecraft:music_discs"].is_empty());
     }
 }
+
+/// The source Forge head tag names heads that this port has not registered.
+/// Project that tag onto available items while keeping pack replace/removal
+/// and required nested-tag behavior. Existing fully resolved tags win.
+pub(super) fn fallback_available_heads(
+    raw: &BTreeMap<String, Vec<Vec<u8>>>,
+    registry: &std::collections::HashSet<String>,
+    resolved: &mut std::collections::HashMap<String, std::collections::HashSet<String>>,
+) {
+    if !resolved.contains_key("forge:heads") && raw.contains_key("forge:heads") {
+        let mut projected = raw.clone();
+        if let Some(layers) = projected.get_mut("forge:heads") {
+            for layer in layers {
+                let Ok(mut value) = serde_json::from_slice::<serde_json::Value>(layer) else { continue; };
+                if let Some(entries) = value.get_mut("values").and_then(serde_json::Value::as_array_mut) {
+                    entries.retain(|entry| {
+                        let id = entry.as_str().or_else(|| entry.get("id").and_then(serde_json::Value::as_str));
+                        !id.is_some_and(|id| id.starts_with("tconstruct:") && !registry.contains(id))
+                    });
+                }
+                if let Ok(bytes) = serde_json::to_vec(&value) { *layer = bytes; }
+            }
+        }
+        if let Ok(heads) = resolve_tag("forge:heads", &projected, registry) {
+            resolved.insert("forge:heads".into(), heads.into_iter().collect());
+        }
+    }
+}
+
+#[cfg(test)]
+mod available_head_tests {
+    use super::*;
+    #[test]
+    fn unavailable_source_heads_do_not_hide_registered_vanilla_heads() {
+        let raw = BTreeMap::from([("forge:heads".to_owned(), vec![br#"{"values":["minecraft:skeleton_skull","tconstruct:unregistered_head"]}"#.to_vec()])]);
+        let registry = ["minecraft:skeleton_skull".to_owned()].into_iter().collect();
+        let mut result = resolve_registry(&raw, &registry).unwrap();
+        assert!(!result.contains_key("forge:heads"));
+        fallback_available_heads(&raw, &registry, &mut result);
+        assert_eq!(result["forge:heads"], registry);
+        let raw = BTreeMap::from([("forge:heads".to_owned(), vec![br#"{"values":["minecraft:missing_required_head"]}"#.to_vec()])]);
+        let mut result = resolve_registry(&raw, &registry).unwrap();
+        fallback_available_heads(&raw, &registry, &mut result);
+        assert!(!result.contains_key("forge:heads"));
+    }
+}
