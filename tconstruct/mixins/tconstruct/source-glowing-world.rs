@@ -84,25 +84,34 @@ pub(super) fn has_glowing(game: &super::Game<'_>, stack: &horizon_items::items::
         + traits.as_ref().and_then(|data| data.levels.get("tconstruct:glowing").copied()).unwrap_or(0) > 0
 }
 
+/// Check source item tags and interaction toggles before consuming a click.
+pub(super) fn eligible(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack, left: bool) -> bool {
+    use horizon_world::nbt::Tag;
+    if super::tconstruct_source_ranged_wear::is_broken(stack) || !has_glowing(game, stack) { return false; }
+    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { return false; };
+    let belongs = |tag: &str| tags.get(tag).is_some_and(|values| values.contains(stack.item.as_ref()));
+    let persisted = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|n| n.get("tic_persistent"));
+    let toggled = |key: &str| matches!(persisted.and_then(|n| n.get(key)), Some(Tag::List(values)) if values.iter().any(|v| matches!(v, Tag::String(s) if s.to_string_lossy() == "tconstruct:glowing")));
+    super::tconstruct_glowing_placement::interaction_allowed(
+        belongs("tconstruct:modifiable/interactable/left"), belongs("tconstruct:modifiable/interactable/right"),
+        belongs("tconstruct:modifiable/interactable/dual"), &*stack.item == "tconstruct:fishing_rod",
+        toggled("tconstruct:attack_modifiers"), toggled("tconstruct:interact_modifiers"), left,
+    )
+}
+
 /// Right-click after the tool's ordinary block interaction has passed.
 pub(super) fn activate(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3]) -> Option<anyhow::Result<bool>> {
-    use horizon_world::nbt::Tag;
-    if super::tconstruct_source_ranged_wear::is_broken(stack) || !game.may_build() { return None; }
-    if !has_glowing(game, stack) { return None; }
-    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    if !tags.get("tconstruct:modifiable/interactable/right").is_some_and(|values| values.contains(stack.item.as_ref())) { return None; }
-    // Dual-option interaction may move Glowing from right-click to left-click.
-    if tags.get("tconstruct:modifiable/interactable/dual").is_some_and(|values| values.contains(stack.item.as_ref())) {
-        let toggled = stack.data().and_then(|d| d.other("minecraft:custom_data"))
-            .and_then(|n| n.get("tic_persistent")).and_then(|n| n.get("tconstruct:attack_modifiers"));
-        if matches!(toggled, Some(Tag::List(values)) if values.iter().any(|v| matches!(v, Tag::String(s) if s.to_string_lossy() == "tconstruct:glowing"))) { return None; }
-    }
+    activate_for(game,stack,clicked,face,false,false)
+}
+
+pub(super) fn activate_for(game: &mut super::Game<'_>, stack: &horizon_items::items::ItemStack, clicked: [i32;3], face: [i32;3], left: bool, guest_checked: bool) -> Option<anyhow::Result<bool>> {
+    if !game.may_build() || !eligible(game,stack,left) { return None; }
     if direction(face).is_none() { return Some(Ok(true)); }
     let Some(x) = clicked[0].checked_add(face[0]) else { return Some(Ok(true)); };
     let Some(y) = clicked[1].checked_add(face[1]) else { return Some(Ok(true)); };
     let Some(z) = clicked[2].checked_add(face[2]) else { return Some(Ok(true)); };
     let at = [x,y,z];
-    if let Some(conn) = game.lan_acting {
+    if let Some(conn) = game.lan_acting.filter(|_| !guest_checked) {
         let allowed = game.world.chunks.__horizon_mixins_tconstruct_transform_guest_hits().get(&conn)
             .is_some_and(|(target, blocked)| *target == clicked && !blocked.contains(&(x,z)));
         if !allowed { return Some(Ok(true)); }

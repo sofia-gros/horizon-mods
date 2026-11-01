@@ -90,3 +90,26 @@ mod protection_tests {
         assert!(outside_protection(None,[100,64,200]));
     }
 }
+
+/// Source dual-option tools toggle Glowing from right to left; the fishing rod
+/// uses its source toggleable set in the opposite direction for this modifier.
+pub(super) fn interaction_allowed(left_tag: bool, right_tag: bool, dual: bool, fishing: bool, attack_toggle: bool, interact_toggle: bool, left: bool) -> bool {
+    if left && !left_tag || !left && !right_tag { return false; }
+    if !dual { return true; }
+    let active_left = if fishing { !interact_toggle } else { attack_toggle };
+    active_left == left
+}
+
+#[cfg(test)]
+mod interaction_tests {
+    use super::interaction_allowed as allows;
+    #[test]
+    fn source_left_right_and_dual_toggle() {
+        assert!(allows(true,false,false,false,false,false,true));
+        assert!(!allows(true,false,false,false,false,false,false));
+        assert!(allows(true,true,true,false,false,false,false));
+        assert!(allows(true,true,true,false,true,false,true));
+        assert!(allows(true,true,true,true,false,false,true));
+        assert!(allows(true,true,true,true,false,true,false));
+    }
+}

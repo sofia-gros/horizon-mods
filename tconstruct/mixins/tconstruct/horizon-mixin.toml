@@ -2927,6 +2927,48 @@ helper = "source-overslime-craft-remainders.rs"
 bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
 
 [[state]]
+id = "glow-left-held"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "bool"
+initial = "false"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "glow-left-local"
+target = "horizon_client::game::hand::Game<'_>::tick_local_hand"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-local.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "glow-left-remote"
+target = "horizon_client::game::remote::Game<'_>::remote_start_attack"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-remote.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "glow-left-continue"
+target = "horizon_client::game::remote::Game<'_>::remote_continue_attack"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-continue.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "down", ty = "bool", value = "down" }]
+
+[[injection]]
+id = "glow-left-guest"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-glowing-left-guest.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[state]]
 id = "glow-guest-protection"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<u32,Option<([i32;3],u32)>>"
