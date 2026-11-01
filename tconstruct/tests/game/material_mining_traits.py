@@ -98,8 +98,8 @@ try:
     set_trait('entangled', 1); build(); entangled = mine()[0]
     print('static ticks', baseline, lightweight, heavy, vintage, entangled, flush=True)
     assert lightweight < baseline and heavy < baseline and vintage > baseline and entangled < baseline
-    set_trait('jagged'); build(); fresh = mine(1.0)[0]; worn = mine(0.7)[0]
-    set_trait('stonebound'); build(); stone_fresh = mine(1.0)[0]; stone_worn = mine(0.7)[0]
+    set_trait('jagged', 3); build(); fresh = mine(1.0)[0]; worn = mine(0.7)[0]
+    set_trait('stonebound', 3); build(); stone_fresh = mine(1.0)[0]; stone_worn = mine(0.7)[0]
     set_trait('maintained'); build(); maintained_fresh = mine(1.0)[0]; maintained_worn = mine(0.2)[0]
     print('conditional ticks', fresh, worn, stone_fresh, stone_worn, maintained_fresh, maintained_worn, flush=True)
     assert worn > fresh and stone_worn < stone_fresh and maintained_worn > maintained_fresh
