@@ -90,7 +90,7 @@ Hold the use button to draw a longbow, then release it to fire an arrow. Keep ar
 
 ![A longbow drawn with arrows in the hotbar](equipment-longbow.png)
 
-Basic firing and material-specific draw speed were tested on Linux. Material-specific arrow speed and accuracy are not implemented yet.
+Material draw speed, arrow speed and accuracy affect Longbow shots. Representative shots, wear, repair and LAN use were tested on Linux; see [material projectile stats](projectile-stats.md) for the limits.
 
 ## Use a crossbow
 
@@ -98,7 +98,7 @@ Hold the use button to load an arrow, release the button, then press it again to
 
 ![A crossbow loaded with an arrow](equipment-crossbow.png)
 
-Loading and firing were tested on Linux. Material-specific projectile speed and accuracy are not implemented yet.
+Crossbow arrows use material projectile speed and accuracy. Loading, firing, a three-arrow fan and a limb replacement were tested on Linux; firework rockets do not yet use these material stats.
 
 Material bows lose durability when fired in survival. A broken bow stays in your inventory and cannot fire until repaired with a matching limb material at a Tinker Station. Creative firing does not consume durability. These behaviors were tested on Linux using command-supplied wood-material bows.
 
