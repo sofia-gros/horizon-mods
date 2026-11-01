@@ -5,6 +5,7 @@ p=argparse.ArgumentParser()
 for k in ('game','ctl','resources'): p.add_argument('--'+k,type=Path,required=True)
 p.add_argument('--run-dir',type=Path,default=Path('target/pb-station-batch'))
 a=p.parse_args(); run=a.run_dir.resolve(); g=Game(a,run,'Player',resume=True)
+pack=g.root/'saves/Probe/datapacks/gem-conditional-test';created=False
 def cmd(x):
     r=g.call('command',x); g.call('wait','6'); return r
 def click(slot):
@@ -36,11 +37,20 @@ def timed():
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
-    build('bronze','wood');baseline=timed()
+    if pack.exists():raise RuntimeError('test datapack path already exists')
+    (pack/'data/tconstruct/tinkering/materials/traits').mkdir(parents=True);created=True
+    (pack/'pack.mcmeta').write_text('{"pack":{"pack_format":15,"description":"temporary gem conditional test"}}')
+    (pack/'data/tconstruct/tinkering/materials/traits/cobalt.json').write_text(json.dumps({'default':[{'name':'tconstruct:maintained','level':1}]}))
+    cmd('reload');cmd('datapack enable "file/gem-conditional-test"');g.call('wait','50')
+    build('cobalt','wood');baseline=timed()
     cmd('gamemode creative @s');cmd('tp @s 0.5 71 0.5');cmd('setblock 0 71 2 tconstruct:tinker_station');cmd('give @s minecraft:emerald 1')
     g.call('interact','0','71','2');g.call('wait','10');click(0);click(300);click(hotbar('minecraft:emerald'));click(301);click(325)
     out=g.call('menu')['carried'] or {};assert out.get('item')=='tconstruct:pickaxe',out
     g.call('screenshot',str(run/'emerald-maintained.png'));click(0);g.call('close');g.call('hotbar','1');g.call('wait','10')
     upgraded=timed();print('maintained ticks',baseline,upgraded,flush=True);assert upgraded<baseline,(baseline,upgraded)
-    mine('minecraft:diamond_ore',True);g.call('save');g.stop();print('PASS emerald conditional mining and stronger tier',flush=True)
-finally:g.cleanup()
+    mine('minecraft:diamond_ore',True);cmd('datapack disable "file/gem-conditional-test"');g.call('save');g.stop();print('PASS emerald conditional mining and stronger tier',flush=True)
+finally:
+    g.cleanup()
+    if created:
+        (pack/'data/tconstruct/tinkering/materials/traits/cobalt.json').unlink(missing_ok=True);(pack/'pack.mcmeta').unlink(missing_ok=True)
+        for sub in ('data/tconstruct/tinkering/materials/traits','data/tconstruct/tinkering/materials','data/tconstruct/tinkering','data/tconstruct','data',''): (pack/sub).rmdir()
