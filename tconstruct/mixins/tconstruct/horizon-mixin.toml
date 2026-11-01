@@ -2515,3 +2515,10 @@ kind = "HEAD"
 cancellable = true
 helper = "source-area-break.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32;3]", value = "pos" }]
+
+[[injection]]
+id = "source-area-guest-left"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+kind = "HEAD"
+helper = "source-area-guest-left.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "guest", ty = "&mut horizon_client::lan::guest::Guest", value = "&mut *g" }]
