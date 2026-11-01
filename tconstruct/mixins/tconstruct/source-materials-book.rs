@@ -1,5 +1,5 @@
-// Source text pages in Horizon's existing book screen. Source image and
-// dynamic recipe/material pages remain in the archive for future rendering.
+// Source pages in Horizon's book screen, with separately drawn source images,
+// recipe references, and material information from the resolved registry.
 use super::*;
 use std::io::Read;
 
@@ -23,7 +23,7 @@ fn split_page(text: &str, limit: usize) -> Vec<String> {
     result
 }
 
-fn dynamic_materials(game: &Game<'_>, key: &str) -> Option<Vec<String>> {
+fn dynamic_materials(game: &Game<'_>, key: &str) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
     let kinds: &[&str] = match key {
@@ -38,10 +38,18 @@ fn dynamic_materials(game: &Game<'_>, key: &str) -> Option<Vec<String>> {
             && if key == "ammo_materials" { tags.get("tconstruct:book/basic_ammo").is_some_and(|set| set.contains(*id)) }
                else { !tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id)) }
     }).collect();
-    selected.sort_by_key(|(id, (_, _, tier, order, _))| (*tier, *order, (*id).clone()));
+    selected.sort_by_key(|(id, (_, _, tier, order, _))| {
+        let has = |kind: &str| stats.get(*id).is_some_and(|s| s.contains_key(kind));
+        let group = match key {
+            "melee_harvest_materials" => (i32::from(!has("tconstruct:head")), 0, 0),
+            "ranged_materials" => (i32::from(!has("tconstruct:bowstring")), i32::from(has("tconstruct:limb")), 0),
+            _ => (i32::from(!has("tconstruct:arrow_head")), i32::from(has("tconstruct:fletching")), i32::from(has("tconstruct:arrow_shaft"))),
+        };
+        (group, *tier, *order, (*id).clone())
+    });
     Some(selected.into_iter().map(|(id, _)| {
         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", id));
-        game.translate(&format!("material.{namespace}.{name}"), name)
+        (id.clone(), game.translate(&format!("material.{namespace}.{name}"), name))
     }).collect())
 }
 
@@ -61,7 +69,53 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
                 let mut chapter_pages = Vec::new();
                 let subtext = labels.get(format!("{key}.subtext").as_str()).copied().unwrap_or("");
                 if !subtext.is_empty() { chapter_pages.extend(split_page(subtext, 120).into_iter().map(Text::literal)); }
-                for names in materials.chunks(8) { chapter_pages.push(Text::literal(names.join("\n"))); }
+                for (id, name) in materials {
+                    let mut detail = name.clone();
+                    if let Some((namespace, material)) = id.split_once(':') {
+                        let flavor = game.translate(&format!("material.{namespace}.{material}.flavor"), "");
+                        if !flavor.is_empty() { detail.push_str("\n\n"); detail.push_str(&flavor); }
+                        if let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() {
+                            let path = format!("{namespace}:tinkering/materials/stats/{material}");
+                            if let Some(layers) = snapshot.get(&path) {
+                                if let Ok(stats) = crate::game::tconstruct_tx::source_merge_material_stats(layers) {
+                                    let visible: &[&str] = match key {
+                                        "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
+                                        "ranged_materials" => &["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"],
+                                        _ => &["tconstruct:arrow_head", "tconstruct:arrow_shaft", "tconstruct:fletching"],
+                                    };
+                                    for stat in visible {
+                                        if let Some(fields) = stats.get(*stat) {
+                                            for (field, value) in fields {
+                                                if let Some(number) = value.as_f64() {
+                                                    let label = game.translate(&format!("tool_stat.tconstruct.{field}"), field);
+                                                    detail.push_str(&format!("\n{label}{number}"));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            let path = format!("{namespace}:tinkering/materials/traits/{material}");
+                            if let Some(layers) = snapshot.get(&path) {
+                                if let Ok(raw) = crate::game::tconstruct_tx::source_merge_material_traits(layers) {
+                                    let mut traits = std::collections::BTreeMap::new();
+                                    let kinds: &[&str] = match key {
+                                        "melee_harvest_materials" => &["head", "handle", "binding"],
+                                        "ranged_materials" => &["limb", "grip", "bowstring"],
+                                        _ => &["arrow_head", "arrow_shaft", "fletching"],
+                                    };
+                                    for kind in kinds { crate::game::tconstruct_source_material_trait_select::add_traits(&mut traits, raw.default.as_ref(), &raw.per_stat, kind); }
+                                    for (trait_id, level) in traits {
+                                        let (ns, id) = trait_id.split_once(':').unwrap_or(("tconstruct", &trait_id));
+                                        let title = game.translate(&format!("modifier.{ns}.{id}"), id);
+                                        detail.push_str(&format!("\n{title} {level}"));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for page in split_page(&detail, 120) { chapter_pages.push(Text::literal(page)); }
+                }
                 if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
             }
             continue;
@@ -71,6 +125,37 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
+            if relative == "no-load" {
+                let loads = page.get("extraData").and_then(|v| v.get("tconstruct:load_tools"));
+                let list: Vec<_> = match loads { Some(serde_json::Value::Array(a)) => a.iter().collect(), Some(v) => vec![v], None => vec![] };
+                for load in list {
+                    let Some(tag) = load.get("tag").and_then(|v| v.as_str()) else { continue; };
+                    let Some(path) = load.get("path").and_then(|v| v.as_str()) else { continue; };
+                    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { continue; };
+                    let Some(tools) = tags.get(tag) else { continue; };
+                    let mut tools: Vec<_> = tools.iter().collect(); tools.sort();
+                    for id in tools {
+                        let file = format!("{root}en_us/{path}/{}.json", id.replace(':', "_"));
+                        let Some(raw) = read(&mut zip, &file) else { continue; };
+                        let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
+                        let fallback = id.split(':').next_back().unwrap_or(id);
+                        let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", fallback));
+                        let title = game.translate(&format!("item.{namespace}.{name}"), fallback);
+                        let mut text = title;
+                        for field in ["text", "properties"] {
+                            if let Some(parts) = value.get(field).and_then(|v| v.as_array()) {
+                                for part in parts {
+                                    if let Some(s) = part.as_str().or_else(|| part.get("text").and_then(|v| v.as_str())) {
+                                        text.push('\n'); text.push_str(s);
+                                    }
+                                }
+                            }
+                        }
+                        chapter_pages.extend(split_page(&text, 120).into_iter().map(Text::literal));
+                    }
+                }
+                continue;
+            }
             let Some(raw) = read(&mut zip, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
@@ -83,6 +168,7 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
                 }));
             }
             let mut text = String::new();
+            if let Some(s) = value.get("subText").and_then(|v| v.as_str()) { text.push_str(s); }
             for key in ["text", "description"] {
                 if let Some(parts) = value.get(key).and_then(|x| x.as_array()) {
                     for part in parts {
@@ -102,10 +188,16 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
     }
     if chapters.is_empty() { return None; }
     // The host's existing book click handler understands ChangePage links.
-    let mut contents = Text::literal("Materials & You\n\n");
-    let mut target = 2i32;
+    let index_count = (chapters.len() + 4) / 5;
+    let mut indexes = Vec::new();
     let mut pages = Vec::new();
-    for (heading, chapter) in chapters {
+    let mut target = i32::try_from(index_count + 1).ok()?;
+    let mut contents = Text::literal("Materials & You\n\n");
+    for (index, (heading, chapter)) in chapters.into_iter().enumerate() {
+        if index > 0 && index % 5 == 0 {
+            indexes.push(contents);
+            contents = Text::literal("Materials & You\n\n");
+        }
         let link = Text::styled(format!("{heading}\n"), horizon_client::text::Style {
             click: Some(horizon_client::text::ClickEvent::ChangePage(target)),
             underlined: Some(true), ..Default::default()
@@ -113,10 +205,11 @@ fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
         contents.push(link);
         pages.push(Text::literal(heading));
         pages.extend(chapter);
-        target = i32::try_from(pages.len() + 2).ok()?;
+        target = i32::try_from(index_count + pages.len() + 1).ok()?;
     }
-    pages.insert(0, contents);
-    Some(pages)
+    indexes.push(contents);
+    indexes.extend(pages);
+    Some(indexes)
 }
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
