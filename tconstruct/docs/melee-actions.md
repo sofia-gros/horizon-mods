@@ -1,18 +1,20 @@
 # Source melee area actions
 
-This draft targets source circle attacks for Scythe and Kama, source sweep
-attacks for Sword and Cleaver, and the built-in Knockback levels of Excavator
-and Battlesign. The current code is a prototype and has not been formally
-transformed, type-checked or tested in game. Equipment registration and
-material stats alone do not establish these actions.
+This draft implements source circle attacks against mobs for Scythe and Kama,
+source mob sweeps for Sword and Cleaver, and innate Knockback for Excavator
+and Battlesign. The tested runtime is `6a2fc260c6109a6709da26bdd2e8c89ed30d6be2`,
+transformed with official Mixins `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab`.
 
-The prototype connects source mob-target circle and sweep ranges and the
-built-in knockback calculation. Circle reuses the normal mob attack path,
-keeps the initiating cooldown and suppresses its secondary critical bonus;
-sweep retains its separate charge and reduced-damage rules. Broken tools,
-teams, other targets, durability, cooldown and reentrancy still require
-representative gameplay verification. Native modifier features, including
-Sweeping damage and Expanded ranges, are not claimed complete.
+Linux gameplay confirmed circle primary and nearby secondary hits, distance
+exclusion, identical low-charge scaling and per-hit wear; a nearly broken
+Scythe stopped after its first secondary. Sword and Cleaver hit their primary
+and nearby secondary once, with the source range difference; low charge and
+sprinting suppressed Sword sweep. Hosted LAN confirmed a guest Scythe against
+mobs. Battlesign and Excavator produced observed knockback velocities 0.7 and
+1.2 respectively, with one and two durability consumed. A vanilla iron sword
+regression passed. These are representative tests, not all weapons or targets.
+Allied exclusions, critical hits, broader LAN combinations and Windows have not
+been individually verified in game. Expanded and Sweeping remain unfinished.
 
 PvP primary and secondary targets are not connected. The current player sweep
 queue stores the attacker position and hardcodes a three-block distance;
@@ -30,10 +32,8 @@ that constructor contains a closure. This describes
 one attempted injection, not all possible hooks. The draft does not replace
 that limit with a misleading vanilla approximation.
 
-Acceptance remains source ranges and charge/ground/sprint conditions,
-no duplicate primary hit, allied and ineligible target exclusions, damage,
-knockback, wear and breakage, hosted LAN and PvP permissions, plus a vanilla
-sword regression. Off-hand attack, other modifier abilities, armor and ranged
+Remaining acceptance includes player targets and PvP permissions, allied target
+exclusions, additional critical and LAN cases, and other modifier behavior. Off-hand attack, other modifier abilities, armor and ranged
 weapons are future work. Crop shears loot remains unimplemented.
 
 ## Planner boundary evidence
