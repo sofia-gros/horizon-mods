@@ -22,7 +22,9 @@ pub(super) struct BaseStats {
     pub accuracy: f32,
     pub accuracy_add_multiplier: f32,
     pub armor: f32,
+    pub armor_add_multiplier: f32,
     pub armor_toughness: f32,
+    pub armor_toughness_add_multiplier: f32,
     pub knockback_resistance: f32,
 }
 
@@ -175,6 +177,15 @@ pub(super) fn mining_tier(definition: &[u8], materials: &[Map<String, Value>]) -
     Some(best.map(|(_, tier)| tier))
 }
 
+/// Tier upgrades set a minimum without lowering stronger materials.
+pub(super) fn gem_tier(tier: Option<&'static str>, diamond: bool, emerald: bool) -> Option<&'static str> {
+    let rank = |t: &str| match t { "wooden" | "gold" => 0, "stone" => 1, "iron" => 2, "diamond" => 3, "netherite" => 4, _ => -1 };
+    let current = tier?;
+    if diamond && rank(current) < 3 { Some("diamond") }
+    else if emerald && rank(current) < 2 { Some("iron") }
+    else { Some(current) }
+}
+
 /// Compute the supported shared material-derived numeric base. `materials` contains the
 /// already merged source stats object for each ordered part material.
 pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option<BaseStats> {
@@ -277,7 +288,9 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
         accuracy: stats[6].result(),
         accuracy_add_multiplier: (1.0 + stats[6].percent) * stats[6].multiply,
         armor: stats[7].result(),
+        armor_add_multiplier: (1.0 + stats[7].percent) * stats[7].multiply,
         armor_toughness: stats[8].result(),
+        armor_toughness_add_multiplier: (1.0 + stats[8].percent) * stats[8].multiply,
         knockback_resistance: stats[9].result(),
     })
 }
@@ -349,7 +362,9 @@ mod tests {
                 accuracy: 0.75,
                 accuracy_add_multiplier: 1.0,
                 armor: 0.0,
+                armor_add_multiplier: 1.0,
                 armor_toughness: 0.0,
+                armor_toughness_add_multiplier: 1.0,
                 knockback_resistance: 0.0
             }
         );

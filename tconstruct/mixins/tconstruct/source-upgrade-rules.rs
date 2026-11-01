@@ -224,6 +224,35 @@ pub(super) fn plan(
     None
 }
 
+/// Regenerate gem durability and armor from baseline, never from a previous upgrade result.
+pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
+    levels: &BTreeMap<String, i32>, armor: bool, worn_armor: bool) -> Option<()> {
+    let diamond = amount(tool, "tconstruct:diamond") > 0;
+    let emerald = amount(tool, "tconstruct:emerald") > 0;
+    if !diamond && !emerald { return Some(()); }
+    let trait_boost = 0.15 * *levels.get("tconstruct:preserved").unwrap_or(&0) as f32
+        + 0.1 * *levels.get("tconstruct:ductile").unwrap_or(&0) as f32;
+    let base = stats.durability + stats.durability_boost_unit * trait_boost
+        + if diamond { (if armor { 250.0 } else { 500.0 }) * stats.durability_multiplier } else { 0.0 };
+    let durability = (base * if emerald { 1.5 } else { 1.0 }) as i32;
+    if durability < 1 { return None; }
+    let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
+    let Tag::Compound(ref mut fields) = custom else { return None; };
+    fields.insert("tic_max_damage".into(), Tag::Int(durability));
+    if armor {
+        if diamond { fields.insert("tic_armor".into(), Tag::Float((stats.armor + stats.armor_add_multiplier).clamp(0.0, 30.0).to_bits())); }
+        if emerald {
+            let ductile = *levels.get("tconstruct:ductile").unwrap_or(&0) as f32;
+            fields.insert("tic_armor_toughness".into(), Tag::Float((stats.armor_toughness + ductile + stats.armor_toughness_add_multiplier).clamp(0.0, 20.0).to_bits()));
+        }
+    }
+    if diamond && worn_armor { fields.insert("tconstruct:diamond_armor".into(), Tag::Byte(1)); }
+    else { fields.remove(&"tconstruct:diamond_armor".into()); }
+    tool.data_mut().set_other("minecraft:custom_data", Some(custom));
+    tool.data_mut().set_other("minecraft:max_damage", Some(Tag::Int(durability)));
+    Some(())
+}
+
 /// Rebuild additive and multiplier effects from the source baseline and saved progress.
 pub(super) fn apply_stats(
     tool: &mut ItemStack,
@@ -235,7 +264,7 @@ pub(super) fn apply_stats(
     let level = |id: &str| levels.get(id).copied().unwrap_or(0);
     let (damage, speed) = super::tconstruct_source_melee_stat_ops::melee_stats(
         super::tconstruct_source_melee_stat_ops::MeleeInputs {
-            damage: stats.attack_damage,
+            damage: stats.attack_damage + 0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) * stats.attack_damage_multiplier,
             damage_add_multiplier: stats.attack_damage_multiplier,
             speed: stats.attack_speed,
             ductile: level("tconstruct:ductile"), solid: level("tconstruct:solid"),
@@ -256,8 +285,9 @@ pub(super) fn apply_stats(
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
     }
     let true_level = effective(tool, "tconstruct:trueshot", 10);
-    if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") && true_level > 0.0 {
-        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * 0.1 * true_level).clamp(0.1, 1.0);
+    let emerald = effective(tool, "tconstruct:emerald", 1).min(1.0);
+    if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") && (true_level > 0.0 || emerald > 0.0) {
+        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * 0.1 * (true_level + emerald)).clamp(0.1, 1.0);
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
     }
     tool.data_mut().set_other("minecraft:custom_data", Some(custom));
@@ -267,6 +297,29 @@ pub(super) fn apply_stats(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn single_gems_require_tags_one_slot_and_cannot_repeat() {
+        let recipe = br#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"tag":"forge:gems/diamond"}],"level":1,"result":"tconstruct:diamond","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
+        let recipes = BTreeMap::from([("diamond".into(), recipe)]);
+        let tags = HashMap::from([
+            ("forge:gems/diamond".into(), HashSet::from(["minecraft:diamond".into()])),
+            ("tconstruct:modifiable/durability".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+        ]);
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        let inputs = [Some(ItemStack::new("minecraft:diamond", 3))];
+        assert_eq!(plan(&recipes, &tags, &tool, &inputs, 1).unwrap().consumed, [(0,1),(1,1)]);
+        assert!(plan(&recipes, &tags, &tool, &inputs, 0).is_none());
+        assert!(plan(&recipes, &tags, &ItemStack::new("minecraft:bow", 1), &inputs, 1).is_none());
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:diamond",Tag::Int(1))]))])));
+        assert!(plan(&recipes, &tags, &tool, &inputs, 2).is_none());
+        let extraction = extract_upgrade(&tags, &tool, &[Some(ItemStack::new("minecraft:wet_sponge",1)), Some(ItemStack::new("tconstruct:sky_slime_crystal",1))], "tconstruct:diamond").unwrap();
+        assert_eq!(extraction.upgrade.amount, 0);
+        let mut clear = ItemStack::new("tconstruct:pickaxe",1);
+        assert_eq!(plan(&recipes, &tags, &clear, &[extraction.upgrade.leftover], 1).unwrap().amount,1);
+        clear.count = 1;
+    }
 
     #[test]
     fn ranged_transactions_share_slots_crystals_and_source_limits() {

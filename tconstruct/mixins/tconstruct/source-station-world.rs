@@ -67,6 +67,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     }
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
+    super::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/armor/worn"))?;
     super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
     super::tconstruct_source_mining_stack::apply(&mut output, &stats, &levels, &order, has_tag("tconstruct:modifiable/harvest"))?;
@@ -78,7 +79,9 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }
-    let tier = super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?;
+    let original_upgrades = original.and_then(|s| s.data()).and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
+    let has_upgrade = |id| matches!(original_upgrades.and_then(|u| u.get(id)), Some(Tag::Int(v)) if *v > 0);
+    let tier = super::tconstruct_source_station_stats::gem_tier(super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?, has_upgrade("tconstruct:diamond"), has_upgrade("tconstruct:emerald"));
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let mut rules = Vec::new();
     let source_effective = definition_json.get("modules")?.as_array()?.iter().find(|module|
@@ -232,7 +235,8 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     let preserved = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:preserved").copied()).unwrap_or(0);
     let dense = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:dense").copied()).unwrap_or(0);
     let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved)
-        * super::tconstruct_source_material_effects::dense_repair_factor(dense);
+        * super::tconstruct_source_material_effects::dense_repair_factor(dense)
+        * if matches!(tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:emerald")), Some(Tag::Int(v)) if *v > 0) { 1.5 } else { 1.0 };
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
     for index in 1..=input_capacity {
