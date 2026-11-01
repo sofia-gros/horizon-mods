@@ -165,8 +165,8 @@ entries = [
     ('tconstruct:tool_binding', 'minecraft:flint', 'Tool Binding'),
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
     ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
-    ('tconstruct:cobalt_ingot', 'minecraft:iron_ingot', 'Cobalt Ingot'),
-    ('tconstruct:cobalt_nugget', 'minecraft:iron_nugget', 'Cobalt Nugget'),
+    ('tconstruct:cobalt_ingot', 'minecraft:copper_ingot', 'Cobalt Ingot'),
+    ('tconstruct:cobalt_nugget', 'minecraft:flint', 'Cobalt Nugget'),
     ('tconstruct:sky_slime_crystal', 'minecraft:flint', 'Skyslime Crystal'),
     ('tconstruct:steel_shard', 'minecraft:flint', 'Steel Shard'),
     ('tconstruct:earth_slime_crystal', 'minecraft:flint', 'Earthslime Crystal'),
@@ -245,6 +245,8 @@ for part in ('helmet', 'chestplate', 'leggings', 'boots'):
     entries.append(('tconstruct:' + short, 'minecraft:flint', source_names['item.tconstruct.' + short]))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
+    if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
+        item.pop('minecraft:provides_trim_material', None)
     item['minecraft:item_name'] = {'text': title}
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
