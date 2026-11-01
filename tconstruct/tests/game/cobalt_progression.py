@@ -101,8 +101,8 @@ try:
  elif a.phase=='blast':
   # Obtain a fresh naturally generated ore, then use a vanilla furnace and fuel fixture.
   where('the_nether',6000,35,6000);r=g.call('find-block','tconstruct:cobalt_ore','64',timeout=90);assert r['nearest'],r
-  x,y,z=r['nearest'][0]['pos'];print('BLAST_NATURAL_ORE',42,[x,y,z],flush=True)
-  for c in ('gamemode creative @s',f'fill {x} {y} {z-1} {x} {y+1} {z-1} minecraft:air',f'setblock {x} {y-1} {z-1} minecraft:netherrack',f'tp @s {x+0.5} {y} {z-0.5}','effect give @s minecraft:fire_resistance 3600 0 true','gamemode survival @s'):cmd(c)
+  x,y,z=next(entry['pos'] for entry in r['nearest'] if entry['pos'][1]>=35);print('BLAST_NATURAL_ORE',42,[x,y,z],flush=True)
+  for c in ('gamemode creative @s',f'fill {x} {y} {z-1} {x} {y+1} {z-1} minecraft:air',f'setblock {x} {y-1} {z-1} minecraft:netherrack',f'setblock {x} {y-1} {z} minecraft:netherrack',f'tp @s {x+0.5} {y} {z-0.5}','effect give @s minecraft:fire_resistance 3600 0 true','gamemode survival @s'):cmd(c)
   select('minecraft:iron_pickaxe');before=count('tconstruct:raw_cobalt');r=g.call('break',x,y,z,'--timeout','45',timeout=50);print('BLAST_MINE',r,flush=True);g.call('wait','15');assert count('tconstruct:raw_cobalt')>before,inv()
   where('overworld',2044,80,2046)
   for c in ('gamemode creative @s','setblock 2044 80 2048 minecraft:blast_furnace','give @s minecraft:coal 1','gamemode survival @s'):cmd(c)
