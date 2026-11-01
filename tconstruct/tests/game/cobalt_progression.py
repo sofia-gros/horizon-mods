@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'): p.add_argument('--'+n,type=Path,required=True)
-p.add_argument('--phase',choices=['mine','cast','lan','reload','blast','blast-resume','ordinary'],required=True);p.add_argument('--in-frame',action='store_true')
+p.add_argument('--phase',choices=['mine','cast','lan','reload','blast','blast-resume','ordinary','ordinary-resume','inspect'],required=True);p.add_argument('--in-frame',action='store_true')
 a=p.parse_args();a.natural_world=True;a.world_seed=42
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve());world=run/'Sky'
 assert (world/'Player/saves/Probe').is_dir(), 'requires existing disposable seed-42 world'
@@ -115,6 +115,13 @@ try:
   empty();g.call('interact','2049','79','2048');g.call('wait','10');click(hot('tconstruct:raw_cobalt'));click(300);click(hot('minecraft:coal'));click(301);sprint(500)
   slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('BLAST_OUTPUT',slots,flush=True);assert (slots.get(302) or {}).get('item')=='tconstruct:cobalt_ingot',slots
   g.call('screenshot',str(run/'cobalt-blasting.png'));click(302);click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close');g.call('save');g.stop();print('PASS natural cobalt blast furnace',flush=True)
+ elif a.phase=='inspect':
+  where('overworld',2048,80,2046);empty();g.call('interact','2048','80','2048');g.call('wait','15');print('SMELTERY_UI',g.call('ui'),'MENU',g.call('menu'),flush=True);g.call('screenshot',str(run/'cobalt-smeltery-inspect.png'));g.call('save');g.stop()
+ elif a.phase=='ordinary-resume':
+  # Select the copper layer above the natural Cobalt byproduct left in the tank.
+  where('overworld',2048,80,2046);empty();g.call('interact','2048','80','2048');g.call('wait','10');g.call('click-gui','30','112');g.call('wait','10');g.call('close')
+  cmd('tp @s 2050.5 80 2051.5');empty();g.call('interact','2048','80','2051');g.call('wait','240',timeout=35);g.call('interact','2048','79','2051');g.call('wait','10');assert count('minecraft:copper_ingot')==1,inv()
+  g.call('interact','2048','79','2051');g.call('wait','10');assert count('tconstruct:ingot_cast')==1,inv();g.call('save');g.stop();print('PASS ordinary reusable copper ingot casting',flush=True)
  elif a.phase=='ordinary':
   where('overworld',2048,80,2046)
   for c in ('gamemode creative @s','give @s minecraft:lava_bucket 1','give @s minecraft:copper_ingot 1','give @s tconstruct:ingot_cast 1'):cmd(c)
