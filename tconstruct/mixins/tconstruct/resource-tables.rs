@@ -404,6 +404,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         if let Some(item) = items.get_mut(format!("tconstruct:{short}")) {
             item["minecraft:max_stack_size"] = serde_json::json!(16);
             item["minecraft:use_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
+            item["minecraft:crafting_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
         }
     }
     if let Some(item) = items.get_mut("tconstruct:venom_bottle") {

@@ -91,6 +91,12 @@ class ResourceOverlay(unittest.TestCase):
             for name, limit in (('dagger', 2), ('shuriken', 16), ('throwing_axe', 16), ('arrow', 64)):
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], limit)
             bottle = items['tconstruct:venom_bottle']
+            for kind in ('earth', 'sky', 'ichor', 'ender'):
+                slime_bottle = items[f'tconstruct:{kind}_slime_bottle']
+                self.assertEqual(slime_bottle['minecraft:max_stack_size'], 16)
+                self.assertEqual(slime_bottle['minecraft:crafting_remainder'], {'id': 'minecraft:glass_bottle'})
+                texture = 'ichor' if kind == 'ichor' else f'{kind}_slime'
+                self.assertTrue((out / f'assets/tconstruct/textures/item/bottle/{texture}_contents.png').is_file())
             for name in ('cobalt_ingot', 'cobalt_nugget'):
                 self.assertEqual(items['tconstruct:' + name]['minecraft:item_model'], 'tconstruct:' + name)
                 self.assertNotIn('minecraft:provides_trim_material', items['tconstruct:' + name])

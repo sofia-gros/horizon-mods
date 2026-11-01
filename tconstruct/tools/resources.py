@@ -311,6 +311,7 @@ for name, template, title in entries:
     if short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
+        item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
     if short == 'venom_bottle':
         # TinkerFood.VENOM_BOTTLE and ContainerFoodItem (1.20.1): no
         # nutrition, always drinkable, 32 ticks, strength and poison.
