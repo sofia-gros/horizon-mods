@@ -124,7 +124,7 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
             before=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);console('gamemode survival Guest');g.call('wait','25')
             result=g.call('interact',str(cx),str(cy),str(cz),'up');g.call('wait','30')
             for attempt in range(80):
-                states={(x,z):g.call('block',str(x),str(cy),str(z)).get('block','') for x in range(cx-1,cx+2) for z in range(cz-1,cz+2)}
+                states={(x,z):g.call('block',str(x),str(cy),str(z)).get('state','') for x in range(cx-1,cx+2) for z in range(cz-1,cz+2)}
                 if all('age=0' in states[(x,z)] for x in (cx,cx+1) for z in range(cz-1,cz+2)):break
                 time.sleep(.2)
             after=(g.call('status')['offhand'] if offhand else g.call('inventory')['held']);print('crop boundary',offhand,states,after,result,flush=True)

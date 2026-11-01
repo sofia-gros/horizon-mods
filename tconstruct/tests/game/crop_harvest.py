@@ -30,7 +30,7 @@ def acquire(name,start,end):
     screen_click(319,376);g.call('wait','5');g.call('close');g.call('hotbar','1');g.call('wait','5')
 
 
-def at(x,y,z): return g.call('block',str(x),str(y),str(z)).get('block','')
+def at(x,y,z): return g.call('block',str(x),str(y),str(z)).get('state','')
 def total(item):
     inv=g.call('inventory')['counts'].get(item,0)
     ground=sum((e.get('item') or {}).get('count',0) for e in g.call('entities','10','minecraft:item')['entities'] if (e.get('item') or {}).get('item')==item)

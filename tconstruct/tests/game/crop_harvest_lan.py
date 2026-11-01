@@ -46,7 +46,7 @@ try:
         for x,y,z in positions:cmd(h,f'setblock {x} {y} {z} minecraft:wheat[age=7]')
         q.call('wait','15');before=q.call('inventory')['held'];drops=total_items(h,'minecraft:wheat');cmd(h,'gamemode survival Guest')
         q.call('interact','30','100','30','up');q.call('wait','20')
-        wait(lambda:all('age=0' in h.call('block',*map(str,pos)).get('block','') for pos in positions))
+        wait(lambda:all('age=0' in h.call('block',*map(str,pos)).get('state','') for pos in positions))
         after=q.call('inventory')['held'];count=total_items(h,'minecraft:wheat')-drops
         print('LAN crop',tool,len(positions),'wear',after.get('damage',0)-before.get('damage',0),'wheat',count,flush=True)
         assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
