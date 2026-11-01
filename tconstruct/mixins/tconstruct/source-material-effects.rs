@@ -17,6 +17,14 @@ pub(super) fn dense_reduction_probability(level: i32) -> f32 {
     if level <= 0 { 0.0 } else { 1.0 - 1.5f32.powi(-level) }
 }
 
+/// Apply the source independent cancellation roll to each point of damage.
+pub(super) fn dense_reduce(mut loss: u32, level: i32, mut next: impl FnMut() -> f32) -> u32 {
+    let chance = dense_reduction_probability(level);
+    if chance <= 0.0 { return loss; }
+    for _ in 0..loss { if next() < chance { loss -= 1; } }
+    loss
+}
+
 pub(super) fn durability_boost(preserved: i32, ductile: i32) -> f32 {
     preserved as f32 * 0.15 + ductile as f32 * 0.1
 }
@@ -186,6 +194,9 @@ mod tests {
         assert_eq!(dense_repair_factor(10), 0.0);
         assert!((dense_reduction_probability(1) - 1.0 / 3.0).abs() < 0.00001);
         assert!((dense_reduction_probability(2) - 5.0 / 9.0).abs() < 0.00001);
+        let mut rolls = [0.1, 0.8, 0.2, 0.9].into_iter();
+        assert_eq!(dense_reduce(4, 1, || rolls.next().unwrap()), 2);
+        assert_eq!(dense_reduce(4, 0, || panic!("no random draw for zero level")), 4);
         assert_eq!(repair_factor(2, 0), 2.0);
         assert!((durability_boost(1, 1) - 0.25).abs() < 0.00001);
         assert_eq!(boosted_durability(125.0, 100.0, 1, 0), 140);

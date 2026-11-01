@@ -5,6 +5,5 @@ fn tconstruct_dense_wear(loss: u32, game: &mut crate::game::Game<'_>, stack: &It
     let Some(traits) = crate::game::tconstruct_source_material_traits::levels(&game.world, stack) else { return loss; };
     let level = traits.levels.get("tconstruct:dense").copied().unwrap_or(0);
     if level <= 0 { return loss; }
-    let probability = crate::game::tconstruct_source_material_effects::dense_reduction_probability(level);
-    (0..loss).filter(|_| game.world.random.next_float() >= probability).count() as u32
+    crate::game::tconstruct_source_material_effects::dense_reduce(loss, level, || game.world.random.next_float())
 }
