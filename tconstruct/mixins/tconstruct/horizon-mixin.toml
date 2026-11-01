@@ -2710,3 +2710,10 @@ kind = "HEAD"
 cancellable = true
 helper = "source-melee-extra-hit.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "_index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-melee-pvp-wear"
+target = "horizon_client::game::lan_pvp::Game<'_>::pvp_land"
+kind = "RETURN"
+helper = "source-melee-pvp-wear.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "strike", ty = "&Strike", value = "s" }]
