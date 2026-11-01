@@ -44,7 +44,7 @@ datapack placed the original trait IDs at selected levels on a flint head while
 keeping the other tool materials identical. In the controlled stone test,
 measured times included the same 5-tick post-break delay: baseline 18 ticks,
 Lightweight level 2 at 17, Heavy level 2 at 15, Vintage level 2 at 22, and
-Entangled at 10. Jagged level 3 changed from 18 fresh to 21 worn; Stonebound
+Entangled at 10. Jagged level 3 changed from 18 fresh to 21 worn and 23 at damage 84/85; the broken tool was retained. Stonebound
 changed from 18 to 17, and Maintained from 10 to 18. On dirt, a block ineffective
 for the pickaxe, the baseline and Entangled both took 20 ticks.
 
