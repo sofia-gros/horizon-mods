@@ -178,6 +178,16 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     } else { 0 };
     if !changed && (tool.damage == 0 || repair == 0) { return None; }
     let mut output = assemble(world, definition, &tool.item, &identities, Some(tool))?;
+    let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+    let modules = parsed.get("modules")?.as_array()?;
+    let base_slots = |name: &str| -> Option<i32> {
+        let total = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+            .filter_map(|module| module.get("slots")?.get(name)?.as_i64()).sum::<i64>();
+        i32::try_from(total).ok()
+    };
+    let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+    if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
+        || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
     Some((output, vec![(0, 1), (slot, 1)]))
 }
