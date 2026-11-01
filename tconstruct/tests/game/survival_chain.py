@@ -33,8 +33,10 @@ def promote(item):
  g.call('open-inventory');g.call('wait','8');click(source);click(target);g.call('close');return target
 def place(item,x,y,z):
  promote(item);before=count(item)
+ g.call('key','shift','down')
  try:g.call('place',str(x),str(y),str(z),'--item',item)
  except subprocess.CalledProcessError as error:raise RuntimeError(f'place {item} at {(x,y,z)} failed: {error.stdout} {error.stderr}; inventory={inventory()}') from error
+ finally:g.call('key','shift','up')
  g.call('wait','10')
  assert g.call('block',str(x),str(y),str(z)).get('block')==item,(item,x,y,z)
  assert count(item)==before-1,(item,before,count(item))
@@ -148,6 +150,8 @@ try:
   merge_stacks(brick);craft([(brick,[100]*7+[101]*7+[103]*7+[104]*7)],'tconstruct:seared_bricks',many=True)
   assert count('tconstruct:seared_bricks')==7,inventory();checkpoint()
  elif a.phase=='controller':
+  if os.environ.get('PR43_DIAGNOSTIC_DEVICES'):
+   for item in ('seared_basin','seared_heater','seared_melter','seared_faucet','seared_bricks'):cmd('give @s tconstruct:'+item+' 1')
   # Replace only our disposable fixture table/work area; every placed mod
   # block below is the item crafted in the previous phase.
   for c in ('gamemode creative @s','fill -2 71 0 2 74 4 minecraft:air','tp @s 2.5 71 0.5','gamemode survival @s'):cmd(c)
