@@ -2,6 +2,8 @@
 pub use horizon_world::{registry, worldgen};
 #[path = "../../mixins/tconstruct/source-slime-tree-shape.rs"] mod tconstruct_slime_tree_shape;
 #[path = "../../mixins/tconstruct/source-slime-tree-world.rs"] mod tconstruct_slime_tree_world;
+#[path = "../../mixins/tconstruct/source-slime-island-markers.rs"] mod tconstruct_slime_island_markers;
+#[path = "../../mixins/tconstruct/source-slime-island-marker-world.rs"] mod tconstruct_slime_island_marker_world;
 
 #[cfg(test)]
 mod tests {
@@ -10,10 +12,22 @@ mod tests {
     use horizon_world::{heightmap::HeightmapType, nbt::Tag, registry::{BlockRegistry, BlockStateId},
         worldgen::{anchor::WorldGenerationContext, feature::FeatureWorld,
                    placement::{PlacementContext, PlacementQueryError},
-                   structure::{legacy::PieceContext, BoundingBox, StateTransforms, StructureResources}}};
+                   structure::{legacy::{PieceContext, PieceRandom}, processor::ProcessorRandom, BoundingBox, StateTransforms, StructureResources}}};
     use std::{collections::BTreeMap, path::Path};
 
     struct World { blocks: BTreeMap<[i32; 3], BlockStateId> }
+    #[derive(Default)]
+    struct FixedRandom { booleans: u32 }
+    impl ProcessorRandom for FixedRandom {
+        fn float(&mut self) -> f32 { 0.0 }
+        fn int(&mut self, _: i32) -> i32 { 0 }
+        fn long(&mut self) -> i64 { 0 }
+    }
+    impl PieceRandom for FixedRandom {
+        fn boolean(&mut self) -> bool { self.booleans += 1; true }
+        fn double(&mut self) -> f64 { 0.0 }
+        fn as_any(&mut self) -> &mut dyn std::any::Any { self }
+    }
     impl FeatureWorld for World {
         type Error = PlacementQueryError;
         fn block(&mut self, p: [i32; 3]) -> Result<BlockStateId, Self::Error> { Ok(*self.blocks.get(&p).unwrap_or(&BlockStateId(0))) }
@@ -88,5 +102,23 @@ mod tests {
             vines: false, trunk: "tconstruct:missing_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
         assert!(matches!(tconstruct_slime_tree_world::place(&mut ctx, [0, 64, 0], cfg), Err(PlacementQueryError::Unavailable)));
         assert_eq!(world.blocks.len(), 1);
+    }
+
+    #[test]
+    fn tree_markers_place_real_trees_until_shared_budget_is_full() {
+        let resources = resources();
+        let mut world = World { blocks: (0..4).map(|i| ([i * 20, 63, 0], BlockStateId(2))).collect() };
+        let mut random = FixedRandom::default();
+        let mut budget = tconstruct_slime_island_markers::TreeBudget::default();
+        let mut ctx = PieceContext { world: &mut world, resources: &resources, random: &mut random,
+            chunk_box: BoundingBox::new([-16, -64, -16], [100, 319, 31]), chunk: ChunkPos::new(0, 0), reference: [0, 64, 0] };
+        let cfg = tconstruct_slime_tree_world::TreeConfig { base_height: 4, random_height: 3, double_height: false,
+            vines: false, trunk: "tconstruct:greenheart_log", leaves: "tconstruct:earth_slime_leaves", vine: None };
+        assert!(!tconstruct_slime_island_marker_world::tree_marker(&mut ctx, &mut budget, None, [0, 64, 0]).unwrap());
+        for i in 0..3 { assert!(tconstruct_slime_island_marker_world::tree_marker(&mut ctx, &mut budget, Some(cfg), [i * 20, 64, 0]).unwrap()); }
+        assert!(!tconstruct_slime_island_marker_world::tree_marker(&mut ctx, &mut budget, Some(cfg), [60, 64, 0]).unwrap());
+        assert_eq!(budget.placed(), 3);
+        assert_eq!(random.booleans, 3);
+        assert_eq!(world.blocks.values().filter(|id| **id == BlockStateId(3)).count(), 12);
     }
 }

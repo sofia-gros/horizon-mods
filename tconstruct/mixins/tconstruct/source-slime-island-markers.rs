@@ -1,5 +1,5 @@
-//! Per-island marker decisions from IslandPiece at f4e77d4.
-//! The caller owns persistence, random draws and actual block/feature writes.
+// Per-island marker decisions from IslandPiece at f4e77d4.
+// The caller owns persistence, random draws and actual block/feature writes.
 
 pub(crate) const MAX_TREES: u32 = 3;
 

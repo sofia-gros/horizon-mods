@@ -3080,3 +3080,15 @@ id = "slime-tree-world"
 file = "crates/horizon-world/src/worldgen/structure/start.rs"
 name = "tconstruct_slime_tree_world"
 source = "source-slime-tree-world.rs"
+
+[[module]]
+id = "slime-island-markers"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_markers"
+source = "source-slime-island-markers.rs"
+
+[[module]]
+id = "slime-island-marker-world"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_marker_world"
+source = "source-slime-island-marker-world.rs"

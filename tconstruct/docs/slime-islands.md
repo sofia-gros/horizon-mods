@@ -21,8 +21,10 @@ rejection and basic tree writes; the function has not been connected to a
 structure marker or validated in the game.
 `source-slime-island-markers.rs` models source weighted selection and the
 per-piece limit of three successful trees, including skipped draws and failed
-placements. Persisting that count and invoking it from marker processing are
-still open.
+placements. `source-slime-island-marker-world.rs` connects a tree marker to
+the tree writer and shared budget; an in-memory world test checks three
+successful trees and skips a fourth. Persisting the count and invoking the
+marker handler from a template piece are still open.
 
 The original uses `tconstruct:island`, not a vanilla jigsaw: its templates
 include data markers that can place source slime trees, vines and grass. The
