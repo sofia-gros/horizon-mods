@@ -193,6 +193,21 @@ fn prepare_tconstruct_resources() {
                     *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
                 }
             }
+            // TConstruct adds both ore variants to Nether underground decoration.
+            for name in ["cobalt_ore_small", "cobalt_ore_large"] {
+                if !content_path.join(format!("data/tconstruct/worldgen/placed_feature/{name}.json")).is_file() { continue; }
+                if nether.is_empty() { return Err("no eligible cobalt ore biomes".into()); }
+                let feature = format!("tconstruct:{name}");
+                for id in &nether {
+                    let raw = biomes.get_mut(id).ok_or_else(|| format!("missing biome {id}"))?;
+                    let mut biome: serde_json::Value = serde_json::from_str(raw.as_str().ok_or("invalid biome")?)?;
+                    let features = biome["features"].as_array_mut().ok_or("missing biome features")?;
+                    while features.len() < 8 { features.push(serde_json::json!([])); }
+                    let underground = features.get_mut(7).and_then(|v| v.as_array_mut()).ok_or("missing underground decoration")?;
+                    if !underground.iter().any(|v| v.as_str() == Some(&feature)) { underground.push(serde_json::Value::String(feature.clone())); }
+                    *raw = serde_json::Value::String(serde_json::to_string(&biome)?);
+                }
+            }
             let temp = out.join("worldgen/biomes.json.tmp");
             std::fs::write(&temp, serde_json::to_vec(&biomes)?)?;
             std::fs::rename(temp, path)?;
