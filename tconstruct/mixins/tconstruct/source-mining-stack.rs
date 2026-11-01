@@ -18,7 +18,7 @@ pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_stat
     let diamond = has_gem("tconstruct:diamond");
     let emerald = has_gem("tconstruct:emerald");
     let netherite = has_gem("tconstruct:netherite") || level("tconstruct:netherite") > 0;
-    let speed = super::tconstruct_source_mining_math::base_speed(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
+    let speed = super::tconstruct_source_mining_math::base_speed_unclamped(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
         level("tconstruct:lightweight"), level("tconstruct:heavy"), vintage, level("tconstruct:entangled") > 0);
     let speed = (speed * if netherite { 1.25 } else { 1.0 }).clamp(0.1, 2048.0);
     // Some harvest-tagged equipment has no supported per-stack tool rules yet.

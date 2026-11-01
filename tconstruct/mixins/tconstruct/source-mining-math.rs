@@ -3,10 +3,14 @@
 pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
-    ((base + if entangled { 6.0 * add_scale } else { 0.0 })
+    base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
+}
+
+pub(super) fn base_speed_unclamped(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
+    (base + if entangled { 6.0 * add_scale } else { 0.0 })
         * (1.0 + 0.08 * lightweight.max(0) as f32)
         * (1.0 + 0.15 * heavy.max(0) as f32)
-        * (1.0 - 0.1 * vintage.max(0) as f32)).clamp(0.1, 2048.0)
+        * (1.0 - 0.1 * vintage.max(0) as f32)
 }
 
 /// Source priority: maintained (100) before percent traits (75), stable within a priority.

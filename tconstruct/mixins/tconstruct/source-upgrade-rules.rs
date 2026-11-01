@@ -24,6 +24,26 @@ const UPGRADES: [(&str, i32); 10] = [
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1),
 ];
 
+// Original slotless modifiers needed to make higher-level upgrades reachable.
+const BONUS_SLOTS: [(&str, i32, i32); 5] = [
+    ("tconstruct:writable", 1, 0), ("tconstruct:harmonious", 1, 0),
+    ("tconstruct:recapitated", 1, 0), ("tconstruct:forecast", 1, 0),
+    ("tconstruct:draconic", 0, 1),
+];
+
+fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
+    if let Some(entries) = value.as_array() { return entries.iter().any(|v| ingredient_matches(v, item, tags)); }
+    match value.get("type").and_then(Value::as_str) {
+        Some("forge:difference") => return value.get("base").is_some_and(|v| ingredient_matches(v, item, tags)) && !value.get("subtracted").is_some_and(|v| ingredient_matches(v, item, tags)),
+        Some("forge:intersection") => return value.get("children").and_then(Value::as_array).is_some_and(|v| !v.is_empty() && v.iter().all(|v| ingredient_matches(v, item, tags))),
+        Some(_) => return false,
+        None => {}
+    }
+    value.get("item").and_then(Value::as_str).is_some_and(|v| v == item)
+        || value.get("tag").and_then(Value::as_str).and_then(|tag| tags.get(tag)).is_some_and(|v| v.contains(item))
+        || value.get("ingredient").is_some_and(|v| ingredient_matches(v, item, tags))
+}
+
 pub(super) fn selection_id(index: usize) -> Option<&'static str> {
     UPGRADES.get(index).map(|(id, _)| *id)
 }
@@ -36,7 +56,7 @@ fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
-        _ => UPGRADES.iter().any(|(name, _)| *name == id),
+        _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
 
@@ -119,6 +139,9 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
+    let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
+    let upgrade_slots = upgrade_slots + BONUS_SLOTS.iter().map(|(id, upgrades, _)| bonus(id) * upgrades).sum::<i32>();
+    let ability_slots = ability_slots + BONUS_SLOTS.iter().map(|(id, _, abilities)| bonus(id) * abilities).sum::<i32>();
     let occupied = UPGRADES
         .iter()
         .filter(|(id, _)| *id != "tconstruct:unbreakable")
@@ -137,13 +160,11 @@ pub(super) fn plan_with_traits(
             continue;
         }
         let Some(tools) = value.get("tools") else { continue; };
-        let matches_tool = |entry: &Value| entry.get("tag").and_then(Value::as_str)
-            .and_then(|tag| tags.get(tag)).is_some_and(|items| items.contains(tool.item.as_ref()));
-        if !(matches_tool(tools) || tools.as_array().is_some_and(|entries| entries.iter().any(matches_tool))) {
-            continue;
-        }
+        if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable") || amount(tool, id) != 0 { continue; }
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable")
+                && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
+            if amount(tool, id) != 0 { continue; }
             if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
                 && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
@@ -166,14 +187,14 @@ pub(super) fn plan_with_traits(
                 let mut matched = true;
                 for ingredient in ingredients {
                     let found = present.iter().enumerate().position(|(i, (_, stack))| !used[i] && stack.count > 0 &&
-                        (ingredient.get("item").and_then(Value::as_str).is_some_and(|item| item == &*stack.item)
-                        || ingredient.get("tag").and_then(Value::as_str).and_then(|tag| tags.get(tag)).is_some_and(|items| items.contains(stack.item.as_ref()))));
+                        ingredient_matches(ingredient, &stack.item, tags));
                     if let Some(index) = found { used[index] = true; consumed.push((present[index].0, 1)); }
                     else { matched = false; break; }
                 }
                 if !matched { continue; }
             }
-            let leftover = (id == "tconstruct:unbreakable" && !crystal).then(|| ItemStack::new("minecraft:glass_bottle", 1));
+            let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
+            let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
             return Some(UpgradePlan { id: id.to_owned(), amount: 1, consumed, leftover });
         }
 
@@ -396,6 +417,26 @@ mod tests {
         assert!(extract_upgrade(&tags,&tool,&inputs,"tconstruct:netherite").is_none());
         assert!(extract_upgrade(&tags,&tool,&inputs,"tconstruct:unbreakable").is_some());
         assert!(valid_unbreakable(&tool,&BTreeMap::new()));
+    }
+
+    #[test]
+    fn source_bonus_slots_make_armor_and_bow_prerequisites_reachable() {
+        let writable = br#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"item":"minecraft:writable_book"}],"level":1,"result":"tconstruct:writable","tools":{"tag":"tconstruct:modifiable/bonus_slots"}}"#.to_vec();
+        let draconic = br#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"item":"minecraft:dragon_head"}],"level":1,"result":"tconstruct:draconic","tools":{"type":"forge:difference","base":{"tag":"tconstruct:modifiable/bonus_slots"},"subtracted":{"tag":"tconstruct:modifiable/skulls"}}}"#.to_vec();
+        let reinforced = br#"{"type":"tconstruct:incremental_modifier","amount_per_item":1,"needed_per_level":4,"input":{"item":"tconstruct:emerald_reinforcement"},"result":"tconstruct:reinforced","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
+        let recipes=BTreeMap::from([("writable".into(),writable),("draconic".into(),draconic),("reinforced".into(),reinforced)]);
+        let tags=HashMap::from([("tconstruct:modifiable/bonus_slots".into(),HashSet::from(["tconstruct:plate_chestplate".into()])),("tconstruct:modifiable/durability".into(),HashSet::from(["tconstruct:plate_chestplate".into()]))]);
+        let mut armor=ItemStack::new("tconstruct:plate_chestplate",1);
+        armor.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:reinforced",Tag::Int(8))]))])));
+        assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("minecraft:writable_book",1))],2,0,&BTreeMap::new()).unwrap().id,"tconstruct:writable");
+        assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("minecraft:dragon_head",1))],2,0,&BTreeMap::new()).unwrap().id,"tconstruct:draconic");
+        let extra=BTreeMap::from([("tconstruct:writable".into(),1)]);
+        assert_eq!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&extra).unwrap().amount,9);
+        assert!(plan_with_traits(&recipes,&tags,&armor,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",1))],2,0,&BTreeMap::new()).is_none());
+        let difference=serde_json::json!({"type":"forge:difference","base":{"tag":"forge:heads"},"subtracted":{"item":"minecraft:dragon_head"}});
+        let skulls=HashMap::from([("forge:heads".into(),HashSet::from(["minecraft:dragon_head".into(),"minecraft:skeleton_skull".into()]))]);
+        assert!(ingredient_matches(&difference,"minecraft:skeleton_skull",&skulls));
+        assert!(!ingredient_matches(&difference,"minecraft:dragon_head",&skulls));
     }
 
     #[test]

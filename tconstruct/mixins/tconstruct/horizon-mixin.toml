@@ -2863,3 +2863,11 @@ bindings = [
   { name = "color", ty = "u32", value = "$value" },
   { name = "stack", ty = "&ItemStack", value = "stack" },
 ]
+
+[[injection]]
+id = "netherite-held-name-rarity"
+target = "horizon_client::game::titles::Game<'_>::held_name"
+kind = "HEAD"
+cancellable = true
+helper = "netherite-held-name.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]

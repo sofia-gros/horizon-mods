@@ -343,14 +343,18 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
 
 /// Revalidate and commit a planned operation; return any item to give to the player.
 pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, plan: StationOperation) -> Option<Vec<ItemStack>> {
-    let bottle_slot = plan.consumed.iter().find_map(|&(slot, _)|
-        slots.get(slot).and_then(Option::as_ref).filter(|s| &*s.item == "minecraft:dragon_breath").map(|_| slot));
+    let bottle_slots: Vec<usize> = plan.consumed.iter().filter_map(|&(slot, _)|
+        slots.get(slot).and_then(Option::as_ref).filter(|s| &*s.item == "minecraft:dragon_breath").map(|_| slot)).collect();
     if !take_repair(slots, carried, plan.output, &plan.consumed) { return None; }
     let mut leftovers = plan.leftovers;
-    if let Some(slot) = bottle_slot.filter(|&slot| slots[slot].is_none()) {
-        if let Some(index) = leftovers.iter().position(|s| &*s.item == "minecraft:glass_bottle") {
-            slots[slot] = Some(leftovers.remove(index));
+    if let Some(index) = leftovers.iter().position(|s| &*s.item == "minecraft:glass_bottle") {
+        for slot in bottle_slots {
+            if slots[slot].is_none() && leftovers[index].count > 0 {
+                slots[slot] = Some(ItemStack::new("minecraft:glass_bottle", 1));
+                leftovers[index].count -= 1;
+            }
         }
+        if leftovers[index].count == 0 { leftovers.remove(index); }
     }
     Some(leftovers)
 }
