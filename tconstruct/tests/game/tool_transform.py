@@ -42,6 +42,10 @@ def scene(name,block,result,area=False):
     assert len(converted)==len(positions),(name,converted,[at(*p) for p in positions])
     assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
     if name in ('scythe','excavator','broad_axe'):g.call('screenshot',str(run/('tool-transform-'+name+'.png')))
+def center_pass_area_success():
+    acquire('scythe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 22 104 22 minecraft:air');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd('setblock 20 100 20 minecraft:stone');cmd('setblock 21 100 20 minecraft:dirt');cmd('tp @s 20.5 101 18.5');g.call('wait','15');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held']
+    assert at(20,100,20)=='minecraft:stone' and at(21,100,20).split('[')[0]=='minecraft:farmland';assert after.get('damage',0)-before.get('damage',0)==1,(before,after)
+    print('unchanged center with successful nearby transform',flush=True)
 def broad_tree():
     acquire('broad_axe',185,260);cmd('gamemode creative @s');cmd('fill 18 100 18 23 104 22 minecraft:air');cmd('fill 18 99 18 23 99 22 minecraft:stone');cmd('tp @s 20.5 100 18.5')
     positions=[(20,100,20),(20,101,20),(21,101,20),(22,101,20)]
@@ -84,7 +88,7 @@ try:
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
     for name,source,target,area in [('mattock','minecraft:dirt','minecraft:farmland',False),('kama','minecraft:dirt','minecraft:farmland',False),('scythe','minecraft:dirt','minecraft:farmland',True),('excavator','minecraft:grass_block','minecraft:dirt_path',True),('hand_axe','minecraft:oak_log','minecraft:stripped_oak_log',False),('broad_axe','minecraft:oak_log','minecraft:stripped_oak_log',False)]:scene(name,source,target,area)
     for source,target in [('minecraft:oxidized_copper','minecraft:weathered_copper'),('minecraft:waxed_copper_block','minecraft:copper_block')]:scene('hand_axe',source,target)
-    broad_tree();pathing_obstacles();broken_area();sneak_pass()
+    center_pass_area_success();broad_tree();pathing_obstacles();broken_area();sneak_pass()
     cmd('gamemode creative @s');cmd('clear @s');cmd('give @s minecraft:wooden_hoe 1');g.call('hotbar','1');cmd('setblock 20 100 20 minecraft:dirt');cmd('gamemode survival @s');g.call('wait','10');before=g.call('inventory')['held'];g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held'];assert at(20,100,20).split('[')[0]=='minecraft:farmland' and after.get('damage',0)==before.get('damage',0)+1,(before,after)
     g.call('screenshot',str(run/'tool-transform.png'));g.call('save');g.stop();g.cleanup();g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();assert at(20,100,20).split('[')[0]=='minecraft:farmland';g.stop();print('PASS source tools and reload',flush=True)
 finally:g.cleanup()
