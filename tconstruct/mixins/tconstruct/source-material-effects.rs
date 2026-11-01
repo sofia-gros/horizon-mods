@@ -32,6 +32,12 @@ pub(super) fn reinforced_probability(amount: i32) -> f32 {
     else { (0.5 + 0.05 * level).clamp(0.0, 1.0) }
 }
 
+/// The pinned source bypass tag currently contains Glowing. Modifier-driven
+/// wear must pass its cause ID; ordinary use passes None.
+pub(super) fn reinforced_cause_bypass(cause: Option<&str>) -> bool {
+    cause == Some("tconstruct:glowing")
+}
+
 /// Ordinary wear applies Dense before Reinforced (equal source priority, ID order).
 /// Explicit bypass applies only to Reinforced, as with the source cause tag.
 pub(super) fn reinforced_wear(loss: u32, dense: i32, amount: i32, unbreakable: bool,

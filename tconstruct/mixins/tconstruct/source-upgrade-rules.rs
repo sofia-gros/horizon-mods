@@ -309,6 +309,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn reinforced_partial_slot_crystal_and_limit_use_source_rules() {
+        let bytes = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"input":{"item":"tconstruct:emerald_reinforcement"},"level":{"max":5},"needed_per_level":4,"result":"tconstruct:reinforced","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
+        let recipes = BTreeMap::from([("reinforced".into(),bytes)]);
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/durability".into(),HashSet::from(["tconstruct:pickaxe".into()])),
+            ("tconstruct:modifiable".into(),HashSet::from(["tconstruct:pickaxe".into()])),
+        ]);
+        let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+        let ingredients=[Some(ItemStack::new("tconstruct:emerald_reinforcement",3))];
+        assert!(plan(&recipes,&tags,&tool,&ingredients,0).is_none());
+        let partial=plan(&recipes,&tags,&tool,&ingredients,1).unwrap();assert_eq!(partial.amount,3);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:reinforced",Tag::Int(3))]))])));
+        assert_eq!(plan(&recipes,&tags,&tool,&[Some(ItemStack::new("tconstruct:emerald_reinforcement",4))],1).unwrap().amount,4);
+        let mut crystal=ItemStack::new("tconstruct:modifier_crystal",1);crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String("tconstruct:reinforced".into()))])));
+        assert!(plan(&recipes,&tags,&tool,&[Some(crystal.clone())],1).is_none());
+        assert_eq!(plan(&recipes,&tags,&tool,&[Some(crystal)],2).unwrap().amount,7);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:reinforced",Tag::Int(7))]))])));
+        assert_eq!(extract_upgrade(&tags,&tool,&[Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))],"tconstruct:reinforced").unwrap().upgrade.amount,3);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:reinforced",Tag::Int(20))]))])));
+        assert!(plan(&recipes,&tags,&tool,&ingredients,10).is_none());
+    }
+
+    #[test]
     fn gems_recalculate_durability_armor_and_accuracy_without_stacking() {
         let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100,"tconstruct:armor":2,"tconstruct:armor_toughness":1,"tconstruct:accuracy":0.75}}]}"#;
         let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();

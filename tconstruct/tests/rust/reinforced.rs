@@ -11,3 +11,10 @@ fn reinforced_partial_levels_dense_order_and_cause() {
  assert_eq!(reinforced_wear(2,0,20,false,true,||panic!("bypassed cause must not roll")),2);
  assert_eq!(reinforced_wear(2,0,20,true,false,||panic!("unbreakable must not roll")),2);
 }
+#[test]
+fn source_cause_bypasses_reinforced_only_for_glowing() {
+ use tconstruct_source_material_effects::reinforced_cause_bypass;
+ assert!(!reinforced_cause_bypass(None));
+ assert!(reinforced_cause_bypass(Some("tconstruct:glowing")));
+ assert!(!reinforced_cause_bypass(Some("tconstruct:thorns")));
+}

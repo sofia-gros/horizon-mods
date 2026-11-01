@@ -38,6 +38,10 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             items = json.loads((out / 'items.json').read_text())
+            self.assertIn('tconstruct:emerald_reinforcement', items)
+            source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png'
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png').read_bytes(), source.read_bytes())
+            self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_modifier_reinforced.png').read_bytes(), source.read_bytes())
             for gem in ('diamond', 'emerald'):
                 self.assertEqual((out / 'assets/minecraft/textures/gui' / ('tconstruct_modifier_' + gem + '.png')).read_bytes(), gem.encode())
             for modifier in ('quick_charge', 'trueshot'):
