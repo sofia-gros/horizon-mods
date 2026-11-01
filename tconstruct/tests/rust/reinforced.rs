@@ -28,3 +28,19 @@ fn source_cause_bypasses_reinforced_only_for_glowing() {
  assert!(reinforced_cause_bypass(Some("tconstruct:glowing")));
  assert!(!reinforced_cause_bypass(Some("tconstruct:thorns")));
 }
+
+#[test]
+fn glowing_cause_crosses_tanned_overslime_unbreakable_and_reinforced_in_source_order() {
+ use tconstruct_source_material_effects::*;
+ let cause = Some("tconstruct:glowing");
+ for (tanned, expected) in [(0,5),(1,1)] {
+  let loss=tanned_wear(5,tanned,cause);
+  let (shield,residual)=tconstruct_source_overslime::absorb(30,loss,cause);
+  assert_eq!(shield,30);
+  assert_eq!(reinforced_wear(residual,0,20,true,cause,||panic!("bypass must not roll")),expected);
+ }
+ let loss=tanned_wear(5,0,None);
+ let (shield,residual)=tconstruct_source_overslime::absorb(30,loss,None);
+ assert_eq!((shield,residual),(25,0));
+ assert_eq!(reinforced_wear(residual,0,20,true,None,||panic!("unbreakable must not roll")),0);
+}

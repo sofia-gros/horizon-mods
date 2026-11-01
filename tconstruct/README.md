@@ -36,6 +36,8 @@ The [Foundry guide](docs/foundry.md) shows a tested copper ore and byproduct set
 
 [Ranged material traits](docs/ranged-material-traits.md) describes the implemented Longbow and Crossbow material effects, representative Linux checks, and remaining gaps.
 
+[Glowing ability](docs/glowing.md) records the in-progress source behavior and remaining implementation.
+
 [Netherite and Unbreakable](docs/playing.md#netherite-and-unbreakable) have representative Linux Station, Anvil, equipment, Crystal, save and LAN checks with supplied materials; see the guide for their scope.
 
 [Overslime and Overforced](docs/overslime.md) have representative Linux Station, casting, shield wear, crafting and LAN checks with supplied materials; the guide lists the remaining source effects and survival limits.

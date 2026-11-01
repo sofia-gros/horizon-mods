@@ -1,0 +1,9 @@
+# Glowing ability (in progress)
+
+Glowing's source recipe uses glowstone, a daylight detector and shroomlight, consumes one ability slot and permits one level. It applies to the source interactable-or-boots durability tag. Source: TConstruct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, `ModifierRecipeProvider` and `ModifierProvider`.
+
+The source light is `tconstruct:glow`, emits level 14, has no collision or drops, and attaches to a full solid face. A placement uses the clicked face first, then tries other supporting faces; liquid and existing glow are rejected. A surviving glow is removed when its support disappears. A successful direct placement costs five durability with cause `tconstruct:glowing`; broken tools do not place it. The source also has boot walking in low block light and projectile hit placement, with its own launch/hit wear rules. Neither those actions nor the light block or recipe are implemented yet.
+
+A standalone placement selector implements the preferred face, source fallback direction order, support checks and rejection conditions; it is not yet connected to the world. Its three lightweight tests passed.
+
+The durability hook now has a scoped modifier-cause path, so a future Glowing action can pass its actual cause through Tanned, Overslime, Unbreakable, Dense and Reinforced. The existing ordinary-wear callers still pass no cause. Limited Mixins plan and lightweight formula tests passed; no full transformation, build, game or LAN validation has been done. The cause-aware path is not yet called by a Glowing action and does not by itself implement this ability.

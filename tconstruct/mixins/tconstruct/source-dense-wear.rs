@@ -9,12 +9,14 @@ fn tconstruct_dense_wear(loss: u32, game: &mut crate::game::Game<'_>, stack: &It
     // Armor's native caller supplies immutable snapshots; its scoped context
     // records the shield to be committed to the matched equipment slot.
     let actor = game.lan_acting;
+    let cause = game.world.chunks.__horizon_mixins_tconstruct_modifier_wear_cause().get(&actor).cloned();
+    let cause = cause.as_deref();
     let armor = game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context().contains_key(&actor)
         && !crate::game::tconstruct_source_ranged_wear::is_broken(stack);
-    let loss = if armor { crate::game::tconstruct_source_material_effects::tanned_wear(loss, trait_level("tconstruct:tanned"), None) } else { loss };
+    let loss = if armor { crate::game::tconstruct_source_material_effects::tanned_wear(loss, trait_level("tconstruct:tanned"), cause) } else { loss };
     let (loss, used) = if armor {
         let shield = crate::game::tconstruct_source_overslime::amount(stack, "tic_overslime") as u32;
-        let (remaining, residual) = crate::game::tconstruct_source_overslime::absorb(shield, loss, None);
+        let (remaining, residual) = crate::game::tconstruct_source_overslime::absorb(shield, loss, cause);
         (residual, shield - remaining)
     } else { (loss, 0) };
     if used > 0 {
@@ -22,9 +24,7 @@ fn tconstruct_dense_wear(loss: u32, game: &mut crate::game::Game<'_>, stack: &It
     }
     let upgrades = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
     let amount = |id| match upgrades.and_then(|u| u.get(id)) { Some(Tag::Int(n)) => *n, _ => 0 };
-    // All currently connected call sites represent ordinary wear. A future
-    // modifier-originated call must supply its ID to reinforced_cause_bypass.
     crate::game::tconstruct_source_material_effects::reinforced_wear(loss, dense,
         amount("tconstruct:reinforced") + 4 * trait_level("tconstruct:reinforced"), amount("tconstruct:unbreakable") > 0 || trait_level("tconstruct:unbreakable") > 0,
-        None, || game.world.random.next_float())
+        cause, || game.world.random.next_float())
 }

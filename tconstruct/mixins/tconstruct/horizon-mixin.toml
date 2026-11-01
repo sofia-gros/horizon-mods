@@ -2920,6 +2920,16 @@ helper = "source-overslime-craft-remainders.rs"
 bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid", ty = "&[Option<ItemStack>]", value = "grid" }, { name = "size", ty = "usize", value = "size" }]
 
 [[state]]
+id = "modifier-wear-cause"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "overslime-pending"
 target = "horizon_client::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>,Vec<(horizon_items::items::ItemStack,u32)>>"
