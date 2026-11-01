@@ -46,13 +46,11 @@ def wait_widget(label):
   time.sleep(.2)
  raise AssertionError('missing widget '+label)
 def sprint(ticks):
- print('SPRINT',ticks,flush=True);g.call('command',f'tick sprint {ticks}');
- # Game control stays available between sprint batches. Poll for completion;
- # clock queries do not change the generated product.
- for _ in range(240):
+ start=g.call('state')['ticks'];print('SPRINT',ticks,'FROM',start,flush=True);g.call('command',f'tick sprint {ticks}')
+ # Poll the actual simulation counter rather than guessing from wall time.
+ for _ in range(360):
   time.sleep(.5)
-  msg=g.call('command','tick query',timeout=50)
-  if 'sprinting' not in str(msg).lower():break
+  if g.call('state',timeout=50)['ticks'] >= start+ticks:break
  else:raise AssertionError('tick sprint did not finish')
  g.call('wait','10');print('SPRINT FINISHED',flush=True)
 def checkpoint():g.call('save');g.stop();print('PASS PHASE',a.phase,flush=True)
