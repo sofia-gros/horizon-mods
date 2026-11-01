@@ -14,8 +14,7 @@ fn tconstruct_bow_release(
         let actor = game.lan_acting;
         let mut dispatch_ticks = adjusted;
         if let Some((velocity, spread)) = crate::game::tconstruct_projectile_stats::projectile_stats(stack) {
-            let f = adjusted as f32 / 20.0;
-            let power = ((f * f + f * 2.0) / 3.0).min(1.0) * 3.0;
+            let power = crate::game::tconstruct_projectile_stats::bow_charge(ticks, draw_ticks) * 3.0;
             if power * velocity < 0.3 { return Break(()); }
             dispatch_ticks = adjusted.max(3);
             game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, vec![(0.0, power)], true));

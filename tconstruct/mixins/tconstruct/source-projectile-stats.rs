@@ -17,6 +17,11 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     Some((velocity, 3.0 * (1.0 / accuracy - 1.0)))
 }
 
+pub(crate) fn bow_charge(elapsed: u32, draw_ticks: u32) -> f32 {
+    let f = elapsed as f32 / draw_ticks.max(1) as f32;
+    ((f * f + f * 2.0) / 3.0).min(1.0)
+}
+
 pub(crate) fn crossbow_angle(index: usize, count: usize) -> f64 {
     (index as f64 - count.saturating_sub(1) as f64 / 2.0) * 10.0
 }
@@ -39,6 +44,14 @@ mod tests {
             assert!((v - 1.25).abs() < 1e-6);
             assert!((spread - 1.0).abs() < 1e-6);
         }
+    }
+    #[test]
+    fn source_fractional_charge() {
+        let c = bow_charge(1, 14);
+        assert!((c - 0.04931973).abs() < 1e-6);
+        assert!(c * 2.5 >= 0.1);
+        assert!((bow_charge(7, 14) - (1.25 / 3.0)).abs() < 1e-6);
+        assert_eq!(bow_charge(14, 14), 1.0);
     }
     #[test]
     fn source_fan_angles() {
