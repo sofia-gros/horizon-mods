@@ -60,6 +60,13 @@ try:
     positions=setup('kama','wheat',0);before=g.call('inventory')['held'];g.call('look-at','20.5','100.1','20.5');assert g.call('looking-at').get('block',{}).get('pos')==[20,100,20],g.call('looking-at');g.call('use-item');g.call('wait','20');after=g.call('inventory')['held']
     assert 'age=0' in at(*positions[0]) and before.get('damage',0)==after.get('damage',0),(before,after,at(*positions[0]))
     harvest('kama','carrots',7,'minecraft:carrot')
+    # Torchflower seeds are absent from the pinned source seed tag, so the
+    # original crop path destroys the mature crop and drops the seed intact.
+    positions=setup('kama','torchflower_crop',1);before=g.call('inventory')['held'];count=total('minecraft:torchflower_seeds')
+    g.call('interact','20','100','20','up');g.call('wait','20');after=g.call('inventory')['held']
+    assert at(*positions[0])=='minecraft:air' and total('minecraft:torchflower_seeds')-count==1,(at(*positions[0]),after)
+    assert after.get('damage',0)-before.get('damage',0)==1,(before,after)
+    print('seedless source tag crop drops and breaks',flush=True)
     harvest('scythe','wheat',7,'minecraft:wheat',True);g.call('screenshot',str(run/'crop-harvest.png'))
     # Left-click uses the ordinary authoritative block break path and its
     # source effective predicate, rather than the replant interaction.
