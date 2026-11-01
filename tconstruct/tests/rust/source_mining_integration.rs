@@ -37,3 +37,11 @@ fn per_stack_rules_respect_effective_blocks_broken_and_material_swap() {
     tconstruct_source_mining_stack::apply(&mut stack, &stats, &BTreeMap::new(), &[], true).unwrap();
     assert!((tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items) - 3.5).abs() < 0.0001);
 }
+
+#[test]
+fn unsupported_harvest_tool_without_rules_still_builds() {
+    let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":2.0}}]}"#;
+    let stats = tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+    let mut stack = ItemStack::new("tconstruct:flint_and_brick", 1);
+    assert!(tconstruct_source_mining_stack::apply(&mut stack, &stats, &BTreeMap::new(), &[], true).is_some());
+}

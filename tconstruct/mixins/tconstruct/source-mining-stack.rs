@@ -10,7 +10,9 @@ pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_stat
     let vintage = level("tconstruct:vintage");
     let speed = super::tconstruct_source_mining_math::base_speed(stats.mining_speed, stats.mining_speed_add_multiplier,
         level("tconstruct:lightweight"), level("tconstruct:heavy"), vintage, level("tconstruct:entangled") > 0);
-    let mut tool = stack.data()?.other("minecraft:tool")?.clone();
+    // Some harvest-tagged equipment has no supported per-stack tool rules yet.
+    // Preserve assembly instead of rejecting the item when those rules are absent.
+    let Some(mut tool) = stack.data().and_then(|data| data.other("minecraft:tool")).cloned() else { return Some(()); };
     let Tag::Compound(ref mut fields) = tool else { return None; };
     let Some(Tag::List(rules)) = fields.get_mut(&"rules".into()) else { return None; };
     for rule in rules {
