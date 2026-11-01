@@ -44,4 +44,13 @@ fn original_gold_cast_creation_accepts_the_material_part() {
     assert!(!recipe.cast.as_ref().unwrap().matches("tconstruct:tool_handle", &|_,_| false));
     assert!(recipe.consumes_cast && recipe.switch_slots);
     assert_eq!(recipe.fluid.amount, 90);
+    let recipes = [("source:gold_pick_head_cast".to_owned(), bytes)].into_iter().collect();
+    let item_tags = HashMap::new();
+    let fluid_tags = [("forge:molten_gold".to_owned(), ["tconstruct:molten_gold".to_owned()].into_iter().collect())].into_iter().collect();
+    let known_items = ["tconstruct:pick_head", "tconstruct:pick_head_cast"].into_iter().map(str::to_owned).collect();
+    let known_fluids = ["tconstruct:molten_gold".to_owned()].into_iter().collect();
+    let catalog = tconstruct_source_melting_lookup::Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+    let (_, recipe, result) = catalog.casting(false, Some("tconstruct:pick_head"), "tconstruct:molten_gold", &|_| true).unwrap();
+    assert_eq!(result, "tconstruct:pick_head_cast");
+    assert!(recipe.consumes_cast && recipe.switch_slots);
 }

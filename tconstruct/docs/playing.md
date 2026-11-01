@@ -139,9 +139,15 @@ Cast molten copper over a Seared Bricks block in a basin to make a Smeltery Cont
 
 ### Nether Cobalt
 
-The in-development Cobalt ore generates in new Nether chunks, embedded in Netherrack. An iron-tier or stronger pickaxe can mine it for Raw Cobalt; Silk Touch retains the ore. A blast furnace can process the ore or raw material into Cobalt ingots, and Cobalt Shards into nuggets. These additions have not yet been checked in a game-generated world. Metallic part casting remains incomplete, so do not yet assume a Cobalt ingot can produce a tool part.
+The in-development Cobalt ore generates in new Nether chunks, embedded in Netherrack. An iron-tier or stronger pickaxe can mine it for Raw Cobalt; Silk Touch retains the ore. A blast furnace can process the ore or raw material into Cobalt ingots, and Cobalt Shards into nuggets. These additions have not yet been checked in a game-generated world. Material part casting is being connected but has not yet been tested in game. The source cast and molten material determine the resulting part; the Part Builder does not accept Cobalt ingots as a substitute.
 
 ![An Ichor Geode in the Nether, shown as prior related exploration](ichor-geode-natural.png)
+
+### Casting metal parts
+
+In development: make a part-shaped cast, place it on a Casting Table, and pour an appropriate molten material into it. The source recipe determines the amount and resulting material. A gold cast is reusable; a sand cast is consumed. This route, including cast production, cooling and survival assembly, still needs the planned game test. Composite material fluids and recipes with unsupported material predicates remain unavailable.
+
+![Previously tested Smeltery equipment](survival-controller-casting.png)
 
 ### Reinforced
 
