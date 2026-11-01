@@ -17,10 +17,10 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 7] = [
+const UPGRADES: [(&str, i32); 8] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
-    ("tconstruct:diamond", 1), ("tconstruct:emerald", 1),
+    ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
 ];
 
 pub(super) fn selection_id(index: usize) -> Option<&'static str> {

@@ -25,6 +25,25 @@ pub(super) fn dense_reduce(mut loss: u32, level: i32, mut next: impl FnMut() -> 
     loss
 }
 
+/// Source Reinforced chance uses the effective incremental level.
+pub(super) fn reinforced_probability(amount: i32) -> f32 {
+    let level = amount.max(0) as f32 / 4.0;
+    if level <= 5.0 { (0.025 * level * (11.0 - level)).clamp(0.0, 1.0) }
+    else { (0.5 + 0.05 * level).clamp(0.0, 1.0) }
+}
+
+/// Ordinary wear applies Dense before Reinforced (equal source priority, ID order).
+/// Explicit bypass applies only to Reinforced, as with the source cause tag.
+pub(super) fn reinforced_wear(loss: u32, dense: i32, amount: i32, unbreakable: bool,
+    bypass_reinforced: bool, mut next: impl FnMut() -> f32) -> u32 {
+    let loss = dense_reduce(loss, dense, &mut next);
+    if unbreakable || bypass_reinforced { return loss; }
+    let chance = reinforced_probability(amount);
+    if chance <= 0.0 { return loss; }
+    if chance >= 1.0 { return 0; }
+    (0..loss).filter(|_| next() >= chance).count() as u32
+}
+
 pub(super) fn durability_boost(preserved: i32, ductile: i32) -> f32 {
     preserved as f32 * 0.15 + ductile as f32 * 0.1
 }

@@ -69,7 +69,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
                         let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
                         let tip = key.and_then(|key| game.pack.names.display_get(&format!("{key}.description")));
-                        let needed = match id.as_ref() { "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72, "tconstruct:haste" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" => 10, "tconstruct:diamond" | "tconstruct:emerald" => 1, _ => continue };
+                        let needed = match id.as_ref() { "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" => 72, "tconstruct:haste" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" => 10, "tconstruct:reinforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" => 1, _ => continue };
                         let shown = if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald") { label } else { format!("{label}: {amount}/{needed}") };
                         bottom.push((shown, tip));
                     }
