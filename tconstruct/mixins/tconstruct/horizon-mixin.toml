@@ -2619,3 +2619,16 @@ id = "source-crop-loot"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_crop_loot"
 source = "source-crop-loot.rs"
+
+[[module]]
+id = "source-melee-knockback"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_melee_knockback"
+source = "source-melee-knockback.rs"
+
+[[injection]]
+id = "source-melee-knockback-return"
+target = "horizon_client::game::enchant_effects::Game<'_>::extra_knockback"
+kind = "RETURN"
+helper = "source-melee-knockback-return.rs"
+bindings = [{ name = "value", ty = "(f32,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
