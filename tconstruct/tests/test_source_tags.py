@@ -27,7 +27,7 @@ class SourceTags(unittest.TestCase):
     def test_tag_layer_matches_reference_manifest(self):
         root = ROOT / 'content/reference/tconstruct-tags'
         rows = (ROOT / 'docs/upstream-tags.sha256').read_text().splitlines()
-        self.assertEqual(len(rows), 427)
+        self.assertEqual(len(rows), 428)
         expected = {}
         for row in rows:
             digest, path = row.split('  ', 1)
