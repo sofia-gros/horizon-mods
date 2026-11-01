@@ -1,5 +1,5 @@
 """Melt obsidian and emerald, cast four reinforcements and apply them."""
-import argparse
+import argparse,subprocess
 from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
@@ -13,7 +13,10 @@ def empty():
  slot=next(x['slot'] for x in g.call('inventory')['hotbar'] if not x.get('item'));g.call('hotbar',str(slot+1));g.call('wait','10')
 def count(i):return g.call('inventory')['counts'].get(i,0)
 def smelt(item):
- cmd('tp @s 0.5 71 -1.5');empty();g.call('interact','0','71','1');g.call('wait','15');click(hot(item));click(302);g.call('wait','600',timeout=50);slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert not slots.get(302),(item,slots);g.call('close')
+ cmd('tp @s 0.5 71 -1.5');empty();g.call('wait','30')
+ try:g.call('interact','0','71','1')
+ except subprocess.CalledProcessError as e:print('CONTROLLER',e.stdout,e.stderr,'BLOCK',g.call('block','0','71','1'),'STATUS',g.call('status'),flush=True);raise
+ g.call('wait','15');click(hot(item));click(302);g.call('wait','600',timeout=50);slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};assert not slots.get(302),(item,slots);g.call('close')
 def table(output,cast=None):
  cmd('tp @s 2.5 71 4.5')
  if cast:select(cast);g.call('interact','0','70','4');g.call('wait','5')
@@ -22,7 +25,7 @@ try:
  g.ready()
  if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
  for xyz in ((0,71,1),(1,71,2),(0,71,3),(0,71,4),(0,70,4)):cmd('setblock %d %d %d minecraft:air'%xyz)
- for c in ('gamemode creative @s','clear @s','tp @s 2.5 71 1.5','setblock 0 70 2 tconstruct:seared_bricks','setblock 0 71 2 minecraft:air','setblock -1 71 2 tconstruct:seared_bricks','setblock 1 71 2 tconstruct:seared_fuel_tank','setblock 0 71 3 tconstruct:seared_drain[facing=south]','setblock 0 71 1 tconstruct:smeltery_controller[facing=north,lit=false]','setblock 0 71 4 tconstruct:seared_faucet[facing=south]','setblock 0 70 4 tconstruct:seared_table','give @s minecraft:lava_bucket 1','give @s minecraft:obsidian 1','give @s minecraft:emerald 1'):cmd(c)
+ for c in ('gamemode creative @s','clear @s','tp @s 2.5 71 1.5','fill -2 71 -2 2 73 0 minecraft:air','fill -3 70 -3 3 70 5 minecraft:stone','setblock 0 70 2 tconstruct:seared_bricks','setblock 0 71 2 minecraft:air','setblock -1 71 2 tconstruct:seared_bricks','setblock 1 71 2 tconstruct:seared_fuel_tank','setblock 0 71 3 tconstruct:seared_drain[facing=south]','setblock 0 71 1 tconstruct:smeltery_controller[facing=north,lit=false]','setblock 0 71 4 tconstruct:seared_faucet[facing=south]','setblock 0 70 4 tconstruct:seared_table','give @s minecraft:lava_bucket 1','give @s minecraft:obsidian 1','give @s minecraft:emerald 1'):cmd(c)
  select('minecraft:lava_bucket');g.call('interact','1','71','2');g.call('wait','10')
  smelt('minecraft:obsidian')
  for _ in range(4):table('tconstruct:obsidian_pane')
