@@ -51,8 +51,10 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         if !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_/-".contains(&c)) { return; }
         let sprite = format!("gui/tconstruct_book_{}", name.replace(['/', '-'], "_"));
         if let Some(rect) = atlas.sprites.get(&sprite) {
-            let scale = (110.0 / rect.w as f32).min(105.0 / rect.h as f32).min(1.0);
-            let (w, h) = (rect.w as f32 * scale, rect.h as f32 * scale);
+            let width = spec.get("width").and_then(|v| v.as_u64()).unwrap_or(rect.w as u64).clamp(1, 4096) as f32;
+            let height = spec.get("height").and_then(|v| v.as_u64()).unwrap_or(rect.h as u64).clamp(1, 4096) as f32;
+            let scale = (110.0 / width).min(105.0 / height).min(1.0);
+            let (w, h) = (width * scale, height * scale);
             batch.sprite_scaled(atlas, &sprite, left + 38.0 + (110.0 - w) / 2.0, 51.0, w, h, u32::MAX);
         }
         return;

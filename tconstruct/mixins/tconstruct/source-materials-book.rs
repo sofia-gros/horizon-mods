@@ -202,8 +202,10 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
             let Some(raw) = read(&mut zip, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
-            let graphic = value.get("image").and_then(|v| v.get("file")).and_then(|v| v.as_str())
-                .map(|s| serde_json::json!({"image":s}))
+            let graphic = value.get("image").and_then(|image| {
+                let file = image.get("file")?.as_str()?;
+                Some(serde_json::json!({"image":file,"width":image.get("width")?.as_u64()?,"height":image.get("height")?.as_u64()?}))
+            })
                 .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
                 .or_else(|| {
                     let rows = value.get("grid")?.as_array()?;
