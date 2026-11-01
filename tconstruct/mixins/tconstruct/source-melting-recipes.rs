@@ -218,13 +218,18 @@ mod foundry_tests {
 pub(super) enum Output { Item(String), Tag(String) }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct CastingRecipe {
-    pub basin: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
+    pub basin: bool, pub retextured: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
     pub switch_slots: bool, pub fluid: FluidSpec, pub output: Output, pub cooling_time: u32,
 }
 impl CastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        let basin = match v.get("type")?.as_str()? { "tconstruct:casting_table" => false, "tconstruct:casting_basin" => true, _ => return None };
+        let (basin, retextured) = match v.get("type")?.as_str()? {
+            "tconstruct:casting_table" => (false, false),
+            "tconstruct:casting_basin" => (true, false),
+            "tconstruct:retextured_casting_basin" => (true, true),
+            _ => return None,
+        };
         if !enabled(&v, conditions) { return None; }
         let cast = match v.get("cast") { Some(value) => Some(Ingredient::parse(value)?), None => None };
         let result = v.get("result")?;
@@ -238,7 +243,7 @@ impl CastingRecipe {
             };
         let cooling_time = u32::try_from(v.get("cooling_time")?.as_u64()?).ok()?;
         if cooling_time == 0 { return None; }
-        Some(Self { basin, cast, consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
+        Some(Self { basin, retextured, cast, consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
             switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false),
             fluid: FluidSpec::parse(v.get("fluid")?)?, output, cooling_time })
     }

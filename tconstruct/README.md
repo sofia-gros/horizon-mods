@@ -31,3 +31,5 @@ See [Build and test](docs/development.md) for source preparation, tests, and the
 Sky Geodes provide [Skyslime Crystals](docs/playing.md#skyslime-crystals) in newly generated land areas. Natural generation, mining, Worktable use, reload and LAN visibility have representative Linux checks; crystal regrowth is not implemented.
 
 Earthslime, Ichor and Enderslime Geodes have representative Linux natural generation, mining and crystal-use checks. Crystal regrowth and many material traits remain unimplemented.
+
+The early [Smeltery crafting route](docs/playing.md#early-smeltery-crafting) has a representative Linux game check from Grout through Controller casting, Rose Gold and a crafted Tinkers' Anvil, including LAN Melter input. The test used vanilla material and fuel fixtures; see the guide for its scope.

@@ -117,9 +117,16 @@ impl Catalog<'_> {
             };
             if !matched { continue; }
             let Some(output) = self.output(&recipe.output) else { continue; };
+            // The source retextures the result from the consumed cast. The
+            // current controller models implement only these default brick
+            // textures; reject other casts until their identities persist and
+            // render correctly instead of silently losing their appearance.
+            if recipe.retextured && !matches!((output.as_str(), input),
+                ("tconstruct:smeltery_controller", Some("tconstruct:seared_bricks")) |
+                ("tconstruct:foundry_controller", Some("tconstruct:scorched_bricks"))) { continue; }
             if let Some((_, previous, previous_output)) = &found {
                 if previous.fluid.amount != recipe.fluid.amount || previous.cooling_time != recipe.cooling_time
-                    || previous.consumes_cast != recipe.consumes_cast || previous.switch_slots != recipe.switch_slots
+                    || previous.consumes_cast != recipe.consumes_cast || previous.switch_slots != recipe.switch_slots || previous.retextured != recipe.retextured
                     || previous_output != &output { return None; }
             } else { found = Some((id.clone(), recipe, output)); }
         }

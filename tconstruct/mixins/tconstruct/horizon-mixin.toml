@@ -2176,6 +2176,19 @@ name = "tconstruct_source_machine_runtime"
 source = "source-machine-runtime.rs"
 
 [[injection]]
+id = "source-faucet-placement-facing"
+target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
+kind = "HEAD"
+cancellable = true
+helper = "source-faucet-placement-facing.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
 id = "source-machine-place"
 target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
 kind = "HEAD"
@@ -2797,6 +2810,23 @@ target = "horizon_client::crafting::Recipes::assemble_if_matches"
 kind = "HEAD"
 cancellable = true
 helper = "anvil-material-recipe.rs"
+bindings = [
+  { name = "input", ty = "&Input<'_>", value = "input" },
+  { name = "recipe", ty = "&Recipe", value = "recipe" },
+]
+
+[[module]]
+id = "survival-empty-tank"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_survival_empty_tank"
+source = "survival-empty-tank.rs"
+
+[[injection]]
+id = "survival-melter-no-container"
+target = "horizon_client::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "survival-melter-recipe.rs"
 bindings = [
   { name = "input", ty = "&Input<'_>", value = "input" },
   { name = "recipe", ty = "&Recipe", value = "recipe" },

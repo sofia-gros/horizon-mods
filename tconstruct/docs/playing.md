@@ -124,6 +124,18 @@ Put the tool and material in the input slots, then take the result on the right.
 
 Sharpness needs 36 quartz per level, Swiftstrike needs 72 amethyst shards, and Haste needs 45 redstone dust. Blocks add multiple units and return unused material. Haste increases mining speed on harvest tools and chestplates. Partial additions use an upgrade slot.
 
+### Early Smeltery crafting
+
+Combine a clay ball, sand and gravel for two Grout, then smelt Grout into Seared Bricks. Four Seared Bricks make a Seared Bricks block. Use individual bricks and glass to craft an empty Seared Fuel Gauge, and combine the gauge with bricks to make a Melter. A Seared Heater beneath it supplies solid fuel. Craft a Seared Faucet and Casting Basin to pour the melted metal.
+
+![A crafted Melter and Faucet above a Casting Basin](survival-controller-casting.png)
+
+On Linux, a representative game test crafted the early equipment and cast a Controller using the preceding outputs; a LAN guest supplied the Melter inputs. The same equipment then produced Rose Gold blocks for a crafted and placed Tinkers' Anvil. The test recovered one mistakenly cast Copper Block with the vanilla recipe and refilled the Smeltery fuel before continuing. Vanilla raw materials, fuel, furnace and crafting table were test fixtures, and processing time was accelerated.
+
+![The crafted Tinkers' Anvil open in the game](survival-crafted-anvil.png)
+
+Cast molten copper over a Seared Bricks block in a basin to make a Smeltery Controller. This first implementation accepts the ordinary Seared Bricks cast; the original's other controller textures are not yet supported. A Smeltery can alloy copper and gold into Rose Gold for the blocks used in an Anvil. Nether Grout can be made from magma cream, gravel and soul sand or soul soil, then smelted into Scorched Bricks for the Scorched Anvil.
+
 ### Reinforced
 
 Melt obsidian and cast an Obsidian Pane, then cast molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. Ordinary tool, armor and ranged weapon wear can be prevented. Extract and reapply Reinforced with a Modifier Crystal. Glowing and its modifier-caused wear are not implemented.
