@@ -76,7 +76,15 @@ try:
     for command in ('give @s minecraft:shulker_shell 2','give @s minecraft:dragon_breath 1','give @s minecraft:netherite_ingot 2'): cmd(command)
     apply('tinkers_anvil', [('minecraft:shulker_shell',[301,303]),('minecraft:dragon_breath',[302]),('minecraft:netherite_ingot',[304,305])], 'unbreakable')
     assert '"tconstruct:unbreakable":1' in current().get('components',''), current()
-    print('PASS natural recipe transaction chain using supplied ingredients', flush=True)
-    g.call('save'); g.stop()
+    print('PASS recipe transaction chain using supplied ingredients', flush=True)
+    g.call('save'); g.stop(); g.cleanup()
+    g = Game(a, run, 'Player', in_frame=a.in_frame, resume=True)
+    g.ready()
+    loaded = current()
+    assert '"tconstruct:netherite":1' in loaded.get('components',''), loaded
+    assert '"tconstruct:reinforced":20' in loaded.get('components',''), loaded
+    assert '"tconstruct:unbreakable":1' in loaded.get('components',''), loaded
+    print('PASS modifier save and reload', flush=True)
+    g.stop()
 finally:
     g.cleanup()
