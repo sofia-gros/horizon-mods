@@ -32,7 +32,9 @@ def wait(predicate):
         if predicate():
             return
         time.sleep(0.2)
+    print('GUEST STATUS', json.dumps(q.call('status')), flush=True)
     print('GUEST MENU', json.dumps(q.call('menu')), flush=True)
+    q.call('screenshot',str(run/'reinforced-lan-diagnostic.png'))
     print('HOST BLOCK', json.dumps(h.call('block', '0', '71', '2')), flush=True)
     raise AssertionError('timed out waiting for station state')
 try:
@@ -43,9 +45,10 @@ try:
     q = Game(a, run, 'Guest', server='127.0.0.1:' + str(port), resume=(run / 'Guest').exists())
     games.append(q)
     q.ready()
-    for x in ('gamemode creative @a', 'kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]', 'clear @a', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:scorched_anvil', 'give Guest tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85,tic_attack_damage:1.75f,tic_attack_speed:1.2f},minecraft:max_damage=85] 1', 'give Guest tconstruct:emerald_reinforcement 1'):
+    for x in ('gamemode creative @a', 'gamerule minecraft:spawn_mobs false', 'kill @e[type=minecraft:slime]', 'kill @e[type=minecraft:zombie]', 'clear @a', 'fill -2 71 -1 2 73 3 minecraft:air', 'tp @s -0.5 71 0.5', 'tp Guest 1.5 71 0.5', 'setblock 0 71 2 minecraft:air', 'setblock 0 71 2 tconstruct:scorched_anvil', 'give Guest tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85,tic_attack_damage:1.75f,tic_attack_speed:1.2f},minecraft:max_damage=85] 1', 'give Guest tconstruct:emerald_reinforcement 1'):
         cmd(h, x)
     wait(lambda: q.call('block', '0', '71', '2').get('block') == 'tconstruct:scorched_anvil')
+    q.call('hotbar','9');q.call('wait','10')
     print('interact', q.call('interact', '0', '71', '2'), flush=True)
     wait(lambda: any((w['id'] == 'slot-300' for w in q.call('ui')['widgets'])))
     print('station open', flush=True)

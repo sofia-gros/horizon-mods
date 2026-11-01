@@ -39,5 +39,7 @@ try:
  result=g.call('menu')['carried'] or {};assert result.get('item')=='tconstruct:pickaxe',result;dest=next(x['slot'] for x in g.call('inventory')['hotbar'] if not x.get('item'));click(dest);g.call('close');g.call('wait','8');held=next(x for x in g.call('inventory')['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert '"tconstruct:reinforced":1' in held.get('components',''),held
  g.call('interact','0','71','2');g.call('wait','12');click(hot('tconstruct:pickaxe'));click(300);click(hot('tconstruct:emerald_reinforcement'));click(301);click(325);assert (g.call('menu')['carried'] or {}).get('item')=='tconstruct:pickaxe';g.call('screenshot',str(run/'reinforced-station.png'));dest=next(x['slot'] for x in g.call('inventory')['hotbar'] if not x.get('item'));click(dest);g.call('close');g.call('wait','8')
  held=next(x for x in g.call('inventory')['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert '"tconstruct:reinforced":4' in held.get('components',''),held
- assert count('tconstruct:emerald_reinforcement')==0;g.call('save');g.stop();print('PASS natural Reinforced casting and partial/full application',flush=True)
+ assert count('tconstruct:emerald_reinforcement')==0;g.call('save');g.stop();g.cleanup()
+ g=Game(a,run,'Player',in_frame=a.in_frame,resume=True);g.ready();held=next(x for x in g.call('inventory')['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert '"tconstruct:reinforced":4' in held.get('components',''),held
+ g.stop();print('PASS natural Reinforced casting, partial/full application and reload',flush=True)
 finally:g.cleanup()

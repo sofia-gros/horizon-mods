@@ -126,7 +126,11 @@ Sharpness needs 36 quartz per level, Swiftstrike needs 72 amethyst shards, and H
 
 ### Reinforced
 
-Reinforced is in development and has not yet been validated in game. The source route melts obsidian and casts an Obsidian Pane, then casts molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. The damage-reduction implementation currently covers ordinary wear, while Glowing and its modifier-caused wear remain unimplemented.
+Melt obsidian and cast an Obsidian Pane, then cast molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. Ordinary tool, armor and ranged weapon wear can be prevented. Extract and reapply Reinforced with a Modifier Crystal. Glowing and its modifier-caused wear are not implemented.
+
+![Casting Emerald Reinforcements](reinforced-natural-cast.png)
+
+![Extracting Reinforced into a Modifier Crystal](reinforced-crystal-extraction.png)
 
 ### Gem upgrades
 
