@@ -4,7 +4,7 @@ from pathlib import Path
 from harness import Game
 p=argparse.ArgumentParser()
 for n in ('game','ctl','resources','run-dir'): p.add_argument('--'+n,type=Path,required=True)
-p.add_argument('--phase',choices=['mine','cast','lan','reload','blast'],required=True);p.add_argument('--in-frame',action='store_true')
+p.add_argument('--phase',choices=['mine','cast','lan','reload','blast','blast-resume'],required=True);p.add_argument('--in-frame',action='store_true')
 a=p.parse_args();a.natural_world=True;a.world_seed=42
 run=a.run_dir.resolve();assert run.is_relative_to((Path(__file__).resolve().parents[2]/'target').resolve());world=run/'Sky'
 assert (world/'Player/saves/Probe').is_dir(), 'requires existing disposable seed-42 world'
@@ -104,11 +104,17 @@ try:
   x,y,z=next(entry['pos'] for entry in r['nearest'] if entry['pos'][1]>=35);print('BLAST_NATURAL_ORE',42,[x,y,z],flush=True)
   for c in ('gamemode creative @s',f'fill {x} {y} {z-1} {x} {y+1} {z-1} minecraft:air',f'setblock {x} {y-1} {z-1} minecraft:netherrack',f'setblock {x} {y-1} {z} minecraft:netherrack',f'tp @s {x+0.5} {y} {z-0.5}','effect give @s minecraft:fire_resistance 3600 0 true','gamemode survival @s'):cmd(c)
   select('minecraft:iron_pickaxe');before=count('tconstruct:raw_cobalt');r=g.call('break',x,y,z,'--timeout','45',timeout=50);print('BLAST_MINE',r,flush=True);g.call('wait','15');assert count('tconstruct:raw_cobalt')>before,inv()
-  where('overworld',2044,80,2046)
-  for c in ('gamemode creative @s','setblock 2044 80 2048 minecraft:blast_furnace','give @s minecraft:coal 1','gamemode survival @s'):cmd(c)
-  empty();g.call('interact','2044','80','2048');g.call('wait','10');click(hot('tconstruct:raw_cobalt'));click(300);click(hot('minecraft:coal'));click(301);sprint(500)
+  where('overworld',2049,79,2046)
+  for c in ('gamemode creative @s','setblock 2049 79 2048 minecraft:blast_furnace','give @s minecraft:coal 1','gamemode survival @s'):cmd(c)
+  empty();g.call('interact','2049','79','2048');g.call('wait','10');click(hot('tconstruct:raw_cobalt'));click(300);click(hot('minecraft:coal'));click(301);sprint(500)
   slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('BLAST_OUTPUT',slots,flush=True);assert (slots.get(302) or {}).get('item')=='tconstruct:cobalt_ingot',slots
   click(302);click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('screenshot',str(run/'cobalt-blasting.png'));g.call('close');g.call('save');g.stop();print('PASS natural cobalt blast furnace',flush=True)
+ elif a.phase=='blast-resume':
+  assert count('tconstruct:raw_cobalt')>=1,inv();where('overworld',2049,79,2046)
+  for c in ('gamemode creative @s','setblock 2049 79 2048 minecraft:blast_furnace','gamemode survival @s'):cmd(c)
+  empty();g.call('interact','2049','79','2048');g.call('wait','10');click(hot('tconstruct:raw_cobalt'));click(300);click(hot('minecraft:coal'));click(301);sprint(500)
+  slots={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('BLAST_OUTPUT',slots,flush=True);assert (slots.get(302) or {}).get('item')=='tconstruct:cobalt_ingot',slots
+  g.call('screenshot',str(run/'cobalt-blasting.png'));click(302);click(next(x['slot'] for x in inv()['hotbar'] if not x.get('item')));g.call('close');g.call('save');g.stop();print('PASS natural cobalt blast furnace',flush=True)
  elif a.phase=='reload':
   part=next(x for x in inv()['hotbar'] if x.get('item')=='tconstruct:pickaxe');assert 'tconstruct:cobalt' in part.get('components',''),part
   cmd('tp @s 2046.5 80 2046.5');cmd('setblock 2046 80 2047 minecraft:stone');cmd('gamemode survival @s');select('tconstruct:pickaxe');g.call('break','2046','80','2047','--timeout','45',timeout=50);g.call('save');g.stop();print('PASS cobalt tool reload and mining',flush=True)
