@@ -43,6 +43,7 @@ try:
  g.ready()
  if a.phase=='mine':
   for c in ('gamemode creative @s','clear @s','give @s minecraft:iron_pickaxe 1','effect give @s minecraft:fire_resistance 3600 0 true'):cmd(c)
+  where('overworld',6000,0,6000);outside=g.call('find-block','tconstruct:cobalt_ore','32',timeout=90);print('OVERWORLD_EXCLUSION',outside,flush=True);assert not outside['nearest'],outside
   found=None
   for x,z in [(6000,6000),(6208,6000),(6000,6208),(6400,6400)]:
    where('the_nether',x,35,z);r=g.call('find-block','tconstruct:cobalt_ore','64',timeout=90);print('SEARCH',42,x,z,r,flush=True)
