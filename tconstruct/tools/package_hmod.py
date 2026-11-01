@@ -131,6 +131,44 @@ def package(output):
                                       2 if short == 'dagger' else 1)
         add(declaration, json.dumps(data, separators=(',', ':')).encode())
 
+    # Make the source sprites addressable by the same vanilla model aliases
+    # used by the material and tool renderers in the desktop overlay.
+    forge_model = json.loads((MOD / 'content/reference/forge-default-item-model.json').read_text())
+    for name in list(files):
+        prefix = 'assets/tconstruct/textures/'
+        if not name.startswith(prefix) or not name.endswith('.png'):
+            continue
+        sprite = name.removeprefix(prefix).removesuffix('.png')
+        for kind in ('part', 'tool'):
+            alias = 'tconstruct_' + kind + '/' + sprite
+            model_path = 'assets/tconstruct/models/item/' + alias + '.json'
+            item_path = 'assets/tconstruct/items/' + alias + '.json'
+            if model_path not in files:
+                add(model_path, json.dumps({'parent': 'minecraft:builtin/generated',
+                    'gui_light': forge_model['gui_light'], 'display': forge_model['display'],
+                    'textures': {'layer0': 'tconstruct:' + sprite, 'particle': 'tconstruct:' + sprite}}).encode())
+            if item_path not in files:
+                add(item_path, json.dumps({'model': {'type': 'minecraft:model',
+                    'model': 'tconstruct:item/' + alias}}).encode())
+    for short, template in sorted(templates.items()):
+        item_path = 'assets/tconstruct/items/' + short + '.json'
+        model_path = 'assets/tconstruct/models/item/' + short + '.json'
+        if item_path not in files:
+            add(item_path, json.dumps({'model': {'type': 'minecraft:model',
+                'model': 'tconstruct:item/' + short}}).encode())
+        if model_path not in files:
+            source_model = 'assets/tconstruct/tinkering/source_part_models/' + short + '.json'
+            if source_model in files:
+                texture = json.loads(files[source_model])['textures']['texture']
+            elif 'assets/tconstruct/textures/item/materials/' + short + '.png' in files:
+                texture = 'tconstruct:item/materials/' + short
+            elif 'assets/tconstruct/textures/item/' + short + '.png' in files:
+                texture = 'tconstruct:item/' + short
+            else:
+                texture = template.replace('minecraft:', 'minecraft:item/')
+            add(model_path, json.dumps({'parent': 'minecraft:item/generated',
+                'textures': {'layer0': texture}}).encode())
+
     # These are original layers, not Horizon's merged tag tables. Keeping them
     # under assets prevents the content loader from flattening their semantics.
     prefix = 'assets/tconstruct/source-packs/'
