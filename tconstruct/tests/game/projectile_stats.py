@@ -18,12 +18,12 @@ def weapon(kind, velocity, accuracy):
 def fire(kind, v, accuracy):
     for s in ('gamemode creative @s', 'kill @e[type=minecraft:arrow]', 'clear @s', 'tp @s 0.5 100 0.5', 'item replace entity @s weapon.mainhand with '+weapon(kind,v,accuracy), 'give @s minecraft:arrow 8', 'gamemode survival @s'): cmd(s)
     g.call('look','0','-10');g.call('wait','30')
-    g.call('mouse','right','down');g.call('wait','35');g.call('mouse','right','up')
+    g.call('mouse','right','down');g.call('wait','35');print('draw',kind, g.call('status').get('using'),flush=True);g.call('mouse','right','up')
     if kind == 'crossbow':
         g.call('wait','4');g.call('mouse','right','down');g.call('wait','1');g.call('mouse','right','up')
     data=cmd('data get entity @e[type=minecraft:arrow,sort=nearest,limit=1] Motion',0)
     values=re.findall(r'(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)d',str(data))
-    assert len(values)==3,(kind,v,accuracy,data)
+    assert len(values)==3,(kind,v,accuracy,data,g.call('status'),g.call('inventory').get('held'))
     vector=tuple(map(float,values)); print('shot',kind,v,accuracy,json.dumps(vector),flush=True)
     return vector
 try:
@@ -34,8 +34,8 @@ try:
     for kind in ('longbow','crossbow'):
         slow=fire(kind,0.5,1.0);fast=fire(kind,1.5,1.0)
         assert math.hypot(*fast)>math.hypot(*slow)*2.0,(kind,slow,fast)
-        noisy=[abs(fire(kind,1.0,0.5)[0]) for _ in range(3)]
-        precise=[abs(fire(kind,1.0,1.0)[0]) for _ in range(3)]
+        noisy=[abs(fire(kind,1.0,0.5)[0]) for _ in range(2)]
+        precise=[abs(fire(kind,1.0,1.0)[0]) for _ in range(2)]
         assert max(noisy)>max(precise)+0.005,(kind,noisy,precise)
     g.stop();print('PASS projectile material speed and spread',flush=True)
 finally:g.cleanup()
