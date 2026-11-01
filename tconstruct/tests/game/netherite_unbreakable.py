@@ -54,7 +54,7 @@ try:
     g.ready()
     if g.call('status')['screen'] == 'dead': g.call('respawn'); g.call('wait', '20')
     for command in ('gamemode creative @s', 'time set day', 'clear @s', 'tp @s 0.5 71 0.5',
-                    'fill -2 71 -1 2 72 3 minecraft:air',
+                    'fill -8 69 -8 8 70 8 minecraft:stone', 'fill -2 71 -1 2 72 3 minecraft:air',
                     'give @s tconstruct:pickaxe[minecraft:custom_data={tic_materials:["tconstruct:flint","tconstruct:wood","tconstruct:wood"],tic_max_damage:85},minecraft:max_damage=85] 1'):
         cmd(command)
     for modifier, item in [('writable','minecraft:writable_book'), ('harmonious','minecraft:music_disc_13'), ('recapitated','minecraft:skeleton_skull'), ('forecast','minecraft:diamond_ore')]:
