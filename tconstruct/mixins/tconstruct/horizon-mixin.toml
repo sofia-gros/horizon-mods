@@ -2541,3 +2541,54 @@ target = "horizon_client::game::lan_actions::Game<'_>::guest_destroy"
 kind = "HEAD"
 helper = "source-area-guest-destroy.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "pos", ty = "[i32;3]", value = "pos" }]
+
+[[module]]
+id = "source-transform-geometry"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_transform_geometry"
+source = "source-transform-geometry.rs"
+
+[[state]]
+id = "transform-guest-hits"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32,([i32;3],std::collections::HashSet<(i32,i32)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-transform-guest-hit"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+helper = "source-transform-guest-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[injection]]
+id = "source-transform-use"
+target = "horizon_client::game::Game<'_>::use_block_transformer"
+kind = "HEAD"
+cancellable = true
+helper = "source-transform-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "pos", ty = "[i32;3]", value = "pos" }, { name = "face", ty = "[i32;3]", value = "face" }]
+
+[[module]]
+id = "source-transform-logic"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_transform_logic"
+source = "source-transform-logic.rs"
+
+[[injection]]
+id = "source-transform-predict"
+target = "horizon_client::game::remote::Game<'_>::predict_item_on_block"
+kind = "HEAD"
+cancellable = true
+helper = "source-transform-predict.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "hit", ty = "&crate::game::Hit", value = "hit" }]
+
+[[module]]
+id = "source-transform-mode"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_transform_mode"
+source = "source-transform-mode.rs"
