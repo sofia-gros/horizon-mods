@@ -26,6 +26,10 @@ pub(super) fn in_distance(kind:Attack, primary:[f64;3], attacker:[f64;3], candid
     let sum=(0..3).map(|i| {let d=origin[i]-candidate[i];d*d}).sum::<f64>();
     sum < radius*radius
 }
+// Check source exclusion rules before the authoritative damage path.
+pub(super) fn eligible(kind:Attack, primary:[f64;3], attacker:[f64;3], candidate:[f64;3], is_primary:bool, alive:bool, allied:bool, intersects:bool)->bool {
+    !is_primary && alive && !allied && intersects && in_distance(kind,primary,attacker,candidate)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -39,6 +43,14 @@ mod tests {
         stack.damage=4;assert_eq!(intact(&stack),None);
         stack.damage=0;stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(4)),("tic_broken",Tag::Byte(1))])));
         assert_eq!(intact(&stack),None);
+    }
+    #[test] fn candidates_exclude_primary_allies_dead_and_nonintersections() {
+        let k=Attack::Circle(2.0);let p=[0.0;3];let c=[1.0,0.0,0.0];
+        assert!(eligible(k,p,p,c,false,true,false,true));
+        assert!(!eligible(k,p,p,c,true,true,false,true));
+        assert!(!eligible(k,p,p,c,false,false,false,true));
+        assert!(!eligible(k,p,p,c,false,true,true,true));
+        assert!(!eligible(k,p,p,c,false,true,false,false));
     }
     #[test] fn source_modes_and_strict_distance_boundaries() {
         assert_eq!(attack("tconstruct:scythe"),Some(Attack::Circle(2.0)));

@@ -14,9 +14,10 @@ fn tconstruct_melee_sweep(game:&mut crate::game::Game<'_>, index:usize, _scale:f
     let allies=game.player_allies();
     let uuid=game.level.player_uuid.or(Some([0,0,0,1]));
     let candidates:Vec<u32>=game.mobs.iter().enumerate().filter(|(i,mob)| {
-        *i!=index && mob.alive() && !mob.removed && !allies.contains(&mob.id)
-            && !crate::game::mace::ally_of_player(mob,uuid) && mob.bounds().intersects(bounds)
-            && shape::in_distance(kind,target,from,[mob.position.x,mob.position.y,mob.position.z])
+        shape::eligible(kind,target,from,[mob.position.x,mob.position.y,mob.position.z],
+            *i==index, mob.alive() && !mob.removed,
+            allies.contains(&mob.id) || crate::game::mace::ally_of_player(mob,uuid),
+            mob.bounds().intersects(bounds))
     }).map(|(_,mob)|mob.id).collect();
     let (xd,zd)=game.extra_knockback_direction();
     for id in candidates {
