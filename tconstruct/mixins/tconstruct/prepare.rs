@@ -185,6 +185,7 @@ fn prepare_tconstruct_resources() {
                     let raw = biomes.get_mut(id).ok_or_else(|| format!("missing biome {id}"))?;
                     let mut biome: serde_json::Value = serde_json::from_str(raw.as_str().ok_or("invalid biome")?)?;
                     let features = biome["features"].as_array_mut().ok_or("missing biome features")?;
+                    while features.len() < 3 { features.push(serde_json::json!([])); }
                     let local = features.get_mut(2).and_then(|v| v.as_array_mut()).ok_or("missing local modifications")?;
                     if !local.iter().any(|v| v.as_str() == Some(&feature)) {
                         local.push(serde_json::Value::String(feature.clone()));
