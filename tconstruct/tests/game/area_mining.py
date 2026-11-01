@@ -41,7 +41,8 @@ def scenario(block,face):
     after=g.call('inventory')['held'] or {};print('area',block,face,json.dumps(r),'wear',before.get('damage',0),after.get('damage',0),'remaining',remaining,flush=True)
     assert not remaining,remaining;assert after.get('damage',0)-before.get('damage',0)==9,(before,after)
     drop='minecraft:cobblestone' if block=='minecraft:stone' else block
-    assert r.get('drops',{}).get(drop,0)==9,r
+    total=r.get('picked_up',{}).get(drop,0)+sum(i['count'] for i in r.get('on_ground',[]) if i.get('item')==drop)
+    assert total==9,r
     return r
 try:
     g.ready()

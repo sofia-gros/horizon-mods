@@ -55,7 +55,8 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
         assert all(remain[(cx-1,y)]=='minecraft:stone' for y in range(cy-1,cy+2)),remain
         assert all(remain[(x,y)]=='minecraft:air' for x in (cx,cx+1) for y in range(cy-1,cy+2)),remain
         assert after.get('damage',0)-before.get('damage',0)==6,(before,after)
-        assert result.get('drops',{}).get('minecraft:cobblestone',0)==6,result
+        drop='minecraft:cobblestone';total=result.get('picked_up',{}).get(drop,0)+sum(i['count'] for i in result.get('on_ground',[]) if i.get('item')==drop)
+        assert total==6,result
         g.call('screenshot',str(run/'area-spawn-protection.png'));g.stop();print('PASS server spawn protection boundary',flush=True)
     finally:
         if g is not None:g.cleanup()
