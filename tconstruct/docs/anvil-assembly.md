@@ -6,6 +6,8 @@
 
 Craft either Anvil with three alloy blocks across the top, one seared or scorched block in the center, and three matching-category blocks across the bottom. Matching alloy blocks give the Anvil their appearance; mixed alloys use the fallback appearance. Use seared blocks for the Tinker’s Anvil and scorched blocks for the Scorched Anvil. Supported alloy blocks include Slimesteel, Amethyst Bronze and Manyullyn; Netherite blocks also work.
 
+![A LAN guest assembling a Sledge Hammer](anvil-assembly-lan.png)
+
 Open the Anvil and choose a tool layout. Make its parts at a Part Builder, then place them in the displayed slots and take the result. Large tools such as the Sledge Hammer need four parts and require an Anvil. Place an existing tool in the tool slot to repair it or exchange a part; the Anvil also lets you name the resulting tool.
 
-The Anvil implementation is under review. Its GUI, recipes, server transactions, save and LAN behavior have not yet been verified in a game; do not treat this guide as a completed acceptance test. The current implementation records the alloy on crafted Anvils and carries it through the block entity and drop paths. Compatibility alloy blocks with matching material IDs can also be used. Alloy appearance, persistence, crafting and LAN synchronization still require game verification.
+A Linux test built and placed both Anvils, assembled a Sledge Hammer, repaired and renamed it using the fifth input, and checked the Station’s smaller layout. A Slimesteel Anvil retained its appearance through save/reload and its material when mined. A LAN guest saw the alloy, assembled a Sledge Hammer and exchanged a part. Matching compatibility alloy blocks were also checked; mixed compatibility materials were rejected. Windows and a complete survival playthrough remain untested.
