@@ -209,13 +209,20 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                 .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
                 .or_else(|| {
                     let rows = value.get("grid")?.as_array()?;
-                    let mut slots: Vec<Option<String>> = vec![None; 9];
+                    let source_stack = |item: &serde_json::Value| -> Option<serde_json::Value> {
+                        let id = item.get("item")?.as_str()?;
+                        let nbt = item.get("nbt");
+                        let damage = nbt.and_then(|v| v.get("Damage")).and_then(|v| v.as_u64()).unwrap_or(0);
+                        let maximum = nbt.and_then(|v| v.get("tic_stats")).and_then(|v| v.get("tconstruct:durability")).and_then(|v| v.as_u64());
+                        Some(serde_json::json!({"id":id, "damage":damage, "max_damage":maximum}))
+                    };
+                    let mut slots: Vec<Option<serde_json::Value>> = vec![None; 9];
                     for (y, row) in rows.iter().take(3).enumerate() {
                         for (x, item) in row.as_array()?.iter().take(3).enumerate() {
-                            slots[y * 3 + x] = item.get("item").and_then(|v| v.as_str()).map(str::to_owned);
+                            slots[y * 3 + x] = source_stack(item);
                         }
                     }
-                    let result = value.get("result").and_then(|v| v.get("item")).and_then(|v| v.as_str());
+                    let result = value.get("result").and_then(source_stack);
                     let grid = if value.get("grid_size").and_then(|v| v.as_str()) == Some("small") { 2 } else { 3 };
                     Some(serde_json::json!({"slots":slots, "result":result, "grid":grid}))
                 })

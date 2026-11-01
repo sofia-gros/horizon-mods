@@ -31,8 +31,9 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let button_x = batch.width / 2.0 - 100.0;
     let hover = mx >= button_x && mx < button_x + 200.0 && (196.0..216.0).contains(&my);
     ui::button(batch, atlas, button_x, 196.0, 200.0, 20.0, &Text::literal(game.translate("gui.done", "Done")), true, hover);
-    let draw_stack = |batch: &mut HudBatch, id: &str, count: u32, x: f32, y: f32| {
+    let draw_stack = |batch: &mut HudBatch, id: &str, count: u32, damage: u32, maximum: Option<u32>, x: f32, y: f32| {
         let mut stack = ItemStack::new(id, count);
+        stack.damage = damage;
         if id.starts_with("tconstruct:") {
             use horizon_world::nbt::Tag;
             let materials = ["head", "handle", "extra", "large", "extra_large"].into_iter()
@@ -42,6 +43,9 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
                 ("tic_materials", Tag::List(materials)),
                 ("Material", Tag::String("tconstruct:ui_render#head".into())),
             ])));
+        }
+        if let Some(maximum) = maximum.and_then(|n| i32::try_from(n).ok()).filter(|n| *n > 0) {
+            stack.data_mut().set_other("minecraft:max_damage", Some(horizon_world::nbt::Tag::Int(maximum)));
         }
         game.draw_item(batch, &stack, x, y);
     };
@@ -60,7 +64,7 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         return;
     }
     if let Some(item) = spec.get("item").and_then(|v| v.as_str()) {
-        draw_stack(batch, item, 1, left + 87.0, 72.0);
+        draw_stack(batch, item, 1, 0, None, left + 87.0, 72.0);
         return;
     }
     let Some(slots) = spec.get("slots").and_then(|v| v.as_array()) else { return; };
@@ -72,13 +76,21 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let x = ox + (i % 3) as f32 * 18.0;
         let y = oy + (i / 3) as f32 * 18.0;
         batch.fill(atlas, x, y, 17.0, 17.0, rgba(120, 90, 50, 100));
-        let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[(game.ticks / 20) as usize % items.len()])).and_then(|v| v.as_str()).or_else(|| item.as_str());
-        if let Some(item) = chosen { draw_stack(batch, item, 1, x, y); }
+        let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[(game.ticks / 20) as usize % items.len()])).unwrap_or(item);
+        let id = chosen.as_str().or_else(|| chosen.get("id").and_then(|v| v.as_str()));
+        let damage = chosen.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
+        let maximum = chosen.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
+        if let Some(id) = id { draw_stack(batch, id, 1, damage, maximum, x, y); }
     }
-    if let Some(id) = spec.get("result").and_then(|v| v.as_str()) {
-        batch.text(atlas, "→", ox + 57.0, oy + 18.0, BLACK, false);
-        let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
-        draw_stack(batch, id, count, ox + 78.0, oy + 18.0);
+    if let Some(result) = spec.get("result") {
+        let id = result.as_str().or_else(|| result.get("id").and_then(|v| v.as_str()));
+        if let Some(id) = id {
+            batch.text(atlas, "→", ox + 57.0, oy + 18.0, BLACK, false);
+            let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
+            let damage = result.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
+            let maximum = result.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
+            draw_stack(batch, id, count, damage, maximum, ox + 78.0, oy + 18.0);
+        }
     }
     })();
     Break(())
