@@ -164,7 +164,7 @@ The Smeltery fuel gauge shows the available fuel. Hover over it for the fluid, t
 
 ### Skyslime Crystals
 
-Find Sky Geodes underground in newly generated overworld land, away from oceans, rivers and beaches. Mine a fully grown Skyslime Crystal Cluster with a pickaxe to obtain crystals; they work in the Modifier Worktable. Existing generated chunks do not gain new geodes. The budding blocks and smaller buds do not yet grow, so collect the clusters already present. Other slime geodes and full world progression are unfinished.
+Find Sky Geodes underground in newly generated overworld land, away from oceans, rivers and beaches. Mine a fully grown Skyslime Crystal Cluster with a pickaxe to obtain crystals; they work in the Modifier Worktable. Existing generated chunks do not gain new geodes. The budding blocks and smaller buds do not yet grow, so collect the clusters already present. Earthslime, Ichor and Enderslime geodes and crystal recipes are being connected, but their generation and use have not yet been validated in game. Full world progression remains unfinished.
 
 ![A naturally generated Sky Geode cluster](sky-geode-natural.png)
 
