@@ -56,11 +56,13 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let x = ox + (i % 3) as f32 * 18.0;
         let y = oy + (i / 3) as f32 * 18.0;
         batch.fill(atlas, x, y, 17.0, 17.0, rgba(120, 90, 50, 100));
-        if let Some(item) = item.as_str() { game.draw_item(batch, &ItemStack::new(item, 1), x, y); }
+        let chosen = item.as_array().and_then(|items| (!items.is_empty()).then(|| &items[(game.ticks / 20) as usize % items.len()])).and_then(|v| v.as_str()).or_else(|| item.as_str());
+        if let Some(item) = chosen { game.draw_item(batch, &ItemStack::new(item, 1), x, y); }
     }
     if let Some(id) = spec.get("result").and_then(|v| v.as_str()) {
         batch.text(atlas, "→", ox + 57.0, oy + 18.0, BLACK, false);
-        game.draw_item(batch, &ItemStack::new(id, 1), ox + 78.0, oy + 18.0);
+        let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
+        game.draw_item(batch, &ItemStack::new(id, count), ox + 78.0, oy + 18.0);
     }
     })();
     Break(())

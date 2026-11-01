@@ -3133,3 +3133,9 @@ id = "materials-book-wire"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_wire"
 source = "source-materials-book-wire.rs"
+
+[[module]]
+id = "materials-book-recipe"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_recipe"
+source = "source-materials-book-recipe.rs"

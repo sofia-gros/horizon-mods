@@ -57,29 +57,7 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
     let recipes = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let recipe: serde_json::Value = serde_json::from_slice(recipes.get(id)?).ok()?;
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
-    let ingredient = |v: &serde_json::Value| -> Option<String> {
-        let value = v.as_array().and_then(|a| a.first()).unwrap_or(v);
-        if let Some(id) = value.as_str().or_else(|| value.get("item").and_then(|v| v.as_str())) {
-            if let Some(tag) = id.strip_prefix('#') { return tags?.get(tag)?.iter().min().cloned(); }
-            return Some(id.to_owned());
-        }
-        tags?.get(value.get("tag")?.as_str()?)?.iter().min().cloned()
-    };
-    let grid = if grid_size == "small" { 2 } else { 3 };
-    let mut slots: Vec<Option<String>> = vec![None; 9];
-    if let (Some(pattern), Some(keys)) = (recipe.get("pattern").and_then(|v| v.as_array()), recipe.get("key").and_then(|v| v.as_object())) {
-        for (y, line) in pattern.iter().take(3).enumerate() {
-            for (x, ch) in line.as_str()?.chars().take(3).enumerate() {
-                if ch != ' ' { slots[y * 3 + x] = keys.get(&ch.to_string()).and_then(&ingredient); }
-            }
-        }
-    } else {
-        for (i, value) in recipe.get("ingredients")?.as_array()?.iter().take(grid * grid).enumerate() {
-            slots[(i / grid) * 3 + i % grid] = ingredient(value);
-        }
-    }
-    let result = recipe.get("result").and_then(|v| v.get("id").or_else(|| v.get("item"))).and_then(|v| v.as_str());
-    Some(serde_json::json!({"slots": slots, "result": result, "grid": if grid_size == "small" { 2 } else { 3 }}))
+    super::tconstruct_materials_book_recipe::resolve(&recipe, tags, grid_size)
 }
 
 pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
@@ -105,7 +83,26 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                     }
                     for id in tools {
                         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", id));
-                        chapter_pages.push(Text::literal(game.translate(&format!("item.{namespace}.{name}"), name)));
+                        let title = game.translate(&format!("item.{namespace}.{name}"), name);
+                        chapter_pages.push(Text::styled(&title, horizon_client::text::Style {
+                            insertion: Some(format!("tconstruct:book:{}", serde_json::json!({"item":id}))), ..Default::default()
+                        }));
+                        let source = format!("assets/tconstruct/book/encyclopedia/en_us/armor/{}.json", id.replace(':', "_"));
+                        if let Some(raw) = read(&mut zip, &source) {
+                            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) {
+                                let mut text = title.clone();
+                                for field in ["text", "properties"] {
+                                    if let Some(parts) = value.get(field).and_then(|v| v.as_array()) {
+                                        for part in parts {
+                                            if let Some(content) = part.as_str().or_else(|| part.get("text").and_then(|v| v.as_str())) {
+                                                text.push('\n'); text.push_str(content);
+                                            }
+                                        }
+                                    }
+                                }
+                                chapter_pages.extend(split_page(&text, 120).into_iter().map(Text::literal));
+                            }
+                        }
                     }
                     if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
                 }
@@ -121,8 +118,10 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                         let flavor = game.translate(&format!("material.{namespace}.{material}.flavor"), "");
                         if !flavor.is_empty() { detail.push_str("\n\n"); detail.push_str(&flavor); }
                         if let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() {
-                            let path = format!("{namespace}:tinkering/materials/stats/{material}");
-                            if let Some(layers) = snapshot.get(&path) {
+                            let stats_path = format!("{namespace}:tinkering/materials/stats/{material}");
+                            let traits_path = format!("{namespace}:tinkering/materials/traits/{material}");
+                            let raw_traits = snapshot.get(&traits_path).and_then(|layers| crate::game::tconstruct_tx::source_merge_material_traits(layers).ok());
+                            if let Some(layers) = snapshot.get(&stats_path) {
                                 if let Ok(stats) = crate::game::tconstruct_tx::source_merge_material_stats(layers) {
                                     let visible: &[&str] = match key {
                                         "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
@@ -130,32 +129,26 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                                         _ => &["tconstruct:arrow_head", "tconstruct:arrow_shaft", "tconstruct:fletching"],
                                     };
                                     for stat in visible {
-                                        if let Some(fields) = stats.get(*stat) {
-                                            for (field, value) in fields {
-                                                let shown = value.as_f64().map(|number| number.to_string()).or_else(|| value.as_str().map(str::to_owned));
-                                                if let Some(shown) = shown {
-                                                    let label = game.translate(&format!("tool_stat.tconstruct.{field}"), field);
-                                                    detail.push_str(&format!("\n{label}{shown}"));
-                                                }
+                                        let Some(fields) = stats.get(*stat) else { continue; };
+                                        let kind = stat.strip_prefix("tconstruct:").unwrap_or(stat);
+                                        let heading = game.translate(&format!("stat.tconstruct.{kind}"), kind);
+                                        detail.push_str(&format!("\n\n{heading}"));
+                                        for (field, value) in fields {
+                                            let shown = value.as_f64().map(|number| number.to_string()).or_else(|| value.as_str().map(str::to_owned));
+                                            if let Some(shown) = shown {
+                                                let label = game.translate(&format!("tool_stat.tconstruct.{field}"), field);
+                                                detail.push_str(&format!("\n{label}{shown}"));
                                             }
                                         }
-                                    }
-                                }
-                            }
-                            let path = format!("{namespace}:tinkering/materials/traits/{material}");
-                            if let Some(layers) = snapshot.get(&path) {
-                                if let Ok(raw) = crate::game::tconstruct_tx::source_merge_material_traits(layers) {
-                                    let mut traits = std::collections::BTreeMap::new();
-                                    let kinds: &[&str] = match key {
-                                        "melee_harvest_materials" => &["head", "handle", "binding"],
-                                        "ranged_materials" => &["limb", "grip", "bowstring"],
-                                        _ => &["arrow_head", "arrow_shaft", "fletching"],
-                                    };
-                                    for kind in kinds { crate::game::tconstruct_source_material_trait_select::add_traits(&mut traits, raw.default.as_ref(), &raw.per_stat, kind); }
-                                    for (trait_id, level) in traits {
-                                        let (ns, id) = trait_id.split_once(':').unwrap_or(("tconstruct", &trait_id));
-                                        let title = game.translate(&format!("modifier.{ns}.{id}"), id);
-                                        detail.push_str(&format!("\n{title} {level}"));
+                                        if let Some(raw) = &raw_traits {
+                                            let mut traits = std::collections::BTreeMap::new();
+                                            crate::game::tconstruct_source_material_trait_select::add_traits(&mut traits, raw.default.as_ref(), &raw.per_stat, kind);
+                                            for (trait_id, level) in traits {
+                                                let (ns, id) = trait_id.split_once(':').unwrap_or(("tconstruct", &trait_id));
+                                                let title = game.translate(&format!("modifier.{ns}.{id}"), id);
+                                                detail.push_str(&format!("\n{title} {level}"));
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -188,6 +181,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                         let fallback = id.split(':').next_back().unwrap_or(id);
                         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", fallback));
                         let title = game.translate(&format!("item.{namespace}.{name}"), fallback);
+                        chapter_pages.push(Text::styled(&title, horizon_client::text::Style {
+                            insertion: Some(format!("tconstruct:book:{}", serde_json::json!({"item":id}))), ..Default::default()
+                        }));
                         let mut text = title;
                         for field in ["text", "properties"] {
                             if let Some(parts) = value.get(field).and_then(|v| v.as_array()) {
