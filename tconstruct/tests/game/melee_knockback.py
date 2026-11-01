@@ -32,6 +32,7 @@ def acquire(name,start,end):
 try:
     g.ready()
     if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
+    observed={}
     for tool in ('battlesign','excavator'):
         acquire(tool,260 if tool=='battlesign' else 185,341 if tool=='battlesign' else 260)
         for command in ('gamemode creative @s','kill @e[type=minecraft:husk,tag=source_melee_test]',
@@ -40,7 +41,9 @@ try:
                         'gamemode survival @s'):cmd(command)
         g.call('wait','40');target=g.call('entities','10','minecraft:husk')['entities'][0]['id'];held=g.call('inventory')['held']
         print('BEFORE',tool,g.call('command','data get entity @e[type=minecraft:husk,tag=source_melee_test,limit=1] Motion'),flush=True)
-        g.call('attack',str(target));print('AFTER',tool,g.call('command','data get entity @e[type=minecraft:husk,tag=source_melee_test,limit=1] Motion'),flush=True)
+        g.call('attack',str(target));result=g.call('command','data get entity @e[type=minecraft:husk,tag=source_melee_test,limit=1] Motion');print('AFTER',tool,result,flush=True)
+        values=re.findall(r'(-?[0-9.]+)d',result['chat'][0]);assert len(values)==3,result;observed[tool]=float(values[2])
         print('WEAR',tool,held,g.call('inventory')['held'],flush=True)
-    g.stop()
+    assert abs((observed['excavator']-observed['battlesign'])-0.5)<0.001,observed
+    print('PASS source Knockback II versus I',observed,flush=True);g.stop()
 finally:g.cleanup()
