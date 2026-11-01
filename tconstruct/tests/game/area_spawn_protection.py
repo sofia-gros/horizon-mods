@@ -48,7 +48,7 @@ with tempfile.TemporaryDirectory(prefix='area-server-') as temp:
         def console(s):server.stdin.write(s+'\n');server.stdin.flush();time.sleep(.5)
         console('gamemode creative Guest');g.call('wait','20');acquire(g)
         cx,cy,cz=sx+3,101,sz
-        for s in (f'fill {cx-1} {cy-1} {cz} {cx+1} {cy+1} {cz} minecraft:stone',f'setblock {cx} {cy-2} {cz-2} minecraft:stone',f'tp Guest {cx+.5} {cy-1} {cz-1.5}','gamemode survival Guest'):console(s)
+        for s in (f'fill {cx-2} {cy-2} {cz-2} {cx+2} {cy-2} {cz+2} minecraft:stone',f'fill {cx-1} {cy-1} {cz} {cx+1} {cy+1} {cz} minecraft:stone',f'setblock {cx} {cy-2} {cz-2} minecraft:stone',f'tp Guest {cx+.5} {cy-1} {cz-1.5}','gamemode survival Guest'):console(s)
         g.call('wait','30');before=g.call('inventory')['held'];result=g.call('break',str(cx),str(cy),str(cz),'--timeout','50',timeout=55);g.call('wait','20')
         remain={(x,y):g.call('block',str(x),str(y),str(cz)).get('block') for x in range(cx-1,cx+2) for y in range(cy-1,cy+2)}
         after=g.call('inventory')['held'];print('boundary',json.dumps({'result':result,'remaining':str(remain),'wear':after.get('damage',0)-before.get('damage',0)}),flush=True)

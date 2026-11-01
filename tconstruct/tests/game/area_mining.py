@@ -32,7 +32,8 @@ def scenario(block,face):
     if face[0]: lo=(cx,cy-1,cz-1);hi=(cx,cy+1,cz+1);player=(cx+face[0]*2+.5,cy-1,cz+.5)
     elif face[1]:lo=(cx-1,cy,cz-1);hi=(cx+1,cy,cz+1);player=(cx+.5,cy+1 if face[1]>0 else cy-2,cz+.5)
     else:lo=(cx-1,cy-1,cz);hi=(cx+1,cy+1,cz);player=(cx+.5,cy-1,cz+face[2]*2+.5)
-    cmd('gamemode creative @s');cmd('weather clear');cmd('time set day');cmd(f'fill {lo[0]} {lo[1]} {lo[2]} {hi[0]} {hi[1]} {hi[2]} {block}')
+    cmd('gamemode creative @s');cmd('weather clear');cmd('time set day');cmd('fill 18 99 18 22 99 22 minecraft:stone');cmd(f'fill {lo[0]} {lo[1]} {lo[2]} {hi[0]} {hi[1]} {hi[2]} {block}')
+    if face[1]<0:cmd('setblock 20 99 20 minecraft:air')
     if face[1]<=0:cmd(f'setblock {int(player[0])} {int(player[1])-1} {int(player[2])} minecraft:stone')
     cmd(f'tp @s {player[0]} {player[1]} {player[2]}');g.call('wait','10');before=g.call('inventory')['held'];cmd('gamemode survival @s');g.call('wait','10')
     r=g.call('break',str(cx),str(cy),str(cz),'--timeout','50',timeout=55);g.call('wait','20')
@@ -43,6 +44,7 @@ def scenario(block,face):
     drop='minecraft:cobblestone' if block=='minecraft:stone' else block
     total=r.get('picked_up',{}).get(drop,0)+sum(i['count'] for i in r.get('on_ground',[]) if i.get('item')==drop)
     assert total==9,r
+    cmd('gamemode creative @s');cmd('tp @s 20.5 100 20.5');g.call('wait','40')
     return r
 try:
     g.ready()
