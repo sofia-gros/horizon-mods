@@ -2852,6 +2852,33 @@ bindings = [
 ]
 
 [[injection]]
+id = "netherite-dropped-item-environment"
+target = "horizon_client::entities::ItemEntity::environment_tick"
+kind = "RETURN"
+helper = "netherite-dropped-item.rs"
+bindings = [
+  { name = "result", ty = "ItemEnvironmentTick", value = "$value" },
+  { name = "entity", ty = "&mut crate::entities::ItemEntity", value = "&mut *self" },
+]
+
+[[injection]]
+id = "netherite-item-rarity-color"
+target = "horizon_client::game::stations::Game<'_>::rarity_color"
+kind = "RETURN"
+helper = "netherite-rarity.rs"
+bindings = [
+  { name = "color", ty = "u32", value = "$value" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "netherite-held-name-rarity"
+target = "horizon_client::game::titles::Game<'_>::held_name"
+kind = "HEAD"
+cancellable = true
+helper = "netherite-held-name.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+[[injection]]
 id = "startup-content-tables"
 target = "horizon_client::game::load_resources"
 kind = "HEAD"

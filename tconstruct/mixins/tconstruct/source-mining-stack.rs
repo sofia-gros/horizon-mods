@@ -17,8 +17,10 @@ pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_stat
     let has_gem = |id| matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get(id)), Some(Tag::Int(v)) if *v > 0);
     let diamond = has_gem("tconstruct:diamond");
     let emerald = has_gem("tconstruct:emerald");
-    let speed = super::tconstruct_source_mining_math::base_speed(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
+    let netherite = has_gem("tconstruct:netherite") || level("tconstruct:netherite") > 0;
+    let speed = super::tconstruct_source_mining_math::base_speed_unclamped(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
         level("tconstruct:lightweight"), level("tconstruct:heavy"), vintage, level("tconstruct:entangled") > 0);
+    let speed = (speed * if netherite { 1.25 } else { 1.0 }).clamp(0.1, 2048.0);
     // Some harvest-tagged equipment has no supported per-stack tool rules yet.
     // Preserve assembly instead of rejecting the item when those rules are absent.
     let Some(mut tool) = stack.data().and_then(|data| data.other("minecraft:tool")).cloned() else { return Some(()); };

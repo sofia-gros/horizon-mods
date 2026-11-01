@@ -44,7 +44,8 @@ def package(output):
     add(runtime + 'tconstruct-melter-fluids.json', (MOD / 'content/reference/tconstruct-melter-fluids.json').read_bytes())
     for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
         add(runtime + 'gui/tconstruct_' + name + '.png', (MOD / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
-    for name in ('haste', 'sharpness', 'swiftstrike', 'quick_charge', 'trueshot', 'reinforced'):
+    icon_sources = json.loads((MOD / 'content/assets/tconstruct/runtime/modifier-icon-sources.json').read_text())
+    for name in icon_sources['mod']:
         add(runtime + 'gui/tconstruct_modifier_' + name + '.png', (MOD / 'assets/tconstruct/gui/modifiers' / (name + '.png')).read_bytes())
     for rel, source in tracked('tconstruct/assets/tconstruct/gui/patterns'):
         add(runtime + 'gui/tconstruct_patterns/' + rel.name, source.read_bytes())

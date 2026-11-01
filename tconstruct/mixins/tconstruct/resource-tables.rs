@@ -313,10 +313,19 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let runtime = base.join("assets/tconstruct/runtime");
     install_sprites(&runtime.join("gui"), &cache.join("assets/minecraft/textures/gui"))?;
     install_sprites(&runtime.join("block"), &cache.join("assets/minecraft/textures/block"))?;
-    for name in ["diamond", "emerald"] {
+    // The same manifest drives manual preparation and the content package.
+    let icons: serde_json::Value = serde_json::from_slice(&std::fs::read(runtime.join("modifier-icon-sources.json"))?)?;
+    let safe_name = |value: &str| !value.is_empty() && value.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_');
+    for name in icons.get("mod").and_then(serde_json::Value::as_array).ok_or("missing mod icon list")? {
+        let name = name.as_str().filter(|name| safe_name(name)).ok_or("invalid mod icon name")?;
+        if !runtime.join(format!("gui/tconstruct_modifier_{name}.png")).is_file() { return Err(format!("missing modifier sprite {name}").into()); }
+    }
+    for (name, source) in icons.get("vanilla").and_then(serde_json::Value::as_object).ok_or("missing vanilla icon map")? {
+        let source = source.as_str().filter(|source| safe_name(source)).ok_or("invalid vanilla icon source")?;
+        if !safe_name(name) { return Err("invalid modifier icon name".into()); }
         let dest = cache.join(format!("assets/minecraft/textures/gui/tconstruct_modifier_{name}.png"));
         if std::fs::symlink_metadata(&dest).is_ok() { return Err("modifier sprite exists".into()); }
-        std::fs::copy(base.join(format!("assets/minecraft/textures/item/{name}.png")), dest)?;
+        std::fs::copy(base.join(format!("assets/minecraft/textures/item/{source}.png")), dest)?;
     }
     // Adapt the player's prepared 26.3 data locally; no vanilla data is
     // included in either published archive.

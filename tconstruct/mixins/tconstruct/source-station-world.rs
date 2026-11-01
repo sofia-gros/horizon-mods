@@ -65,6 +65,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         order = traits.order;
         super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &levels)?;
     }
+    if !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &levels) { return None; }
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
     super::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/armor/worn"))?;
@@ -82,6 +83,7 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
     let original_upgrades = original.and_then(|s| s.data()).and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
     let has_upgrade = |id| matches!(original_upgrades.and_then(|u| u.get(id)), Some(Tag::Int(v)) if *v > 0);
     let tier = super::tconstruct_source_station_stats::gem_tier(super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?, has_upgrade("tconstruct:diamond"), has_upgrade("tconstruct:emerald"));
+    let tier = if has_upgrade("tconstruct:netherite") && tier.is_some() { Some("netherite") } else { tier };
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let mut rules = Vec::new();
     let source_effective = definition_json.get("modules")?.as_array()?.iter().find(|module|
@@ -296,7 +298,11 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .sum::<i64>();
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    let plan = super::tconstruct_source_upgrade_rules::plan(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?)?;
+    let abilities_available = parsed.get("modules")?.as_array()?.iter()
+        .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+        .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
+    let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
+    let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
     let mut upgraded = tool.clone();
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
@@ -320,7 +326,8 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    let plan = super::tconstruct_source_upgrade_rules::extract_upgrade(tags, tool, slots.get(1..=2)?, id)?;
+    let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
+    let plan = super::tconstruct_source_upgrade_rules::extract_upgrade_with_traits(tags, tool, slots.get(1..=2)?, id, &traits)?;
     let mut modified = tool.clone();
     let mut custom = modified.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
@@ -336,8 +343,20 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
 
 /// Revalidate and commit a planned operation; return any item to give to the player.
 pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, plan: StationOperation) -> Option<Vec<ItemStack>> {
+    let bottle_slots: Vec<usize> = plan.consumed.iter().filter_map(|&(slot, _)|
+        slots.get(slot).and_then(Option::as_ref).filter(|s| &*s.item == "minecraft:dragon_breath").map(|_| slot)).collect();
     if !take_repair(slots, carried, plan.output, &plan.consumed) { return None; }
-    Some(plan.leftovers)
+    let mut leftovers = plan.leftovers;
+    if let Some(index) = leftovers.iter().position(|s| &*s.item == "minecraft:glass_bottle") {
+        for slot in bottle_slots {
+            if slots[slot].is_none() && leftovers[index].count > 0 {
+                slots[slot] = Some(ItemStack::new("minecraft:glass_bottle", 1));
+                leftovers[index].count -= 1;
+            }
+        }
+        if leftovers[index].count == 0 { leftovers.remove(index); }
+    }
+    Some(leftovers)
 }
 
 /// Plan an upgrade, replacement or repair without consuming inputs.

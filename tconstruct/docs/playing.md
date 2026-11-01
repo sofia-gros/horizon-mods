@@ -175,6 +175,25 @@ The advancement system and Emerald's conditional attack traits are not implement
 
 The in-development ranged upgrades use magma cream for Quick Charge on Crossbows and target blocks for Trueshot on Longbows and Crossbows. Their partial levels and crystals use the same slots and Worktable flow. Linux tests covered both upgrades on a Crossbow at the Station and both Anvils, save and reload, Quick Charge crystal extraction and reapplication, and LAN guest Trueshot progress and ingredient recovery. Crossbow loading was faster after reapplying Quick Charge. A Longbow retained Trueshot after reload, and its measured lateral arrow velocity decreased between Trueshot I and II in a three-shot sample. Trueshot Crystal reapplication with partial progress was checked on all three stations. Wider spread sampling remains useful. Staffs, fishing rods and other ranged tools are not yet supported by this path.
 
+
+## Netherite and Unbreakable
+
+Netherite takes one Netherite Upgrade Smithing Template and one Netherite Ingot with a durable tool in a Tinker Station or either Anvil. It consumes one upgrade slot. The original modifier improves durability, mining, melee, armor toughness and knockback resistance, and Longbow/Crossbow projectile speed where those stats apply. Netherite uses rare rarity for workstation tooltips and held names. Dropped-item fire, lava and cactus protection is connected; other damage sources and the full entity lifecycle await game verification.
+
+To gain upgrade slots, use the source Writable (Writable Book), Harmonious (music disc), Forecast (diamond, emerald or Cobalt ore), and Recapitated (a non-dragon head) recipes on eligible equipment. Each adds one upgrade slot. Draconic, made with a Dragon Head, adds an ability slot; this is particularly useful for armor, which starts without one. These recipes follow the source equipment tags and one-time limits.
+
+Unbreakable takes two Shulker Shells, Dragon's Breath and two Netherite Ingots in an Anvil. It requires Netherite and **five completed levels** of Reinforced and consumes an ability slot. The empty Dragon's Breath bottle is returned. Normal tool, armor and bow wear is prevented; the original modifier-caused bypass still applies. Glowing, the current bypass cause, is not implemented.
+
+![Unbreakable recipe at the Tinkers' Anvil](netherite-unbreakable.png)
+
+Both modifiers support extraction into and application from a Modifier Crystal. While Unbreakable remains on a tool, removing Netherite or enough Reinforced to invalidate its prerequisites is rejected; remove Unbreakable first. A Crystal uses one input slot, so it can be applied at a Station when the requirements and slots are met.
+
+![Unbreakable selected in the Modifier Worktable](netherite-crystal.png)
+
+A representative Linux test used supplied materials and equipment to add four upgrade slots, apply Netherite, complete Reinforced V and apply Unbreakable at a Tinkers' Anvil. It checked the returned bottle, missing-slot and prerequisite rejection, both Crystal round trips and save/reload. Separate fixture tests checked armor toughness on damage, actual melee and Longbow/Crossbow arrow speed, tool, armor and bow wear, diamond ore drops, and a dropped Netherite tool surviving observed lava contact. A LAN guest applied Netherite at a Scorched Anvil and extracted and reapplied an Unbreakable Crystal. These are representative checks, not a full survival playthrough; the ranged comparison used a small number of shots.
+
+Worktable selection uses the original layered icons. Manual and automatic resource preparation share an icon-source manifest; the automatic distribution path has only been checked statically. Glowing, advancement criteria, other dropped-item damage sources and Windows remain unverified or unimplemented; other equipment and modifiers retain the limits described below.
+
 ## Extract a modifier
 
 Craft a Modifier Worktable with seared blocks and matching source rock. Its legs retain the rock texture. Add a tool, a Skyslime Crystal and a wet sponge, then select a completed Sharpness, Swiftstrike or Haste level. Take the tool to receive the modifier crystal and a sponge. A partial level alone cannot be extracted.

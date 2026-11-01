@@ -26,6 +26,7 @@ pub(super) struct BaseStats {
     pub armor_toughness: f32,
     pub armor_toughness_add_multiplier: f32,
     pub knockback_resistance: f32,
+    pub knockback_resistance_add_multiplier: f32,
 }
 
 #[derive(Clone, Copy)]
@@ -292,6 +293,7 @@ pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) ->
         armor_toughness: stats[8].result(),
         armor_toughness_add_multiplier: (1.0 + stats[8].percent) * stats[8].multiply,
         knockback_resistance: stats[9].result(),
+        knockback_resistance_add_multiplier: (1.0 + stats[9].percent) * stats[9].multiply,
     })
 }
 
@@ -365,7 +367,8 @@ mod tests {
                 armor_add_multiplier: 1.0,
                 armor_toughness: 0.0,
                 armor_toughness_add_multiplier: 1.0,
-                knockback_resistance: 0.0
+                knockback_resistance: 0.0,
+                knockback_resistance_add_multiplier: 1.0
             }
         );
     }

@@ -42,6 +42,9 @@ pub(super) fn reinforced_cause_bypass(cause: Option<&str>) -> bool {
 /// Explicit bypass applies only to Reinforced, as with the source cause tag.
 pub(super) fn reinforced_wear(loss: u32, dense: i32, amount: i32, unbreakable: bool,
     cause: Option<&str>, mut next: impl FnMut() -> f32) -> u32 {
+    // Unbreakable runs before Dense, but both it and Reinforced respect the
+    // source bypass tag. Dense still runs for a bypassed cause.
+    if unbreakable && !reinforced_cause_bypass(cause) { return 0; }
     let loss = dense_reduce(loss, dense, &mut next);
     if unbreakable || reinforced_cause_bypass(cause) { return loss; }
     let chance = reinforced_probability(amount);
