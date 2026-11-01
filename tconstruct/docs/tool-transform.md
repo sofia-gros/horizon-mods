@@ -21,9 +21,9 @@ and client/ctl build. On Linux, normal play verified all six tools, a Scythe
 copper scraping and wax removal, replaceable and solid obstacles, a near-broken
 Scythe, sneak pass-through and offhand use, vanilla hoe behavior and save/reload.
 A non-operator on a dedicated server retained three protected blocks while six
-permitted blocks were tilled, for both main and off hands. Hosted LAN final
-verification remains in progress; these results are representative, not
-exhaustive material or multiplayer coverage.
+permitted blocks were tilled, for both main and off hands. Hosted LAN checks
+covered all six tools and sneaking pass-through in either hand. These results
+are representative, not exhaustive material or multiplayer coverage.
 
 ![Scythe area tilling](tool-transform-scythe.png)
 
