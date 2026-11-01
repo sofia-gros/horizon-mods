@@ -112,7 +112,7 @@ try:
   if g.call('menu')['carried']:click(coal)
   sprint(13000)
   state={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('FURNACE FIRST',state,flush=True);assert (state.get(302) or {}).get('item')=='tconstruct:seared_brick' and state[302].get('count')==64,state
-  click(302,'shift');click(slot('tconstruct:grout'));click(300);sprint(4300)
+  click(302,'shift');click(slot('tconstruct:grout'));click(300);click(slot('minecraft:coal'));click(301);sprint(4300)
   state={x['slot']:x.get('stack') for x in g.call('menu')['slots']};print('FURNACE SECOND',state,flush=True);assert (state.get(302) or {}).get('item')=='tconstruct:seared_brick' and state[302].get('count')==20,state
   click(302,'shift');g.call('close');assert count('tconstruct:seared_brick')==84,inventory();g.call('screenshot',str(run/'survival-bricks.png'));checkpoint()
  elif a.phase=='devices':
@@ -143,10 +143,10 @@ try:
   # Replace only our disposable fixture table/work area; every placed mod
   # block below is the item crafted in the previous phase.
   for c in ('gamemode creative @s','fill -2 71 0 2 74 4 minecraft:air','tp @s 2.5 71 0.5','gamemode survival @s'):cmd(c)
-  place('tconstruct:seared_basin',0,71,1)
   place('tconstruct:seared_heater',0,71,2)
   place('tconstruct:seared_melter',0,72,2)
   place('tconstruct:seared_faucet',0,72,1)
+  place('tconstruct:seared_basin',0,71,1)
   port=g.call('lan','open','0','commands')['port']
   guest=Game(a,run,'Guest',server='127.0.0.1:'+str(port),resume=(run/'Guest').exists());guest.ready()
   for c in ('tp Guest 2.5 71 1.5','give Guest minecraft:coal 1','give Guest minecraft:copper_ingot 4'):cmd(c)
