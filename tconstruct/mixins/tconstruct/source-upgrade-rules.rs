@@ -233,6 +233,7 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
         let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
         let Tag::Compound(ref mut fields) = custom else { return None; };
         fields.remove(&"tconstruct:diamond_armor".into());
+        fields.remove(&"tic_attack_conditional_multiplier".into());
         tool.data_mut().set_other("minecraft:custom_data", Some(custom));
         return Some(());
     }
@@ -245,6 +246,9 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
     fields.insert("tic_max_damage".into(), Tag::Int(durability));
+    // Source multiplier scales eligible conditional bonuses, not the base attack value.
+    if emerald { fields.insert("tic_attack_conditional_multiplier".into(), Tag::Float(1.25f32.to_bits())); }
+    else { fields.remove(&"tic_attack_conditional_multiplier".into()); }
     if armor {
         if diamond { fields.insert("tic_armor".into(), Tag::Float((stats.armor + stats.armor_add_multiplier).clamp(0.0, 30.0).to_bits())); }
         if emerald {
@@ -314,6 +318,7 @@ mod tests {
         apply_stats(&mut tool,&stats,&BTreeMap::new(),true,false).unwrap();
         let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
         assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(900))));
+        assert!(matches!(custom.get("tic_attack_conditional_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v)-1.25).abs()<0.0001));
         assert!(matches!(custom.get("tic_accuracy"), Some(Tag::Float(v)) if (f32::from_bits(*v)-0.85).abs()<0.0001));
         apply_gem_durability_and_armor(&mut tool,&stats,&BTreeMap::new(),true,true).unwrap();
         let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
