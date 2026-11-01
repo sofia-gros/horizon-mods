@@ -31,4 +31,22 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual(set(recipe['ingredients']), {'minecraft:book', 'tconstruct:pattern'})
         self.assertEqual(recipe['result']['id'], 'tconstruct:materials_and_you')
 
+    def test_starting_reward_uses_persisted_advancement(self):
+        base = ROOT / 'content/data/tconstruct'
+        advancement = json.loads((base / 'advancement/internal/starting_book.json').read_text())
+        loot = json.loads((base / 'loot_table/gameplay/starting_book.json').read_text())
+        self.assertEqual(advancement['criteria']['tick']['trigger'], 'minecraft:impossible')
+        self.assertEqual(advancement['rewards']['loot'], ['tconstruct:gameplay/starting_book'])
+        self.assertEqual(loot['pools'][0]['entries'][0]['name'], 'tconstruct:materials_and_you')
+
+    def test_every_referenced_source_image_is_bundled(self):
+        with zipfile.ZipFile(ARCHIVE) as archive:
+            names = set(archive.namelist())
+            for name in names:
+                if '/en_us/' not in name or not name.endswith('.json'):
+                    continue
+                image = json.loads(archive.read(name)).get('image')
+                if isinstance(image, dict) and image.get('file', '').startswith('tconstruct:book/images/'):
+                    self.assertIn('assets/tconstruct/' + image['file'].split(':', 1)[1], names)
+
 if __name__ == '__main__': unittest.main()

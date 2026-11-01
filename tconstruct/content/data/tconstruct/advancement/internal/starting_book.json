@@ -1,0 +1,1 @@
+{"criteria":{"tick":{"trigger":"minecraft:impossible"}},"requirements":[["tick"]],"rewards":{"loot":["tconstruct:gameplay/starting_book"]},"sends_telemetry_event":false}

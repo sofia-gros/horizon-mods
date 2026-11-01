@@ -1,7 +1,7 @@
 # Materials and You
 
-This draft adds the original Materials and You item and its book + pattern recipe. Its first reader uses Horizon's existing book screen: it reads the English source index and static section text, and presents those sections as consecutive pages.
+This in-progress guide uses the original Materials and You item, English page data and images from TConstruct revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Craft it from a book and a pattern. A source-config-controlled tick advancement is intended to give it once per player, using the host's saved advancement progress.
 
-The included archive retains the original source page data and referenced images from TConstruct revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. This first reader does not yet draw source illustrations or recipe diagrams, generate material and armor listings, provide a chapter selection screen, translate other languages, or grant a starting book. It is not a complete Mantle book implementation. The contents describe upstream TConstruct; some described features remain incomplete in this port.
+The reader uses Horizon's book controls. It builds a clickable chapter index, source text pages, image pages and recipe diagrams from the source references. Its initial material lists use the loaded material definitions and tags. These additions have only passed a limited Mixins plan and source-data checks; compilation and gameplay remain unverified.
 
-Source-data and recipe checks pass. The native hooks, gameplay interaction, saved inventory and LAN behavior still need the planned combined build and game test.
+The first English guide is still incomplete: generated material pages need their original statistics, traits and source ordering; generated armor/tool sections and detailed page types require further integration. Recipe diagrams and material snapshots need LAN validation. Other languages and other guides are future work. The source describes upstream TConstruct, and some described features remain incomplete in this port.

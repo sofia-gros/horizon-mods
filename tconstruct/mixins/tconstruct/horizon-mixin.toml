@@ -3090,3 +3090,18 @@ kind = "HEAD"
 cancellable = true
 helper = "source-materials-book-remote.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
+
+[[injection]]
+id = "materials-book-draw"
+target = "horizon_client::game::books::Game<'_>::draw_book"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-draw.rs"
+bindings = [{ name = "game", ty = "&Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut HudBatch", value = "&mut *batch" }]
+
+[[injection]]
+id = "materials-starting-book"
+target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
+kind = "HEAD"
+helper = "source-materials-starting-book.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
