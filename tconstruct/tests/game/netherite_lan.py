@@ -57,7 +57,7 @@ try:
     click(q,325)
     carried=q.call('menu')['carried']
     assert carried and carried.get('item')=='tconstruct:pickaxe',carried
-    click(q,0);q.call('close');q.call('wait','10')
+    click(q,0);q.call('close');q.call('hotbar','1');q.call('wait','10')
     held=q.call('inventory')['held']
     assert '"tconstruct:netherite":1' in held.get('components',''),held
     q.call('screenshot',str(run/'netherite-lan.png'))
