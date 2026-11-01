@@ -44,10 +44,10 @@ try:
         acquire(q,tool)
         positions=[(x,100,z) for x in (29,30,31) for z in (29,30,31)] if area else [(30,100,30)]
         for x,y,z in positions:cmd(h,f'setblock {x} {y} {z} minecraft:wheat[age=7]')
-        q.call('wait','15');before=q.call('inventory')['held'];drops=total_items(h,'minecraft:wheat');cmd(h,'gamemode survival Guest')
+        q.call('wait','15');before=q.call('inventory')['held'];drops=total_items(h,'minecraft:wheat')+q.call('inventory')['counts'].get('minecraft:wheat',0);cmd(h,'gamemode survival Guest')
         q.call('interact','30','100','30','up');q.call('wait','20')
         wait(lambda:all('age=0' in h.call('block',*map(str,pos)).get('state','') for pos in positions))
-        after=q.call('inventory')['held'];count=total_items(h,'minecraft:wheat')-drops
+        after=q.call('inventory')['held'];count=total_items(h,'minecraft:wheat')+q.call('inventory')['counts'].get('minecraft:wheat',0)-drops
         print('LAN crop',tool,len(positions),'wear',after.get('damage',0)-before.get('damage',0),'wheat',count,flush=True)
         assert after.get('damage',0)-before.get('damage',0)==len(positions),(before,after)
         assert count==len(positions),count
