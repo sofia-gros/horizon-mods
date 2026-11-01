@@ -27,7 +27,8 @@ pub(super) fn melee_stats(v: MeleeInputs) -> (f32, f32) {
             * (1.0 + 0.05 * v.swiftstrike.max(0.0))
             * (1.0 - 0.1 * v.vintage.max(0) as f32)
     } else { v.speed };
-    (damage.clamp(0.0, 2048.0), speed.clamp(0.0, 1024.0))
+    (if v.melee { damage.clamp(0.0, 2048.0) } else { damage },
+     if v.melee_weapon { speed.clamp(0.0, 1024.0) } else { speed })
 }
 
 #[cfg(test)]

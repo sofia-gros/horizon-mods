@@ -80,6 +80,25 @@ fn prepare_tconstruct_resources() {
         // Give supported Creative tool variants the same source-derived base
         // stats and mining rules as a tool assembled in the station. Other tool
         // categories keep their material identities until their stats are ported.
+        // Resolve the same source item tags used by station assembly, against
+        // the actual generated registry rather than guessing tool categories.
+        fn collect_tag_files(root: &std::path::Path, dir: &std::path::Path, files: &mut Vec<String>) -> std::io::Result<()> {
+            for entry in std::fs::read_dir(dir)? {
+                let path = entry?.path();
+                if path.is_dir() { collect_tag_files(root, &path, files)?; }
+                else if let Ok(relative) = path.strip_prefix(root) {
+                    files.push(relative.to_string_lossy().replace('\\', "/"));
+                }
+            }
+            Ok(())
+        }
+        let mut tag_files = Vec::new();
+        collect_tag_files(&original_pack, &original_pack.join("data"), &mut tag_files)?;
+        let mut raw_tags = std::collections::BTreeMap::new();
+        crate::tconstruct_source_tags::merge_pack_tags(&mut raw_tags, tag_files, |path| std::fs::read(original_pack.join(path)).ok());
+        let registry: std::collections::HashSet<String> = items.as_object().ok_or("invalid item registry")?.keys().cloned().collect();
+        let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
+        let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
         let creative_path = out.join("creative-inventory.json");
         if creative_path.is_file() {
             let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
@@ -109,6 +128,7 @@ fn prepare_tconstruct_resources() {
                                 });
                                 if let (Some(traits), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
+                                    if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
                                 }
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }

@@ -52,12 +52,15 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     }
     let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
-    let mut ductile = 0;
+    let mut levels = std::collections::BTreeMap::new();
     if let Some(traits) = super::tconstruct_source_material_traits::levels(world, &output) {
-        ductile = traits.levels.get("tconstruct:ductile").copied().unwrap_or(0);
-        super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &traits.levels)?;
+        levels = traits.levels;
+        super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &levels)?;
     }
-    super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, ductile)?;
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
+    super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
+        has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
     Some(output)
 }
 
