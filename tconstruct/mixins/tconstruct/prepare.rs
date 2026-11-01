@@ -148,9 +148,10 @@ fn prepare_tconstruct_resources() {
             std::fs::remove_file(&creative_path)?;
             std::fs::rename(temp, creative_path)?;
         }
-        // Project the source geode biome modifiers into the generated bundle,
+        // Project source geode and cobalt biome modifiers into the generated bundle,
         // preserving source registration order and the vanilla base pack.
-        if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file() {
+        if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file()
+            || content_path.join("data/tconstruct/worldgen/placed_feature/cobalt_ore_small.json").is_file() {
             fn tag_members(tags: &serde_json::Value, id: &str, visited: &mut std::collections::HashSet<String>, out: &mut std::collections::HashSet<String>) -> Result<(), Box<dyn std::error::Error>> {
                 if !visited.insert(id.to_owned()) { return Ok(()); }
                 let raw = tags.get(id).and_then(|v| v.as_str()).ok_or_else(|| format!("missing biome tag {id}"))?;

@@ -136,6 +136,13 @@ On Linux, a representative game test crafted the early equipment and cast a Cont
 
 Cast molten copper over a Seared Bricks block in a basin to make a Smeltery Controller. This first implementation accepts the ordinary Seared Bricks cast; the original's other controller textures are not yet supported. A Smeltery can alloy copper and gold into Rose Gold for the blocks used in an Anvil. Nether Grout can be made from magma cream, gravel and soul sand or soul soil, then smelted into Scorched Bricks for the Scorched Anvil.
 
+
+### Nether Cobalt
+
+The in-development Cobalt ore generates in new Nether chunks, embedded in Netherrack. An iron-tier or stronger pickaxe can mine it for Raw Cobalt; Silk Touch retains the ore. A blast furnace can process the ore or raw material into Cobalt ingots, and Cobalt Shards into nuggets. These additions have not yet been checked in a game-generated world. Metallic part casting remains incomplete, so do not yet assume a Cobalt ingot can produce a tool part.
+
+![An Ichor Geode in the Nether, shown as prior related exploration](ichor-geode-natural.png)
+
 ### Reinforced
 
 Melt obsidian and cast an Obsidian Pane, then cast molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. Ordinary tool, armor and ranged weapon wear can be prevented. Extract and reapply Reinforced with a Modifier Crystal. Glowing and its modifier-caused wear are not implemented.
