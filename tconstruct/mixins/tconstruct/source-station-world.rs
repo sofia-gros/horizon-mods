@@ -53,14 +53,17 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
+    let mut order = Vec::new();
     if let Some(traits) = super::tconstruct_source_material_traits::levels(world, &output) {
         levels = traits.levels;
+        order = traits.order;
         super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &levels)?;
     }
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
     super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
+    super::tconstruct_source_mining_stack::apply(&mut output, &stats, &levels, &order, has_tag("tconstruct:modifiable/harvest"))?;
     Some(output)
 }
 
@@ -173,7 +176,9 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
     let traits = super::tconstruct_source_material_traits::levels(world, &tool);
     let cultivated = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:cultivated").copied()).unwrap_or(0);
     let preserved = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:preserved").copied()).unwrap_or(0);
-    let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved);
+    let dense = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:dense").copied()).unwrap_or(0);
+    let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved)
+        * super::tconstruct_source_material_effects::dense_repair_factor(dense);
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
     for index in 1..=3 {

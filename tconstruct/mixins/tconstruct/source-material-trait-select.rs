@@ -7,6 +7,17 @@ pub(super) fn add_traits(
     per_stat: &BTreeMap<String, Vec<Value>>,
     kind: &str,
 ) {
+    add_traits_ordered(result, &mut Vec::new(), default, per_stat, kind);
+}
+
+/// Preserve first occurrence, matching the source's stable LinkedHashMap order.
+pub(super) fn add_traits_ordered(
+    result: &mut BTreeMap<String, i32>,
+    order: &mut Vec<String>,
+    default: Option<&Vec<Value>>,
+    per_stat: &BTreeMap<String, Vec<Value>>,
+    kind: &str,
+) {
     let stat = match kind {
         "head" | "handle" | "binding" | "limb" | "grip" | "bowstring" | "maille" => {
             format!("tconstruct:{kind}")
@@ -37,6 +48,7 @@ pub(super) fn add_traits(
         else {
             continue;
         };
+        if !result.contains_key(name) { order.push(name.to_owned()); }
         *result.entry(name.to_owned()).or_insert(0) += level;
     }
 }
@@ -64,5 +76,12 @@ mod tests {
         assert_eq!(result["tconstruct:jagged"], 2);
         assert_eq!(result["tconstruct:cultivated"], 2);
         assert_eq!(result["tconstruct:holy"], 1);
+        let mut levels = BTreeMap::new();
+        let mut order = Vec::new();
+        add_traits_ordered(&mut levels, &mut order, Some(&default), &per_stat, "head");
+        add_traits_ordered(&mut levels, &mut order, Some(&default), &per_stat, "handle");
+        add_traits_ordered(&mut levels, &mut order, Some(&default), &per_stat, "binding");
+        assert_eq!(order, ["tconstruct:jagged", "tconstruct:cultivated"]);
+        assert_eq!(levels["tconstruct:cultivated"], 2);
     }
 }

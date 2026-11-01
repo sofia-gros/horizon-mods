@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 
 pub(super) struct Traits {
     pub levels: BTreeMap<String, i32>,
+    pub order: Vec<String>,
     pub durability_multiplier: f32,
 }
 
@@ -14,6 +15,12 @@ pub(super) fn levels_from_definition(
     identities: &[String],
     read: impl Fn(&str) -> Option<Vec<Vec<u8>>>,
 ) -> Option<BTreeMap<String, i32>> {
+    ordered_levels_from_definition(definition, identities, read).map(|(levels, _)| levels)
+}
+
+pub(super) fn ordered_levels_from_definition(
+    definition: &[u8], identities: &[String], read: impl Fn(&str) -> Option<Vec<Vec<u8>>>,
+) -> Option<(BTreeMap<String, i32>, Vec<String>)> {
     let value: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let part_stats = value.get("modules")?.as_array()?.iter().find(|m| {
         m.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_stats")
@@ -23,6 +30,7 @@ pub(super) fn levels_from_definition(
         return None;
     }
     let mut result = BTreeMap::new();
+    let mut order = Vec::new();
     for (part, id) in parts.iter().zip(identities) {
         let part = part
             .as_str()
@@ -34,14 +42,15 @@ pub(super) fn levels_from_definition(
         };
         let raw = super::tconstruct_tx::source_merge_material_traits(&layers).ok()?;
         let kind = super::tconstruct_source_station_stats::part_kind(part)?;
-        super::tconstruct_source_material_trait_select::add_traits(
+        super::tconstruct_source_material_trait_select::add_traits_ordered(
             &mut result,
+            &mut order,
             raw.default.as_ref(),
             &raw.per_stat,
             kind,
         );
     }
-    Some(result)
+    Some((result, order))
 }
 
 pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -> Option<Traits> {
@@ -78,8 +87,8 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
     if recipe.parts(definition)?.len() != identities.len() {
         return None;
     }
-    let resolved =
-        levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
+    let (resolved, order) =
+        ordered_levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
     let mut stat_maps = Vec::new();
     for id in &identities {
         let (namespace, name) = id.split_once(':')?;
@@ -94,12 +103,11 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         );
     }
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
-    let preserved = resolved.get("tconstruct:preserved").copied().unwrap_or(0);
-    let ductile = resolved.get("tconstruct:ductile").copied().unwrap_or(0);
-    let boost = super::tconstruct_source_material_effects::durability_boost(preserved, ductile);
+    // Original stat_multiplier is the product of multiply_all operations;
+    // material percentages and multiply_base traits do not change it.
     Some(Traits {
         levels: resolved,
-        durability_multiplier: stats.durability_multiplier
-            + stats.durability_multiplier_unit * boost,
+        order,
+        durability_multiplier: stats.durability_multiplier_unit,
     })
 }
