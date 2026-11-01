@@ -166,7 +166,7 @@ entries = [
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
     ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
     ('tconstruct:sky_slime_crystal', 'minecraft:flint', 'Skyslime Crystal'),
-    ('tconstruct:steel_shard', 'minecraft:iron_nugget', 'Steel Shard'),
+    ('tconstruct:steel_shard', 'minecraft:flint', 'Steel Shard'),
     ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
     ('tconstruct:emerald_reinforcement', 'minecraft:flint', 'Emerald Reinforcement'),
 ]
