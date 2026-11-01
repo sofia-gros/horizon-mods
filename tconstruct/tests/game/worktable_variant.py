@@ -9,6 +9,7 @@ def click(n,*flags):g.call('click-slot',str(n),*flags);g.call('wait','7')
 def hot(item):return next(x['slot'] for x in g.call('inventory')['hotbar'] if x.get('item')==item)
 try:
  g.ready()
+ if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
  for s in ('gamemode creative @s','time set day','clear @s','effect give @s minecraft:instant_health 1 4 true','fill -2 71 -1 2 72 3 minecraft:air','fill -2 70 -1 2 70 3 minecraft:stone','tp @s 0.5 71 0.5','setblock 0 71 2 minecraft:crafting_table','give @s minecraft:basalt 4','give @s tconstruct:seared_bricks 3'):cmd(s)
  g.call('interact','0','71','2');g.call('wait','12');s=hot('tconstruct:seared_bricks');click(s)
  for i in (100,101,102):click(i,'right')

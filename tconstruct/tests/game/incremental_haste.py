@@ -12,6 +12,7 @@ def mine():
 def station():cmd('gamemode creative @s');cmd('setblock 0 71 2 tconstruct:tinker_station');g.call('interact','0','71','2');g.call('wait','12')
 try:
  g.ready()
+ if g.call('status')['screen']=='dead':g.call('respawn');g.call('wait','20')
  for s in ('gamemode creative @s','clear @s','effect clear @s','tp @s 0.5 71 0.5','fill -2 71 -1 2 72 3 minecraft:air','setblock 0 71 2 tconstruct:tinker_station','give @s tconstruct:pick_head[minecraft:custom_data={Material:"tconstruct:flint"}] 1','give @s tconstruct:tool_handle[minecraft:custom_data={Material:"tconstruct:wood"}] 1','give @s tconstruct:tool_binding[minecraft:custom_data={Material:"tconstruct:wood"}] 1'):cmd(s)
  g.call('interact','0','71','2');g.call('wait','12')
  for i,item in enumerate(('tconstruct:pick_head','tconstruct:tool_handle','tconstruct:tool_binding')):click(hot(item));click(300+i)
