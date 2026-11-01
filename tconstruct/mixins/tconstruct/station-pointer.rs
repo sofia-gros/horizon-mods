@@ -4,6 +4,34 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
     let Some(key) = game.container else { return Break(true); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
     let batch = horizon_client::hud::HudBatch::new(size);
+    if crate::game::tconstruct_ui::is_worktable(game) {
+        let (ox, oy) = game.inventory_origin(&batch);
+        let x = game.cursor.0 - ox; let y = game.cursor.1 - oy;
+        if !right && (28.0..100.0).contains(&x) && (15.0..87.0).contains(&y) {
+            let index = ((x - 28.0) / 18.0) as usize + ((y - 15.0) / 18.0) as usize * 4;
+            let choice = game.container_kind().and_then(|entity| entity.slots().first()).and_then(Option::as_ref)
+                .and_then(|tool| crate::game::tconstruct_source_upgrade_rules::extractable(tool).get(index).copied());
+            if let Some(id) = choice {
+                if let Some((window, _)) = game.remote.as_ref().and_then(|remote| remote.menu.as_ref()) {
+                    let code = match id { "tconstruct:haste" => 35000, "tconstruct:sharpness" => 35001, _ => 35002 };
+                    game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: code }));
+                } else { game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, id.into()); }
+            }
+            return Break(true);
+        }
+        if let Some(slot) = game.slot_at(&batch, game.cursor.0, game.cursor.1) {
+            if slot == 325 && game.remote.is_none() {
+                if !right {
+                    let plan = game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key).and_then(|selected|
+                        game.world.block_entities.get(&key).and_then(|entity| crate::game::tconstruct_source_station_world::extraction_plan(&game.world, entity.slots(), selected)));
+                    if let Some(plan) = plan { crate::game::tconstruct_source_station_take_host::take(game, key, plan); }
+                }
+                return Break(true);
+            }
+            if (300..=302).contains(&slot) || slot == 325 || slot < 36 || (500..505).contains(&slot) { return Continue(()); }
+        }
+        return Break(true);
+    }
     if !right {
         let (ox, oy) = game.inventory_origin(&batch);
         let start = crate::game::tconstruct_source_workstation_tabs::start(game).unwrap_or(key);

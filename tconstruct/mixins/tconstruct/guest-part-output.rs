@@ -8,7 +8,8 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let actual = hub.encoder.block_ids.get(state).copied();
     let block = hub.sync.builtin.get("minecraft:block");
     let builder = block.and_then(|r| r.id("tconstruct:part_builder"));
-    let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"].into_iter()
+    let worktable = block.and_then(|r| r.id("tconstruct:modifier_worktable")).is_some_and(|id| Some(id) == actual);
+    let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"].into_iter()
         .find_map(|name| block.and_then(|r| r.id(name)).filter(|id| Some(*id) == actual)
             .and_then(|_| crate::tconstruct_source_anvil_capacity::input_capacity(name)));
     let is_station = if builder.is_some() && actual == builder { false } else if capacity.is_some() { true } else { return Continue(()); };
@@ -181,7 +182,7 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let action = if is_station && (24..=25).contains(&packet.slot) { Some(packet.slot) } else { None };
     let Some(action) = action else { return Continue(()); };
     if packet.button == 0 {
-        let mut building = if action == 24 {
+        let mut building = if action == 24 && !worktable {
             world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::building_plan_with_capacity(world, entity.slots(), capacity))
         } else { None };
         if let Some((_, output)) = building.as_mut() {
@@ -189,7 +190,10 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
             crate::tconstruct_source_station_name::name_result(output, name);
         }
         let mut repair = if action == 25 {
-            world.block_entities.get(&key).and_then(|entity| crate::tconstruct_source_station_world::operation_plan_with_capacity(world, entity.slots(), capacity))
+            world.block_entities.get(&key).and_then(|entity| if worktable {
+                world.chunks.__horizon_mixins_tconstruct_part_selections().get(&key)
+                    .and_then(|selected| crate::tconstruct_source_station_world::extraction_plan(world, entity.slots(), selected))
+            } else { crate::tconstruct_source_station_world::operation_plan_with_capacity(world, entity.slots(), capacity) })
         } else { None };
         if capacity == 5 {
             if let Some(plan) = repair.as_mut() {

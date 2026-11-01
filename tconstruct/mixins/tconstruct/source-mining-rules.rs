@@ -2,6 +2,31 @@
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_mining_math::{Conditional, conditional_speed};
 
+/// Haste on a non-harvest chestplate applies the source player mining-speed multiplier.
+pub(super) fn haste_armor_multiplier(custom: &Tag, damage: u32) -> f32 {
+    let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return 1.0; };
+    if *max <= 0 || damage >= *max as u32 { return 1.0; }
+    let amount = match custom.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:haste")) {
+        Some(Tag::Int(amount)) => (*amount).max(0), _ => 0,
+    };
+    1.0 + 0.1 * amount as f32 / 45.0
+}
+
+#[cfg(test)]
+mod haste_tests {
+    use super::*;
+
+    #[test]
+    fn partial_haste_only_applies_on_unbroken_armor() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_upgrades", Tag::compound([("tconstruct:haste", Tag::Int(18))])),
+        ]);
+        assert!((haste_armor_multiplier(&custom, 99) - 1.04).abs() < 0.00001);
+        assert_eq!(haste_armor_multiplier(&custom, 100), 1.0);
+    }
+}
+
 fn matches(rule: &Tag, block: &str, in_tag: &impl Fn(&str, &str) -> bool) -> bool {
     let Some(Tag::String(blocks)) = rule.get("blocks") else { return false; };
     let blocks = blocks.to_string_lossy();

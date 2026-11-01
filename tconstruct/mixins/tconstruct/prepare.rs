@@ -248,7 +248,7 @@ fn prepare_tconstruct_resources() {
         std::fs::rename(temp, path)?;
         let path = out.join("gameplay-facts.json");
         let mut gameplay: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
-        for name in ["tconstruct:part_builder", "tconstruct:tinker_station"] {
+        for name in ["tconstruct:part_builder", "tconstruct:tinker_station", "tconstruct:modifier_worktable"] {
             let id = facts["defaults"][name].as_u64().ok_or("missing station block state")? as usize;
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id)).ok_or("missing station gameplay row")?;
             row["block_entity"] = serde_json::Value::Bool(true);
@@ -277,6 +277,7 @@ fn prepare_tconstruct_resources() {
             for (id, state) in states.iter().enumerate() {
                 if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:soulsteel_block" | "tconstruct:slimesteel_block" | "tconstruct:cinderslime_block" | "tconstruct:knightslime_block")) {
                     let row = rows.get_mut(id).ok_or("missing table gameplay row")?;
+                    if state.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_worktable") { row["block_entity"] = serde_json::Value::Bool(true); }
                     row["solid_render"] = serde_json::Value::Bool(false);
                     row["can_occlude"] = serde_json::Value::Bool(false);
                 }

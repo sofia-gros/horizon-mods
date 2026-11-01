@@ -1,6 +1,6 @@
 fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizon_core::position::BlockPos, old: horizon_world::registry::BlockStateId, side_effects: bool) {
     let name = level.facts.get(old).name.clone();
-    if matches!(&*name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil") {
+    if matches!(&*name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable") {
         let at = (pos.x, pos.y, pos.z);
         if side_effects {
             if let Some(value) = crate::game::tconstruct_source_melter_store::read(level.world, at, "tconstruct:anvil") {

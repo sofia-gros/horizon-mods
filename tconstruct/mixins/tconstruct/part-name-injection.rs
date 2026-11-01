@@ -3,6 +3,20 @@ fn tconstruct_part_name(
     game: &crate::game::Game<'_>,
     stack: &horizon_client::items::ItemStack,
 ) -> Vec<(horizon_client::text::Text, u32)> {
+    if &*stack.item == "tconstruct:modifier_crystal" && stack.custom_name().is_none() && stack.item_name().is_none()
+        && horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative) {
+        let modifier = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("modifier"));
+        if let Some(horizon_world::nbt::Tag::String(id)) = modifier {
+            let id = id.to_string_lossy();
+            if let Some((namespace, path)) = id.split_once(':') {
+                let key = format!("modifier.{namespace}.{path}");
+                let label = game.pack.names.display_get(&key).unwrap_or(key);
+                let template = game.pack.names.display_get("item.tconstruct.modifier_crystal.format").unwrap_or_else(|| "%s Crystal".into());
+                let name = horizon_client::text::format_translation(&template, &[horizon_client::text::Text::literal(label)]);
+                if let Some((text, _)) = value.first_mut() { *text = name; }
+            }
+        }
+    }
     // Remote cost data is only available while the source menu is open; do
     // not display an unsynchronized value in other remote contexts.
     if let Some(index) = crate::game::tconstruct_source_cast_info::cast_index(&stack.item) {
@@ -49,7 +63,7 @@ fn tconstruct_part_name(
         .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Byte(n) if *n != 0));
     if !hidden {
         let upgrades = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_upgrades"));
-        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72)] {
+        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72), ("haste", 45)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
             let level = (amount + needed - 1) / needed;

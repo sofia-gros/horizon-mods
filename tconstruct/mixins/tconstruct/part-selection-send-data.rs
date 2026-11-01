@@ -8,11 +8,17 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         let state = world.block(pos.0, pos.1, pos.2).0 as usize;
         let builder = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:part_builder"));
         let actual = hub.encoder.block_ids.get(state).copied();
-        let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil"].into_iter()
+        let worktable = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:modifier_worktable")).is_some_and(|id| Some(id) == actual);
+        let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"].into_iter()
             .find_map(|name| hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(name))
                 .filter(|id| Some(*id) == actual).and_then(|_| crate::tconstruct_source_anvil_capacity::input_capacity(name)));
         if let Some(capacity) = capacity {
             let (window, old_menu_state) = (menu.window, menu.state);
+            if worktable {
+                let selected = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).map(String::as_str);
+                let index = match selected { Some("tconstruct:haste") => 0, Some("tconstruct:sharpness") => 1, Some("tconstruct:swiftstrike") => 2, _ => -1 };
+                hub.guests[i].send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 29999, value: index }));
+            }
             let layouts = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref().map(|snapshot| {
                 snapshot.iter().filter(|(id, _)| id.contains(":tinkering/station_layouts/"))
                     .filter_map(|(id, layers)| Some(vec![id.clone(), std::str::from_utf8(layers.last()?).ok()?.to_owned()]))
@@ -35,12 +41,15 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
-            let mut build = crate::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output);
+            let mut build = if worktable { None } else { crate::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output) };
             if let Some(output) = build.as_mut() {
                 let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
                 crate::tconstruct_source_station_name::name_result(output, name);
             }
-            let mut operation = crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output);
+            let mut operation = if worktable {
+                world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)
+                    .and_then(|selected| crate::tconstruct_source_station_world::extraction_plan(world, slots, selected)).map(|plan| plan.output)
+            } else { crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output) };
             if capacity == 5 {
                 if let Some(output) = operation.as_mut() {
                     let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);

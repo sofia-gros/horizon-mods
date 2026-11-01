@@ -76,8 +76,10 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-plate-armor-text
         if '/' in name or not name.endswith('.png'):
             raise ValueError('Invalid plate armor texture name: ' + name)
         (gui / ('tconstruct_plate_' + name)).write_bytes(armor_textures.read(name))
-for name in ('part_builder', 'tinker_station', 'icons', 'generic', 'panel'):
+for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
+for name in ('haste', 'sharpness', 'swiftstrike'):
+    (gui / ('tconstruct_modifier_' + name + '.png')).write_bytes((repository / 'assets/tconstruct/gui/modifiers' / (name + '.png')).read_bytes())
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as source_smeltery:
     (gui / 'tconstruct_heating_structure.png').write_bytes(source_smeltery.read('assets/tconstruct/textures/gui/heating_structure.png'))
 # Use the original Melter screen in the shared GUI atlas.
@@ -161,6 +163,8 @@ entries = [
     ('tconstruct:tool_binding', 'minecraft:flint', 'Tool Binding'),
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
     ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
+    ('tconstruct:sky_slime_crystal', 'minecraft:flint', 'Skyslime Crystal'),
+    ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
 ]
 # Original material-bearing part and fake-ingot IDs share MaterialItem behavior.
 # Their rendering and tooltip name paths are connected; stats, traits and
@@ -233,6 +237,8 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
     elif short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short in ('sky_slime_crystal', 'modifier_crystal'):
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + short}}
     elif name in casts or short.endswith('_plating_dummy'):
         native_model = json.loads((repository / 'content/assets/tconstruct/models/item' / (short + '.json')).read_text())
     elif short in MATERIAL_MODELS:

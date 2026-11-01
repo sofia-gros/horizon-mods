@@ -272,7 +272,7 @@ pub(super) fn take_repair(slots: &mut [Option<ItemStack>], carried: &mut Option<
 pub(super) struct StationOperation {
     pub output: ItemStack,
     pub consumed: Vec<(usize, u32)>,
-    pub leftover: Option<ItemStack>,
+    pub leftovers: Vec<ItemStack>,
 }
 
 fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
@@ -302,13 +302,38 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     fields.insert("tic_upgrades".into(), upgrades);
     upgraded.data_mut().set_other("minecraft:custom_data", Some(custom));
     let output = assemble(world, definition, &tool.item, &identities, Some(&upgraded))?;
-    Some(StationOperation { output, consumed: plan.consumed, leftover: plan.leftover })
+    Some(StationOperation { output, consumed: plan.consumed, leftovers: plan.leftover.into_iter().collect() })
+}
+
+/// Construct the worktable extraction output without changing inventory.
+pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], id: &str) -> Option<StationOperation> {
+    let tool = slots.first()?.as_ref()?;
+    let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
+    let identities = materials.iter().map(|value| match value {
+        Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None,
+    }).collect::<Option<Vec<_>>>()?;
+    let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+    let (namespace, name) = tool.item.split_once(':')?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    let plan = super::tconstruct_source_upgrade_rules::extract_upgrade(tags, tool, slots.get(1..=2)?, id)?;
+    let mut modified = tool.clone();
+    let mut custom = modified.data()?.other("minecraft:custom_data")?.clone();
+    let Tag::Compound(ref mut fields) = custom else { return None; };
+    let Tag::Compound(upgrades) = fields.get_mut(&"tic_upgrades".into())? else { return None; };
+    if plan.upgrade.amount == 0 { upgrades.remove(&id.into()); }
+    else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
+    modified.data_mut().set_other("minecraft:custom_data", Some(custom));
+    let output = assemble(world, definition, &tool.item, &identities, Some(&modified))?;
+    let mut leftovers = plan.upgrade.leftover.into_iter().collect::<Vec<_>>();
+    leftovers.push(plan.sponge);
+    Some(StationOperation { output, consumed: plan.upgrade.consumed, leftovers })
 }
 
 /// Revalidate and commit a planned operation; return any item to give to the player.
 pub(super) fn take_operation(slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, plan: StationOperation) -> Option<Vec<ItemStack>> {
     if !take_repair(slots, carried, plan.output, &plan.consumed) { return None; }
-    Some(plan.leftover.into_iter().collect())
+    Some(plan.leftovers)
 }
 
 /// Plan an upgrade, replacement or repair without consuming inputs.
@@ -320,7 +345,7 @@ pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::Worl
     if !matches!(input_capacity, 3 | 5) { return None; }
     if let Some(plan) = upgrade_plan(world, slots, input_capacity) { return Some(plan); }
     if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity).or_else(|| repair_plan_with_capacity(world, slots, input_capacity)) {
-        return Some(StationOperation { output, consumed, leftover: None });
+        return Some(StationOperation { output, consumed, leftovers: Vec::new() });
     }
     let tool = slots.first()?.as_ref()?;
     if tool.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_max_damage")).is_some() { return None; }
@@ -332,5 +357,5 @@ pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::Worl
         let after = after.as_ref().map_or(0, |stack| stack.count);
         (before > after).then_some((index, before - after))
     }).collect();
-    Some(StationOperation { output: output?, consumed, leftover: None })
+    Some(StationOperation { output: output?, consumed, leftovers: Vec::new() })
 }

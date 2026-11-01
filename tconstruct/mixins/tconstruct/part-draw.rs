@@ -93,6 +93,37 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
     }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return std::ops::ControlFlow::Continue(()); };
     let atlas = &game.gui.atlas;
+    if crate::game::tconstruct_ui::is_worktable(game) {
+        batch.sprite_region(atlas, "gui/tconstruct_worktable", [ox, oy, 176.0, 184.0], 256.0, 256.0);
+        let title = game.pack.names.display_get("block.tconstruct.modifier_worktable").unwrap_or_else(|| "Modifier Worktable".into());
+        let inventory = game.pack.names.display_get("container.inventory").unwrap_or_else(|| "Inventory".into());
+        let color = horizon_client::hud::rgba(64, 64, 64, 255);
+        batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
+        batch.text(atlas, &inventory, ox + 8.0, oy + 90.0, color, false);
+        if let Some(entity) = game.container_kind() {
+            let slots = entity.slots();
+            let inputs_valid = slots.get(1..=2).is_some_and(|inputs|
+                inputs.iter().flatten().any(|item| &*item.item == "minecraft:wet_sponge") &&
+                inputs.iter().flatten().any(|item| &*item.item == "tconstruct:sky_slime_crystal"));
+            let choices = if inputs_valid { slots.first().and_then(Option::as_ref).map(crate::game::tconstruct_source_upgrade_rules::extractable).unwrap_or_default() } else { Vec::new() };
+            for (index, id) in choices.iter().enumerate() {
+                let (x, y) = (ox + 28.0 + (index % 4) as f32 * 18.0, oy + 15.0 + (index / 4) as f32 * 18.0);
+                if let Some(mut region) = atlas.sprites.get("gui/tconstruct_worktable").copied() {
+                    let (du, dv) = ((region.u1 - region.u0) / region.w as f32, (region.v1 - region.v0) / region.h as f32);
+                    let selected = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)).is_some_and(|selected| selected.as_str() == *id);
+                    region.u0 += 176.0 * du; region.v0 += (if selected { 33.0 } else { 15.0 }) * dv;
+                    region.u1 = region.u0 + 18.0 * du; region.v1 = region.v0 + 18.0 * dv;
+                    batch.rect_uv(x, y, 18.0, 18.0, region, u32::MAX);
+                }
+                batch.sprite(atlas, &format!("gui/tconstruct_modifier_{}", id.rsplit(':').next().unwrap_or("")), x + 1.0, y + 1.0);
+            }
+            let output = if game.remote.is_some() { slots.get(25).cloned().flatten() }
+                else { game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos))
+                    .and_then(|selected| crate::game::tconstruct_source_station_world::extraction_plan(&game.world, slots, selected)).map(|plan| plan.output) };
+            if let Some(output) = output { game.draw_item(batch, &output, ox + 125.0, oy + 42.0); }
+        }
+        return std::ops::ControlFlow::Break(());
+    }
     if !station && game.container_size() > 27 {
         let atlas = &game.gui.atlas;
         let count = if game.remote.is_some() {

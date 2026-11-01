@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "r r",
+    "r r"
+  ],
+  "key": {
+    "s": "#tconstruct:anvil_seared_blocks",
+    "r": "minecraft:granite"
+  },
+  "result": {
+    "id": "tconstruct:modifier_worktable",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Rock": "minecraft:granite",
+          "Variant": "granite",
+          "Texture": "minecraft:block/granite",
+          "TextureTop": "minecraft:block/granite"
+        }
+      },
+      "minecraft:item_model": "tconstruct:modifier_worktable_granite"
+    }
+  }
+}

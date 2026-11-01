@@ -106,7 +106,11 @@ try:
     hits = attackpair()
     print('upgraded hits', json.dumps(hits), flush=True)
     assert abs(hits[0]['amount'] - 4.25) < 0.001
-    assert hits[-1]['scale'] > base_hits[-1]['scale']
+    # Control calls can arrive on different ticks under software rendering.
+    # Compare cooldown gained per tick rather than raw scales at unequal gaps.
+    base_gap = base_hits[-1]['t'] - base_hits[-2]['t']
+    upgraded_gap = hits[-1]['t'] - hits[-2]['t']
+    assert hits[-1]['scale'] / (upgraded_gap + 0.5) > base_hits[-1]['scale'] / (base_gap + 0.5)
     cmd('kill @e[type=minecraft:zombie,tag=tconstruct_upgrade_test]')
     cmd('gamemode creative @s')
     for invalid in ('minecraft:amethyst_shard', 'minecraft:dirt'):

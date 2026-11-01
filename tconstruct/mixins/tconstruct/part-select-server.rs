@@ -4,6 +4,16 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
     let Some(menu) = g.menu.as_ref().filter(|m| m.window == window) else { return Continue(()); };
     let Some(key) = menu.pos else { return Continue(()); };
     let station_capacity = crate::game::tconstruct_source_anvil_capacity::input_capacity(&game.res.facts().get(game.world.block(key.0, key.1, key.2)).name);
+    if (35000..35003).contains(&id) && &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:modifier_worktable" {
+        if !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {
+            let selected = ["tconstruct:haste", "tconstruct:sharpness", "tconstruct:swiftstrike"][(id - 35000) as usize];
+            if game.world.block_entities.get(&key).and_then(|entity| entity.slots().first()).and_then(Option::as_ref)
+                .is_some_and(|tool| crate::game::tconstruct_source_upgrade_rules::extractable(tool).contains(&selected)) {
+                game.world.chunks.__horizon_mixins_tconstruct_part_selections_mut().insert(key, selected.into());
+            }
+        }
+        return Break(());
+    }
     if (34000..34048).contains(&id) {
         if station_capacity.is_some()
             && !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {
