@@ -131,6 +131,10 @@ try:
     set_trait(''); build(); ordinary_repair = repair()
     set_trait('dense'); build(); dense_repair = repair()
     assert 0 < dense_repair < ordinary_repair, (ordinary_repair, dense_repair)
+    cmd('gamemode creative @s'); cmd('clear @s'); cmd('give @s minecraft:iron_pickaxe 1'); g.call('hotbar', '1')
+    vanilla_ticks = mine()[0]
+    assert vanilla_ticks < 20, vanilla_ticks
+    print('vanilla iron pickaxe ticks', vanilla_ticks, flush=True)
     g.call('screenshot', str(run / 'material-mining-traits.png'))
     cmd('datapack disable "file/trait-mining-followup-test"'); g.stop()
     print('PASS mining trait source values and Dense repair', flush=True)
