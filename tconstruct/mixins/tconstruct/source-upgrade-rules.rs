@@ -58,9 +58,6 @@ pub(super) fn plan(
         if !(matches_tool(tools) || tools.as_array().is_some_and(|entries| entries.iter().any(matches_tool))) {
             continue;
         }
-        // Haste's non-harvest equipment uses a player attribute that is not connected yet.
-        if id == "tconstruct:haste" && !tags.get("tconstruct:modifiable/harvest")
-            .is_some_and(|items| items.contains(tool.item.as_ref())) { continue; }
         let Some(input) = value.get("input") else {
             continue;
         };
