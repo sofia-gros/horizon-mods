@@ -3,7 +3,7 @@
 use serde_json::{Map, Value};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(super) struct BaseStats {
+pub struct BaseStats {
     pub durability: f32,
     pub durability_multiplier: f32,
     pub durability_boost_unit: f32,
@@ -193,7 +193,7 @@ pub(super) fn gem_tier(tier: Option<&'static str>, diamond: bool, emerald: bool)
 
 /// Compute the supported shared material-derived numeric base. `materials` contains the
 /// already merged source stats object for each ordered part material.
-pub(super) fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option<BaseStats> {
+pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option<BaseStats> {
     let definition: Value = serde_json::from_slice(definition).ok()?;
     let mut stats = [
         Accumulator::new(1.0),

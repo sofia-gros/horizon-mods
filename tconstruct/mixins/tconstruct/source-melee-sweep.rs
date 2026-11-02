@@ -24,8 +24,8 @@ fn tconstruct_melee_sweep(game:&mut crate::game::Game<'_>, spared:crate::game::m
     let (xd,zd)=game.extra_knockback_direction();
     for id in candidates {
         let Some(i)=game.mobs.iter().position(|mob|mob.id==id && mob.alive() && !mob.removed) else {continue;};
-        game.mobs[i].knockback(0.4,xd,zd);
         let source=game.attack_source(from);
+        game.mobs[i].knockback(0.4,xd,zd,&source);
         if game.hurt_by_player(i,1.0,source) {game.last_hurt_by_player.insert(id,game.lan_acting);}
     }
     // Source sweep against other players is not connected yet; do not treat the

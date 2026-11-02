@@ -84,7 +84,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
 }
 
 /// Build supported tools from resolved source stats, shared by the station and Creative.
-pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>) -> Option<ItemStack> {
+pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>) -> Option<ItemStack> {
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }

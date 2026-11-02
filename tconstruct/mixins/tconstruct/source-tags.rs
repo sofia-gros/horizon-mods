@@ -88,7 +88,7 @@ pub(super) fn definitely_absent(
 
 /// Reconstruct the ordered merge inputs by namespaced tag ID. Values are
 /// raw files so `replace` and Forge `remove` retain their original ordering.
-pub(super) fn merge_pack_tags(
+pub fn merge_pack_tags(
     tags: &mut BTreeMap<String, Vec<Vec<u8>>>,
     files: impl IntoIterator<Item = String>,
     read: impl Fn(&str) -> Option<Vec<u8>>,
@@ -181,7 +181,7 @@ pub(super) fn resolve_available_blocks(
 /// entries fail the tag; missing removals are optional in Forge. Cycles are
 /// explicitly unsupported for now and must not be treated as an empty tag.
 #[allow(dead_code)]
-pub(super) fn resolve_tag(
+pub fn resolve_tag(
     id: &str,
     tags: &BTreeMap<String, Vec<Vec<u8>>>,
     registry: &std::collections::HashSet<String>,

@@ -3,7 +3,7 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use std::collections::BTreeMap;
 
-pub(super) fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
+pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &BTreeMap<String, i32>, order: &[String], harvest: bool) -> Option<()> {
     if !harvest { return Some(()); }
     let level = |id: &str| levels.get(id).copied().unwrap_or(0);

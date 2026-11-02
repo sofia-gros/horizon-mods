@@ -37,7 +37,9 @@ pub(super) fn harvest(game: &mut Game<'_>, hit: Option<&Hit>) -> ControlFlow<Res
             if blocked.contains(&(pos[0],pos[2])) || !is_crop(game, pos) { continue; }
             let state = game.world.block(pos[0],pos[1],pos[2]);
             let Some(reset) = tconstruct_source_crop_age::mature_reset(game.pack.assets.registry, state) else { continue; };
-            let mut drops = game.block_loot_at(pos, state, Some(&stack));
+            let name = game.res.facts().get(state).name.clone();
+            let block_entity = game.loot_block_entity(pos, &name);
+            let mut drops = game.block_loot_at(pos, state, Some(&stack), block_entity);
             if tconstruct_source_crop_loot::consume_seed(&mut drops, &seeds) {
                 game.level_set(pos, reset)?;
             } else {

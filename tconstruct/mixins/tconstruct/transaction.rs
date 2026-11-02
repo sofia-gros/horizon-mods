@@ -507,7 +507,7 @@ pub(super) fn source_material_registry(
 /// while a null stat removes that entry. Invalid layers fail closed until the
 /// original loader's error/partial-update behavior is ported in full.
 #[allow(dead_code)]
-pub(super) fn source_merge_material_stats(files: &[Vec<u8>]) -> Result<std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>>, SourceLookupError> {
+pub fn source_merge_material_stats(files: &[Vec<u8>]) -> Result<std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>>, SourceLookupError> {
     let mut stats: std::collections::BTreeMap<String, serde_json::Map<String, serde_json::Value>> = std::collections::BTreeMap::new();
     for file in files {
         let value: serde_json::Value = serde_json::from_slice(file).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
@@ -554,7 +554,7 @@ pub(super) fn source_merge_material_traits(files: &[Vec<u8>]) -> Result<SourceRa
 /// provenance and all ingredient forms can be supplied without approximation.
 #[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq)]
-pub(super) enum SourceLookupError { IncompleteContext, UnsupportedOrder, UnsupportedRecipe, UnknownCondition }
+pub enum SourceLookupError { IncompleteContext, UnsupportedOrder, UnsupportedRecipe, UnknownCondition }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

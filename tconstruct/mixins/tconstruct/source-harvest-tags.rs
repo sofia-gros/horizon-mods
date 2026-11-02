@@ -39,7 +39,7 @@ fn merge_directory(root: &Path, tag_directory: &str, raw: &mut BTreeMap<String, 
     Ok(())
 }
 
-pub(super) fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Result<usize, Error> {
+pub fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Result<usize, Error> {
     let mut tags = BTreeMap::new();
     merge_directory(out, "block", &mut tags)?;
     let mut forge = zip::ZipArchive::new(std::fs::File::open(forge_archive)?)?;

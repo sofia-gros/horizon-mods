@@ -352,7 +352,7 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
 }
 
 /// Rebuild additive and multiplier effects from the source baseline and saved progress.
-pub(super) fn apply_stats(
+pub fn apply_stats(
     tool: &mut ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &std::collections::BTreeMap<String, i32>,
