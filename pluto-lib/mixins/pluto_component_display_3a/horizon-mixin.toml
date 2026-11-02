@@ -1,0 +1,15 @@
+[mod]
+id = "pluto_component_display_3a"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "3a264943c7a3a3ed02e6ee608443f558d98f208f"
+[[injection]]
+id = "durability-tooltip"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
+kind = "HEAD"
+helper = "tooltip.rs"
+bindings = [
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+  { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "&mut *lines" },
+]

@@ -14,11 +14,17 @@ For accepted values, the fixture checks prepared generated and modified stacks t
 
 On Linux with Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`, the [independent demo](../examples/transport-demo/mixins/pluto_transport_demo/demo.rs) generated a prepared diamond pickaxe. A LAN guest received its actual Tool and max-damage components, mined stone, and retained those components and the updated damage after the host saved and reloaded the world. A vanilla cobblestone drop was also observed.
 
-The end-to-end check is **not complete**. The stack has `max_damage:60`, but the host’s advanced tooltip displayed the diamond pickaxe’s default maximum, `1561`. The host mining path also reads item-definition rules, so the observed stone mining does not prove it used the stack’s Tool rules. Guest count-only retransmission and live search identity remain unverified. Tinkers integration, Windows and newer Horizon revisions have not been verified.
+The end-to-end check is **not complete**. The stack has `max_damage:60`, but the host’s advanced tooltip displayed the diamond pickaxe’s default maximum, `1561`. The host mining path also reads item-definition rules, so the observed stone mining does not prove it used the stack’s Tool rules. A guest split a server-origin, Tool-bearing stack from eight items into two groups of four, merged them again, and reconnected with all eight and their Tool and custom data intact. Creative search returned the same item and component representation as the demo tab. This exercises the count-only path; it does not establish preservation of every unknown future patch. Tinkers integration, Windows and newer Horizon revisions have not been verified.
+
+An experimental separate [tooltip helper](../mixins/pluto_component_display_3a/horizon-mixin.toml) replaces an existing durability tooltip line using the stack component and leaves stacks without it unchanged. A lightweight test and Mixins plan pass, but it has not been built into the game or checked on a newer host. It does not change the durability bar, mining behavior or durability enforcement.
 
 ![The independent transport demo Creative tab](transport-demo.png)
 
 *The demo pickaxe is registered through the Creative API; its Tool value is prepared by the transport API.*
+
+![The transport demo pickaxe in Creative search](transport-search.png)
+
+*The guest finds the same prepared stack through Creative search.*
 
 ## Prepare a Tool component
 
