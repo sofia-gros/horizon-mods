@@ -14,5 +14,7 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
         },
         None => false,
     };
-    crate::game::tconstruct_source_mining_rules::conditional(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool).unwrap_or(speed)
+    let speed = crate::game::tconstruct_source_mining_rules::conditional(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool).unwrap_or(speed);
+    let on_ground = game.player.as_ref().map_or(true, |player| player.ground.on_ground);
+    speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground)
 }

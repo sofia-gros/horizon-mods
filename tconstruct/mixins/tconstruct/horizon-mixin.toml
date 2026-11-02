@@ -2480,8 +2480,8 @@ source = "source-mining-rules.rs"
 id = "source-host-mining-context"
 target = "horizon_client::game::Game<'_>::tick_mining"
 kind = "MODIFY_VARIABLE"
-variable = { name = "speed", ordinal = 0, at = "STORE" }
-require = 5
+variable = { name = "speed", ordinal = 0, at = "LOAD" }
+require = 2
 ordinal = 1
 helper = "source-mining-context-host.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
@@ -2490,8 +2490,8 @@ bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", t
 id = "source-client-mining-context"
 target = "horizon_client::game::hand::Game<'_>::destroy_progress"
 kind = "MODIFY_VARIABLE"
-variable = { name = "speed", ordinal = 0, at = "STORE" }
-require = 5
+variable = { name = "speed", ordinal = 0, at = "LOAD" }
+require = 2
 ordinal = 1
 helper = "source-mining-context.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
