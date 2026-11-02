@@ -18,6 +18,10 @@ fn tconstruct_splash_bottle_brewing(mut value: StationData, items: &Items) -> St
         }
         if ambiguous { continue; }
         let Some(reagent) = reagent else { continue; };
+        // Brewing::find selects the first matching recipe. Do not add an
+        // overlapping conversion, including an identical one on a reload.
+        if value.brewing.recipes.iter().any(|recipe| recipe.id == id
+            || (recipe.input.items.contains(input) && !recipe.reagent.items.is_disjoint(&reagent))) { continue; }
         value.brewing.inputs.insert(input.to_owned());
         value.brewing.reagents.extend(reagent.iter().cloned());
         value.brewing.recipes.push(crate::brewing::BrewingRecipe {
