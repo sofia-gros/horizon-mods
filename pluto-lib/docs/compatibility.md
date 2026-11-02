@@ -15,4 +15,4 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 
 ## Development target
 
-Horizon [`3a264943c7a3a3ed02e6ee608443f558d98f208f`](https://github.com/horizon-rust/horizon/commit/3a264943c7a3a3ed02e6ee608443f558d98f208f) is a newer upstream candidate and has not been tested with PlutoLib. Rebuilding or source changes may be necessary when changing the Horizon or Mixins revision.
+The native Creative bundle and package target Horizon [`3a264943c7a3a3ed02e6ee608443f558d98f208f`](https://github.com/horizon-rust/horizon/commit/3a264943c7a3a3ed02e6ee608443f558d98f208f) with Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. On Linux, the independent demo built and ran with this pair: page switching and retrieval of a component-bearing stack were checked. The standalone package also passed the official native bundle check. Combined Tinkers integration remains unverified. Rebuilding or source changes may be necessary when changing the Horizon or Mixins revision.

@@ -56,8 +56,8 @@ To run the native demo, stage both `mixins/pluto_native_creative` and `examples/
 
 On Linux with the [verified host and Mixins](compatibility.md), the demo showed its 12 tabs over two mod pages. A component-bearing stack was obtained from a tab and from search; the original vanilla search entries and metadata remained intact. The target's standard page controls performed the page changes. Windows and combined Tinkers integration remain unverified.
 
-![A native Creative demo tab in Horizon](native-creative-demo.png)
+![A native Creative demo tab in Horizon](native-creative-3a.png)
 
-*The second demo tab and its component-bearing stack, using Horizon's page controls.*
+*The second demo tab and its component-bearing stack on Horizon 3a264943, using Horizon's page controls.*
 
 The generic [fixture runner](../examples/native_creative_fixture.rs) reads a JSON object with an `inventory` and `groups` for integration checks. It uses the standalone library's older pinned parser and is a test tool, not the native startup adapter. A representative fixture from the Tinkers port at `9b657daf9454df7d35e120c0909791e228807c58` retained the input group IDs, icons, ordered stacks, material components and existing search metadata. That fixture does not prove its later stat enrichment or game behavior; integration must pass the enriched final stacks.

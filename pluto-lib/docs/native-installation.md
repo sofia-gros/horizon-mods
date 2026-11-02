@@ -19,4 +19,4 @@ Install and enable the PlutoLib `.hnmod` and the consuming mod's own `.hnmod` as
 
 A consuming native mod can call `pluto_creative_api::register_tabs` after completing its own stacks. See [native Creative preparation](native-creative.md) for the API and initialization order. Do not install the old PlutoLib paging adapter with this API.
 
-This development package targets Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The independent demo was run on Linux with that pair; installation together with Tinkers has not yet been verified. See [compatibility](compatibility.md) for the full scope.
+This development package targets Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The independent demo was built and run on Linux with this pair; installation together with Tinkers has not yet been verified. See [compatibility](compatibility.md) for the full scope.
