@@ -504,7 +504,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
 
 // Registration is shared by native startup and the manual preparation path.
 fn register_creative_groups(inventory: &serde_json::Value, groups: &[serde_json::Value]) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        let tabs = groups.iter().map(|group| -> Result<pluto_creative_api::Tab, Box<dyn std::error::Error>> {
+        let tabs = groups.iter().map(|group| -> Result<pluto_api::creative::Tab, Box<dyn std::error::Error>> {
             let text = |key: &str| group.get(key).and_then(serde_json::Value::as_str).map(str::to_owned).ok_or_else(|| format!("missing Creative tab {key}"));
             let stacks = group.get("items").and_then(serde_json::Value::as_array).ok_or("missing Creative tab items")?;
             let mut restricted = std::collections::BTreeSet::new();
@@ -514,13 +514,13 @@ fn register_creative_groups(inventory: &serde_json::Value, groups: &[serde_json:
                     if index >= stacks.len() || !restricted.insert(index) { return Err("invalid Creative permission index".into()); }
                 }
             }
-            let items = stacks.iter().enumerate().map(|(index, item)| -> Result<pluto_creative_api::Entry, Box<dyn std::error::Error>> {
-                Ok(pluto_creative_api::Entry { snbt: item.as_str().ok_or("invalid Creative item")?.to_owned(), searchable: true,
+            let items = stacks.iter().enumerate().map(|(index, item)| -> Result<pluto_api::creative::Entry, Box<dyn std::error::Error>> {
+                Ok(pluto_api::creative::Entry { snbt: item.as_str().ok_or("invalid Creative item")?.to_owned(), searchable: true,
                     permissions_only: restricted.contains(&index), search_lines: Vec::new(), search_tags: Vec::new() })
             }).collect::<Result<Vec<_>, _>>()?;
-            Ok(pluto_creative_api::Tab { id: text("id")?, title: text("title")?, icon: text("icon")?, items })
+            Ok(pluto_api::creative::Tab { id: text("id")?, title: text("title")?, icon: text("icon")?, items })
         }).collect::<Result<Vec<_>, _>>()?;
-        let updated = pluto_creative_api::register_tabs(inventory, &tabs, |raw| {
+        let updated = pluto_api::creative::register_tabs(inventory, &tabs, |raw| {
             let mut stack = horizon_items::item_data::parse_stack(raw)?.ok_or("empty Creative stack")?;
             stack.count = 1;
             Ok(horizon_items::item_data::canon_stack(Some(&stack)))

@@ -36,6 +36,15 @@ class StageExport(unittest.TestCase):
             shutil.copy(SCRIPT.parent / 'portable_archive.py', project / 'tools/portable_archive.py')
             revision = git(repos[1], 'rev-parse', 'HEAD')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_repository=str(repos[1]))))
+            horizon_revision = git(repos[0], 'rev-parse', 'HEAD')
+            bundles = root / 'pluto-lib/mixins'
+            for name in ('pluto_native_creative', 'pluto_transport_3a', 'pluto_tool_rules', 'pluto_component_display_3a', 'pluto_component_bar', 'pluto_items_b2'):
+                folder = bundles / name
+                folder.mkdir(parents=True)
+                (folder / 'horizon-mixin.toml').write_text(f'[mod]\nid = "{name}"\n[compatibility]\nhorizon_revision = "{horizon_revision}"\n')
+            api = bundles / 'pluto_native_creative/api'
+            api.mkdir()
+            (api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
             bindir = root / 'bin'
             bindir.mkdir()
             cargo = bindir / 'cargo'
@@ -63,6 +72,18 @@ chmod +x "$2/release/horizon-mixins"
             subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(custom)], env=env, check=True)
             self.assertEqual((custom / 'original/marker').read_text(), 'committed')
             self.assertEqual((custom / 'mixins-revision.txt').read_text().strip(), revision)
+            duplicate = project / 'tests/fixtures/pluto_tool_rules'
+            duplicate.mkdir()
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'duplicate-output')], env=env, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('only once', rejected.stderr)
+            duplicate.rmdir()
+            old = api / 'Cargo.toml'
+            old.write_text('[package]\nname = "pluto-creative-api"\nversion = "0.1.0"\n')
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'old-api-output')], env=env, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('pluto-api facade', rejected.stderr)
+            old.write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
             (repos[1] / 'upstream-update').write_text('new revision')
             git(repos[1], 'add', 'upstream-update')
             git(repos[1], 'commit', '-qm', 'upstream update')
