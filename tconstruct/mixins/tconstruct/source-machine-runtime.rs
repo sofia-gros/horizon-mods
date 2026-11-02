@@ -38,6 +38,17 @@ fn initial(kind: &str) -> Option<Tag> {
     })
 }
 
+fn damaged_recipe(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack)
+    -> Option<(String, super::tconstruct_source_melting_recipes::FoundryRecipe, String, Vec<(String, u32)>)> {
+    use horizon_world::nbt::Tag;
+    let maximum = match stack.data().and_then(|data| data.other("minecraft:max_damage")) {
+        Some(Tag::Int(value)) if *value >= 0 => u32::try_from(*value).ok()?,
+        Some(_) => return None,
+        None => game.res.items().get(&stack.item)?.max_damage,
+    };
+    super::tconstruct_source_melter_world::damaged_melting(&game.world, &stack.item, stack.damage, maximum)
+}
+
 /// Update the current candidate and capacity from loaded world blocks. Items
 /// displaced by shrinking are spilled only after the state update commits.
 pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
@@ -63,9 +74,11 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         state.slots.iter().map(|slot| slot.as_ref().and_then(|stack| {
             if foundry {
                 super::tconstruct_source_melter_world::foundry_melting(&game.world, &stack.item)
+                    .or_else(|| damaged_recipe(game, stack))
                     .map(|(id, recipe, fluid, byproducts)| (id, recipe.melting, fluid, byproducts))
             } else {
                 super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
+                    .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
                     .map(|(id, recipe, fluid)| (id, recipe, fluid, Vec::new()))
             }
         })).collect()
@@ -252,7 +265,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     // the intervening ticks.
     let recipes: Vec<_> = if melter.phase == 0 || melter.phase == 2 {
         melter.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
-            super::tconstruct_source_melter_world::melting(&game.world, &stack.item))).collect()
+            super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
+                .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid))))).collect()
     } else { vec![None; melter.slots.len()] };
     if melter.phase == 0 && has_heater && melter.fuel == 0 {
         if let Some((temperature, rate)) = solid_fuel_rule(game) {
