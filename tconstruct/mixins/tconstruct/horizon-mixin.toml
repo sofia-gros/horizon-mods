@@ -3601,6 +3601,36 @@ bindings = [
   { name = "packet", ty = "&horizon_protocol::packets::play::Clientbound", value = "&packet" },
 ]
 
+[[state]]
+id = "menu-window-state"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<(i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "menu-window-state-receive"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+helper = "source-menu-window-state.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "packet", ty = "&horizon_protocol::packets::play::Clientbound", value = "&packet" },
+]
+
+[[injection]]
+id = "menu-window-state-send"
+target = "horizon_client::game::remote::Game<'_>::send_clicks"
+kind = "HEAD"
+helper = "source-menu-click-state.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "container", ty = "i32", value = "container" },
+]
+
 [[injection]]
 id = "crafting-station-client-slot"
 target = "horizon_client::game::remote::Game<'_>::set_menu_slot"
