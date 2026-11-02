@@ -43,3 +43,9 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "pluto_stack_fluid"
 source = "stack-fluid.rs"
 visibility = "pub"
+
+[[module]]
+id = "host-stack-fluid"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_stack_fluid"
+source = "stack-fluid.rs"

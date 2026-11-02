@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 12] = [
+const UPGRADES: [(&str, i32); 13] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:tank", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -124,7 +124,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
+        (id != "tconstruct:tank" && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -143,7 +143,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !supported(id, &tool.item) { return None; }
+    if !supported(id, &tool.item) || id == "tconstruct:tank" { return None; }
     let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -198,14 +198,14 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             if amount(tool, id) != 0 { continue; }
             if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
                 && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
             let ability_cost = value.pointer("/slots/abilities").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
-            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
+            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").map_or(1, |value| value.as_i64().unwrap_or(0)) != 1 { continue; }
             if id == "tconstruct:unbreakable" {
                 let level = |name: &str, needed: i32| amount(tool, name) / needed + traits.get(name).copied().unwrap_or(0);
                 if level("tconstruct:netherite", 1) < 1 || level("tconstruct:reinforced", 4) < 5 { continue; }

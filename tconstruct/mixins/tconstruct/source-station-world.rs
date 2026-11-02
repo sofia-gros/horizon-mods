@@ -134,6 +134,32 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
     fields.insert("tic_armor".into(), Tag::Float(stats.armor.to_bits()));
     fields.insert("tic_armor_toughness".into(), Tag::Float(stats.armor_toughness.to_bits()));
     fields.insert("tic_knockback_resistance".into(), Tag::Float(stats.knockback_resistance.to_bits()));
+    // Narrow source-equivalent tank support: the pinned pickaxe has a fixed
+    // pierce definition trait. Only material traits known not to affect tank
+    // capacity are accepted, and unknown upgrades do not create a tank.
+    let tank_level = match fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:tank")) {
+        None => 0,
+        Some(Tag::Int(level)) if *level == 1 => 1,
+        _ => return None,
+    };
+    if tank_level > 0 {
+        if item != "tconstruct:pickaxe" { return None; }
+        let mut probe = output.clone();
+        probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
+        let stored = super::pluto_stack_fluid::read(&probe, "tic_persistent", "tconstruct:tank_fluid")?;
+        if stored.as_ref().is_some_and(|fluid| fluid.amount > 1000) { return None; }
+        let traits = super::tconstruct_source_material_traits::levels(world, &probe)?;
+        if traits.levels.keys().any(|id| !matches!(id.as_str(), "tconstruct:cultivated" | "tconstruct:jagged")) { return None; }
+        let upgrades = fields.get(&"tic_upgrades".into())?;
+        let Tag::Compound(upgrades) = upgrades else { return None; };
+        if upgrades.keys().any(|id| !matches!(id.to_string_lossy().as_str(), "tconstruct:tank" | "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:haste" | "tconstruct:sharpness" | "tconstruct:reinforced" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")) { return None; }
+        fields.insert("tic_tank_capacity".into(), Tag::Int(1000));
+    } else {
+        // Never discard fluid when a tank-bearing tool is rebuilt without it.
+        if fields.get(&"tic_tank_capacity".into()).is_some()
+            && fields.get(&"tic_persistent".into()).and_then(|v| v.get("tconstruct:tank_fluid")).is_some() { return None; }
+        fields.remove(&"tic_tank_capacity".into());
+    }
     output.data_mut().set_other("minecraft:custom_data", Some(custom));
     output.data_mut().set_other("minecraft:max_damage", Some(Tag::Int(durability)));
     if !rules.is_empty() {
