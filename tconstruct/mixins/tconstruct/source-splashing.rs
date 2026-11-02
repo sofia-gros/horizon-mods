@@ -360,10 +360,17 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
     let effects = recipe.get("block_effects")?.as_array()?;
-    if effects.len() != 1 { return None; }
+    // The bundled glowstone recipe applies its cloud first, then glow
+    // placement; other mixed recipes still require their own effect handlers.
+    let mixed_glow = effects.len() == 2 && effects[1].as_object().is_some_and(|value|
+        value.get("type").and_then(|v| v.as_str()) == Some("tconstruct:place_block")
+        && value.get("block").and_then(|v| v.as_str()) == Some("tconstruct:glow")
+        && value.keys().all(|key| matches!(key.as_str(), "type" | "block")));
+    if effects.len() != 1 && !mixed_glow { return None; }
     let effect = effects[0].as_object()?;
     let kind = effect.get("type")?.as_str()?;
     let is_cloud = kind == "tconstruct:mob_effect_cloud";
+    if mixed_glow && (!is_cloud || *level != 1) { return None; }
     let mut cloud = Vec::new();
     let (block, sound) = if is_cloud {
         if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
@@ -403,6 +410,9 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let mut staged = Vec::new();
     let mut remaining = fluid.clone();
     while staged.len() < max_positions && remaining.amount > 0 {
+        // With full level one both successful effects consume the same
+        // amount; the source uses their maximum, not their sum.
+        if mixed_glow && remaining.amount < amount { break; }
         let (used, scaled_cloud) = if is_cloud {
             let scale = (*level as f32).min(remaining.amount as f32 / amount as f32);
             let mut scaled = Vec::new();
@@ -465,13 +475,27 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                 [x, y, z]
             };
             let before = game.world.block(target[0], target[1], target[2]);
+            let glow_target = if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position } else { target };
+            let glow_before = game.world.block(glow_target[0], glow_target[1], glow_target[2]);
+            let mut cloud_spawned = false;
             let attempt = (|| -> horizon_client::Result<bool> {
                 if is_cloud {
-                    if !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
-                    let hit = hit_point.unwrap();
-                    let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
-                    super::potions::tconstruct_source_fluid_cloud::spawn(game, at, staged[successes].1.clone());
-                    return Ok(true);
+                    if game.world.loaded(target[0], target[2]) && game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable {
+                        let hit = hit_point.unwrap();
+                        let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
+                        super::potions::tconstruct_source_fluid_cloud::spawn(game, at, staged[successes].1.clone());
+                        cloud_spawned = true;
+                    }
+                    if mixed_glow && game.may_build() {
+                        let placed = super::tconstruct_glowing_world::place(game, glow_target, [-face[0], -face[1], -face[2]])?;
+                        if placed {
+                            let sound = game.res.facts().get(game.world.block(glow_target[0], glow_target[1], glow_target[2])).sounds.place.clone();
+                            game.audio.play(&sound, Some([glow_target[0] as f64 + 0.5, glow_target[1] as f64 + 0.5, glow_target[2] as f64 + 0.5]), 1.0, 1.0);
+                            game.post_block_game_event("minecraft:block_place", glow_target, game.sculk_actor(), None);
+                        }
+                        return Ok(cloud_spawned || placed);
+                    }
+                    return Ok(cloud_spawned);
                 }
                 if block == "tconstruct:glow" {
                     return super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]]);
@@ -510,7 +534,9 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     // level_set may report an event-processing error after the
                     // block write; account for a completed write before exiting.
                     let after = game.world.block(target[0], target[1], target[2]);
-                    if before != after && game.res.facts().get(after).name.as_ref() == block { successes += 1; }
+                    let glow_after = game.world.block(glow_target[0], glow_target[1], glow_target[2]);
+                    let glow_written = mixed_glow && glow_before != glow_after && game.res.facts().get(glow_after).name.as_ref() == "tconstruct:glow";
+                    if cloud_spawned || glow_written || (before != after && game.res.facts().get(after).name.as_ref() == block) { successes += 1; }
                     failure = Some(error);
                     break;
                 }
