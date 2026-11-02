@@ -39,6 +39,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
         merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+        crate::game::tconstruct_source_tags::bridge_vanilla_mud_tag(&mut block_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
     // A content mod can provide the unflattened source layers as ordinary
