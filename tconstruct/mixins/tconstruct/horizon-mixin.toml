@@ -945,11 +945,11 @@ require = 1
 
 [[injection]]
 id = "material-block-wire-chunk"
-target = "horizon_client_lib::lan::chunks::ChunkEncoder::body_in"
+target = "horizon_client_lib::lan::chunks::ChunkEncoder::body_with"
 kind = "HEAD"
 cancellable = true
 helper = "material-block-wire-chunk.rs"
-bindings = [{ name = "encoder", ty = "&crate::lan::chunks::ChunkEncoder", value = "&*self" }, { name = "chunk", ty = "&crate::chunk::Chunk", value = "chunk" }, { name = "world", ty = "&crate::world::World", value = "world" }]
+bindings = [{ name = "encoder", ty = "&crate::lan::chunks::ChunkEncoder", value = "&*self" }, { name = "chunk", ty = "&crate::chunk::Chunk", value = "chunk" }, { name = "world", ty = "&crate::world::World", value = "world" }, { name = "protos", ty = "&dyn Fn(i32, i32) -> Option<crate::section_mask::SectionMask>", value = "protos" }]
 
 [[module]]
 id = "host-source-builder-world"
@@ -3900,3 +3900,9 @@ initial = "::core::default::Default::default()"
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[module]]
+id = "source-material-wire-merge"
+file = "crates/horizon-client/src/lan/chunks.rs"
+name = "tconstruct_source_material_wire_merge"
+source = "source-material-wire-merge.rs"
