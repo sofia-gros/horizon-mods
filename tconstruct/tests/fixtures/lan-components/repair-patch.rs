@@ -220,3 +220,27 @@ fn known_cached_patch_and_unrelated_item_remain_usable() {
     let other = parse_stack(raw).unwrap().unwrap();
     assert_eq!(canon_stack(Some(&prepare_for_tool_mutation(&other).unwrap())), canon_stack(Some(&other)));
 }
+
+#[test]
+fn noncanonical_known_cached_tool_normalizes_without_losing_the_original() {
+    use crate::tconstruct_source_tool_normalize::prepare_for_tool_mutation;
+    use horizon_items::item_data::{canon_stack, Wire};
+    use horizon_world::nbt::Tag;
+    let mut original = damaged_tool(false, false);
+    let patch: std::sync::Arc<[u8]> = original.data().unwrap().wire.patch().unwrap().to_vec().into();
+    let mut tool = original.data().unwrap().other("minecraft:tool").unwrap().clone();
+    let Tag::Compound(ref mut fields) = tool else { panic!("expected Tool") };
+    fields.remove(&"default_mining_speed".into());
+    fields.remove(&"damage_per_block".into());
+    fields.remove(&"can_destroy_blocks_in_creative".into());
+    original.data_mut().set_other("minecraft:tool", Some(tool));
+    let snapshot = original.clone();
+    original.data_mut().wire = Wire::new(snapshot, patch);
+    assert!(original.wire_patch().is_some());
+    let before = canon_stack(Some(&original));
+    let mut prepared = prepare_for_tool_mutation(&original).unwrap();
+    assert_eq!(canon_stack(Some(&original)), before);
+    assert!(prepared.data().unwrap().other("minecraft:tool").unwrap().get("default_mining_speed").is_some());
+    finalize_tool(&mut prepared, |_| None).unwrap();
+    assert_eq!(canon_stack(Some(&original)), before);
+}
