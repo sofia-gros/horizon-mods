@@ -488,22 +488,24 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     std::fs::write(item_path, serde_json::to_vec(&items)?)?;
     let creative_path = cache.join("creative-inventory.json");
     if creative_path.is_file() {
-        let mut inventory: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
-        let groups: Vec<serde_json::Value> = serde_json::from_slice(&std::fs::read(runtime.join("creative-tabs.json"))?)?;
-        let tabs = inventory.get_mut("tabs").and_then(serde_json::Value::as_array_mut).ok_or("missing Creative tabs")?;
-        for mut group in groups {
-            let id = group["id"].as_str().ok_or("missing Creative tab id")?;
-            let row = group["row"].as_str().ok_or("missing Creative tab row")?;
-            let column = group["column"].as_u64().ok_or("missing Creative tab column")?;
-            if tabs.iter().any(|tab| tab["id"] == id || (tab["row"] == row && tab["column"] == column && tab["type"] != "HOTBAR" && tab["visible"] != false)) {
-                return Err(format!("Creative tab {id} conflicts with installed content").into());
-            }
-            group["type"] = serde_json::json!("CATEGORY");
-            group["visible"] = serde_json::json!(true);
-            tabs.push(group);
-        }
-        std::fs::write(&creative_path, serde_json::to_vec(&inventory)?)?;
-        creative(&cache, &original_out)?;
+        let inventory: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
+        let mut groups: Vec<serde_json::Value> = serde_json::from_slice(&std::fs::read(runtime.join("creative-tabs.json"))?)?;
+        enrich_creative_groups(&cache, &original_out, &mut groups)?;
+        let tabs = groups.iter().map(|group| -> Result<pluto_creative_api::Tab, Box<dyn std::error::Error>> {
+            let text = |key: &str| group.get(key).and_then(serde_json::Value::as_str).map(str::to_owned).ok_or_else(|| format!("missing Creative tab {key}"));
+            let items = group.get("items").and_then(serde_json::Value::as_array).ok_or("missing Creative tab items")?
+                .iter().map(|item| -> Result<pluto_creative_api::Entry, Box<dyn std::error::Error>> {
+                    Ok(pluto_creative_api::Entry { snbt: item.as_str().ok_or("invalid Creative item")?.to_owned(), searchable: true,
+                        permissions_only: false, search_lines: Vec::new(), search_tags: Vec::new() })
+                }).collect::<Result<Vec<_>, _>>()?;
+            Ok(pluto_creative_api::Tab { id: text("id")?, title: text("title")?, icon: text("icon")?, items })
+        }).collect::<Result<Vec<_>, _>>()?;
+        let updated = pluto_creative_api::register_tabs(&inventory, &tabs, |raw| {
+            let mut stack = horizon_items::item_data::parse_stack(raw)?.ok_or("empty Creative stack")?;
+            stack.count = 1;
+            Ok(horizon_items::item_data::canon_stack(Some(&stack)))
+        })?;
+        std::fs::write(&creative_path, serde_json::to_vec(&updated)?)?;
     }
     apply(&cache, &base)?;
     std::fs::write(&marker, fingerprint)?;
@@ -513,6 +515,20 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
 
 /// Apply source material stats to the generated Creative tool variants.
 pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    let path = out.join("creative-inventory.json");
+    if !path.is_file() { return Ok(()); }
+    let mut inventory: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+    let tabs = inventory.get_mut("tabs").and_then(serde_json::Value::as_array_mut).ok_or("missing Creative tabs")?;
+    enrich_creative_groups(out, original_pack, tabs)?;
+    // The prepared overlay may link to the original file; replace the link.
+    let temp = out.join("creative-inventory.json.tmp");
+    std::fs::write(&temp, serde_json::to_vec(&inventory)?)?;
+    std::fs::remove_file(&path)?;
+    std::fs::rename(temp, path)?;
+    Ok(())
+}
+
+fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path, tabs: &mut [serde_json::Value]) -> Result<(), Box<dyn std::error::Error>> {
     let items: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("items.json"))?)?;
         // Give supported Creative tool variants the same source-derived base
         // stats and mining rules as a tool assembled in the station. Other tool
@@ -539,10 +555,6 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
         let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
         let armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
         let ranged = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
-        let creative_path = out.join("creative-inventory.json");
-        if creative_path.is_file() {
-            let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
-            if let Some(tabs) = creative.get_mut("tabs").and_then(serde_json::Value::as_array_mut) {
                 for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
                     if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
                         for value in stacks {
@@ -577,13 +589,6 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
                         }
                     }
                 }
-            }
-            // The prepared output initially links to the input overlay. Replace
-            // the link itself so the original creative data stays untouched.
-            let temp = out.join("creative-inventory.json.tmp");
-            std::fs::write(&temp, serde_json::to_vec(&creative)?)?;
-            std::fs::remove_file(&creative_path)?;
-            std::fs::rename(temp, creative_path)?;
-        }
+
     Ok(())
 }
