@@ -28,12 +28,16 @@ The experiment does not establish Tinkers integration, Windows or full launcher 
 
 ![Creative inventory with the demo's expanded stack limit](../../docs/unified-stack-limit.png)
 
-A possible small public boundary is a host-independent `pluto_api` crate containing the existing shared data types and traits, with the Creative, Tool and item APIs re-exported there. Version-specific host adapters would depend on that crate and the host; the facade would not depend on `horizon-client` or the adapters. The precise crate split and a migration path for existing imports still need design and verification; this integration does not rename the current entry points.
+Creative and short-use item APIs are available through `pluto_api`. Tool APIs still use host-side paths because the official Mixins format cannot attach one generated crate to the multiple host packages that implement them.
 
 To reproduce the stack-limit demonstration, set `PLUTO_DEMO_STACK_LIMIT=1` on both host and guest before launch. This enables a demo-only native item-default hook and adds the three count examples to the demo tab; it does not add max-stack configuration to PlutoLib Registry.
 
-Enable the native Creative bundle once alongside the item adapter. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
+For distribution, build and enable the [single native library bundle](../../docs/native-installation.md) instead of installing the individual component bundles. On Linux, a client built from the extracted archive displayed the Creative page and search, Tool tooltip and bar, and local wand outcomes; a LAN guest retained Tool components and wand charge after save and reconnect. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
 
 ![Combined demo: the added Creative page and the wand](../../docs/facade-demo.png)
 
 ![Guest wand tooltip after reconnecting](../../docs/facade-tooltip.png)
+
+![Single-bundle Creative demo](../../docs/single-bundle-demo.png)
+
+![Single-bundle search and Tool tooltip](../../docs/single-bundle-tooltip.png)
