@@ -16,12 +16,16 @@ python3 -m unittest discover -s tconstruct/tests -v
 You need Python, Rust, Git, a checkout of the pinned Horizon revision, and a Horizon Mixins repository. From the repository root, replace the two paths with your local checkouts:
 
 ```sh
-python3 tconstruct/tools/stage.py --horizon /path/to/horizon --mixins /path/to/horizon-mixins
+python3 tconstruct/tools/stage.py --horizon /path/to/horizon --mixins /path/to/horizon-mixins --pluto-bundle /path/to/installed.incoming/pluto_native_creative/mixins/pluto_native_creative
 ```
 
-The development target requires six matching PlutoLib bundles: `pluto_native_creative`, `pluto_transport_3a`, `pluto_tool_rules`, `pluto_component_display_3a`, `pluto_component_bar`, and `pluto_items_b2`. The Creative bundle provides the single `pluto-api` crate shared with the item adapter. Use the corresponding `--pluto-*` options shown by `stage.py --help` when the bundles are outside the repository checkout. Staging checks their IDs and Horizon revision and rejects the legacy adapters and duplicate bundles. Do not combine the old Creative or Item registries with the facade.
+The development target requires the unified PlutoLib native bundle, built from PlutoLib `f9680baa4f0d28b9ca735cfba615765bf897ae35`. The bundle contains Creative, item, Tool, transport and display adapters with one `pluto-api` crate. Use the Mixins bundle directory extracted by the official launcher, or extract the `.hnmod` for staging with Horizon's native bundle reader:
 
-The facade integration targets PlutoLib commit `0f36b1fe779565fff37a445a485d920baa1bcf2f`. Install compatible PlutoLib native bundles alongside TConstruct as described in [PlutoLib native installation](../../pluto-lib/docs/native-installation.md); the launcher does not enforce the dependency. The combined TConstruct native installation and game behavior remain unverified.
+```sh
+python3 tconstruct/tools/extract_pluto.py --horizon /path/to/horizon --package /path/to/plutolib.hnmod --output /path/to/installed.incoming
+```
+
+The output directory must not already exist. Do not stage the old individual PlutoLib adapters alongside the unified bundle. Install PlutoLib separately from TConstruct; TConstruct still requires its own `.hnmod` and `.hmod`. See [PlutoLib native installation](../../pluto-lib/docs/native-installation.md). Combined installation and gameplay remain unverified.
 
 The generated source is placed in `tconstruct/target/modded`. The resolved Mixins commit is printed and saved in `tconstruct/target/mixins-revision.txt`. To reproduce a build, pass `--mixins-revision FULL_COMMIT_SHA` and ensure that commit exists in the Mixins repository. Build the client with:
 

@@ -72,14 +72,21 @@ jobs:
         run: |
           git init ../horizon-official
           git -C ../horizon-official remote add origin https://github.com/horizon-rust/horizon.git
-          git -C ../horizon-official fetch --depth 1 origin b6c936f82b08798057161bdfa577e3aac53fb91e
+          HORIZON_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')"
+          git -C ../horizon-official fetch --depth 1 origin "$HORIZON_REVISION"
           git -C ../horizon-official checkout --detach FETCH_HEAD
           git clone --depth 1 https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
           git -C ../horizon-mixins rev-parse HEAD
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)"
+          git fetch --no-tags origin f9680baa4f0d28b9ca735cfba615765bf897ae35
+          mkdir -p "$RUNNER_TEMP/pluto-source"
+          git archive f9680baa4f0d28b9ca735cfba615765bf897ae35 pluto-lib | tar -x -C "$RUNNER_TEMP/pluto-source"
+          mkdir -p "$RUNNER_TEMP/pluto-source/pluto-lib/.work"
+          (cd "$RUNNER_TEMP/pluto-source/pluto-lib" && python3 tools/package_native.py .work/plutolib.hnmod)
+          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/pluto-lib/.work/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
+          python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
           cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests

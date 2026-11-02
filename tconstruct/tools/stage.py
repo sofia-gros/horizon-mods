@@ -11,12 +11,7 @@ p.add_argument('--horizon', type=Path, required=True)
 p.add_argument('--mixins', type=Path, required=True)
 p.add_argument('--mixins-revision', help='full Mixins commit SHA for a reproducible build; defaults to the latest official revision')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
-p.add_argument('--pluto-native-creative', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_native_creative', help='PlutoLib native Creative Mixins bundle')
-p.add_argument('--pluto-transport', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_transport_3a', help='PlutoLib experimental Tool transport Mixins bundle')
-p.add_argument('--pluto-tool-rules', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_tool_rules', help='PlutoLib Tool rules bundle')
-p.add_argument('--pluto-component-display', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_component_display_3a', help='PlutoLib component tooltip bundle')
-p.add_argument('--pluto-component-bar', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_component_bar', help='PlutoLib component durability bar bundle')
-p.add_argument('--pluto-items', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_items_b2', help='PlutoLib item adapter bundle')
+p.add_argument('--pluto-bundle', type=Path, required=True, help='installed PlutoLib unified Mixins bundle directory')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
 a = p.parse_args()
 head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
@@ -33,44 +28,52 @@ print(f'Horizon Mixins revision: {revision}', flush=True)
 output = a.output_dir.resolve()
 output.mkdir(parents=True, exist_ok=True)
 mods = a.mods.resolve(strict=True)
-bundles = {
-    'pluto_native_creative': a.pluto_native_creative.resolve(),
-    'pluto_transport_3a': a.pluto_transport.resolve(),
-    'pluto_tool_rules': a.pluto_tool_rules.resolve(),
-    'pluto_component_display_3a': a.pluto_component_display.resolve(),
-    'pluto_component_bar': a.pluto_component_bar.resolve(),
-    'pluto_items_b2': a.pluto_items.resolve(),
-}
-for bundle_id, path in bundles.items():
-    manifest = path / 'horizon-mixin.toml'
-    if not manifest.is_file():
-        p.error(f'{path}: required PlutoLib bundle {bundle_id} is missing')
-    if (mods / bundle_id).exists():
-        p.error(f'{bundle_id}: supply each PlutoLib bundle only once through its option')
-    try:
-        data = tomllib.loads(manifest.read_text())
-    except (OSError, tomllib.TOMLDecodeError) as error:
-        p.error(f'{manifest}: {error}')
-    if data.get('mod', {}).get('id') != bundle_id or data.get('compatibility', {}).get('horizon_revision') != head:
-        p.error(f'{manifest}: bundle id or Horizon revision does not match {bundle_id} / {head}')
-    if bundle_id == 'pluto_items_b2':
-        for crate in data.get('crate', []):
-            crate_path = path / str(crate.get('path', '')) / 'Cargo.toml'
-            try:
-                package = tomllib.loads(crate_path.read_text()).get('package', {}).get('name')
-            except (OSError, tomllib.TOMLDecodeError) as error:
-                p.error(f'{crate_path}: {error}')
-            if package in ('pluto-api', 'pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
-                p.error('the PlutoLib item adapter must share the Creative facade, not declare another API crate')
-for legacy in ('pluto_creative', 'pluto_items'):
-    if (mods / legacy).exists():
-        p.error(f'{legacy}: legacy PlutoLib adapter cannot be combined with the native bundles')
+pluto = a.pluto_bundle.resolve()
+manifest = pluto / 'horizon-mixin.toml'
 try:
-    api = tomllib.loads((bundles['pluto_native_creative'] / 'api' / 'Cargo.toml').read_text())
+    data = tomllib.loads(manifest.read_text())
 except (OSError, tomllib.TOMLDecodeError) as error:
-    p.error(f'PlutoLib facade manifest: {error}')
-if api.get('package', {}).get('name') != 'pluto-api':
-    p.error('PlutoLib native Creative must provide the shared pluto-api facade')
+    p.error(f'{manifest}: {error}')
+if data.get('mod', {}).get('id') != 'pluto_native_creative' or data.get('compatibility', {}).get('horizon_revision') != head:
+    p.error(f'{manifest}: PlutoLib bundle id or Horizon revision does not match {head}')
+legacy = ('pluto_native_creative', 'pluto_transport_3a', 'pluto_tool_rules', 'pluto_component_display_3a', 'pluto_component_bar', 'pluto_items_b2', 'pluto_creative', 'pluto_items')
+for name in legacy:
+    if (mods / name).exists():
+        p.error(f'{name}: duplicate or legacy PlutoLib bundle; supply only --pluto-bundle')
+for candidate in mods.iterdir():
+    mixin = candidate / 'horizon-mixin.toml'
+    if not mixin.is_file():
+        continue
+    try:
+        existing = tomllib.loads(mixin.read_text())
+        for crate in existing.get('crate', []):
+            crate_path = (candidate / str(crate.get('path', ''))).resolve()
+            if not crate_path.is_relative_to(candidate.resolve()):
+                p.error(f'{mixin}: crate path escapes its bundle')
+            package = tomllib.loads((crate_path / 'Cargo.toml').read_text()).get('package', {}).get('name')
+            if package in ('pluto-api', 'pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
+                p.error(f'{mixin}: duplicate PlutoLib API crate')
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        p.error(f'{mixin}: {error}')
+components = ('pluto_transport_3a-', 'pluto_tool_rules-', 'pluto_component_display_3a-', 'pluto_component_bar-', 'pluto_items_b2-')
+entries = data.get('module', []) + data.get('injection', [])
+if any(not any(str(entry.get('id', '')).startswith(prefix) for entry in entries) for prefix in components):
+    p.error('PlutoLib bundle is incomplete; use the installed unified package')
+api_count = 0
+for crate in data.get('crate', []):
+    crate_path = (pluto / str(crate.get('path', ''))).resolve()
+    if not crate_path.is_relative_to(pluto):
+        p.error('PlutoLib crate path escapes the bundle')
+    try:
+        package = tomllib.loads((crate_path / 'Cargo.toml').read_text()).get('package', {}).get('name')
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        p.error(f'{crate_path}: {error}')
+    if package in ('pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
+        p.error('legacy PlutoLib API crate conflicts with the shared facade')
+    if package == 'pluto-api':
+        api_count += 1
+if api_count != 1:
+    p.error('PlutoLib unified bundle must provide exactly one pluto-api facade')
 original = output / 'original'
 source = output / 'mixins-source'
 if original.exists() or (output / 'modded').exists() or source.exists():
@@ -94,6 +97,5 @@ cli = cli_target / 'release' / ('horizon-mixins.exe' if os.name == 'nt' else 'ho
 with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     combined = Path(temp) / 'bundles'
     shutil.copytree(mods, combined)
-    for bundle_id, path in bundles.items():
-        shutil.copytree(path, combined / bundle_id)
+    shutil.copytree(pluto, combined / "pluto_native_creative")
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)

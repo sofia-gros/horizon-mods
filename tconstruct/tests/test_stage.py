@@ -37,13 +37,14 @@ class StageExport(unittest.TestCase):
             revision = git(repos[1], 'rev-parse', 'HEAD')
             (project / 'compatibility.json').write_text(json.dumps(dict(horizon_revision=git(repos[0], 'rev-parse', 'HEAD'), mixins_repository=str(repos[1]))))
             horizon_revision = git(repos[0], 'rev-parse', 'HEAD')
-            bundles = root / 'pluto-lib/mixins'
-            for name in ('pluto_native_creative', 'pluto_transport_3a', 'pluto_tool_rules', 'pluto_component_display_3a', 'pluto_component_bar', 'pluto_items_b2'):
-                folder = bundles / name
-                folder.mkdir(parents=True)
-                (folder / 'horizon-mixin.toml').write_text(f'[mod]\nid = "{name}"\n[compatibility]\nhorizon_revision = "{horizon_revision}"\n')
-            api = bundles / 'pluto_native_creative/api'
-            api.mkdir()
+            pluto = root / 'installed/pluto_native_creative/mixins/pluto_native_creative'
+            pluto.mkdir(parents=True)
+            manifest = f'[mod]\nid = "pluto_native_creative"\n[compatibility]\nhorizon_revision = "{horizon_revision}"\n[[crate]]\nid = "api"\npath = "pluto_native_creative/api"\n'
+            for name in ('pluto_transport_3a', 'pluto_tool_rules', 'pluto_component_display_3a', 'pluto_component_bar', 'pluto_items_b2'):
+                manifest += f'[[module]]\nid = "{name}-fixture"\n'
+            (pluto / 'horizon-mixin.toml').write_text(manifest)
+            api = pluto / 'pluto_native_creative/api'
+            api.mkdir(parents=True)
             (api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
             bindir = root / 'bin'
             bindir.mkdir()
@@ -59,50 +60,57 @@ chmod +x "$2/release/horizon-mixins"
 ''')
             cargo.chmod(0o755)
             env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ['PATH'])
-            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, check=True)
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, check=True)
             self.assertEqual((repos[0] / 'marker').read_text(), 'dirty horizon')
             self.assertEqual((repos[1] / 'marker').read_text(), 'dirty')
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
             self.assertEqual((project / 'target/mixins-source/marker').read_text(), 'committed')
             self.assertEqual((project / 'target/mixins-revision.txt').read_text().strip(), revision)
-            failed = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
+            failed = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures')], env=env, capture_output=True)
             self.assertNotEqual(failed.returncode, 0)
             self.assertEqual((project / 'target/original/marker').read_text(), 'committed')
             custom = project / 'separate-output'
-            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(custom)], env=env, check=True)
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(custom)], env=env, check=True)
             self.assertEqual((custom / 'original/marker').read_text(), 'committed')
             self.assertEqual((custom / 'mixins-revision.txt').read_text().strip(), revision)
             duplicate = project / 'tests/fixtures/pluto_tool_rules'
             duplicate.mkdir()
-            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'duplicate-output')], env=env, capture_output=True, text=True)
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'duplicate-output')], env=env, capture_output=True, text=True)
             self.assertNotEqual(rejected.returncode, 0)
-            self.assertIn('only once', rejected.stderr)
+            self.assertIn('duplicate or legacy', rejected.stderr)
             duplicate.rmdir()
+            disguised = project / 'tests/fixtures/other-mod'
+            (disguised / 'api').mkdir(parents=True)
+            (disguised / 'horizon-mixin.toml').write_text('[[crate]]\nid = "api"\npath = "api"\n')
+            (disguised / 'api/Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'disguised-output')], env=env, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('duplicate PlutoLib API crate', rejected.stderr)
+            shutil.rmtree(disguised)
             old = api / 'Cargo.toml'
             old.write_text('[package]\nname = "pluto-creative-api"\nversion = "0.1.0"\n')
-            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'old-api-output')], env=env, capture_output=True, text=True)
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'old-api-output')], env=env, capture_output=True, text=True)
             self.assertNotEqual(rejected.returncode, 0)
-            self.assertIn('pluto-api facade', rejected.stderr)
+            self.assertIn('legacy PlutoLib API', rejected.stderr)
             old.write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
-            item_manifest = bundles / 'pluto_items_b2/horizon-mixin.toml'
-            original_manifest = item_manifest.read_text()
-            item_api = bundles / 'pluto_items_b2/api'
-            item_api.mkdir()
-            (item_api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
-            item_manifest.write_text(original_manifest + '\n[[crate]]\nid = "duplicate"\npath = "api"\n')
-            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'duplicate-crate-output')], env=env, capture_output=True, text=True)
+            duplicate_api = pluto / 'duplicate-api'
+            duplicate_api.mkdir()
+            (duplicate_api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
+            mixin_manifest = pluto / 'horizon-mixin.toml'
+            mixin_manifest.write_text(manifest + '\n[[crate]]\nid = "duplicate"\npath = "duplicate-api"\n')
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'duplicate-crate-output')], env=env, capture_output=True, text=True)
             self.assertNotEqual(rejected.returncode, 0)
-            self.assertIn('share the Creative facade', rejected.stderr)
-            (item_api / 'Cargo.toml').write_text('[package]\nname = "unrelated-helper"\nversion = "0.1.0"\n')
+            self.assertIn('exactly one pluto-api', rejected.stderr)
+            (duplicate_api / 'Cargo.toml').write_text('[package]\nname = "unrelated-helper"\nversion = "0.1.0"\n')
             allowed = project / 'unrelated-crate-output'
-            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(allowed)], env=env, check=True)
-            item_manifest.write_text(original_manifest)
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(allowed)], env=env, check=True)
+            mixin_manifest.write_text(manifest)
             (repos[1] / 'upstream-update').write_text('new revision')
             git(repos[1], 'add', 'upstream-update')
             git(repos[1], 'commit', '-qm', 'upstream update')
             latest = git(repos[1], 'rev-parse', 'HEAD')
             updated = project / 'latest-output'
-            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(updated)], env=env, check=True)
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mods', str(project / 'tests/fixtures'), '--output-dir', str(updated)], env=env, check=True)
             self.assertNotEqual(revision, latest)
             self.assertEqual((updated / 'mixins-revision.txt').read_text().strip(), latest)
             self.assertEqual((updated / 'mixins-source/upstream-update').read_text(), 'new revision')

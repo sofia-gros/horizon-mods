@@ -75,7 +75,8 @@ try {
         New-Item -ItemType Directory -Force -Path $build | Out-Null
         Push-Location $Repo
         try {
-            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--output-dir', $build)
+            $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'
+            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--pluto-bundle', $PlutoBundle, '--output-dir', $build)
             $cargoTarget = Join-Path $HomeDir 'cargo-cache'
             Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
             Copy-Item -LiteralPath (Join-Path $cargoTarget 'fast\horizon-client.exe') -Destination $game
