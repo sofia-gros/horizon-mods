@@ -44,6 +44,11 @@ fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags>, config: 
         if value.get("type").and_then(serde_json::Value::as_str) != Some("forge:conditional") {
             return serde_json::to_vec(&value).ok();
         }
+        match value.get("conditions") {
+            None => {},
+            Some(serde_json::Value::Array(conditions)) if conditional_conditions(conditions, registries, config, items)? => {},
+            _ => return None,
+        }
         let branches = value.get("recipes")?.as_array()?;
         let mut selected = None;
         for branch in branches {
@@ -203,5 +208,11 @@ mod conditional_tests {
         assert_eq!(serde_json::from_slice::<serde_json::Value>(&selected).unwrap()["choice"], 2);
         config.clear();
         assert!(conditional_recipe(bytes, &tags, &config, &items).is_none());
+        let outer = br#"{"type":"forge:conditional","conditions":[{"type":"tconstruct:config","prop":"cheaper_netherite_alloy"}],"recipes":[{"conditions":[{"type":"forge:true"}],"recipe":{"type":"tconstruct:alloy"}}]}"#;
+        assert!(conditional_recipe(outer, &tags, &config, &items).is_none());
+        config.insert("cheaper_netherite_alloy".into(), false);
+        assert!(conditional_recipe(outer, &tags, &config, &items).is_none());
+        config.insert("cheaper_netherite_alloy".into(), true);
+        assert!(conditional_recipe(outer, &tags, &config, &items).is_some());
     }
 }
