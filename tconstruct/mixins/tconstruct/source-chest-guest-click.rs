@@ -36,7 +36,8 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         }
         if phase==1 {
             if let Some((stored,slots))=world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().get_mut(&key) {
-                if *stored==mode {if let Some(index)=storage {slots.push((true,index));} else if let Some(index)=player {slots.push((false,index));}}
+                let selected=storage.map(|index|(true,index)).or_else(||player.map(|index|(false,index)));
+                if *stored==mode {if let Some(selected)=selected {if slots.len()<68 && !slots.contains(&selected) {slots.push(selected);}}}
             }
             return Break(Vec::new());
         }
