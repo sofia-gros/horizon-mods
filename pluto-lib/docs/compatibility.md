@@ -12,3 +12,5 @@ The initial registration demo was also run on this Horizon revision on Linux, bu
 ## Development target
 
 The combination above is the current development target, not a released compatibility guarantee. Horizon [`e12185820a6bc85dd5ed04adc7b8b7a4bdc16102`](https://github.com/horizon-rust/horizon/commit/e12185820a6bc85dd5ed04adc7b8b7a4bdc16102) is a candidate for future work and has not been tested with PlutoLib. PlutoLib does not promise compatibility with every Horizon or Mixins revision; a new combination may require rebuilding and source changes.
+
+The experimental item behavior and wand demo are not yet built or verified in game or over LAN. They target the same pinned combination above.

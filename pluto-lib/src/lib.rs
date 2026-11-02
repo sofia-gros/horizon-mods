@@ -404,3 +404,6 @@ mod tests {
         assert_eq!(base["tabs"].as_array().unwrap().len(), 1);
     }
 }
+
+/// Host-independent item behavior contracts.
+pub use pluto_item_api as item;
