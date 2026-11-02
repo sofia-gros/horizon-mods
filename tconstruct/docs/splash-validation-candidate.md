@@ -23,3 +23,9 @@ Do not enable the normal Station recipe merely to make the diagnostic reachable.
 ## Formal host player routing
 
 At the requested host commit, the only `Game::lan_host` call sites are `game/integrated.rs` and `game/dedicated.rs`. The integrated server records its owner and joins the window through `connect_local`, so the owner uses the guest connection path. Dedicated startup clears the temporary `self.player` after spawn preparation. No third `lan_host` call site establishing a distinct resident local host player was found at that commit. The conservative non-integrated local-player branch therefore should not be treated as a required extra gameplay mode without contrary host evidence; confirm the integrated owner as a guest in the requested live run.
+
+## F02 and latest-host integration
+
+The separate follow-up merge includes #267 head `d167fe8c65686720860a96deac6190e16acc8425` and its dependencies, #274 head `b2e144421541a91f25204845481678b1e6097b58`, and #103 head `e35485442da07f199ce4e86ed70a1187f29754b7`, plus the #268 ingredient field correction. At this #103 head, both bundle pins name Horizon `7124749605ed577f7e3775a573662eb3c3619cb2` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. This is a new, unvalidated integrated candidate; the b53 and 7084 targets described elsewhere do not validate it. Stage PlutoLib and TConstruct from this same merge commit.
+
+The merge preserves PlutoLib's landing state and stack fluid modules and both the ordered-upgrade update and fluid code. Verify ordered upgrades through add, removal, swap, creative rebuild and legacy fallback together with tank application/removal and splashing fluid persistence. Validate the bundled glowstone cloud-then-block recipe only under the restricted cases in `original-parity.md`; its normal modifier recipe remains disabled. Apply, type-checking, build, packaging and game/LAN verification are pending.
