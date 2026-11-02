@@ -68,6 +68,27 @@ pub(super) fn single_block(game: &super::Game<'_>, stack: &ItemStack) -> bool {
     true
 }
 
+/// Resolve the source two-dimensional, small circle iterator. The order of
+/// the existing side-hit plane matches RectangleIterator (width first).
+pub(super) fn circle_offsets(game: &super::Game<'_>, stack: &ItemStack, origin: [i32; 3], face: [i32; 3]) -> Option<Vec<[i32; 3]>> {
+    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+    let expanded = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:expanded") + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
+    let (namespace, name) = stack.item.split_once(':')?;
+    let layers = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+    let bytes = layers.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let modules = definition.get("modules")?.as_array()?;
+    let aoe: Vec<_> = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str).is_some_and(|kind| kind.ends_with("_aoe"))).collect();
+    if aoe.len() != 1 || aoe[0].get("type")?.as_str()? != "tconstruct:circle_aoe" || aoe[0].get("3D").and_then(serde_json::Value::as_bool) != Some(false) { return None; }
+    let diameter = i32::try_from(aoe[0].get("diameter")?.as_i64()?).ok()?.checked_add(expanded)?;
+    if !matches!(diameter, 2 | 3) { return None; }
+    let radius_squared = diameter * diameter / 4;
+    Some(super::tconstruct_source_area_shape::plane(origin, face, game.yaw)?.into_iter().filter(|position| {
+        let distance: i32 = (0..3).map(|axis| (position[axis] - origin[axis]).pow(2)).sum();
+        distance <= radius_squared
+    }).collect())
+}
+
 /// The source tests the candidate box against the target's inflated box and
 /// then compares full 3D entity positions using a strict squared radius.
 pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f64; 3], [f64; 3]), candidate_bounds: ([f64; 3], [f64; 3]), expanded: u32) -> bool {
@@ -147,9 +168,10 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
 /// Source zero-offset AOE paths for bundled glow/fire placement effects.
 /// Non-empty tool AOE iterators and other block-effect forms stay unresolved.
 pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
-    if game.remote.is_some() || !single_block(game, stack) || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
+    if game.remote.is_some() || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
     if !matches!(face, [0, -1, 0] | [0, 1, 0] | [0, 0, -1] | [0, 0, 1] | [-1, 0, 0] | [1, 0, 0]) { return None; }
     if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
+    let offsets = if single_block(game, stack) { Vec::new() } else { circle_offsets(game, stack, clicked, face)? };
     let custom = stack.data()?.other("minecraft:custom_data")?;
     let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:splashing")? else { return None; };
     if *level <= 0 || stack.count != 1 || stack.wire_patch().is_some() { return None; }
@@ -170,57 +192,79 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let amount = u32::try_from(recipe.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
     let held = game.held()?;
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
-    let staged = if fluid.amount >= amount {
-        let mut remaining = fluid.clone(); remaining.amount -= amount;
-        Some(super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?)
-    } else { None };
+    // Stage every possible remainder before changing the world. Failed
+    // positions do not advance the stage; the source consumes once per success.
+    let count = ((fluid.amount / amount) as usize).min(offsets.len() + 1);
+    let mut staged = Vec::with_capacity(count);
+    for successes in 1..=count {
+        let mut remaining = fluid.clone();
+        remaining.amount -= amount.checked_mul(successes as u32)?;
+        staged.push(super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?);
+    }
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let result = (|| -> horizon_client::Result<bool> {
-        let Some(drained) = staged else { return Ok(true); };
-        let target = if game.res.facts().get(game.world.block(clicked[0], clicked[1], clicked[2])).replaceable { clicked }
-            else {
-                let Some(x) = clicked[0].checked_add(face[0]) else { return Ok(true); };
-                let Some(y) = clicked[1].checked_add(face[1]) else { return Ok(true); };
-                let Some(z) = clicked[2].checked_add(face[2]) else { return Ok(true); };
-                [x, y, z]
-            };
-        let placed = if block == "tconstruct:glow" {
-            super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]])?
-        } else {
-            let permitted = match game.lan_acting {
-                Some(conn) => game.world.chunks.__horizon_mixins_tconstruct_glow_guest_protection().get(&conn)
-                    .is_some_and(|policy| super::tconstruct_glowing_placement::outside_protection(*policy, target)),
-                None => game.options.dedicated.is_none(),
-            };
-            if !permitted || !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { false }
-            else {
+        let mut successes = 0usize;
+        let mut failure = None;
+        for (iteration, position) in std::iter::once(clicked).chain(offsets).enumerate() {
+            if successes >= staged.len() { break; }
+            if iteration > 0 && game.res.facts().is_air(game.world.block(position[0], position[1], position[2])) { continue; }
+            let target = if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position }
+                else {
+                    let Some(x) = position[0].checked_add(face[0]) else { continue; };
+                    let Some(y) = position[1].checked_add(face[1]) else { continue; };
+                    let Some(z) = position[2].checked_add(face[2]) else { continue; };
+                    [x, y, z]
+                };
+            let before = game.world.block(target[0], target[1], target[2]);
+            let attempt = (|| -> horizon_client::Result<bool> {
+                if block == "tconstruct:glow" {
+                    return super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]]);
+                }
+                let permitted = match game.lan_acting {
+                    Some(conn) => game.world.chunks.__horizon_mixins_tconstruct_glow_guest_protection().get(&conn)
+                        .is_some_and(|policy| super::tconstruct_glowing_placement::outside_protection(*policy, target)),
+                    None => game.options.dedicated.is_none(),
+                };
+                if !permitted || !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
                 let pos = horizon_core::position::BlockPos::new(target[0], target[1], target[2]);
                 let (state, survives) = game.with_level(|blocks, world, ticks| {
                     let state = blocks.fire_state_for(world, ticks, pos);
                     (state, blocks.can_survive(world, ticks, pos, state))
                 });
-                // The source recipe explicitly names the fire block; never
-                // silently replace it with the host's soul-fire selection.
-                if survives && game.res.facts().get(state).name.as_ref() == "minecraft:fire" {
-                    game.level_set(target, state)?;
-                    game.world.block(target[0], target[1], target[2]) == state
-                } else { false }
+                if !survives || game.res.facts().get(state).name.as_ref() != "minecraft:fire" { return Ok(false); }
+                game.level_set(target, state)?;
+                Ok(game.world.block(target[0], target[1], target[2]) == state)
+            })();
+            match attempt {
+                Ok(true) => {
+                    successes += 1;
+                    let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
+                    game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
+                    game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
+                }
+                Ok(false) => {}
+                Err(error) => {
+                    // level_set may report an event-processing error after the
+                    // block write; account for a completed write before exiting.
+                    let after = game.world.block(target[0], target[1], target[2]);
+                    if before != after && game.res.facts().get(after).name.as_ref() == block { successes += 1; }
+                    failure = Some(error);
+                    break;
+                }
             }
-        };
-        if placed {
-            let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
-            game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
-            game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
-            if !game.creative {
-                *game.held_mut() = Some(drained);
-                let Some(current) = game.held().cloned() else { return Ok(true); };
-                let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, &current, *level as u32, Some("tconstruct:splashing"));
+        }
+        if successes > 0 && !game.creative {
+            *game.held_mut() = Some(staged[successes - 1].clone());
+            if let Some(current) = game.held().cloned() {
+                let wear = (*level as u32).saturating_mul(successes as u32);
+                let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, &current, wear, Some("tconstruct:splashing"));
                 if let Some(held) = game.held_mut().as_mut() {
                     super::tconstruct_source_overslime::spend(held, shield);
                     super::tconstruct_tx::fixed_damage(held, loss);
                 }
             }
         }
+        if let Some(error) = failure { return Err(error); }
         Ok(true)
     })();
     Some(result)
