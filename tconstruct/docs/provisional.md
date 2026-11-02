@@ -1,17 +1,15 @@
 # Provisional development build
 
-This build temporarily disables features whose Horizon Mixins targets cannot currently be transformed. It is not a complete port. The disabled injection definitions are retained in `disabled-injections.toml`; restoring them requires a compatible official Mixins implementation and renewed testing.
+This build temporarily disables specific hooks whose Horizon Mixins targets cannot currently be transformed. It is not a complete port. Their definitions are retained in `disabled-injections.toml`; restoring them requires a compatible official Mixins implementation and renewed testing. Registered items and blocks remain available for existing worlds.
 
-| Feature | Availability | Current limitation |
-| --- | --- | --- |
-| Reinforced and Unbreakable | New application disabled | Ordinary wear prevention is not connected. Existing modifier data is retained but does not provide the intended protection. |
-| Dense, Reinforced and Unbreakable material traits | New additions disabled | The wear effect is unavailable; existing tools retain their data but do not receive that wear prevention. |
-| Wearable material armor | New assembly disabled | Wear and armor Overslime consumption are not connected. Existing armor remains in saves but its durability behavior is incomplete. |
-| Crafting Station | Disabled | Its persistent grid click synchronization is unavailable. Existing block data is retained; the original recipe is preserved under `disabled-recipes/`. Use a vanilla crafting table. |
-| Material-specific storage rendering and connected glass | Appearance disabled | Storage material data remains, but material-specific world faces, connected glass faces and Tinker's Chest world tint are unavailable. The chest dye recipe is disabled; existing dyed items retain their data. |
-| Excavator and Battlesign built-in knockback | Disabled | Their extra built-in melee knockback is unavailable. Other tool behavior is separate. |
-| Crumbling with Stonebound | Incomplete | An isolated mining test did not match the expected ordering; the combination has not been validated. |
-
-Wearable armor and Crafting Station are also omitted from the mod Creative tabs. Creative material variants with the pinned source’s unavailable default durability-prevention traits are omitted; item registrations are retained for existing saves.
+| Feature | Status and limitation |
+| --- | --- |
+| Reinforced and Unbreakable | New application is temporarily disabled because ordinary wear prevention is unavailable. Existing modifier data is retained but does not give the intended protection. |
+| Dense and other durability-prevention traits | The affected wear effect is unavailable; material items and tool construction remain available. |
+| Wearable material armor | Armor remains available. Its material armor and toughness calculation is separate from the disabled dynamic wear and armor Overslime writeback; those durability effects are incomplete. |
+| Crafting Station | The screen and recipe remain available. Host grid writeback after some clicks is under investigation and may affect stored ingredients; LAN has a separate transaction path. Do not rely on persistence until it is verified. |
+| Material-specific storage rendering and connected glass | Storage material data remains, but material-specific world faces, connected glass faces and Tinker's Chest world tint are unavailable. Dyed items keep their data. |
+| Excavator and Battlesign built-in knockback | Their extra built-in melee knockback is unavailable; their other behavior is separate. |
+| Crumbling with Stonebound | An isolated mining test did not match the expected ordering; the combination has not been validated. |
 
 Previously captured game tests describe the revisions stated alongside them. They do not verify the full provisional build. The Part Chest and Tinker's Chest transactions were tested with the eight affected injections omitted; their world appearance and Crafting Station integration were not covered. See [chest details](tinker-part-chests.md) and [host update evidence](host-upgrade.md).

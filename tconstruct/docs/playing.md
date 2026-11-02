@@ -1,6 +1,6 @@
 # Making parts and tools
 
-> **Development build:** The Crafting Station, wearable armor assembly, Reinforced and Unbreakable are temporarily unavailable. Some material traits and appearances are incomplete. See [provisional limitations](provisional.md); older tests below describe their stated revisions.
+> **Development build:** Reinforced and Unbreakable application, certain durability effects, and some appearances are temporarily unavailable. Crafting Station input persistence is under investigation. See [provisional limitations](provisional.md); older tests below describe their stated revisions.
 
 Use a Part Builder to make parts, then assemble supported tools at a Tinker Station. The examples below were tested on Linux; the Windows launcher and gameplay remain unverified.
 
@@ -50,7 +50,7 @@ Place and open the Part Builder. Put a pattern and the log in the two input slot
 
 ## Store parts beside a workstation
 
-Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder to access its inventory while working. The Crafting Station is temporarily unavailable. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
+Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder to access its inventory while working. Crafting Station input persistence is under investigation. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
 
 ![A Part Chest beside a Part Builder in a LAN test](part-chest-builder-lan.png)
 

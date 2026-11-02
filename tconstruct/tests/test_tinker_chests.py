@@ -8,8 +8,7 @@ ROOT = Path(__file__).resolve().parents[1] / "content"
 
 class TinkerChestSourceTest(unittest.TestCase):
     def test_crafting_station_uses_the_source_pattern_and_workbench_tag(self):
-        self.assertFalse((ROOT / "data/tconstruct/recipe/crafting_station.json").exists())
-        recipe = json.loads((ROOT.parent / "disabled-recipes/crafting_station.json").read_text())
+        recipe = json.loads((ROOT / "data/tconstruct/recipe/crafting_station.json").read_text())
         self.assertEqual(recipe["pattern"], ["p", "w"])
         self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "w": "#tconstruct:source_forge_workbenches"})
         tag = json.loads((ROOT / "reference/tconstruct-tags/data/forge/tags/items/workbenches.json").read_text())
@@ -42,8 +41,7 @@ class TinkerChestSourceTest(unittest.TestCase):
     def test_tinkers_chest_uses_the_source_default_dye(self):
         item = json.loads((ROOT / "assets/tconstruct/items/tinkers_chest.json").read_text())
         self.assertEqual(item["model"]["tints"], [{"type": "minecraft:dye", "default": 0xff407686-(1 << 32)}])
-        self.assertFalse((ROOT / "data/tconstruct/recipe/tinkers_chest_dyed.json").exists())
-        recipe = json.loads((ROOT.parent / "disabled-recipes/tinkers_chest_dyed.json").read_text())
+        recipe = json.loads((ROOT / "data/tconstruct/recipe/tinkers_chest_dyed.json").read_text())
         self.assertEqual((recipe["type"],recipe["target"],recipe["dye"]), ("minecraft:crafting_dye","tconstruct:tinkers_chest","#minecraft:dyes"))
 
     def test_glazed_template_chests_have_local_and_remote_use_hooks(self):

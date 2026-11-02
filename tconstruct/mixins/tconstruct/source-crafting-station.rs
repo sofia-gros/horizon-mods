@@ -2,9 +2,6 @@
 // nine persistent inputs remain owned by the block entity.
 use super::*;
 
-// Persistent crafting needs the currently disabled click synchronization hook.
-pub(super) const PROVISIONAL_ENABLED: bool = false;
-
 pub(super) fn position(game: &Game<'_>) -> Option<(i32, i32, i32)> {
     if game.remote.is_some() || game.lan_acting.is_some() || game.craft_size != 3 { return None; }
     let [x, y, z] = game.craft_table?;
@@ -12,10 +9,6 @@ pub(super) fn position(game: &Game<'_>) -> Option<(i32, i32, i32)> {
 }
 
 pub(super) fn open(game: &mut Game<'_>, pos: [i32; 3]) -> bool {
-    if !PROVISIONAL_ENABLED {
-        if game.lan_acting.is_none() { game.message = Some(("Crafting Station is unavailable in this development build".into(), std::time::Instant::now())); }
-        return false;
-    }
     if game.remote.is_some() { return false; }
     game.ensure_datapacks();
     if game.lan_acting.is_some() {
