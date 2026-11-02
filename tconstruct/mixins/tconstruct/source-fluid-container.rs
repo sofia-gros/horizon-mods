@@ -238,7 +238,8 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
             }
         };
         if !known_item(&empty) { return false; }
-        if potion == "minecraft:water" && color.is_some() { return false; }
+        // Mantle's EmptyPotionTransfer explicitly returns plain water for
+        // every water-base potion, including one with a custom color.
         let (fluid, metadata) = if potion == "minecraft:water" { ("minecraft:water", None) }
             else {
                 let mut fields = vec![("Potion", Tag::String(potion.as_str().into()))];
