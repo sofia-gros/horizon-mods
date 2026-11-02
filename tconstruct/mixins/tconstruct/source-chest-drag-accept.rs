@@ -1,4 +1,14 @@
 fn tconstruct_chest_drag_accept(game: &mut crate::game::Game<'_>,slot: usize,ty: i32,dragged: usize) -> std::ops::ControlFlow<bool> {
+    if crate::game::tconstruct_ui::side_chest_kind(game).is_some() && (slot<36 || (300..302).contains(&slot)) {
+        let Some(cursor)=game.carried.clone() else {return std::ops::ControlFlow::Break(false);};
+        if !(0..=2).contains(&ty) || (ty==2 && !game.creative) || (ty!=2 && cursor.count as usize<=dragged) {return std::ops::ControlFlow::Break(false);}
+        if slot==300 {
+            let pattern=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok()).and_then(|t|t.get("tconstruct:patterns")).map_or(game.remote.is_some(),|v|v.contains(cursor.item.as_ref()));
+            if !pattern {return std::ops::ControlFlow::Break(false);}
+        }
+        let current=game.slot_view(slot);let max=game.res.items().get(&cursor.item).map_or(64,|info|info.max_stack).max(1);
+        return std::ops::ControlFlow::Break(current.as_ref().is_none_or(|s|s.same_item_same_components(&cursor) && s.count<max));
+    }
     if (327..381).contains(&slot) {
         if let Some(kind)=crate::game::tconstruct_ui::side_chest_kind(game) {
             let Some(cursor)=game.carried.clone() else {return std::ops::ControlFlow::Break(false);};

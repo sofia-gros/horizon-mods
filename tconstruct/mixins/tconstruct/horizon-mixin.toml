@@ -3767,3 +3767,11 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "pos", ty = "[i32;3]", value = "pos" },
 ]
+
+[[injection]]
+id = "source-chest-drag-view"
+target = "horizon_client::game::Game<'_>::drag_view"
+kind = "HEAD"
+cancellable = true
+helper = "source-chest-drag-view.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
