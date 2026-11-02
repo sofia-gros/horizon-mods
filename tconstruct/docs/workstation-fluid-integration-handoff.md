@@ -23,3 +23,7 @@ Gilded/Speedy/Step Up and ordered stat paths. The older #318 post-removal spend
 is superseded. The exact merged head requires its own package, official apply,
 type and game gates; #323's package and planner checks do not establish those
 results for the merge.
+
+## Melter pointer and package namespaces follow-up
+
+This follow-up carries #337's retained remote screen position into the Melter gauge transfer entry point. The b53 UI diagnostic covered can transfers, fuel and incompatible fluids; exact integrated-head apply/build and live behavior remain pending. The content package generator declares `mantle` and `forge` as additional namespaces because its normal package actually contains `assets/mantle/lang/en_us.json` and `data/forge` entries. The declared namespaces are subject to the target host's normal collision and content checks; package generation alone is not a resource-preparation pass.
