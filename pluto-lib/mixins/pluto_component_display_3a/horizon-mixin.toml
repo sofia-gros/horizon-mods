@@ -3,7 +3,7 @@ id = "pluto_component_display_3a"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "7084e67744cbb4fe25961f24126e15b6b36f0523"
+horizon_revision = "7124749605ed577f7e3775a573662eb3c3619cb2"
 [[module]]
 id = "tooltip-policy"
 file = "crates/horizon-client/src/game.rs"
