@@ -14,9 +14,40 @@ fn direction(value: &str) -> Option<Direction> {
 fn adjacent(pos: BlockPos, direction: Direction) -> Option<(i32,i32,i32)> {
     let [x,y,z] = direction.normal(); Some((pos.x.checked_add(x)?, pos.y.checked_add(y)?, pos.z.checked_add(z)?))
 }
-fn tank(world: &super::tconstruct_world::World, block: &str, pos: (i32,i32,i32)) -> Option<super::tconstruct_source_melter_state::Tank> {
+fn tank(world: &super::tconstruct_world::World, facts: &horizon_items::blocks::BlockFacts,
+    registry: &horizon_world::registry::BlockRegistry, block: &str, pos: (i32,i32,i32), face: Direction) -> Option<super::tconstruct_source_melter_state::Tank> {
     use super::{tconstruct_source_melter_state::{Melter, Tank}, tconstruct_source_melter_store as store};
-    if !world.loaded(pos.0, pos.2) || !world.block_entities.contains_key(&pos) { return None; }
+    if !world.loaded(pos.0, pos.2) { return None; }
+    if matches!(block, "tconstruct:seared_drain" | "tconstruct:scorched_drain") {
+        let controller = *world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&pos)?;
+        if !world.block_entities.contains_key(&controller) { return None; }
+        let owner = facts.get(world.block(controller.0, controller.1, controller.2)).name.clone();
+        if !matches!(&*owner, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") { return None; }
+        let (min, max, capacity) = super::tconstruct_source_smeltery_world::detect_world(world, facts, registry, controller)?;
+        let (x,y,z) = pos;
+        let wall = y > min[1] && y <= max[1] && ((x == min[0] || x == max[0]) && z > min[2] && z < max[2]
+            || (z == min[2] || z == max[2]) && x > min[0] && x < max[0]);
+        let floor = y == min[1] && x > min[0] && x < max[0] && z > min[2] && z < max[2];
+        let foundry = &*owner == "tconstruct:foundry_controller" && x >= min[0] && x <= max[0] && z >= min[2] && z <= max[2]
+            && y >= min[1] && y <= max[1] && (y == min[1] || x == min[0] || x == max[0] || z == min[2] || z == max[2]);
+        if !(wall || floor || foundry) { return None; }
+        let state = super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&store::read(world, controller, "tconstruct:smeltery")?)?;
+        if state.tank.capacity != capacity { return None; }
+        let remaining = state.tank.capacity.checked_sub(state.tank.total())?;
+        return match state.tank.fluids.first() {
+            Some(fluid) => Some(Tank { fluid: Some(fluid.id.clone()), tag: fluid.tag.clone(), amount: fluid.amount, capacity: fluid.amount.saturating_add(remaining) }),
+            None if remaining > 0 => Some(Tank::new(remaining)),
+            _ => None,
+        };
+    }
+    if let Some(native) = horizon_client::pluto_fluid::first(world, pos, face) {
+        let capacity = u32::try_from(native.capacity).ok()?;
+        let amount = u32::try_from(native.amount).ok()?;
+        if capacity == 0 || amount > capacity { return None; }
+        let fluid = if amount == 0 { None } else { Some(native.fluid?) };
+        return Some(Tank { fluid, tag: None, amount, capacity });
+    }
+    if !world.block_entities.contains_key(&pos) { return None; }
     if block == "tconstruct:seared_melter" {
         return Some(Melter::from_nbt(&store::read(world, pos, "tconstruct:melter")?)?.tank);
     }
@@ -29,7 +60,7 @@ fn supported(level: &super::GameLevel<'_>, pos: BlockPos, facing: Direction) -> 
     let Some(at) = adjacent(pos, facing.opposite()) else { return false; };
     if !level.world.loaded(at.0, at.2) { return false; }
     let name = &level.facts.get(level.world.block(at.0, at.1, at.2)).name;
-    tank(level.world, name, at).is_some()
+    tank(level.world, level.facts, level.registry, name, at, facing).is_some()
 }
 fn ordered(yaw: f32, pitch: f32) -> [Direction;6] {
     let pitch = pitch * (std::f32::consts::PI / 180.0);
@@ -76,9 +107,10 @@ pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
     use horizon_client::text::Text;
     let state = game.world.block(pos.0,pos.1,pos.2);
     let facing = game.pack.assets.registry.state(state).and_then(|s| s.properties.get("facing")).and_then(|v| direction(v));
-    let Some(at) = facing.and_then(|facing| adjacent(BlockPos::new(pos.0,pos.1,pos.2), facing.opposite())) else { return true; };
+    let Some(facing) = facing else { return true; };
+    let Some(at) = adjacent(BlockPos::new(pos.0,pos.1,pos.2), facing.opposite()) else { return true; };
     let block = &game.res.facts().get(game.world.block(at.0,at.1,at.2)).name;
-    let Some(tank) = tank(&game.world, block, at) else { return true; };
+    let Some(tank) = tank(&game.world, game.res.facts(), game.pack.assets.registry, block, at, facing) else { return true; };
     let comma = |number: u32| {
         let value = number.to_string();
         value.chars().enumerate().fold(String::new(), |mut out, (index, ch)| {

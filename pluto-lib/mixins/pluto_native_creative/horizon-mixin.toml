@@ -22,3 +22,10 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "pluto_inventory"
 source = "inventory-export.rs"
 visibility = "pub"
+
+[[module]]
+id = "fluid-read"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_fluid"
+source = "fluid-read.rs"
+visibility = "pub"
