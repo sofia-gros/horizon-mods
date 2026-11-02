@@ -11,3 +11,5 @@ The left panel holds the melting input. The fluid display shows the alloy in the
 This copper and amethyst sequence was tested on Linux in single-player and LAN. The single-player test also checked saving and reloading, and breaking and repairing a wall while an input was present. The two container slots in the Smeltery screen do not accept items yet; use the fuel tank directly. Other fluid containers are not supported yet.
 
 Larger structures, other alloys, the Foundry and specialized recipes need further testing or implementation. Machine shapes and visuals are not yet a complete match for the original. Windows has not been tested.
+
+Seared and Scorched Chutes connect adjacent hoppers to the formed controller's melting slots. A hopper facing a Chute inserts one item into the first empty melting slot; a hopper below a Chute can extract one item into an eligible hopper slot. The move is staged on both sides and leaves both inventories unchanged if it cannot be committed. Opaque network component patches are conservatively refused. This addition still needs game, LAN and persistence verification.
