@@ -1,3 +1,22 @@
+pub(super) fn mod_snapshot(game: &crate::game::Game<'_>) -> (std::collections::HashMap<String, Option<bool>>, bool) {
+    #[cfg(feature = "mods")]
+    {
+        use horizon_mods::Status;
+        let entries = game.mods.mods.entries();
+        let mut states = std::collections::HashMap::new();
+        for entry in entries {
+            let Some(manifest) = &entry.manifest else { continue; };
+            let state = match &entry.status { Status::Running => Some(true), Status::Off | Status::Failed(_) => Some(false), Status::Elsewhere => None };
+            states.entry(manifest.id.clone()).and_modify(|old| {
+                *old = match (*old, state) { (Some(true), _) | (_, Some(true)) => Some(true), (None, _) | (_, None) => None, _ => Some(false) };
+            }).or_insert(state);
+        }
+        (states, !entries.is_empty() && entries.iter().all(|entry| entry.manifest.is_some()))
+    }
+    #[cfg(not(feature = "mods"))]
+    { let _ = game; (std::collections::HashMap::new(), false) }
+}
+
 pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     if game.remote.is_some() || game.world_root.as_os_str().is_empty() { return; }
     let mut recipes = std::collections::BTreeMap::new();
@@ -84,24 +103,8 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     // The runtime entries report actual start results; configured paths or
     // installed files alone do not establish a loaded mod. Elsewhere means
     // another execution role owns it and does not prove it started there.
-    #[cfg(feature = "mods")]
-    let mod_presence = {
-        use horizon_mods::Status;
-        let entries = game.mods.mods.entries();
-        let mut states = std::collections::HashMap::new();
-        for entry in entries {
-            let Some(manifest) = &entry.manifest else { continue; };
-            let state = match &entry.status { Status::Running => Some(true), Status::Off | Status::Failed(_) => Some(false), Status::Elsewhere => None };
-            states.entry(manifest.id.clone()).and_modify(|old| {
-                *old = match (*old, state) { (Some(true), _) | (_, Some(true)) => Some(true), (None, _) | (_, None) => None, _ => Some(false) };
-            }).or_insert(state);
-        }
-        crate::game::tconstruct_source_melter_world::ModPresence {
-            states, complete: !entries.is_empty() && entries.iter().all(|entry| entry.manifest.is_some()),
-        }
-    };
-    #[cfg(not(feature = "mods"))]
-    let mod_presence = crate::game::tconstruct_source_melter_world::ModPresence { states: std::collections::HashMap::new(), complete: false };
+    let (states, complete) = mod_snapshot(game);
+    let mod_presence = crate::game::tconstruct_source_melter_world::ModPresence { states, complete };
     // All source-recipe consumers share this snapshot. Resolve Forge wrappers
     // once, after tags and config are known, rather than separately per lookup.
     // An unavailable context must never select a guessed fallback branch.
@@ -228,6 +231,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_source_shared_recipes_mut() = Some(std::sync::Arc::new(recipes.clone()));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
+    *game.world.chunks.__horizon_mixins_tconstruct_recipe_mod_snapshot_mut() = Some((mod_presence.states, mod_presence.complete));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);
