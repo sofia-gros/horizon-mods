@@ -42,7 +42,8 @@ class TinkerChestSourceTest(unittest.TestCase):
     def test_tinkers_chest_uses_the_source_default_dye(self):
         item = json.loads((ROOT / "assets/tconstruct/items/tinkers_chest.json").read_text())
         self.assertEqual(item["model"]["tints"], [{"type": "minecraft:dye", "default": 0xff407686-(1 << 32)}])
-        recipe = json.loads((ROOT / "data/tconstruct/recipe/tinkers_chest_dyed.json").read_text())
+        self.assertFalse((ROOT / "data/tconstruct/recipe/tinkers_chest_dyed.json").exists())
+        recipe = json.loads((ROOT.parent / "disabled-recipes/tinkers_chest_dyed.json").read_text())
         self.assertEqual((recipe["type"],recipe["target"],recipe["dye"]), ("minecraft:crafting_dye","tconstruct:tinkers_chest","#minecraft:dyes"))
 
     def test_glazed_template_chests_have_local_and_remote_use_hooks(self):
