@@ -90,7 +90,6 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
         if used > 0 { planned.push((known.id, duration, effect.amplifier, used)); }
     }
     if planned.is_empty() { return false; }
-    if simulate { return true; }
     // Validate every possible remainder before applying any effect.
     let mut remainders = Vec::new();
     for (_, _, _, used) in &planned {
@@ -98,6 +97,7 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
         let Some(drained) = super::pluto_stack_fluid::write(&stack, "tic_persistent", "tconstruct:tank_fluid", (fluid.amount > 0).then_some(&fluid), capacity) else { return false; };
         remainders.push(drained);
     }
+    if simulate { return true; }
     let mut consumed = None;
     for ((id, duration, amplifier, used), drained) in planned.into_iter().zip(remainders) {
         let mob = &mut game.mobs[index];
