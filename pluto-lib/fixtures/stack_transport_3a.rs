@@ -8,6 +8,15 @@ use horizon_protocol::{
 };
 use horizon_world::nbt::Tag;
 
+mod max_damage_adapter {
+    use horizon_client_lib::items::ItemStack;
+    use horizon_protocol::item::Stack;
+    include!("../mixins/pluto_transport_3a/max.rs");
+    pub fn apply(value: Option<Stack>, source: &Option<ItemStack>) -> Option<Stack> {
+        add_max_damage(value, source)
+    }
+}
+
 fn main() {
     let mut names = vec![String::new(); 128];
     for (id, name) in [
@@ -15,6 +24,8 @@ fn main() {
         (component::LORE, "minecraft:lore"),
         (component::ITEM_MODEL, "minecraft:item_model"),
         (component::DAMAGE, "minecraft:damage"),
+        (component::MAX_DAMAGE, "minecraft:max_damage"),
+        (28, "minecraft:tool"),
         (component::UNBREAKABLE, "minecraft:unbreakable"),
     ] {
         names[id as usize] = name.into();
@@ -112,8 +123,91 @@ fn main() {
         "minecraft:tool",
         Some(Tag::compound([("damage_per_block", Tag::Int(1))])),
     );
-    let wire = stack_to_network(ids, |_, _| None, &Some(tool)).unwrap();
+    let source = Some(tool);
+    let wire = stack_to_network(ids, |_, _| None, &source).unwrap();
+    assert!(!wire
+        .added
+        .iter()
+        .any(|(id, _)| *id == component::MAX_DAMAGE));
+    assert!(!wire.added.iter().any(|(id, _)| *id == 28));
     let restored = item_sync::from_network(&wire, &builtin, &Dynamic::default());
+    // The narrow adapter adds the official MAX_DAMAGE component only once.
+    let supplied = max_damage_adapter::apply(Some(wire.clone()), &source).unwrap();
+    assert_eq!(
+        supplied
+            .added
+            .iter()
+            .filter(|(id, _)| *id == component::MAX_DAMAGE)
+            .count(),
+        1
+    );
+    let supplied_twice = max_damage_adapter::apply(Some(supplied.clone()), &source).unwrap();
+    assert_eq!(
+        supplied_twice
+            .added
+            .iter()
+            .filter(|(id, _)| *id == component::MAX_DAMAGE)
+            .count(),
+        1
+    );
+    let mut bytes = Writer::new();
+    Slot::write(&Some(supplied), &mut bytes);
+    let received = Slot::read(&mut Reader::new(&bytes.data)).unwrap().unwrap();
+    let untouched_patch = received.wire.0.clone();
+    let patched = max_damage_adapter::apply(Some(received.clone()), &source).unwrap();
+    assert_eq!(patched.wire.0, untouched_patch);
+    assert_eq!(patched.added, received.added);
+    let mut removed = ItemStack::new("example:tool", 1);
+    removed.data_mut().set_other(
+        "!minecraft:max_damage",
+        Some(Tag::Compound(Default::default())),
+    );
+    let removed_source = Some(removed);
+    let removed_wire = stack_to_network(ids, |_, _| None, &removed_source).unwrap();
+    let removed_wire = max_damage_adapter::apply(Some(removed_wire), &removed_source).unwrap();
+    assert_eq!(
+        removed_wire
+            .removed
+            .iter()
+            .filter(|id| **id == component::MAX_DAMAGE)
+            .count(),
+        1
+    );
+    assert!(!removed_wire
+        .added
+        .iter()
+        .any(|(id, _)| *id == component::MAX_DAMAGE));
+    let decoded = item_sync::from_network(&received, &builtin, &Dynamic::default());
+    assert_eq!(
+        decoded.data().and_then(|d| d.other("minecraft:max_damage")),
+        Some(&Tag::Int(60))
+    );
+    println!("MAX_DAMAGE protocol and decoder accept Int(60)");
+    // A simple 26.3 Tool stream fixture: zero rules, default speed 1, damage 1,
+    // and can-destroy-in-creative. Horizon's decoder retains its raw patch.
+    let mut tool_bytes = Writer::new();
+    tool_bytes.varint(0);
+    tool_bytes.f32(1.0);
+    tool_bytes.varint(1);
+    tool_bytes.bool(true);
+    let mut supplied_tool = wire.clone();
+    supplied_tool
+        .added
+        .push((28, horizon_protocol::item::Component::Raw(tool_bytes.data)));
+    let mut bytes = Writer::new();
+    Slot::write(&Some(supplied_tool), &mut bytes);
+    let received = Slot::read(&mut Reader::new(&bytes.data)).unwrap().unwrap();
+    assert!(matches!(
+        received.component(28),
+        Some(horizon_protocol::item::Component::Raw(_))
+    ));
+    let decoded = item_sync::from_network(&received, &builtin, &Dynamic::default());
+    assert!(decoded
+        .data()
+        .and_then(|d| d.other("minecraft:tool"))
+        .is_none());
+    assert!(decoded.wire_patch().is_some());
+    println!("TOOL protocol retains raw patch; item decoder does not reconstruct tool");
     for key in ["minecraft:max_damage", "minecraft:tool"] {
         assert!(
             restored.data().and_then(|d| d.other(key)).is_none(),
@@ -159,7 +253,7 @@ fn main() {
                 assert!(wire.added.iter().filter(|(key, _)| *key == id).count() <= 1);
             }
             let mut writer = Writer::new();
-            Slot::write(&Some(wire), &mut writer);
+            Slot::write(&Some(wire.clone()), &mut writer);
             let received = Slot::read(&mut Reader::new(&writer.data)).unwrap().unwrap();
             let back = item_sync::from_network(&received, &case_builtin, &Dynamic::default());
             assert_eq!(
@@ -176,6 +270,37 @@ fn main() {
                     back.data().and_then(|d| d.other(key)),
                     "{id}: {key}"
                 );
+            }
+            let patched = max_damage_adapter::apply(Some(wire), &Some(original.clone())).unwrap();
+            let mut patch_bytes = Writer::new();
+            Slot::write(&Some(patched), &mut patch_bytes);
+            let patched_wire = Slot::read(&mut Reader::new(&patch_bytes.data))
+                .unwrap()
+                .unwrap();
+            let patched_back =
+                item_sync::from_network(&patched_wire, &case_builtin, &Dynamic::default());
+            assert_eq!(
+                original
+                    .data()
+                    .and_then(|d| d.other("minecraft:max_damage")),
+                patched_back
+                    .data()
+                    .and_then(|d| d.other("minecraft:max_damage")),
+                "{id}: max_damage"
+            );
+            if original
+                .data()
+                .and_then(|d| d.other("minecraft:tool"))
+                .is_some()
+            {
+                assert!(
+                    patched_back
+                        .data()
+                        .and_then(|d| d.other("minecraft:tool"))
+                        .is_none(),
+                    "{id}: tool gap has changed"
+                );
+                println!("{id}: max_damage restored, actual tool component still missing");
             }
             let equal = original.same_item_same_components(&back) && original.count == back.count;
             let before = original
