@@ -3183,3 +3183,15 @@ id = "materials-book-layout"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_layout"
 source = "source-materials-book-layout.rs"
+
+[[module]]
+id = "host-tinker-chest-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_chest_rules"
+source = "source-tinker-chests.rs"
+
+[[module]]
+id = "server-tinker-chest-rules"
+file = "crates/horizon-client/src/lib.rs"
+name = "tconstruct_chest_rules"
+source = "source-tinker-chests.rs"
