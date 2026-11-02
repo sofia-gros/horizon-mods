@@ -395,6 +395,33 @@ fn main() {
         pluto_tool_codec::prepare_tool(r##"{rules:[{blocks:"#Bad Tag"}]}"##, |_| None),
         Err(pluto_tool_codec::ToolError::InvalidOrUnsupported)
     ));
+    let bare = r#"{rules:[{blocks:"stone"}]}"#;
+    let qualified = r#"{rules:[{blocks:"minecraft:stone"}]}"#;
+    let resolve = |name: &str| (name == "minecraft:stone").then_some(7);
+    let bare = pluto_tool_codec::prepare_tool(bare, resolve).unwrap();
+    let qualified = pluto_tool_codec::prepare_tool(qualified, resolve).unwrap();
+    assert_eq!(bare, qualified);
+    let (bare_tag, _) = horizon_world::nbt::parse_snbt(&bare).unwrap();
+    let (qualified_tag, _) = horizon_world::nbt::parse_snbt(&qualified).unwrap();
+    let mut bare_stack = ItemStack::new("example:tool", 1);
+    bare_stack
+        .data_mut()
+        .set_other("minecraft:tool", Some(bare_tag));
+    let mut qualified_stack = ItemStack::new("example:tool", 1);
+    qualified_stack
+        .data_mut()
+        .set_other("minecraft:tool", Some(qualified_tag));
+    assert!(bare_stack.same_item_same_components(&qualified_stack));
+    assert_eq!(
+        horizon_client_lib::item_data::canon_stack(Some(&bare_stack)),
+        horizon_client_lib::item_data::canon_stack(Some(&qualified_stack))
+    );
+    let tag_bare = r##"{rules:[{blocks:"#mineable/pickaxe"}]}"##;
+    let tag_qualified = r##"{rules:[{blocks:"#minecraft:mineable/pickaxe"}]}"##;
+    assert_eq!(
+        pluto_tool_codec::prepare_tool(tag_bare, |_| None),
+        pluto_tool_codec::prepare_tool(tag_qualified, |_| None)
+    );
     let plain = ItemStack::new("minecraft:stick", 2);
     let wire = stack_to_network(ids, |_, _| None, &Some(plain)).unwrap();
     assert!(wire.added.is_empty());

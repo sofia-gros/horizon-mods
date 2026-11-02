@@ -42,6 +42,16 @@ fn valid_identifier(name: &str) -> bool {
             .bytes()
             .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"_/.-".contains(&b))
 }
+fn normalized_identifier(name: &str) -> Option<String> {
+    if !valid_identifier(name) {
+        return None;
+    }
+    Some(if name.contains(':') {
+        name.to_owned()
+    } else {
+        format!("minecraft:{name}")
+    })
+}
 fn boolean(tag: &Tag) -> Option<bool> {
     match tag {
         Tag::Byte(0) => Some(false),
@@ -87,15 +97,11 @@ pub(crate) fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Opt
         let blocks = rule.get("blocks")?;
         if let Some(name) = string(blocks) {
             if let Some(tag) = name.strip_prefix('#') {
-                if !valid_identifier(tag) {
-                    return None;
-                }
+                let tag = normalized_identifier(tag)?;
                 w.varint(0);
-                w.string(tag);
+                w.string(&tag);
             } else {
-                if !valid_identifier(&name) {
-                    return None;
-                }
+                let name = normalized_identifier(&name)?;
                 w.varint(2);
                 let block = id("minecraft:block", &name)?;
                 if block < 0 {
@@ -107,9 +113,7 @@ pub(crate) fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Opt
             w.varint(i32::try_from(names.len()).ok()?.checked_add(1)?);
             for name in names {
                 let name = string(name)?;
-                if !valid_identifier(&name) {
-                    return None;
-                }
+                let name = normalized_identifier(&name)?;
                 let block = id("minecraft:block", &name)?;
                 if block < 0 {
                     return None;
@@ -155,7 +159,8 @@ pub(crate) fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Opt
     for _ in 0..count {
         let size = r.varint().ok()?;
         let blocks = if size == 0 {
-            Tag::String(format!("#{}", r.string(32767).ok()?).as_str().into())
+            let tag = normalized_identifier(&r.string(32767).ok()?)?;
+            Tag::String(format!("#{tag}").as_str().into())
         } else {
             let n = usize::try_from(size.checked_sub(1)?).ok()?;
             if n > r.remaining() {
@@ -163,7 +168,8 @@ pub(crate) fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Opt
             }
             let mut names = Vec::with_capacity(n);
             for _ in 0..n {
-                names.push(Tag::String(name(r.varint().ok()?)?.as_str().into()));
+                let value = normalized_identifier(&name(r.varint().ok()?)?)?;
+                names.push(Tag::String(value.as_str().into()));
             }
             Tag::List(names)
         };
