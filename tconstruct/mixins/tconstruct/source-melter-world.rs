@@ -64,8 +64,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
     let stack = input?;
-    if basin && stack.count == 1 && stack.damage == 0 {
-        if let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(&stack.item) {
+    let lantern = matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");
+    if (basin || lantern) && stack.count == 1 && stack.damage == 0 {
+        if let Some(capacity) = super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item) {
             use horizon_world::nbt::{Compound, Tag};
             let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
             let mut data = match custom { None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return None };
@@ -76,7 +77,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             if tank.fluid.as_deref().is_some_and(|existing| existing != fluid) { return None; }
             let free = capacity.saturating_sub(tank.amount);
             if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
-                catalog.basin_filling(&stack.item, fluid, free, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+                catalog.portable_tank_filling(basin, &stack.item, fluid, free, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
             })? {
                 if !tank.insert(fluid, recipe.fluid.amount) { return None; }
                 data.insert("tconstruct:tank".into(), tank.to_nbt());

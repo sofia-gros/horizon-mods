@@ -159,14 +159,14 @@ impl Catalog<'_> {
         }
         found
     }
-    pub(super) fn basin_filling(&self, input: &str, fluid: &str, free: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+    pub(super) fn portable_tank_filling(&self, basin: bool, input: &str, fluid: &str, free: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
         if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) || free == 0 { return None; }
         let mut found: Option<(String, CastingRecipe)> = None;
         for (id, bytes) in self.recipes {
-            let Some(source) = BasinFillingRecipe::parse(bytes, conditions) else { continue; };
+            let Some(source) = BasinFillingRecipe::parse(bytes, basin, conditions) else { continue; };
             if source.container != input { continue; }
             let amount = source.fluid_amount.min(free);
-            let recipe = CastingRecipe { basin: true, retextured: false, cast: Some(Ingredient::Item(input.to_owned())),
+            let recipe = CastingRecipe { basin, retextured: false, cast: Some(Ingredient::Item(input.to_owned())),
                 consumes_cast: true, switch_slots: false, fluid: FluidSpec { id: fluid.to_owned(), tagged: false, amount },
                 output: Output::Item(input.to_owned()), cooling_time: 5 };
             if found.as_ref().is_some_and(|(_, old)| old != &recipe) { return None; }
@@ -371,11 +371,26 @@ mod tests {
         let items = ["tconstruct:seared_fuel_tank".into(), "minecraft:stone".into()].into_iter().collect();
         let fluids = ["minecraft:lava".into()].into_iter().collect();
         let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
-        let (_, recipe) = catalog.basin_filling("tconstruct:seared_fuel_tank", "minecraft:lava", 50, &|_| true).unwrap();
+        let (_, recipe) = catalog.portable_tank_filling(true, "tconstruct:seared_fuel_tank", "minecraft:lava", 50, &|_| true).unwrap();
         assert_eq!((recipe.fluid.amount, recipe.cooling_time, recipe.consumes_cast), (50, 5, true));
-        assert!(catalog.basin_filling("tconstruct:seared_fuel_tank", "minecraft:lava", 0, &|_| true).is_none());
-        assert!(catalog.basin_filling("minecraft:stone", "minecraft:lava", 250, &|_| true).is_none());
-        assert!(catalog.basin_filling("tconstruct:seared_fuel_tank", "minecraft:water", 250, &|_| true).is_none());
+        assert!(catalog.portable_tank_filling(true, "tconstruct:seared_fuel_tank", "minecraft:lava", 0, &|_| true).is_none());
+        assert!(catalog.portable_tank_filling(true, "minecraft:stone", "minecraft:lava", 250, &|_| true).is_none());
+        assert!(catalog.portable_tank_filling(true, "tconstruct:seared_fuel_tank", "minecraft:water", 250, &|_| true).is_none());
+    }
+    #[test]
+    fn lantern_table_and_basin_use_distinct_source_quantities() {
+        let recipes = [
+            ("table".into(), br#"{"type":"tconstruct:table_filling","container":"tconstruct:seared_lantern","fluid_amount":10}"#.to_vec()),
+            ("basin".into(), br#"{"type":"tconstruct:basin_filling","container":"tconstruct:seared_lantern","fluid_amount":50}"#.to_vec()),
+        ].into_iter().collect();
+        let item_tags = HashMap::new(); let fluid_tags = HashMap::new();
+        let items = ["tconstruct:seared_lantern".into()].into_iter().collect();
+        let fluids = ["minecraft:lava".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        assert_eq!(catalog.portable_tank_filling(false, "tconstruct:seared_lantern", "minecraft:lava", 50, &|_| true).unwrap().1.fluid.amount, 10);
+        assert_eq!(catalog.portable_tank_filling(true, "tconstruct:seared_lantern", "minecraft:lava", 50, &|_| true).unwrap().1.fluid.amount, 50);
+        assert_eq!(catalog.portable_tank_filling(true, "tconstruct:seared_lantern", "minecraft:lava", 7, &|_| true).unwrap().1.fluid.amount, 7);
+        assert!(catalog.portable_tank_filling(true, "tconstruct:seared_lantern", "minecraft:lava", 0, &|_| true).is_none());
     }
     #[test]
     fn fluid_fuel_requires_known_fluid_and_enough_amount() {

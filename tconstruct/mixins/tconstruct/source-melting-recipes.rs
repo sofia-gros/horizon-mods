@@ -259,9 +259,10 @@ impl BucketFillingRecipe {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct BasinFillingRecipe { pub container: String, pub fluid_amount: u32 }
 impl BasinFillingRecipe {
-    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+    pub(super) fn parse(bytes: &[u8], basin: bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let value: Value = serde_json::from_slice(bytes).ok()?;
-        if value.get("type")?.as_str()? != "tconstruct:basin_filling" || !enabled(&value, conditions) { return None; }
+        let expected = if basin { "tconstruct:basin_filling" } else { "tconstruct:table_filling" };
+        if value.get("type")?.as_str()? != expected || !enabled(&value, conditions) { return None; }
         let fluid_amount = u32::try_from(value.get("fluid_amount")?.as_u64()?).ok()?;
         if fluid_amount == 0 { return None; }
         Some(Self { container: value.get("container")?.as_str()?.to_owned(), fluid_amount })
