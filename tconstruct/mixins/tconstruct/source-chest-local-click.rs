@@ -13,10 +13,6 @@ fn tconstruct_chest_local_click(game: &mut crate::game::Game<'_>, right: bool) -
     let crafting = crate::game::tconstruct_crafting_station::position(game).is_some()
         && (slot < 36 || (100..109).contains(&slot) || slot == 200 || (600..648).contains(&slot));
     if !(chest || builder || crafting) { return Continue(()); }
-    if crafting && slot == 200 && !game.has_shift_down() {
-        game.message = Some(("Use Shift-click to take Crafting Station results in this development build".into(), std::time::Instant::now()));
-        return Break(());
-    }
     let input = if game.has_shift_down() { horizon_client::menu::Input::QuickMove } else { horizon_client::menu::Input::Pickup };
     game.menu_click(Some(slot), i32::from(right), input);
     Break(())
