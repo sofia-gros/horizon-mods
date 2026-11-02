@@ -1,5 +1,5 @@
 [package]
-name = "pluto-creative-api"
+name = "pluto-api"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
