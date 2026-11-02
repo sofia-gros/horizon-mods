@@ -19,7 +19,7 @@ You need Python, Rust, Git, a checkout of the pinned Horizon revision, and a Hor
 python3 tconstruct/tools/stage.py --horizon /path/to/horizon --mixins /path/to/horizon-mixins
 ```
 
-The development branch also requires PlutoLib’s `pluto_native_creative` bundle. `stage.py` looks for it under `pluto-lib/mixins/pluto_native_creative`; use `--pluto-native-creative /path/to/pluto_native_creative` while that bundle is maintained separately. It rejects the legacy PlutoLib paging adapter because the target Horizon supplies paging. The combined native path is still under development and has not passed a full build or game test.
+The development branch also requires PlutoLib’s `pluto_native_creative` bundle. `stage.py` looks for it under `pluto-lib/mixins/pluto_native_creative`; use `--pluto-native-creative /path/to/pluto_native_creative` while that bundle is maintained separately. It rejects the legacy PlutoLib paging adapter because the target Horizon supplies paging. The intended launcher installation uses separate enabled TConstruct and PlutoLib native bundles built together; the PlutoLib native artifact is not available from this branch yet, and the launcher manifest does not enforce the dependency. The combined native path has not passed a full build or game test.
 
 The generated source is placed in `tconstruct/target/modded`. The resolved Mixins commit is printed and saved in `tconstruct/target/mixins-revision.txt`. To reproduce a build, pass `--mixins-revision FULL_COMMIT_SHA` and ensure that commit exists in the Mixins repository. Build the client with:
 
