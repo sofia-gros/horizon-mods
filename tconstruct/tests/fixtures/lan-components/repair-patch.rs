@@ -167,3 +167,56 @@ fn decoder_does_not_normalize_single_block_to_wire_list() {
     let b = item_from_nbt(&item_to_nbt(&b)).unwrap();
     assert_ne!(canon_stack(Some(&a)), canon_stack(Some(&b)));
 }
+
+#[test]
+fn old_tool_shape_is_normalized_only_on_copy_before_registry_check() {
+    use crate::tconstruct_source_tool_normalize::prepare_for_tool_mutation;
+    use horizon_items::{item_data::canon_stack, item_nbt::{item_from_nbt, item_to_nbt}};
+    let raw = r##"{id:"tconstruct:pickaxe",count:1,components:{"minecraft:tool":{rules:[{blocks:"stone",speed:2.0f}]},"minecraft:custom_data":{"fixture:unknown":42}}}"##;
+    let saved = parse_stack(raw).unwrap().unwrap();
+    let original = item_from_nbt(&item_to_nbt(&saved)).unwrap();
+    let before = canon_stack(Some(&original));
+    let mut copy = prepare_for_tool_mutation(&original).unwrap();
+    assert_eq!(canon_stack(Some(&original)), before);
+    let tool = copy.data().unwrap().other("minecraft:tool").unwrap();
+    assert!(horizon_items::item_data::canon_tag(tool).contains("minecraft:stone"));
+    assert!(copy.data().unwrap().other("minecraft:custom_data").unwrap().get("fixture:unknown").is_some());
+    let normalized = canon_stack(Some(&copy));
+    assert_eq!(canon_stack(Some(&prepare_for_tool_mutation(&copy).unwrap())), normalized);
+    // Shape normalization does not claim that stone is in the real registry.
+    assert!(finalize_tool(&mut copy, |_| None).is_err());
+    assert_eq!(canon_stack(Some(&original)), before);
+    let mut validated = prepare_for_tool_mutation(&original).unwrap();
+    finalize_tool(&mut validated, |id| (id == "minecraft:stone").then_some(1)).unwrap();
+    let reloaded = item_from_nbt(&item_to_nbt(&validated)).unwrap();
+    assert_eq!(canon_stack(Some(&reloaded)), canon_stack(Some(&validated)));
+}
+
+#[test]
+fn unsupported_old_tool_shape_and_patch_are_rejected_without_mutation() {
+    use crate::tconstruct_source_tool_normalize::prepare_for_tool_mutation;
+    use horizon_items::item_data::canon_stack;
+    let raw = r#"{id:"tconstruct:pickaxe",count:1,components:{"minecraft:tool":{rules:[],"future:field":7}}}"#;
+    let unknown = parse_stack(raw).unwrap().unwrap();
+    let before = canon_stack(Some(&unknown));
+    assert!(prepare_for_tool_mutation(&unknown).is_err());
+    assert_eq!(canon_stack(Some(&unknown)), before);
+    let unknown_patch = damaged_tool(true, false);
+    let before = canon_stack(Some(&unknown_patch));
+    assert!(prepare_for_tool_mutation(&unknown_patch).is_err());
+    assert_eq!(canon_stack(Some(&unknown_patch)), before);
+}
+
+#[test]
+fn known_cached_patch_and_unrelated_item_remain_usable() {
+    use crate::tconstruct_source_tool_normalize::prepare_for_tool_mutation;
+    use horizon_items::item_data::canon_stack;
+    let known = damaged_tool(false, true);
+    let original = canon_stack(Some(&known));
+    let mut copy = prepare_for_tool_mutation(&known).unwrap();
+    finalize_tool(&mut copy, |_| None).unwrap();
+    assert_eq!(canon_stack(Some(&known)), original);
+    let raw = r#"{id:"example:pickaxe",count:1,components:{"minecraft:tool":{rules:[],"future:field":7}}}"#;
+    let other = parse_stack(raw).unwrap().unwrap();
+    assert_eq!(canon_stack(Some(&prepare_for_tool_mutation(&other).unwrap())), canon_stack(Some(&other)));
+}

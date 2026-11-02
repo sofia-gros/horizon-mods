@@ -73,3 +73,30 @@ pub fn patch_safe_for_tool_mutation(stack: &ItemStack) -> bool {
 pub fn clone_for_tool_mutation(stack: &ItemStack) -> Option<ItemStack> {
     patch_safe_for_tool_mutation(stack).then(|| stack.clone())
 }
+
+/// Copy a recognized TConstruct input and normalize its Tool shape without
+/// asserting registry membership. Call `finalize_tool` before consumption.
+pub fn prepare_for_tool_mutation(stack: &ItemStack) -> Result<ItemStack, crate::pluto_tool_codec::ToolError> {
+    use crate::pluto_tool_codec::ToolError;
+    let mut copy = clone_for_tool_mutation(stack).ok_or(ToolError::InvalidOrUnsupported)?;
+    if !copy.item.starts_with("tconstruct:") { return Ok(copy); }
+    let Some(tool) = copy.data().and_then(|data| data.other("minecraft:tool")) else { return Ok(copy); };
+    let normalized = crate::pluto_tool_codec::normalize_tool_shape(&horizon_items::item_data::canon_tag(tool))?;
+    let (tool, used) = horizon_world::nbt::parse_snbt(&normalized).map_err(|_| ToolError::InvalidSnbt)?;
+    if !normalized[used..].trim().is_empty() { return Err(ToolError::InvalidSnbt); }
+    let mirror = copy.data().and_then(|data| data.other("minecraft:custom_data")).cloned().map(|mut custom| {
+        if let Tag::Compound(ref mut fields) = custom {
+            if fields.contains_key(&"tic_mining_tool".into()) { fields.insert("tic_mining_tool".into(), tool.clone()); }
+        }
+        custom
+    });
+    if copy.data().and_then(|data| data.other("minecraft:tool")) != Some(&tool) {
+        copy.data_mut().set_other("minecraft:tool", Some(tool));
+    }
+    if let Some(custom) = mirror {
+        if copy.data().and_then(|data| data.other("minecraft:custom_data")) != Some(&custom) {
+            copy.data_mut().set_other("minecraft:custom_data", Some(custom));
+        }
+    }
+    Ok(copy)
+}
