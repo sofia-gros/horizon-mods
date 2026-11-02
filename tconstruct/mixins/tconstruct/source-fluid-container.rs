@@ -47,7 +47,29 @@ fn filled_bottle(fluid: &str) -> Option<&'static str> {
     }
 }
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    if matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
+        return lantern_tank(stack).is_some();
+    }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
+}
+
+// A single portable lantern uses the same item tank representation as casting
+// and placement. Stacked tanks have source-scaled semantics and are deferred.
+fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_state::Tank> {
+    use horizon_world::nbt::Tag;
+    if stack.count != 1 || stack.damage != 0 { return None; }
+    let capacity = super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item)?;
+    let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+    match custom {
+        None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
+        Some(Tag::Compound(data)) => match data.get(&"tconstruct:tank".into()) {
+            None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
+            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| { let name = key.to_string_lossy(); name == "fluid" || name == "amount" }) =>
+                super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity),
+            _ => None,
+        },
+        _ => None,
+    }
 }
 
 /// A normal left/right click on either temporary slot. The output never
@@ -127,6 +149,31 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
+    if matches!(&*input.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
+        use horizon_world::nbt::{Compound, Tag};
+        if !known_item(&input.item) { return false; }
+        let Some(mut portable) = lantern_tank(input) else { return false; };
+        let mut next = tank.clone();
+        if portable.amount > 0 && direction != Direction::FillItem {
+            let Some(fluid) = portable.fluid.clone() else { return false; };
+            let amount = portable.amount.min(next.capacity.saturating_sub(next.total()));
+            if !known_fluid(&fluid) || amount == 0 || !next.insert(&fluid, amount) || portable.take(amount).is_none() { return false; }
+        } else {
+            if direction == Direction::EmptyItem { return false; }
+            let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+            let amount = next.amount(&fluid).min(portable.capacity.saturating_sub(portable.amount));
+            if !known_fluid(&fluid) || amount == 0 || !portable.insert(&fluid, amount) || !next.take(&fluid, amount) { return false; }
+        }
+        let mut custom = match input.data().and_then(|data| data.other("minecraft:custom_data")) {
+            None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return false,
+        };
+        if portable.amount == 0 { custom.remove(&"tconstruct:tank".into()); }
+        else { custom.insert("tconstruct:tank".into(), portable.to_nbt()); }
+        let mut output = input.clone();
+        output.data_mut().set_other("minecraft:custom_data", (!custom.is_empty()).then_some(Tag::Compound(custom)));
+        slots[0] = None; slots[1] = Some(output); *tank = next;
+        return true;
+    }
     if input.count == 0 || input.damage != 0 || input.extra.is_some() || !known_item(&input.item) { return false; }
     let mut next = tank.clone();
     let replacement = if input.item.as_ref() == "minecraft:glass_bottle" && direction != Direction::EmptyItem {
