@@ -17,9 +17,10 @@ A LAN guest given the Puny book received its own two records; the host did not
 receive the guest's Puny advancement. The guest's advancement screen showed the
 two nodes. The test used supplied materials/items and does not establish a
 survival acquisition route. The original background asset is included, but its
-exact display parity has not been established. Packaging, final-main integration
-and Windows are not yet verified; Puny's item and recipe require the Puny guide
-integration.
+exact display parity has not been established. The generated content archive
+was inspected and contains both definitions and the background; packaged-game
+installation, final-main integration and Windows are not yet verified. Puny's
+item and recipe require the Puny guide integration.
 
 These are two advancement paths, not the complete original progression. Other
 source advancements, custom triggers, conditions and guide content remain
