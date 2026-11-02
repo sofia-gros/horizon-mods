@@ -1,4 +1,7 @@
 fn tconstruct_machine_open(game: &mut crate::game::Game<'_>, pos: [i32; 3], name: &str) -> std::ops::ControlFlow<bool> {
+    if name == "tconstruct:crafting_station" && game.remote.is_none() {
+        return std::ops::ControlFlow::Break(crate::game::tconstruct_crafting_station::open(game, pos));
+    }
     let slots = match name { "tconstruct:part_chest" => 256, "tconstruct:tinkers_chest" => 64, _ => 0 };
     if slots != 0 && game.remote.is_none() {
         game.ensure_datapacks();

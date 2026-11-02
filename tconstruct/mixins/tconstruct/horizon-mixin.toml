@@ -3369,3 +3369,59 @@ bindings = [
   { name = "world", ty = "&mut World", value = "&mut *world" },
   { name = "rules", ty = "&dyn Rules", value = "rules" },
 ]
+
+[[state]]
+id = "crafting-sessions"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-crafting-station"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_crafting_station"
+source = "source-crafting-station.rs"
+
+[[injection]]
+id = "crafting-station-refresh-click"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "HEAD"
+helper = "source-crafting-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "crafting-station-sync-click"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "RETURN"
+helper = "source-crafting-sync.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "value", ty = "()", value = "$value" }]
+
+[[injection]]
+id = "crafting-station-close"
+target = "horizon_client::game::Game<'_>::close_container"
+kind = "HEAD"
+helper = "source-crafting-close.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "crafting-station-tick"
+target = "horizon_client::game::storage::Game<'_>::tick_craft_table"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "crafting-station-menu"
+target = "horizon_client::game::Game<'_>::menu_ops"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-menu.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
+]
