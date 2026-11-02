@@ -32,7 +32,7 @@ A possible small public boundary is a host-independent `pluto_api` crate contain
 
 To reproduce the stack-limit demonstration, set `PLUTO_DEMO_STACK_LIMIT=1` on both host and guest before launch. This enables a demo-only native item-default hook and adds the three count examples to the demo tab; it does not add max-stack configuration to PlutoLib Registry.
 
-The Creative and item APIs now share `pluto_api`; enable the native Creative bundle once before staging the item adapter. Tool parsing and normalization still use their existing host-side entry points. Mixins currently cannot add the same generated crate as a direct dependency to multiple host packages, so those Tool functions are not yet part of this facade. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
+Enable the native Creative bundle once alongside the item adapter. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
 
 ![Combined demo: the added Creative page and the wand](../../docs/facade-demo.png)
 
