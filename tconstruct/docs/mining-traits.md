@@ -24,9 +24,9 @@ the earlier melee calculation mistakenly included material percent and
 `multiply_base` bonuses. The implementation corrects that multiplier for the existing
 Jagged/Stonebound melee path too. Representative melee and repair regressions passed.
 
-Crumbling adds one mining speed per level (scaled by the tool and player mining multipliers) on blocks that do not require a tool, even when the held tool is not effective. It skips broken tools. The implementation has focused tests but has not been game-tested.
+Crumbling adds one mining speed per level (scaled by the tool and player mining multipliers) on blocks that do not require a tool, even when the held tool is not effective. It skips broken tools. An isolated Linux test client with eight unrelated injections excluded measured dirt at 15 versus 13 ticks and stone at 18 in both cases; a broken tool took 56 ticks on dirt. Crumbling combined with Stonebound remains unresolved: a piston comparison gave 10 versus 14 ticks despite a higher calculated conditional speed.
 
-Dwarven is connected on the development branch between Maintained and the percentage-based Jagged and Stonebound effects. Its height-dependent host and client mining hooks have not been game-tested; existing tools need regeneration to receive the trait data.
+Dwarven is connected on the development branch between Maintained and the percentage-based Jagged and Stonebound effects. An isolated Linux test client with eight injections excluded measured 13 ticks at Y=40 and 43 at Y=240 using supplied parts and a trait fixture; existing tools need regeneration to receive the trait data.
 
 Original modifier priority runs Maintained before Dwarven and the percentage-based Jagged
 and Stonebound effects; equal-priority effects retain source insertion order.
