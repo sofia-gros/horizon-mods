@@ -15,6 +15,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let visual=if kind==ChestKind::Part { chest::part_visual_size(contents.iter().map(Option::is_some),contents.len()) } else { contents.len() };
     let scroll=scroll.min(chest::max_scroll(visual));
     if known_count!=visual || packet.state!=state {
+        world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().remove(&key);
         world.chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().insert(key,(scroll,visual));
         hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData { container:packet.container,id:30101,value:visual as i16 }));
         hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData { container:packet.container,id:30102,value:scroll as i16 }));
@@ -24,6 +25,38 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let raw=usize::try_from(packet.slot).ok();
     let storage=raw.filter(|i|*i<32).map(|i|scroll*8+i).filter(|i|*i<visual);
     let player=raw.filter(|i|(54..90).contains(i)).map(|i| { let i=i-54; if i<27 {i+9} else {i-27} });
+    if packet.input==5 {
+        let mode=((packet.button>>2)&3) as u8;let phase=packet.button&3;
+        if phase==0 {
+            world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().remove(&key);
+            if hub.guests[gi].carried.is_some() && (mode<2 || mode==2 && hub.guests[gi].creative()) {
+                world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().insert(key,(mode,Vec::new()));
+            }
+            return Break(Vec::new());
+        }
+        if phase==1 {
+            if let Some((stored,slots))=world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().get_mut(&key) {
+                if *stored==mode {if let Some(index)=storage {slots.push((true,index));} else if let Some(index)=player {slots.push((false,index));}}
+            }
+            return Break(Vec::new());
+        }
+        let pending=world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().remove(&key);
+        if phase!=2 {return Break(Vec::new());}
+        let Some((stored,selected))=pending.filter(|(stored,_)|*stored==mode) else {return Break(Vec::new());};
+        let mut inventory=hub.guests[gi].inventory.clone();let mut carried=hub.guests[gi].carried.clone();
+        let max=carried.as_ref().map_or(64,|stack|rules.max_stack(&stack.item).max(1));
+        let tagged=carried.as_ref().is_some_and(|stack|world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok()).and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(stack.item.as_ref())));
+        if chest::quick_craft(kind,&mut contents,&mut inventory,&mut carried,&selected,stored,max,tagged,hub.guests[gi].creative()) {
+            if let Some(crate::containers::BlockEntity::Chest(live))=world.block_entities.get_mut(&pos) {*live=contents.clone();}
+            world.modified.insert((pos.0>>4,pos.2>>4));hub.guests[gi].inventory=inventory;hub.guests[gi].carried=carried;
+        }
+        let visual=if kind==ChestKind::Part {chest::part_visual_size(contents.iter().map(Option::is_some),contents.len())} else {contents.len()};
+        let scroll=scroll.min(chest::max_scroll(visual));world.chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().insert(key,(scroll,visual));
+        hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData {container:packet.container,id:30101,value:visual as i16}));
+        hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData {container:packet.container,id:30102,value:scroll as i16}));
+        hub.send_menu_content(gi,chest::project(&contents,scroll));
+        return Break(Vec::new());
+    }
     let mut inventory=hub.guests[gi].inventory.clone();
     let mut carried=hub.guests[gi].carried.clone();
     let mut offhand=hub.guests[gi].offhand.clone();

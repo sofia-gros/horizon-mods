@@ -189,6 +189,51 @@ pub(super) fn pickup_all(
     cursor.count!=before
 }
 
+/// Distribute a dragged cursor across eligible chest and player cells. The
+/// list is deduplicated before division, and each chest insertion still uses
+/// its own capacity and part-identity checks.
+pub(super) fn quick_craft(
+    kind: ChestKind, side: &mut [Option<horizon_items::items::ItemStack>],
+    inventory: &mut [Option<horizon_items::items::ItemStack>], carried: &mut Option<horizon_items::items::ItemStack>,
+    selected: &[(bool,usize)], mode: u8, item_limit: u32, tagged_part: bool, creative: bool,
+) -> bool {
+    let Some(cursor)=carried.as_ref().cloned() else {return false;};
+    if mode>2 || (mode==2 && !creative) || cursor.count==0 || item_limit==0 {return false;}
+    let mut eligible=Vec::new();
+    for &(is_side,index) in selected {
+        if eligible.contains(&(is_side,index)) {continue;}
+        let cell=if is_side {side.get(index)} else {inventory.get(index)};
+        let Some(cell)=cell else {continue;};
+        if cell.as_ref().is_some_and(|s|!s.same_item_same_components(&cursor)) {continue;}
+        let limit=if is_side {kind.slot_limit(item_limit)} else {item_limit};
+        if cell.as_ref().is_some_and(|s|s.count>=limit) {continue;}
+        if is_side {
+            let first=side.iter().position(|s|s.as_ref().is_some_and(|s|s.same_item_same_components(&cursor)));
+            if !kind.accepts(index,first,tagged_part) {continue;}
+        }
+        if mode!=2 && cursor.count as usize<=eligible.len() {break;}
+        eligible.push((is_side,index));
+    }
+    if eligible.is_empty() {return false;}
+    let each=match mode {0=>cursor.count/eligible.len() as u32,1=>1,_=>item_limit};
+    if each==0 {return false;}
+    let mut remaining=cursor.count;
+    for (is_side,index) in eligible {
+        let offer=if mode==2 {each} else {each.min(remaining)};
+        if offer==0 {break;}
+        let mut stack=cursor.clone();stack.count=offer;
+        let remainder=if is_side {insert_slot(kind,side,index,stack,item_limit,tagged_part)} else {
+            let mut held=Some(stack);let _=pickup_player(inventory,index,&mut held,false,item_limit);held
+        };
+        let moved=offer-remainder.map_or(0,|s|s.count);
+        remaining=remaining.saturating_sub(moved);
+    }
+    let moved=cursor.count-remaining;
+    if moved==0 {return false;}
+    if remaining==0 {*carried=None;} else {let mut rest=cursor;rest.count=remaining;*carried=Some(rest);}
+    true
+}
+
 /// Hotbar/offhand swap against a chest slot, including a capped incoming
 /// stack and return of the displaced item through the player inventory.
 pub(super) fn swap_slot(
@@ -399,6 +444,13 @@ mod tests {
         let mut inventory=vec![None;36];inventory[9]=Some(ItemStack::new("minecraft:stone",3));let mut hand=Some(ItemStack::new("minecraft:stone",1));
         assert!(pickup_all(&mut side,&(0..32).collect::<Vec<_>>(),&mut inventory,&mut hand,false,64));
         assert_eq!(hand.unwrap().count,8);assert!(side[0].is_none());assert_eq!(side[40].as_ref().unwrap().count,7);
+    }
+    #[test]
+    fn dragging_parts_respects_unique_variant_and_preserves_remainder() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![None;256];let mut inventory=vec![None;36];let mut hand=Some(ItemStack::new("tconstruct:tool_handle",10));
+        assert!(quick_craft(ChestKind::Part,&mut side,&mut inventory,&mut hand,&[(true,0),(true,1)],0,64,true,false));
+        assert_eq!(side[0].as_ref().unwrap().count,5);assert!(side[1].is_none());assert_eq!(hand.unwrap().count,5);
     }
     #[test]
     fn crafted_result_fills_side_then_player_and_rejects_full_destinations() {

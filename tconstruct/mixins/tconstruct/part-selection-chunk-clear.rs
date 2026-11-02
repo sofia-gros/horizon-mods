@@ -41,6 +41,7 @@ fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     *chunks.__horizon_mixins_tconstruct_resolved_block_tags_mut() = None;
     chunks.__horizon_mixins_tconstruct_smeltery_owners_mut().clear();
     chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().clear();
+    chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().clear();
     chunks.__horizon_mixins_tconstruct_chest_ui_pages_mut().clear();
     chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().clear();
     chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().clear();

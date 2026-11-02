@@ -3658,3 +3658,37 @@ id = "chest-tint-math"
 file = "crates/horizon-client/src/mesher.rs"
 name = "tconstruct_chest_tint_math"
 source = "source-chest-tint-math.rs"
+
+[[injection]]
+id = "source-chest-quick-craft"
+target = "horizon_client::game::Game<'_>::menu_ops"
+kind = "HEAD"
+cancellable = true
+helper = "source-chest-quick-craft.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "ops", ty = "&[(Option<usize>,i32,horizon_client::menu::Input)]", value = "ops" },
+]
+
+[[injection]]
+id = "source-chest-drag-accept"
+target = "horizon_client::game::Game<'_>::quick_craft_accepts"
+kind = "HEAD"
+cancellable = true
+helper = "source-chest-drag-accept.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "slot" },
+  { name = "ty", ty = "i32", value = "ty" },
+  { name = "dragged", ty = "usize", value = "dragged" },
+]
+
+[[state]]
+id = "chest-guest-drag"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(u8,Vec<(bool,usize)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
