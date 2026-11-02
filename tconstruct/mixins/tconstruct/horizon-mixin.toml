@@ -1900,6 +1900,41 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_material_traits"
 source = "source-material-traits.rs"
 
+[[injection]]
+id = "source-golden-armor"
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+kind = "RETURN"
+helper = "golden-armor.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "host-source-snow-boots"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_snow_boots"
+source = "source-snow-boots.rs"
+
+[[injection]]
+id = "source-snow-boots-sync"
+target = "horizon_client::game::Game<'_>::sync_player_body"
+kind = "RETURN"
+helper = "snow-boots-sync.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-snow-boots-equipment"
+target = "horizon_client::game::Game<'_>::apply_equipment"
+kind = "RETURN"
+helper = "snow-boots-equipment.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-snow-boots-placement"
+target = "horizon_client::game::Game<'_>::with_level"
+kind = "MODIFY_VARIABLE"
+variable = { name = "player_collision", ordinal = 0, at = "STORE" }
+helper = "snow-boots-collision.rs"
+bindings = [{ name = "value", ty = "Option<crate::game::PlayerCollision>", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
 [[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"
@@ -2841,7 +2876,7 @@ id = "source-melee-damage-return"
 target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "source-melee-damage-return.rs"
-bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "living", ty = "bool", value = "living" }]
 
 [[injection]]
 id = "source-melee-sweep-position"

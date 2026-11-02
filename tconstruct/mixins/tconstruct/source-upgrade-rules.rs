@@ -410,6 +410,7 @@ pub fn apply_stats(
     let speed = (stats.attack_speed_base_raw + stats.attack_speed_add_raw) * (1.0 + speed_percent) * speed_multiplier;
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
+    if melee { fields.insert("tic_raging_melee_multiplier".into(), Tag::Float(((1.0 + damage_percent) * stats.attack_damage_multiplier_unit).to_bits())); }
     if melee { fields.insert("tic_attack_damage".into(), Tag::Float(damage.clamp(0.0, 2048.0).to_bits())); }
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.clamp(0.0, 1024.0).to_bits())); }
     if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {
@@ -431,6 +432,7 @@ pub fn apply_stats(
                 "tconstruct:featherweight" => { draw_add += 0.05 * trait_level; accuracy_add += 0.05 * trait_level; },
                 "tconstruct:heavy" => accuracy_add += 0.1 * trait_level,
                 "tconstruct:crystalbound" => velocity_add += 0.1 * trait_level,
+                "tconstruct:spiny" => velocity_add += 0.1 * trait_level,
                 "tconstruct:entangled" if trait_level > 0.0 => draw_add += 0.15,
                 "tconstruct:vintage" => draw_multiply *= 1.0 - 0.1 * trait_level,
                 "tconstruct:ductile" => projectile_add += 0.25 * trait_level,
@@ -444,6 +446,9 @@ pub fn apply_stats(
         let velocity = ((velocity_base + velocity_add) * velocity_scale).clamp(0.0, 1024.0);
         let accuracy = ((accuracy_base + accuracy_add) * (1.0 + accuracy_percent) * accuracy_multiply).clamp(0.1, 1.0);
         let projectile_damage = ((projectile_base + projectile_add) * (1.0 + projectile_percent) * projectile_multiply).clamp(0.0, 1024.0);
+        fields.insert("tic_overwield_ranged".into(), Tag::Int(level("tconstruct:overwield").max(0)));
+        fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float(((1.0 + draw_percent) * draw_multiply).to_bits()));
+        fields.insert("tic_overwield_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
         fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
