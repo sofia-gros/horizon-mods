@@ -206,7 +206,13 @@ pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, defi
         i32::try_from(total).ok()
     };
     let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
-    if old_traits.as_ref().is_some_and(|old| old != &traits) { return None; }
+    // These upstream material traits have no removal hook; their supported
+    // stat and repair effects are rebuilt by the station path above. Other
+    // changed traits remain closed until their removal hooks are handled.
+    if old_traits.as_ref().is_some_and(|old| old.iter().chain(traits.iter()).any(|(id, _)| {
+        old.get(id).copied().unwrap_or(0) != traits.get(id).copied().unwrap_or(0)
+            && !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense")
+    })) { return None; }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
