@@ -2938,16 +2938,20 @@ mod tests {
 
     #[test]
     fn source_quick_move_player_preserves_identity_and_rejects_without_consuming() {
+        use horizon_world::nbt::Tag;
         let mut inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
-        let incoming = ItemStack::new("tconstruct:tool_handle", 3);
+        let mut incoming = ItemStack::new("tconstruct:tool_handle", 3);
+        incoming.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:wood".into()))])));
         let mut different = incoming.clone();
         different.count = 62;
-        different.damage = 1;
+        different.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:stone".into()))])));
         inventory[8] = Some(different.clone());
-        inventory[7] = Some(ItemStack::new("tconstruct:tool_handle", 63));
+        let mut matching = incoming.clone(); matching.count = 63;
+        inventory[7] = Some(matching);
         let remainder = source_quick_move_player(&mut inventory, incoming.clone(), 64, true).unwrap();
         assert_eq!(inventory[8], Some(different));
         assert_eq!(inventory[7].as_ref().unwrap().count, 64);
+        assert!(inventory[7].as_ref().unwrap().same_item_same_components(&incoming));
         assert_eq!(remainder.count, 2);
         let before = inventory.clone();
         assert_eq!(source_quick_move_player(&mut inventory, remainder.clone(), 0, true), Some(remainder));
