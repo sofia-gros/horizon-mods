@@ -555,7 +555,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
     let mut contents = Text::styled("Materials & You\n\n", horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
-    for (index, (heading, chapter)) in chapters.into_iter().enumerate() {
+    for (index, (heading, mut chapter)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
             contents = Text::literal("Materials & You\n\n");
@@ -567,6 +567,33 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
         });
         contents.push(link);
         let first_page = i32::try_from(first_page).ok()?;
+        // Mantle's modifiers index links its source entries from the introductory
+        // page. Resolve destinations after pagination so wrapped entries do not
+        // shift later links, and use source titles rather than invented labels.
+        if labels.get("modifiers").is_some_and(|label| *label == heading) {
+            let source_index = read(path, &format!("{root}en_us/modifiers/index.json"))
+                .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+            let index_title = source_index.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str());
+            let index_page = chapter.iter().position(|page| page.spans.first().is_some_and(|span| Some(span.text.as_str()) == index_title));
+            let mut links = Vec::new();
+            for name in ["traits", "upgrades", "slotless", "abilities", "defense"] {
+                let source = read(path, &format!("{root}en_us/modifiers/{name}.json"))
+                    .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+                let Some(title) = source.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str()) else { continue; };
+                let Some(offset) = chapter.iter().position(|page| page.spans.first().is_some_and(|span| span.text == title)) else { continue; };
+                let destination = first_page.checked_add(i32::try_from(offset).ok()?)?;
+                links.push((title.to_owned(), destination));
+            }
+            if let Some(page) = index_page.and_then(|index| chapter.get_mut(index)) {
+                for (title, destination) in links {
+                    page.push("\n");
+                    page.push(Text::styled(title, horizon_client::text::Style {
+                        click: Some(horizon_client::text::ClickEvent::ChangePage(destination)),
+                        underlined: Some(true), ..Default::default()
+                    }));
+                }
+            }
+        }
         for (group, entries) in chapter.chunks(5).enumerate() {
             let mut section = Text::literal(format!("{heading}\n\n"));
             for (offset, entry) in entries.iter().enumerate() {
