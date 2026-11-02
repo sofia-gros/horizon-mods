@@ -1,0 +1,5 @@
+{
+  "code": "E_TARGET_NOT_FOUND",
+  "message": "no source function 'horizon_client::game::recipe_book::<RecipeUi as Default>::default'; use an exact crate::module::function, Type::method or <Type as Trait>::method ID",
+  "file": "/workspace/scratch/recipe-state-probe/mods/recipe_state/horizon-mixin.toml"
+}

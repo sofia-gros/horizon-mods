@@ -1,0 +1,15 @@
+[mod]
+id = "recipe_state"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "02c8607ee8ebd216f2f535c1eb7b62b572830df2"
+[[state]]
+id = "remote_entries"
+target = "horizon_client::game::recipe_book::RecipeUi"
+ty = "std::collections::BTreeMap<i32, horizon_protocol::packets::recipes::RecipeBookEntry>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::game::recipe_book::<RecipeUi as Default>::default"
+selector = "Self"
+require = 1
