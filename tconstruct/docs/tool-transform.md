@@ -31,8 +31,9 @@ are representative, not exhaustive material or multiplayer coverage.
 
 ![Offhand Scythe at the spawn-protection boundary](tool-transform-protection.png)
 
-Creative currently supplies four-part tools; their survival assembly remains
-unfinished. Expanded modifiers, crop harvesting/replanting, Scythe attacks,
-walking transformations and campfire extinguishing are separate unfinished
-behaviors. Armor and projectile-specific actions and Windows verification also
+Four-part tools also have a supported survival assembly path. Expanded modifiers,
+remaining crop-harvest behavior, Scythe attacks, walking transformations and full
+Pathing modifier support remain unfinished. Armor and projectile-specific actions and Windows verification also
 remain open.
+
+The development branch adds lit campfire and soul-campfire extinguishing to the existing Excavator pathing area action. This uses the same candidate protection and durability handling as other transformations. A LAN guest currently waits for the authoritative block update instead of predicting the extinguished block. The change has only a selection test and limited injection plan; game, sound, particle, permission, save and LAN behavior require verification. Pathing on other modifiable tools is not covered.

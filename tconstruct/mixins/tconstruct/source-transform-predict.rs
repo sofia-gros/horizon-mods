@@ -31,8 +31,8 @@ fn tconstruct_transform_predict(game:&mut crate::game::Game<'_>,stack:&horizon_i
     }
     if feedback.is_none() { feedback=positions.and_then(|p|p.into_iter().find_map(probe)); }
     if let Some((at,sound,particle))=feedback {
-        game.transform_particle(&particle,at);
-        game.audio.play(&sound,Some([f64::from(at[0])+0.5,f64::from(at[1])+0.5,f64::from(at[2])+0.5]),1.0,1.0);
+        if particle != "tconstruct:campfire_douse" { game.transform_particle(&particle,at); }
+        if !sound.is_empty() { game.audio.play(&sound,Some([f64::from(at[0])+0.5,f64::from(at[1])+0.5,f64::from(at[2])+0.5]),1.0,1.0); }
         Break(true)
     } else {Break(false)}
 }

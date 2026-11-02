@@ -50,11 +50,12 @@ fn tconstruct_transform_use(game:&mut crate::game::Game<'_>, stack:&horizon_item
                         game.with_level(|behaviours,level,ticks| behaviours.destroy_block(level,ticks,above,true));
                         game.process_level_events()?;
                     }
-                    game.transform_particle(&particle,at);
+                    if particle == "tconstruct:campfire_douse" { game.level_event_at(1009, at, 0); }
+                    else { game.transform_particle(&particle,at); }
                     if loot.as_deref()==Some("minecraft:till/rooted_dirt") {
                         game.pop_resource([at[0]+face[0],at[1]+face[1],at[2]+face[2]],horizon_items::items::ItemStack::new("minecraft:hanging_roots",1));
                     }
-                    game.audio.play(&sound,Some([f64::from(at[0])+0.5,f64::from(at[1])+0.5,f64::from(at[2])+0.5]),1.0,1.0);
+                    if !sound.is_empty() { game.audio.play(&sound,Some([f64::from(at[0])+0.5,f64::from(at[1])+0.5,f64::from(at[2])+0.5]),1.0,1.0); }
                     if !game.creative {
                         let held=game.held().cloned();
                         if let Some(held)=held {

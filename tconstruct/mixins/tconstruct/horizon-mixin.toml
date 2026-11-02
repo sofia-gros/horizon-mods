@@ -3871,3 +3871,9 @@ id = "game-tool-api"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_tool_api"
 source = "game-tool-api.rs"
+
+[[module]]
+id = "source-campfire-select"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_campfire_select"
+source = "source-campfire-select.rs"
