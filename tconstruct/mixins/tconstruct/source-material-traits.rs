@@ -32,7 +32,7 @@ pub fn ordered_levels_from_definition(
     if entries.len() != identities.len() { return None; }
     let mut result = BTreeMap::new();
     let mut order = Vec::new();
-    let mut add = |id: &str, kind: &str| -> Option<()> {
+    let add = |result: &mut BTreeMap<String, i32>, order: &mut Vec<String>, id: &str, kind: &str| -> Option<()> {
         let (namespace, name) = id.split_once(':')?;
         let path = name.split('#').next()?;
         let Some(layers) = read(&format!("{namespace}:tinkering/materials/traits/{path}")) else {
@@ -40,26 +40,42 @@ pub fn ordered_levels_from_definition(
         };
         let raw = super::tconstruct_tx::source_merge_material_traits(&layers).ok()?;
         super::tconstruct_source_material_trait_select::add_traits_ordered(
-            &mut result, &mut order, raw.default.as_ref(), &raw.per_stat, kind,
+            result, order, raw.default.as_ref(), &raw.per_stat, kind,
         );
         Some(())
     };
-    for (entry, id) in entries.iter().zip(identities) {
-        let name = entry.as_str().or_else(|| entry.get(if is_parts { "item" } else { "stat" }).and_then(serde_json::Value::as_str))?;
-        let kind = if is_parts { super::tconstruct_source_station_stats::part_kind(name)? } else { name.strip_prefix("tconstruct:")? };
-        add(id, kind)?;
-    }
-    // MaterialTraitsModule contributes to normal tool traits only when its
-    // explicit hook list includes tool_traits (or no override is supplied).
-    for module in modules.iter().filter(|m| m.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:material_traits")) {
-        if let Some(hooks) = module.get("hooks").and_then(serde_json::Value::as_array) {
-            if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { continue; }
+    for module in modules {
+        if std::ptr::eq(module, stats) {
+            for (entry, id) in entries.iter().zip(identities) {
+                let name = entry.as_str().or_else(|| entry.get(if is_parts { "item" } else { "stat" }).and_then(serde_json::Value::as_str))?;
+                let kind = if is_parts { super::tconstruct_source_station_stats::part_kind(name)? } else { name.strip_prefix("tconstruct:")? };
+                add(&mut result, &mut order, id, kind)?;
+            }
+        } else if module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:material_traits") {
+            // An explicit hook override must include tool_traits.
+            if let Some(hooks) = module.get("hooks").and_then(serde_json::Value::as_array) {
+                if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { continue; }
+            }
+            let index = usize::try_from(module.get("material_index")?.as_u64()?).ok()?;
+            let entry = entries.get(index)?;
+            let stat = module.get("stat_type").and_then(serde_json::Value::as_str)
+                .or_else(|| entry.as_str()).or_else(|| entry.get("stat").and_then(serde_json::Value::as_str))?;
+            add(&mut result, &mut order, identities.get(index)?, stat.strip_prefix("tconstruct:")?)?;
+        } else if module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits") {
+            if let Some(hooks) = module.get("hooks").and_then(serde_json::Value::as_array) {
+                if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { continue; }
+            }
+            for trait_entry in module.get("traits")?.as_array()? {
+                let name = trait_entry.get("name")?.as_str()?;
+                let level = match trait_entry.get("level") {
+                    Some(level) => i32::try_from(level.as_i64()?).ok()?,
+                    None => 1,
+                };
+                if level <= 0 { return None; }
+                if !result.contains_key(name) { order.push(name.to_owned()); }
+                *result.entry(name.to_owned()).or_insert(0) += level;
+            }
         }
-        let index = usize::try_from(module.get("material_index")?.as_u64()?).ok()?;
-        let entry = entries.get(index)?;
-        let stat = module.get("stat_type").and_then(serde_json::Value::as_str)
-            .or_else(|| entry.as_str()).or_else(|| entry.get("stat").and_then(serde_json::Value::as_str))?;
-        add(identities.get(index)?, stat.strip_prefix("tconstruct:")?)?;
     }
     Some((result, order))
 }
