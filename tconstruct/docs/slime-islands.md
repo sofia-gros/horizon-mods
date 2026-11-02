@@ -281,9 +281,11 @@ loot and slimy-leaf tag membership. Leaf distance/decay uses the candidate's
 slime-leaf rules. A leaf can grow a hanging propagule with bone meal; hanging
 propagules age from 0 to 4 and require slimy-leaf support. Planted propagules
 use slime soil, the source one-in-seven random advancement, and the source
-bone-meal success chance. Their stage-1 Ender tree feature is still deferred;
-no vanilla mangrove is substituted, and successful bone meal at that stage
-is consumed without creating the missing tree. Exact waterlogging, placement,
+bone-meal success chance. This candidate connects stage-1 growth to the Ender
+tree placement code; it retains the water at the sapling position and restores
+the sapling if placement fails. Growth is deferred when the surrounding
+chunks are not loaded, which is a conservative difference from the source.
+Exact waterlogging, placement,
 leaf drop predicates, hook ordering, game behavior, persistence and LAN require
 validation. Dedicated-server coverage and normal Ender tree acquisition are
 not established.
@@ -348,8 +350,11 @@ source-specific vertical adjacent-root face culling is not implemented. A
 shared Ender-tree component provides the four source congealed-slime/root
 replacement mappings and the original leaf-vine decorator's ordered 0.125
 random draws and maximum four-block hanging extensions. The component is
-compiled into both worldgen and live-world target modules, but it is **not
-connected to either Ender tree placement path yet**. Root placement,
-waterlogging, leaf ordering and chunk-write adapters still require integration;
-there is no claim of Ender tree growth. The code and block are not yet plan,
-type, package or in-game tested.
+used by the candidate live-world tree implementation. Its soil provider keeps
+source dirt except grass blocks and mycelium, and replaces other blocks with
+dirt; the source Forge `onTreeGrow` extension for third-party blocks is not
+implemented. Roots use the host water-state query. The island marker remains
+deferred: the host's `PieceWorld` interface does not expose the shape-edge
+updates needed by tree placement. The live connection, root placement,
+waterlogging, leaf ordering and random draws require official apply, type,
+package and in-game verification. No Ender tree growth is claimed as tested.

@@ -105,10 +105,35 @@ pub const SMALL: &str = r####"{
   },
   "type": "minecraft:tree",
   "below_trunk_provider": {
-    "id": "minecraft:dirt"
+    "type": "minecraft:rule_based",
+    "rules": [
+      {
+        "if_true": {
+          "type": "minecraft:any_of",
+          "predicates": [
+            {
+              "type": "minecraft:not",
+              "predicate": {
+                "type": "minecraft:matching_block_tag",
+                "tag": "minecraft:dirt"
+              }
+            },
+            {
+              "type": "minecraft:matching_blocks",
+              "blocks": [
+                "minecraft:grass_block",
+                "minecraft:mycelium"
+              ]
+            }
+          ]
+        },
+        "then": {
+          "id": "minecraft:dirt"
+        }
+      }
+    ]
   }
-}
-"####;
+}"####;
 pub const TALL: &str = r####"{
   "decorators": [
     {
@@ -215,7 +240,32 @@ pub const TALL: &str = r####"{
   },
   "type": "minecraft:tree",
   "below_trunk_provider": {
-    "id": "minecraft:dirt"
+    "type": "minecraft:rule_based",
+    "rules": [
+      {
+        "if_true": {
+          "type": "minecraft:any_of",
+          "predicates": [
+            {
+              "type": "minecraft:not",
+              "predicate": {
+                "type": "minecraft:matching_block_tag",
+                "tag": "minecraft:dirt"
+              }
+            },
+            {
+              "type": "minecraft:matching_blocks",
+              "blocks": [
+                "minecraft:grass_block",
+                "minecraft:mycelium"
+              ]
+            }
+          ]
+        },
+        "then": {
+          "id": "minecraft:dirt"
+        }
+      }
+    ]
   }
-}
-"####;
+}"####;
