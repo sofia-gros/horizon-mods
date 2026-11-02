@@ -104,6 +104,13 @@ pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, Foun
     })?
 }
 
+pub(super) fn damaged_melting(world: &World, item: &str, damage: u32, maximum: u32)
+    -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.damaged_melting(item, damage, maximum, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
 pub(super) fn alloy(world: &World, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32)
     -> Option<(String, Vec<(String, u32)>, String, u32)> {
     with_catalog(world, |catalog, registries, config| {
