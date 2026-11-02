@@ -46,33 +46,42 @@ fn filled_bottle(fluid: &str) -> Option<&'static str> {
         _ => None,
     }
 }
-// Copper cans carry exactly 90 mB per item in custom data. Fluids with
-// additional fluid tags need a tagged-fluid tank and are rejected for now.
-pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
+// Copper cans carry exactly 90 mB per item; fluid tags are part of identity.
+fn can_contents(stack: &ItemStack) -> Option<(Option<String>, Option<horizon_world::nbt::Tag>)> {
     use horizon_world::nbt::Tag;
     if stack.item.as_ref() != "tconstruct:copper_can" || stack.damage != 0 || stack.count == 0 { return None; }
     match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
-        None => Some(None),
+        None => Some((None, None)),
         Some(Tag::Compound(data)) => {
-            if data.contains_key(&"fluid_tag".into()) { return None; }
-            match data.get(&"fluid".into()) { None => Some(None), Some(Tag::String(id)) => { let value = id.to_string_lossy(); if value == "minecraft:empty" { Some(None) } else { (!value.is_empty()).then_some(Some(value)) } }, _ => None }
+            let fluid = match data.get(&"fluid".into()) { None => None, Some(Tag::String(id)) => { let value = id.to_string_lossy(); if value == "minecraft:empty" { None } else { Some((!value.is_empty()).then_some(value)?) } }, _ => return None };
+            let tag = match data.get(&"fluid_tag".into()) { None => None, Some(tag @ Tag::Compound(_)) if fluid.is_some() => Some(tag.clone()), _ => return None };
+            Some((fluid, tag))
         }
         _ => None,
     }
 }
+pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
+    let (fluid, tag) = can_contents(stack)?;
+    tag.is_none().then_some(fluid)
+}
 pub(super) fn can_set_fluid(stack: &ItemStack, fluid: Option<&str>) -> Option<ItemStack> {
+    can_set_tagged(stack, fluid, None)
+}
+fn can_set_tagged(stack: &ItemStack, fluid: Option<&str>, tag: Option<&horizon_world::nbt::Tag>) -> Option<ItemStack> {
     use horizon_world::nbt::{Compound, Tag};
-    can_fluid(stack)?;
+    can_contents(stack)?;
+    if tag.is_some_and(|tag| !matches!(tag, Tag::Compound(_))) || (fluid.is_none() && tag.is_some()) { return None; }
     let mut data = match stack.data().and_then(|value| value.other("minecraft:custom_data")) {
         None => Compound::new(), Some(Tag::Compound(value)) => value.clone(), _ => return None,
     };
     match fluid { Some(fluid) if !fluid.is_empty() && fluid != "minecraft:empty" => { data.insert("fluid".into(), Tag::String(fluid.into())); }, None => { data.remove(&"fluid".into()); }, _ => return None }
+    match tag { Some(tag) => { data.insert("fluid_tag".into(), tag.clone()); }, None => { data.remove(&"fluid_tag".into()); } }
     let mut result = stack.clone(); result.count = 1;
     result.data_mut().set_other("minecraft:custom_data", (!data.is_empty()).then_some(Tag::Compound(data)));
     Some(result)
 }
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
-    if let Some(fluid) = can_fluid(stack) { return fluid.as_deref().is_none_or(known_fluid); }
+    if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
 
@@ -155,17 +164,22 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
     let Some(input) = slots[0].as_ref() else { return false; };
     if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
     if input.item.as_ref() == "tconstruct:copper_can" {
-        let Some(existing) = can_fluid(input) else { return false; };
+        let Some((existing, metadata)) = can_contents(input) else { return false; };
         let mut next = tank.clone();
         let output = if let Some(fluid) = existing {
-            if direction == Direction::FillItem || !known_fluid(&fluid) || !next.insert(&fluid, 90) { return false; }
-            let Some(output) = can_set_fluid(input, None) else { return false; }; output
+            if direction == Direction::FillItem || !known_fluid(&fluid) || !next.insert_tagged(&fluid, metadata.as_ref(), 90) { return false; }
+            let Some(output) = can_set_tagged(input, None, None) else { return false; }; output
         } else {
             if direction == Direction::EmptyItem { return false; }
-            let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
-            if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
-            if !known_fluid(&fluid) || !next.take(&fluid, 90) { return false; }
-            let Some(output) = can_set_fluid(input, Some(&fluid)) else { return false; }; output
+            let entry = if let Some(id) = selected {
+                let mut choices = next.fluids.iter().filter(|fluid| fluid.id == id);
+                let Some(entry) = choices.next() else { return false; };
+                if choices.next().is_some() { return false; }
+                entry
+            } else { let Some(entry) = next.fluids.first() else { return false; }; entry };
+            let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
+            if !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), 90) { return false; }
+            let Some(output) = can_set_tagged(input, Some(&fluid), tag.as_ref()) else { return false; }; output
         };
         let mut remaining = input.clone(); remaining.count -= 1;
         slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
