@@ -58,6 +58,15 @@ pub fn write(stack: &ItemStack, compound_key: &str, fluid_key: &str, fluid: Opti
     Some(output)
 }
 
+/// Apply a capacity change to a staged stack, clamping stored fluid as the
+/// caller's capability contract requires. Capacity zero removes that fluid.
+pub fn resize(stack: &ItemStack, compound_key: &str, fluid_key: &str, capacity: u32) -> Option<ItemStack> {
+    let Some(mut fluid) = read(stack, compound_key, fluid_key)? else { return Some(stack.clone()); };
+    if fluid.amount <= capacity { return Some(stack.clone()); }
+    fluid.amount = capacity;
+    write(stack, compound_key, fluid_key, (capacity > 0).then_some(&fluid), capacity)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -75,5 +84,10 @@ mod tests {
         assert_eq!(empty.data().unwrap().other("minecraft:custom_data").unwrap().get("other"), Some(&Tag::Int(9)));
         assert_eq!(empty.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_persistent").unwrap().get("unrelated"), Some(&Tag::Int(4)));
         assert_eq!(read(&empty, "tic_persistent", "tconstruct:tank_fluid"), Some(None));
+        let reduced = resize(&filled, "tic_persistent", "tconstruct:tank_fluid", 100).unwrap();
+        assert_eq!(read(&reduced, "tic_persistent", "tconstruct:tank_fluid").unwrap().unwrap().amount, 100);
+        let removed = resize(&filled, "tic_persistent", "tconstruct:tank_fluid", 0).unwrap();
+        assert_eq!(read(&removed, "tic_persistent", "tconstruct:tank_fluid"), Some(None));
+        assert_eq!(removed.data().unwrap().other("minecraft:custom_data").unwrap().get("other"), Some(&Tag::Int(9)));
     }
 }

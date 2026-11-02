@@ -145,7 +145,8 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
     if tank_level > 0 || fields.get(&"tic_tank_capacity".into()).is_some() {
         let mut probe = output.clone();
         probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
-        let stored = super::pluto_stack_fluid::read(&probe, "tic_persistent", "tconstruct:tank_fluid")?;
+        // Fail before any transaction is committed if stored fluid is malformed.
+        super::pluto_stack_fluid::read(&probe, "tic_persistent", "tconstruct:tank_fluid")?;
         let traits = super::tconstruct_source_material_traits::levels(world, &probe)?;
         let mut levels = traits.levels;
         let mut add = |id: &str, level: i32| -> Option<()> {
@@ -178,7 +179,11 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
         for id in per_level { units = units.checked_add(levels.get(&format!("tconstruct:{id}")).copied().unwrap_or(0))?; }
         for id in ["bucketing", "overburn"] { if levels.get(&format!("tconstruct:{id}")).copied().unwrap_or(0) > 0 { units = units.checked_add(1)?; } }
         let capacity = units.checked_mul(1000)?;
-        if stored.as_ref().is_some_and(|fluid| fluid.amount > capacity as u32) { return None; }
+        // Source TankModule.validate clamps to the new capacity; removing the
+        // final handler clears the fluid. Work on a copy before consuming slots.
+        let resized = super::pluto_stack_fluid::resize(&probe, "tic_persistent", "tconstruct:tank_fluid", capacity as u32)?;
+        let Tag::Compound(resized_custom) = resized.data()?.other("minecraft:custom_data")?.clone() else { return None; };
+        *fields = resized_custom;
         if capacity == 0 { fields.remove(&"tic_tank_capacity".into()); }
         else { fields.insert("tic_tank_capacity".into(), Tag::Int(capacity)); }
     }
