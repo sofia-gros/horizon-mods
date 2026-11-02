@@ -51,3 +51,12 @@ A port means equivalent intent was incorporated into this branch, not that it
 has passed official plan/apply/type or gameplay. #295 is present by cherry-pick
 rather than Git ancestry. The #298 package source-identity check applies to its
 fixed Pluto tree; these TConstruct changes need their own exact-head gates.
+
+The follow-up after #304 ports Vintage/Gilded #123/#124/#128/#165 and Speedy
+#139, and carries the source Cobalt sequence #141, cluster tool tag #168,
+ingot/nugget registrations #178/#180 and Pig Iron/Knightmetal block series
+#181/#183/#186/#188. Source loot #173 was already byte-identical in the
+candidate and was not replayed. Existing fluid ability and Blindshot guards are
+preserved during the Gilded merge. #142 Forming and #164 Step Up recipe remain
+separate pending comparison. Package, target apply, type and game behavior of
+this combined source remain unverified.

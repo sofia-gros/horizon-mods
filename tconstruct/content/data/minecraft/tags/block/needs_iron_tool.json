@@ -16,6 +16,8 @@
     "tconstruct:sky_ichor_slime_grass",
     "tconstruct:ichor_ichor_slime_grass",
     "tconstruct:blood_ichor_slime_grass",
-    "tconstruct:ichor_vanilla_slime_grass"
+    "tconstruct:ichor_vanilla_slime_grass",
+    "tconstruct:pig_iron_block",
+    "tconstruct:knightmetal_block"
   ]
 }
