@@ -1,5 +1,6 @@
 """Checks the native archive's source identity and public packaging contract."""
 import importlib.util
+import shutil
 from pathlib import Path
 import tempfile
 import tomllib
@@ -31,7 +32,9 @@ class NativePackageTests(unittest.TestCase):
                 item_sources = [name for name in names if name.endswith("/api/src/item.rs")]
                 self.assertEqual(len(item_sources), 1)
                 self.assertEqual(archive.read(item_sources[0]).count(b"static REGISTRY:"), 1)
-                self.assertNotIn("state", combined)
+                for section in ("crate", "module", "injection", "state"):
+                    ids = [entry["id"] for entry in combined.get(section, [])]
+                    self.assertEqual(len(ids), len(set(ids)), f"duplicate {section} IDs")
                 self.assertIn(prefix + "pluto_native_creative/inventory-api/src/lib.rs", names)
                 for component in package.COMPONENTS:
                     root = ROOT / "mixins" / component
@@ -44,9 +47,51 @@ class NativePackageTests(unittest.TestCase):
                         entry = next(x for x in combined["injection"] if x["id"] == f'{component}-{injection["id"]}')
                         self.assertEqual(entry["priority"], injection.get("priority", original["mod"].get("priority", 100)))
                         self.assertEqual(archive.read(prefix + entry["helper"]), (root / injection["helper"]).read_bytes())
+                    for state in original.get("state", []):
+                        state_id = state["id"] if component == "pluto_native_creative" else f'{component}-{state["id"]}'
+                        matches = [x for x in combined.get("state", []) if x["id"] == state_id]
+                        self.assertEqual(len(matches), 1)
+                        expected = dict(state, id=state_id)
+                        self.assertEqual(matches[0], expected)
+                        self.assertTrue(matches[0].get("constructor"))
+                        self.assertTrue(all(c.get("target") and c.get("selector") and c.get("require", 0) > 0
+                                            for c in matches[0]["constructor"]))
+                landing = next(x for x in combined["state"] if x["id"] == "landing-state")
+                self.assertEqual(landing["target"], "horizon_client::motion::PlayerMotion")
+                self.assertEqual(landing["constructor"], [{"target": "horizon_client::motion::PlayerMotion::new", "selector": "Self", "require": 1}])
+                module = next(x for x in combined["module"] if x["name"] == "pluto_landing_state")
+                self.assertIn("pluto_landing_state::LandingState", landing["ty"])
+                self.assertIn(prefix + module["source"], names)
                 self.assertIn(prefix + "NOTICE.md", names)
             with self.assertRaises(FileExistsError):
                 package.build(first)
+
+    def test_combines_legacy_components_without_state(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp) / "pluto-lib"
+            shutil.copytree(ROOT / "mixins", root / "mixins")
+            shutil.copy2(ROOT / "horizon-native.json", root / "horizon-native.json")
+            manifest = root / "mixins/pluto_native_creative/horizon-mixin.toml"
+            text = manifest.read_text()
+            self.assertEqual(text.count('[[state]]'), 1)
+            manifest.write_text(text.split('[[state]]', 1)[0])
+            previous = package.ROOT
+            try:
+                package.ROOT = root
+                output = Path(temp) / "legacy.hnmod"
+                package.build(output)
+                with zipfile.ZipFile(output) as archive:
+                    prefix = "mixins/pluto_native_creative/"
+                    combined = tomllib.loads(archive.read(prefix + "horizon-mixin.toml").decode())
+                    self.assertNotIn("state", combined)
+                    self.assertEqual(len(combined["crate"]), 2)
+                    for section, key in (("module", "source"), ("injection", "helper")):
+                        ids = [entry["id"] for entry in combined[section]]
+                        self.assertEqual(len(ids), len(set(ids)))
+                        for entry in combined[section]:
+                            self.assertIn(prefix + entry[key], archive.namelist())
+            finally:
+                package.ROOT = previous
 
 
 if __name__ == "__main__":
