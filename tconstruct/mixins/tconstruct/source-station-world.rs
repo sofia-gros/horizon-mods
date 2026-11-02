@@ -419,6 +419,17 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
     modified.data_mut().set_other("minecraft:custom_data", Some(custom));
     let output = assemble(world, definition, &tool.item, &identities, Some(&modified), &mut None)?;
+    if id == "tconstruct:gilded" {
+        let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+        let modules = parsed.get("modules")?.as_array()?;
+        let base_slots = |name: &str| -> Option<i32> {
+            let total = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+                .filter_map(|module| module.get("slots")?.get(name)?.as_i64()).sum::<i64>();
+            i32::try_from(total).ok()
+        };
+        let rebuilt_traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+        if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &rebuilt_traits, base_slots("upgrades")?, base_slots("abilities")?) { return None; }
+    }
     let mut leftovers = plan.upgrade.leftover.into_iter().collect::<Vec<_>>();
     leftovers.push(plan.sponge);
     Some(StationOperation { output, consumed: plan.upgrade.consumed, leftovers })
