@@ -163,6 +163,32 @@ pub(super) fn take_for_drop(slots: &mut [Option<horizon_items::items::ItemStack>
     stack.count-=1;let mut dropped=stack.clone();dropped.count=1;*cell=Some(stack);Some(dropped)
 }
 
+/// Double-click collection follows the visible menu order and leaves full
+/// stacks for the second pass, matching the host container engine.
+pub(super) fn pickup_all(
+    side: &mut [Option<horizon_items::items::ItemStack>], visible: &[usize],
+    inventory: &mut [Option<horizon_items::items::ItemStack>], carried: &mut Option<horizon_items::items::ItemStack>,
+    reverse: bool, item_limit: u32,
+) -> bool {
+    let Some(cursor)=carried.as_mut() else {return false;};
+    if cursor.count>=item_limit {return false;}
+    let mut order:Vec<_>=visible.iter().copied().map(|i|(true,i)).chain((9..inventory.len()).chain(0..inventory.len().min(9)).map(|i|(false,i))).collect();
+    if reverse {order.reverse();}
+    let before=cursor.count;
+    for full_pass in [false,true] {
+        for &(is_side,index) in &order {
+            let cell=if is_side {side.get_mut(index)} else {inventory.get_mut(index)};
+            let Some(cell)=cell else {continue;};
+            let Some(stack)=cell.as_mut() else {continue;};
+            if !stack.same_item_same_components(cursor) || (!full_pass && stack.count>=item_limit) {continue;}
+            let moved=(item_limit-cursor.count).min(stack.count);cursor.count+=moved;stack.count-=moved;
+            if stack.count==0 {*cell=None;}
+            if cursor.count==item_limit {return cursor.count!=before;}
+        }
+    }
+    cursor.count!=before
+}
+
 /// Hotbar/offhand swap against a chest slot, including a capped incoming
 /// stack and return of the displaced item through the player inventory.
 pub(super) fn swap_slot(
@@ -365,6 +391,14 @@ mod tests {
         assert!(taken.same_item_same_components(&stack));
         assert_eq!(take_for_drop(&mut slots,0,true).unwrap().count,2);
         assert!(slots[0].is_none());
+    }
+    #[test]
+    fn double_click_only_collects_visible_matching_items() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![None;64];side[0]=Some(ItemStack::new("minecraft:stone",4));side[40]=Some(ItemStack::new("minecraft:stone",7));
+        let mut inventory=vec![None;36];inventory[9]=Some(ItemStack::new("minecraft:stone",3));let mut hand=Some(ItemStack::new("minecraft:stone",1));
+        assert!(pickup_all(&mut side,&(0..32).collect::<Vec<_>>(),&mut inventory,&mut hand,false,64));
+        assert_eq!(hand.unwrap().count,8);assert!(side[0].is_none());assert_eq!(side[40].as_ref().unwrap().count,7);
     }
     #[test]
     fn crafted_result_fills_side_then_player_and_rejects_full_destinations() {

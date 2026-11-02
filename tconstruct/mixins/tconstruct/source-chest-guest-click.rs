@@ -60,6 +60,13 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 let stack=storage.and_then(|i|contents[i].as_ref()).or_else(||player.and_then(|i|inventory[i].as_ref()));
                 if let Some(stack)=stack {let mut copy=stack.clone();copy.count=rules.max_stack(&copy.item).max(1);carried=Some(copy);changed=true;}
             },
+            (6,storage,player) if carried.is_some() => {
+                let clicked=storage.and_then(|i|contents[i].as_ref()).or_else(||player.and_then(|i|inventory[i].as_ref()));
+                if clicked.is_none() && (storage.is_some() || player.is_some()) {
+                    let start=scroll*chest::CHEST_COLUMNS;let visible:Vec<_>=(start..(start+32).min(visual)).collect();
+                    changed=chest::pickup_all(&mut contents,&visible,&mut inventory,&mut carried,packet.button!=0,max);
+                }
+            },
             _=>{},
         }
     }

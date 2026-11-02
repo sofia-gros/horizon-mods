@@ -84,6 +84,17 @@ fn tconstruct_chest_click(
             let stack=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else {game.world.block_entities.get(&key).and_then(|e|e.slots().get(slot.saturating_sub(300))).and_then(Option::as_ref)};
             if let Some(stack)=stack {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);game.carried=Some(copy);changed=true;}
         }
+        Input::PickupAll if game.carried.is_some() => {
+            let clicked=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else {game.world.block_entities.get(&key).and_then(|e|e.slots().get(slot.saturating_sub(300))).and_then(Option::as_ref)};
+            if clicked.is_none() {
+                let (count,scroll)=crate::game::tconstruct_chest_ui::page(game).unwrap_or((0,0));
+                let start=scroll*crate::game::tconstruct_chest_rules::CHEST_COLUMNS;
+                let visible:Vec<_>=(start..(start+32).min(count)).collect();
+                if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&key) {
+                    changed=crate::game::tconstruct_chest_rules::pickup_all(items,&visible,&mut game.inventory,&mut game.carried,button!=0,max);
+                }
+            }
+        }
         _ => {}
     }
     if changed { game.world.modified.insert((key.0 >> 4, key.2 >> 4)); }
