@@ -244,6 +244,17 @@ impl MoldingRecipe {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum Output { Item(String), Tag(String) }
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct DuplicationRecipe { pub cast: Ingredient, pub fluid: FluidSpec, pub cooling_time: u32 }
+impl DuplicationRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let value: Value = serde_json::from_slice(bytes).ok()?;
+        if value.get("type")?.as_str()? != "tconstruct:table_duplication" || !enabled(&value, conditions) { return None; }
+        let cooling_time = u32::try_from(value.get("cooling_time")?.as_u64()?).ok()?;
+        if cooling_time == 0 { return None; }
+        Some(Self { cast: Ingredient::parse(value.get("cast")?)?, fluid: FluidSpec::parse(value.get("fluid")?)?, cooling_time })
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct CastingRecipe {
     pub basin: bool, pub retextured: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
     pub switch_slots: bool, pub fluid: FluidSpec, pub output: Output, pub cooling_time: u32,
