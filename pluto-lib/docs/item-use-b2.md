@@ -32,3 +32,5 @@ On Linux with Horizon `b2e71aca04c7f62f24eefd7dd0324bae9c04954f` and Mixins `ddd
 The shared native API bundle must be enabled alongside the item adapter. Both Creative and short-use handlers use the same `pluto_api` crate; older experimental imports require updating.
 
 The consolidated `pluto_api` import has passed unit tests and a Mixins plan; a game build with this import is still pending. Earlier game results used the previous experimental crate name.
+
+Migration from the earlier native experiment: replace `pluto_item_api_b2::` imports with `pluto_api::item::` and enable the shared native API bundle. The root crate’s legacy `pluto_lib::item` has separate types and a separate registry; do not mix the two in one runtime.

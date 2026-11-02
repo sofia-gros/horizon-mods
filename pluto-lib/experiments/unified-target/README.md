@@ -16,7 +16,7 @@ An official Mixins plan succeeded with these six bundles (9 injections, 4 module
 | Register short item behavior | `pluto_api::item::{register, ItemBehavior, ItemData, UseContext, UseOutcome}` |
 | Standard component tooltip and bar | Stage the display and bar bundles; no consumer import is needed |
 
-These are the current staged paths, not a completed stable facade. In particular, the item crate name contains a host suffix and Tool APIs are exposed inside host crate paths. A future compatibility-preserving public entry must hide those paths before consumers can rely on identical imports across target revisions. No broad rename is proposed in this planning unit.
+Creative and short-use item handlers share the host-independent `pluto_api` crate. Tool functions still use the host paths above: Mixins cannot currently add the same generated crate as a direct dependency of the multiple host packages that implement them. These Tool imports can therefore change with the target host.
 
 ## Ordering and verification
 
