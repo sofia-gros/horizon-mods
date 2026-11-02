@@ -451,6 +451,13 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
         for page in section.as_array()? {
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
             if relative == "no-load" {
+                // Source tool sections supply navigation labels in language.lang;
+                // keep them in the chapter index instead of silently discarding them.
+                let group = if key == "tools" {
+                    page.get("name").and_then(|v| v.as_str())
+                        .and_then(|name| labels.get(format!("{key}.{name}").as_str()).copied())
+                } else { None };
+                let group_start = chapter_pages.len();
                 let loads = page.get("extraData").and_then(|v| v.get("tconstruct:load_tools"));
                 let list: Vec<_> = match loads { Some(serde_json::Value::Array(a)) => a.iter().collect(), Some(v) => vec![v], None => vec![] };
                 for load in list {
@@ -469,6 +476,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                         chapter_pages.extend(tool_pages(game, &title, id, Some(&value)));
                     }
                 }
+                // The information group has ordinary pages following its marker.
+                // Dynamic tool groups appear only when at least one tool loaded.
+                if let Some(label) = group.filter(|_| chapter_pages.len() > group_start || page.get("name").and_then(|v| v.as_str()) == Some("group_info")) {
+                    chapter_pages.insert(group_start, Text::literal(label));
+                }
                 continue;
             }
             let Some(raw) = read(path, &format!("{root}en_us/{relative}")) else { continue; };
@@ -476,7 +488,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let mut graphic = value.get("image").and_then(|image| {
                 let file = image.get("file")?.as_str()?;
-                Some(serde_json::json!({"image":file,"width":image.get("width")?.as_u64()?,"height":image.get("height")?.as_u64()?}))
+                // Mantle permits omitted dimensions; the renderer falls back
+                // to the atlas sprite's intrinsic width and height.
+                Some(serde_json::json!({"image":file,"width":image.get("width").and_then(|v| v.as_u64()),"height":image.get("height").and_then(|v| v.as_u64())}))
             })
                 .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
                 .or_else(|| {
@@ -566,7 +580,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
     let mut contents = Text::styled(format!("{book_title}\n\n"), horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
-    for (index, (heading, chapter)) in chapters.into_iter().enumerate() {
+    for (index, (heading, mut chapter)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
             contents = Text::literal(format!("{book_title}\n\n"));
@@ -578,6 +592,33 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
         });
         contents.push(link);
         let first_page = i32::try_from(first_page).ok()?;
+        // Mantle's modifiers index links its source entries from the introductory
+        // page. Resolve destinations after pagination so wrapped entries do not
+        // shift later links, and use source titles rather than invented labels.
+        if labels.get("modifiers").is_some_and(|label| *label == heading) {
+            let source_index = read(path, &format!("{root}en_us/modifiers/index.json"))
+                .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+            let index_title = source_index.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str());
+            let index_page = chapter.iter().position(|page| page.spans.first().is_some_and(|span| Some(span.text.as_str()) == index_title));
+            let mut links = Vec::new();
+            for name in ["traits", "upgrades", "slotless", "abilities", "defense"] {
+                let source = read(path, &format!("{root}en_us/modifiers/{name}.json"))
+                    .and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+                let Some(title) = source.as_ref().and_then(|v| v.get("title")).and_then(|v| v.as_str()) else { continue; };
+                let Some(offset) = chapter.iter().position(|page| page.spans.first().is_some_and(|span| span.text == title)) else { continue; };
+                let destination = first_page.checked_add(i32::try_from(offset).ok()?)?;
+                links.push((title.to_owned(), destination));
+            }
+            if let Some(page) = index_page.and_then(|index| chapter.get_mut(index)) {
+                for (title, destination) in links {
+                    page.push("\n");
+                    page.push(Text::styled(title, horizon_client::text::Style {
+                        click: Some(horizon_client::text::ClickEvent::ChangePage(destination)),
+                        underlined: Some(true), ..Default::default()
+                    }));
+                }
+            }
+        }
         for (group, entries) in chapter.chunks(5).enumerate() {
             let mut section = Text::literal(format!("{heading}\n\n"));
             for (offset, entry) in entries.iter().enumerate() {
