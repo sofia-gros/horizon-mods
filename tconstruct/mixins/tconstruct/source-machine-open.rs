@@ -1,4 +1,13 @@
 fn tconstruct_machine_open(game: &mut crate::game::Game<'_>, pos: [i32; 3], name: &str) -> std::ops::ControlFlow<bool> {
+    let slots = match name { "tconstruct:part_chest" => 256, "tconstruct:tinkers_chest" => 64, _ => 0 };
+    if slots != 0 && game.remote.is_none() {
+        game.ensure_datapacks();
+        let key = (pos[0], pos[1], pos[2]);
+        let entity = game.world.block_entities.get_or_insert_with(key, || horizon_client::containers::BlockEntity::Chest(vec![None; slots]));
+        if !matches!(entity, horizon_client::containers::BlockEntity::Chest(items) if items.len() == slots) { return std::ops::ControlFlow::Break(false); }
+        game.container = Some(key);
+        return std::ops::ControlFlow::Break(true);
+    }
     if matches!(name, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") && game.remote.is_none() {
         game.ensure_datapacks();
         let key = (pos[0], pos[1], pos[2]);

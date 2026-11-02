@@ -3195,3 +3195,41 @@ id = "server-tinker-chest-rules"
 file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_chest_rules"
 source = "source-tinker-chests.rs"
+
+[[module]]
+id = "source-tinker-chest-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_chest_ui"
+source = "source-tinker-chest-ui.rs"
+
+[[injection]]
+id = "source-tinker-chest-slots"
+target = "horizon_client::game::Game<'_>::slots"
+kind = "HEAD"
+cancellable = true
+helper = "source-tinker-chest-slots.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-tinker-chest-slot-view"
+target = "horizon_client::game::Game<'_>::slot_view"
+kind = "HEAD"
+cancellable = true
+helper = "source-tinker-chest-slot-view.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "usize", value = "i" },
+]
+
+[[injection]]
+id = "source-tinker-chest-click"
+target = "horizon_client::game::Game<'_>::menu_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-tinker-chest-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]

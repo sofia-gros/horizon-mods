@@ -95,6 +95,38 @@ pub(super) fn pickup_slot(
     moved != 0
 }
 
+/// Normal click in the player's own inventory while a source chest is open.
+pub(super) fn pickup_player(
+    inventory: &mut [Option<horizon_items::items::ItemStack>], slot: usize,
+    carried: &mut Option<horizon_items::items::ItemStack>, right: bool, item_limit: u32,
+) -> bool {
+    let Some(cell) = inventory.get_mut(slot) else { return false; };
+    let Some(mut cursor) = carried.take() else {
+        let Some(mut existing) = cell.take() else { return false; };
+        if right && existing.count > 1 {
+            let count=existing.count.div_ceil(2); let mut taken=existing.clone(); taken.count=count;
+            existing.count-=count; *cell=Some(existing); *carried=Some(taken);
+        } else { *carried=Some(existing); }
+        return true;
+    };
+    if let Some(existing) = cell {
+        if existing.same_item_same_components(&cursor) {
+            let wanted=if right {1} else {cursor.count};
+            let moved=wanted.min(item_limit.saturating_sub(existing.count));
+            existing.count+=moved; cursor.count-=moved;
+            if cursor.count>0 { *carried=Some(cursor); }
+            return moved>0;
+        }
+        if cursor.count>item_limit { *carried=Some(cursor); return false; }
+        *carried=cell.replace(cursor); return true;
+    }
+    let moved=if right {1} else {cursor.count.min(item_limit)};
+    if moved==0 { *carried=Some(cursor); return false; }
+    let mut inserted=cursor.clone(); inserted.count=moved; *cell=Some(inserted);
+    cursor.count-=moved; if cursor.count>0 { *carried=Some(cursor); }
+    true
+}
+
 /// Original scaling inventory shows one spare slot after the last occupied
 /// position, capped by its own capacity. It does not limit other inventories.
 pub(super) fn part_visual_size(occupied: impl DoubleEndedIterator<Item = bool> + ExactSizeIterator, capacity: usize) -> usize {
@@ -162,6 +194,17 @@ mod tests {
         let mut tinkers = vec![None; 64];
         assert_eq!(insert_slot(ChestKind::Tinkers, &mut tinkers, 0, ItemStack::new("minecraft:stone", 20), 64, false).unwrap().count, 4);
         assert_eq!(tinkers[0].as_ref().unwrap().count, 16);
+    }
+    #[test]
+    fn player_inventory_pickup_preserves_overflow() {
+        use horizon_items::items::ItemStack;
+        let mut inv=vec![None;36]; let mut hand=Some(ItemStack::new("minecraft:stone", 8));
+        assert!(pickup_player(&mut inv,0,&mut hand,true,64));
+        assert_eq!((inv[0].as_ref().unwrap().count,hand.as_ref().unwrap().count),(1,7));
+        assert!(pickup_player(&mut inv,0,&mut hand,false,64));
+        assert!(hand.is_none()); assert_eq!(inv[0].as_ref().unwrap().count,8);
+        assert!(pickup_player(&mut inv,0,&mut hand,true,64));
+        assert_eq!((inv[0].as_ref().unwrap().count,hand.as_ref().unwrap().count),(4,4));
     }
     #[test]
     fn pickup_right_click_and_swap_respect_part_rules() {

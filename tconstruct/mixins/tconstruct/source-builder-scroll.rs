@@ -1,5 +1,20 @@
 fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_chest_ui::kind(game).is_some() {
+        let Some(pos) = game.container else { return Break(()); };
+        let Some((count, scroll)) = crate::game::tconstruct_chest_ui::page(game) else { return Break(()); };
+        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width,r.config.height]) else { return Break(()); };
+        let batch=horizon_client::hud::HudBatch::new(size); let (ox,oy)=game.inventory_origin(&batch);
+        let (x,y)=(game.cursor.0-ox,game.cursor.1-oy);
+        if !(7.0..169.0).contains(&x) || !(17.0..89.0).contains(&y) { return Continue(()); }
+        if let Some(index)=crate::game::tconstruct_chest_rules::hit_slot(count,scroll,x,y) {
+            if game.world.block_entities.get(&pos).and_then(|e| e.slots().get(index)).is_some_and(Option::is_some) { return Continue(()); }
+        }
+        let max=crate::game::tconstruct_chest_rules::max_scroll(count);
+        let state=game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default();
+        state.0=(state.0 as i32-delta.signum() as i32).clamp(0,max as i32) as usize;
+        return Break(());
+    }
     if crate::game::tconstruct_ui::kind(game) == Some(true) {
         let Some(pos) = game.container else { return Continue(()); };
         let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };

@@ -19,3 +19,5 @@ The shared insertion primitives now retain complete item components, use the sou
 Both block and item declarations and their original shaped recipe ingredients are present, along with source model files and block drops. The menus and transaction hooks are not connected; the draft must not be treated as usable until those paths are complete and verified. The Tinker's Chest uses the source legacy block-entity ID `tconstruct:modifier_chest` on save.
 
 The chest-screen cell geometry follows the source's eight columns, four rows and 12-pixel scrollbar. A common position/hit calculation covers the final Part Chest slot, but the screen and scrolling events are not connected yet.
+
+A first local chest screen connection uses the source blank background, original scrolling grid, source item tags, and the shared pickup/shift-move rules. Unsupported gestures are currently blocked; the guest and adjacent workstation paths remain unconnected. This is a draft implementation, not yet transformed, built or tested in the game.

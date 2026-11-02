@@ -1,4 +1,5 @@
 fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) -> std::ops::ControlFlow<()> {
+    if crate::game::tconstruct_chest_ui::kind(game).is_some() { crate::game::tconstruct_chest_ui::draw(game, batch, ox, oy); return std::ops::ControlFlow::Break(()); }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         crate::game::tconstruct_source_smeltery_draw::draw(game, batch, ox, oy);
         return std::ops::ControlFlow::Break(());

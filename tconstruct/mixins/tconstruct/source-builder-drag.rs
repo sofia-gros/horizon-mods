@@ -1,5 +1,16 @@
 fn builder_drag(game: &mut crate::game::Game<'_>) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if crate::game::tconstruct_chest_ui::kind(game).is_some() {
+        let Some(pos)=game.container else { return Continue(()); };
+        if !game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos).is_some_and(|state| state.1) { return Continue(()); }
+        let Some((count,_))=crate::game::tconstruct_chest_ui::page(game) else { return Break(()); };
+        let Some(size)=game.renderer.as_ref().map(|r| [r.config.width,r.config.height]) else { return Break(()); };
+        let batch=horizon_client::hud::HudBatch::new(size); let (_,oy)=game.inventory_origin(&batch);
+        let max=crate::game::tconstruct_chest_rules::max_scroll(count);
+        let offset=(((game.cursor.1-oy-24.5)/57.0).clamp(0.0,1.0)*max as f32).round() as usize;
+        game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default().0=offset;
+        return Break(());
+    }
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }
     let Some(pos) = game.container else { return Continue(()); };
     if game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos).is_some_and(|state| state.1) {

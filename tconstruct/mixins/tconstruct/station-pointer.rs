@@ -1,5 +1,20 @@
 fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
+    if !right && crate::game::tconstruct_chest_ui::kind(game).is_some() {
+        let Some(key) = game.container else { return Break(true); };
+        let Some((count, _)) = crate::game::tconstruct_chest_ui::page(game) else { return Break(true); };
+        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
+        let batch = horizon_client::hud::HudBatch::new(size);
+        let (ox, oy) = game.inventory_origin(&batch);
+        let (x,y) = (game.cursor.0-ox, game.cursor.1-oy);
+        if (157.0..169.0).contains(&x) && (17.0..89.0).contains(&y) {
+            let max = crate::game::tconstruct_chest_rules::max_scroll(count);
+            let offset = (((y-24.5)/57.0).clamp(0.0,1.0) * max as f32).round() as usize;
+            *game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(key).or_default() = (offset, max>0);
+            return Break(true);
+        }
+        return Continue(());
+    }
     let Some(station) = crate::game::tconstruct_ui::kind(game) else { return Continue(()); };
     let Some(key) = game.container else { return Break(true); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };

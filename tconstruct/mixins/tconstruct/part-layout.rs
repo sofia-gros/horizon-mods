@@ -1,4 +1,5 @@
 fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<(f32, f32)> {
+    if let Some(pos) = crate::game::tconstruct_chest_ui::position(game, slot) { return std::ops::ControlFlow::Break(pos); }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
         let position = match slot {
