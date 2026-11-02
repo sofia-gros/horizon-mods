@@ -4548,3 +4548,9 @@ file = "crates/horizon-world/src/level/mod.rs"
 name = "tconstruct_ender_live_place"
 source = "source-ender-tree-live-place.rs"
 visibility = "pub"
+
+[[module]]
+id = "source-splash-conditional"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_splash_conditional"
+source = "source-splash-conditional.rs"
