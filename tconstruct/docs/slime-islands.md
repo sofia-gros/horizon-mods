@@ -105,7 +105,7 @@ generation or acquisition.
 Random ticks are explicitly disabled on these registrations: source slime
 sapling growth, leaf decay and vine growth still need their own behavior, and
 inheriting vanilla growth would produce the wrong result. Source foliage tint,
-soil-tag resolution, complete template block and fluid registration, island
+complete template block and fluid registration, island
 set activation and save/reload remain open. The target registry, model and
 loot loading, face/stage combinations, tree placement, source drop conditions
 and vanilla plant regressions all require dedicated validation.
@@ -116,5 +116,12 @@ are not registered or added by this batch.
 The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
 Silk Touch versus underlying slime-dirt loot. Their random ticks are disabled
-until source spreading and bonemeal behavior is connected. Soil tag resolution
-and source-tinted rendering remain open; registration does not enable islands.
+until source spreading and bonemeal behavior is connected. Source-tinted rendering remains open; registration does not enable islands.
+
+The original five `slimy_soil` child tags and their aggregate are included,
+with all 25 foliage/soil grass combinations, four slimy Enderbark roots and
+the existing four slime dirt blocks registered. The source shovel and harvest
+tier tags are extended for these blocks. The ground blocks retain source
+Silk Touch/underlying-dirt drops, while roots drop themselves. This is
+registration and tag wiring; live tag resolution, root behavior, rendering,
+mining and normal island acquisition still need dedicated validation.
