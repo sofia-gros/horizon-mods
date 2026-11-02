@@ -182,8 +182,8 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         let item = &game.dropped[index];
         let chunk = ((item.position.x.floor() as i32) >> 4, (item.position.z.floor() as i32) >> 4);
         game.world.modified.insert(chunk);
-        if remaining == 0 { game.dropped.remove(index); }
-        else { game.dropped[index].stack.count = remaining; }
+        if remaining == 0 { game.remove_dropped(index); }
+        else { game.dropped[index].stack.count = remaining; game.dropped[index].needs_sync = true; }
     }
     super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
     if game.container == Some(pos) && game.remote.is_none() {
