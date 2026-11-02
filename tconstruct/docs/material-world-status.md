@@ -55,3 +55,7 @@ changes are not yet applied, type-checked or verified in game. Acceptance must
 cover levels 0, 1, 6 and 7, material multipliers, Diamond, Emerald, Netherite,
 Overcast, replacement/removal, and shield-capacity clamping without duplicated
 bonuses. Compare against the original stat builder before claiming parity.
+
+The Overlord follow-up keeps Ductile attack and toughness updates when Ductile
+and Overlord durability changes cancel. The added combined-trait regression
+still needs the dedicated test run.

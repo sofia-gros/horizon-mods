@@ -96,7 +96,7 @@ pub fn apply_stat_traits(
     let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0);
     let penalty = if overlord >= 7 { -0.99999 } else { -0.15 * overlord as f32 };
     let boost = durability_boost(preserved, ductile) + penalty;
-    if boost == 0.0 {
+    if boost == 0.0 && ductile <= 0 {
         return Some(());
     }
     let durability = (stats.durability + stats.durability_boost_unit * boost) as i32;
@@ -137,6 +137,21 @@ pub fn apply_stat_traits(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ductile_effects_remain_when_overlord_cancels_durability_boost() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100,"tconstruct:attack_damage":10,"tconstruct:armor_toughness":2}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_max_damage", Tag::Int(100))])));
+        let levels = [("tconstruct:ductile".to_owned(), 3), ("tconstruct:overlord".to_owned(), 2)].into_iter().collect();
+        apply_stat_traits(&mut stack, &stats, &levels).unwrap();
+        let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(100))));
+        assert!(matches!(custom.get("tic_attack_damage"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 11.5).abs() < 0.001));
+        assert!(matches!(custom.get("tic_armor_toughness"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 5.0).abs() < 0.001));
+    }
     #[test]
     fn tanned_primary_and_secondary_cause_ranges_precede_shield() {
         assert_eq!(tanned_wear(7, 0, None), 7);
