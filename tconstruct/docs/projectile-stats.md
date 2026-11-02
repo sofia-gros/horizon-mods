@@ -125,10 +125,9 @@ Jagged and Stonebound percentage traits, receives attack-cooldown scaling, and
 is not itself multiplied by the critical bonus. The source module requires a
 living target.
 
-The helper implementation is pending a binding change in the shared Mixins
-manifest: `source-melee-damage-return` must pass `living: bool` from the target
-method. Until that change and combined verification, this branch is not ready
-to build or merge. The current implementation deliberately omits LAN guest
+The shared Mixins manifest passes the target method’s `living: bool` to the
+helper. The combined plan, build and runtime ordering still require verification
+before this behavior is considered complete. The current implementation deliberately omits LAN guest
 Raging until acting-player health is verified. Pewter remains a compatibility
 material; the source alloy requires Tin or Lead, neither supplied by the base
 TConstruct content.
