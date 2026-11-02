@@ -44,29 +44,31 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     before.damage = stack.damage;
     if before.count != stack.count || !before.same_item_same_components(&stack) || stack.count != 1 || stack.wire_patch().is_some() || super::tconstruct_source_melee_shape::intact(&stack).is_none() { return; }
     let Some(index) = game.mobs.iter().position(|mob| mob.id == target && mob.alive()) else { return; };
-    let _ = apply(game, index, stack, "tconstruct:spilling", false);
+    if let Some(drained) = apply(game, index, stack, "tconstruct:spilling", false) {
+        if !game.creative { *game.held_mut() = Some(drained); }
+    }
 }
 
 /// Apply a supported source entity effect and consume only a successful use.
-pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, modifier: &str, simulate: bool) -> bool {
+pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, modifier: &str, simulate: bool) -> Option<ItemStack> {
     // Unknown modded entities and entities with special overrides remain
     // unavailable until their canBeAffected behavior is represented by the host.
     let mob = &game.mobs[index];
     let kind = mob.kind.id.strip_prefix("minecraft:").unwrap_or(&mob.kind.id);
-    if !matches!(kind, "pig" | "cow" | "sheep" | "chicken" | "rabbit" | "horse" | "donkey" | "mule" | "llama" | "trader_llama" | "goat" | "panda" | "polar_bear" | "fox" | "wolf" | "cat" | "ocelot" | "parrot" | "turtle" | "frog" | "axolotl" | "squid" | "glow_squid" | "cod" | "salmon" | "tropical_fish" | "pufferfish" | "dolphin" | "bat" | "villager" | "wandering_trader" | "zombie" | "husk" | "drowned" | "zombie_villager" | "skeleton" | "stray" | "bogged" | "zombified_piglin" | "zoglin" | "phantom" | "creeper" | "enderman" | "endermite" | "silverfish" | "slime" | "magma_cube" | "witch" | "pillager" | "vindicator" | "piglin" | "piglin_brute" | "hoglin" | "ghast" | "blaze" | "strider" | "guardian" | "elder_guardian" | "evoker" | "vex" | "ravager") { return false; }
+    if !matches!(kind, "pig" | "cow" | "sheep" | "chicken" | "rabbit" | "horse" | "donkey" | "mule" | "llama" | "trader_llama" | "goat" | "panda" | "polar_bear" | "fox" | "wolf" | "cat" | "ocelot" | "parrot" | "turtle" | "frog" | "axolotl" | "squid" | "glow_squid" | "cod" | "salmon" | "tropical_fish" | "pufferfish" | "dolphin" | "bat" | "villager" | "wandering_trader" | "zombie" | "husk" | "drowned" | "zombie_villager" | "skeleton" | "stray" | "bogged" | "zombified_piglin" | "zoglin" | "phantom" | "creeper" | "enderman" | "endermite" | "silverfish" | "slime" | "magma_cube" | "witch" | "pillager" | "vindicator" | "piglin" | "piglin_brute" | "hoglin" | "ghast" | "blaze" | "strider" | "guardian" | "elder_guardian" | "evoker" | "vex" | "ravager") { return None; }
     let undead = mob.kind.flags.undead;
-    let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return false; };
-    if matches!(custom.get("tic_broken"), Some(Tag::Byte(n)) if *n != 0) { return false; }
-    let Some(Tag::Int(level)) = custom.get("tic_upgrades").and_then(|upgrades| upgrades.get(modifier)) else { return false; };
-    if *level <= 0 { return false; }
-    let Some(Tag::Int(capacity)) = custom.get("tic_tank_capacity") else { return false; };
-    if *capacity <= 0 { return false; }
-    let Some(Some(fluid)) = super::pluto_stack_fluid::read(&stack, "tic_persistent", "tconstruct:tank_fluid") else { return false; };
+    let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return None; };
+    if matches!(custom.get("tic_broken"), Some(Tag::Byte(n)) if *n != 0) { return None; }
+    let Some(Tag::Int(level)) = custom.get("tic_upgrades").and_then(|upgrades| upgrades.get(modifier)) else { return None; };
+    if *level <= 0 { return None; }
+    let Some(Tag::Int(capacity)) = custom.get("tic_tank_capacity") else { return None; };
+    if *capacity <= 0 { return None; }
+    let Some(Some(fluid)) = super::pluto_stack_fluid::read(&stack, "tic_persistent", "tconstruct:tank_fluid") else { return None; };
     let capacity = *capacity as u32;
-    if fluid.amount > capacity || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return false; }
-    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return false; };
+    if fluid.amount > capacity || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
+    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return None; };
     let strength = (*level as f32).min(fluid.amount as f32 / recipe.amount as f32);
-    if strength <= 0.0 { return false; }
+    if strength <= 0.0 { return None; }
     let mut planned = Vec::new();
     let mut ids = HashSet::new();
     for effect in recipe.entity {
@@ -75,13 +77,13 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
             // RestoreHungerFluidEffect applies only to players, not mobs.
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => continue,
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
-                let Some(known) = horizon_client::brewing::effect(&id) else { return false; };
-                if strength >= 1.0 && game.mobs[index].extra.effects.iter().any(|entry| entry.0 == known.id) { return false; }
+                let Some(known) = horizon_client::brewing::effect(&id) else { return None; };
+                if strength >= 1.0 && game.mobs[index].extra.effects.iter().any(|entry| entry.0 == known.id) { return None; }
                 continue;
             }
         };
-        let Some(known) = horizon_client::brewing::effect(&effect.id) else { return false; };
-        if !ids.insert(known.id) || matches!(known.id, "minecraft:instant_health" | "minecraft:instant_damage") { return false; }
+        let Some(known) = horizon_client::brewing::effect(&effect.id) else { return None; };
+        if !ids.insert(known.id) || matches!(known.id, "minecraft:instant_health" | "minecraft:instant_damage") { return None; }
         // Vanilla undead reject poison and regeneration before addEffect.
         if undead && matches!(known.id, "minecraft:poison" | "minecraft:regeneration") { continue; }
         let existing = game.mobs[index].extra.effects.iter().find(|entry| entry.0 == known.id).map(|entry| (entry.1, entry.2));
@@ -89,15 +91,15 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
         let used = ((recipe.amount as f32 * scale.min(strength)).ceil() as u32).min(fluid.amount);
         if used > 0 { planned.push((known.id, duration, effect.amplifier, used)); }
     }
-    if planned.is_empty() { return false; }
+    if planned.is_empty() { return None; }
     // Validate every possible remainder before applying any effect.
     let mut remainders = Vec::new();
     for (_, _, _, used) in &planned {
         let mut fluid = fluid.clone(); fluid.amount -= *used;
-        let Some(drained) = super::pluto_stack_fluid::write(&stack, "tic_persistent", "tconstruct:tank_fluid", (fluid.amount > 0).then_some(&fluid), capacity) else { return false; };
+        let Some(drained) = super::pluto_stack_fluid::write(&stack, "tic_persistent", "tconstruct:tank_fluid", (fluid.amount > 0).then_some(&fluid), capacity) else { return None; };
         remainders.push(drained);
     }
-    if simulate { return true; }
+    if simulate { return Some(stack); }
     let mut consumed = None;
     for ((id, duration, amplifier, used), drained) in planned.into_iter().zip(remainders) {
         let mob = &mut game.mobs[index];
@@ -106,7 +108,5 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
         let after = mob.extra.effects.iter().find(|entry| entry.0 == id).copied();
         if before != after && consumed.as_ref().is_none_or(|(amount, _)| used > *amount) { consumed = Some((used, drained)); }
     }
-    let applied = consumed.is_some();
-    if !game.creative { if let Some((_, drained)) = consumed { *game.held_mut() = Some(drained); } }
-    applied
+    consumed.map(|(_, drained)| drained)
 }

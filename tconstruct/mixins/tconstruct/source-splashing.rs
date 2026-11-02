@@ -4,18 +4,37 @@
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 
-/// DualOptionInteraction routes splashing to right click unless its modifier
-/// appears in the source persistent attack_modifiers set. Only tools whose
-/// original definition explicitly uses that interaction are considered here.
-pub(super) fn right_click(stack: &ItemStack) -> bool {
-    if !matches!(&*stack.item, "tconstruct:earth_staff" | "tconstruct:ender_staff" | "tconstruct:ichor_staff" | "tconstruct:sky_staff" | "tconstruct:melting_pan") { return false; }
+/// Resolve the source definition's interaction module. Unknown interaction
+/// types are refused rather than stealing a different item's click.
+pub(super) fn right_click(game: &super::Game<'_>, stack: &ItemStack) -> bool {
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return false; };
     if !matches!(custom.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:splashing")), Some(Tag::Int(level)) if *level > 0) { return false; }
-    match custom.get("tic_persistent").and_then(|data| data.get("tconstruct:attack_modifiers")) {
-        None => true,
-        Some(Tag::List(entries)) => !entries.iter().any(|entry| matches!(entry, Tag::String(id) if id.to_string_lossy() == "tconstruct:splashing")),
-        _ => false,
+    let in_set = |key: &str| -> Option<bool> {
+        match custom.get("tic_persistent").and_then(|data| data.get(key)) {
+            None => Some(false),
+            Some(Tag::List(entries)) => Some(entries.iter().any(|entry| matches!(entry, Tag::String(id) if id.to_string_lossy() == "tconstruct:splashing"))),
+            _ => None,
+        }
+    };
+    let Some((namespace, name)) = stack.item.split_once(':') else { return false; };
+    let Some(layers) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() else { return false; };
+    let Some(bytes) = layers.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()) else { return false; };
+    let Ok(definition) = serde_json::from_slice::<serde_json::Value>(bytes) else { return false; };
+    let Some(modules) = definition.get("modules").and_then(serde_json::Value::as_array) else { return false; };
+    for module in modules {
+        let Some(kind) = module.get("type").and_then(serde_json::Value::as_str) else { return false; };
+        match kind {
+            "tconstruct:attack_interaction" => return false,
+            "tconstruct:dual_option_interaction" => return in_set("tconstruct:attack_modifiers") == Some(false),
+            "tconstruct:toggleable_set_interaction" => {
+                if module.pointer("/interact_modifiers/type").and_then(serde_json::Value::as_str) != Some("tconstruct:single") || module.pointer("/interact_modifiers/modifier").and_then(serde_json::Value::as_str) != Some("tconstruct:fishing") { return false; }
+                return in_set("tconstruct:interact_modifiers") == Some(true);
+            }
+            other if other.ends_with("_interaction") => return false,
+            _ => {}
+        }
     }
+    true
 }
 
 /// The source tests the candidate box against the target's inflated box and
@@ -31,9 +50,9 @@ pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f
 /// targets and mob area members are currently resolved; guest players and
 /// non-mob entities need an authoritative host-backed enumeration.
 pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&ItemStack>, claimed: &mut bool) {
-    if *claimed || game.remote.is_some() || game.creative { return; }
+    if *claimed || game.remote.is_some() { return; }
     let Some(stack) = stack.cloned() else { return; };
-    if !right_click(&stack) || super::tconstruct_source_melee_shape::intact(&stack).is_none() || game.cooldowns.is_on_cooldown(&stack.item) { return; }
+    if !right_click(game, &stack) || super::tconstruct_source_melee_shape::intact(&stack).is_none() || game.cooldowns.is_on_cooldown(&stack.item) { return; }
     let Some(target) = game.mobs.iter().position(|mob| i32::try_from(mob.id).ok() == Some(entity) && mob.alive()) else { return; };
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return; };
     let Some(Tag::Int(level)) = custom.get("tic_upgrades").and_then(|data| data.get("tconstruct:splashing")) else { return; };
@@ -45,7 +64,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     let expanded = super::tconstruct_source_overslime::upgrade(&stack, "tconstruct:expanded")
         + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
     let Ok(expanded) = u32::try_from(expanded) else { return; };
-    if !super::tconstruct_source_spilling::apply(game, target, stack.clone(), "tconstruct:splashing", true) { return; }
+    if super::tconstruct_source_spilling::apply(game, target, stack.clone(), "tconstruct:splashing", true).is_none() { return; }
     let target_mob = &game.mobs[target];
     let origin = [target_mob.position.x, target_mob.position.y, target_mob.position.z];
     let target_box = target_mob.bounds();
@@ -60,11 +79,16 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     }
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let mut applied = 0u32;
+    let mut working = stack.clone();
     for index in targets {
-        let Some(current) = game.held().cloned() else { break; };
-        if super::tconstruct_source_spilling::apply(game, index, current, "tconstruct:splashing", false) { applied += 1; }
+        if let Some(drained) = super::tconstruct_source_spilling::apply(game, index, working.clone(), "tconstruct:splashing", false) {
+            working = drained;
+            applied += 1;
+        }
     }
-    if applied > 0 {
+    if applied > 0 && !game.creative {
+        if !game.held().is_some_and(|held| held.damage == stack.damage && held.same_item_same_components(&stack)) { return; }
+        *game.held_mut() = Some(working);
         if let Some(current) = game.held().cloned() {
             let wear = applied.saturating_mul(*level as u32);
             let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, &current, wear, Some("tconstruct:splashing"));
