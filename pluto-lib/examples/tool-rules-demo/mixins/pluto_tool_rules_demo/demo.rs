@@ -19,7 +19,7 @@ pub fn prepare() -> Result<(), Box<dyn Error>> {
     }
     let doc = serde_json::from_slice(&fs::read(source.join("creative-inventory.json"))?)?;
     let tool = horizon_client::pluto_tool_codec::prepare_tool(
-        r##"{rules:[{blocks:"#minecraft:mineable/pickaxe",speed:2.0f,correct_for_drops:1b}],default_mining_speed:1.0f,damage_per_block:1}"##,
+        r##"{rules:[{blocks:"#minecraft:mineable/pickaxe",correct_for_drops:0b},{blocks:"#minecraft:mineable/pickaxe",speed:2.0f,correct_for_drops:1b}],default_mining_speed:1.0f,damage_per_block:1}"##,
         |_| None,
     )?;
     let stack = format!(

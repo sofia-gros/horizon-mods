@@ -17,3 +17,14 @@ id = "prepare-demo"
 target = "horizon_client::entry::main"
 kind = "HEAD"
 helper = "prepare.rs"
+
+[[injection]]
+id = "demo-creative-slot-guard"
+target = "horizon_client::game::native_hooks::Game<'_>::native_creative_slot"
+kind = "HEAD"
+helper = "creative_slot.rs"
+bindings = [
+  { name = "slot", ty = "i32", value = "slot" },
+  { name = "count", ty = "i32", value = "count" },
+  { name = "cancel", ty = "&mut bool", value = "&mut *cancel" },
+]
