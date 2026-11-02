@@ -4234,10 +4234,10 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "source-splashing-guest-return"
-target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
-kind = "RETURN"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_swing_back"
+kind = "HEAD"
 helper = "source-splashing-guest-return.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "swung", ty = "Option<bool>", value = "swung" }]
 
 [[state]]
 id = "splashing-guest-pending"
