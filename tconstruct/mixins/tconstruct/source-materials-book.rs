@@ -303,8 +303,9 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
     super::tconstruct_materials_book_recipe::resolve(&recipe, tags, grid_size)
 }
 
-pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
-    let root = "assets/tconstruct/book/materials_and_you/";
+pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) -> Option<Vec<Text>> {
+    let root = if puny { "assets/tconstruct/book/puny_smelting/" } else { "assets/tconstruct/book/materials_and_you/" };
+    let book_title = if puny { "Puny Smelting" } else { "Materials & You" };
     let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
     let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
@@ -313,6 +314,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
+        // Only the source's introductory machine chapters are supported here;
+        // the other book's material tiers and modifier layouts differ.
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
@@ -554,11 +558,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
     let (_, locations) = super::tconstruct_materials_book_index::layout(&sizes)?;
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
-    let mut contents = Text::styled("Materials & You\n\n", horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
+    let mut contents = Text::styled(format!("{book_title}\n\n"), horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
     for (index, (heading, chapter)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
-            contents = Text::literal("Materials & You\n\n");
+            contents = Text::literal(format!("{book_title}\n\n"));
         }
         let (chapter_page, first_page) = locations[index];
         let link = Text::styled(format!("{heading}\n"), horizon_client::text::Style {
@@ -587,10 +591,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
 }
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
-    if &*stack.item != "tconstruct:materials_and_you" { return false; }
+    let puny = &*stack.item == "tconstruct:puny_smelting";
+    if !puny && &*stack.item != "tconstruct:materials_and_you" { return false; }
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.clone();
-        let Some(pages) = source_pages(game, &path) else { return false; };
+        let Some(pages) = source_pages(game, &path, puny) else { return false; };
         *game.world.chunks.__horizon_mixins_tconstruct_materials_book_history_mut() = None;
         game.open_book(BookScreen::View { pages, page: usize::MAX, lectern: None });
         if remote {
