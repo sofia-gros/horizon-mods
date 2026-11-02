@@ -6,6 +6,8 @@ pub struct LandingState {
     pub enabled: bool,
     pub damage_multiplier: Option<f32>,
     pub rebound_y: Option<f64>,
+    pub guest: bool,
+    pub movement_y: f64,
 }
 
 pub fn get(player: &PlayerMotion) -> &LandingState {

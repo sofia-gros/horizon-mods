@@ -90,5 +90,7 @@ The initial Grout, Seared Brick and Scorched Brick crafting route and ordinary b
 A Slime Boots landing candidate is being connected through PlutoLib's per-player
 landing state. Equipment can mark the state from the intrinsic Bouncy trait or a
 Bouncy modifier on unbroken armor. The candidate connects local landing damage
-and post-collision velocity; guest bouncing remains deferred. It has not been
-applied, type-checked, or tested in game, so no bounce is established yet.
+and post-collision velocity. A dependent candidate also supplies the acting guest’s
+equipment and crouch state and applies its pending rebound after server travel.
+Both candidates require official apply, type and game validation; guest movement
+ordering, velocity synchronization and isolation from other players are unverified.

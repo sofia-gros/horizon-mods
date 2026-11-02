@@ -3917,4 +3917,18 @@ id = "source-bouncy-reset"
 target = "horizon_client::motion::<MotionWorld<'_, '_, '_> as EntityMoveWorld>::check_fall_damage"
 kind = "HEAD"
 helper = "source-bouncy-reset.rs"
-bindings = [{ name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
+bindings = [{ name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }, { name = "dy", ty = "f64", value = "dy" }]
+
+[[injection]]
+id = "source-bouncy-guest-enter"
+target = "horizon_client::game::lan_actions::Game<'_>::enter_guest"
+kind = "RETURN"
+helper = "source-bouncy-guest-enter.rs"
+bindings = [{ name = "value", ty = "Option<GuestSwap>", value = "$value" }, { name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }]
+
+[[injection]]
+id = "source-bouncy-guest-finish"
+target = "horizon_client::motion::MotionWorld<'_, '_, '_>::server_travel"
+kind = "RETURN"
+helper = "source-bouncy-guest-finish.rs"
+bindings = [{ name = "value", ty = "crate::Result<()>", value = "$value" }, { name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
