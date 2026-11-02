@@ -2,12 +2,12 @@
 
 ## Verified combination
 
-PlutoLib is unreleased: its Cargo manifest currently declares `0.1.0`. The Creative paging demo at development commit [`f6b55a7553b9c1b9e7b79b6b171485daac8b9322`](https://github.com/sofia-gros/horizon-mods/commit/f6b55a7553b9c1b9e7b79b6b171485daac8b9322) was built and run on Linux with:
+PlutoLib is unreleased: its Cargo manifest currently declares `0.1.0`. The Creative paging demo at development commit [`42e31b0b7ab35f2b8afc154d4c68888032f5d795`](https://github.com/sofia-gros/horizon-mods/commit/42e31b0b7ab35f2b8afc154d4c68888032f5d795) was built and run on Linux with:
 
 - Horizon [`b6c936f82b08798057161bdfa577e3aac53fb91e`](https://github.com/horizon-rust/horizon/commit/b6c936f82b08798057161bdfa577e3aac53fb91e), content API 0.2.
 - Horizon Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a).
 
-The initial registration demo was also run on this Horizon revision on Linux, but did not use Mixins. The paging demo uses the Mixins adapter. See [Creative paging](creative-overflow.md) for the checks and limitations. Other platforms and revisions have not been verified.
+The initial registration demo was also run on this Horizon revision on Linux, but did not use Mixins. The paging demo uses the Mixins adapter. The Rust preparation API also depends on `horizon-items` from that same Horizon commit to parse and compare search stacks. See [Creative paging](creative-overflow.md) for the checks and limitations. Other platforms and revisions have not been verified.
 
 ## Development target
 

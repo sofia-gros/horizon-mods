@@ -6,4 +6,4 @@
 
 This is preparation-time registration, not Fabric's runtime registry or a runtime tab event. The API does not yet support custom item or block behavior. Vanilla templates and available properties are determined by the target Horizon version. The demo's Creative overlay must be installed separately from its content mod.
 
-For more tabs than the screen has positions, see the experimental [Creative paging API](creative-overflow.md). It requires the bundled Mixins adapter.
+For more tabs than the screen has positions, see the experimental [Creative paging API](creative-overflow.md). It requires the bundled Mixins adapter and uses the pinned Horizon item parser to populate search; unlike `add_creative_tabs`, it checks the supplied stack syntax.
