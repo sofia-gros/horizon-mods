@@ -42,6 +42,21 @@ pub(super) fn airborne_multiplier(custom: &Tag, damage: u32, on_ground: bool) ->
 mod airborne_tests {
     use super::*;
     #[test]
+    fn maintained_addition_uses_speed_after_airborne_penalty() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![
+                Tag::compound([("id", Tag::String("tconstruct:maintained".into())), ("level", Tag::Int(1))]),
+                Tag::compound([("id", Tag::String("tconstruct:airborne".into())), ("level", Tag::Int(1))]),
+            ])),
+        ]);
+        // Base 4 divided by host's airborne penalty must arrive before the
+        // source flat +6 and Airborne's x5: (4 / 5 + 6) * 5 = 34.
+        let after_host_penalty = 4.0 / 5.0;
+        let with_flat = conditional(&custom, 0, after_host_penalty, 1.0, None, true, false).unwrap();
+        assert!((with_flat * airborne_multiplier(&custom, 0, false) - 34.0).abs() < 0.0001);
+    }
+    #[test]
     fn only_unbroken_airborne_trait_boosts_airborne_speed() {
         let custom = Tag::compound([
             ("tic_max_damage", Tag::Int(100)),

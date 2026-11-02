@@ -75,8 +75,11 @@ Mixins CI and independent review are still pending.
 
 The Skyslime Vine Airborne trait multiplies mining speed by five while the
 holder is off the ground, including on blocks where the tool is ineffective.
-It applies after flat conditional mining bonuses and does not apply to broken
-tools. Rebuilding or swapping material updates the stored trait. This implements
+It should apply after flat conditional mining bonuses and does not apply to broken
+tools. The current injection runs before the host airborne and water penalties,
+so combinations with flat bonuses such as Maintained have incorrect ordering.
+Moving both client and host injections to the final speed read is required before
+this behavior can be considered correct. Rebuilding or swapping material updates the stored trait. This implements
 the mining portion of the [original Airborne definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/airborne.json);
 the conditional projectile velocity portion remains unimplemented.
 
