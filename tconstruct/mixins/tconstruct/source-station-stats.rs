@@ -40,6 +40,12 @@ struct Accumulator {
     percent: f32,
     multiply: f32,
 }
+/// The registered chestplate item and its original data definition have
+/// different IDs; other namespaces and equipment names are not rewritten.
+pub(super) fn definition_name<'a>(namespace: &str, item_name: &'a str) -> &'a str {
+    if namespace == "tconstruct" && item_name == "slimy_chestplate" { "slime_chestplate" } else { item_name }
+}
+
 pub(super) fn part_kind(id: &str) -> Option<&'static str> {
     Some(match id.strip_prefix("tconstruct:")? {
         "pick_head" | "hammer_head" | "small_axe_head" | "broad_axe_head" | "small_blade"

@@ -375,3 +375,17 @@ empty traits, Slime Chestplate's explicit tool-traits module, trim-only hooks,
 missing/invalid indices, material swap, reload and LAN. Compare the pinned
 [MaterialStatsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialStatsModule.java)
 and [MaterialTraitsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialTraitsModule.java).
+
+### Slime chestplate definition lookup
+
+The registered item ID is `tconstruct:slimy_chestplate`, while its pinned
+original tool definition is `tconstruct:slime_chestplate`. Station and material
+trait lookups now resolve that exact pair to the original definition; other
+namespaces and item IDs are unchanged. This fixes definition lookup only and
+does not by itself establish crafting, all armor behavior, guide display or
+Creative initialization.
+
+Rust syntax was checked. Unit, plan, build and gameplay remain pending. Verify
+Station operations and trait resolution for the registered chestplate, an
+unrelated TConstruct item, and the same name in another namespace; include
+material swap, reload and LAN. Guide and Creative lookup paths remain separate.
