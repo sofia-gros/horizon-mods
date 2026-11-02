@@ -25,7 +25,7 @@ fn tconstruct_crossbow_use(
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);
     } else if game.creative || game.projectile_slot("minecraft:crossbow").is_some() {
-        game.using = Some((game.held_slot(), 0));
+        game.start_using_item();
     }
     Break(true)
 }
