@@ -7,6 +7,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / "content"
 
 class TinkerChestSourceTest(unittest.TestCase):
+    def test_crafting_station_uses_the_source_pattern_and_workbench_tag(self):
+        recipe = json.loads((ROOT / "data/tconstruct/recipe/crafting_station.json").read_text())
+        self.assertEqual(recipe["pattern"], ["p", "w"])
+        self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "w": "#forge:workbenches"})
+        tag = json.loads((ROOT / "reference/tconstruct-tags/data/forge/tags/items/workbenches.json").read_text())
+        self.assertIn("minecraft:crafting_table", tag["values"])
+
     def test_source_recipes_and_item_declarations(self):
         for name, ingredient in [("part_chest", "#forge:rods/wooden"), ("tinkers_chest", "#forge:gems/lapis")]:
             recipe = json.loads((ROOT / f"data/tconstruct/recipe/{name}.json").read_text())

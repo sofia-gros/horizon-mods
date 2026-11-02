@@ -1,0 +1,10 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": ["p", "w"],
+  "key": {
+    "p": "tconstruct:pattern",
+    "w": "#forge:workbenches"
+  },
+  "result": { "id": "tconstruct:crafting_station" }
+}
