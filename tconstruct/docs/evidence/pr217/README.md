@@ -1,0 +1,5 @@
+# PR 217 workstation crafting
+
+Tested head `a99d2545b7d7ffc34ab2cdfa1c2ca7967f974926`: both recipe files and `planklike` tag are byte-identical to previously tested #199 head `3df0c060a7c07bd13d5d5242524ed0f8768bc366` and the isolated fixture. Main `283cc1a21fd7880a05312400b5d8e531027d442e` contains both material and both workstation block registrations. The three-file fixture has no uncommitted changes.
+
+Prior #199 checks covered ordinary planks, Blazewood and Nahuatl for both workstations, mixed ingredients, absent Pattern, a nonmember, leftovers and local result persistence: see `../pr199/`. New LAN check on client `955f2d745b901f90a8a1858303d809c975f17c65e584f67cf08d100fe74a39b0` used supplied materials; guest crafted a Tinker Station from Nahuatl and three Patterns and retained one unused of each. Screenshot is the guest client. Exact PR data over an existing integrated fixture, not a final-main packaged build; natural acquisition, Windows, LAN reload and source retexturing are not claimed.
