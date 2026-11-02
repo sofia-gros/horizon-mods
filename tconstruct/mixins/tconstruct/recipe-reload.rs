@@ -77,6 +77,27 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let config = game.world_root.parent().and_then(std::path::Path::parent)
         .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
         .and_then(crate::game::tconstruct_source_config::load);
+    // All source-recipe consumers share this snapshot. Resolve Forge wrappers
+    // once, after tags and config are known, rather than separately per lookup.
+    // An unavailable context must never select a guessed fallback branch.
+    let condition_context = (|| {
+        let item_tags = resolved_tags.as_ref()?.as_ref().ok()?;
+        let fluid_tags = resolved_fluids.as_ref().ok()?;
+        let config = config.as_ref().ok()?;
+        let items: std::collections::HashSet<String> = game.res.rest.get()?.items.items.keys().map(|id| id.to_string()).collect();
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        Some((registries, config, items))
+    })();
+    recipes.retain(|_, bytes| {
+        let wrapper = serde_json::from_slice::<serde_json::Value>(bytes).ok()
+            .and_then(|value| value.get("type").and_then(serde_json::Value::as_str).map(str::to_owned))
+            .is_some_and(|kind| kind == "forge:conditional");
+        if !wrapper { return true; }
+        let Some((registries, config, items)) = &condition_context else { return false; };
+        let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items) else { return false; };
+        *bytes = selected;
+        true
+    });
     // Preserve an explicit failure when any required input is unavailable.
     // These definitions describe the current Horizon registries, which do not
     // yet contain every original TConstruct item or fluid.
