@@ -6,7 +6,7 @@ description = "Resource registration helpers for Horizon mods"
 license = "MIT"
 
 [dependencies]
-pluto-creative-api = { path = "mixins/pluto_native_creative/api" }
+pluto-api = { path = "mixins/pluto_native_creative/api" }
 
 pluto-item-api = { path = "mixins/pluto_items/api" }
 serde_json = "1"

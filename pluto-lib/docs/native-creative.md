@@ -1,9 +1,9 @@
 # Prepare Creative tabs for native Horizon paging
 
-The experimental `pluto-creative-api` crate adds component-bearing stacks to an already prepared Creative inventory document. It targets Horizon's own page controls. It does not inject drawing, clicking or page state, and must not be staged with PlutoLib's older `pluto_creative` paging adapter.
+The experimental `pluto-api` crate adds component-bearing stacks to an already prepared Creative inventory document. It targets Horizon's own page controls. It does not inject drawing, clicking or page state, and must not be staged with PlutoLib's older `pluto_creative` paging adapter.
 
 ```rust
-use pluto_creative_api::{register_tabs, Entry, Tab};
+use pluto_api::creative::{register_tabs, Entry, Tab};
 
 let tabs = [Tab {
     id: "example:tools".into(),
@@ -39,7 +39,7 @@ The function returns a changed copy and leaves its input untouched, including on
 
 ## Native integration
 
-Install the standalone [native API bundle](native-installation.md), or stage `mixins/pluto_native_creative` as a native Mixins bundle for development. Its `[[crate]]` declaration adds `pluto-creative-api` to `horizon-client`; the bundle itself installs **no hooks**. A mod's native startup module can then call `pluto_creative_api::register_tabs` with a loaded document. Run it exactly once after all other producers of that document have finished; if the host's own content merge runs later, it can add duplicate entries. Publish the resulting document in a separate overlay, not into the source resource tree. A caller must finish mod-specific stack, stat and trait generation before registration, so both the displayed tab and search receive the same final stack. This API rejects a second registration of the same tab ID; it does not refresh earlier search copies. Do not combine this path with the old PlutoLib page adapter or register the same tabs again through Horizon's content-tab loader.
+Install the standalone [native API bundle](native-installation.md), or stage `mixins/pluto_native_creative` as a native Mixins bundle for development. Its `[[crate]]` declaration adds `pluto-api` to `horizon-client`; the bundle itself installs **no hooks**. A mod's native startup module can then call `pluto_api::creative::register_tabs` with a loaded document. Run it exactly once after all other producers of that document have finished; if the host's own content merge runs later, it can add duplicate entries. Publish the resulting document in a separate overlay, not into the source resource tree. A caller must finish mod-specific stack, stat and trait generation before registration, so both the displayed tab and search receive the same final stack. This API rejects a second registration of the same tab ID; it does not refresh earlier search copies. Do not combine this path with the old PlutoLib page adapter or register the same tabs again through Horizon's content-tab loader.
 
 The [independent demo](../examples/native-creative/mixins/pluto_creative_demo/demo.rs) uses a native entry hook and the shared crate to create a fresh Linux resource overlay with 12 tabs. It uses vanilla item textures and a component-bearing stick; it contains no Tinkers rules or assets. The [standalone Rust wrapper](../examples/native_creative_prepare.rs) runs the same initializer without Python for inspection:
 

@@ -1,4 +1,4 @@
-use pluto_creative_api::{register_tabs, Entry, Tab};
+use pluto_api::creative::{register_tabs, Entry, Tab};
 use std::{error::Error, fs, path::PathBuf};
 
 /// The demo opts in with both paths. It creates a fresh Linux resource overlay.

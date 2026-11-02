@@ -26,3 +26,7 @@ The native Creative and component-transport demos were checked against Horizon [
 The independent native Creative and component-transport demos were built and run on Linux with Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and the same Mixins revision. See [component transport](component-transport.md) for the observed host display limitation and the scope of LAN checks. Neither result establishes Tinkers integration.
 
 The [Tool rules demo](tool-rules.md) was built and run on Linux with Horizon [`aa60eb76ea82bd66c29fea352e3ab5771e62ab26`](https://github.com/horizon-rust/horizon/commit/aa60eb76ea82bd66c29fea352e3ab5771e62ab26) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). Its representative LAN check covers an allowed Creative slot update and reconnection. The separate Creative cancellation experiment has a documented non-atomic result; it is not part of the Tool rules bundle.
+
+The consolidated Creative and short-use item API was built and exercised on Linux at development commit `0f36b1fe779565fff37a445a485d920baa1bcf2f` with Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. See the [combined demo](../experiments/unified-target/README.md) for the verified operations. Full launcher installation, Windows, and Tinkers remain unverified.
+
+Horizon `ed32f2ec4ce2a157674edb5b527e3c96a11a9eeb` is a newer upstream candidate and has not been verified with this combined API.

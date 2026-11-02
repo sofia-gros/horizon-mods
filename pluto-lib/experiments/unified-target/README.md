@@ -10,13 +10,13 @@ An official Mixins plan succeeded with these six bundles (9 injections, 4 module
 
 | Task | Current entry |
 | --- | --- |
-| Build Creative tabs | `pluto_creative_api::{register_tabs, Entry, Tab}` |
+| Build Creative tabs | `pluto_api::creative::{register_tabs, Entry, Tab}` |
 | Prepare or normalize Tool SNBT | `horizon_client::pluto_tool_codec::{prepare_tool, normalize_tool_shape}` |
 | Evaluate Tool rules | `horizon_items::items::pluto_tool_rules::{parse_tool, Tool, Rule, Outcome, evaluate}` |
-| Register short item behavior | `pluto_item_api_b2::{register, ItemBehavior, ItemData, UseContext, UseOutcome}` |
+| Register short item behavior | `pluto_api::item::{register, ItemBehavior, ItemData, UseContext, UseOutcome}` |
 | Standard component tooltip and bar | Stage the display and bar bundles; no consumer import is needed |
 
-These are the current staged paths, not a completed stable facade. In particular, the item crate name contains a host suffix and Tool APIs are exposed inside host crate paths. A future compatibility-preserving public entry must hide those paths before consumers can rely on identical imports across target revisions. No broad rename is proposed in this planning unit.
+Creative and short-use item handlers share the host-independent `pluto_api` crate. Tool functions still use the host paths above: Mixins cannot currently add the same generated crate as a direct dependency of the multiple host packages that implement them. These Tool imports can therefore change with the target host.
 
 ## Ordering and verification
 
@@ -31,3 +31,9 @@ The experiment does not establish Tinkers integration, Windows or full launcher 
 A possible small public boundary is a host-independent `pluto_api` crate containing the existing shared data types and traits, with the Creative, Tool and item APIs re-exported there. Version-specific host adapters would depend on that crate and the host; the facade would not depend on `horizon-client` or the adapters. The precise crate split and a migration path for existing imports still need design and verification; this integration does not rename the current entry points.
 
 To reproduce the stack-limit demonstration, set `PLUTO_DEMO_STACK_LIMIT=1` on both host and guest before launch. This enables a demo-only native item-default hook and adds the three count examples to the demo tab; it does not add max-stack configuration to PlutoLib Registry.
+
+Enable the native Creative bundle once alongside the item adapter. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
+
+![Combined demo: the added Creative page and the wand](../../docs/facade-demo.png)
+
+![Guest wand tooltip after reconnecting](../../docs/facade-tooltip.png)

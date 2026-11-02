@@ -4,9 +4,9 @@ fn pluto_use_b2(
     allow_block_actions: bool,
 ) -> std::ops::ControlFlow<Result<horizon_client::first_person::UseResult>> {
     use horizon_client::first_person::{Hand as HostHand, UseResult};
-    use pluto_item_api_b2::{Actor, BlockTarget, Hand, UseContext, UseOutcome};
+    use pluto_api::item::{Actor, BlockTarget, Hand, UseContext, UseOutcome};
     use std::ops::ControlFlow::{Break, Continue};
-    if game.remote.is_some() || !pluto_item_api_b2::contains(&stack.item) {
+    if game.remote.is_some() || !pluto_api::item::contains(&stack.item) {
         return Continue(());
     }
     let actor = game
@@ -55,7 +55,7 @@ fn pluto_use_b2(
         None
     };
     let mut outcome = if let Some(target) = target {
-        pluto_item_api_b2::dispatch_event(&stack.item, &context, Some(target), &mut data)
+        pluto_api::item::dispatch_event(&stack.item, &context, Some(target), &mut data)
     } else {
         UseOutcome::Pass
     };
@@ -64,7 +64,7 @@ fn pluto_use_b2(
     if outcome == UseOutcome::Pass
         && !matches!(game.guest_use, Some(crate::game::GuestUse::OnBlock(_)))
     {
-        outcome = pluto_item_api_b2::dispatch_event(&stack.item, &context, None, &mut data);
+        outcome = pluto_api::item::dispatch_event(&stack.item, &context, None, &mut data);
     }
     match outcome {
         UseOutcome::Pass => Continue(()),

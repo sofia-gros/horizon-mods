@@ -9,7 +9,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parent.parent
 BUNDLE = ROOT / "mixins" / "pluto_native_creative"
-FILES = ("horizon-mixin.toml", "api/Cargo.toml", "api/src/lib.rs")
+FILES = ("horizon-mixin.toml", "api/Cargo.toml", "api/src/lib.rs", "api/src/creative.rs", "api/src/item.rs")
 
 
 def build(output: Path) -> None:

@@ -1,4 +1,4 @@
-use pluto_item_api_b2::{BlockTarget, ItemBehavior, ItemData, UseContext, UseOutcome};
+use pluto_api::item::{BlockTarget, ItemBehavior, ItemData, UseContext, UseOutcome};
 struct Wand;
 impl ItemBehavior for Wand {
     fn on_use_with_context(&self, context: &UseContext, data: &mut ItemData) -> UseOutcome {
@@ -52,6 +52,6 @@ impl ItemBehavior for Wand {
 pub fn register() {
     static ONCE: std::sync::Once = std::sync::Once::new();
     ONCE.call_once(|| {
-        pluto_item_api_b2::register("pluto_wand:wand", Wand).expect("unique demo behavior")
+        pluto_api::item::register("pluto_wand:wand", Wand).expect("unique demo behavior")
     });
 }

@@ -1,6 +1,6 @@
 use horizon_client::items::ItemStack;
 use horizon_world::nbt::{JavaString, Tag};
-use pluto_item_api_b2::ItemData;
+use pluto_api::item::ItemData;
 
 // Store only PlutoLib's own compound, preserving all other custom-data fields.
 pub fn read(stack: &ItemStack) -> Result<ItemData, ()> {
