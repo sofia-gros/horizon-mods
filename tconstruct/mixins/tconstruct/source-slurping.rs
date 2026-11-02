@@ -49,25 +49,8 @@ pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
             super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => {
                 let known = horizon_client::brewing::effect(&effect.id)?;
                 if !targeted.insert(known.id) { return None; }
-                let infinite = effect.time == -1;
-                if infinite && strength < 1.0 { continue; }
-                let extra = if infinite { -1 } else { (effect.time as f32 * strength) as i32 };
-                if !infinite && extra <= 0 { continue; }
-                let (duration, used_scale) = if infinite { (-1, 1.0) } else { match game.potions.effects.get(known.id) {
-                    Some(existing) if existing.amplifier > effect.amplifier => continue,
-                    Some(existing) if existing.amplifier == effect.amplifier && existing.duration < 0 => continue,
-                    Some(existing) if existing.amplifier == effect.amplifier => match effect.action {
-                        super::tconstruct_source_fluid_effects::TimeAction::Add => (existing.duration.checked_add(extra)?, strength),
-                        super::tconstruct_source_fluid_effects::TimeAction::Set => {
-                            let previous = existing.duration as f32 / effect.time as f32;
-                            let effective = (strength + previous).min(*level as f32);
-                            if effective < previous { continue; }
-                            ((effect.time as f32 * effective) as i32, effective - previous)
-                        }
-                    },
-                    _ => (extra, strength),
-                }};
-                if duration == 0 { continue; }
+                let existing = game.potions.effects.get(known.id).map(|current| (current.duration, current.amplifier));
+                let Some((duration, used_scale)) = super::tconstruct_source_fluid_effects::mob_duration(&effect, strength, *level as f32, existing) else { continue; };
                 (PlayerAction::Mob(known.id, duration, effect.amplifier), used_scale)
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {

@@ -24,6 +24,30 @@ pub(super) struct Effects {
     pub entity: Vec<EntityEffect>,
 }
 
+/// Compute the source duration and consumed strength for a living target.
+/// `existing` is the active duration and amplifier for the same effect.
+pub(super) fn mob_duration(effect: &MobEffect, strength: f32, level: f32, existing: Option<(i32, i32)>) -> Option<(i32, f32)> {
+    let infinite = effect.time == -1;
+    if infinite && strength < 1.0 { return None; }
+    let extra = if infinite { -1 } else { (effect.time as f32 * strength) as i32 };
+    if !infinite && extra <= 0 { return None; }
+    let result = if infinite { (-1, 1.0) } else { match existing {
+        Some((_, amplifier)) if amplifier > effect.amplifier => return None,
+        Some((duration, amplifier)) if amplifier == effect.amplifier && duration < 0 => return None,
+        Some((duration, amplifier)) if amplifier == effect.amplifier => match effect.action {
+            TimeAction::Add => (duration.checked_add(extra)?, strength),
+            TimeAction::Set => {
+                let previous = duration as f32 / effect.time as f32;
+                let effective = (strength + previous).min(level);
+                if effective < previous { return None; }
+                ((effect.time as f32 * effective) as i32, effective - previous)
+            }
+        },
+        _ => (extra, strength),
+    }};
+    (result.0 != 0).then_some(result)
+}
+
 /// Distinguish unavailable/unsupported data from no matching recipe; callers
 /// must not skip an unsupported first matching effect and consume fluid later.
 pub(super) fn resolve(
