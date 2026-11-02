@@ -322,11 +322,11 @@ bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
 [[state]]
 id = "part-selections"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),String>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -404,7 +404,7 @@ bindings = [
 
 [[injection]]
 id = "part-selection-chunk-remove"
-target = "horizon_client::chunk_map::ChunkMap::remove"
+target = "horizon_client_render::chunk_map::ChunkMap::remove"
 kind = "HEAD"
 helper = "part-selection-chunk-remove.rs"
 bindings = [
@@ -414,7 +414,7 @@ bindings = [
 
 [[injection]]
 id = "part-selection-chunk-clear"
-target = "horizon_client::chunk_map::ChunkMap::clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
 kind = "HEAD"
 helper = "part-selection-chunk-clear.rs"
 bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
@@ -444,12 +444,12 @@ bindings = [
 [[bridge]]
 id = "recipe-files"
 kind = "INVOKE"
-target = "horizon_client::datapack::DataPack::list_kinds"
+target = "horizon_client_render::datapack::DataPack::list_kinds"
 
 [[bridge]]
 id = "recipe-read"
 kind = "INVOKE"
-target = "horizon_client::datapack::DataPack::read"
+target = "horizon_client_render::datapack::DataPack::read"
 
 [[module]]
 id = "world-recipe-loader"
@@ -513,11 +513,11 @@ source = "source-sprite-frames.rs"
 
 [[state]]
 id = "recipe-tag-snapshot"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -541,111 +541,111 @@ source = "material-snapshot.rs"
 
 [[state]]
 id = "material-snapshot"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "material-tag-snapshot"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "resolved-item-tags"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "resolved-block-tags"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-owners"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-guest-pages"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,(i32,i32,i32)),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-ui-pages"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-ui-dragging"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashSet<(i32,i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-ui-menu-state"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-local-containers"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),([Option<horizon_items::items::ItemStack>;2],u8)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "smeltery-guest-containers"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<u32,((i32,i32,i32),[Option<horizon_items::items::ItemStack>;2],u8)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -670,61 +670,61 @@ bindings = [
 
 [[state]]
 id = "fluid-tag-snapshot"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<Vec<u8>>>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "resolved-fluid-tags"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "resolved-material-definitions"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<(std::collections::HashMap<String,(bool,bool,i32,i32,String)>,std::collections::HashMap<String,String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "resolved-material-stats"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,std::collections::HashMap<String,bool>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "render-assets"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::sync::OnceLock<Result<(std::collections::HashMap<String,serde_json::Value>,std::collections::HashMap<String,(String,[f32;2])>),String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "render-sprite-frames"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::sync::Mutex<std::collections::HashMap<String,(usize,usize,Vec<Vec<u8>>)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -750,21 +750,21 @@ source = "source-config.rs"
 
 [[state]]
 id = "source-config-snapshot"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,bool>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "recipe-snapshot"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::BTreeMap<String,Vec<u8>>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -877,11 +877,11 @@ bindings = [
 
 [[state]]
 id = "material-wire-sent"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32, u64, [i32; 3]), horizon_world::nbt::Tag>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -917,31 +917,31 @@ bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *sel
 
 [[state]]
 id = "material-wire-client"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "bool"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "material-wire-ids"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<(i32, i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "material-wire-before"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32, u64), std::collections::HashSet<(i32, i32)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -979,61 +979,61 @@ source = "source-world-type-server.rs"
 
 [[state]]
 id = "builder-choices"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>,Option<Vec<String>>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-info"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),Vec<String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-info-scroll"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),usize>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "station-info-scroll"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-side-scroll"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(usize,bool)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-side-title"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),i16>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1063,41 +1063,41 @@ source = "station-info-ui.rs"
 
 [[state]]
 id = "builder-info-recv"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-info-sent"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),Vec<i16>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "station-name-edit"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),crate::ui::EditBox>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "station-guest-names"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,i32,(i32,i32,i32)),String>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1186,31 +1186,31 @@ source = "source-builder-wire.rs"
 
 [[state]]
 id = "builder-wire-recv"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-preview"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>,Option<String>,Option<horizon_items::items::ItemStack>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "source-native-durability"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::HashMap<String,u32>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1240,41 +1240,41 @@ source = "source-cast-info.rs"
 
 [[state]]
 id = "source-cast-costs"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Vec<i32>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-cast-costs"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),Vec<i32>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-cast-wire-recv"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),Vec<i16>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-cast-wire-sent"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),Vec<i16>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1286,21 +1286,21 @@ source = "source-builder-layout.rs"
 
 [[state]]
 id = "builder-scroll"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(f32,usize,bool,Vec<String>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-preview-sent"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i32,Option<horizon_items::items::ItemStack>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1396,11 +1396,11 @@ source = "source-recycling-rng.rs"
 
 [[state]]
 id = "source-recipe-generation"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "u64"
 initial = "0"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1408,42 +1408,42 @@ require = 1
 # changes, even if the world's recipe manager reloads.
 [[state]]
 id = "builder-recipe-context"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(u64,std::sync::Arc<std::collections::BTreeMap<String,Vec<u8>>>,Vec<(String,String)>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "source-shared-recipes"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::sync::Arc<std::collections::BTreeMap<String,Vec<u8>>>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 # Material lookup is cached independently of the recipe-button list.
 [[state]]
 id = "builder-material-cache"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(horizon_items::items::ItemStack,Vec<u8>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "source-selection-origin"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(String,String,u64)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1521,41 +1521,41 @@ bindings = [
 
 [[state]]
 id = "builder-side"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-side-size"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),usize>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "builder-double-partner"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(i32,i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "station-preview-sent"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i32,Option<horizon_items::items::ItemStack>,Option<horizon_items::items::ItemStack>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1680,11 +1680,11 @@ bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
 [[state]]
 id = "builder-crafted"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Vec<(u32,String,u32,[f64;3])>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -1763,11 +1763,11 @@ source = "source-tool-model.rs"
 
 [[state]]
 id = "tool-models"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::sync::OnceLock<Result<std::collections::HashMap<String,Vec<(String,Option<usize>)>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2139,21 +2139,21 @@ source = "source-melting-lookup.rs"
 
 [[state]]
 id = "tank-fluid-context"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<(std::collections::HashSet<String>,std::collections::HashMap<String,std::collections::HashSet<String>>),String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "melter-known-items"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::HashSet<String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2251,11 +2251,11 @@ bindings = [
 
 [[state]]
 id = "machine-wire-sent"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32, u64, [i32; 3]), horizon_world::nbt::Tag>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2374,11 +2374,11 @@ source = "source-armor-preview.rs"
 
 [[state]]
 id = "station-guest-layout-count"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,i32,(i32,i32,i32)),usize>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2390,11 +2390,11 @@ source = "source-preview-projection.rs"
 
 [[state]]
 id = "station-armor-preview"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(f32,Option<f32>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2533,21 +2533,21 @@ source = "source-chain-geometry.rs"
 
 [[state]]
 id = "area-guest-hits"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<u32,([i32;3],[i32;3],std::collections::HashSet<(i32,i32)>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "area-active"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashSet<Option<u32>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2594,11 +2594,11 @@ source = "source-transform-geometry.rs"
 
 [[state]]
 id = "transform-guest-hits"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<u32,([i32;3],std::collections::HashSet<(i32,i32)>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2685,21 +2685,21 @@ source = "source-melee-shape.rs"
 
 [[state]]
 id = "melee-context"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>,(u32,u32,f32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "melee-active"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashSet<Option<u32>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2770,11 +2770,11 @@ source = "source-projectile-stats.rs"
 
 [[state]]
 id = "material-projectile-context"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32,bool)>,bool,f64,i32,bool)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2794,11 +2794,11 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[state]]
 id = "armor-wear-context"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>,Vec<(horizon_items::items::ItemStack,u32)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2928,11 +2928,11 @@ bindings = [{ name = "recipe", ty = "&str", value = "recipe" }, { name = "grid",
 
 [[state]]
 id = "glow-left-held"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "bool"
 initial = "false"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2970,11 +2970,11 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[state]]
 id = "glow-guest-protection"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<u32,Option<([i32;3],u32)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -2987,11 +2987,11 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[state]]
 id = "glow-support-checks"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashSet<[i32; 3]>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3031,21 +3031,21 @@ source = "source-glowing-world.rs"
 
 [[state]]
 id = "modifier-wear-cause"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>, String>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "overslime-pending"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>,Vec<(horizon_items::items::ItemStack,u32)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3170,11 +3170,11 @@ source = "source-materials-book-spread.rs"
 
 [[state]]
 id = "materials-book-history"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<usize>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3247,21 +3247,21 @@ bindings = [
 
 [[state]]
 id = "chest-guest-pages"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "chest-ui-pages"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(i32,i32,i32),(usize,usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3383,11 +3383,11 @@ bindings = [
 
 [[state]]
 id = "crafting-sessions"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashSet<(i32,i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3439,11 +3439,11 @@ bindings = [
 
 [[state]]
 id = "crafting-guest-sessions"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32),(i32,i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3547,21 +3547,21 @@ bindings = [
 
 [[state]]
 id = "crafting-guest-side"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32),((i32,i32,i32),usize)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "crafting-side-client"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<(i32,usize,usize,Vec<Option<horizon_items::items::ItemStack>>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3603,11 +3603,11 @@ bindings = [
 
 [[state]]
 id = "menu-window-state"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<(i32,i32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3663,11 +3663,11 @@ source = "source-crafting-output.rs"
 
 [[state]]
 id = "crafting-guest-views"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32),(Vec<Option<horizon_items::items::ItemStack>>,Vec<Option<horizon_items::items::ItemStack>>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3726,21 +3726,21 @@ bindings = [
 
 [[state]]
 id = "chest-guest-drag"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(u8,Vec<(bool,usize)>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
 [[state]]
 id = "crafting-guest-drag"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32),(u8,Vec<(bool,usize)>)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3757,11 +3757,11 @@ bindings = [
 
 [[state]]
 id = "chest-guest-last-move"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(u8,horizon_items::items::ItemStack)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
@@ -3773,11 +3773,11 @@ source = "source-chest-quick-all.rs"
 
 [[state]]
 id = "crafting-guest-last-move"
-target = "horizon_client::chunk_map::ChunkMap"
+target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<(u32,u64,i32),(u8,horizon_items::items::ItemStack)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
