@@ -1,5 +1,15 @@
 fn builder_drag(game: &mut crate::game::Game<'_>) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if let Some((_,count,_,_)) = crate::game::tconstruct_crafting_station::side(game) {
+        let Some(pos) = crate::game::tconstruct_crafting_station::position(game) else { return Continue(()); };
+        if game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos).is_some_and(|s| s.1) {
+            let Some(size) = game.renderer.as_ref().map(|r| [r.config.width,r.config.height]) else { return Break(()); };
+            let batch = horizon_client::hud::HudBatch::new(size); let (_,oy) = game.inventory_origin(&batch);
+            let offset = crate::game::tconstruct_source_side_layout::drag_offset(count,game.cursor.1-oy);
+            game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default().0 = offset;
+            return Break(());
+        }
+    }
     if crate::game::tconstruct_chest_ui::kind(game).is_some() {
         let Some(pos)=game.container else { return Continue(()); };
         if !game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos).is_some_and(|state| state.1) { return Continue(()); }

@@ -1,4 +1,10 @@
 fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<(f32, f32)> {
+    if let Some((_,count,offset,_)) = crate::game::tconstruct_crafting_station::side(game) {
+        if (600..648).contains(&slot) {
+            let index = offset * crate::game::tconstruct_source_side_layout::columns(count) + slot - 600;
+            return std::ops::ControlFlow::Break(crate::game::tconstruct_source_side_layout::slot_position(count, offset, index).unwrap_or((-10000.0,-10000.0)));
+        }
+    }
     if let Some(pos) = crate::game::tconstruct_chest_ui::position(game, slot) { return std::ops::ControlFlow::Break(pos); }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);

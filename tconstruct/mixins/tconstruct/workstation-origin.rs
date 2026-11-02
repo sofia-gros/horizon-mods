@@ -1,5 +1,10 @@
 fn workstation_origin(game: &crate::game::Game<'_>, batch: &horizon_client::hud::HudBatch) -> std::ops::ControlFlow<(f32, f32)> {
     use std::ops::ControlFlow::{Break, Continue};
+    if let Some((_,count,_,_)) = crate::game::tconstruct_crafting_station::side(game) {
+        let (base,y) = batch.centered_origin(176.0,game.screen_height());
+        let base = base + game.recipe_book_shift(batch.width);
+        return Break((crate::game::tconstruct_source_side_layout::adjusted_origin(batch.width,base,crate::game::tconstruct_source_side_layout::left(count),176.0),y));
+    }
     if crate::game::tconstruct_chest_ui::kind(game).is_some() { return Break(batch.centered_origin(176.0, 184.0)); }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (base, y) = batch.centered_origin(176.0, 220.0);

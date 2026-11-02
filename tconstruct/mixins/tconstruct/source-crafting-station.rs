@@ -22,6 +22,9 @@ pub(super) fn open(game: &mut Game<'_>, pos: [i32; 3]) -> bool {
     let BlockEntity::Chest(items) = entity else { return false; };
     if items.len() != 9 { return false; }
     game.craft_grid.clone_from(items);
+    let side = super::tconstruct_ui::side_inventory(game, key, true);
+    if let Some(side) = side { game.world.chunks.__horizon_mixins_tconstruct_builder_side_mut().insert(key, side); }
+    else { game.world.chunks.__horizon_mixins_tconstruct_builder_side_mut().remove(&key); }
     game.world.chunks.__horizon_mixins_tconstruct_crafting_sessions_mut().insert(key);
     game.craft_size = 3;
     game.craft_table = Some(pos);
@@ -29,6 +32,21 @@ pub(super) fn open(game: &mut Game<'_>, pos: [i32; 3]) -> bool {
     game.capture(false);
     game.right = false;
     true
+}
+
+pub(super) fn side(game: &Game<'_>) -> Option<((i32, i32, i32), usize, usize, super::tconstruct_chest_rules::ChestKind)> {
+    use super::tconstruct_chest_rules::ChestKind;
+    let table = position(game)?;
+    let pos = *game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table)?;
+    let kind = match &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name {
+        "tconstruct:part_chest" => ChestKind::Part,
+        "tconstruct:tinkers_chest" => ChestKind::Tinkers,
+        _ => return None,
+    };
+    let count = game.world.block_entities.get(&pos)?.slots().len();
+    if count != kind.slots() { return None; }
+    let offset = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&table).map_or(0, |state| state.0);
+    Some((pos, count, offset, kind))
 }
 
 pub(super) fn sync(game: &mut Game<'_>) {
@@ -54,4 +72,6 @@ pub(super) fn close(game: &mut Game<'_>) {
     // This grid is a view of block-owned slots and must stay in the block.
     game.craft_grid.fill(None);
     game.world.chunks.__horizon_mixins_tconstruct_crafting_sessions_mut().remove(&pos);
+    game.world.chunks.__horizon_mixins_tconstruct_builder_side_mut().remove(&pos);
+    game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().remove(&pos);
 }

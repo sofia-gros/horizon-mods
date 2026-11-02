@@ -3502,3 +3502,34 @@ bindings = [
   { name = "conn", ty = "u32", value = "conn" },
   { name = "pos", ty = "[i32; 3]", value = "pos" },
 ]
+
+[[module]]
+id = "source-side-draw"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_side_draw"
+source = "source-side-draw.rs"
+
+[[injection]]
+id = "crafting-station-side-click"
+target = "horizon_client::game::Game<'_>::menu_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-side-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "slot", ty = "Option<usize>", value = "slot" },
+  { name = "button", ty = "i32", value = "button" },
+  { name = "input", ty = "horizon_client::menu::Input", value = "input" },
+]
+
+[[injection]]
+id = "crafting-station-side-draw"
+target = "horizon_client::game::Game<'_>::draw_inventory_slots"
+kind = "HEAD"
+helper = "source-crafting-side-draw.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "ox", ty = "f32", value = "ox" },
+  { name = "oy", ty = "f32", value = "oy" },
+]

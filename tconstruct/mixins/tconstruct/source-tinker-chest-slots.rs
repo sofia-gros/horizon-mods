@@ -1,4 +1,10 @@
 fn tconstruct_chest_slots(game: &crate::game::Game<'_>) -> std::ops::ControlFlow<Vec<usize>> {
+    if crate::game::tconstruct_crafting_station::side(game).is_some() {
+        let mut slots: Vec<usize> = (0..36).chain(100..109).collect();
+        slots.push(200);
+        slots.extend(600..648);
+        return std::ops::ControlFlow::Break(slots);
+    }
     if crate::game::tconstruct_ui::side_chest_kind(game).is_some() {
         let mut slots: Vec<usize> = (0..36).collect();
         slots.extend(300..381);

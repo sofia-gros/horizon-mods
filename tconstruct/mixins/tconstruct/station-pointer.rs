@@ -1,5 +1,20 @@
 fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
+    if !right {
+        if let Some((_,count,_,_)) = crate::game::tconstruct_crafting_station::side(game) {
+            if let (Some(pos),Some(size)) = (crate::game::tconstruct_crafting_station::position(game),game.renderer.as_ref().map(|r| [r.config.width,r.config.height])) {
+                let batch = horizon_client::hud::HudBatch::new(size); let (ox,oy) = game.inventory_origin(&batch);
+                let left = crate::game::tconstruct_source_side_layout::left(count);
+                let x = left + 7.0 + crate::game::tconstruct_source_side_layout::columns(count) as f32 * 18.0;
+                let height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0;
+                if crate::game::tconstruct_source_side_layout::max_offset(count) > 0 && (ox+x..ox+x+10.0).contains(&game.cursor.0) && (oy+17.0..oy+17.0+height).contains(&game.cursor.1) {
+                    let offset = crate::game::tconstruct_source_side_layout::drag_offset(count,game.cursor.1-oy);
+                    let state = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default(); state.0=offset; state.1=true;
+                    return Break(true);
+                }
+            }
+        }
+    }
     if !right && crate::game::tconstruct_chest_ui::kind(game).is_some() {
         let Some(key) = game.container else { return Break(true); };
         let Some((count, _)) = crate::game::tconstruct_chest_ui::page(game) else { return Break(true); };
