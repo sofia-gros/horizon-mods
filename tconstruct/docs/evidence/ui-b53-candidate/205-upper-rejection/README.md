@@ -1,0 +1,3 @@
+# Casting tank upper-face invalid item
+
+Same limited integrated client, resources, #205 inclusion and corrections as [the creative casting tank fixture](../205-creative-tank/README.md); not an unmodified exact-head build. In a fresh survival fixture, after processing a water bucket and retrieving the output, the player clicked the empty upper slot while holding dirt. Dirt remained in hand; clicking again with an empty hand produced no additional dirt. The screenshot is an actual client capture and the log records the item states. An initial harness run ended due to a missing test helper and was not counted. Other #205 gates remain open.
