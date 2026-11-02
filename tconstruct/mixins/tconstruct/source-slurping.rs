@@ -37,6 +37,10 @@ pub(super) fn recipe(game: &super::Game<'_>, fluid_id: &str) -> Option<super::tc
     super::tconstruct_source_fluid_effects::parse_entity(&raw_recipe(game, fluid_id)?)
 }
 
+pub(super) fn tagged_recipe(game: &super::Game<'_>, fluid_id: &str, tag: Option<&Tag>) -> Option<super::tconstruct_source_fluid_effects::Effects> {
+    super::tconstruct_source_fluid_effects::parse_tagged_entity(&raw_recipe(game, fluid_id)?, tag)
+}
+
 pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
     plan_for(game, stack, "tconstruct:slurping", None)
 }
@@ -53,7 +57,7 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
     let capacity = match custom.get("tic_tank_capacity")? { Tag::Int(n) if *n > 0 => *n as u32, _ => return None };
     let fluid = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid")??;
     if fluid.amount > capacity || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
-    let recipe = recipe(game, &fluid.id)?;
+    let recipe = tagged_recipe(game, &fluid.id, fluid.tag.as_ref())?;
     if recipe.entity.is_empty() { return None; }
     let strength = (level as f32).min(fluid.amount as f32 / recipe.amount as f32);
     if strength <= 0.0 { return None; }
@@ -76,6 +80,7 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
                 (PlayerAction::Remove(known.id), 1.0)
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => return None,
+            super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => return None,
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { hunger, saturation, always } => {
                 if hunger_seen { return None; } hunger_seen = true;
                 let player = game.player.as_ref()?;

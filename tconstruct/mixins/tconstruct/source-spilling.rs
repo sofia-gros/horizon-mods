@@ -68,7 +68,7 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
     let Some(Some(fluid)) = super::pluto_stack_fluid::read(&stack, "tic_persistent", "tconstruct:tank_fluid") else { return None; };
     let capacity = *capacity as u32;
     if fluid.amount > capacity || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
-    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return None; };
+    let Some(recipe) = super::tconstruct_source_slurping::tagged_recipe(game, &fluid.id, fluid.tag.as_ref()) else { return None; };
     let strength = (*level as f32).min(fluid.amount as f32 / recipe.amount as f32);
     if strength <= 0.0 { return None; }
     enum Action { Add(&'static str, i32, i32), RemovePoison, Push([f64; 3]) }
@@ -79,6 +79,21 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
             super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => effect,
             // RestoreHungerFluidEffect applies only to players, not mobs.
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => continue,
+            super::tconstruct_source_fluid_effects::EntityEffect::CureMilk => {
+                // The original also runs Strong Bones / calcifiable equipment
+                // effects. Without equipment those effects cannot apply.
+                if game.mobs[index].equipment_stacks().iter().any(Option::is_some) { return None; }
+                if game.mobs[index].extra.effects.iter().any(|entry| entry.0 != "minecraft:poison") { return None; }
+                if strength >= 1.0 && game.mobs[index].extra.effects.iter().any(|entry| entry.0 == "minecraft:poison") {
+                    if !ids.insert("minecraft:poison") { return None; }
+                    planned.push((Action::RemovePoison, recipe.amount));
+                }
+                continue;
+            }
+            super::tconstruct_source_fluid_effects::EntityEffect::Calcified => {
+                if game.mobs[index].equipment_stacks().iter().any(Option::is_some) { return None; }
+                continue;
+            }
             super::tconstruct_source_fluid_effects::EntityEffect::Push { flat, each_level } => {
                 if each_level == 0.0 && strength < 1.0 { continue; }
                 let Some(player) = game.player.as_ref() else { return None; };
