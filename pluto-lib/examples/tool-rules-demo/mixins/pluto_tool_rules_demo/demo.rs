@@ -29,13 +29,26 @@ pub fn prepare() -> Result<(), Box<dyn Error>> {
         id: "pluto_tool_rules_demo:tools".into(),
         title: "Pluto Tool Rules".into(),
         icon: r#"{id:"minecraft:diamond_pickaxe",count:1}"#.into(),
-        items: vec![Entry {
+        items: std::iter::once(Entry {
             snbt: stack,
             searchable: true,
             permissions_only: false,
             search_lines: vec!["Pluto Rules Pickaxe".into()],
             search_tags: Vec::new(),
-        }],
+        })
+        .chain(
+            std::env::var_os("PLUTO_DEMO_STACK_LIMIT")
+                .into_iter()
+                .flat_map(|_| [199, 200, 201])
+                .map(|count| Entry {
+                    snbt: format!(r#"{{id:"pluto_wand:wand",count:{count}}}"#),
+                    searchable: false,
+                    permissions_only: false,
+                    search_lines: Vec::new(),
+                    search_tags: Vec::new(),
+                }),
+        )
+        .collect(),
     }];
     let updated = register_tabs(&doc, &tabs, |s| {
         let mut item = horizon_items::item_data::parse_stack(s)?.ok_or("empty stack")?;

@@ -255,6 +255,34 @@ impl std::fmt::Display for ToolError {
 }
 impl std::error::Error for ToolError {}
 
+fn parse_tool_snbt(snbt: &str) -> Result<Tag, ToolError> {
+    let (tool, used) = horizon_world::nbt::parse_snbt(snbt).map_err(|_| ToolError::InvalidSnbt)?;
+    if !snbt[used..].trim().is_empty() {
+        return Err(ToolError::InvalidSnbt);
+    }
+    Ok(tool)
+}
+
+/// Normalize the stored Tool shape without checking block registry membership.
+/// The input is never modified; callers should retain it when this returns an error.
+pub fn normalize_tool_shape(snbt: &str) -> Result<String, ToolError> {
+    let tool = parse_tool_snbt(snbt)?;
+    // Temporary IDs let the existing wire canonicalizer normalize holder sets
+    // without asserting that any name occurs in a real block registry.
+    let ids = std::cell::RefCell::new(std::collections::BTreeMap::<String, i32>::new());
+    let normalized = canonicalize(&tool, &|_, name| {
+        let mut ids = ids.borrow_mut();
+        if let Some(id) = ids.get(name) {
+            return Some(*id);
+        }
+        let id = i32::try_from(ids.len()).ok()?;
+        ids.insert(name.to_owned(), id);
+        Some(id)
+    })
+    .ok_or(ToolError::InvalidOrUnsupported)?;
+    Ok(crate::item_data::canon_tag(&normalized))
+}
+
 /// Validate and normalize a Tool component before it is registered or changed.
 /// The caller supplies the current connection's block registry mapping. The
 /// return value is canonical SNBT and the interface exposes no host types.
@@ -262,10 +290,7 @@ pub fn prepare_tool(
     snbt: &str,
     resolve_block: impl Fn(&str) -> Option<i32>,
 ) -> Result<String, ToolError> {
-    let (tool, used) = horizon_world::nbt::parse_snbt(snbt).map_err(|_| ToolError::InvalidSnbt)?;
-    if !snbt[used..].trim().is_empty() {
-        return Err(ToolError::InvalidSnbt);
-    }
+    let tool = parse_tool_snbt(snbt)?;
     let missing = std::cell::RefCell::new(None);
     let result = canonicalize(&tool, &|_, name| match resolve_block(name) {
         Some(id) if id >= 0 => Some(id),

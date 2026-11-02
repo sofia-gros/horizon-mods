@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 1000
 
 [compatibility]
-horizon_revision = "b2e71aca04c7f62f24eefd7dd0324bae9c04954f"
+horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
 
 [[module]]
 id = "policy"
