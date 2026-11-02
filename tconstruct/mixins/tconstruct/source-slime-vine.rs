@@ -26,6 +26,29 @@ fn has_attachment(level: &GameLevel<'_>, pos: BlockPos, direction: Direction, ke
     let state = level.registry.state(above)?;
     Some(state.name == "tconstruct:sky_slime_vine" && active(state,key) && state.properties.get("stage").is_some_and(|s| s != "end"))
 }
+pub(super) fn placement(level: &GameLevel<'_>, state: BlockStateId, context: &PlacementContext, answer: &mut Option<Option<BlockStateId>>) {
+    let Some(default) = level.registry.state(state) else { return; };
+    if default.name != "tconstruct:sky_slime_vine" { return; }
+    let existing_id = level.block_state(context.pos);
+    let existing = level.registry.state(existing_id);
+    let same = existing.is_some_and(|v| v.name == default.name);
+    let mut chosen = if same { existing.cloned().unwrap_or_else(|| default.clone()) } else { default.clone() };
+    for direction in context.__horizon_mixins_tconstruct_slime_vine_looking_directions() {
+        let (key, delta) = match direction {
+            Direction::Up => ("up", (0,1,0)), Direction::North => ("north", (0,0,-1)),
+            Direction::East => ("east", (1,0,0)), Direction::South => ("south", (0,0,1)),
+            Direction::West => ("west", (-1,0,0)), Direction::Down => continue,
+        };
+        if same && active(&chosen, key) { continue; }
+        let Some(attached) = has_attachment(level, context.pos, direction, key, delta) else { *answer = Some(None); return; };
+        if attached {
+            chosen.properties.insert(key.into(), "true".into());
+            *answer = Some(level.registry.resolve(&chosen).ok());
+            return;
+        }
+    }
+    *answer = Some(if same { Some(existing_id) } else { None });
+}
 pub(super) fn update(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, direction: Direction, new: &mut Option<BlockStateId>) {
     let Some(block) = level.registry.state(state) else { return; };
     if block.name != "tconstruct:sky_slime_vine" || direction == Direction::Down { return; }

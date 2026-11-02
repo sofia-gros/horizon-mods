@@ -156,3 +156,9 @@ Earth and Sky leaves; its Ender entry is optional until Ender leaves are
 registered. Vine placement, Ender vines, full island generation, the target
 injection plan, support shapes, world and save behavior, RNG order and
 single-player/LAN validation remain open. Vanilla vine behavior is unchanged.
+
+Sky vine placement additionally follows the source ordered look directions,
+existing-vine side checks and source attachment rules. It uses a narrow bridge
+to the host placement context's direction ordering. The bridge plan, placing
+on each face, replacement, no-support rejection, player/dispenser behavior,
+item consumption and local/LAN regression require dedicated validation.

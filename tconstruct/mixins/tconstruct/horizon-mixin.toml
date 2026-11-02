@@ -3965,3 +3965,15 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape
 kind = "HEAD"
 helper = "source-slime-vine-update.rs"
 bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "direction", ty = "Direction", value = "direction" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]
+
+[[bridge]]
+id = "slime-vine-looking-directions"
+kind = "INVOKE"
+target = "horizon_world::level::place::PlacementContext::nearest_looking_directions"
+
+[[injection]]
+id = "source-slime-vine-place"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
+kind = "HEAD"
+helper = "source-slime-vine-place.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "context", ty = "&PlacementContext", value = "context" }, { name = "answer", ty = "&mut Option<Option<BlockStateId>>", value = "&mut *answer" }]
