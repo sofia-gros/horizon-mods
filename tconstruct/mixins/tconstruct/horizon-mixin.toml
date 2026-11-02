@@ -4139,7 +4139,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 [[state]]
 id = "splashing-guest-scope"
 target = "horizon_client_render::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<u32, bool>"
+ty = "std::collections::HashMap<u32, Vec<[f64; 3]>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"

@@ -217,11 +217,14 @@ pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f
 /// non-mob entities need an authoritative host-backed enumeration.
 pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&ItemStack>, claimed: &mut bool) {
     if *claimed || game.remote.is_some() { return; }
-    // A guest turn does not expose LanHost to this hook. Restrict the current
-    // experimental path to packet scopes known to contain no other players.
-    if let Some(conn) = game.lan_acting {
-        if game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope().get(&conn) != Some(&true) { return; }
-    } else if game.lan.as_ref().is_some_and(|host| host.hub.guests.iter().any(|guest| guest.placed)) { return; }
+    // Guest player positions are captured from the active packet's LanHost;
+    // do not guess if the packet-scoped snapshot is absent.
+    let other_players = if let Some(conn) = game.lan_acting {
+        let Some(positions) = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope().get(&conn) else { return; };
+        positions.clone()
+    } else {
+        game.lan.as_ref().map(|host| host.hub.guests.iter().filter(|guest| guest.placed && guest.dimension == game.dim.id()).map(|guest| guest.position).collect()).unwrap_or_default()
+    };
     let Some(stack) = stack.cloned() else { return; };
     if !right_click(game, &stack) || super::tconstruct_source_melee_shape::intact(&stack).is_none() || game.cooldowns.is_on_cooldown(&stack.item) { return; }
     let Some(target) = game.mobs.iter().position(|mob| i32::try_from(mob.id).ok() == Some(entity) && mob.alive()) else { return; };
@@ -244,6 +247,9 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     // Living armor stands also receive source effects, but their effect adapter
     // is not yet implemented. Do not perform a partial area operation.
     let radius = 1.0 + f64::from(expanded);
+    // Only the actual affected area is held back until player effects have an
+    // authoritative host-backed execution path.
+    if other_players.iter().any(|position| (0..3).map(|axis| (position[axis] - origin[axis]).powi(2)).sum::<f64>() < radius * radius) { return; }
     if game.armor_stands.iter().any(|stand| !stand.marker && {
         let delta = [stand.position.x - origin[0], stand.position.y - origin[1], stand.position.z - origin[2]];
         delta.iter().map(|component| component * component).sum::<f64>() < radius * radius
