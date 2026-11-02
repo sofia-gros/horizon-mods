@@ -115,8 +115,8 @@ are not registered or added by this batch.
 
 The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
-Silk Touch versus underlying slime-dirt loot. Their random ticks are disabled
-until source spreading and bonemeal behavior is connected. Source-tinted rendering remains open; registration alone does not establish island generation.
+Silk Touch versus underlying slime-dirt loot. Source grass/nylium random ticks are connected experimentally as described
+below; bonemeal behavior remains open. Source-tinted rendering remains open; registration alone does not establish island generation.
 
 The original five `slimy_soil` child tags and their aggregate are included,
 with all 25 foliage/soil grass combinations, four slimy Enderbark roots and
@@ -145,3 +145,15 @@ unconnected because their original feature types and resources are not yet
 implemented. The target-version injections, loading, placement and saved-start
 restoration require dedicated plan, build and in-game validation; no natural
 generation or survival acquisition is claimed until that succeeds.
+
+## Experimental slime grass random ticks
+
+The registered slime grasses request random ticks. The local authoritative
+server hook applies the source grass validity, light and four spread attempts
+to vanilla and slime dirt, including the source loaded-area and water checks.
+The source Nylium variant reverts to its underlying dirt when blocked; it
+does not use the overworld grass-spreading branch. Source grass bonemeal,
+slime sapling growth, vine random growth and dedicated-server coverage remain
+open. The target injection plan, exact light/occlusion and random-draw order,
+chunk edges, snow, fluids, save/reload and vanilla grass regressions require
+dedicated validation.
