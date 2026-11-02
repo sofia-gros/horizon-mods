@@ -88,23 +88,77 @@ pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) 
     if stack.item.as_ref() == "minecraft:potion" { return potion_data(stack, allow_color).is_some(); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
-// Translate only the losslessly represented base potion and optional color.
-fn potion_data(stack: &ItemStack, allow_color: bool) -> Option<(String, Option<i32>)> {
+// Effect IDs changed from numeric bytes to namespaced IDs after 1.20.1.
+// Only the source-era vanilla IDs and fields with unchanged NBT types are
+// translated; unsupported effects stay in the original stack/tank.
+const EFFECT_IDS: [&str; 33] = [
+    "minecraft:speed", "minecraft:slowness", "minecraft:haste", "minecraft:mining_fatigue",
+    "minecraft:strength", "minecraft:instant_health", "minecraft:instant_damage", "minecraft:jump_boost",
+    "minecraft:nausea", "minecraft:regeneration", "minecraft:resistance", "minecraft:fire_resistance",
+    "minecraft:water_breathing", "minecraft:invisibility", "minecraft:blindness", "minecraft:night_vision",
+    "minecraft:hunger", "minecraft:weakness", "minecraft:poison", "minecraft:wither", "minecraft:health_boost",
+    "minecraft:absorption", "minecraft:saturation", "minecraft:glowing", "minecraft:levitation",
+    "minecraft:luck", "minecraft:unluck", "minecraft:slow_falling", "minecraft:conduit_power",
+    "minecraft:dolphins_grace", "minecraft:bad_omen", "minecraft:hero_of_the_village", "minecraft:darkness",
+];
+fn effect_instance(value: &horizon_world::nbt::Tag, to_source: bool, depth: u8) -> Option<horizon_world::nbt::Tag> {
+    use horizon_world::nbt::{Compound, Tag};
+    if depth > 16 { return None; }
+    let Tag::Compound(fields) = value else { return None; };
+    let (id_key, target_id) = if to_source { ("id", "Id") } else { ("Id", "id") };
+    let id = match (to_source, fields.get(&id_key.into())?) {
+        (true, Tag::String(id)) => Tag::Byte((EFFECT_IDS.iter().position(|candidate| *candidate == id.to_string_lossy().as_ref())? + 1) as i8),
+        (false, Tag::Byte(id)) if *id > 0 => Tag::String((*EFFECT_IDS.get(*id as usize - 1)?).into()),
+        _ => return None,
+    };
+    let mut result = Compound::new(); result.insert(target_id.into(), id);
+    for (key, value) in fields {
+        let name = key.to_string_lossy();
+        if name == id_key { continue; }
+        let (old, modern) = match (to_source, name.as_ref()) {
+            (true, "amplifier") | (false, "Amplifier") => ("Amplifier", "amplifier"),
+            (true, "duration") | (false, "Duration") => ("Duration", "duration"),
+            (true, "ambient") | (false, "Ambient") => ("Ambient", "ambient"),
+            (true, "show_particles") | (false, "ShowParticles") => ("ShowParticles", "show_particles"),
+            (true, "show_icon") | (false, "ShowIcon") => ("ShowIcon", "show_icon"),
+            (true, "hidden_effect") | (false, "HiddenEffect") => ("HiddenEffect", "hidden_effect"),
+            _ => return None,
+        };
+        let converted = match old {
+            "HiddenEffect" => effect_instance(value, to_source, depth + 1)?,
+            "Duration" if matches!(value, Tag::Int(_)) => value.clone(),
+            "Amplifier" if matches!(value, Tag::Byte(_)) => value.clone(),
+            "Ambient" | "ShowParticles" | "ShowIcon" if matches!(value, Tag::Byte(0 | 1)) => value.clone(),
+            _ => return None,
+        };
+        result.insert((if to_source { old } else { modern }).into(), converted);
+    }
+    Some(Tag::Compound(result))
+}
+fn effects(value: &horizon_world::nbt::Tag, to_source: bool) -> Option<horizon_world::nbt::Tag> {
+    use horizon_world::nbt::Tag;
+    let Tag::List(values) = value else { return None; };
+    Some(Tag::List(values.iter().map(|value| effect_instance(value, to_source, 0)).collect::<Option<Vec<_>>>()?))
+}
+fn potion_data(stack: &ItemStack, allow_color: bool) -> Option<(String, Option<i32>, Option<horizon_world::nbt::Tag>)> {
     use horizon_world::nbt::Tag;
     if !matches!(&*stack.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") || stack.count == 0 || stack.damage != 0 { return None; }
     let potion = stack.potion()?;
     let mut plain = ItemStack::new(&stack.item, 1).with_potion(potion);
     let extra = stack.data().map(|data| data.potion_extra.as_slice()).unwrap_or(&[]);
-    let color = match extra {
-        [] => None,
-        [(key, Tag::Int(color))] if allow_color && key == "custom_color" => Some(*color),
-        _ => return None,
-    };
-    if let Some(color) = color { plain.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(color))); }
-    stack.same_item_same_components(&plain).then(|| (potion.to_owned(), color))
+    let mut color = None; let mut custom_effects = None;
+    for (key, value) in extra {
+        match (key.as_str(), value) {
+            ("custom_color", Tag::Int(value)) if allow_color && color.is_none() => color = Some(*value),
+            ("custom_effects", value) if allow_color && custom_effects.is_none() => custom_effects = Some(effects(value, true)?),
+            _ => return None,
+        }
+    }
+    plain.data_mut().potion_extra = extra.to_vec();
+    stack.same_item_same_components(&plain).then(|| (potion.to_owned(), color, custom_effects))
 }
 
-pub(super) fn potion_tag(tag: &horizon_world::nbt::Tag, allow_color: bool) -> Option<(String, Option<i32>)> {
+pub(super) fn potion_tag(tag: &horizon_world::nbt::Tag, allow_color: bool) -> Option<(String, Option<i32>, Option<horizon_world::nbt::Tag>)> {
     use horizon_world::nbt::Tag;
     let Tag::Compound(fields) = tag else { return None; };
     let Tag::String(potion) = fields.get(&"Potion".into())? else { return None; };
@@ -115,13 +169,19 @@ pub(super) fn potion_tag(tag: &horizon_world::nbt::Tag, allow_color: bool) -> Op
         Some(Tag::Int(color)) if allow_color => Some(*color),
         _ => return None,
     };
-    if fields.len() != 1 + usize::from(color.is_some()) { return None; }
-    Some((potion, color))
+    let custom_effects = match fields.get(&"CustomPotionEffects".into()) {
+        None => None,
+        Some(value) if allow_color => Some(effects(value, false)?),
+        _ => return None,
+    };
+    if fields.len() != 1 + usize::from(color.is_some()) + usize::from(custom_effects.is_some()) { return None; }
+    Some((potion, color, custom_effects))
 }
-pub(super) fn potion_stack(item: &str, potion: &str, color: Option<i32>) -> ItemStack {
+pub(super) fn potion_stack(item: &str, potion: &str, color: Option<i32>, custom_effects: Option<horizon_world::nbt::Tag>) -> ItemStack {
     use horizon_world::nbt::Tag;
     let mut result = ItemStack::new(item, 1).with_potion(potion);
     if let Some(color) = color { result.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(color))); }
+    if let Some(effects) = custom_effects { result.data_mut().potion_extra.push(("custom_effects".into(), effects)); }
     result
 }
 
@@ -224,7 +284,7 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
     if matches!(&*input.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") {
         use horizon_world::nbt::Tag;
         if direction == Direction::FillItem { return false; }
-        let Some((potion, color)) = potion_data(input, allow_color) else { return false; };
+        let Some((potion, color, custom_effects)) = potion_data(input, allow_color) else { return false; };
         let empty = match &*input.item {
             "minecraft:potion" => "minecraft:glass_bottle".to_owned(),
             item => {
@@ -244,6 +304,7 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
             else {
                 let mut fields = vec![("Potion", Tag::String(potion.as_str().into()))];
                 if let Some(color) = color { fields.push(("CustomPotionColor", Tag::Int(color))); }
+                if let Some(effects) = custom_effects { fields.push(("CustomPotionEffects", effects)); }
                 ("tconstruct:potion", Some(Tag::compound(fields)))
             };
         let mut next = tank.clone();
@@ -289,7 +350,7 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
         let is_potion = entry.id == "tconstruct:potion";
         let is_water = entry.id == "minecraft:water" && entry.tag.is_none();
         if is_potion || is_water {
-            let (potion, color) = if is_water { ("minecraft:water".to_owned(), None) } else {
+            let (potion, color, custom_effects) = if is_water { ("minecraft:water".to_owned(), None, None) } else {
                 let Some(tag) = entry.tag.as_ref() else { return false; };
                 let Some(data) = potion_tag(tag, allow_color) else { return false; };
                 data
@@ -300,7 +361,7 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
             if !known_item("minecraft:potion") || !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
             let mut remaining = input.clone(); remaining.count -= 1;
             slots[0] = (remaining.count > 0).then_some(remaining);
-            slots[1] = Some(potion_stack("minecraft:potion", &potion, color)); *tank = next;
+            slots[1] = Some(potion_stack("minecraft:potion", &potion, color, custom_effects)); *tank = next;
             return true;
         }
     }
@@ -363,6 +424,22 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn potion_effects_round_trip_known_source_ids_and_reject_unknown() {
+        use horizon_world::nbt::Tag;
+        let modern = Tag::List(vec![Tag::compound([
+            ("id", Tag::String("minecraft:water_breathing".into())),
+            ("duration", Tag::Int(600)),
+            ("amplifier", Tag::Byte(1)),
+            ("show_particles", Tag::Byte(0)),
+        ])]);
+        let source = super::effects(&modern, true).unwrap();
+        assert_eq!(super::effects(&source, false), Some(modern));
+        let unknown = Tag::List(vec![Tag::compound([("id", Tag::String("example:unknown".into()))])]);
+        assert!(super::effects(&unknown, true).is_none());
+        let unsupported = Tag::List(vec![Tag::compound([("id", Tag::String("minecraft:speed".into())), ("amplifier", Tag::Int(1))])]);
+        assert!(super::effects(&unsupported, true).is_none());
+    }
     use super::*;
     fn known(_: &str) -> bool { true }
     #[test]
