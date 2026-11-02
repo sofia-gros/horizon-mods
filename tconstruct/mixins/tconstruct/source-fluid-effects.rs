@@ -21,6 +21,8 @@ pub(super) enum EntityEffect {
     Push { flat: f32, each_level: f32 },
     CureMilk,
     Calcified,
+    WaterSensitiveDamage,
+    Extinguish,
 }
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Effects {
@@ -111,6 +113,16 @@ pub(super) fn parse_entity(value: &Value) -> Option<Effects> {
                     }
                     "tconstruct:cure_effects" if obj.len() == 2 && obj.get("item").and_then(Value::as_str) == Some("minecraft:milk_bucket") => Some(EntityEffect::CureMilk),
                     "tconstruct:calcified" if obj.len() == 1 => Some(EntityEffect::Calcified),
+                    "tconstruct:extinguish" if obj.len() == 1 => Some(EntityEffect::Extinguish),
+                    "tconstruct:conditional" if obj.len() == 3
+                        && obj.get("target").and_then(Value::as_str) == Some("mantle:water_sensitive")
+                        && effect.pointer("/effect/type").and_then(Value::as_str) == Some("tconstruct:damage")
+                        && effect.pointer("/effect/damage").and_then(Value::as_f64) == Some(2.0)
+                        && effect.pointer("/effect/damage_type/melee").and_then(Value::as_str) == Some("tconstruct:water_melee")
+                        && effect.pointer("/effect/damage_type/ranged").and_then(Value::as_str) == Some("tconstruct:water_ranged")
+                        && obj.get("effect").and_then(Value::as_object).is_some_and(|effect| effect.len() == 3)
+                        && effect.pointer("/effect/damage_type").and_then(Value::as_object).is_some_and(|types| types.len() == 2)
+                        => Some(EntityEffect::WaterSensitiveDamage),
                     "tconstruct:push_entity" => {
                         if obj.keys().any(|key| !matches!(key.as_str(), "type" | "flat" | "each_level")) { return None; }
                         let flat = obj.get("flat").map_or(Some(0.0), Value::as_f64)? as f32;
