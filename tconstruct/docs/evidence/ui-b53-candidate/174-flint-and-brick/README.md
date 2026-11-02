@@ -1,0 +1,5 @@
+# Flint and Brick stat-based repair
+
+Combined source cc868cdb5d335278df1aa819b2a2e817d75a6a74 contains #174 head 7e1de95ba5108caa705f67362a2323a8ae898292 and subsequent changes; client SHA-256 `16cff912e03bc7879da2b5b2cc6cebe9b98a7265bd6a6bbdb9c4562243c7ef51`, host b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9, Mixins ddd9700b21997c95d95ac6ee5ecafe3830cf622a, #263 content and isolated corrections as documented in [the Tasty fixture](../263-tasty-old-client/README.md). This is not an unmodified exact-head build.
+
+Fresh creative fixture: a Flint and Brick with damage 75, max damage 100, and no material-part list was put in a Tinker Station with dirt. No result appeared and both inputs remained. Replacing dirt with a Seared Brick produced the tool; taking it showed damage 0. The original fixed `material_repair` definition references seared stone with head stats. Images are real client screenshots. The label `BACON` and file name `bacon-output.png` in the reusable harness log/script are historical labels; the actual tested item was `tconstruct:seared_brick`, confirmed in the log. Other #174 cases, LAN, save/reload and full-output handling remain unverified.
