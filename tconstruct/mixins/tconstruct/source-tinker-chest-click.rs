@@ -7,8 +7,16 @@ fn tconstruct_chest_click(
     let Some(kind) = crate::game::tconstruct_chest_ui::kind(game) else { return Continue(()); };
     if game.remote.is_some() { return Continue(()); }
     let Some(key) = game.container else { return Break(true); };
-    let Some(slot) = slot else { return Break(true); };
-    if input != Input::Swap && button != 0 && button != 1 { return Break(true); }
+    let Some(slot) = slot else {
+        if input==Input::Pickup && matches!(button,0|1) && game.eye_position().is_some() {
+            let mut cursor=vec![game.carried.take()];
+            let dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut cursor,0,button==0);
+            game.carried=cursor.pop().flatten();
+            if let (Some(stack),Some(eye))=(dropped,game.eye_position()) {game.throw_from_eyes(stack,eye,false);}
+        }
+        return Break(true);
+    };
+    if !matches!(input,Input::Swap|Input::Clone) && button != 0 && button != 1 { return Break(true); }
     let candidate = if input == Input::Swap {
         if button==40 {game.offhand.as_ref()} else {usize::try_from(button).ok().and_then(|i|game.inventory.get(i)).and_then(Option::as_ref)}
     } else if input == Input::QuickMove {
@@ -64,6 +72,17 @@ fn tconstruct_chest_click(
         Input::Swap if slot<36 => {
             if button==40 {std::mem::swap(&mut game.inventory[slot],&mut game.offhand);changed=true;}
             else if (0..9).contains(&button) {game.inventory.swap(slot,button as usize);changed=true;}
+        }
+        Input::Throw if game.carried.is_none() => {
+            if slot<36 {dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut game.inventory,slot,button!=0);}
+            else if (300..556).contains(&slot) {
+                if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&key) {dropped=crate::game::tconstruct_chest_rules::take_for_drop(items,slot-300,button!=0);}
+            }
+            changed=dropped.is_some();
+        }
+        Input::Clone if game.creative && game.carried.is_none() => {
+            let stack=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else {game.world.block_entities.get(&key).and_then(|e|e.slots().get(slot.saturating_sub(300))).and_then(Option::as_ref)};
+            if let Some(stack)=stack {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);game.carried=Some(copy);changed=true;}
         }
         _ => {}
     }

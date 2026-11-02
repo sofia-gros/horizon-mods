@@ -157,6 +157,12 @@ pub(super) fn pickup_player(
     true
 }
 
+pub(super) fn take_for_drop(slots: &mut [Option<horizon_items::items::ItemStack>], index: usize, all: bool) -> Option<horizon_items::items::ItemStack> {
+    let cell=slots.get_mut(index)?;let mut stack=cell.take()?;
+    if all || stack.count<=1 {return Some(stack);}
+    stack.count-=1;let mut dropped=stack.clone();dropped.count=1;*cell=Some(stack);Some(dropped)
+}
+
 /// Hotbar/offhand swap against a chest slot, including a capped incoming
 /// stack and return of the displaced item through the player inventory.
 pub(super) fn swap_slot(
@@ -347,6 +353,18 @@ mod tests {
         assert_eq!(inventory[2].as_ref().unwrap().item.as_ref(),"minecraft:diamond");
         let mut parts=vec![None;256];
         assert!(swap_slot(ChestKind::Part,&mut parts,0,&mut inventory,&mut offhand,1,64,false,|_,s|Some(s)).is_none());
+    }
+    #[test]
+    fn dropped_single_item_keeps_its_components() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack=ItemStack::new("minecraft:stone",3);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("mark",Tag::Int(4))])));
+        let mut slots=vec![Some(stack.clone())];let taken=take_for_drop(&mut slots,0,false).unwrap();
+        assert_eq!((taken.count,slots[0].as_ref().unwrap().count),(1,2));
+        assert!(taken.same_item_same_components(&stack));
+        assert_eq!(take_for_drop(&mut slots,0,true).unwrap().count,2);
+        assert!(slots[0].is_none());
     }
     #[test]
     fn crafted_result_fills_side_then_player_and_rejects_full_destinations() {

@@ -32,7 +32,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let tagged=candidate.is_some_and(|s| world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok()).and_then(|tags|tags.get("tconstruct:chest_parts")).is_some_and(|items|items.contains(s.item.as_ref())));
     let mut changed=false;
     let mut dropped=None;
-    if matches!(packet.button,0|1) || packet.input==2 {
+    if matches!(packet.button,0|1) || matches!(packet.input,2|3) {
         match (packet.input,storage,player) {
             (0,Some(i),_) => changed=chest::pickup_slot(kind,&mut contents,i,&mut carried,packet.button==1,max,tagged),
             (0,_,Some(i)) => changed=chest::pickup_player(&mut inventory,i,&mut carried,packet.button==1,max),
@@ -50,6 +50,15 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
             (2,_,Some(i)) => {
                 if packet.button==40 {std::mem::swap(&mut inventory[i],&mut offhand);changed=true;}
                 else if (0..9).contains(&packet.button) {inventory.swap(i,packet.button as usize);changed=true;}
+            },
+            (0,None,None) if packet.slot==-999 => {
+                let mut cursor=vec![carried.take()];dropped=chest::take_for_drop(&mut cursor,0,packet.button==0);carried=cursor.pop().flatten();changed=dropped.is_some();
+            },
+            (4,Some(i),_) if carried.is_none() => {dropped=chest::take_for_drop(&mut contents,i,packet.button!=0);changed=dropped.is_some();},
+            (4,_,Some(i)) if carried.is_none() => {dropped=chest::take_for_drop(&mut inventory,i,packet.button!=0);changed=dropped.is_some();},
+            (3,storage,player) if hub.guests[gi].creative() && carried.is_none() => {
+                let stack=storage.and_then(|i|contents[i].as_ref()).or_else(||player.and_then(|i|inventory[i].as_ref()));
+                if let Some(stack)=stack {let mut copy=stack.clone();copy.count=rules.max_stack(&copy.item).max(1);carried=Some(copy);changed=true;}
             },
             _=>{},
         }
