@@ -360,21 +360,57 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
     let effects = recipe.get("block_effects")?.as_array()?;
+    // Create's three potion-cloud effects are mutually exclusive Bottle
+    // predicates. Select the matching one without dropping unknown actions.
+    let potion_bottle = fluid.tag.as_ref().and_then(|tag| tag.get("Bottle")).and_then(|tag| match tag {
+        Tag::String(value) => Some(value.to_string_lossy().to_string()), _ => None,
+    });
+    let potion_choice = if effects.len() == 3 {
+        let mut selected = None;
+        let mut seen = std::collections::HashSet::new();
+        for entry in effects {
+            let obj = entry.as_object()?;
+            if obj.get("type")?.as_str()? != "tconstruct:potion_cloud" || obj.keys().any(|k| !matches!(k.as_str(), "type" | "nbt" | "scale")) { return None; }
+            let predicate = obj.get("nbt")?.as_object()?;
+            if predicate.len() != 1 { return None; }
+            let bottle = predicate.get("Bottle")?.as_str()?;
+            if !matches!(bottle, "REGULAR" | "SPLASH" | "LINGERING") || !seen.insert(bottle) { return None; }
+            if potion_bottle.as_deref() == Some(bottle) { selected = Some(obj); }
+        }
+        Some(selected?)
+    } else { None };
     // The bundled glowstone recipe applies its cloud first, then glow
     // placement; other mixed recipes still require their own effect handlers.
     let mixed_glow = effects.len() == 2 && effects[1].as_object().is_some_and(|value|
         value.get("type").and_then(|v| v.as_str()) == Some("tconstruct:place_block")
         && value.get("block").and_then(|v| v.as_str()) == Some("tconstruct:glow")
         && value.keys().all(|key| matches!(key.as_str(), "type" | "block")));
-    if effects.len() != 1 && !mixed_glow { return None; }
-    let effect = effects[0].as_object()?;
+    if effects.len() != 1 && !mixed_glow && potion_choice.is_none() { return None; }
+    let effect = if let Some(selected) = potion_choice { selected } else { effects[0].as_object()? };
     let kind = effect.get("type")?.as_str()?;
-    let is_cloud = kind == "tconstruct:mob_effect_cloud";
+    let is_potion_cloud = kind == "tconstruct:potion_cloud";
+    let is_cloud = kind == "tconstruct:mob_effect_cloud" || is_potion_cloud;
     if mixed_glow && !is_cloud { return None; }
     let mut cloud = Vec::new();
+    let mut cloud_scale = 1.0f32;
     let (block, sound) = if is_cloud {
-        if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
-        for entry in effect.get("effects")?.as_array()? {
+        if is_potion_cloud {
+            if effect.keys().any(|key| !matches!(key.as_str(), "type" | "nbt" | "scale")) { return None; }
+            if effects.len() == 1 && effect.contains_key("nbt") { return None; }
+            cloud_scale = effect.get("scale")?.as_f64()? as f32;
+            if !cloud_scale.is_finite() || cloud_scale < 0.0 { return None; }
+            let Tag::String(potion) = fluid.tag.as_ref()?.get("Potion")? else { return None; };
+            let id = potion.to_string_lossy();
+            if !id.starts_with("minecraft:") { return None; }
+            let def = horizon_client::brewing::potion(&id)?;
+            for &(id, duration, amplifier) in def.effects {
+                let effect = horizon_client::brewing::effect(id)?;
+                if effect.instant || horizon_client::brewing::is_mod_effect(effect.id) { return None; }
+                if duration > 0 { cloud.push((effect.id, duration, amplifier)); }
+            }
+        } else {
+          if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
+          for entry in effect.get("effects")?.as_array()? {
             let entry = entry.as_object()?;
             if entry.keys().any(|key| !matches!(key.as_str(), "effect" | "time" | "level")) { return None; }
             let def = horizon_client::brewing::effect(entry.get("effect")?.as_str()?)?;
@@ -383,6 +419,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             let level = i32::try_from(entry.get("level").map_or(Some(1), serde_json::Value::as_i64)?).ok()?;
             if !(1..=256).contains(&level) { return None; }
             if duration > 0 { cloud.push((def.id, duration, level - 1)); }
+          }
         }
         if cloud.is_empty() { return None; }
         ("", None)
@@ -418,7 +455,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             let mut scaled_cloud = Vec::new();
             if is_cloud {
                 for &(id, duration, amplifier) in &cloud {
-                    let value = duration as f32 * scale;
+                    let value = duration as f32 * (cloud_scale * scale);
                     if !value.is_finite() || value > (i32::MAX / 4) as f32 { break 'targets; }
                     let duration = value as i32;
                     if duration > 10 {
