@@ -1,0 +1,19 @@
+[mod]
+id = "pluto_transport_demo"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "5197790e5846a82cfc84d9703e37c4c1b75be09c"
+
+[[module]]
+id = "demo"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_transport_demo"
+source = "demo.rs"
+
+[[injection]]
+id = "prepare-demo"
+target = "horizon_client::entry::main"
+kind = "HEAD"
+helper = "prepare.rs"

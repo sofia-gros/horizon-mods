@@ -1,0 +1,45 @@
+[mod]
+id = "pluto_transport_3a"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "5197790e5846a82cfc84d9703e37c4c1b75be09c"
+[[injection]]
+id = "max-damage"
+target = "horizon_client_lib::lan::guest::stack_to_network"
+kind = "RETURN"
+helper = "max.rs"
+bindings = [
+  { name = "value", ty = "Option<Stack>", value = "$value" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
+
+[[module]]
+id = "tool-codec"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_tool_codec"
+source = "tool_codec.rs"
+visibility = "pub"
+
+[[injection]]
+id = "tool-encode"
+target = "horizon_client_lib::lan::guest::stack_to_network"
+kind = "RETURN"
+helper = "tool_encode.rs"
+bindings = [
+  { name = "value", ty = "Option<Stack>", value = "$value" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+  { name = "registry", ty = "&impl Fn(&str, &str) -> Option<i32>", value = "&synced_id" },
+]
+
+[[injection]]
+id = "tool-decode"
+target = "horizon_client_lib::item_sync::from_network"
+kind = "RETURN"
+helper = "tool_decode.rs"
+bindings = [
+  { name = "value", ty = "ItemStack", value = "$value" },
+  { name = "source", ty = "&Stack", value = "s" },
+  { name = "builtin", ty = "&Builtin", value = "builtin" },
+  { name = "synced", ty = "&Dynamic", value = "synced" },
+]
