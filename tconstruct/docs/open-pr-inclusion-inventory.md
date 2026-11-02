@@ -308,3 +308,24 @@ this is an independent implementation/verification gap, not a completed effect.
 #321 proposes the two negative-state fixes found against #319; this inventory's
 inclusion reference remains #318 for reproducibility. Neither the proposed
 pre-break hook nor the fixes have an official integrated runtime pass.
+
+## Workstation/fluid reconciliation after the snapshot
+
+The next candidate merges the fixed #323 head
+`451985fd9fe786d8f2747cfee33101d759ade551` with the material series through
+#324. Its two merge parents retain the fixed #323 and #324 histories. #323
+includes #309 and #320; #302/#303/#305 and #308/#310/#313/#315/#317 are Git
+ancestors of #323. The material parent includes #311/#312/#316/#319/#321/
+#322/#324. The old #318 post-removal spend is an ancestor but is replaced by
+the #319 pre-break candidate, not an additional spend.
+
+The previous individual table compared against #318 and is historical. In this
+combined tree, the previously independent fluid/bottle paths are present via
+#323's workstation/fluid series. For #285/#287/#290/#293/#294/#297/#299/#300/
+#314, the product files exist and a line-by-line source comparison found most
+original additions present; these earlier heads are not Git ancestors of #323,
+and changed lines or omitted prerequisites still need owner review. A textual
+comparison is not proof that all original semantics or integrations survived.
+The #323 handoff records the exact adopted #302/#303/#305/#308/#310/#313/#315/
+#317 heads. No fixed-head package or gameplay result is transferred to this new
+merge without source identity and the appropriate gate.
