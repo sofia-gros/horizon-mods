@@ -231,6 +231,22 @@ pub(super) struct CastingRecipe {
     pub basin: bool, pub retextured: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
     pub switch_slots: bool, pub fluid: FluidSpec, pub output: Output, pub cooling_time: u32,
 }
+pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize }
+impl PartSwapCastingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let value: Value = serde_json::from_slice(bytes).ok()?;
+        let basin = match value.get("type")?.as_str()? {
+            "tconstruct:table_casting_part_swapping" => false,
+            "tconstruct:basin_casting_part_swapping" => true,
+            _ => return None,
+        };
+        if !enabled(&value, conditions) || value.get("allowed_materials").is_some() { return None; }
+        let item_cost = u32::try_from(value.get("item_cost")?.as_u64()?).ok()?;
+        if item_cost == 0 { return None; }
+        Some(Self { basin, tools: Ingredient::parse(value.get("tools")?)?, item_cost,
+            index: usize::try_from(value.get("index")?.as_u64()?).ok()? })
+    }
+}
 
 /// The source material casting recipe and the independent fluid-to-material
 /// recipe are joined only after the current world's tags are resolved.

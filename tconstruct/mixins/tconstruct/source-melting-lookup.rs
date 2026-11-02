@@ -56,6 +56,33 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    pub(super) fn part_swap_casting(&self, basin: bool, input: &str, fluid: &str,
+        supports: &impl Fn(usize, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, CastingRecipe, String, usize)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found = None;
+        for (id, bytes) in self.recipes {
+            let Some(swap) = super::tconstruct_source_melting_recipes::PartSwapCastingRecipe::parse(bytes, conditions) else { continue; };
+            if swap.basin != basin || !swap.tools.matches(input, &in_tag) { continue; }
+            for fluid_bytes in self.recipes.values() {
+                let Some(material) = MaterialFluidRecipe::parse(fluid_bytes, conditions) else { continue; };
+                if !self.matches_fluid(&material.fluid, fluid) || !supports(swap.index, &material.material) { continue; }
+                let Some(amount) = material.fluid.amount.checked_mul(swap.item_cost) else { continue; };
+                let factor = ((amount as f32) / 90.0_f32).sqrt();
+                let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
+                if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+                let mut spec = material.fluid.clone(); spec.amount = amount;
+                let recipe = CastingRecipe { basin, retextured: false, cast: Some(swap.tools.clone()),
+                    consumes_cast: true, switch_slots: false, fluid: spec,
+                    output: Output::Item(input.to_owned()), cooling_time: time as u32 };
+                let value = (id.clone(), recipe, material.material, swap.index);
+                if found.as_ref().is_some_and(|old| old != &value) { return None; }
+                found = Some(value);
+            }
+        }
+        found
+    }
     fn matches_fluid(&self, spec: &FluidSpec, fluid: &str) -> bool {
         if !self.known_fluids.contains(fluid) { return false; }
         if spec.tagged { self.fluid_tags.get(&spec.id).is_some_and(|members| members.contains(fluid)) }
