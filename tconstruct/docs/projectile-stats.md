@@ -63,3 +63,89 @@ material is unavailable in the test world; this is not a survival progression
 claim. Keen remains outside this batch: its original Quartz assignment is to
 ammo, and adding a bow-only number would not implement the material ammunition
 path. Other conditional projectile modifiers and armor effects remain incomplete.
+
+## Airborne projectile velocity
+
+A bow with the Airborne trait adds `0.1 * velocityMultiplier` to arrow velocity
+when its holder is off the ground, out of water, not riding and not climbing.
+The source gives the flat bonus once regardless of trait level. It runs before
+Dwarven's altitude adjustment. The single-player path uses the existing host
+climbable query, including its ladder and trapdoor rules; if the query fails,
+the bonus is not applied. The LAN guest projectile effect is temporarily
+unavailable until the guest's water, climbing and riding state is verified.
+The mining portion is tracked separately in [mining traits](mining-traits.md).
+
+Focused Rust checks use the saved older host's item and NBT libraries; they do
+not validate the current host hook or gameplay. For the combined client, compare
+both bows at equal charge and altitude while jumping, on the ground, in water,
+on a ladder and riding; repeat after changing the material. Confirm save/reload
+and check the guest path separately. Use a labelled material fixture if natural
+acquisition is unavailable. No new gameplay or LAN result is claimed.
+
+## Solid projectile damage
+
+Invar's Solid trait adds 0.75 projectile damage per level, scaled by the
+tool definition's projectile-damage additive multiplier. It combines with
+Diamond and Ductile during stat rebuilding and is removed on material swap;
+it is not added again when the same tool is rebuilt. This implements only the
+projectile-damage portion of the [original Solid definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/solid.json).
+
+Current-target compilation and gameplay are pending. Invar is a compatibility
+material; this does not add its natural acquisition path. Verification should
+cover both bows, zero/one/multiple Solid levels, definition multipliers,
+Diamond and Ductile combinations, repeated rebuilding, material replacement,
+and save/reload. The trait's protection, movement and gravity portions remain
+separate work.
+
+## Raging projectile damage
+
+Pewter's Raging trait adds conditional projectile damage at firing time:
+`clamp((11 - health) / 10, 0, 1) * level * projectileDamageMultiplier`.
+At 11 health or higher there is no bonus; at 1 health or lower it reaches its
+maximum. The tool's material traits are rebuilt on a part swap. This implements
+the projectile portion of [the original Raging definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/raging.json).
+
+The single-player path uses the firing player's current health. The bonus is
+temporarily omitted for LAN guests pending verification of the acting player's
+health. Pewter is a compatibility material, and this change does not supply a
+natural acquisition path. The melee portion remains separate work.
+
+Rust syntax was checked; unit tests, the current-target build, and gameplay are
+pending. Verification should compare both bows at health 20, 11, 6, and 1,
+including multiple levels, definition stat multipliers, other damage modifiers,
+rebuild and material replacement, save/reload, and LAN guest behavior. Label any
+command-supplied material as a fixture.
+
+## Overwield ranged stats
+
+Overwield adds `0.06 * min(currentOverslime, level) * statMultiplier` to both
+projectile velocity and draw speed. The value is read from the tool at use time,
+so refill, depletion and material replacement change the next calculation. The
+velocity adjustment follows Dwarven's altitude adjustment, matching their source
+priorities. Crossbow Quick Charge and Vintage contribute to the stored draw
+multiplier; Netherite contributes to the velocity multiplier.
+
+This implements the two ranged-stat modules in the [original Overwield
+definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+The source launch-capacity spend is not connected here, so the full ranged
+behavior is incomplete. Rust syntax was checked; unit, plan, build and gameplay
+checks are pending. Verify zero/partial/full Overslime at multiple levels,
+charge times for both bows, velocity at low and high altitude with Dwarven,
+Quick Charge, Netherite, material replacement, reload and LAN. Record a fixture
+when the material is not naturally available.
+
+## Power upgrade
+
+The original Power recipe consumes Ichor Slime Crystals incrementally: 72 per
+level, up to five levels, on tools in `tconstruct:modifiable/ranged/power`.
+Once Power is present, its source stat module adds `0.5 + 0.5 * effectiveLevel`
+to projectile damage, scaled by the tool definition's additive multiplier.
+The Station selector, tooltip progress and modifier extraction now include
+Power; the existing recipe and tag determine eligible tools and consumption.
+
+Rust syntax was checked. Unit, plan, current-target build and gameplay remain
+pending. Verify zero, 1/72, 72/72 and max progress; upgrade slots, wrong inputs,
+crystal extraction/reapplication, tag rejection, both eligible bows, projectile
+damage, material replacement, save/reload and LAN. Refer to the pinned original
+[recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/upgrade/power.json)
+and [modifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/power.json).

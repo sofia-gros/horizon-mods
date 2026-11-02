@@ -12,7 +12,8 @@ fn tconstruct_crossbow_use(
     }
     if stack.data().is_some_and(|d| !d.charged.is_empty()) {
         let actor = game.lan_acting;
-        if let (Some((velocity, spread)), Some(data)) = (game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at(stack, player.position.y as f32, game.world.shape.max_y())).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)), stack.data()) {
+        let airborne = crate::game::tconstruct_projectile_stats::airborne(game);
+        if let (Some((velocity, spread)), Some(data)) = (game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at_airborne(stack, player.position.y as f32, game.world.shape.max_y(), airborne)).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)), stack.data()) {
             let count = data.charged.len();
             let power = 3.0;
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {
@@ -20,7 +21,7 @@ fn tconstruct_crossbow_use(
                 (angle, power, i == 0)
             }).collect();
             let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, if game.lan_acting.is_none() { game.player.as_ref().map(|player| player.health.health()) } else { None }), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);

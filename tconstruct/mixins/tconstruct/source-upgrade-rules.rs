@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 12] = [
+const UPGRADES: [(&str, i32); 15] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:step_up", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -63,7 +63,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
-        "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
@@ -88,7 +88,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>();
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>();
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id))
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot")
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
@@ -106,7 +106,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
+        (id != "tconstruct:blindshot" && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -125,10 +125,12 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
+    if id == "tconstruct:blindshot" { return None; }
     if !supported(id, &tool.item) { return None; }
     let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
+    if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
     // Validation applies to the rebuilt tool, including material traits.
@@ -180,14 +182,20 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
-            if amount(tool, id) != 0 { continue; }
-            if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
-                && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
+            let old = amount(tool, id);
+            if id != "tconstruct:step_up" && old != 0 { continue; }
+            let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
+            let resulting_level = old.saturating_add(1).saturating_add(trait_level);
+            let valid_level = if id == "tconstruct:step_up" {
+                let min = value.pointer("/level/min").and_then(Value::as_i64).unwrap_or(1);
+                let max = value.pointer("/level/max").and_then(Value::as_i64).unwrap_or(32767);
+                (min..=max).contains(&i64::from(resulting_level))
+            } else { resulting_level == 1 && value.get("level").and_then(Value::as_i64) == Some(1) };
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
             let ability_cost = value.pointer("/slots/abilities").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
-            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
+            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || !valid_level { continue; }
             if id == "tconstruct:unbreakable" {
                 let level = |name: &str, needed: i32| amount(tool, name) / needed + traits.get(name).copied().unwrap_or(0);
                 if level("tconstruct:netherite", 1) < 1 || level("tconstruct:reinforced", 4) < 5 { continue; }
@@ -213,7 +221,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            return Some(UpgradePlan { id: id.to_owned(), amount: 1, consumed, leftover });
+            return Some(UpgradePlan { id: id.to_owned(), amount: old + 1, consumed, leftover });
         }
 
         let Some(input) = value.get("input") else {
@@ -257,13 +265,11 @@ pub(super) fn plan_with_traits(
         else {
             continue;
         };
-        let Some(max) = value
+        let max = value
             .pointer("/level/max")
             .and_then(Value::as_i64)
             .and_then(|v| i32::try_from(v).ok())
-        else {
-            continue;
-        };
+            .unwrap_or(32767);
         let cost = value
             .pointer("/slots/upgrades")
             .and_then(Value::as_i64)
@@ -386,6 +392,7 @@ pub fn apply_stats(
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
     let quick = effective(tool, "tconstruct:quick_charge", 5);
     let true_level = effective(tool, "tconstruct:trueshot", 10);
+    let power = effective(tool, "tconstruct:power", 72) + level("tconstruct:power").max(0) as f32;
     let emerald = effective(tool, "tconstruct:emerald", 1).min(1.0);
     if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {
         let light = level("tconstruct:lightweight").max(0) as f32;
@@ -399,16 +406,28 @@ pub fn apply_stats(
             * (1.0 - 0.1 * vintage)).clamp(0.0, 1024.0);
         let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal))
             * if netherite { 1.1 } else { 1.0 }).clamp(0.0, 1024.0);
-        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy) + 0.05 * feather)).clamp(0.1, 1.0);
+        let blindshot = effective(tool, "tconstruct:blindshot", 10);
+        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy - blindshot) + 0.05 * feather)).clamp(0.1, 1.0);
         let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
-            * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32)).clamp(0.0, 1024.0);
+            * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32
+                + 0.75 * level("tconstruct:solid").max(0) as f32
+                + if power > 0.0 { 0.5 + 0.5 * power } else { 0.0 })).clamp(0.0, 1024.0);
+        fields.insert("tic_overwield_ranged".into(), Tag::Int(level("tconstruct:overwield").max(0)));
+        fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float((stats.draw_speed_add_multiplier
+            * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
+            * (1.0 - 0.1 * vintage)).to_bits()));
+        fields.insert("tic_overwield_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
+        fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
+        fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
         fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
         fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
+        fields.insert("tic_raging".into(), Tag::Int(level("tconstruct:raging").max(0)));
+        fields.insert("tic_raging_projectile_multiplier".into(), Tag::Float(stats.projectile_damage_add_multiplier.to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
     }
