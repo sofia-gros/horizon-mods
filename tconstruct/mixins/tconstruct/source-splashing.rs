@@ -212,6 +212,25 @@ pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f
     intersects && (0..3).map(|i| { let delta = target[i] - candidate[i]; delta * delta }).sum::<f64>() < radius * radius
 }
 
+/// Full fluid makes independent status-effect targets order-insensitive. With
+/// just a primary and one secondary, their source order is known even when
+/// the remaining fluid scales the second target's effect.
+pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStack, level: i32, count: usize, order_known: bool) -> bool {
+    if stack.count != 1 || stack.wire_patch().is_some() || level <= 0 { return false; }
+    let Some(Tag::Int(capacity)) = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|custom| custom.get("tic_tank_capacity")) else { return false; };
+    if *capacity <= 0 { return false; }
+    let Some(Some(fluid)) = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid") else { return false; };
+    if fluid.tag.is_some() || fluid.amount == 0 || fluid.amount > *capacity as u32 { return false; }
+    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return false; };
+    let mut ids = std::collections::HashSet::new();
+    if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
+        super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| horizon_client::brewing::is_mod_effect(known.id) || matches!(known.id, "instant_health" | "instant_damage") || !ids.insert(known.id)),
+        _ => true,
+    }) { return false; }
+    if order_known { return true; }
+    u32::try_from(count).ok().and_then(|count| recipe.amount.checked_mul(level as u32).and_then(|amount| amount.checked_mul(count))).is_some_and(|required| fluid.amount >= required)
+}
+
 /// Experimental entity-use path, disabled by the Station recipe. Only mob
 /// targets and mob area members are currently resolved; guest players and
 /// non-mob entities need an authoritative host-backed enumeration.
@@ -225,7 +244,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     } else {
         game.lan.as_ref().map(|host| host.hub.guests.iter().filter(|guest| guest.placed && guest.dimension == game.dim.id()).map(|guest| {
             let bounds = guest.bounds(); let min = bounds.min_position(); let max = bounds.max_position();
-            (Some(guest.conn), guest.position, [min.x, min.y, min.z], [max.x, max.y, max.z])
+            (Some(guest.conn), guest.entity_id, guest.position, [min.x, min.y, min.z], [max.x, max.y, max.z])
         }).collect()).unwrap_or_default()
     };
     let Some(stack) = stack.cloned() else { return; };
@@ -250,7 +269,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     // is not yet implemented. Do not perform a partial area operation.
     let radius = 1.0 + f64::from(expanded);
     let mut player_targets = Vec::new();
-    for (conn, position, min, max) in other_players {
+    for (conn, _entity_id, position, min, max) in other_players {
         if conn.is_none() {
             if (0..3).map(|axis| (position[axis] - origin[axis]).powi(2)).sum::<f64>() < radius * radius { return; }
         } else if in_range(origin, position, target_bounds, (min, max), expanded) {
@@ -274,24 +293,12 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
         // budget or an unsupported target/form passes through unchanged.
         let Some(conn) = game.lan_acting else { return; };
         if targets.iter().any(|index| !super::tconstruct_source_spilling::eligible_mob(&game.mobs[*index])) { return; }
-        let Some(Some(fluid)) = super::pluto_stack_fluid::read(&stack, "tic_persistent", "tconstruct:tank_fluid") else { return; };
-        if fluid.tag.is_some() { return; }
-        let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return; };
-        // Only status-effect actions have an established player adapter in
-        // this deferred path. Do not skip unknown actions in a mixed recipe.
-        let mut ids = std::collections::HashSet::new();
-        if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
-            super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| horizon_client::brewing::is_mod_effect(known.id) || matches!(known.id, "instant_health" | "instant_damage") || !ids.insert(known.id)),
-            _ => true,
-        }) { return; }
-        let Some(count) = u32::try_from(targets.len() + player_targets.len()).ok() else { return; };
-        let Some(required) = recipe.amount.checked_mul(*level as u32).and_then(|amount| amount.checked_mul(count)) else { return; };
-        if fluid.amount < required { return; }
+        if !deferred_recipe_supported(game, &stack, *level, targets.len() + player_targets.len(), targets.len() == 1 && player_targets.len() == 1) { return; }
         let mob_ids = targets.iter().map(|index| game.mobs[*index].id).collect();
         let slot = game.held_slot();
         let creative = game.creative;
         let modifier_level = *level;
-        game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().insert(conn, (stack.clone(), slot, mob_ids, player_targets, creative, modifier_level));
+        game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().insert(conn, (stack.clone(), slot, mob_ids, player_targets, creative, modifier_level, false));
         game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
         *claimed = true;
         return;
