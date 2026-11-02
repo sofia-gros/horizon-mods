@@ -1,6 +1,6 @@
 # Candidate native integration
 
-This records an experimental Linux integration for Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The standalone demos were built and run together. TConstruct later adopted selected APIs on this earlier pair; other platforms remain unverified. See [compatibility](../../docs/compatibility.md) for the exact scope and the unverified newer target.
+This records an experimental Linux integration for Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The standalone demos were built and run together. TConstruct later adopted selected APIs on this earlier pair; other platforms remain unverified. See [compatibility](../../docs/compatibility.md) for the exact scope and the later joint TConstruct test on the newer target.
 
 The candidate stages `pluto_native_creative`, `pluto_transport_3a`, `pluto_tool_rules`, `pluto_component_display_3a`, `pluto_component_bar`, and `pluto_items_b2`. Those tests used this pair; the currently staged manifests target the newer revision listed in compatibility. The transport source includes the shape-normalizer originally developed at commit `b57d342177f49b36c7ac4d33d236f6c2dd201b67`; this helper does not migrate old saves. Do not install the old Creative paging adapter or old item network adapters alongside these bundles.
 
