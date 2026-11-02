@@ -380,3 +380,5 @@ Material-part melting now uses the existing source casting-cost and material loo
 Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
 
 Scorched Table and gold bars now have standalone source-shaped recipes, source models and the common casting transaction. Scorched Table requires a physical input, and gold bars are matched through the source empty-table-cast tag without consumption. The empty covered-state appearance and full Forge gold-ingot tag alternatives remain incomplete; operation, save and LAN await verification.
+
+The source `molding_basin` serializer now uses the same material/pattern transaction as `molding_table`, with the two recipe types kept separate. No basin molding recipe is added; datapack-supplied cases and integrated operation await verification.
