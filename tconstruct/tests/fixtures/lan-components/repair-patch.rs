@@ -4,9 +4,11 @@ use horizon_protocol::{buf::{Codec, Reader, Writer}, item::{component, Component
 use std::sync::Arc;
 use crate::{fixed_set_damage, repair_from_slot, take_repair, tconstruct_source_tool_normalize::{finalize_tool, patch_safe_for_tool_mutation}};
 
-fn damaged_tool(removal: bool) -> ItemStack {
+fn damaged_tool(removal: bool, decorated: bool) -> ItemStack {
     let input: serde_json::Value = serde_json::from_str(include_str!("cases.json")).unwrap();
-    let mut stack = parse_stack(input["cases"][0]["snbt"].as_str().unwrap()).unwrap().unwrap();
+    let index = usize::from(decorated);
+    let mut stack = parse_stack(input["cases"][index]["snbt"].as_str().unwrap()).unwrap().unwrap();
+    if decorated { stack.data_mut().set_other("minecraft:custom_name", Some(horizon_world::nbt::Tag::String("Workshop pickaxe".into()))); }
     finalize_tool(&mut stack, |_| None).unwrap();
     fixed_set_damage(&mut stack, 10);
     let data = stack.data().unwrap();
@@ -19,6 +21,14 @@ fn damaged_tool(removal: bool) -> ItemStack {
         (component::CUSTOM_DATA, Component::Nbt(data.other("minecraft:custom_data").unwrap().clone())),
         (28, Component::Raw(raw_tool)),
     ];
+    if decorated {
+        use horizon_world::nbt::Tag;
+        wire.added.push((component::CUSTOM_NAME, Component::Text(data.other("minecraft:custom_name").unwrap().clone())));
+        let Some(Tag::List(lore)) = data.other("minecraft:lore") else { panic!("lore missing") };
+        wire.added.push((component::LORE, Component::Lore(lore.clone())));
+        let Some(Tag::String(model)) = data.other("minecraft:item_model") else { panic!("model missing") };
+        wire.added.push((component::ITEM_MODEL, Component::Ident(model.to_string_lossy())));
+    }
     if removal { wire.removed.push(105); }
     let mut writer = Writer::new();
     DelimitedSlot::write(&Some(wire), &mut writer);
@@ -31,7 +41,7 @@ fn damaged_tool(removal: bool) -> ItemStack {
 
 #[test]
 fn original_unknown_patch_is_detected_before_damage_invalidates_snapshot() {
-    let original = damaged_tool(true);
+    let original = damaged_tool(true, false);
     assert!(original.wire_patch().is_some());
     assert!(!patch_safe_for_tool_mutation(&original));
     let mut changed = original.clone();
@@ -46,7 +56,7 @@ fn original_unknown_patch_is_detected_before_damage_invalidates_snapshot() {
 
 #[test]
 fn known_patch_allows_repair_commit_and_consumes_only_planned_items() {
-    let original = damaged_tool(false);
+    let original = damaged_tool(false, false);
     assert!(patch_safe_for_tool_mutation(&original));
     let (used, restored) = repair_from_slot(10, 3, 5.0);
     assert_eq!((used, restored), (2, 10));
@@ -59,4 +69,17 @@ fn known_patch_allows_repair_commit_and_consumes_only_planned_items() {
     assert!(slots[0].is_none());
     assert_eq!(slots[1].as_ref().unwrap().count, 1);
     assert_eq!(carried.unwrap().damage, 0);
+}
+
+#[test]
+fn renamed_tool_with_lore_and_model_is_not_rejected() {
+    let original = damaged_tool(false, true);
+    assert!(patch_safe_for_tool_mutation(&original));
+    let mut repaired = original.clone();
+    fixed_set_damage(&mut repaired, 5);
+    finalize_tool(&mut repaired, |_| None).unwrap();
+    let data = repaired.data().unwrap();
+    for key in ["minecraft:custom_name", "minecraft:lore", "minecraft:item_model"] {
+        assert!(data.other(key).is_some(), "{key}");
+    }
 }

@@ -57,6 +57,8 @@ pub fn patch_safe_for_tool_mutation(stack: &ItemStack) -> bool {
             (component::MAX_DAMAGE, Component::Int(value)) => matches!(data.other("minecraft:max_damage"), Some(Tag::Int(max)) if max == value),
             (component::DAMAGE, Component::Int(value)) => u32::try_from(*value).ok() == Some(stack.damage),
             (component::UNBREAKABLE, Component::Unit) => data.other("minecraft:unbreakable").is_some(),
+            (component::CUSTOM_NAME, Component::Text(tag)) => data.other("minecraft:custom_name") == Some(tag),
+            (component::ITEM_NAME, Component::Text(tag)) => data.other("minecraft:item_name") == Some(tag),
             (component::ITEM_MODEL, Component::Ident(value)) => matches!(data.other("minecraft:item_model"), Some(Tag::String(model)) if model.to_string_lossy() == value.as_str()),
             (component::LORE, Component::Lore(lines)) => matches!(data.other("minecraft:lore"), Some(Tag::List(actual)) if actual == lines),
             // The shared Tool decoder must have restored the component; its

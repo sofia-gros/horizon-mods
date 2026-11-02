@@ -73,3 +73,16 @@ fn cached_patch_is_kept_for_noop_and_not_silently_invalidated() {
     assert!(finalize_tool(&mut changed, resolve).is_err());
     assert_eq!(&*changed.wire_patch().unwrap(), &[1, 2, 3]);
 }
+
+#[test]
+fn bare_tag_and_block_ids_use_the_minecraft_namespace() {
+    let raw = r##"{id:"tconstruct:pickaxe",count:1,components:{"minecraft:tool":{rules:[{blocks:"#mineable/pickaxe",speed:2.0f},{blocks:"stone",speed:1.0f}]},"minecraft:custom_data":{tic_mining_tool:{rules:[{blocks:"#mineable/pickaxe",speed:2.0f},{blocks:"stone",speed:1.0f}]}}}}"##;
+    let mut stack = parse_stack(raw).unwrap().unwrap();
+    finalize_tool(&mut stack, |id| (id == "minecraft:stone").then_some(7)).unwrap();
+    let canonical = horizon_items::item_data::canon_tag(stack.data().unwrap().other("minecraft:tool").unwrap());
+    assert!(canonical.contains("#minecraft:mineable/pickaxe"));
+    assert!(canonical.contains("minecraft:stone"));
+    let before = stack.clone();
+    finalize_tool(&mut stack, |id| (id == "minecraft:stone").then_some(7)).unwrap();
+    assert!(before.same_item_same_components(&stack));
+}
