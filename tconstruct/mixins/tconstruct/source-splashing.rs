@@ -350,13 +350,29 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                 else if let Some(area) = vein.as_mut() { let Some(position) = area.next(game) else { break; }; (position, false) }
                 else { let Some(position) = offsets.next() else { break; }; (position, false) };
             if !is_primary && vein.is_none() && game.res.facts().is_air(game.world.block(position[0], position[1], position[2])) { continue; }
-            let target = if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position }
-                else {
-                    let Some(x) = position[0].checked_add(face[0]) else { continue; };
-                    let Some(y) = position[1].checked_add(face[1]) else { continue; };
-                    let Some(z) = position[2].checked_add(face[2]) else { continue; };
-                    [x, y, z]
-                };
+            let snow_context = if block == "minecraft:snow" {
+                let direction = match face { [0,-1,0] => horizon_core::geometry::Direction::Down, [0,1,0] => horizon_core::geometry::Direction::Up, [0,0,-1] => horizon_core::geometry::Direction::North, [0,0,1] => horizon_core::geometry::Direction::South, [-1,0,0] => horizon_core::geometry::Direction::West, [1,0,0] => horizon_core::geometry::Direction::East, _ => continue };
+                let hit = hit_point.unwrap();
+                let offset = [position[0] - clicked[0], position[1] - clicked[1], position[2] - clicked[2]];
+                Some(horizon_world::level::PlaceContext {
+                    clicked_pos: horizon_core::position::BlockPos::new(position[0], position[1], position[2]),
+                    face: direction, hit: horizon_core::geometry::Vec3::new(hit[0] + f64::from(offset[0]), hit[1] + f64::from(offset[1]), hit[2] + f64::from(offset[2])),
+                    inside: false, yaw: game.yaw, pitch: game.pitch,
+                    sneaking: game.keys.contains(&super::KeyCode::ShiftLeft),
+                    item: "minecraft:snow".to_owned(), can_use_game_master_blocks: game.can_use_game_master_blocks(),
+                })
+            } else { None };
+            let target = if let Some(context) = snow_context.as_ref() {
+                let Some((pos, state)) = game.with_level(|blocks, world, ticks| blocks.placement_state(world, ticks, context)) else { continue; };
+                if game.res.facts().get(state).name.as_ref() != "minecraft:snow" { continue; }
+                [pos.x, pos.y, pos.z]
+            } else if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position }
+            else {
+                let Some(x) = position[0].checked_add(face[0]) else { continue; };
+                let Some(y) = position[1].checked_add(face[1]) else { continue; };
+                let Some(z) = position[2].checked_add(face[2]) else { continue; };
+                [x, y, z]
+            };
             let before = game.world.block(target[0], target[1], target[2]);
             let attempt = (|| -> horizon_client::Result<bool> {
                 if block == "tconstruct:glow" {
@@ -367,25 +383,9 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                         .is_some_and(|policy| super::tconstruct_glowing_placement::outside_protection(*policy, target)),
                     None => game.options.dedicated.is_none(),
                 };
-                if !permitted || !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
-                if block == "minecraft:snow" {
-                    // The normal BlockItem path handles placement context and
-                    // survival. Snow-layer stacking is retained as a separate
-                    // unsupported case until the destination can be staged.
-                    if !game.res.facts().is_air(game.world.block(target[0], target[1], target[2])) { return Ok(false); }
-                    let face = match face { [0,-1,0] => horizon_core::geometry::Direction::Down, [0,1,0] => horizon_core::geometry::Direction::Up, [0,0,-1] => horizon_core::geometry::Direction::North, [0,0,1] => horizon_core::geometry::Direction::South, [-1,0,0] => horizon_core::geometry::Direction::West, [1,0,0] => horizon_core::geometry::Direction::East, _ => return Ok(false) };
-                    let hit = hit_point.unwrap();
-                    let offset = [position[0] - clicked[0], position[1] - clicked[1], position[2] - clicked[2]];
-                    let context = horizon_world::level::PlaceContext {
-                        clicked_pos: horizon_core::position::BlockPos::new(position[0], position[1], position[2]),
-                        face, hit: horizon_core::geometry::Vec3::new(hit[0] + f64::from(offset[0]), hit[1] + f64::from(offset[1]), hit[2] + f64::from(offset[2])),
-                        inside: false, yaw: game.yaw, pitch: game.pitch,
-                        sneaking: game.keys.contains(&super::KeyCode::ShiftLeft),
-                        item: "minecraft:snow".to_owned(), can_use_game_master_blocks: game.can_use_game_master_blocks(),
-                    };
-                    let preview = game.with_level(|blocks, world, ticks| blocks.placement_state(world, ticks, &context));
-                    if !preview.is_some_and(|(pos, state)| [pos.x, pos.y, pos.z] == target && game.res.facts().get(state).name.as_ref() == "minecraft:snow") { return Ok(false); }
-                    let outcome = game.with_level(|blocks, world, ticks| blocks.place_block(world, ticks, &context));
+                if !permitted || !game.world.loaded(target[0], target[2]) || (block != "minecraft:snow" && !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable) { return Ok(false); }
+                if let Some(context) = snow_context.as_ref() {
+                    let outcome = game.with_level(|blocks, world, ticks| blocks.place_block(world, ticks, context));
                     game.process_level_events()?;
                     return Ok(matches!(outcome, horizon_world::level::PlaceOutcome::Placed { pos, .. } if [pos.x, pos.y, pos.z] == target));
                 }
