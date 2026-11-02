@@ -264,16 +264,18 @@ pub(super) struct CastingRecipe {
 /// recipe are joined only after the current world's tags are resolved.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MaterialCastingRecipe {
-    pub cast: Ingredient, pub item_cost: u32, pub result: String,
+    pub basin: bool, pub cast: Option<Ingredient>, pub item_cost: u32, pub result: String,
     pub consumes_cast: bool, pub switch_slots: bool, pub allowed_materials: Option<Value>,
 }
 impl MaterialCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        if v.get("type")?.as_str()? != "tconstruct:table_casting_material" || !enabled(&v, conditions) { return None; }
+        let basin = match v.get("type")?.as_str()? { "tconstruct:table_casting_material" => false, "tconstruct:basin_casting_material" => true, _ => return None };
+        if !enabled(&v, conditions) { return None; }
         let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
         if item_cost == 0 { return None; }
-        Some(Self { cast: Ingredient::parse(v.get("cast")?)?, item_cost,
+        let cast = match v.get("cast") { Some(value) => Some(Ingredient::parse(value)?), None => None };
+        Some(Self { basin, cast, item_cost,
             result: v.get("result")?.as_str()?.to_owned(), allowed_materials: v.get("allowed_materials").cloned(),
             consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
             switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false) })
