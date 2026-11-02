@@ -1,0 +1,9 @@
+# Stack durability bars
+
+The experimental `pluto_component_bar` native bundle draws a standard durability bar using an item's own `minecraft:max_damage` and current damage. A stack with damage 30 and max damage 60 uses Horizon's existing half-worn bar calculation. The bundle changes display only; it does not alter durability loss, item breakage, mining or tooltips.
+
+Stage `mixins/pluto_component_bar` alongside the consuming native mod with official Horizon Mixins. Give the stack a positive integer `minecraft:max_damage` component and the normal damage value. A missing, invalid or non-positive maximum leaves the host's existing bar unchanged. Unbreakable stacks and the host's bundle fullness bar are also left alone. For an eligible stack, Horizon's own `hud_overlays::damage_bar` determines visibility, width and color, including the undamaged case.
+
+The adapter runs at the start of the official `native_item_bar` hook, at Mixins priority 1000, before the hook dispatches ordinary native callbacks. A consumer can use that official callback to replace or hide the proposed bar. Other Mixins targeting the same hook run in priority order; a higher-priority callback that runs before this adapter can be overwritten. Coordinate that order when combining independent bundles. An overlay drawn later by a consumer may also cover the bar; coexistence with Tinkers has not been tested.
+
+This is an unverified development bundle targeting Horizon `b2e71aca04c7f62f24eefd7dd0324bae9c04954f` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The lightweight Mixins plan and fixture using the host's existing bar calculation pass; no client build, game screenshot, launcher installation or Tinkers integration is claimed yet. The separate [tooltip adapter](component-transport.md) remains unchanged.
