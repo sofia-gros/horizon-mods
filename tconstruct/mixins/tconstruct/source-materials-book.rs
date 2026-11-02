@@ -447,6 +447,13 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
         for page in section.as_array()? {
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
             if relative == "no-load" {
+                // Source tool sections supply navigation labels in language.lang;
+                // keep them in the chapter index instead of silently discarding them.
+                let group = if key == "tools" {
+                    page.get("name").and_then(|v| v.as_str())
+                        .and_then(|name| labels.get(format!("{key}.{name}").as_str()).copied())
+                } else { None };
+                let group_start = chapter_pages.len();
                 let loads = page.get("extraData").and_then(|v| v.get("tconstruct:load_tools"));
                 let list: Vec<_> = match loads { Some(serde_json::Value::Array(a)) => a.iter().collect(), Some(v) => vec![v], None => vec![] };
                 for load in list {
@@ -464,6 +471,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                         let title = game.translate(&format!("item.{namespace}.{name}"), fallback);
                         chapter_pages.extend(tool_pages(game, &title, id, Some(&value)));
                     }
+                }
+                // The information group has ordinary pages following its marker.
+                // Dynamic tool groups appear only when at least one tool loaded.
+                if let Some(label) = group.filter(|_| chapter_pages.len() > group_start || page.get("name").and_then(|v| v.as_str()) == Some("group_info")) {
+                    chapter_pages.insert(group_start, Text::literal(label));
                 }
                 continue;
             }
