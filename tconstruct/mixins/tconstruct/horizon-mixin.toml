@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "5197790e5846a82cfc84d9703e37c4c1b75be09c"
+horizon_revision = "aa60eb76ea82bd66c29fea352e3ab5771e62ab26"
 
 [[injection]]
 id = "command"
@@ -2524,7 +2524,7 @@ id = "source-host-mining-context"
 target = "horizon_client::game::Game<'_>::tick_mining"
 kind = "MODIFY_VARIABLE"
 variable = { name = "speed", ordinal = 0, at = "STORE" }
-require = 4
+require = 5
 ordinal = 1
 helper = "source-mining-context.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
@@ -2534,7 +2534,7 @@ id = "source-client-mining-context"
 target = "horizon_client::game::hand::Game<'_>::destroy_progress"
 kind = "MODIFY_VARIABLE"
 variable = { name = "speed", ordinal = 0, at = "STORE" }
-require = 4
+require = 5
 ordinal = 1
 helper = "source-mining-context.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
