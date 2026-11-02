@@ -336,7 +336,8 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
         };
     let base = stats.durability + stats.durability_boost_unit * trait_boost
         + if diamond { (if armor { 250.0 } else { 500.0 }) * stats.durability_multiplier } else { 0.0 };
-    let durability = ((base * if emerald { 1.5 } else { 1.0 } * if netherite { 1.2 } else { 1.0 }) as i32).max(1);
+    let durability = (base * if emerald { 1.5 } else { 1.0 } * if netherite { 1.2 } else { 1.0 }) as i32;
+    let durability = if levels.get("tconstruct:overlord").copied().unwrap_or(0) > 0 { durability.max(1) } else { durability };
     if durability < 1 { return None; }
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };

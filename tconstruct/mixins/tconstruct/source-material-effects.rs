@@ -99,7 +99,8 @@ pub fn apply_stat_traits(
     if boost == 0.0 {
         return Some(());
     }
-    let durability = ((stats.durability + stats.durability_boost_unit * boost) as i32).max(1);
+    let durability = (stats.durability + stats.durability_boost_unit * boost) as i32;
+    let durability = if overlord > 0 { durability.max(1) } else { durability };
     if durability < 1 {
         return None;
     }
