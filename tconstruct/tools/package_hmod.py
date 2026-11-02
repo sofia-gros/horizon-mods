@@ -74,15 +74,18 @@ def package(output):
         name = rel.relative_to('tconstruct').as_posix()
         if name not in files:
             add(name, source.read_bytes())
-    for archive_name, model_dir in (
-        ('tconstruct-part-visuals.zip', 'source_part_models'),
-        ('tconstruct-tool-visuals.zip', 'source_tool_models'),
+    sprite_aliases = {'part': set(), 'tool': set()}
+    for archive_name, model_dir, kind in (
+        ('tconstruct-part-visuals.zip', 'source_part_models', 'part'),
+        ('tconstruct-tool-visuals.zip', 'source_tool_models', 'tool'),
     ):
         with zipfile.ZipFile(MOD / 'content/reference' / archive_name) as archive:
             for info in archive.infolist():
                 if info.is_dir() or not info.filename.startswith('assets/tconstruct/'):
                     continue
                 relative = info.filename.removeprefix('assets/tconstruct/')
+                if relative.startswith('textures/') and relative.endswith('.png'):
+                    sprite_aliases[kind].add(relative.removeprefix('textures/').removesuffix('.png'))
                 if relative.startswith('models/item/') and relative.endswith('.json'):
                     relative = 'tinkering/' + model_dir + '/' + PurePosixPath(relative).name
                 elif not relative.startswith(('textures/', 'tinkering/materials/')):
@@ -146,12 +149,8 @@ def package(output):
     # Make the source sprites addressable by the same vanilla model aliases
     # used by the material and tool renderers in the desktop overlay.
     forge_model = json.loads((MOD / 'content/reference/forge-default-item-model.json').read_text())
-    for name in list(files):
-        prefix = 'assets/tconstruct/textures/'
-        if not name.startswith(prefix) or not name.endswith('.png'):
-            continue
-        sprite = name.removeprefix(prefix).removesuffix('.png')
-        for kind in ('part', 'tool'):
+    for kind, sprites in sprite_aliases.items():
+        for sprite in sorted(sprites):
             alias = 'tconstruct_' + kind + '/' + sprite
             model_path = 'assets/tconstruct/models/item/' + alias + '.json'
             item_path = 'assets/tconstruct/items/' + alias + '.json'

@@ -1,6 +1,14 @@
 # Horizon host update (draft)
 
-This work targets official Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
+The current update targets official Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The combined Linux client has passed representative checks described below, with limitations in [compatibility](compatibility.md). Previous results identify their tested revisions; they do not establish slime-island generation.
+
+## Current combined check
+
+TConstruct runtime `8a612f50219799fde7d0915aadba3249b65c57d6` and PlutoLib `add61038f819910542d4c05d660f7c857c62fa07` passed the official product stage (209 injections, 174 modules, 87 states) and a Linux client build without audio. The client SHA-256 is `3343c623dceebeddd7db90d10f36f77b093a06e4d62610323ac1d4753039ab0a`. The separately generated PlutoLib `.hnmod` passed the official validator and bundle reader; its SHA-256 is `b9f3dac23b75d1a2e08a422013af8a8eae8744a52dec579942a99c58361e5432`.
+
+With supplied test materials, representative checks covered Creative tab selection and [English search](fd6-creative-search-test.png), German vanilla search, material Pickaxe construction and harvest tiers, Crafting Station transactions and remainders, Chest quick moves, save/reload, and Longbow/Crossbow use in both hands. A LAN guest moved Chest items and fired a Longbow with the expected arrow and durability consumption. With the actual TConstruct content package on both sides, the guest connected; omitting it on the guest was rejected with `Missing: tconstruct 0.1.0`. The host compares content mods here, not native `.hnmod` bundles.
+
+The content package now creates part and tool sprite aliases only for their respective source archives, matching desktop preparation and staying under Horizon's 65,536-file limit. The tested `.hmod` contains 48,074 content files and has SHA-256 `e5266effcc95d4c24b327d107643cfaca6f151b92620ed088822ae2bb50860f4`. Advanced durability text for a damaged Longbow with per-stack `max_damage` is missing when its template contributes no durability line; its bar is visible. The previously listed disabled hooks remain disabled. These tests do not establish full gameplay, all tool combinations, or other platforms.
 
 The new host supports content block `state_properties` and `default_state`, which may represent the source vine stages. Its world fluid kind still contains only empty, water and lava families; the original slime world fluids remain unresolved. Do not enable incomplete island generation or replace slime fluid with water.
 
