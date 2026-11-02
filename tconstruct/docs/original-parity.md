@@ -295,6 +295,8 @@ and complete lifecycle parity remain open.
 
 ### Repair calculation investigation
 
+The station material-repair path also resolves the source `material_repair` module's explicit `stat_type` against that material's merged stats. This covers the source shape used by the staffs and Flint and Brick when their registered repair materials are available, including tools without a material-part list. Unknown material stats still produce no repair. This addition awaits integration and game verification; it does not establish the remaining modifier repair recipes.
+
 At the pinned revision, `MaterialStatsModule.addTraits` adds traits from each
 part and `ModifierEntry.merge` adds levels. The default wood trait data names
 Cultivated with `each_level: 0.5`; `RepairModule` applies its percent formula.
