@@ -3878,8 +3878,7 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_inventory_api"
 source = "chest-inventory-api-lib.rs"
 
-# Run the host placement transaction against the refreshed station grid, then
-# persist the result to the block entity before returning.
+# Refuse local station recipe placement until its reported item loss is fixed.
 [[injection]]
 id = "crafting-station-recipe-placement-guard"
 target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
