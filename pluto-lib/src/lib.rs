@@ -32,6 +32,14 @@ fn vanilla(s: &str) -> bool {
     id(s) && s.starts_with("minecraft:")
 }
 
+/// Optional preparation-time overrides; omitted fields inherit the template.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct BlockProperties {
+    pub hardness: Option<f32>,
+    pub explosion_resistance: Option<f32>,
+    pub requires_tool: Option<bool>,
+}
+
 /// A single content mod's generated declarations. Duplicate IDs are rejected.
 pub struct Registry {
     namespace: String,
@@ -79,7 +87,46 @@ impl Registry {
     }
     /// Add a block and its default block item based on a vanilla block template.
     pub fn block(&mut self, name: &str, template: &str) -> Result<(), RegistrationError> {
-        self.add("block", name, template, json!({"template": template}))
+        self.block_with_properties(name, template, BlockProperties::default())
+    }
+    /// Add a block with optional Horizon declaration properties.
+    pub fn block_with_properties(
+        &mut self,
+        name: &str,
+        template: &str,
+        properties: BlockProperties,
+    ) -> Result<(), RegistrationError> {
+        if properties
+            .hardness
+            .is_some_and(|v| !v.is_finite() || (v < 0.0 && v != -1.0))
+        {
+            return Err(RegistrationError(
+                "hardness must be finite and nonnegative, or -1".into(),
+            ));
+        }
+        if properties
+            .explosion_resistance
+            .is_some_and(|v| !v.is_finite() || v < 0.0)
+        {
+            return Err(RegistrationError(
+                "explosion_resistance must be finite and nonnegative".into(),
+            ));
+        }
+        let mut values = serde_json::Map::new();
+        if let Some(v) = properties.hardness {
+            values.insert("hardness".into(), json!(v));
+        }
+        if let Some(v) = properties.explosion_resistance {
+            values.insert("explosion_resistance".into(), json!(v));
+        }
+        if let Some(v) = properties.requires_tool {
+            values.insert("requires_tool".into(), json!(v));
+        }
+        let mut declaration = json!({"template": template});
+        if !values.is_empty() {
+            declaration["properties"] = values.into();
+        }
+        self.add("block", name, template, declaration)
     }
     fn add(
         &mut self,
@@ -313,6 +360,71 @@ mod paging;
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn block_properties_inherit_validate_and_leave_failed_names_available() {
+        let mut r = Registry::new("demo").unwrap();
+        r.block("inherited", "minecraft:stone").unwrap();
+        assert_eq!(r.entries[0].2, json!({"template":"minecraft:stone"}));
+        for (i, hardness) in [-1.0, 0.0, 2.5].into_iter().enumerate() {
+            r.block_with_properties(
+                &format!("valid_{i}"),
+                "minecraft:stone",
+                BlockProperties {
+                    hardness: Some(hardness),
+                    explosion_resistance: Some(0.0),
+                    requires_tool: Some(false),
+                },
+            )
+            .unwrap();
+            let p = &r.entries.last().unwrap().2["properties"];
+            assert_eq!(p["hardness"].as_f64().unwrap(), hardness as f64);
+            assert_eq!(p["requires_tool"], false);
+        }
+        for invalid in [-2.0, -0.5, f32::NAN, f32::INFINITY, f32::NEG_INFINITY] {
+            assert!(r
+                .block_with_properties(
+                    "retry",
+                    "minecraft:stone",
+                    BlockProperties {
+                        hardness: Some(invalid),
+                        ..Default::default()
+                    }
+                )
+                .is_err());
+        }
+        for invalid in [-1.0, f32::NAN, f32::INFINITY] {
+            assert!(r
+                .block_with_properties(
+                    "retry",
+                    "minecraft:stone",
+                    BlockProperties {
+                        explosion_resistance: Some(invalid),
+                        ..Default::default()
+                    }
+                )
+                .is_err());
+        }
+        r.block_with_properties(
+            "retry",
+            "minecraft:stone",
+            BlockProperties {
+                requires_tool: Some(true),
+                ..Default::default()
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            r.entries.last().unwrap().2["properties"],
+            json!({"requires_tool": true})
+        );
+        assert!(r.item("retry", "minecraft:stick").is_err());
+        assert!(r
+            .block_with_properties("../bad", "minecraft:stone", Default::default())
+            .is_err());
+        assert!(r
+            .block_with_properties("bad", "other:stone", Default::default())
+            .is_err());
+    }
     #[test]
     fn validates_registration_and_collisions() {
         let mut r = Registry::new("demo").unwrap();

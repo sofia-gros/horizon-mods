@@ -1,6 +1,7 @@
 use pluto_lib::native_creative::{register_tabs, Entry, Tab};
 use pluto_lib::{
-    add_creative_tabs, add_paged_creative_tabs, CreativeTab, PagedCreativeTab, Registry,
+    add_creative_tabs, add_paged_creative_tabs, BlockProperties, CreativeTab, PagedCreativeTab,
+    Registry,
 };
 use std::{env, fs, path::Path};
 
@@ -74,7 +75,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut registry = Registry::new("pluto_demo")?;
     registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
     registry.item("gem_inherited", "minecraft:amethyst_shard")?;
-    registry.block("glowing_block", "minecraft:amethyst_block")?;
+    registry.block_with_properties(
+        "glowing_block",
+        "minecraft:amethyst_block",
+        BlockProperties {
+            hardness: Some(2.0),
+            explosion_resistance: Some(6.0),
+            requires_tool: Some(true),
+        },
+    )?;
     registry.write_to(root)?;
     fs::write(
         root.join("creative-inventory.json"),
