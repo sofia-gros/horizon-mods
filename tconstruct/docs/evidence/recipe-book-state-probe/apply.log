@@ -1,0 +1,5 @@
+{
+  "code": "E_STATE",
+  "message": "state requires explicit constructors with positive require counts",
+  "file": "/workspace/scratch/recipe-state-probe/mods/recipe_state/horizon-mixin.toml"
+}

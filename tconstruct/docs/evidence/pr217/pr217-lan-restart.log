@@ -1,0 +1,2 @@
+AFTER HOST RESTART AND GUEST RECONNECT {'tconstruct:nahuatl': 1, 'tconstruct:pattern': 1, 'tconstruct:tinker_station': 1}
+PASS output and unused ingredients survive host restart and guest reconnect
