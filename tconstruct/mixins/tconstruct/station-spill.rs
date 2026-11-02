@@ -1,5 +1,6 @@
 fn tconstruct_spill(name: &str) -> std::ops::ControlFlow<PreRemove> {
     match name {
+        "tconstruct:crafting_station" => return std::ops::ControlFlow::Break(PreRemove::Contents { slots: 9, furnace: false }),
         "tconstruct:part_chest" => return std::ops::ControlFlow::Break(PreRemove::Contents { slots: 256, furnace: false }),
         "tconstruct:tinkers_chest" => return std::ops::ControlFlow::Break(PreRemove::Contents { slots: 64, furnace: false }),
         _ => {},

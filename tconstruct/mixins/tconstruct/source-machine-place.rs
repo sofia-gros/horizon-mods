@@ -3,7 +3,7 @@ fn tconstruct_machine_place(game: &mut crate::game::Game<'_>, pos: [i32; 3], sta
     let name = game.res.facts().get(state).name.clone();
     if &*stack.item != &*name { return; }
     let key = (pos[0], pos[1], pos[2]);
-    let chest_slots = match &*name { "tconstruct:part_chest" => 256, "tconstruct:tinkers_chest" => 64, _ => 0 };
+    let chest_slots = match &*name { "tconstruct:crafting_station" => 9, "tconstruct:part_chest" => 256, "tconstruct:tinkers_chest" => 64, _ => 0 };
     if chest_slots != 0 {
         game.world.block_entities.get_or_insert_with(key, || horizon_client::containers::BlockEntity::Chest(vec![None; chest_slots]));
         return;

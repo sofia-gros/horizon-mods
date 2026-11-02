@@ -251,7 +251,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             for (id, state) in states.iter().enumerate() {
                 if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:soulsteel_block" | "tconstruct:slimesteel_block" | "tconstruct:cinderslime_block" | "tconstruct:knightslime_block")) {
                     let row = rows.get_mut(id).ok_or("missing table gameplay row")?;
-                    if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:modifier_worktable" | "tconstruct:part_chest" | "tconstruct:tinkers_chest")) { row["block_entity"] = serde_json::Value::Bool(true); }
+                    if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:part_chest" | "tconstruct:tinkers_chest")) { row["block_entity"] = serde_json::Value::Bool(true); }
                     row["solid_render"] = serde_json::Value::Bool(false);
                     row["can_occlude"] = serde_json::Value::Bool(false);
                 }
