@@ -2410,6 +2410,27 @@ file = "crates/horizon-client/src/game/remote.rs"
 name = "tconstruct_source_machine_remote"
 source = "source-machine-remote.rs"
 
+[[state]]
+id = "remote-screen-position"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-machine-remote-screen"
+target = "horizon_client::game::native_hooks::Game<'_>::open_native_screen"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-remote-screen.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "target", ty = "Option<(i32,i32,i32)>", value = "target" },
+]
+
 [[injection]]
 id = "source-machine-reacts"
 target = "horizon_client::game::remote::Game<'_>::remote_block_reacts"
