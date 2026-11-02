@@ -3047,6 +3047,64 @@ bindings = [
 ]
 
 [[module]]
+id = "slime-tree-shape"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_tree_shape"
+source = "source-slime-tree-shape.rs"
+
+[[module]]
+id = "slime-tree-world"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_tree_world"
+source = "source-slime-tree-world.rs"
+
+[[module]]
+id = "slime-island-markers"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_markers"
+source = "source-slime-island-markers.rs"
+
+[[module]]
+id = "slime-island-marker-world"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_marker_world"
+source = "source-slime-island-marker-world.rs"
+
+[[module]]
+id = "slime-tree-config"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_tree_config"
+source = "source-slime-tree-config.rs"
+
+[[module]]
+id = "slime-island-piece"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_piece"
+source = "source-slime-island-piece.rs"
+
+[[injection]]
+id = "slime-island-resume"
+target = "horizon_world::worldgen::generator_structures::StructureState::use_saved_start"
+kind = "HEAD"
+cancellable = true
+helper = "source-slime-island-resume.rs"
+bindings = [{ name = "state", ty = "&StructureState", value = "self" }, { name = "context", ty = "&mut impl super::structure::start::StartContext", value = "context" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "structure", ty = "&str", value = "structure" }, { name = "pieces", ty = "&[Value]", value = "pieces" }]
+
+[[module]]
+id = "slime-island-start"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_slime_island_start"
+source = "source-slime-island-start.rs"
+
+[[injection]]
+id = "slime-island-start-hook"
+target = "horizon_world::worldgen::structure::start::try_generate"
+kind = "HEAD"
+cancellable = true
+helper = "source-slime-island-start-hook.rs"
+bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "any_biome", ty = "bool", value = "any_biome" }]
+
+[[module]]
 id = "materials-book"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book"
