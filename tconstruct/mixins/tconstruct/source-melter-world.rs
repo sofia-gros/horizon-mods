@@ -201,18 +201,18 @@ mod conditional_tests {
         config.insert("cheaper_netherite_alloy".into(), true);
         let items = HashSet::new();
         let bytes = br#"{"type":"forge:conditional","recipes":[{"conditions":[{"type":"tconstruct:config","prop":"cheaper_netherite_alloy"}],"recipe":{"type":"tconstruct:alloy","choice":1}},{"conditions":[{"type":"forge:true"}],"recipe":{"type":"tconstruct:alloy","choice":2}}]}"#;
-        let selected = conditional_recipe(bytes, &tags, &config, &items).unwrap();
+        let selected = conditional_recipe(bytes, &tags, &config, &items, None).unwrap();
         assert_eq!(serde_json::from_slice::<serde_json::Value>(&selected).unwrap()["choice"], 1);
         config.insert("cheaper_netherite_alloy".into(), false);
-        let selected = conditional_recipe(bytes, &tags, &config, &items).unwrap();
+        let selected = conditional_recipe(bytes, &tags, &config, &items, None).unwrap();
         assert_eq!(serde_json::from_slice::<serde_json::Value>(&selected).unwrap()["choice"], 2);
         config.clear();
-        assert!(conditional_recipe(bytes, &tags, &config, &items).is_none());
+        assert!(conditional_recipe(bytes, &tags, &config, &items, None).is_none());
         let outer = br#"{"type":"forge:conditional","conditions":[{"type":"tconstruct:config","prop":"cheaper_netherite_alloy"}],"recipes":[{"conditions":[{"type":"forge:true"}],"recipe":{"type":"tconstruct:alloy"}}]}"#;
-        assert!(conditional_recipe(outer, &tags, &config, &items).is_none());
+        assert!(conditional_recipe(outer, &tags, &config, &items, None).is_none());
         config.insert("cheaper_netherite_alloy".into(), false);
-        assert!(conditional_recipe(outer, &tags, &config, &items).is_none());
+        assert!(conditional_recipe(outer, &tags, &config, &items, None).is_none());
         config.insert("cheaper_netherite_alloy".into(), true);
-        assert!(conditional_recipe(outer, &tags, &config, &items).is_some());
+        assert!(conditional_recipe(outer, &tags, &config, &items, None).is_some());
     }
 }
