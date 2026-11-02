@@ -1,11 +1,13 @@
 // The source sword/cleaver sweep is a separate, reduced-damage path: it is
 // not the circle attack and does not apply a separate tool wear per target.
-fn tconstruct_melee_sweep(game:&mut crate::game::Game<'_>, index:usize, _scale:f32) -> std::ops::ControlFlow<()> {
+fn tconstruct_melee_sweep(game:&mut crate::game::Game<'_>, spared:crate::game::mace::Spared, _scale:f32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break,Continue};
     use crate::game::tconstruct_source_melee_shape::{self as shape,Attack};
     let Some(stack)=game.held() else{return Continue(());};
     let Some(kind @ Attack::Sweep(range))=shape::attack(stack.item.as_ref()) else{return Continue(());};
     if shape::intact(stack).is_none() {return Break(());}
+    let crate::game::mace::Spared::Mob(id) = spared else { return Continue(()); };
+    let Some(index) = game.mobs.iter().position(|mob| mob.id == id) else { return Break(()); };
     let Some(player)=game.player.as_ref() else{return Break(());};
     let from=[player.position.x,player.position.y,player.position.z];
     let Some(primary)=game.mobs.get(index) else{return Break(());};
