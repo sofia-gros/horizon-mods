@@ -1,7 +1,7 @@
 use pluto_lib::native_creative::{register_tabs, Entry, Tab};
 use pluto_lib::{
-    add_creative_tabs, add_paged_creative_tabs, BlockProperties, CreativeTab, PagedCreativeTab,
-    Registry,
+    add_creative_tabs, add_paged_creative_tabs, BlockPresentation, BlockProperties, CreativeTab,
+    PagedCreativeTab, Registry,
 };
 use std::{env, fs, path::Path};
 
@@ -92,7 +92,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut registry = Registry::new("pluto_demo")?;
     registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
     registry.item("gem_inherited", "minecraft:amethyst_shard")?;
-    registry.block_with_properties(
+    registry.block_with_settings(
         "glowing_block",
         "minecraft:amethyst_block",
         BlockProperties {
@@ -100,14 +100,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             explosion_resistance: Some(1200.0),
             requires_tool: Some(true),
         },
+        BlockPresentation {
+            light: Some(14),
+            sounds: Some("minecraft:anvil"),
+        },
     )?;
-    registry.block_with_properties(
+    registry.block_with_settings(
         "free_block",
         "minecraft:amethyst_block",
         BlockProperties {
             hardness: Some(2.0),
             explosion_resistance: Some(0.0),
             requires_tool: Some(false),
+        },
+        BlockPresentation {
+            light: Some(0),
+            sounds: None,
         },
     )?;
     registry.block_with_properties(

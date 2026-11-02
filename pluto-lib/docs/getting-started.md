@@ -48,3 +48,9 @@ Create a `Registry` with your mod namespace, add declarations, and write them in
 ![A configured block in the demo world](block-properties-demo.png)
 
 *The configured block and a dropped demo block in the Linux test world.*
+
+The Pluto Block also emits light level 14 and uses the anvil block sound template. On the pinned Linux host, its stored block light was 14, while the explicitly unlit comparison block was 0. Horizon resolved the anvil sound settings in its gameplay data; audio playback was not tested.
+
+![The demo block lighting the world at night](block-presentation-demo.png)
+
+*The configured light-emitting block in the Linux demo.*
