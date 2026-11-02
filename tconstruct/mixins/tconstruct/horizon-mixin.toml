@@ -248,7 +248,7 @@ source = "transaction.rs"
 
 [[module]]
 id = "server-transactions"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_tx"
 source = "transaction.rs"
 visibility = "pub"
@@ -469,7 +469,7 @@ source = "source-tags.rs"
 
 [[module]]
 id = "source-tags-tests"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_tags"
 source = "source-tags.rs"
 visibility = "pub"
@@ -482,7 +482,7 @@ source = "source-stat-types.rs"
 
 [[module]]
 id = "source-stat-types-tests"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_stat_types"
 source = "source-stat-types.rs"
 visibility = "pub"
@@ -495,7 +495,7 @@ source = "source-render-info.rs"
 
 [[module]]
 id = "source-render-info-tests"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_render_info"
 source = "source-render-info.rs"
 visibility = "pub"
@@ -508,7 +508,7 @@ source = "source-mantle-layer.rs"
 
 [[module]]
 id = "source-mantle-layer-tests"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_mantle_layer"
 source = "source-mantle-layer.rs"
 visibility = "pub"
@@ -537,7 +537,7 @@ source = "recipe-order.rs"
 
 [[module]]
 id = "source-recipe-order-tests"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_recipe_order"
 source = "recipe-order.rs"
 visibility = "pub"
@@ -823,7 +823,7 @@ bindings = [
 
 [[module]]
 id = "source-part-names-tests"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_part_name"
 source = "source-part-name.rs"
 visibility = "pub"
@@ -971,7 +971,7 @@ source = "source-builder-world.rs"
 
 [[module]]
 id = "server-source-builder-world"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_builder_world"
 source = "source-builder-world.rs"
 visibility = "pub"
@@ -984,7 +984,7 @@ source = "source-world-type-game.rs"
 
 [[module]]
 id = "server-source-world-type"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_world"
 source = "source-world-type-server.rs"
 visibility = "pub"
@@ -1127,7 +1127,7 @@ source = "source-station-name.rs"
 
 [[module]]
 id = "server-station-name"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_name"
 source = "source-station-name.rs"
 visibility = "pub"
@@ -1193,7 +1193,7 @@ source = "source-builder-wire.rs"
 
 [[module]]
 id = "server-source-builder-wire"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_builder_wire"
 source = "source-builder-wire.rs"
 visibility = "pub"
@@ -1236,7 +1236,7 @@ source = "source-native-durability.rs"
 
 [[module]]
 id = "server-source-native-durability"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_native_durability"
 source = "source-native-durability.rs"
 visibility = "pub"
@@ -1249,7 +1249,7 @@ source = "source-cast-info.rs"
 
 [[module]]
 id = "server-source-cast-info"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_cast_info"
 source = "source-cast-info.rs"
 visibility = "pub"
@@ -1400,7 +1400,7 @@ source = "source-original-item-durability.rs"
 
 [[module]]
 id = "server-source-original-item-durability"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_original_item_durability"
 source = "source-original-item-durability.rs"
 visibility = "pub"
@@ -1721,7 +1721,7 @@ source = "source-anvil-capacity.rs"
 
 [[module]]
 id = "server-source-anvil-capacity"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_anvil_capacity"
 source = "source-anvil-capacity.rs"
 visibility = "pub"
@@ -1734,7 +1734,7 @@ source = "source-station-layout.rs"
 
 [[module]]
 id = "server-source-station-layout"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_layout"
 source = "source-station-layout.rs"
 visibility = "pub"
@@ -1747,7 +1747,7 @@ source = "source-station-recipes.rs"
 
 [[module]]
 id = "server-source-station-recipes"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_recipes"
 source = "source-station-recipes.rs"
 visibility = "pub"
@@ -1760,7 +1760,7 @@ source = "source-station-stats.rs"
 
 [[module]]
 id = "server-source-station-stats"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_stats"
 source = "source-station-stats.rs"
 visibility = "pub"
@@ -1773,7 +1773,7 @@ source = "source-station-world.rs"
 
 [[module]]
 id = "server-source-station-world"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_world"
 source = "source-station-world.rs"
 visibility = "pub"
@@ -1909,7 +1909,7 @@ source = "source-material-traits.rs"
 
 [[module]]
 id = "server-source-material-traits"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_material_traits"
 source = "source-material-traits.rs"
 visibility = "pub"
@@ -1922,7 +1922,7 @@ source = "source-material-trait-select.rs"
 
 [[module]]
 id = "server-source-material-trait-select"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_material_trait_select"
 source = "source-material-trait-select.rs"
 visibility = "pub"
@@ -1935,7 +1935,7 @@ source = "source-melee-stat-ops.rs"
 
 [[module]]
 id = "server-source-melee-stat-ops"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_melee_stat_ops"
 source = "source-melee-stat-ops.rs"
 visibility = "pub"
@@ -1948,7 +1948,7 @@ source = "source-material-effects.rs"
 
 [[module]]
 id = "server-source-material-effects"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_material_effects"
 source = "source-material-effects.rs"
 visibility = "pub"
@@ -1961,7 +1961,7 @@ source = "source-upgrade-rules.rs"
 
 [[module]]
 id = "server-source-upgrade-rules"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_upgrade_rules"
 source = "source-upgrade-rules.rs"
 visibility = "pub"
@@ -2125,42 +2125,42 @@ source = "source-smeltery-world.rs"
 
 [[module]]
 id = "server-smeltery-tank"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
 visibility = "pub"
 
 [[module]]
 id = "server-fluid-container"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_fluid_container"
 source = "source-fluid-container.rs"
 visibility = "pub"
 
 [[module]]
 id = "server-smeltery-state"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_smeltery_state"
 source = "source-smeltery-state.rs"
 visibility = "pub"
 
 [[module]]
 id = "server-smeltery-layout"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_smeltery_layout"
 source = "source-smeltery-layout.rs"
 visibility = "pub"
 
 [[module]]
 id = "server-smeltery-page"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_smeltery_page"
 source = "source-smeltery-page.rs"
 visibility = "pub"
 
 [[module]]
 id = "server-melter-store"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_melter_store"
 source = "source-melter-store.rs"
 visibility = "pub"
@@ -2390,14 +2390,14 @@ bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
 [[module]]
 id = "server-melter-state"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_melter_state"
 source = "source-melter-state.rs"
 visibility = "pub"
 
 [[module]]
 id = "server-smeltery-fuel"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_smeltery_fuel"
 source = "source-smeltery-fuel.rs"
 visibility = "pub"
@@ -2475,7 +2475,7 @@ source = "source-mining-math.rs"
 
 [[module]]
 id = "lib-source-mining-math"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_mining_math"
 source = "source-mining-math.rs"
 visibility = "pub"
@@ -2494,7 +2494,7 @@ source = "source-mining-stack.rs"
 
 [[module]]
 id = "lib-source-mining-stack"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_mining_stack"
 source = "source-mining-stack.rs"
 visibility = "pub"
@@ -2546,7 +2546,7 @@ source = "source-harvest-tags.rs"
 
 [[module]]
 id = "lib-source-harvest-tags"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_harvest_tags"
 source = "source-harvest-tags.rs"
 visibility = "pub"
@@ -2939,14 +2939,14 @@ source = "source-overslime.rs"
 
 [[module]]
 id = "lib-source-overslime"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_overslime"
 source = "source-overslime.rs"
 visibility = "pub"
 
 [[module]]
 id = "lib-source-overslime-crafting"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_overslime_crafting"
 source = "source-overslime-crafting.rs"
 visibility = "pub"
@@ -3233,7 +3233,7 @@ source = "source-tinker-chests.rs"
 
 [[module]]
 id = "server-tinker-chest-rules"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_chest_rules"
 source = "source-tinker-chests.rs"
 visibility = "pub"
