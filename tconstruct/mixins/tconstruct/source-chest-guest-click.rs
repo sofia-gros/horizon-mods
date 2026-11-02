@@ -64,6 +64,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     let candidate=if packet.input==2 {if packet.button==40 {offhand.as_ref()} else {usize::try_from(packet.button).ok().and_then(|i|inventory.get(i)).and_then(Option::as_ref)}} else if packet.input==1 { storage.and_then(|i|contents[i].as_ref()).or_else(||player.and_then(|i|inventory[i].as_ref())) } else { carried.as_ref() };
     let max=candidate.map_or(64,|s|rules.max_stack(&s.item).max(1));
     let tagged=candidate.is_some_and(|s| world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok()).and_then(|tags|tags.get("tconstruct:chest_parts")).is_some_and(|items|items.contains(s.item.as_ref())));
+    let moved=candidate.cloned();
     let mut changed=false;
     let mut dropped=None;
     if matches!(packet.button,0|1) || matches!(packet.input,2|3) {
@@ -109,6 +110,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
         else { return Break(Vec::new()); }
         world.modified.insert((pos.0>>4,pos.2>>4));
         hub.guests[gi].inventory=inventory;hub.guests[gi].carried=carried;hub.guests[gi].offhand=offhand;
+        if packet.input==1 {if let Some(stack)=moved {world.chunks.__horizon_mixins_tconstruct_chest_guest_last_move_mut().insert(key,(u8::from(storage.is_some()),stack));}}
         if packet.input==2 && packet.button==40 {
             let item=hub.stack(&hub.guests[gi].offhand.clone());
             let guest=&mut hub.guests[gi];guest.menu_state=(guest.menu_state+1)&0x7fff;

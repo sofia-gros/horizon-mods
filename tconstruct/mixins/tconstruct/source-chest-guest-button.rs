@@ -1,5 +1,6 @@
 fn tconstruct_chest_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, window: i32, id: i32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break,Continue};
+    if id==44000 {return crate::game::lan_stations::tconstruct_chest_quick_all::run(game,host,conn,window);}
     if (42000..=42043).contains(&id) {
         let Some(gi)=host.hub.guests.iter().position(|g|g.conn==conn) else { return Continue(()); };
         let Some(menu)=host.hub.guests[gi].menu.as_ref() else { return Continue(()); };

@@ -3702,3 +3702,40 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[injection]]
+id = "source-chest-shift-double"
+target = "horizon_client::game::Game<'_>::inventory_press"
+kind = "HEAD"
+cancellable = true
+helper = "source-chest-shift-double.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
+[[state]]
+id = "chest-guest-last-move"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(u8,horizon_items::items::ItemStack)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-chest-quick-all"
+file = "crates/horizon-client/src/game/lan_stations.rs"
+name = "tconstruct_chest_quick_all"
+source = "source-chest-quick-all.rs"
+
+[[state]]
+id = "crafting-guest-last-move"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32),(u8,horizon_items::items::ItemStack)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

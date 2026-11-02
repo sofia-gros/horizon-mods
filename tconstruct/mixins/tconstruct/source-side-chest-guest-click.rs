@@ -61,6 +61,7 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
     let pattern=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
     let candidate_empty=candidate.is_none();
+    let moved=candidate.cloned();
     let mut changed=false;
     let mut dropped=None;
     if matches!(packet.button,0|1) || matches!(packet.input,2|3) {
@@ -122,6 +123,7 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
         if let Some(crate::containers::BlockEntity::Chest(items))=world.block_entities.get_mut(&side) {*items=side_items.clone();} else {return Break(Vec::new());}
         world.modified.insert((table.0>>4,table.2>>4));world.modified.insert((side.0>>4,side.2>>4));
         hub.guests[gi].inventory=inventory;hub.guests[gi].carried=carried;hub.guests[gi].offhand=offhand;
+        if packet.input==1 {if let Some(stack)=moved {let source=if side_slot.is_some(){1}else if table_slot.is_some(){2}else{0};world.chunks.__horizon_mixins_tconstruct_chest_guest_last_move_mut().insert(key,(source,stack));}}
         if packet.input==2 && packet.button==40 {
             let item=hub.stack(&hub.guests[gi].offhand.clone());let guest=&mut hub.guests[gi];guest.menu_state=(guest.menu_state+1)&0x7fff;
             guest.send(&C::ContainerSetSlot(play::ContainerSetSlot {container:0,state:guest.menu_state,slot:45,item}));

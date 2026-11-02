@@ -3,6 +3,7 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
     let Some(g) = host.hub.guests.iter().find(|g| g.conn == conn) else { return Continue(()); };
     let Some(menu) = g.menu.as_ref().filter(|m| m.window == window) else { return Continue(()); };
     let Some(key) = menu.pos else { return Continue(()); };
+    if ((42000..=42043).contains(&id) || id==44000) && game.world.chunks.__horizon_mixins_tconstruct_chest_guest_pages().contains_key(&(conn,g.placed_at,window,key)) {return Continue(());}
     let station_capacity = crate::game::tconstruct_source_anvil_capacity::input_capacity(&game.res.facts().get(game.world.block(key.0, key.1, key.2)).name);
     if id >= 35000 && crate::game::tconstruct_source_upgrade_rules::selection_id((id - 35000) as usize).is_some() && &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:modifier_worktable" {
         if !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {
