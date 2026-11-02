@@ -65,6 +65,13 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
     }
     let stack = input?;
     if !basin {
+        // Empty buckets with extra data need capability-aware handling; do not
+        // discard their components when creating a filled container.
+        if stack.item.as_ref() == "minecraft:bucket" && stack.damage == 0 && stack.extra.is_none() {
+            if let Some((id, recipe, output)) = with_catalog(world, |catalog, registries, config| {
+                catalog.bucket_filling(fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+            })? { return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1))); }
+        }
         if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
             catalog.duplication(&stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
         })? {
