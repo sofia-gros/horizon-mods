@@ -366,7 +366,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let is_cloud = kind == "tconstruct:mob_effect_cloud";
     let mut cloud = Vec::new();
     let (block, sound) = if is_cloud {
-        if *level != 1 || effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
+        if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
         for entry in effect.get("effects")?.as_array()? {
             let entry = entry.as_object()?;
             if entry.keys().any(|key| !matches!(key.as_str(), "effect" | "time" | "level")) { return None; }
@@ -375,7 +375,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             let duration = i32::try_from(entry.get("time").map_or(Some(-1), serde_json::Value::as_i64)?).ok()?;
             let level = i32::try_from(entry.get("level").map_or(Some(1), serde_json::Value::as_i64)?).ok()?;
             if !(1..=256).contains(&level) { return None; }
-            if duration > 10 { duration.checked_mul(4)?; cloud.push((def.id, duration, level - 1)); }
+            if duration > 0 { cloud.push((def.id, duration, level - 1)); }
         }
         if cloud.is_empty() { return None; }
         ("", None)
@@ -400,12 +400,29 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     // Stage every possible remainder before changing the world. Failed
     // positions do not advance the stage; the source consumes once per success.
     let max_positions = vein.as_ref().map_or(offsets.len() + 1, |area| ((area.radius * 2 + 1) as usize).pow(3));
-    let count = ((fluid.amount / amount) as usize).min(max_positions);
-    let mut staged = Vec::with_capacity(count);
-    for successes in 1..=count {
-        let mut remaining = fluid.clone();
-        remaining.amount -= amount.checked_mul(successes as u32)?;
-        staged.push(super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?);
+    let mut staged = Vec::new();
+    let mut remaining = fluid.clone();
+    while staged.len() < max_positions && remaining.amount > 0 {
+        let (used, scaled_cloud) = if is_cloud {
+            let scale = (*level as f32).min(remaining.amount as f32 / amount as f32);
+            let mut scaled = Vec::new();
+            for &(id, duration, amplifier) in &cloud {
+                let value = duration as f32 * scale;
+                if !value.is_finite() || value > (i32::MAX / 4) as f32 { return None; }
+                let duration = value as i32;
+                if duration > 10 { duration.checked_mul(4)?; scaled.push((id, duration, amplifier)); }
+            }
+            if scaled.is_empty() { break; }
+            let used = ((amount as f32 * scale).ceil() as u32).min(remaining.amount);
+            (used, scaled)
+        } else {
+            if remaining.amount < amount { break; }
+            (amount, Vec::new())
+        };
+        if used == 0 { break; }
+        remaining.amount -= used;
+        let updated = super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?;
+        staged.push((updated, scaled_cloud));
     }
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let result = (|| -> horizon_client::Result<bool> {
@@ -453,7 +470,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     if !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
                     let hit = hit_point.unwrap();
                     let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
-                    super::potions::tconstruct_source_fluid_cloud::spawn(game, at, cloud.clone());
+                    super::potions::tconstruct_source_fluid_cloud::spawn(game, at, staged[successes].1.clone());
                     return Ok(true);
                 }
                 if block == "tconstruct:glow" {
@@ -500,7 +517,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             }
         }
         if successes > 0 && !game.creative {
-            *game.held_mut() = Some(staged[successes - 1].clone());
+            *game.held_mut() = Some(staged[successes - 1].0.clone());
             if let Some(current) = game.held().cloned() {
                 let wear = (*level as u32).saturating_mul(successes as u32);
                 let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, &current, wear, Some("tconstruct:splashing"));
