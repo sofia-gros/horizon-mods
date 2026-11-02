@@ -1927,14 +1927,6 @@ kind = "RETURN"
 helper = "snow-boots-equipment.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
-[[injection]]
-id = "source-snow-boots-placement"
-target = "horizon_client::game::Game<'_>::with_level"
-kind = "MODIFY_VARIABLE"
-variable = { name = "player_collision", ordinal = 0, at = "STORE" }
-helper = "snow-boots-collision.rs"
-bindings = [{ name = "value", ty = "Option<crate::game::PlayerCollision>", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
-
 [[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"

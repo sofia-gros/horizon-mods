@@ -361,8 +361,8 @@ mod tests {
     #[test]
     fn skull_slime_and_chest_definition_keep_source_values() {
         let mut stats: [Accumulator; 12] = std::array::from_fn(|_| Accumulator::new(0.0));
-        let skull = serde_json::json!({"armor": 3}).as_object().unwrap().clone();
-        let slime = serde_json::json!({"durability": 40}).as_object().unwrap().clone();
+        let skull = serde_json::json!({"tconstruct:skull":{"armor": 3}}).as_object().unwrap().clone();
+        let slime = serde_json::json!({"tconstruct:slime":{"durability": 40}}).as_object().unwrap().clone();
         apply_material(&mut stats, "skull", &skull, 1.0).unwrap();
         apply_material(&mut stats, "slime", &slime, 0.5).unwrap();
         assert_eq!(stats[7].result(), 3.0);
