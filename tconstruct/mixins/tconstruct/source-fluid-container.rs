@@ -88,9 +88,9 @@ pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) ->
 // The host currently models a potion ID separately from its other components.
 // Only accept the lossless simple case until custom effects/color are modeled.
 fn simple_potion(stack: &ItemStack) -> Option<String> {
-    if stack.item.as_ref() != "minecraft:potion" || stack.count == 0 || stack.damage != 0 { return None; }
+    if !matches!(&*stack.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") || stack.count == 0 || stack.damage != 0 { return None; }
     let potion = stack.potion()?;
-    let plain = ItemStack::new("minecraft:potion", 1).with_potion(potion);
+    let plain = ItemStack::new(&stack.item, 1).with_potion(potion);
     stack.same_item_same_components(&plain).then(|| potion.to_owned())
 }
 
@@ -169,20 +169,38 @@ pub(super) fn transfer(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 
 
 pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    transfer_selected_with_tags(tank, slots, direction, selected, known_item, known_fluid, None)
+}
+pub(super) fn transfer_selected_with_tags(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
     if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
-    if input.item.as_ref() == "minecraft:potion" {
+    if matches!(&*input.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") {
         use horizon_world::nbt::Tag;
-        if direction == Direction::FillItem || !known_item("minecraft:glass_bottle") { return false; }
+        if direction == Direction::FillItem { return false; }
         let Some(potion) = simple_potion(input) else { return false; };
+        let empty = match &*input.item {
+            "minecraft:potion" => "minecraft:glass_bottle".to_owned(),
+            item => {
+                let Some(tags) = item_tags else { return false; };
+                let key = if item == "minecraft:splash_potion" { "forge:bottles/splash" } else { "forge:bottles/lingering" };
+                let mut available = tags.get(key).into_iter().flatten().filter(|id| known_item(id));
+                match available.next() {
+                    Some(id) => { let id = id.clone(); if available.next().is_some() { return false; } id },
+                    None => "minecraft:glass_bottle".to_owned(),
+                }
+            }
+        };
+        if !known_item(&empty) { return false; }
         let (fluid, metadata) = if potion == "minecraft:water" { ("minecraft:water", None) }
             else { ("tconstruct:potion", Some(Tag::compound([("Potion", Tag::String(potion.as_str().into()))]))) };
         let mut next = tank.clone();
         if !known_fluid(fluid) || !next.insert_tagged(fluid, metadata.as_ref(), 250) { return false; }
         let mut remaining = input.clone(); remaining.count -= 1;
         slots[0] = (remaining.count > 0).then_some(remaining);
-        slots[1] = Some(ItemStack::new("minecraft:glass_bottle", 1)); *tank = next;
+        slots[1] = Some(ItemStack::new(&empty, 1)); *tank = next;
         return true;
     }
     if input.item.as_ref() == "tconstruct:copper_can" {
@@ -272,12 +290,17 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
 /// Apply the same bucket rules to the Melter's single-fluid tank.
 pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    transfer_single_with_tags(tank, slots, direction, known_item, known_fluid, None)
+}
+pub(super) fn transfer_single_with_tags(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> bool {
     let mut staged = SmelteryTank::new(tank.capacity);
     if let Some(id) = tank.fluid.as_deref() {
         if !staged.insert_tagged(id, tank.tag.as_ref(), tank.amount) { return false; }
     }
     let mut staged_slots = slots.clone();
-    if !transfer(&mut staged, &mut staged_slots, direction, known_item, known_fluid) { return false; }
+    if !transfer_selected_with_tags(&mut staged, &mut staged_slots, direction, None, known_item, known_fluid, item_tags) { return false; }
     if staged.fluids.len() > 1 { return false; }
     *slots = staged_slots;
     tank.amount = staged.total();
