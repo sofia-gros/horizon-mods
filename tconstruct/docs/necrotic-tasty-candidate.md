@@ -78,7 +78,7 @@ owner is unresolved. The complete saved-arrow path still needs a game test.
 
 This remains a partial path: source runs before damage if not blocked, whereas
 the host combines shield and other refusals and the candidate requires Hurt.
-PvP mob-hit refusals and host-player victims are not implemented. Test local and guest mob hits,
+PvP and mob-hit refusals are not implemented. Test local and guest mob hits,
 blacklist, health lower than arrow power, failed and nested hits, projectile
 identity, disconnected guest, canceled healing and shot save/reload. The
 state and injection have not passed official plan, type or game checks.
@@ -94,8 +94,8 @@ restoration. A subsequent candidate implements this for a guest victim and a
 connected shooter, using an invalidating stack of scopes and exact projectile
 and shooter UUID matching. It accepts only the host Hurt outcome. Nested hits,
 disconnection, refused hits and mismatched owners must not heal. The return
-injection and complete game behavior are unverified; the host-player victim
-route and melee PvP remain open. The host's
+injection and complete game behavior are unverified; a follow-up handles a guest arrow hitting the host with a separate
+projectile-ID/UUID handoff. Melee PvP remains open. The host's
 `projectile_pvp_victim` also requires a resolved player owner; test saved
 arrows separately rather than assuming the UUID fallback extends that route.
 
@@ -107,3 +107,9 @@ Supporting this case needs an active-use continuation that preserves the
 original use, re-reads the updated stack and allows source-valid completion;
 simply dropping the breaking-bite guard would lose or misapply that use.
 The same stale-stack continuation requires explicit handling for shields.
+
+The host-victim follow-up records pre-hit health and arrow power only when a
+connected guest's UUID matches the arrow owner, then rechecks that connection
+after Hurt before switching to the shooter and healing. Verify disconnection,
+reconnection under a different UUID, nested impacts, shield/PvP refusal,
+health caps and owner restoration; this has not passed plan, apply or game.

@@ -4335,6 +4335,16 @@ helper = "necrotic-pvp-end.rs"
 bindings = [{ name = "value", ty = "horizon_client::Result<()>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" }]
 
 [[state]]
+id = "necrotic-host-victim"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, (u32, [i32; 4], f32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "spilling-context"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>, Vec<Option<(u32, horizon_items::items::ItemStack)>>>"

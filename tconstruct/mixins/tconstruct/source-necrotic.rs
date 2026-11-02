@@ -72,6 +72,7 @@ pub(super) fn projectile_begin(
         projectiles::{Hit, ProjectileKind},
     };
     pvp_capture(game, p, hit);
+    host_victim_capture(game, p, hit);
     let actor = game.lan_acting;
     game.world
         .chunks
@@ -151,6 +152,7 @@ pub(super) fn projectile_finish(
     outcome: horizon_client::arrows::EntityHit,
 ) {
     pvp_outcome(game, p, outcome);
+    host_victim_finish(game, p, outcome);
     let actor = game.lan_acting;
     let pending = game
         .world
@@ -165,6 +167,38 @@ pub(super) fn projectile_finish(
     if let Some((_, amount)) = pending.filter(|(id, _)| *id == p.id) {
         heal_player(game, amount);
     }
+}
+
+// Guest arrow hitting the host runs directly in the host's projectile scope.
+fn host_victim_capture(game: &mut super::Game<'_>, p: &horizon_client::projectiles::Projectile, hit: horizon_client::projectiles::Hit) {
+    use horizon_client::{mobs::Who, projectiles::{Hit, ProjectileKind}};
+    game.world.chunks.__horizon_mixins_tconstruct_necrotic_host_victim_mut().remove(&p.id);
+    let Some(conn) = p.guest else { return; };
+    let Some(uuid) = p.owner_uuid else { return; };
+    if game.remote.is_some() || game.lan_acting_uuid.is_some() || p.id == 0 || p.owner != Some(Who::Player)
+        || !matches!(hit, Hit::Entity { who: Who::Player, .. }) { return; }
+    if !game.lan.as_ref().and_then(|host| host.hub.guest(conn)).is_some_and(|guest| horizon_client::lan::playerdata::uuid_ints(guest.uuid) == uuid) { return; }
+    let data = game.res.mob_data();
+    if !data.entity_tags.contains_key("tconstruct:necrotic_blacklist") || data.entity_has("tconstruct:necrotic_blacklist", "minecraft:player") { return; }
+    let ProjectileKind::Arrow { base_damage, .. } = &p.kind else { return; };
+    let Some(health) = game.player.as_ref().map(|player| player.health.health()) else { return; };
+    let Some(weapon) = p.arrow.as_ref().and_then(|arrow| arrow.fired_from_weapon.as_ref()) else { return; };
+    let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, weapon) else { return; };
+    let level = traits.levels.get("tconstruct:necrotic").copied().unwrap_or(0);
+    let speed = (p.velocity.x*p.velocity.x + p.velocity.y*p.velocity.y + p.velocity.z*p.velocity.z).sqrt();
+    let Some(amount) = projectile_amount(level, health, *base_damage, speed) else { return; };
+    game.world.chunks.__horizon_mixins_tconstruct_necrotic_host_victim_mut().insert(p.id, (conn, uuid, amount));
+}
+
+fn host_victim_finish(game: &mut super::Game<'_>, p: &horizon_client::projectiles::Projectile, outcome: horizon_client::arrows::EntityHit) {
+    let pending = game.world.chunks.__horizon_mixins_tconstruct_necrotic_host_victim_mut().remove(&p.id);
+    let Some((conn, uuid, amount)) = pending else { return; };
+    if outcome != horizon_client::arrows::EntityHit::Hurt || p.guest != Some(conn) || p.owner_uuid != Some(uuid) || game.lan_acting_uuid.is_some() { return; }
+    let Some(mut host) = game.lan.take() else { return; };
+    if host.hub.guest(conn).is_some_and(|guest| horizon_client::lan::playerdata::uuid_ints(guest.uuid) == uuid) {
+        let _ = game.as_guest(&mut host, conn, |actor| heal_player(actor, amount));
+    }
+    game.lan = Some(host);
 }
 
 // A scope per host PvP call; nested calls invalidate their parents rather
