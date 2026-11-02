@@ -24,6 +24,7 @@ fn tconstruct_side_chest_click(
     let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok());
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
     let pattern=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
+    let candidate_empty=candidate.is_none();
     let mut changed=false;
     let mut dropped=None;
     match input {
@@ -66,12 +67,22 @@ fn tconstruct_side_chest_click(
                 }) {changed=true;dropped=left;}
             }
         }
+        Input::Swap if (300..302).contains(&slot) && (slot!=300 || candidate_empty || pattern) => {
+            let registry=game.res.items();
+            if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&table) {
+                let kind=crate::game::tconstruct_chest_rules::ChestKind::Plain(items.len());
+                if let Some(left)=crate::game::tconstruct_chest_rules::swap_slot(kind,items,slot-300,&mut game.inventory,&mut game.offhand,button,max,true,|inventory,stack| {
+                    let limit=registry.get(&stack.item).map_or(64,|info|info.max_stack).max(1);crate::game::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                }) {changed=true;dropped=left;}
+            }
+        }
         Input::Swap if slot<36 => {
             if button==40 {std::mem::swap(&mut game.inventory[slot],&mut game.offhand);changed=true;}
             else if (0..9).contains(&button) {game.inventory.swap(slot,button as usize);changed=true;}
         }
         Input::Throw if game.carried.is_none() => {
             if slot<36 {dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut game.inventory,slot,button!=0);}
+            else if (300..302).contains(&slot) {if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&table) {dropped=crate::game::tconstruct_chest_rules::take_for_drop(items,slot-300,button!=0);}}
             else if let Some(i)=actual {if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&side) {dropped=crate::game::tconstruct_chest_rules::take_for_drop(items,i,button!=0);}}
             changed=dropped.is_some();
         }

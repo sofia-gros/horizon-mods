@@ -60,6 +60,7 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
     let tags=world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok());
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
     let pattern=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
+    let candidate_empty=candidate.is_none();
     let mut changed=false;
     let mut dropped=None;
     if matches!(packet.button,0|1) || matches!(packet.input,2|3) {
@@ -83,11 +84,18 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
             (2,Some(i),_,_) => if let Some(left)=chest::swap_slot(kind,&mut side_items,i,&mut inventory,&mut offhand,i32::from(packet.button),max,part,|inventory,stack| {
                 let limit=rules.max_stack(&stack.item).max(1);crate::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
             }) {changed=true;dropped=left;},
+            (2,_,Some(i),_) if i!=0 || candidate_empty || pattern => {
+                let kind=ChestKind::Plain(table_items.len());
+                if let Some(left)=chest::swap_slot(kind,&mut table_items,i,&mut inventory,&mut offhand,i32::from(packet.button),max,true,|inventory,stack| {
+                    let limit=rules.max_stack(&stack.item).max(1);crate::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                }) {changed=true;dropped=left;}
+            },
             (2,_,_,Some(i)) => {
                 if packet.button==40 {std::mem::swap(&mut inventory[i],&mut offhand);changed=true;}
                 else if (0..9).contains(&packet.button) {inventory.swap(i,packet.button as usize);changed=true;}
             },
             (4,Some(i),_,_) if carried.is_none() => {dropped=chest::take_for_drop(&mut side_items,i,packet.button!=0);changed=dropped.is_some();},
+            (4,_,Some(i),_) if carried.is_none() => {dropped=chest::take_for_drop(&mut table_items,i,packet.button!=0);changed=dropped.is_some();},
             (4,_,_,Some(i)) if carried.is_none() => {dropped=chest::take_for_drop(&mut inventory,i,packet.button!=0);changed=dropped.is_some();},
             (3,side,table,player) if hub.guests[gi].creative() && carried.is_none() => {
                 let stack=side.and_then(|i|side_items[i].as_ref()).or_else(||table.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref()));
