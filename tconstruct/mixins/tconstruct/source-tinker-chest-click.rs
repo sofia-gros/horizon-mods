@@ -8,8 +8,10 @@ fn tconstruct_chest_click(
     if game.remote.is_some() { return Continue(()); }
     let Some(key) = game.container else { return Break(true); };
     let Some(slot) = slot else { return Break(true); };
-    if button != 0 && button != 1 { return Break(true); }
-    let candidate = if input == Input::QuickMove {
+    if input != Input::Swap && button != 0 && button != 1 { return Break(true); }
+    let candidate = if input == Input::Swap {
+        if button==40 {game.offhand.as_ref()} else {usize::try_from(button).ok().and_then(|i|game.inventory.get(i)).and_then(Option::as_ref)}
+    } else if input == Input::QuickMove {
         if slot < 36 { game.inventory.get(slot).and_then(Option::as_ref) }
         else { game.world.block_entities.get(&key).and_then(|e| e.slots().get(slot.saturating_sub(300))).and_then(Option::as_ref) }
     } else { game.carried.as_ref() };
@@ -18,6 +20,7 @@ fn tconstruct_chest_click(
         .and_then(|result| result.as_ref().ok()).and_then(|tags| tags.get("tconstruct:chest_parts"))
         .is_some_and(|items| items.contains(s.item.as_ref())));
     let mut changed = false;
+    let mut dropped=None;
     match input {
         Input::Pickup if slot < 36 => {
             changed = crate::game::tconstruct_chest_rules::pickup_player(&mut game.inventory, slot, &mut game.carried, button == 1, max);
@@ -49,9 +52,23 @@ fn tconstruct_chest_click(
                 }
             }
         }
+        Input::Swap if (300..556).contains(&slot) => {
+            let registry=game.res.items();
+            if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&key) {
+                if let Some(left)=crate::game::tconstruct_chest_rules::swap_slot(kind,items,slot-300,&mut game.inventory,&mut game.offhand,button,max,tagged,|inventory,stack| {
+                    let limit=registry.get(&stack.item).map_or(64,|info|info.max_stack).max(1);
+                    crate::game::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                }) {changed=true;dropped=left;}
+            }
+        }
+        Input::Swap if slot<36 => {
+            if button==40 {std::mem::swap(&mut game.inventory[slot],&mut game.offhand);changed=true;}
+            else if (0..9).contains(&button) {game.inventory.swap(slot,button as usize);changed=true;}
+        }
         _ => {}
     }
     if changed { game.world.modified.insert((key.0 >> 4, key.2 >> 4)); }
+    if let (Some(stack),Some(eye))=(dropped,game.eye_position()) {game.throw_from_eyes(stack,eye,false);}
     // Unsupported gestures are consumed until implemented; never let the
     // vanilla 54-slot menu misinterpret this chest's large slot IDs.
     Break(true)

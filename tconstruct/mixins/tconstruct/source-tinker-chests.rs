@@ -157,6 +157,38 @@ pub(super) fn pickup_player(
     true
 }
 
+/// Hotbar/offhand swap against a chest slot, including a capped incoming
+/// stack and return of the displaced item through the player inventory.
+pub(super) fn swap_slot(
+    kind: ChestKind, slots: &mut [Option<horizon_items::items::ItemStack>], index: usize,
+    inventory: &mut [Option<horizon_items::items::ItemStack>], offhand: &mut Option<horizon_items::items::ItemStack>,
+    button: i32, item_limit: u32, tagged_part: bool,
+    move_player: impl FnOnce(&mut [Option<horizon_items::items::ItemStack>],horizon_items::items::ItemStack) -> Option<horizon_items::items::ItemStack>,
+) -> Option<Option<horizon_items::items::ItemStack>> {
+    if slots.len()!=kind.slots() || index>=slots.len() || inventory.len()<36 || !(button==40 || (0..9).contains(&button)) {return None;}
+    let source=if button==40 {offhand.clone()} else {inventory[button as usize].clone()};
+    if let Some(stack)=source.as_ref() {
+        let first=slots.iter().position(|current|current.as_ref().is_some_and(|s|s.same_item_same_components(stack)));
+        if !kind.accepts(index,first,tagged_part) {return None;}
+    }
+    let taken=slots[index].take();
+    let mut displaced=None;
+    match source {
+        None => if button==40 {*offhand=taken;} else {inventory[button as usize]=taken;},
+        Some(mut stack) => {
+            let moved=stack.count.min(kind.slot_limit(item_limit));
+            if moved==0 {slots[index]=taken;return None;}
+            let mut placed=stack.clone();placed.count=moved;slots[index]=Some(placed);stack.count-=moved;
+            if stack.count==0 {if button==40 {*offhand=taken;} else {inventory[button as usize]=taken;}}
+            else {
+                if button==40 {*offhand=Some(stack);} else {inventory[button as usize]=Some(stack);}
+                if let Some(taken)=taken {displaced=move_player(inventory,taken);}
+            }
+        },
+    }
+    Some(displaced)
+}
+
 /// Original scaling inventory shows one spare slot after the last occupied
 /// position, capped by its own capacity. It does not limit other inventories.
 pub(super) fn part_visual_size(occupied: impl DoubleEndedIterator<Item = bool> + ExactSizeIterator, capacity: usize) -> usize {
@@ -303,6 +335,18 @@ mod tests {
         let mut side=vec![None;27];
         assert!(insert_across(ChestKind::Plain(27),&mut side,ItemStack::new("minecraft:stone",64),64,false).is_none());
         assert_eq!(side[0].as_ref().unwrap().count,64);
+    }
+    #[test]
+    fn hotbar_swap_obeys_chest_limit_and_returns_displaced_stack() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![None;64];side[0]=Some(ItemStack::new("minecraft:diamond",2));
+        let mut inventory=vec![None;36];inventory[1]=Some(ItemStack::new("minecraft:stone",20));let mut offhand=None;
+        let result=swap_slot(ChestKind::Tinkers,&mut side,0,&mut inventory,&mut offhand,1,64,false,|inventory,stack|{inventory[2]=Some(stack);None});
+        assert!(matches!(result,Some(None)));
+        assert_eq!((side[0].as_ref().unwrap().count,inventory[1].as_ref().unwrap().count),(16,4));
+        assert_eq!(inventory[2].as_ref().unwrap().item.as_ref(),"minecraft:diamond");
+        let mut parts=vec![None;256];
+        assert!(swap_slot(ChestKind::Part,&mut parts,0,&mut inventory,&mut offhand,1,64,false,|_,s|Some(s)).is_none());
     }
     #[test]
     fn crafted_result_fills_side_then_player_and_rejects_full_destinations() {
