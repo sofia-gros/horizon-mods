@@ -374,3 +374,5 @@ The Smeltery and Foundry item-entity intake candidate checks the interior on a t
 The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
 
 The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack damage, known maximum durability and source unit rounding, including Foundry byproducts. Unknown or malformed maximum-damage components fail closed; exact runtime, reload and LAN behavior await verification.
+
+Material-part melting now uses the existing source casting-cost and material lookup to resolve `material_melting`, scale primary and Foundry byproducts by part cost, and compute source melting time. Missing tags, material definitions, costs or fluid outputs fail closed. Runtime and LAN behavior await verification.

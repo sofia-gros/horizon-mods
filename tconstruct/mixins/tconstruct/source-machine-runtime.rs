@@ -110,10 +110,12 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             if foundry {
                 super::tconstruct_source_melter_world::foundry_melting(&game.world, &stack.item)
                     .or_else(|| damaged_recipe(game, stack))
+                    .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack))
                     .map(|(id, recipe, fluid, byproducts)| (id, recipe.melting, fluid, byproducts))
             } else {
                 super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
                     .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
+                    .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
                     .map(|(id, recipe, fluid)| (id, recipe, fluid, Vec::new()))
             }
         })).collect()
@@ -361,7 +363,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     let recipes: Vec<_> = if melter.phase == 0 || melter.phase == 2 {
         melter.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
             super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
-                .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid))))).collect()
+                .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
+                .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid))))).collect()
     } else { vec![None; melter.slots.len()] };
     let mut heater_update = None;
     let mut remainder_drop = None;
