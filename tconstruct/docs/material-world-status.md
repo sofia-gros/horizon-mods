@@ -66,3 +66,21 @@ its percentage, and the global multiplier applies last. For an unmodified
 100-durability baseline with Emerald and Netherite, the source reference is
 170, rather than the previous multiplicative result of 180. Validation must
 include both source float rounding and material replacement.
+
+## Durability modifier order candidate
+
+The candidate records new upgrade insertion order separately from the existing
+`tic_upgrades` compound, retains it on part replacement, and removes an entry
+when its upgrade is removed. It rebuilds material-trait order from the selected
+parts. Durability calculation visits upgrades before material traits at the
+same source priority and applies Overlord's lower-priority reduction afterward.
+Creative generation uses the same recorded trait order. For older stacks without
+an order list, existing upgrade keys are read in deterministic key order; their
+original historical order cannot be recovered. The source also has tool traits
+and modifier-provided traits, whose complete ordering coverage is not claimed.
+
+Reference case: with Netherite then Emerald upgrades and Ductile 1 / Preserved 4
+material traits, adding Ductile before Preserved produces the float32 percentage
+`1.4000000953674316`; the reverse order produces `1.399999976158142`. The added
+focused checks, Station/Creative/part-swap and extraction paths, legacy saves,
+priority coverage, official apply/type and local/LAN behavior are unverified.

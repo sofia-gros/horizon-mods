@@ -328,15 +328,9 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
         tool.data_mut().set_other("minecraft:custom_data", Some(custom));
         return Some(());
     }
-    let trait_boost = 0.15 * *levels.get("tconstruct:preserved").unwrap_or(&0) as f32
-        + 0.1 * *levels.get("tconstruct:ductile").unwrap_or(&0) as f32
-        + match levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0) {
-            level if level >= 7 => -0.99999,
-            level => -0.15 * level as f32,
-        };
     let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0) > 0;
     let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
-    let percent = stats.durability_percent_raw + trait_boost + if emerald { 0.5 } else { 0.0 } + if netherite { 0.2 } else { 0.0 };
+    let percent = super::tconstruct_source_material_effects::ordered_durability_percent(tool, stats, levels, true);
     let durability = ((stats.durability_base_raw + diamond_add) * (1.0 + percent) * stats.durability_multiplier_unit) as i32;
     let durability = if overlord { durability.max(1) } else { durability };
     if durability < 1 { return None; }

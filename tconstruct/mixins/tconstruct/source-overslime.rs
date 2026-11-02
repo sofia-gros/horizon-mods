@@ -115,12 +115,8 @@ pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     // StatCopy runs before the other modules of Overlord and reads a float,
     // not the final integer durability after Overlord's own reduction.
     let diamond = upgrade(stack, "tconstruct:diamond") > 0;
-    let emerald = upgrade(stack, "tconstruct:emerald") > 0;
-    let netherite = upgrade(stack, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
     let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
-    let preserved = levels.get("tconstruct:preserved").copied().unwrap_or(0) as f32;
-    let ductile = levels.get("tconstruct:ductile").copied().unwrap_or(0) as f32;
-    let percent = stats.durability_percent_raw + preserved * 0.15 + ductile * 0.1 + if emerald { 0.5 } else { 0.0 } + if netherite { 0.2 } else { 0.0 };
+    let percent = super::tconstruct_source_material_effects::ordered_durability_percent(stack, stats, levels, false);
     let source_multiplier = stats.durability_multiplier_unit;
     let durability = (stats.durability_base_raw + diamond_add) * (1.0 + percent) * source_multiplier;
     let cap = capacity_with_overlord(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, levels.get("tconstruct:overlord").copied().unwrap_or(0), durability, source_multiplier);
