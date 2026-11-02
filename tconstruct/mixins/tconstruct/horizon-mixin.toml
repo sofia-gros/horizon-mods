@@ -2203,6 +2203,12 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_machine_runtime"
 source = "source-machine-runtime.rs"
 
+[[module]]
+id = "source-casting-tank"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_casting_tank"
+source = "source-casting-tank.rs"
+
 [[injection]]
 id = "source-faucet-placement-facing"
 target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"

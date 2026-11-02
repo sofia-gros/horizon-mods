@@ -20,6 +20,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
                 "tconstruct:smeltery" => &["tconstruct:smeltery_controller", "tconstruct:foundry_controller"],
                 "tconstruct:fuel_tank" => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "tconstruct:scorched_fuel_tank", "tconstruct:scorched_fuel_gauge"],
                 "tconstruct:lantern" => &["tconstruct:seared_lantern", "tconstruct:scorched_lantern"],
+                "tconstruct:casting_tank" => &["tconstruct:seared_casting_tank"],
                 "tconstruct:ingot_tank" => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge", "tconstruct:scorched_ingot_tank", "tconstruct:scorched_ingot_gauge"],
                 _ => continue,
             };
