@@ -3960,16 +3960,6 @@ kind = "HEAD"
 helper = "source-slime-colormap-load.rs"
 bindings = [{ name = "root", ty = "&std::path::Path", value = "root" }]
 
-[[injection]]
-id = "source-slime-colormap-face"
-target = "horizon_client_render::mesher::Mesher<'_>::face"
-kind = "MODIFY_VARIABLE"
-variable = { name = "tint", ordinal = 0, at = "STORE" }
-ordinal = 0
-require = 1
-helper = "source-slime-colormap-face.rs"
-bindings = [{ name = "value", ty = "Option<u32>", value = "$value" }, { name = "mesher", ty = "&Mesher<'_>", value = "self" }, { name = "tints", ty = "&Tints<'_>", value = "&*tints" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "id", ty = "&u32", value = "$local_ref:id:0" }, { name = "face", ty = "&BakedFace", value = "face" }]
-
 [[module]]
 id = "source-slime-leaves"
 file = "crates/horizon-client/src/game.rs"
@@ -4182,3 +4172,37 @@ id = "ender-tree-components-live"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_ender_tree_components"
 source = "source-ender-tree-components.rs"
+
+[[module]]
+id = "ender-tree-components-native"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "tconstruct_ender_tree_components"
+source = "source-ender-tree-components.rs"
+
+[[module]]
+id = "ender-tree-native"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "tconstruct_ender_tree_native"
+source = "source-ender-tree-native.rs"
+visibility = "pub"
+
+[[module]]
+id = "ender-tree-config-native"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "tconstruct_ender_tree_config"
+source = "source-ender-tree-config.rs"
+visibility = "pub"
+
+[[module]]
+id = "ender-tree-live-decode"
+file = "crates/horizon-world/src/worldgen/live.rs"
+name = "tconstruct_ender_live_decode"
+source = "source-ender-tree-live-decode.rs"
+visibility = "pub"
+
+[[module]]
+id = "ender-tree-live-place"
+file = "crates/horizon-world/src/level/mod.rs"
+name = "tconstruct_ender_live_place"
+source = "source-ender-tree-live-place.rs"
+visibility = "pub"
