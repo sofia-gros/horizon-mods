@@ -59,6 +59,32 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         state.resize(volume, capacity)
     } else { Vec::new() };
     if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(_))) { return; }
+    // Source EntityMeltingModule inserts dropped items on tick 12 of its
+    // twenty-tick cycle, one item per empty melting slot, when it has a tank.
+    // Stage both inventories; dropped entities change only after the BE write.
+    let mut item_updates = Vec::new();
+    let has_tank = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().iter().any(|(at, owner)| {
+        if *owner != pos { return false; }
+        let name = &game.res.facts().get(game.world.block(at.0, at.1, at.2)).name;
+        super::tconstruct_source_smeltery_fuel::capacity(name).is_some()
+    });
+    if state.entity_phase == 12 && has_tank {
+        use horizon_core::geometry::{Aabb, Vec3};
+        let area = Aabb::new(Vec3::new(f64::from(min[0]+1), f64::from(min[1]+1), f64::from(min[2]+1)),
+            Vec3::new(f64::from(max[0]), f64::from(max[1]+1), f64::from(max[2])));
+        for (index, item) in game.dropped.iter().enumerate() {
+            if item.stack.count == 0 || !area.intersects(item.bounds()) { continue; }
+            let mut remaining = item.stack.count;
+            for slot in state.slots.iter_mut().filter(|slot| slot.is_none()) {
+                if remaining == 0 { break; }
+                let mut one = item.stack.clone(); one.count = 1;
+                *slot = Some(one); remaining -= 1;
+            }
+            if remaining != item.stack.count { item_updates.push((index, remaining)); }
+            if state.slots.iter().all(Option::is_some) { break; }
+        }
+    }
+    state.entity_phase = (state.entity_phase + 1) % 20;
     let recipes: Vec<_> = if state.phase == 0 || state.phase == 1 {
         state.slots.iter().map(|slot| slot.as_ref().and_then(|stack| {
             if foundry {
@@ -152,6 +178,13 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let mut updates = vec![(pos, "tconstruct:smeltery", state_tag)];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
+    for (index, remaining) in item_updates.into_iter().rev() {
+        let item = &game.dropped[index];
+        let chunk = ((item.position.x.floor() as i32) >> 4, (item.position.z.floor() as i32) >> 4);
+        game.world.modified.insert(chunk);
+        if remaining == 0 { game.dropped.remove(index); }
+        else { game.dropped[index].stack.count = remaining; }
+    }
     super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
     if game.container == Some(pos) && game.remote.is_none() {
         let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map_or(0, |page| page.1);
