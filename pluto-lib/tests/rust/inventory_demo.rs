@@ -6,6 +6,8 @@ pub mod items {
 pub mod pluto_inventory {
     pub use pluto_inventory_api::*;
 }
+#[path = "../../examples/inventory/plan_insert.rs"]
+mod plan_insert;
 #[path = "../../examples/inventory/mixins/pluto_inventory_demo/shared.rs"]
 mod shared;
 
@@ -49,4 +51,23 @@ fn real_stack_components_survive_the_consumer_transaction() {
         .unwrap()
         .same_item_same_components(&different));
     assert!(slots[5].is_none());
+}
+
+#[test]
+fn incoming_stack_adapter_preserves_consumer_policy_and_input() {
+    use horizon_items::items::ItemStack;
+    let incoming = ItemStack::new("example:part", 11);
+    let slots = vec![None, Some(ItemStack::new("example:part", 6))];
+    let plan = plan_insert::plan_insert(&slots, &incoming, 1, 8, |index, _| index == 1)
+        .unwrap()
+        .unwrap();
+    assert_eq!((plan.from, plan.to, plan.count), (2, 1, 2));
+    assert_eq!(incoming.count, 11);
+    assert_eq!(slots[1].as_ref().unwrap().count, 6);
+    assert!(
+        plan_insert::plan_insert(&slots, &incoming, 0, 8, |_, _| false)
+            .unwrap()
+            .is_none()
+    );
+    assert!(plan_insert::plan_insert(&slots, &incoming, 2, 8, |_, _| true).is_err());
 }
