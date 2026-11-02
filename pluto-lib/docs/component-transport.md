@@ -6,6 +6,8 @@ Horizon already carries custom data, lore and item models in its native stack co
 
 On Linux, the [demo](../examples/transport-demo/mixins/pluto_transport_demo/demo.rs) was built with Horizon `5197790e5846a82cfc84d9703e37c4c1b75be09c` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. A LAN guest received a prepared pickaxe’s actual Tool, max-damage and custom-data components, mined stone, and retained the components and updated damage after the world was saved and reloaded. The guest also split and recombined a Tool-bearing stack, reconnected with its count and components intact, and found the demo item through Creative search. A vanilla cobblestone drop was observed. These checks cover representative accepted values; they do not cover arbitrary future components or unprepared saved stacks.
 
+For the proposed stack-specific durability bar, see [stack durability bars](component-bar.md).
+
 The separate experimental tooltip bundle showed `59 / 60` for a stack with damage 1 and max damage 60. It replaces an existing advanced tooltip line; it does not change the durability bar, durability enforcement or mining rules. The host’s mining path still uses item-definition rules, so mining stone does not establish that it used the stack’s Tool rules. Tinkers integration, the full launcher installation path and Windows remain unverified.
 
 ![The demo pickaxe and its component-based durability tooltip](transport-519-tooltip.png)
