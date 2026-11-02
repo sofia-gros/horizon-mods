@@ -70,7 +70,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             use horizon_world::nbt::{Compound, Tag};
             let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
             let mut data = match custom { None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return None };
-            let mut tank = match data.get("tconstruct:tank") {
+            let mut tank = match data.get(&"tconstruct:tank".into()) {
                 Some(tag) => super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity)?,
                 None => super::tconstruct_source_melter_state::Tank::new(capacity),
             };
