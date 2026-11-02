@@ -358,7 +358,7 @@ fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Cas
     if let Some(stack) = input {
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
         let tag = if kind == "tconstruct:basin" { "tconstruct:casts/empty/basin" } else { "tconstruct:casts/empty/table" };
-        if tags.get(tag).is_some_and(|items| items.contains(&*stack.item)) { input = None; }
+        if tags.get(tag)?.contains(&*stack.item) { input = None; }
     }
     super::tconstruct_source_melter_world::casting_stack(&game.world, kind == "tconstruct:basin", input, fluid)
 }
