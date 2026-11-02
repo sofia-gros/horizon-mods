@@ -16,9 +16,13 @@ let result = evaluate(&rules, 1.0, |name| {
 });
 assert_eq!(result.speed, 2.0);
 assert!(!result.correct_for_drops);
+assert_eq!(result.speed_rule, Some(1));
+assert_eq!(result.drops_rule, Some(0));
 ```
 
-The first matching rule that supplies a speed wins. The first matching rule that supplies drop correctness wins independently, so the answers can come from different rules. With no matching speed, the component's default speed is used; with no matching drop answer, the result is `false`.
+The first matching rule that supplies a speed wins. The first matching rule that supplies drop correctness wins independently, so the answers can come from different rules. With no matching speed, the component's default speed is used; with no matching drop answer, the result is `false`. The corresponding zero-based rule index is `None` when no rule supplies that value.
+
+To evaluate a Tool already stored as SNBT, use `parse_tool(Some(snbt))?` and then call `tool.evaluate(matches)`. `parse_tool(None)` returns `Ok(None)` for an absent component; malformed SNBT or unsupported component fields return a `ToolParseError`. The parsed `Tool`, `Outcome` and errors do not expose Horizon types. Parsing checks names and defaults omitted namespaces to `minecraft:`; registry membership still comes from the match callback. For registration or modification, use the separate fallible [Tool preparation](component-transport.md) entry to check explicit block IDs and produce the canonical stored value.
 
 The native adapter reads the actual `minecraft:tool` component and uses Horizon's block and tag matching. With no component, or a component it cannot parse, it leaves Horizon's result in place. Extra fields are not validated by this evaluator, so prepare components before using them. Use [Tool preparation](component-transport.md) before registering or changing a component. The adapter covers speed and drop correctness; it does not apply a per-stack `damage_per_block` value. Horizon reads `can_destroy_blocks_in_creative` from the stack separately. The adapter contains no material, modifier or broken-tool rules. Interaction with other native mods that intercept these methods, including Tinkers, is not yet verified.
 
