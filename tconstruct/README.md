@@ -9,7 +9,7 @@ Bring Tinkers’ Construct’s tool-building and material progression to Horizon
 [![Horizon](https://img.shields.io/badge/Horizon-Mod-547da5)](https://github.com/horizon-rust/horizon)
 [![Horizon Mixins](https://img.shields.io/badge/Horizon-Mixins-6d8498)](https://github.com/horizon-rust/horizon-mixins)
 
-[**Play Guide**](docs/playing.md) · [**Linux Setup**](docs/linux.md) · [**Windows Setup**](docs/windows-playtest.md) · [**Progress**](docs/roadmap.md)
+[**Play Guide**](docs/playing.md) · [**Survival Route**](docs/survival-progression.md) · [**Linux Setup**](docs/linux.md) · [**Windows Setup**](docs/windows-playtest.md) · [**Progress**](docs/roadmap.md)
 
 <img src="docs/part-builder-source-preview.png" alt="A Part Builder making a tool handle" width="720">
 
