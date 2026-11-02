@@ -32,8 +32,12 @@ Creative and short-use item APIs are available through `pluto_api`. Tool APIs st
 
 To reproduce the stack-limit demonstration, set `PLUTO_DEMO_STACK_LIMIT=1` on both host and guest before launch. This enables a demo-only native item-default hook and adds the three count examples to the demo tab; it does not add max-stack configuration to PlutoLib Registry.
 
-For distribution, build and enable the [single native library bundle](../../docs/native-installation.md) instead of installing the individual component bundles. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
+For distribution, build and enable the [single native library bundle](../../docs/native-installation.md) instead of installing the individual component bundles. On Linux, a client built from the extracted archive displayed the Creative page and search, Tool tooltip and bar, and local wand outcomes; a LAN guest retained Tool components and wand charge after save and reconnect. The consolidated crate was built from the packaged bundle and exercised in the combined Linux demo, including Creative page and search, local item outcomes and LAN use with save and reconnection.
 
 ![Combined demo: the added Creative page and the wand](../../docs/facade-demo.png)
 
 ![Guest wand tooltip after reconnecting](../../docs/facade-tooltip.png)
+
+![Single-bundle Creative demo](../../docs/single-bundle-demo.png)
+
+![Single-bundle search and Tool tooltip](../../docs/single-bundle-tooltip.png)

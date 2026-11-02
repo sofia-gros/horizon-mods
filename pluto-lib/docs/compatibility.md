@@ -29,4 +29,6 @@ The [Tool rules demo](tool-rules.md) was built and run on Linux with Horizon [`a
 
 The consolidated Creative and short-use item API was built and exercised on Linux at development commit `0f36b1fe779565fff37a445a485d920baa1bcf2f` with Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. See the [combined demo](../experiments/unified-target/README.md) for the verified operations. Full launcher installation, Windows, and Tinkers remain unverified.
 
-Horizon `ed32f2ec4ce2a157674edb5b527e3c96a11a9eeb` is a newer upstream candidate and has not been verified with this combined API.
+Horizon `e6406b7a04521323dace51d860747dc93dc67ebc` is a newer upstream candidate and has not been verified with this combined API.
+
+The [single-file native library](native-installation.md) was built and exercised on Linux from development commit `2d70296717a49dee97fbb03e45e3bcef40ec14c4` with Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The official bundle validator and launcher extraction harness passed; the complete launcher application, Windows and Tinkers integration remain unverified.
