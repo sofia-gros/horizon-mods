@@ -101,7 +101,7 @@ the current stored Overslime amount, not capacity, and applies in the same
 ordered percentage stage as Jagged and Stonebound. The tool is checked against
 the loaded `tconstruct:modifiable/broad` item tag. Zero Overslime gives no
 bonus; broad tools and ineffective blocks do not receive this mining effect.
-This implements only the non-broad mining-speed module in the [source
+The broad variant is described below. Both correspond to the mining-speed modules in the [source
 Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
 Overslime consumption, broad-tool mining-capacity behavior and material
 acquisition remain separate work.
@@ -111,3 +111,16 @@ pending. Verify zero, one and multiple Overslime units and trait levels, a broad
 and a non-broad tool, effective and ineffective blocks, live refill and
 consumption, broken tools, and combinations with other mining modifiers. Check
 material replacement and save/reload. Use labelled fixtures where necessary.
+
+### Broad tools
+
+The broad-tool speed module instead uses `1 + 0.2 * min(overslime, 5 * level) / 5`
+on effective blocks. This reads the same live Overslime value and uses the loaded
+broad tag; it does not use AOE size as the amount. The source additionally
+spends up to five Overslime per level at the mining capacity hook. That spend
+is not connected by this speed change and must be implemented before this can
+be considered complete.
+
+Rust syntax was checked. Tests, current-target build and gameplay are pending.
+Check levels 1 and 2 at amounts 0, 1, 4, 5, 6 and 10, ineffective blocks,
+AOE center and extra blocks, material swaps, save/reload and multiplayer.

@@ -121,7 +121,7 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
             "tconstruct:maintained" => Conditional::Maintained(*level),
             "tconstruct:dwarven" => Conditional::Dwarven(*level),
             "tconstruct:crumbling" => Conditional::Crumbling(*level),
-            "tconstruct:overwield" if !broad => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }),
+            "tconstruct:overwield" => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }, broad),
             _ => continue,
         };
         ordered.push(effect);
