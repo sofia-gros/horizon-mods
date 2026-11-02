@@ -32,3 +32,5 @@ Preparing game resources and running the game also require Horizon 26.3 resource
 ## Representative Anvil checks
 
 The `tests/game/anvil_*.py` scripts exercise the real client using a dedicated test world under `tconstruct/target`. Supply `--game`, `--ctl`, `--resources`, and the same `--run-dir` inside that directory to each script. Run `anvil_acceptance.py` first to prepare the world, then `anvil_parts.py`, `anvil_compat.py`, `anvil_lan.py`, and `anvil_lan_upgrade.py`. These scripts place and break blocks in that test world; do not point them at a player world. Linux GUI tests need a display and Vulkan adapter. They do not replace Windows testing or a full survival run.
+
+For the Horizon `5197790e5846a82cfc84d9703e37c4c1b75be09c` development target, supply PlutoLib bundle manifests pinned to that same commit. The versions currently on main and in the previously tested transport branch target `3a264943c7a3a3ed02e6ee608443f558d98f208f`; they are not yet a runnable combination with this branch. The combined client has not been built or game-tested on the new target.
