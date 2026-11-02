@@ -1,0 +1,7 @@
+{
+  "values": [
+    "minecraft:crafting_table",
+    "tconstruct:crafting_station",
+    "#forge:workbenches"
+  ]
+}

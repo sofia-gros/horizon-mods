@@ -8,8 +8,8 @@
   ],
   "key": {
     "p": "tconstruct:pattern",
-    "x": "#forge:rods/wooden",
-    "C": "#forge:chests/wooden",
+    "x": "#tconstruct:source_forge_rods_wooden",
+    "C": "#tconstruct:source_forge_chests_wooden",
     "w": "#minecraft:planks"
   },
   "result": {
