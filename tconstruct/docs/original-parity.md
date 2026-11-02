@@ -354,3 +354,5 @@ The faucet packet buffer retains the fluid tag across reservation, pouring and i
 The container slot can also fill a glass bottle with a plain potion from 250 mB of TConstruct potion fluid, or a water potion from 500 mB of water, matching the corresponding Mantle source transfers. Tags with additional potion data and ambiguous same-ID variants are refused. Runtime behavior remains unverified.
 
 The direct tank interaction also accepts plain splash and lingering potions. Their returned bottle is selected from the resolved source bottle tag if it has one registered item, or is a glass bottle when the tag is empty; missing tag context or an ambiguous tag refuses the exchange. Other paths and filling those specialized bottles remain unsupported. This is unverified in game and LAN.
+
+Alloy input matching now supports source `catalyst` fluids: they must be present in the required amount but are not consumed. This enables the source water/lava molten-obsidian recipe in code; integrated operation, fuel and persistence remain unverified.
