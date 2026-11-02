@@ -10,6 +10,33 @@ A separately supplied Tinkers fixture at commit `45497078ea4d3359c6b383bcca70f11
 
 A complete replacement needs verified handling of relevant components, registry mappings and safe server-origin wire patches, followed by real bidirectional LAN and save/reload checks. This result is not a claim that Tinkers or item behavior works on the newer host.
 
+## Prototype limits
+
+The Tool wire fields are `rules`, `default_mining_speed`, `damage_per_block`, and `can_destroy_blocks_in_creative`. Each rule contains `blocks` and optional `speed` and `correct_for_drops`. Block sets may be a tag, one block ID, or a list of block IDs. Explicit IDs must resolve in the connection’s block registry. Integer and floating NBT numbers are accepted for speeds; integer NBT numbers are accepted for damage. Missing optional values use the host’s defaults.
+
+Tool identity is based on the host’s saved NBT, while the wire format does not distinguish one block ID from a one-element block list or omitted defaults from explicit defaults. The experimental `canonicalize` helper defines how both forms can be converted to the wire-equivalent saved form before a stack is created or registered; it is internal to the prototype and has no published consumer API yet. Fixtures verify that these canonical forms have the same stacking and Creative search key. Block tags remain distinct from explicit block lists. The automatic transport hook cannot mutate the source stack; it warns when that stack is noncanonical, so an unprepared stack may change identity on receipt.
+
+Unknown fields, malformed values, oversized identifiers, and unresolved block IDs are not encoded. The adapter reports an error to stderr and falls back to the host, which may omit `minecraft:tool`; that is **not** a successful transfer. The injected encoder returns `Option<Stack>`, where `None` means an empty slot, rather than a recoverable error, so it cannot safely reject the send at this boundary. A production API needs a fallible, user-visible send boundary or an upstream host change. A changed server-origin stack invalidates the host’s cached patch. The prototype warns when this happens, but the host re-encoder can lose unrecognised additions or removals; it cannot yet guarantee safe retransmission. The original patch is retained while only the count changes. Do not use this experimental adapter as a production transport guarantee.
+
 ## Run the fixture
 
-Add `fixtures/stack_transport_3a.rs` as an example of a disposable checkout of the pinned Horizon `horizon-client-lib`, with `horizon-protocol`, `horizon-world` and `serde_json` available from its existing dependencies. Run that example with default features disabled. Pass an optional JSON file containing a `cases` array with `id` and SNBT `snbt` fields to inspect consumer stacks; no consumer IDs or assets are built into the fixture. The fixture records the host encoder gaps and the decoder limitation so a host change prompts a fresh assessment. It also exercises the experimental helpers independently of Mixins; a plan alone does not establish that the transformed client compiles or runs.
+Use a disposable source checkout at Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f`; these commands add an example to that checkout. From `pluto-lib/`, set `HOST` to the checkout’s absolute path:
+
+```sh
+HOST=/path/to/disposable-horizon
+mkdir -p "$HOST/crates/horizon-client-lib/pluto-fixture/fixtures" \
+         "$HOST/crates/horizon-client-lib/pluto-fixture/mixins/pluto_transport_3a"
+cp fixtures/stack_transport_3a.rs "$HOST/crates/horizon-client-lib/pluto-fixture/fixtures/"
+cp mixins/pluto_transport_3a/{max.rs,tool_codec.rs,tool_encode.rs,tool_decode.rs} \
+   "$HOST/crates/horizon-client-lib/pluto-fixture/mixins/pluto_transport_3a/"
+cat >> "$HOST/crates/horizon-client-lib/Cargo.toml" <<'TOML'
+
+[[example]]
+name = "pluto_stack_transport_fixture"
+path = "pluto-fixture/fixtures/stack_transport_3a.rs"
+TOML
+(cd "$HOST" && cargo run --locked --offline --profile fast --no-default-features \
+    -p horizon-client-lib --example pluto_stack_transport_fixture)
+```
+
+Use a fresh checkout so the example is added only once. Omit `--offline` if the checkout’s dependencies have not been cached. Append `-- /path/to/cases.json` to inspect consumer stacks: the file contains a `cases` array with `id` and SNBT `snbt` fields. The fixture checks the helpers independently of Mixins; a plan alone does not establish that the transformed client compiles or runs.

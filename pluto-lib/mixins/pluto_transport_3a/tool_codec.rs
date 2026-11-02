@@ -12,13 +12,21 @@ fn float(tag: Option<&Tag>, default: f32) -> Option<f32> {
     match tag {
         None => Some(default),
         Some(Tag::Float(bits)) => Some(f32::from_bits(*bits)),
+        Some(Tag::Double(bits)) => Some(f64::from_bits(*bits) as f32),
+        Some(Tag::Byte(n)) => Some(*n as f32),
+        Some(Tag::Short(n)) => Some(*n as f32),
+        Some(Tag::Int(n)) => Some(*n as f32),
+        Some(Tag::Long(n)) => Some(*n as f32),
         _ => None,
     }
 }
 fn integer(tag: Option<&Tag>, default: i32) -> Option<i32> {
     match tag {
         None => Some(default),
+        Some(Tag::Byte(n)) => Some(i32::from(*n)),
+        Some(Tag::Short(n)) => Some(i32::from(*n)),
         Some(Tag::Int(n)) => Some(*n),
+        Some(Tag::Long(n)) => i32::try_from(*n).ok(),
         _ => None,
     }
 }
@@ -50,11 +58,8 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
     let Tag::List(rules) = tool.get("rules")? else {
         return None;
     };
-    if rules.len() > 4096 {
-        return None;
-    }
     let mut w = Writer::new();
-    w.varint(rules.len() as i32);
+    w.varint(i32::try_from(rules.len()).ok()?);
     for rule in rules {
         let Tag::Compound(fields) = rule else {
             return None;
@@ -70,7 +75,7 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
         let blocks = rule.get("blocks")?;
         if let Some(name) = string(blocks) {
             if let Some(tag) = name.strip_prefix('#') {
-                if tag.is_empty() {
+                if tag.is_empty() || tag.len() > 32767 {
                     return None;
                 }
                 w.varint(0);
@@ -84,9 +89,6 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
                 w.varint(block);
             }
         } else if let Tag::List(names) = blocks {
-            if names.len() > 4096 {
-                return None;
-            }
             w.varint(i32::try_from(names.len()).ok()?.checked_add(1)?);
             for name in names {
                 let block = id("minecraft:block", &string(name)?)?;
@@ -129,7 +131,7 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
 
 pub fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Option<Tag> {
     let mut r = Reader::new(bytes);
-    let count = r.count(4096).ok()?;
+    let count = r.count(r.remaining()).ok()?;
     let mut rules = Vec::with_capacity(count);
     for _ in 0..count {
         let size = r.varint().ok()?;
@@ -137,7 +139,7 @@ pub fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Option<Tag
             Tag::String(format!("#{}", r.string(32767).ok()?).as_str().into())
         } else {
             let n = usize::try_from(size.checked_sub(1)?).ok()?;
-            if n > 4096 {
+            if n > r.remaining() {
                 return None;
             }
             let mut names = Vec::with_capacity(n);
@@ -187,4 +189,20 @@ pub fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Option<Tag
             Tag::Byte(i8::from(creative)),
         ),
     ]))
+}
+
+/// Canonical saved representation of the values actually carried by the Tool stream.
+/// An ID-to-name collision is rejected rather than choosing an arbitrary name.
+pub fn canonicalize(tool: &Tag, resolve: &impl Fn(&str, &str) -> Option<i32>) -> Option<Tag> {
+    let names = std::cell::RefCell::new(std::collections::BTreeMap::<i32, String>::new());
+    let bytes = encode(tool, &|registry, name| {
+        let id = resolve(registry, name)?;
+        let mut names = names.borrow_mut();
+        if names.get(&id).is_some_and(|existing| existing != name) {
+            return None;
+        }
+        names.insert(id, name.to_owned());
+        Some(id)
+    })?;
+    decode(&bytes, &|id| names.borrow().get(&id).cloned())
 }

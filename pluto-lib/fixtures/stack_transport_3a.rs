@@ -270,6 +270,102 @@ fn main() {
     .unwrap();
     assert_eq!(direct_back.get("rules"), direct_tool.get("rules"));
     assert!(pluto_tool_codec::encode(&direct_tool, &|_, _| None).is_none());
+    // All standard Tool fields, non-float numeric inputs, and optional false values.
+    let all_fields = Tag::compound([
+        (
+            "rules",
+            Tag::List(vec![Tag::compound([
+                ("blocks", Tag::String("#example:mineable".into())),
+                ("speed", Tag::Int(2)),
+                ("correct_for_drops", Tag::Byte(0)),
+            ])]),
+        ),
+        ("default_mining_speed", Tag::Double(1.5f64.to_bits())),
+        ("damage_per_block", Tag::Short(2)),
+        ("can_destroy_blocks_in_creative", Tag::Byte(0)),
+    ]);
+    let bytes = pluto_tool_codec::encode(&all_fields, &|_, _| None).unwrap();
+    let decoded = pluto_tool_codec::decode(&bytes, &|_| None).unwrap();
+    assert_eq!(
+        decoded.get("can_destroy_blocks_in_creative"),
+        Some(&Tag::Byte(0))
+    );
+    assert_eq!(decoded.get("damage_per_block"), Some(&Tag::Int(2)));
+    assert_eq!(
+        decoded.get("default_mining_speed"),
+        Some(&Tag::Float(1.5f32.to_bits()))
+    );
+    let Some(Tag::List(rules)) = decoded.get("rules") else {
+        panic!("rules")
+    };
+    assert_eq!(rules[0].get("correct_for_drops"), Some(&Tag::Byte(0)));
+    assert_eq!(rules[0].get("speed"), Some(&Tag::Float(2f32.to_bits())));
+    let mut unresolved = ItemStack::new("example:tool", 1);
+    unresolved
+        .data_mut()
+        .set_other("minecraft:tool", Some(direct_tool));
+    let unresolved = Some(unresolved);
+    let host = stack_to_network(ids, |_, _| None, &unresolved).unwrap();
+    let failed = tool_encoder::apply(Some(host), &unresolved, &|_, _| None).unwrap();
+    assert!(
+        failed.component(28).is_none(),
+        "unresolved block IDs must not invent a value"
+    );
+    // Canonicalization makes wire-equivalent saved forms share stacking and search identity.
+    let one = Tag::compound([(
+        "rules",
+        Tag::List(vec![Tag::compound([(
+            "blocks",
+            Tag::String("minecraft:stone".into()),
+        )])]),
+    )]);
+    let list = Tag::compound([
+        (
+            "rules",
+            Tag::List(vec![Tag::compound([(
+                "blocks",
+                Tag::List(vec![Tag::String("minecraft:stone".into())]),
+            )])]),
+        ),
+        ("default_mining_speed", Tag::Float(1f32.to_bits())),
+        ("damage_per_block", Tag::Int(1)),
+        ("can_destroy_blocks_in_creative", Tag::Byte(1)),
+    ]);
+    let resolve = |registry: &str, name: &str| {
+        (registry == "minecraft:block" && name == "minecraft:stone").then_some(7)
+    };
+    let canonical_one = pluto_tool_codec::canonicalize(&one, &resolve).unwrap();
+    let canonical_list = pluto_tool_codec::canonicalize(&list, &resolve).unwrap();
+    assert_eq!(canonical_one, canonical_list);
+    let mut first = ItemStack::new("example:tool", 1);
+    first
+        .data_mut()
+        .set_other("minecraft:tool", Some(canonical_one));
+    let mut second = ItemStack::new("example:tool", 1);
+    second
+        .data_mut()
+        .set_other("minecraft:tool", Some(canonical_list));
+    let mut uncanonical = ItemStack::new("example:tool", 1);
+    uncanonical
+        .data_mut()
+        .set_other("minecraft:tool", Some(one.clone()));
+    assert!(!uncanonical.same_item_same_components(&first));
+    assert!(first.same_item_same_components(&second));
+    assert_eq!(
+        horizon_client_lib::item_data::canon_stack(Some(&first)),
+        horizon_client_lib::item_data::canon_stack(Some(&second))
+    );
+    let tag_tool = Tag::compound([(
+        "rules",
+        Tag::List(vec![Tag::compound([(
+            "blocks",
+            Tag::String("#minecraft:stone".into()),
+        )])]),
+    )]);
+    assert_ne!(
+        pluto_tool_codec::canonicalize(&tag_tool, &resolve),
+        pluto_tool_codec::canonicalize(&one, &resolve)
+    );
     let plain = ItemStack::new("minecraft:stick", 2);
     let wire = stack_to_network(ids, |_, _| None, &Some(plain)).unwrap();
     assert!(wire.added.is_empty());
@@ -413,6 +509,19 @@ fn main() {
                 assert_eq!(decoded.wire_patch().as_deref(), Some(raw_patch.as_ref()));
                 decoded.count += 1;
                 assert_eq!(decoded.wire_patch().as_deref(), Some(raw_patch.as_ref()));
+                decoded.damage += 1;
+                assert!(
+                    decoded.wire_patch().is_none(),
+                    "a changed component invalidates the cached patch"
+                );
+                let changed = Some(decoded);
+                let fallback = stack_to_network(|_| 1, |_, _| None, &changed).unwrap();
+                // The host's normal re-encoder cannot reconstruct unrelated entries
+                // absent from its item model after a changed cached patch.
+                assert!(fallback.component(component::RARITY).is_none());
+                assert!(!fallback.removed.contains(&component::ITEM_NAME));
+                let _ = tool_encoder::apply(Some(fallback), &changed, &|_, _| None).unwrap();
+
                 println!("{id}: standard tool bytes and actual mining rules round-trip");
             }
             if original
