@@ -12,7 +12,7 @@ mod save {
         use horizon_world::nbt::Tag;
         #[test]
         fn source_chests_keep_high_slots_and_component_data() {
-            for (name, id, n) in [("tconstruct:part_chest", "tconstruct:part_chest", 256usize), ("tconstruct:tinkers_chest", "tconstruct:modifier_chest", 64usize)] {
+            for (name, id, n) in [("tconstruct:crafting_station", "tconstruct:crafting_station", 9usize), ("tconstruct:part_chest", "tconstruct:part_chest", 256usize), ("tconstruct:tinkers_chest", "tconstruct:modifier_chest", 64usize)] {
                 let mut slots = vec![None; n];
                 let mut stack = ItemStack::new("tconstruct:tool_handle", 3);
                 stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:wood".into()))])));
