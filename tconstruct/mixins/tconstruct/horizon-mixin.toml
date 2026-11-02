@@ -3234,6 +3234,17 @@ bindings = [
   { name = "input", ty = "horizon_client::menu::Input", value = "input" },
 ]
 
+[[injection]]
+id = "source-tinker-chest-local-click"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "HEAD"
+cancellable = true
+helper = "source-chest-local-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "right", ty = "bool", value = "right" },
+]
+
 [[state]]
 id = "chest-guest-pages"
 target = "horizon_client::chunk_map::ChunkMap"
