@@ -1,4 +1,4 @@
-// Original material projectile multipliers. Injection at firing remains pending.
+// Original material projectile stats, read by both existing bow firing hooks.
 use horizon_client::items::ItemStack;
 use horizon_world::nbt::Tag;
 
@@ -14,6 +14,17 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     let velocity = stat(stack, "tic_velocity")?;
     let accuracy = stat(stack, "tic_accuracy")?;
     if !velocity.is_finite() || velocity < 0.0 || !accuracy.is_finite() || accuracy <= 0.0 { return None; }
+    // Maintained (priority 100) precedes Dwarven (85), including its altitude
+    // penalty. Evaluate current wear at release, never bake it into base stats.
+    let custom = stack.data()?.other("minecraft:custom_data")?;
+    let level = match custom.get("tic_maintained") { Some(Tag::Int(value)) => (*value).max(0), _ => 0 };
+    let maximum = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => 0 };
+    let multiplier = stat(stack, "tic_maintained_velocity_multiplier").unwrap_or(0.0);
+    let velocity = if level > 0 && maximum > 0 && multiplier.is_finite() {
+        let half = maximum as f32 * 0.5;
+        let remaining = maximum.saturating_sub(stack.damage) as f32;
+        velocity + ((remaining - half).max(0.0) / half) * level as f32 * 0.08 * multiplier
+    } else { velocity };
     Some((velocity, 3.0 * (1.0 / accuracy - 1.0)))
 }
 
@@ -89,6 +100,28 @@ mod tests {
             ])));
             assert!((projectile_stats_at(&stack, 0.0, 320).unwrap().0 - 1.1).abs() < 0.00001);
             assert!((projectile_stats_at(&stack, 256.0, 320).unwrap().0 - 0.25).abs() < 0.00001);
+        }
+    }
+    #[test]
+    fn maintained_tracks_wear_and_precedes_dwarven_penalty() {
+        for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+            let mut stack = bow(id, 1.0, 1.0);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_velocity", Tag::Float(1.0f32.to_bits())),
+                ("tic_accuracy", Tag::Float(1.0f32.to_bits())),
+                ("tic_max_damage", Tag::Int(100)),
+                ("tic_maintained", Tag::Int(2)),
+                ("tic_maintained_velocity_multiplier", Tag::Float(1.5f32.to_bits())),
+                ("tic_dwarven", Tag::Int(1)),
+                ("tic_dwarven_velocity_multiplier", Tag::Float(1.5f32.to_bits())),
+            ])));
+            for (damage, expected) in [(0, 1.24), (25, 1.12), (50, 1.0), (99, 1.0), (100, 1.0), (101, 1.0)] {
+                stack.damage = damage;
+                assert!((projectile_stats(&stack).unwrap().0 - expected).abs() < 0.00001);
+                assert!((projectile_stats_at(&stack, 256.0, 320).unwrap().0 - expected * 0.25).abs() < 0.00001);
+            }
+            stack.damage = 0; // A repaired tool regains the effect without rebuilding.
+            assert!((projectile_stats_at(&stack, 0.0, 320).unwrap().0 - 1.315).abs() < 0.00001);
         }
     }
     #[test]
