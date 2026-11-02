@@ -670,6 +670,22 @@ mod tests {
     }
 
     #[test]
+    fn ranged_rebuild_adds_and_removes_dwarven_level() {
+        let definition = br#"{"modules":[{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":2.0}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut bow = ItemStack::new("tconstruct:longbow", 1);
+        bow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("test:empty", Tag::Int(0))]))])));
+        let levels = BTreeMap::from([("tconstruct:dwarven".to_owned(), 1)]);
+        apply_stats(&mut bow, &stats, &levels, false, false).unwrap();
+        let custom = bow.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_dwarven"), Some(Tag::Int(1))));
+        let Some(Tag::Float(multiplier)) = custom.get("tic_dwarven_velocity_multiplier") else { panic!() };
+        assert!((f32::from_bits(*multiplier) - stats.velocity_add_multiplier).abs() < 0.00001);
+        apply_stats(&mut bow, &stats, &BTreeMap::new(), false, false).unwrap();
+        assert!(matches!(bow.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_dwarven"), Some(Tag::Int(0))));
+    }
+
+    #[test]
     fn fractional_ranged_stats_use_source_order_and_accuracy_cap() {
         let definition = br#"{"modules":[{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:draw_speed":1.5,"tconstruct:accuracy":1.2}}]}"#;
         let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
