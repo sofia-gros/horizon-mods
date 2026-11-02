@@ -38,3 +38,8 @@ The landing-state follow-up stores a transient map on the existing
 PlayerMotion constructor could not be transformed by the pinned Mixins. The
 map clears with the chunk map; equipment state is overwritten when an actor is
 entered. This alternative requires official plan/apply and type verification.
+
+On the fixed integrated candidate, the ChunkMap state and clear hook passed a
+state-only official plan. The combined apply then failed to resolve TConstruct's
+landing target. A follow-up names `MotionWorld` by its defining module; its
+combined apply, bindings and runtime behavior remain to be verified.

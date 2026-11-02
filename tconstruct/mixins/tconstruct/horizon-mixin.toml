@@ -3897,7 +3897,7 @@ visibility = "pub(crate)"
 
 [[injection]]
 id = "source-bouncy-factor"
-target = "horizon_client_lib::landing::MotionWorld<'_, '_, '_>::player_fall_damage"
+target = "horizon_client_lib::motion::MotionWorld<'_, '_, '_>::player_fall_damage"
 kind = "MODIFY_VARIABLE"
 variable = { name = "multiplier", ordinal = 0, at = "STORE" }
 require = 1
