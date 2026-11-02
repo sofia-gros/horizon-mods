@@ -76,6 +76,17 @@ pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
     }
 }
 
+/// Original Raging conditional projectile damage, evaluated at firing time.
+pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>) -> f64 {
+    let base = projectile_bonus(stack);
+    let Some(health) = health.filter(|value| value.is_finite()) else { return base; };
+    let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return base; };
+    let level = match custom.get("tic_raging") { Some(Tag::Int(level)) => (*level).max(0), _ => 0 };
+    let Some(multiplier) = stat(stack, "tic_raging_projectile_multiplier").filter(|value| value.is_finite()) else { return base; };
+    let bonus = ((11.0 - health) / 10.0).clamp(0.0, 1.0) * level as f32 * multiplier;
+    ((base as f32 + 2.0 + bonus).clamp(0.0, 1024.0) - 2.0) as f64
+}
+
 /// Pinned RestrictAngleModule rounds the horizontal direction after launch.
 pub(crate) fn restrict_direction(direction: [f64; 3], level: i32) -> ([f64; 3], Option<f32>) {
     if level <= 0 { return (direction, None); }
