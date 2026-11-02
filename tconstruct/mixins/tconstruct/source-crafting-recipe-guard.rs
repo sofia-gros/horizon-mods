@@ -4,8 +4,21 @@ fn tconstruct_crafting_recipe_guard(
     entry_index: usize,
     use_max: bool,
 ) -> std::ops::ControlFlow<()> {
-    if crate::game::tconstruct_crafting_station::position(game).is_none() {
+    let Some(pos) = crate::game::tconstruct_crafting_station::position(game) else {
         return std::ops::ControlFlow::Continue(());
+    };
+    // Refuse the transaction unless its authoritative destination can be
+    // refreshed and written back. The block may disappear while the UI is open.
+    if &*game
+        .res
+        .facts()
+        .get(game.world.block(pos.0, pos.1, pos.2))
+        .name
+        != "tconstruct:crafting_station"
+        || !matches!(game.world.block_entities.get(&pos),
+            Some(horizon_client::containers::BlockEntity::Chest(items)) if items.len() == 9)
+    {
+        return std::ops::ControlFlow::Break(());
     }
     let Some(entry) = game
         .recipe_ui
