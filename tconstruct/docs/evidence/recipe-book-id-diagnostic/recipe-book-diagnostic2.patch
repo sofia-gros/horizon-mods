@@ -1,0 +1,20 @@
+--- a/crates/horizon-client/src/game/recipe_book.rs
++++ b/crates/horizon-client/src/game/recipe_book.rs
+@@ -530,6 +530,9 @@
+             };
+             buttons.push(Button { entries });
+         }
++        let display_map: Vec<_> = ui.client.displays().into_iter().map(|id| (id, book.entry_of_display(id).map(|i| (book.entries[i].id.clone(), format!("{:?}", book.entries[i].category), selected(&book.entries[i]), craftable(&book.entries[i]))))).collect();
++        let view_entries: Vec<_> = buttons.iter().flat_map(|b| b.entries.iter()).map(|(i,c)| (book.entries[*i].id.clone(), book.entries[*i].display_id, *c)).collect();
++        eprintln!("RECIPE_VIEW remote={} filtering={filtering} tab={tab:?} displays={display_map:?} shown={view_entries:?}", self.remote.is_some());
+         View { tabs, buttons }
+     }
+     /// `RecipeBookComponent.getXOrigin` / `getYOrigin` (`widthTooNarrow`
+@@ -1015,6 +1018,7 @@
+         &mut self,
+         p: horizon_protocol::packets::recipes::RecipeBookAdd,
+     ) {
++        eprintln!("RECIPE_PACKET replace={} entries={:?}", p.replace, p.entries);
+         let ui = &mut self.recipe_ui;
+         if p.replace {
+             ui.client.clear();
