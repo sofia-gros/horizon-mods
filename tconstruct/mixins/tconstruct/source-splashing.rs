@@ -238,7 +238,6 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     let expanded = super::tconstruct_source_overslime::upgrade(&stack, "tconstruct:expanded")
         + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
     let Ok(expanded) = u32::try_from(expanded) else { return; };
-    if super::tconstruct_source_spilling::apply(game, target, stack.clone(), "tconstruct:splashing", true).is_none() { return; }
     let target_mob = &game.mobs[target];
     let origin = [target_mob.position.x, target_mob.position.y, target_mob.position.z];
     let target_box = target_mob.bounds();
@@ -261,6 +260,8 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
         let bounds = mob.bounds(); let min = bounds.min_position(); let max = bounds.max_position();
         if in_range(origin, pos, target_bounds, ([min.x, min.y, min.z], [max.x, max.y, max.z]), expanded) { targets.push(i); }
     }
+    // A primary target can reject an effect while a nearby target accepts it.
+    if !targets.iter().any(|index| super::tconstruct_source_spilling::apply(game, *index, stack.clone(), "tconstruct:splashing", true).is_some()) { return; }
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let mut applied = 0u32;
     let mut working = stack.clone();
