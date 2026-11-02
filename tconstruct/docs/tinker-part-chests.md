@@ -11,3 +11,5 @@ Representative acceptance will cover natural crafting and placement, limits and 
 The shared source-specific slot limits, acceptance decisions, and growing Part Chest display size are modeled and lightly tested. They are not yet connected to a placed block, menu, transfers, or saving.
 
 The existing machine placement and block-entity serialization hooks now recognize the two intended chest IDs and their slot counts; no chest block is registered yet. The generic `BlockEntity::for_block` hook was considered, but its `Self` return prevents cancellation under the current Mixins compiler, so this implementation uses the existing concrete placement and save boundaries. Placement, persistence and interactions still require game validation.
+
+The original chest blockstates, models and block textures are copied from the pinned source under its MIT license (`third_party/tconstruct/LICENSE`). They are not yet connected to registered blocks or tested in the game.
