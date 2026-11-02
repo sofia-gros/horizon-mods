@@ -12,3 +12,5 @@ These candidates are limited to paths used by TConstruct. PlutoLib remains a gen
 The first candidate is largely a host-capability verification, not a request to recreate Horizon's codec in PlutoLib. Existing source inspection alone does not establish that the built-in path covers every TConstruct component or mode. The native host update, Creative integration, and the upstream Mixins diagnostics remain independently unverified.
 
 The TConstruct-side inputs and expected transport contract are in [`tests/fixtures/lan-components`](../tests/fixtures/lan-components/README.md). Their focused check verifies parsing and item NBT save-codec round trips only; the host/guest network round trips belong to the separate generic codec work.
+
+The fixed host's first standard-codec fixture run reported missing per-stack `minecraft:max_damage` and `minecraft:tool`; the retained custom data can hide the loss. The shared library investigation owns the generic fix. TConstruct's [fixture acceptance](../tests/fixtures/lan-components/README.md) records its expected values and guest gameplay checks.

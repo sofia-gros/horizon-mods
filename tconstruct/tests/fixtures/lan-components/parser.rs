@@ -16,6 +16,20 @@ fn source_stacks_are_parseable_and_survive_item_nbt_roundtrip() {
         for key in ["tic_materials", "tic_attack_damage", "tic_mining_tool"] {
             assert!(custom.get(key).is_some(), "{id}: {key}");
         }
+        if id == "generated_pickaxe" {
+            use horizon_world::nbt::Tag;
+            assert!(matches!(original.data().unwrap().other("minecraft:max_damage"), Some(Tag::Int(60))));
+            assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(60))));
+            let tool = original.data().unwrap().other("minecraft:tool").unwrap();
+            assert!(matches!(tool.get("damage_per_block"), Some(Tag::Int(1))));
+            assert!(matches!(tool.get("default_mining_speed"), Some(Tag::Float(v)) if f32::from_bits(*v) == 1.0));
+            let Some(Tag::List(rules)) = tool.get("rules") else { panic!("missing rules") };
+            assert_eq!(rules.len(), 2);
+            assert!(matches!(rules[0].get("correct_for_drops"), Some(Tag::Byte(0))));
+            assert!(matches!(rules[1].get("correct_for_drops"), Some(Tag::Byte(1))));
+            assert!(matches!(rules[1].get("speed"), Some(Tag::Float(v)) if f32::from_bits(*v) == 2.0));
+            assert!(custom.get("tic_mining_tool") == Some(tool));
+        }
         if id == "augmented_pickaxe" {
             assert!(custom.get("tic_upgrades").unwrap().get("tconstruct:haste").is_some());
             assert!(custom.get("tic_overslime").is_some());
