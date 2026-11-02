@@ -144,7 +144,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     *claimed = true;
 }
 
-/// Source zero-offset AOE paths for the bundled blazing-blood glow effect.
+/// Source zero-offset AOE paths for bundled glow/fire placement effects.
 /// Non-empty tool AOE iterators and other block-effect forms stay unresolved.
 pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
     if game.remote.is_some() || !single_block(game, stack) || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
@@ -162,8 +162,11 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
     let effects = recipe.get("block_effects")?.as_array()?;
-    if effects.len() != 1 || effects[0].get("type")?.as_str()? != "tconstruct:place_block" || effects[0].get("block")?.as_str()? != "tconstruct:glow" { return None; }
-    if effects[0].as_object()?.keys().any(|key| key != "type" && key != "block") { return None; }
+    if effects.len() != 1 || effects[0].get("type")?.as_str()? != "tconstruct:place_block" { return None; }
+    let block = effects[0].get("block")?.as_str()?;
+    if !matches!(block, "tconstruct:glow" | "minecraft:fire") { return None; }
+    if effects[0].as_object()?.keys().any(|key| key != "type" && key != "block" && key != "sound") { return None; }
+    let sound = match effects[0].get("sound") { None => None, Some(value) => Some(value.as_str()?.to_owned()) };
     let amount = u32::try_from(recipe.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
     let held = game.held()?;
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
@@ -181,9 +184,32 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                 let Some(z) = clicked[2].checked_add(face[2]) else { return Ok(true); };
                 [x, y, z]
             };
-        if super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]])? {
-            let sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
-            game.audio.play(&sound, Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
+        let placed = if block == "tconstruct:glow" {
+            super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]])?
+        } else {
+            let permitted = match game.lan_acting {
+                Some(conn) => game.world.chunks.__horizon_mixins_tconstruct_glow_guest_protection().get(&conn)
+                    .is_some_and(|policy| super::tconstruct_glowing_placement::outside_protection(*policy, target)),
+                None => game.options.dedicated.is_none(),
+            };
+            if !permitted || !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { false }
+            else {
+                let pos = horizon_core::position::BlockPos::new(target[0], target[1], target[2]);
+                let (state, survives) = game.with_level(|blocks, world, ticks| {
+                    let state = blocks.fire_state_for(world, ticks, pos);
+                    (state, blocks.can_survive(world, ticks, pos, state))
+                });
+                // The source recipe explicitly names the fire block; never
+                // silently replace it with the host's soul-fire selection.
+                if survives && game.res.facts().get(state).name.as_ref() == "minecraft:fire" {
+                    game.level_set(target, state)?;
+                    game.world.block(target[0], target[1], target[2]) == state
+                } else { false }
+            }
+        };
+        if placed {
+            let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
+            game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
             game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
             if !game.creative {
                 *game.held_mut() = Some(drained);
