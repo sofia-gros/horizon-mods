@@ -198,3 +198,13 @@ The source-backed crossbow test binds both input part arrays before borrowing
 them. An earlier exact-head test compile failed with E0716; a disposable
 old-host diagnostic passed after the same lifetime correction. This new
 candidate has not yet passed the dedicated exact-head test or official build.
+
+### Raging and Airborne projectile integration candidate
+
+The #140 actor-state candidate is integrated with the ordered bow stat builder:
+conditional velocity and projectile damage use the builder's current
+multiply-base and multiply-all scales rather than an earlier precomputed stat.
+The included photographs document the earlier #140 session, not this integrated
+head. Syntax only; official apply and type checks and same-shot health 20/6,
+local/guest actor identity, ground/water/climb/vehicle, save/reload and actual
+projectile damage still require dedicated verification on this candidate.
