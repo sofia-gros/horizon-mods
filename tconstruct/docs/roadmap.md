@@ -36,7 +36,7 @@ Each stage is split into playable PRs with shared source-derived behavior and re
 6. **Progression and remaining content:** expand the initial Materials and You reader, and implement remaining guidebooks, advancements, gadgets and original feature-matrix entries. Diamond armor records the source `tconstruct:diamond_armor` flag, and Netherite records its source flag, but the advancement system and its criteria are not connected. Accept a coherent progression through their normal prerequisites.
 7. **Release validation:** run a new survival playthrough, save/reload and LAN, and verify Linux and Windows startup before release claims.
 
-GUI polish, including Station naming and representative connected-glass rendering, is already available; Station preview trim remains blocked pending a supported atlas preparation boundary. Other unfinished GUI or source behavior remains tracked in the [GUI review](gui-review.md), rather than being declared complete. Broader PlutoLib development is deferred until v1.0 or later.
+GUI polish, including Station naming and representative connected-glass rendering, is already available; Station preview trim remains blocked pending a supported atlas preparation boundary. Other unfinished GUI or source behavior remains tracked in the [GUI review](gui-review.md), rather than being declared complete. TConstruct is adopting reusable PlutoLib APIs during the v0.5 port; generic APIs remain independent of TConstruct-specific rules.
 
 Each PR updates the relevant user and developer documentation. `main` is the official branch for both Windows and Linux; platform behavior must be verified before claiming it works.
 

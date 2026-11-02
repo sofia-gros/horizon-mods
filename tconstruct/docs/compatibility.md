@@ -14,4 +14,4 @@ The source TConstruct data is pinned to [`f4e77d43f39ba1047bf93ae816b7e1beaab514
 
 ## Development target
 
-At the latest check, official Horizon main was [`fd57b867944179eb0c9d7bfe8e4f83653103f98a`](https://github.com/horizon-rust/horizon/commit/fd57b867944179eb0c9d7bfe8e4f83653103f98a), ahead of the verified combination and not yet tested with this port. Mixins main remained at the pinned revision. Check upstream updates separately before changing the tested pair; see the [host update evidence](host-upgrade.md). Slime-island generation and source world fluids remain incomplete.
+This branch targets Horizon [`fd6cfda6bdef59a53aee830009f78c14832b0308`](https://github.com/horizon-rust/horizon/commit/fd6cfda6bdef59a53aee830009f78c14832b0308) with Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. This pair and the matching PlutoLib bundle are **not yet validated together**. The verified combination above remains the previous pair. Check upstream again before merging; see the [host update evidence](host-upgrade.md). Slime-island generation and source world fluids remain incomplete.

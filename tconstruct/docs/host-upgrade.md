@@ -1,6 +1,6 @@
 # Horizon host update (draft)
 
-This work targets official Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
+The current update targets official Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The matching PlutoLib bundle and combined client are not yet validated. Previous results below identify their tested revisions; they do not establish slime-island generation.
 
 The new host supports content block `state_properties` and `default_state`, which may represent the source vine stages. Its world fluid kind still contains only empty, water and lava families; the original slime world fluids remain unresolved. Do not enable incomplete island generation or replace slime fluid with water.
 
