@@ -27,7 +27,7 @@ registry.write_to(Path::new("generated-content"))?;
 
 This writes content declarations. Include them with your mod’s manifest and assets, as shown in the demo.
 
-[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Native Creative preparation](docs/native-creative.md) · [Native installation](docs/native-installation.md) · [Experimental item behaviors](docs/item-behaviors.md) · [Component transport prototype](docs/component-transport.md)
+[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Native Creative preparation](docs/native-creative.md) · [Native installation](docs/native-installation.md) · [Experimental item behaviors](docs/item-behaviors.md) · [Component transport prototype](docs/component-transport.md) · [Tool rules](docs/tool-rules.md)
 
 ## Compatibility
 
