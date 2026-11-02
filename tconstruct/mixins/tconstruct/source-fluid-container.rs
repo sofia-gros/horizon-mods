@@ -207,6 +207,20 @@ mod tests {
         assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
     }
     #[test]
+    fn venom_transfer_preserves_other_fluids_and_blocked_stacks() {
+        let mut tank = SmelteryTank::new(1500);
+        assert!(tank.insert("minecraft:lava", 1000));
+        let mut slots = [Some(ItemStack::new("tconstruct:venom_bottle", 2)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(tank.amount("tconstruct:venom"), 250);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots), before);
+    }
+    #[test]
     fn single_fluid_tank_rejects_mixing_without_losing_container() {
         let mut tank = super::super::tconstruct_source_melter_state::Tank::new(3000);
         assert!(tank.insert("minecraft:lava", 1000));
