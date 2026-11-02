@@ -3877,3 +3877,9 @@ id = "source-campfire-select"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_campfire_select"
 source = "source-campfire-select.rs"
+
+[[module]]
+id = "source-bow-start"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_bow_start"
+source = "source-bow-start.rs"
