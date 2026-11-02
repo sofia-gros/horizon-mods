@@ -140,7 +140,7 @@ fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_sta
         None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
         Some(Tag::Compound(data)) => match data.get(&"tconstruct:tank".into()) {
             None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
-            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| { let name = key.to_string_lossy(); name == "fluid" || name == "amount" }) =>
+            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| { let name = key.to_string_lossy(); name == "fluid" || name == "amount" || name == "fluid_tag" }) =>
                 super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity),
             _ => None,
         },
@@ -302,23 +302,28 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
         use horizon_world::nbt::{Compound, Tag};
         if !known_item(&input.item) { return false; }
         let Some(mut portable) = lantern_tank(input) else { return false; };
-        if portable.tag.is_some() { return false; }
         let mut next = tank.clone();
         let mut transferred = false;
         if portable.amount > 0 && direction != Direction::FillItem {
             let Some(fluid) = portable.fluid.clone() else { return false; };
+            let tag = portable.tag.clone();
             let amount = portable.amount.min(next.capacity.saturating_sub(next.total()));
-            if known_fluid(&fluid) && amount > 0 && next.insert(&fluid, amount) {
-                if portable.take(amount).is_none() { return false; }
+            if known_fluid(&fluid) && amount > 0 && next.insert_tagged(&fluid, tag.as_ref(), amount) {
+                if portable.take_tagged(tag.as_ref(), amount).is_none() { return false; }
                 transferred = true;
             }
         }
         if !transferred {
             if direction == Direction::EmptyItem { return false; }
-            let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
-            if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
-            let amount = next.amount(&fluid).min(portable.capacity.saturating_sub(portable.amount));
-            if !known_fluid(&fluid) || amount == 0 || !portable.insert(&fluid, amount) || !next.take(&fluid, amount) { return false; }
+            let entry = if let Some(id) = selected {
+                let mut entries = next.fluids.iter().filter(|entry| entry.id == id);
+                let Some(entry) = entries.next() else { return false; };
+                if entries.next().is_some() { return false; }
+                entry
+            } else { let Some(entry) = next.fluids.first() else { return false; }; entry };
+            let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
+            let amount = entry.amount.min(portable.capacity.saturating_sub(portable.amount));
+            if !known_fluid(&fluid) || amount == 0 || !portable.insert_tagged(&fluid, tag.as_ref(), amount) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
         }
         let mut custom = match input.data().and_then(|data| data.other("minecraft:custom_data")) {
             None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return false,
@@ -419,6 +424,26 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn lantern_transfer_keeps_tag_and_refuses_ambiguous_variants() {
+        use horizon_world::nbt::Tag;
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        let other = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+        let mut tank = SmelteryTank::new(100);
+        assert!(tank.insert_tagged("tconstruct:potion", Some(&tag), 50));
+        let mut slots = [Some(ItemStack::new("tconstruct:seared_lantern", 1)), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:potion"), &known, &known));
+        let filled = slots[1].take().unwrap();
+        assert_eq!(lantern_tank(&filled).unwrap().tag, Some(tag.clone()));
+        slots = [Some(filled), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::EmptyItem, None, &known, &known));
+        assert_eq!(tank.fluids[0].tag, Some(tag.clone()));
+        assert!(tank.insert_tagged("tconstruct:potion", Some(&other), 50));
+        slots = [Some(ItemStack::new("tconstruct:seared_lantern", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:potion"), &known, &known));
+        assert_eq!((tank, slots), before);
+    }
     use super::*;
     fn known(_: &str) -> bool { true }
     #[test]
