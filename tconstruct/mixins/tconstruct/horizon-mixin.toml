@@ -3877,3 +3877,13 @@ id = "server-chest-inventory-api"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_inventory_api"
 source = "chest-inventory-api-lib.rs"
+
+# The host recipe-book placement mutates the temporary grid without a safe
+# post-mutation sync hook. Keep the book visible, but block only this action.
+[[injection]]
+id = "crafting-station-recipe-placement-guard"
+target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-recipe-guard.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
