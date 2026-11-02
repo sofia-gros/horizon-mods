@@ -3945,3 +3945,26 @@ kind = "HEAD"
 cancellable = true
 helper = "source-crafting-recipe-guard.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-slime-colormap"
+file = "crates/horizon-client-render/src/mesher.rs"
+name = "tconstruct_slime_colormap"
+source = "source-slime-colormap.rs"
+visibility = "pub(crate)"
+
+[[injection]]
+id = "source-slime-colormap-load"
+target = "horizon_client_render::assets::RenderAssets::load_with"
+kind = "HEAD"
+helper = "source-slime-colormap-load.rs"
+bindings = [{ name = "root", ty = "&std::path::Path", value = "root" }]
+
+[[injection]]
+id = "source-slime-colormap-face"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
+kind = "MODIFY_VARIABLE"
+variable = { name = "tint", ordinal = 0, at = "STORE" }
+require = 1
+helper = "source-slime-colormap-face.rs"
+bindings = [{ name = "value", ty = "Option<u32>", value = "$value" }, { name = "mesher", ty = "&Mesher<'_>", value = "self" }, { name = "tints", ty = "&Tints<'_>", value = "&*tints" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "id", ty = "&u32", value = "$local_ref:id:0" }, { name = "face", ty = "&BakedFace", value = "face" }]
