@@ -157,7 +157,7 @@ bindings = [
 
 [[injection]]
 id = "smeltery-guest-guard"
-target = "horizon_client::lan::containers::Hub::container_click"
+target = "horizon_client_lib::lan::containers::Hub::container_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-guest-guard.rs"
@@ -171,7 +171,7 @@ bindings = [
 
 [[injection]]
 id = "guest-part-output"
-target = "horizon_client::lan::containers::Hub::container_click"
+target = "horizon_client_lib::lan::containers::Hub::container_click"
 kind = "HEAD"
 cancellable = true
 helper = "guest-part-output.rs"
@@ -292,7 +292,7 @@ bindings = [{ name = "name", ty = "&str", value = "name" }]
 
 [[injection]]
 id = "network-custom-data"
-target = "horizon_client::lan::hub::Hub::stack"
+target = "horizon_client_lib::lan::hub::Hub::stack"
 kind = "HEAD"
 cancellable = true
 helper = "network-custom-data.rs"
@@ -346,7 +346,7 @@ bindings = [
 
 [[injection]]
 id = "part-selection-send-data"
-target = "horizon_client::lan::hub::Hub::track_entities"
+target = "horizon_client_lib::lan::hub::Hub::track_entities"
 kind = "HEAD"
 helper = "part-selection-send-data.rs"
 bindings = [
@@ -887,7 +887,7 @@ require = 1
 
 [[injection]]
 id = "material-block-wire-type"
-target = "horizon_client::lan::chunks::block_entity_type"
+target = "horizon_client_lib::lan::chunks::block_entity_type"
 kind = "HEAD"
 cancellable = true
 helper = "material-block-wire-type.rs"
@@ -895,7 +895,7 @@ bindings = [{ name = "name", ty = "&str", value = "name" }]
 
 [[injection]]
 id = "material-block-wire-send"
-target = "horizon_client::lan::hub::Hub::track_entities"
+target = "horizon_client_lib::lan::hub::Hub::track_entities"
 kind = "HEAD"
 helper = "material-block-wire-send.rs"
 bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
@@ -910,7 +910,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "material-block-wire-prune"
-target = "horizon_client::lan::hub::Hub::tick_level"
+target = "horizon_client_lib::lan::hub::Hub::tick_level"
 kind = "HEAD"
 helper = "material-block-wire-prune.rs"
 bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
@@ -947,7 +947,7 @@ require = 1
 
 [[injection]]
 id = "material-block-wire-chunk"
-target = "horizon_client::lan::chunks::ChunkEncoder::body_in"
+target = "horizon_client_lib::lan::chunks::ChunkEncoder::body_in"
 kind = "HEAD"
 cancellable = true
 helper = "material-block-wire-chunk.rs"
@@ -1576,7 +1576,7 @@ bindings = [
 
 [[injection]]
 id = "smeltery-guest-read"
-target = "horizon_client::lan::menu::Slots::read"
+target = "horizon_client_lib::lan::menu::Slots::read"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-guest-read.rs"
@@ -1588,7 +1588,7 @@ bindings = [
 
 [[injection]]
 id = "smeltery-guest-write"
-target = "horizon_client::lan::menu::Slots::write"
+target = "horizon_client_lib::lan::menu::Slots::write"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-guest-write.rs"
@@ -1601,7 +1601,7 @@ bindings = [
 
 [[injection]]
 id = "smeltery-guest-get"
-target = "horizon_client::lan::menu::Slots::get"
+target = "horizon_client_lib::lan::menu::Slots::get"
 kind = "HEAD"
 cancellable = true
 helper = "source-smeltery-guest-get.rs"
@@ -1614,7 +1614,7 @@ bindings = [
 
 [[injection]]
 id = "builder-hopper-menu-read"
-target = "horizon_client::lan::menu::Slots::read"
+target = "horizon_client_lib::lan::menu::Slots::read"
 kind = "HEAD"
 cancellable = true
 helper = "source-side-menu-read.rs"
@@ -1625,7 +1625,7 @@ bindings = [
 
 [[injection]]
 id = "builder-double-menu-write"
-target = "horizon_client::lan::menu::Slots::write"
+target = "horizon_client_lib::lan::menu::Slots::write"
 kind = "HEAD"
 cancellable = true
 helper = "source-double-menu-write.rs"
@@ -1637,7 +1637,7 @@ bindings = [
 
 [[injection]]
 id = "builder-double-menu-get"
-target = "horizon_client::lan::menu::Slots::get"
+target = "horizon_client_lib::lan::menu::Slots::get"
 kind = "HEAD"
 cancellable = true
 helper = "source-double-menu-get.rs"
@@ -2172,7 +2172,7 @@ source = "source-melter-store.rs"
 
 [[injection]]
 id = "source-machine-encode-id"
-target = "horizon_client::save::block_entity_id"
+target = "horizon_client_lib::save::block_entity_id"
 kind = "HEAD"
 cancellable = true
 helper = "source-machine-encode-id.rs"
@@ -2183,7 +2183,7 @@ bindings = [
 
 [[injection]]
 id = "source-machine-decode"
-target = "horizon_client::save::decode_block_entity"
+target = "horizon_client_lib::save::decode_block_entity"
 kind = "HEAD"
 cancellable = true
 helper = "source-machine-decode.rs"
@@ -2262,7 +2262,7 @@ require = 1
 
 [[injection]]
 id = "source-machine-wire-send"
-target = "horizon_client::lan::hub::Hub::track_entities"
+target = "horizon_client_lib::lan::hub::Hub::track_entities"
 kind = "HEAD"
 helper = "source-machine-wire-send.rs"
 bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
@@ -3268,7 +3268,7 @@ require = 1
 
 [[injection]]
 id = "source-chest-guest-read"
-target = "horizon_client::lan::menu::Slots::read"
+target = "horizon_client_lib::lan::menu::Slots::read"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-guest-read.rs"
@@ -3280,7 +3280,7 @@ bindings = [
 
 [[injection]]
 id = "source-chest-guest-get"
-target = "horizon_client::lan::menu::Slots::get"
+target = "horizon_client_lib::lan::menu::Slots::get"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-guest-get.rs"
@@ -3293,7 +3293,7 @@ bindings = [
 
 [[injection]]
 id = "source-chest-guest-write"
-target = "horizon_client::lan::menu::Slots::write"
+target = "horizon_client_lib::lan::menu::Slots::write"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-guest-write.rs"
@@ -3306,7 +3306,7 @@ bindings = [
 
 [[injection]]
 id = "source-chest-guest-click"
-target = "horizon_client::lan::containers::Hub::container_click"
+target = "horizon_client_lib::lan::containers::Hub::container_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-chest-guest-click.rs"
@@ -3370,7 +3370,7 @@ bindings = [
 
 [[injection]]
 id = "source-side-chest-guest-click"
-target = "horizon_client::lan::containers::Hub::container_click"
+target = "horizon_client_lib::lan::containers::Hub::container_click"
 kind = "HEAD"
 cancellable = true
 helper = "source-side-chest-guest-click.rs"
