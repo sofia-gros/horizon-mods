@@ -4,7 +4,7 @@
 
 For each case, round-trip through the host-to-guest and guest-to-host paths using the target host's actual item and registry mappings. Assert the same item, count, damage and all components, including nested material IDs, attack/mining stats, mining rules, upgrades and overslime, as well as lore and item model. No component may occur twice. Ordinary vanilla stacks and unrelated custom data must stay intact. Also test a server-origin wire patch, preserving unknown/removed components where the host supports it, and save/reload as separate checks.
 
-The old TConstruct hooks manually append `custom_data` for any stack carrying it, plus lore and item model for TConstruct IDs, and then cancel the host conversion. They do not independently prove full component or wire-patch preservation. The target host's shared conversion now has native handling for these three components, but that is a source observation, not an end-to-end LAN result. Do not remove either old hook solely on this fixture's parse test. Dedicated-server behavior is not established.
+The old TConstruct hooks appended `custom_data`, lore and item model and cancelled the host wrappers; they have been removed in favor of the host wrappers and PlutoLib transport bundle. The independent library demo passed representative LAN and save/reconnect checks, while this TConstruct fixture has only been checked through parsing and item NBT. The combined TConstruct runtime and dedicated-server behavior are not established.
 
 ## Material durability and mining acceptance
 

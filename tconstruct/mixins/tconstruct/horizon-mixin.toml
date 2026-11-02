@@ -295,28 +295,6 @@ helper = "station-spill.rs"
 bindings = [{ name = "name", ty = "&str", value = "name" }]
 
 [[injection]]
-id = "network-custom-data"
-target = "horizon_client_lib::lan::hub::Hub::stack"
-kind = "HEAD"
-cancellable = true
-helper = "network-custom-data.rs"
-bindings = [
-  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
-  { name = "source", ty = "&Option<ItemStack>", value = "s" },
-]
-
-[[injection]]
-id = "client-network-custom-data"
-target = "horizon_client::game::remote::Game<'_>::to_network"
-kind = "HEAD"
-cancellable = true
-helper = "client-network-custom-data.rs"
-bindings = [
-  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
-  { name = "source", ty = "&Option<ItemStack>", value = "s" },
-]
-
-[[injection]]
 id = "station-screen-height"
 target = "horizon_client::game::machines::Game<'_>::screen_height"
 kind = "HEAD"
