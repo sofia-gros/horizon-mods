@@ -46,26 +46,26 @@ bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
 
 [[module]]
 id = "source-block-shapes"
-file = "crates/horizon-client/src/client_lib.rs"
+file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_block_shapes"
 source = "source-block-shapes.rs"
 
 [[module]]
 id = "source-resource-tables"
-file = "crates/horizon-client/src/client_lib.rs"
+file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_resource_tables"
 source = "resource-tables.rs"
 visibility = "pub"
 
 [[module]]
 id = "source-machine-shapes"
-file = "crates/horizon-client/src/client_lib.rs"
+file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_machine_shapes"
 source = "source-machine-shapes.rs"
 
 [[module]]
 id = "source-machine-prepare"
-file = "crates/horizon-client/src/client_lib.rs"
+file = "crates/horizon-client/src/lib.rs"
 name = "tconstruct_machine_prepare"
 source = "source-machine-prepare.rs"
 
