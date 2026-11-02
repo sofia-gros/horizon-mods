@@ -1,6 +1,6 @@
 // Shared per-stack effective-block recognition and conditional calculations.
 use horizon_world::nbt::Tag;
-use super::tconstruct_source_mining_math::{Conditional, conditional_speed_at};
+use super::tconstruct_source_mining_math::{Conditional, conditional_speed_for};
 
 /// Haste on a non-harvest chestplate applies the source player mining-speed multiplier.
 pub(super) fn haste_armor_multiplier(custom: &Tag, damage: u32) -> f32 {
@@ -58,7 +58,7 @@ pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &st
     evaluated_speed(tool, block, in_tag).flatten()
 }
 
-pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>) -> Option<f32> {
+pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
@@ -71,16 +71,34 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
             "tconstruct:stonebound" => Conditional::Stonebound(*level),
             "tconstruct:maintained" => Conditional::Maintained(*level),
             "tconstruct:dwarven" => Conditional::Dwarven(*level),
+            "tconstruct:crumbling" => Conditional::Crumbling(*level),
             _ => continue,
         };
         ordered.push(effect);
     }
-    Some(conditional_speed_at(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position))
+    if !effective && !(tool_not_required && ordered.iter().any(|effect| matches!(effect, Conditional::Crumbling(level) if *level > 0))) { return None; }
+    Some(conditional_speed_for(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position, effective, tool_not_required))
 }
 
 #[cfg(test)]
 mod shared_rules_tests {
     use super::*;
+
+    #[test]
+    fn crumbling_respects_effectiveness_block_and_breakage() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_all", Tag::Float(1.5f32.to_bits())),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([("id", Tag::String("tconstruct:crumbling".into())), ("level", Tag::Int(2))])])),
+        ]);
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, true), Some(4.0));
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, false), None);
+        let tool = Tag::compound([("rules", Tag::List(vec![Tag::compound([("blocks", Tag::String("minecraft:stone".into())), ("speed", Tag::Float(4.0f32.to_bits()))])]))]);
+        let effective = evaluated_speed(&tool, "minecraft:dirt", |_, _| false).unwrap().is_some();
+        assert!(!effective);
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, effective, true), Some(4.0));
+        assert_eq!(conditional(&custom, 100, 1.0, 1.0, None, false, true), None);
+    }
 
     #[test]
     fn actual_tool_tier_precedes_speed_and_no_match_is_distinct() {

@@ -21,28 +21,33 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     let speed = super::tconstruct_source_mining_math::base_speed_unclamped(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
         level("tconstruct:lightweight"), level("tconstruct:heavy"), vintage, level("tconstruct:entangled") > 0);
     let speed = (speed * if netherite { 1.25 } else { 1.0 }).clamp(0.1, 2048.0);
-    // Some harvest-tagged equipment has no supported per-stack tool rules yet.
-    // Preserve assembly instead of rejecting the item when those rules are absent.
-    let Some(mut tool) = stack.data().and_then(|data| data.other("minecraft:tool")).cloned() else { return Some(()); };
-    let Tag::Compound(ref mut fields) = tool else { return None; };
-    let Some(Tag::List(rules)) = fields.get_mut(&"rules".into()) else { return None; };
-    for rule in rules {
-        let Tag::Compound(fields) = rule else { continue; };
-        if let Some(Tag::Float(value)) = fields.get_mut(&"speed".into()) { *value = speed.to_bits(); }
+    // A harvest-tagged tool without an explicit Tool component is still able
+    // to carry traits such as Crumbling, which also applies when ineffective.
+    let mut tool = stack.data().and_then(|data| data.other("minecraft:tool")).cloned();
+    if let Some(ref mut tool) = tool {
+        let Tag::Compound(ref mut fields) = tool else { return None; };
+        let Some(Tag::List(rules)) = fields.get_mut(&"rules".into()) else { return None; };
+        for rule in rules {
+            let Tag::Compound(fields) = rule else { continue; };
+            if let Some(Tag::Float(value)) = fields.get_mut(&"speed".into()) { *value = speed.to_bits(); }
+        }
     }
-    let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
-    let Tag::Compound(ref mut fields) = custom else { return None; };
+    let Some(mut custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")).cloned() else {
+        return if tool.is_none() { Some(()) } else { None };
+    };
+    let Tag::Compound(ref mut fields) = custom else { return if tool.is_none() { Some(()) } else { None } };
     let dynamic: Vec<Tag> = order.iter().filter_map(|id| {
-        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven") { return None; }
+        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling") { return None; }
         Some(Tag::compound([("id", Tag::String(id.as_str().into())), ("level", Tag::Int(level(id)))]))
     }).collect();
-    // The current wire codec skips the tool component. Retain the generated
-    // rules in synchronized custom data for client prediction and the host.
-    fields.insert("tic_mining_tool".into(), tool.clone());
+    // Retain the existing generated-rule mirror for legacy consumers; the
+    // shared transport also carries the supported Tool component.
+    if let Some(ref tool) = tool { fields.insert("tic_mining_tool".into(), tool.clone()); }
+    else { fields.remove(&"tic_mining_tool".into()); }
     fields.insert("tic_mining_traits".into(), Tag::List(dynamic));
     fields.insert("tic_mining_all".into(), Tag::Float((stats.mining_speed_all_multiplier * (1.0 - 0.1 * vintage.max(0) as f32) * if emerald { 1.25 } else { 1.0 }).to_bits()));
     fields.insert("tic_durability_all".into(), Tag::Float(stats.durability_multiplier_unit.to_bits()));
-    stack.data_mut().set_other("minecraft:tool", Some(tool));
+    if let Some(tool) = tool { stack.data_mut().set_other("minecraft:tool", Some(tool)); }
     stack.data_mut().set_other("minecraft:custom_data", Some(custom));
     Some(())
 }
@@ -50,6 +55,23 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn crumbling_is_stored_without_tool_rules_and_removed_on_rebuild() {
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("test:empty", Tag::Int(0))]))])));
+        let id = "tconstruct:crumbling".to_owned();
+        apply(&mut stack, &stats, &BTreeMap::from([(id.clone(), 1)]), &[id], true).unwrap();
+        let data = stack.data().unwrap();
+        assert!(data.other("minecraft:tool").is_none());
+        let Some(Tag::List(traits)) = data.other("minecraft:custom_data").unwrap().get("tic_mining_traits") else { panic!() };
+        assert_eq!(traits.len(), 1);
+        apply(&mut stack, &stats, &BTreeMap::new(), &[], true).unwrap();
+        let Some(Tag::List(traits)) = stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_mining_traits") else { panic!() };
+        assert!(traits.is_empty());
+    }
 
     #[test]
     fn haste_partial_level_rebuilds_mining_speed_once() {

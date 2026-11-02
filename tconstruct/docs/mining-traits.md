@@ -4,7 +4,7 @@ Material mining, durability and repair traits use original Tinkers' Construct
 revision `f4e77d43` with shared mining, wear and repair paths.
 
 This unit covers the mining modules of Lightweight, Heavy, Vintage, Entangled,
-Jagged, Stonebound and Maintained, plus Dense repair and durability prevention.
+Jagged, Stonebound, Maintained and Crumbling, plus Dense repair and durability prevention.
 Overlord requires functional Overslime and remains unimplemented. Other modules
 of these traits are not implied to be complete.
 
@@ -23,6 +23,8 @@ Original conditional wear formulas use the `multiply_all` durability multiplier;
 the earlier melee calculation mistakenly included material percent and
 `multiply_base` bonuses. The implementation corrects that multiplier for the existing
 Jagged/Stonebound melee path too. Representative melee and repair regressions passed.
+
+Crumbling adds one mining speed per level (scaled by the tool and player mining multipliers) on blocks that do not require a tool, even when the held tool is not effective. It skips broken tools. The implementation has focused tests but has not been game-tested.
 
 Dwarven is connected on the development branch between Maintained and the percentage-based Jagged and Stonebound effects. Its height-dependent host and client mining hooks have not been game-tested; existing tools need regeneration to receive the trait data.
 
