@@ -5,12 +5,19 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-ARCHIVE = ROOT / 'content/assets/tconstruct/materials-and-you.zip'
+ARCHIVE = ROOT / 'content'
+
+class DirectoryArchive:
+    def __init__(self, root): self.root = root
+    def __enter__(self): return self
+    def __exit__(self, *args): pass
+    def read(self, name): return (self.root / name).read_bytes()
+    def namelist(self): return [p.relative_to(self.root).as_posix() for p in self.root.rglob('*') if p.is_file()]
 PREFIX = 'assets/tconstruct/book/materials_and_you/'
 
 class MaterialsBookSourceTest(unittest.TestCase):
     def test_source_static_chapters_and_referenced_pages(self):
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             index = json.loads(archive.read(PREFIX + 'index.json'))
             sections = [entry['data'] for entry in index if entry.get('data', 'no-load') != 'no-load']
             self.assertIn('sections/introduction.json', sections)
@@ -40,7 +47,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual(loot['pools'][0]['entries'][0]['name'], 'tconstruct:materials_and_you')
 
     def test_every_referenced_source_image_is_bundled(self):
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             names = set(archive.namelist())
             for name in names:
                 if '/en_us/' not in name or not name.endswith('.json'):
@@ -50,7 +57,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
                     self.assertIn('assets/tconstruct/' + image['file'].split(':', 1)[1], names)
 
     def test_original_tool_and_armor_descriptions_are_retained(self):
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             tool = json.loads(archive.read(PREFIX + 'en_us/tools/tconstruct_pickaxe.json'))
             armor = json.loads(archive.read('assets/tconstruct/book/encyclopedia/en_us/armor/tconstruct_travelers_helmet.json'))
             self.assertTrue(tool['text'])
@@ -59,7 +66,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
             self.assertTrue(armor['properties'])
 
     def test_modifier_showcases_have_source_slot_icons(self):
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             names = set(archive.namelist())
             for page, slot, icon in [('abilities', 'abilities', 'ability'), ('defense', 'defense', 'defense'), ('slotless', 'slotless', 'slotless'), ('upgrades', 'upgrades', 'upgrade')]:
                 data = json.loads(archive.read(PREFIX + 'en_us/modifiers/' + page + '.json'))
@@ -67,7 +74,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 self.assertIn('assets/tconstruct/book/images/slot/' + icon + '.png', names)
 
     def test_material_panel_has_original_colors_and_part_stats(self):
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             colors = json.loads(archive.read('assets/tconstruct/book/source-colors.json'))
             self.assertEqual(colors['material.tconstruct']['wood'], '#8e661b')
             self.assertEqual(colors['material.tconstruct']['flint'], '#696969')
@@ -82,11 +89,11 @@ class MaterialsBookSourceTest(unittest.TestCase):
             data = json.loads(archive.read('data/tconstruct/tinkering/tool_definitions/pickaxe.json'))
             module = next(m for m in data['modules'] if m['type'] == 'tconstruct:part_stats')
             self.assertEqual(module['parts'], ['tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding'])
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             self.assertIn('assets/tconstruct/book/images/modify.png', archive.namelist())
 
     def test_original_repair_example_preserves_damage_values(self):
-        with zipfile.ZipFile(ARCHIVE) as archive:
+        with DirectoryArchive(ARCHIVE) as archive:
             repair = json.loads(archive.read(PREFIX + 'en_us/tools/repairing.json'))
             self.assertEqual(repair['grid'][0][0]['nbt']['Damage'], 70)
             self.assertEqual(repair['result']['nbt']['Damage'], 10)
