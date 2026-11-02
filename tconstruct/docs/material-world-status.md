@@ -59,3 +59,10 @@ bonuses. Compare against the original stat builder before claiming parity.
 The Overlord follow-up keeps Ductile attack and toughness updates when Ductile
 and Overlord durability changes cancel. The added combined-trait regression
 still needs the dedicated test run.
+
+The durability follow-up also applies the source base-stat order without
+Overlord: Diamond adds to the base, Emerald and Netherite add 0.5 and 0.2 to
+its percentage, and the global multiplier applies last. For an unmodified
+100-durability baseline with Emerald and Netherite, the source reference is
+170, rather than the previous multiplicative result of 180. Validation must
+include both source float rounding and material replacement.
