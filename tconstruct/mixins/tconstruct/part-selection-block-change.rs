@@ -16,6 +16,8 @@ fn clear_part_selection_on_block_change(world: &mut crate::world::World, x: i32,
         }
     }
     if world.block(x, y, z) != state {
+        world.chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().retain(|(_, _, _, pos), _| *pos != (x,y,z));
+        world.chunks.__horizon_mixins_tconstruct_chest_ui_pages_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_info_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().remove(&(x,y,z));
         world.chunks.__horizon_mixins_tconstruct_builder_info_scroll_mut().remove(&(x,y,z));
