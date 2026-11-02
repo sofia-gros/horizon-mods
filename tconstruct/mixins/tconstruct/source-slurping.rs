@@ -11,6 +11,7 @@ enum PlayerAction {
     Mob(&'static str, i32, i32),
     Remove(&'static str),
     CureMilk,
+    Extinguish,
     Hunger(i32, f32),
 }
 pub(super) struct Plan {
@@ -95,7 +96,13 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
                 if game.potions.effects.list.iter().any(|entry| horizon_client::brewing::is_mod_effect(entry.id)) { return None; }
                 (PlayerAction::CureMilk, 1.0)
             }
-            super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage | super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => return None,
+            // Vanilla players are not water-sensitive; their source damage
+            // condition is false. Other target forms are handled elsewhere.
+            super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage => continue,
+            super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => {
+                if strength < 1.0 || !game.player.as_ref().is_some_and(|player| player.fire_ticks > 0 && !player.spectator) { continue; }
+                (PlayerAction::Extinguish, 1.0)
+            }
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { hunger, saturation, always } => {
                 if hunger_seen { return None; } hunger_seen = true;
                 let player = game.player.as_ref()?;
@@ -136,6 +143,12 @@ pub(super) fn finish_for(game: &mut super::Game<'_>, stack: &ItemStack, result: 
                 let changed = !game.potions.effects.list.is_empty();
                 if changed { game.potions.effects.clear(); game.apply_effect_status(); }
                 changed
+            }
+            PlayerAction::Extinguish => {
+                if let Some(player) = game.player.as_mut().filter(|player| player.fire_ticks > 0 && !player.spectator) {
+                    player.set_remaining_fire_ticks(0);
+                    true
+                } else { false }
             }
             PlayerAction::Hunger(hunger, saturation) => {
                 game.apply_effect_action(horizon_client::effects::EffectAction::Eat(hunger, saturation)); true
