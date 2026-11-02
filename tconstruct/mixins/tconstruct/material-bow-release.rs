@@ -20,7 +20,7 @@ fn tconstruct_bow_release(
             let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
             game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, vec![(0.0, power, true)], true, crate::game::tconstruct_projectile_stats::projectile_bonus(stack), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
         }
-        game.release_bow(dispatch_ticks);
+        game.release_bow(stack, dispatch_ticks);
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);
     }
     Break(())
