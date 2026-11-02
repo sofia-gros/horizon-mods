@@ -277,8 +277,8 @@ impl MaterialCastingRecipe {
         let cast = match v.get("cast") { Some(value) => Some(Ingredient::parse(value)?), None => None };
         Some(Self { basin, cast, item_cost,
             result: v.get("result")?.as_str()?.to_owned(), allowed_materials: v.get("allowed_materials").cloned(),
-            consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
-            switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false) })
+            consumes_cast: optional_bool(&v, "cast_consumed")?,
+            switch_slots: optional_bool(&v, "switch_slots")? })
     }
 }
 
@@ -349,10 +349,13 @@ impl CastingRecipe {
             };
         let cooling_time = u32::try_from(v.get("cooling_time")?.as_u64()?).ok()?;
         if cooling_time == 0 { return None; }
-        Some(Self { basin, retextured, cast, consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
-            switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false),
+        Some(Self { basin, retextured, cast, consumes_cast: optional_bool(&v, "cast_consumed")?,
+            switch_slots: optional_bool(&v, "switch_slots")?,
             fluid: FluidSpec::parse(v.get("fluid")?)?, output, cooling_time })
     }
+}
+fn optional_bool(value: &Value, key: &str) -> Option<bool> {
+    match value.get(key) { None => Some(false), Some(value) => value.as_bool() }
 }
 fn enabled(value: &Value, conditions: &impl Fn(&[Value]) -> bool) -> bool {
     match value.get("conditions") { None => true, Some(Value::Array(items)) => conditions(items), _ => false }
