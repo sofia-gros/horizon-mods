@@ -405,5 +405,8 @@ mod tests {
     }
 }
 
+/// Creative preparation for Horizon with native paging.
+pub use pluto_creative_api as native_creative;
+
 /// Host-independent item behavior contracts.
 pub use pluto_item_api as item;

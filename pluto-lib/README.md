@@ -10,7 +10,7 @@ Define items and blocks with a small Rust API, then make them available in the C
 
 ## What works today
 
-PlutoLib generates template-based item and block declarations and prepares Creative inventory data. The Creative paging adapter adds navigation when tabs exceed the screen's available positions. See [Creative paging](docs/creative-overflow.md).
+PlutoLib generates template-based item and block declarations and prepares Creative inventory data. For newer Horizon versions, [native Creative preparation](docs/native-creative.md) uses Horizon's own page controls; the [paging adapter](docs/creative-overflow.md) targets an older host.
 
 ## Start with a small example
 
@@ -27,7 +27,7 @@ registry.write_to(Path::new("generated-content"))?;
 
 This writes content declarations. Include them with your mod’s manifest and assets, as shown in the demo.
 
-[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Experimental item behaviors](docs/item-behaviors.md)
+[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Native Creative preparation](docs/native-creative.md) · [Experimental item behaviors](docs/item-behaviors.md)
 
 ## Compatibility
 
