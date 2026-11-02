@@ -103,7 +103,7 @@ the loaded `tconstruct:modifiable/broad` item tag. Zero Overslime gives no
 bonus; broad tools and ineffective blocks do not receive this mining effect.
 The broad variant is described below. Both correspond to the mining-speed modules in the [source
 Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
-Overslime consumption, broad-tool mining-capacity behavior and material
+Overslime consumption outside the handled broad AOE path and material
 acquisition remain separate work.
 
 Rust syntax was checked; focused tests, current-target build and gameplay are
@@ -116,10 +116,10 @@ material replacement and save/reload. Use labelled fixtures where necessary.
 
 The broad-tool speed module instead uses `1 + 0.2 * min(overslime, 5 * level) / 5`
 on effective blocks. This reads the same live Overslime value and uses the loaded
-broad tag; it does not use AOE size as the amount. The source additionally
-spends up to five Overslime per level at the mining capacity hook. That spend
-is not connected by this speed change and must be implemented before this can
-be considered complete.
+broad tag; it does not use AOE size as the amount. The source additionally spends up to five Overslime per level at the start of
+the harvest transaction. The existing AOE break path now performs that spend
+once before the center and extra blocks. Ordinary single-block paths and other
+capacity consumers still need separate integration; this is not complete coverage.
 
 Rust syntax was checked. Tests, current-target build and gameplay are pending.
 Check levels 1 and 2 at amounts 0, 1, 4, 5, 6 and 10, ineffective blocks,

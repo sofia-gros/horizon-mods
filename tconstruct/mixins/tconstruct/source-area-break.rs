@@ -36,6 +36,24 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         "tconstruct:broad_axe" => Area::Box((1..=5).filter_map(|dy| pos[1].checked_add(dy).map(|y| [pos[0],y,pos[2]])).collect::<Vec<_>>().into_iter()),
         _ => { let Some(positions) = face.and_then(|face| crate::game::tconstruct_source_area_shape::plane(pos, face, game.yaw)) else { return Continue(()); }; Area::Box(positions.into_iter()) }
     };
+    // The source starts one harvest transaction before the center/extra
+    // blocks. Spend Overwield capacity once here, not once per AOE block.
+    let broad = game.items().item_tags.get("tconstruct:modifiable/broad")
+        .is_some_and(|items| items.contains(tool_name.as_str()));
+    if broad {
+        let spend = game.held().and_then(|stack| {
+            let custom = stack.data()?.other("minecraft:custom_data")?;
+            let Tag::List(traits) = custom.get("tic_mining_traits")? else { return None; };
+            let level = traits.iter().find_map(|entry| match (entry.get("id"), entry.get("level")) {
+                (Some(Tag::String(id)), Some(Tag::Int(level))) if id.to_string_lossy() == "tconstruct:overwield" => Some((*level).max(0)),
+                _ => None,
+            })?;
+            Some(level.saturating_mul(5) as u32)
+        }).unwrap_or(0);
+        if let Some(stack) = game.held_mut().as_mut().filter(|stack| stack.item.as_ref() == tool_name.as_str()) {
+            crate::game::tconstruct_source_overslime::spend(stack, spend);
+        }
+    }
     game.world.chunks.__horizon_mixins_tconstruct_area_active_mut().insert(actor);
     let result = (|| -> Result<()> {
         game.break_block_as_player(pos)?;
