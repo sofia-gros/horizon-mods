@@ -6,6 +6,7 @@ fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>) {
     let active = game.world.chunks.__horizon_mixins_tconstruct_area_active().contains(&actor);
     if active && game.world.chunks.__horizon_mixins_tconstruct_area_overwield_spent().contains(&actor) { return; }
     let Some(stack) = game.inventory[game.selected].as_ref() else { return; };
+    if crate::game::tconstruct_source_ranged_wear::is_broken(stack) { return; }
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return; };
     if !matches!(custom.get("tic_max_damage"), Some(Tag::Int(max)) if *max > 0 && stack.damage < *max as u32) { return; }
     let tags = &game.items().item_tags;

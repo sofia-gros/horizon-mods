@@ -42,6 +42,16 @@ pub(super) fn friendly(levels: &std::collections::BTreeMap<String, i32>, overfor
 mod tests {
     use super::*;
     #[test]
+    fn oversized_spend_cannot_increase_shield() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_overslime", Tag::Int(5))])));
+        spend(&mut stack, u32::MAX);
+        assert!(matches!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_overslime"), Some(Tag::Int(0))));
+    }
+
+    #[test]
     fn material_and_overlord_stack_before_source_multipliers() {
         assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 1, 2.0, 1, 100.0, 1.0, 30.0), 345);
         assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 0, 1.0, 0, 0.0, 1.0, 30.0), 80);
@@ -160,7 +170,7 @@ pub(super) fn spend(stack: &mut horizon_items::items::ItemStack, used: u32) {
     if used == 0 { return; }
     let Some(mut custom) = stack.data().and_then(|d| d.other("minecraft:custom_data")).cloned() else { return; };
     if let Tag::Compound(ref mut fields) = custom {
-        if let Some(Tag::Int(value)) = fields.get_mut(&"tic_overslime".into()) { *value = value.saturating_sub(used as i32).max(0); }
+        if let Some(Tag::Int(value)) = fields.get_mut(&"tic_overslime".into()) { *value = value.saturating_sub(i32::try_from(used).unwrap_or(i32::MAX)).max(0); }
     }
     stack.data_mut().set_other("minecraft:custom_data",Some(custom));
 }

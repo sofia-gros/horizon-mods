@@ -133,3 +133,10 @@ after its own permission and item checks, while the original `startHarvest` runs
 before its `breakBlock` path, so all failure and creative cases remain unproven.
 The original pre-break timing is the goal; this candidate is not yet source
 parity. Official plan/apply, type/build and gameplay remain pending.
+
+A focused #319 diagnostic found two negative-state errors in its pre-break
+candidate: an explicit broken flag could be ignored, and an oversized spend
+could wrap while converting to the stored signed integer. The follow-up uses
+the existing shared broken predicate and bounds the conversion in the shared
+spend function. Official apply and exact-head tests still need to verify the
+fix; the diagnostic did not show that normal gameplay can create these states.
