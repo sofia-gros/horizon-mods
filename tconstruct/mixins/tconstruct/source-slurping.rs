@@ -16,7 +16,7 @@ pub(super) struct Plan {
     effects: Vec<(PlayerAction, u32, ItemStack)>,
 }
 
-pub(super) fn recipe(game: &super::Game<'_>, fluid_id: &str) -> Option<super::tconstruct_source_fluid_effects::Effects> {
+pub(super) fn raw_recipe(game: &super::Game<'_>, fluid_id: &str) -> Option<serde_json::Value> {
     let chunks = &game.world.chunks;
     let layers = chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let item_tags = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
@@ -28,9 +28,13 @@ pub(super) fn recipe(game: &super::Game<'_>, fluid_id: &str) -> Option<super::tc
     ].into_iter().collect();
     let presence = chunks.__horizon_mixins_tconstruct_recipe_mod_snapshot().as_ref()
         .map(|(states, complete)| super::tconstruct_source_conditions::ModPresence { states: states.clone(), complete: *complete });
-    super::tconstruct_source_fluid_effects::resolve(layers, fluid_id, fluid_tags, &|conditions|
+    super::tconstruct_source_fluid_effects::select(layers, fluid_id, fluid_tags, &|conditions|
         super::tconstruct_source_conditions::conditional_conditions_with_mods(conditions, &registries, config, known, presence.as_ref()))?
 
+}
+
+pub(super) fn recipe(game: &super::Game<'_>, fluid_id: &str) -> Option<super::tconstruct_source_fluid_effects::Effects> {
+    super::tconstruct_source_fluid_effects::parse_entity(&raw_recipe(game, fluid_id)?)
 }
 
 pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {

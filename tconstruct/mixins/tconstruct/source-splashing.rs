@@ -51,6 +51,11 @@ pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f
 /// non-mob entities need an authoritative host-backed enumeration.
 pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&ItemStack>, claimed: &mut bool) {
     if *claimed || game.remote.is_some() { return; }
+    // A guest turn does not expose LanHost to this hook. Restrict the current
+    // experimental path to packet scopes known to contain no other players.
+    if let Some(conn) = game.lan_acting {
+        if game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope().get(&conn) != Some(&true) { return; }
+    } else if game.lan.as_ref().is_some_and(|host| host.hub.guests.iter().any(|guest| guest.placed)) { return; }
     let Some(stack) = stack.cloned() else { return; };
     if !right_click(game, &stack) || super::tconstruct_source_melee_shape::intact(&stack).is_none() || game.cooldowns.is_on_cooldown(&stack.item) { return; }
     let Some(target) = game.mobs.iter().position(|mob| i32::try_from(mob.id).ok() == Some(entity) && mob.alive()) else { return; };
@@ -70,6 +75,13 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     let target_box = target_mob.bounds();
     let min = target_box.min_position(); let max = target_box.max_position();
     let target_bounds = ([min.x, min.y, min.z], [max.x, max.y, max.z]);
+    // Living armor stands also receive source effects, but their effect adapter
+    // is not yet implemented. Do not perform a partial area operation.
+    let radius = 1.0 + f64::from(expanded);
+    if game.armor_stands.iter().any(|stand| !stand.marker && {
+        let delta = [stand.position.x - origin[0], stand.position.y - origin[1], stand.position.z - origin[2]];
+        delta.iter().map(|component| component * component).sum::<f64>() < radius * radius
+    }) { return; }
     let mut targets = vec![target];
     for (i, mob) in game.mobs.iter().enumerate() {
         if i == target || !mob.alive() { continue; }
@@ -99,4 +111,59 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
         }
     }
     *claimed = true;
+}
+
+/// The single-block default AOE path for the bundled blazing-blood glow effect.
+/// Other tool AOE iterators and all other block-effect forms stay unresolved.
+pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
+    if game.remote.is_some() || !matches!(&*stack.item, "tconstruct:sword" | "tconstruct:dagger") || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
+    if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
+    let custom = stack.data()?.other("minecraft:custom_data")?;
+    let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:splashing")? else { return None; };
+    if *level <= 0 || stack.count != 1 || stack.wire_patch().is_some() { return None; }
+    let Tag::Int(capacity) = custom.get("tic_tank_capacity")? else { return None; };
+    if *capacity <= 0 { return None; }
+    let Tag::Float(speed) = custom.get("tic_draw_speed")? else { return None; };
+    let speed = f32::from_bits(*speed);
+    if !speed.is_finite() || speed <= 0.0 { return None; }
+    let fluid = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid")??;
+    if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
+    let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
+    let effects = recipe.get("block_effects")?.as_array()?;
+    if effects.len() != 1 || effects[0].get("type")?.as_str()? != "tconstruct:place_block" || effects[0].get("block")?.as_str()? != "tconstruct:glow" { return None; }
+    if effects[0].as_object()?.keys().any(|key| key != "type" && key != "block") { return None; }
+    let amount = u32::try_from(recipe.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
+    let held = game.held()?;
+    if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
+    let staged = if fluid.amount >= amount {
+        let mut remaining = fluid.clone(); remaining.amount -= amount;
+        Some(super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?)
+    } else { None };
+    game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
+    let result = (|| -> horizon_client::Result<bool> {
+        let Some(drained) = staged else { return Ok(true); };
+        let target = if game.res.facts().get(game.world.block(clicked[0], clicked[1], clicked[2])).replaceable { clicked }
+            else {
+                let Some(x) = clicked[0].checked_add(face[0]) else { return Ok(true); };
+                let Some(y) = clicked[1].checked_add(face[1]) else { return Ok(true); };
+                let Some(z) = clicked[2].checked_add(face[2]) else { return Ok(true); };
+                [x, y, z]
+            };
+        if super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]])? {
+            let sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
+            game.audio.play(&sound, Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
+            game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
+            if !game.creative {
+                *game.held_mut() = Some(drained);
+                let Some(current) = game.held().cloned() else { return Ok(true); };
+                let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, &current, *level as u32, Some("tconstruct:splashing"));
+                if let Some(held) = game.held_mut().as_mut() {
+                    super::tconstruct_source_overslime::spend(held, shield);
+                    super::tconstruct_tx::fixed_damage(held, loss);
+                }
+            }
+        }
+        Ok(true)
+    })();
+    Some(result)
 }

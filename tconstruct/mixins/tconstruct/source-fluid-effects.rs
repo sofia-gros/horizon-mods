@@ -48,13 +48,12 @@ pub(super) fn mob_duration(effect: &MobEffect, strength: f32, level: f32, existi
     (result.0 != 0).then_some(result)
 }
 
-/// Distinguish unavailable/unsupported data from no matching recipe; callers
-/// must not skip an unsupported first matching effect and consume fluid later.
-pub(super) fn resolve(
+/// Choose the first matching source definition independently of effect domain.
+pub(super) fn select(
     layers: &BTreeMap<String, Vec<Vec<u8>>>, fluid: &str,
     fluid_tags: &HashMap<String, HashSet<String>>,
     conditions: &impl Fn(&[Value]) -> Option<bool>,
-) -> Option<Option<Effects>> {
+) -> Option<Option<Value>> {
     for (id, layers) in layers {
         if !id.contains(":tinkering/fluid_effects/") { continue; }
         let value: Value = serde_json::from_slice(layers.last()?).ok()?;
@@ -69,6 +68,24 @@ pub(super) fn resolve(
             let condition = conditions(raw.as_array()?)?;
             if !condition { continue; }
         }
+        return Some(Some(value));
+    }
+    Some(None)
+}
+
+/// Distinguish unavailable/unsupported data from no matching recipe; callers
+/// must not skip an unsupported first matching effect and consume fluid later.
+pub(super) fn resolve(
+    layers: &BTreeMap<String, Vec<Vec<u8>>>, fluid: &str,
+    fluid_tags: &HashMap<String, HashSet<String>>,
+    conditions: &impl Fn(&[Value]) -> Option<bool>,
+) -> Option<Option<Effects>> {
+    let Some(value) = select(layers, fluid, fluid_tags, conditions)? else { return Some(None); };
+    parse_entity(&value).map(Some)
+}
+
+pub(super) fn parse_entity(value: &Value) -> Option<Effects> {
+    let spec = value.get("fluid")?.as_object()?;
         let amount = u32::try_from(spec.get("amount")?.as_u64()?).ok().filter(|n| *n > 0)?;
         let effects = match value.get("entity_effects") {
             None => Vec::new(),
@@ -100,9 +117,7 @@ pub(super) fn resolve(
             }).collect::<Option<Vec<_>>>()?,
             _ => return None,
         };
-        return Some(Some(Effects { amount, entity: effects }));
-    }
-    Some(None)
+    Some(Effects { amount, entity: effects })
 }
 
 #[cfg(test)]
