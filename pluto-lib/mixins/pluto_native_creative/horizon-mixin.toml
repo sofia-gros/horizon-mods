@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "9a6f7dd5a193d709f389adeb1f51858465b8f747"
+horizon_revision = "7084e67744cbb4fe25961f24126e15b6b36f0523"
 
 [[crate]]
 id = "creative-api"
@@ -49,3 +49,21 @@ id = "host-stack-fluid"
 file = "crates/horizon-client/src/game.rs"
 name = "pluto_stack_fluid"
 source = "stack-fluid.rs"
+
+[[module]]
+id = "landing-state-api"
+file = "crates/horizon-client/src/motion.rs"
+name = "pluto_landing_state"
+source = "landing-state.rs"
+visibility = "pub"
+
+[[state]]
+id = "landing-state"
+target = "horizon_client::motion::PlayerMotion"
+ty = "crate::motion::pluto_landing_state::LandingState"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "horizon_client::motion::PlayerMotion::new"
+selector = "Self"
+require = 1

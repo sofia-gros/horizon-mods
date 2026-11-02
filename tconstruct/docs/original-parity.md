@@ -502,3 +502,38 @@ The resource correction registers the source `tconstruct:bacon` item with its or
 A dependent cloud candidate removes the earlier full-fluid/level-one restriction for known non-instant vanilla cloud effects. It computes source `FluidEffects.apply` scale from modifier strength and the fluid available for each successful position, truncates each cloud effect's duration as in the original, and stages the corresponding fluid remainder before changing the world. Durations at most ten ticks produce no cloud or consumption; later area targets use the remainder after each success. Mixed block effect forms, custom or instant effects, and production recipe enablement remain open. Syntax only: verify the exact build with venom at level one and higher, partial amounts below/above the duration cutoff, full and multiple positions, failed replaceability, creative, cooldown, wear and LAN.
 
 The dependent mixed-block candidate handles the bundled glowstone fluid recipe's ordered vanilla glowing cloud then `tconstruct:glow` placement. At splash level one with at least the full recipe amount for each target, it attempts both effects in source order and consumes 100 mB once if either succeeds, rather than adding the amounts; an already-created cloud remains accounted for if subsequent placement reports an error. Partial-fluid and higher-level mixed operations, other mixed recipes such as redstone acid's mod-specific effect and weather, and other effect types remain unsupported. The normal splashing recipe stays disabled. Syntax only; verify cloud and block together, either action failing, both failing, partial fluid, AOE, protection, wear, creative and LAN on the exact build.
+
+### Material trait fallback by stat type
+
+The pinned material registry resolves a trait's exact stat type first, then its
+registered category fallback, then the material default. The trait selector now
+preserves that order for armor plating and maille and recognizes the source
+armor, ammo and ribcage stat types. Ribcage deliberately has no armor fallback.
+This fixes selection logic only; definitions that use `material_stats` still
+need their material entries connected to this selector separately.
+
+Rust syntax was checked. Unit, plan, build and gameplay are pending. Verify an
+exact plating override against armor fallback and default, empty explicit lists,
+maille, shield core, slime, skull, shell and laces, ribcage without armor
+fallback, and arrow head/shaft/fletching with ammo fallback. Check material
+swaps and saved/LAN stacks. Source:
+[MaterialRegistry](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/materials/MaterialRegistry.java).
+
+### Traits on material-stat equipment
+
+The trait resolver now accepts a tool definition's `material_stats.stat_types`
+as well as `part_stats.parts`, preserving material order and using the original
+stat-type fallback rules. Explicit `material_traits` modules contribute to the
+normal tool trait list only when their hooks include `tconstruct:tool_traits`
+or use the source default hooks; trim-only and rebalanced-only modules are not
+mistaken for normal tool traits. Material-stat tools no longer require an
+unrelated `tool_building` recipe merely to read their traits.
+
+This connects trait selection for these definitions; it does not implement
+every selected modifier, material acquisition, trim rendering or equipment
+behavior. Rust syntax was checked; unit, combined build and gameplay remain
+pending. Verify Plate Shield and Slime armor material order, exact/fallback and
+empty traits, Slime Chestplate's explicit tool-traits module, trim-only hooks,
+missing/invalid indices, material swap, reload and LAN. Compare the pinned
+[MaterialStatsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialStatsModule.java)
+and [MaterialTraitsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialTraitsModule.java).

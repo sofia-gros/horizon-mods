@@ -350,11 +350,11 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
         tool.data_mut().set_other("minecraft:custom_data", Some(custom));
         return Some(());
     }
-    let trait_boost = 0.15 * *levels.get("tconstruct:preserved").unwrap_or(&0) as f32
-        + 0.1 * *levels.get("tconstruct:ductile").unwrap_or(&0) as f32;
-    let base = stats.durability + stats.durability_boost_unit * trait_boost
-        + if diamond { (if armor { 250.0 } else { 500.0 }) * stats.durability_multiplier } else { 0.0 };
-    let durability = (base * if emerald { 1.5 } else { 1.0 } * if netherite { 1.2 } else { 1.0 }) as i32;
+    let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0) > 0;
+    let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
+    let percent = super::tconstruct_source_material_effects::ordered_durability_percent(tool, stats, levels, true);
+    let durability = ((stats.durability_base_raw + diamond_add) * (1.0 + percent) * stats.durability_multiplier_unit) as i32;
+    let durability = if overlord { durability.max(1) } else { durability };
     if durability < 1 { return None; }
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
@@ -621,6 +621,19 @@ mod tests {
         assert_eq!(extract_upgrade(&tags,&tool,&[Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))],"tconstruct:reinforced").unwrap().upgrade.amount,3);
         tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:reinforced",Tag::Int(20))]))])));
         assert!(plan(&recipes,&tags,&tool,&ingredients,10).is_none());
+    }
+
+    #[test]
+    fn gem_base_multipliers_add_before_global_multiplier() {
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:emerald", Tag::Int(1)), ("tconstruct:netherite", Tag::Int(1))])),
+        ])));
+        apply_gem_durability_and_armor(&mut tool, &stats, &BTreeMap::new(), false, false).unwrap();
+        let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(170))));
     }
 
     #[test]

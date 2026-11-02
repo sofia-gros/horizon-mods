@@ -706,6 +706,7 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                                     std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
                                 });
                                 if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
+                                    if crate::tconstruct_source_material_effects::store_trait_order(&mut stack, &order).is_none() { continue; }
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
                                     if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
