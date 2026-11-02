@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, BucketFillingRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, DuplicationRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, MoldingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, BasinFillingRecipe, BucketFillingRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, DuplicationRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, MoldingRecipe, Output};
 
 /// Supported source material predicates. Unknown forms fail closed, including
 /// inside negation, rather than becoming unrestricted.
@@ -159,6 +159,22 @@ impl Catalog<'_> {
         }
         found
     }
+    pub(super) fn basin_filling(&self, input: &str, fluid: &str, free: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) || free == 0 { return None; }
+        let mut found: Option<(String, CastingRecipe)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(source) = BasinFillingRecipe::parse(bytes, conditions) else { continue; };
+            if source.container != input { continue; }
+            let amount = source.fluid_amount.min(free);
+            let recipe = CastingRecipe { basin: true, retextured: false, cast: Some(Ingredient::Item(input.to_owned())),
+                consumes_cast: true, switch_slots: false, fluid: FluidSpec { id: fluid.to_owned(), tagged: false, amount },
+                output: Output::Item(input.to_owned()), cooling_time: 5 };
+            if found.as_ref().is_some_and(|(_, old)| old != &recipe) { return None; }
+            if found.is_none() { found = Some((id.clone(), recipe)); }
+        }
+        found
+    }
+
     pub(super) fn bucket_filling(&self, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String)> {
         if !self.known_items.contains("minecraft:bucket") || !self.known_fluids.contains(fluid) { return None; }
         let output = super::tconstruct_source_fluid_container::filled_bucket(fluid)?;
@@ -347,6 +363,19 @@ mod tests {
         assert_eq!(output, "minecraft:lava_bucket");
         assert!(catalog.bucket_filling("tconstruct:venom", &|_| true).is_none());
         assert!(catalog.bucket_filling("minecraft:water", &|_| true).is_none());
+    }
+    #[test]
+    fn basin_filling_respects_recipe_and_remaining_capacity() {
+        let recipes = [("tank".into(), br#"{"type":"tconstruct:basin_filling","container":"tconstruct:seared_fuel_tank","fluid_amount":250}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let fluid_tags = HashMap::new();
+        let items = ["tconstruct:seared_fuel_tank".into(), "minecraft:stone".into()].into_iter().collect();
+        let fluids = ["minecraft:lava".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        let (_, recipe) = catalog.basin_filling("tconstruct:seared_fuel_tank", "minecraft:lava", 50, &|_| true).unwrap();
+        assert_eq!((recipe.fluid.amount, recipe.cooling_time, recipe.consumes_cast), (50, 5, true));
+        assert!(catalog.basin_filling("tconstruct:seared_fuel_tank", "minecraft:lava", 0, &|_| true).is_none());
+        assert!(catalog.basin_filling("minecraft:stone", "minecraft:lava", 250, &|_| true).is_none());
+        assert!(catalog.basin_filling("tconstruct:seared_fuel_tank", "minecraft:water", 250, &|_| true).is_none());
     }
     #[test]
     fn fluid_fuel_requires_known_fluid_and_enough_amount() {
