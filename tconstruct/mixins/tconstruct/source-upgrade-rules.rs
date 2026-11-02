@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 12] = [
+const UPGRADES: [(&str, i32); 13] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:power", 72),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -386,6 +386,7 @@ pub fn apply_stats(
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
     let quick = effective(tool, "tconstruct:quick_charge", 5);
     let true_level = effective(tool, "tconstruct:trueshot", 10);
+    let power = effective(tool, "tconstruct:power", 72) + level("tconstruct:power").max(0) as f32;
     let emerald = effective(tool, "tconstruct:emerald", 1).min(1.0);
     if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {
         let light = level("tconstruct:lightweight").max(0) as f32;
@@ -402,7 +403,8 @@ pub fn apply_stats(
         let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy) + 0.05 * feather)).clamp(0.1, 1.0);
         let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
             * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32
-                + 0.75 * level("tconstruct:solid").max(0) as f32)).clamp(0.0, 1024.0);
+                + 0.75 * level("tconstruct:solid").max(0) as f32
+                + if power > 0.0 { 0.5 + 0.5 * power } else { 0.0 })).clamp(0.0, 1024.0);
         fields.insert("tic_overwield_ranged".into(), Tag::Int(level("tconstruct:overwield").max(0)));
         fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float((stats.draw_speed_add_multiplier
             * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
