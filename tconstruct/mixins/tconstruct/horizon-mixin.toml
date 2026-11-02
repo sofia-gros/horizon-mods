@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+horizon_revision = "e12185820a6bc85dd5ed04adc7b8b7a4bdc16102"
 
 [[injection]]
 id = "command"
