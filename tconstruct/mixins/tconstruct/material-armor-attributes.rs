@@ -1,7 +1,6 @@
 fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
     use horizon_world::nbt::Tag;
     let mut values = Vec::new();
-    let mut landing_enabled = false;
     for (stack, slot) in game.armor.iter().zip(["head", "chest", "legs", "feet"]) {
         let Some(stack) = stack.as_ref().filter(|stack| stack.item.starts_with("tconstruct:")) else { continue; };
         let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
@@ -22,9 +21,6 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             trait_level + upgrade_level
         };
         let level = modifier_level("tconstruct:vintage");
-        if !broken && (modifier_level("tconstruct:bouncy") > 0 || stack.item == "tconstruct:slime_boots") {
-            landing_enabled = true;
-        }
         if level > 0 {
             if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:vintage_movement/{slot}"), -0.1 * f64::from(level), "add_multiplied_total")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:vintage_gravity/{slot}"), 0.1 * f64::from(level), "add_multiplied_total"));
@@ -57,7 +53,6 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         }
     }
     let Some(player) = game.player.as_mut() else { return; };
-    horizon_client::motion::pluto_landing_state::get_mut(player).enabled = landing_enabled;
     for (attribute, id, amount, op) in values {
         if player.set_modifier(&attribute, &id, amount, op, true).is_ok() {
             game.applied_modifiers.push((attribute, id));

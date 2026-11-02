@@ -284,8 +284,8 @@ mod tests {
 pub(super) fn reconcile_upgrade_order(custom: &mut horizon_world::nbt::Tag, added: Option<&str>) -> Option<()> {
     use horizon_world::nbt::Tag;
     let Tag::Compound(fields) = custom else { return None; };
-    let Tag::Compound(upgrades) = fields.get("tic_upgrades")? else { return None; };
-    let mut ids: Vec<String> = match fields.get("tic_upgrade_order") {
+    let Tag::Compound(upgrades) = fields.get(&"tic_upgrades".into())? else { return None; };
+    let mut ids: Vec<String> = match fields.get(&"tic_upgrade_order".into()) {
         Some(Tag::List(list)) => list.iter().filter_map(|v| if let Tag::String(s) = v { Some(s.to_string_lossy().to_string()) } else { None }).collect(),
         _ => Vec::new(),
     };
