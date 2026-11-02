@@ -1,0 +1,7 @@
+index {'lectern': None, 'page': 72, 'pages': 127}
+part-swap page 103
+part-swap back 72
+material-swap page 104
+material-swap back 72
+recycle page 105
+recycle back 72

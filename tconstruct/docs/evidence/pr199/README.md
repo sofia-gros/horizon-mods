@@ -1,0 +1,5 @@
+# PR 199 isolated data verification
+
+2026-11-02; PR head `3df0c060a7c07bd13d5d5242524ed0f8768bc366`; final client SHA-256 `955f2d745b901f90a8a1858303d809c975f17c65e584f67cf08d100fe74a39b0`, old integrated tree `dbcfba54881049687da34d8c31462cede8b1802f`. Isolated creative fixture: supplied ingredients, PR's exact two recipe JSON files and tag JSON applied as resource overlay to previously tested resources, not a complete built package or current main integration.
+
+Blazewood and Nahuatl independently crafted both Part Builder and Tinker Station with source diagram's shapes. In each of the four cases, result item and remaining one unused pattern and one unused material were checked after taking the output. The screenshots show actual client crafting grids. The input material's retextured appearance is not preserved by this vanilla-shaped recipe; source retexturing/placement/drop parity was already identified as unfinished in original-parity documentation. This is not a claim of source material texture retention.
