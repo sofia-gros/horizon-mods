@@ -81,6 +81,7 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => return None,
             super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => return None,
+            super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage | super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => return None,
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { hunger, saturation, always } => {
                 if hunger_seen { return None; } hunger_seen = true;
                 let player = game.player.as_ref()?;
