@@ -1,0 +1,5 @@
+# Casting tank lower interaction
+
+Candidate source cc868cdb5d335278df1aa819b2a2e817d75a6a74 includes #205 head d96dc6f4ae30f1f47d9e250bc214f28389ae232f with later integration changes. Host b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9, Mixins ddd9700b21997c95d95ac6ee5ecafe3830cf622a. Client SHA-256 `16cff912e03bc7879da2b5b2cc6cebe9b98a7265bd6a6bbdb9c4562243c7ef51`; ctl `ec9677b7bdd3e83f48a262bbd348c8be8b5767724e6087a5febe34ea5706ba46`. The isolated build includes a Pluto comment fix and preparation namespace declaration; the isolated content replaces the invalid gold-bars `minecraft:metal` sound reference with `minecraft:iron_bars`. It is not an unmodified candidate build.
+
+Fresh creative fixture, switched to survival for interactions. At the tank's lower north face (aim point y=71.4), a lava bucket became an empty bucket; a water bucket remained unchanged on an incompatible tank; the empty bucket then recovered lava. Screenshots are from the actual client. This is only a bounded local interaction, not completion of #205: upper-slot, other containers, shift, automation, LAN and persistence remain independently gated.
