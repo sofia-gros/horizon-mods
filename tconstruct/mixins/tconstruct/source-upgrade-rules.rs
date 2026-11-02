@@ -459,6 +459,41 @@ pub fn apply_stats(
 #[cfg(test)]
 mod tests {
     #[test]
+    fn source_cobalt_and_amethyst_bronze_crossbow_reference() {
+        use super::*;
+        let def = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:bow_limb","tconstruct:bow_grip","tconstruct:bowstring"]},{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":0,"tconstruct:attack_speed":1}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:durability":2}}]}"#;
+        let cobalt = serde_json::json!({"tconstruct:limb":{"durability":800,"draw_speed":0.05,"velocity":0.05,"accuracy":0.05},"tconstruct:grip":{"durability":0.05,"accuracy":0.05,"melee_damage":2.25}}).as_object().unwrap().clone();
+        let bronze = serde_json::json!({"tconstruct:limb":{"durability":720,"draw_speed":-0.15,"velocity":0.15,"accuracy":-0.05}}).as_object().unwrap().clone();
+        let wood = serde_json::json!({"tconstruct:grip":{"durability":0,"accuracy":0,"melee_damage":0}}).as_object().unwrap().clone();
+        let string = serde_json::json!({"tconstruct:bowstring":{}}).as_object().unwrap().clone();
+        let stats = |parts| super::super::tconstruct_source_station_stats::base_stats(def, parts).unwrap();
+        let make = |traits: &[&str]| {
+            let mut tool = ItemStack::new("tconstruct:crossbow",1);
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                ("tic_upgrades",Tag::compound([("tconstruct:quick_charge",Tag::Int(5))])),
+                ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:quick_charge".into())])),
+                ("tic_trait_order",Tag::List(traits.iter().map(|id|Tag::String((*id).into())).collect())),
+            ]))); tool
+        };
+        let mut cobalt_bow = make(&["tconstruct:lightweight","tconstruct:stringy"]);
+        let cobalt_levels = BTreeMap::from([("tconstruct:lightweight".into(),2),("tconstruct:stringy".into(),1)]);
+        let cobalt_stats = stats(&[cobalt.clone(),cobalt,string.clone()]);
+        apply_stats(&mut cobalt_bow,&cobalt_stats,&cobalt_levels,false,false).unwrap();
+        let data=cobalt_bow.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(data.get("tic_draw_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.3875).abs()<0.0001));
+        assert!(matches!(data.get("tic_velocity"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.11).abs()<0.0001));
+        assert!(matches!(data.get("tic_accuracy"),Some(Tag::Float(v)) if (f32::from_bits(*v)-0.85).abs()<0.0001));
+        let mut bronze_bow = make(&["tconstruct:crystalbound","tconstruct:cultivated","tconstruct:stringy"]);
+        let bronze_levels = BTreeMap::from([("tconstruct:crystalbound".into(),1),("tconstruct:cultivated".into(),1),("tconstruct:stringy".into(),1)]);
+        let bronze_stats = stats(&[bronze,wood,string]);
+        apply_stats(&mut bronze_bow,&bronze_stats,&bronze_levels,false,false).unwrap();
+        let data=bronze_bow.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(data.get("tic_draw_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.0625).abs()<0.0001));
+        assert!(matches!(data.get("tic_velocity"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.25).abs()<0.0001));
+        assert!(matches!(data.get("tic_accuracy"),Some(Tag::Float(v)) if (f32::from_bits(*v)-0.70).abs()<0.0001));
+    }
+
+    #[test]
     fn ranged_percent_and_solid_follow_builder_phases() {
         use super::*;
         let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:draw_speed":1,"tconstruct:velocity":1,"tconstruct:projectile_damage":2}}]}"#;
@@ -473,6 +508,7 @@ mod tests {
             ("tic_trait_order", Tag::List(vec![Tag::String("tconstruct:solid".into())])),
         ])));
         let levels = BTreeMap::from([("tconstruct:solid".into(), 1)]);
+        apply_stats(&mut tool, &stats, &levels, false, false).unwrap();
         apply_stats(&mut tool, &stats, &levels, false, false).unwrap();
         let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
         assert!(matches!(custom.get("tic_draw_speed"), Some(Tag::Float(v)) if (f32::from_bits(*v)-1.45).abs()<0.0001));
