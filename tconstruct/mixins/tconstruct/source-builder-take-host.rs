@@ -60,9 +60,16 @@ pub(super) fn quick_take(game: &mut Game<'_>, pos: (i32, i32, i32)) -> bool {
             let Some(BlockEntity::Chest(items)) = game.world.block_entities.get(&partner) else { break; };
             side.extend_from_slice(items);
         }
+        let chest_kind=super::tconstruct_ui::side_chest_kind(game);
+        let tagged=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok()).and_then(|tags|tags.get("tconstruct:chest_parts")).is_some_and(|tags|tags.contains(output.item.as_ref()));
         let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) else { break; };
         let crafted_item = output.item.clone();
-        let Some((give, crafted_count)) = super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound)) else { break; };
+        let result=if let Some(kind)=chest_kind {
+            super::tconstruct_tx::source_quick_take_part_chest_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, kind, tagged, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound))
+        } else {
+            super::tconstruct_tx::source_quick_take_part_plan(slots, &mut game.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| super::tconstruct_source_builder_world::source_random_draw(items, bound))
+        };
+        let Some((give, crafted_count)) = result else { break; };
         changed = true;
         crafts += 1;
         game.stats.add("crafted", &crafted_item, crafted_count as i32);

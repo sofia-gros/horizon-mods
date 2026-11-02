@@ -1,5 +1,27 @@
 // Shared post-processing for manually prepared and startup content roots.
 pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+        // The guide's pinned source images join the same GUI atlas in both
+        // manual and startup preparation. Only its own bundled PNGs are read.
+        let guide = content_path.join("assets/tconstruct/book/images");
+        if guide.is_dir() {
+            fn copy_images(root: &std::path::Path, dir: &std::path::Path, target: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+                for entry in std::fs::read_dir(dir)? {
+                    let entry = entry?;
+                    let ty = entry.file_type()?;
+                    let path = entry.path();
+                    if ty.is_dir() { copy_images(root, &path, target)?; continue; }
+                    if !ty.is_file() { continue; }
+                    let name = path.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
+                    if !name.ends_with(".png") || !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) || name.contains("..") { continue; }
+                    let sprite = format!("tconstruct_book_{}", name.trim_end_matches(".png").replace(['/', '-'], "_"));
+                    std::fs::copy(path, target.join(format!("{sprite}.png")))?;
+                }
+                Ok(())
+            }
+            let target = out.join("assets/minecraft/textures/gui");
+            std::fs::create_dir_all(&target)?;
+            copy_images(&guide, &guide, &target)?;
+        }
         // Project source geode and cobalt biome modifiers into the generated bundle,
         // preserving source registration order and the vanilla base pack.
         if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file()
@@ -86,7 +108,8 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         // Register the source machine IDs for persisted block entities. The
         // five machines use chest-like live inventories, but their custom IDs
         // keep machine metadata outside vanilla chest canonicalization.
-        let machines = [("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
+        let machines = [("tconstruct:crafting_station", "tconstruct:crafting_station"), ("tconstruct:part_chest", "tconstruct:part_chest"), ("tconstruct:tinkers_chest", "tconstruct:modifier_chest"),
+            ("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
             ("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
             ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
             ("tconstruct:seared_basin", "tconstruct:basin"), ("tconstruct:smeltery_controller", "tconstruct:smeltery"),
@@ -231,9 +254,9 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         // Apply this to every state of those blocks.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
-                if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:soulsteel_block" | "tconstruct:slimesteel_block" | "tconstruct:cinderslime_block" | "tconstruct:knightslime_block")) {
+                if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:soulsteel_block" | "tconstruct:slimesteel_block" | "tconstruct:cinderslime_block" | "tconstruct:knightslime_block")) {
                     let row = rows.get_mut(id).ok_or("missing table gameplay row")?;
-                    if state.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_worktable") { row["block_entity"] = serde_json::Value::Bool(true); }
+                    if matches!(state.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:crafting_station" | "tconstruct:modifier_worktable" | "tconstruct:part_chest" | "tconstruct:tinkers_chest")) { row["block_entity"] = serde_json::Value::Bool(true); }
                     row["solid_render"] = serde_json::Value::Bool(false);
                     row["can_occlude"] = serde_json::Value::Bool(false);
                 }
@@ -252,7 +275,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             let row = render.get_mut(name).and_then(serde_json::Value::as_object_mut).ok_or("missing station render definition")?;
             row.insert("can_occlude".into(), serde_json::Value::Bool(false));
         }
-        for name in ["tconstruct:crafting_station", "tconstruct:modifier_worktable", "tconstruct:soulsteel_block", "tconstruct:slimesteel_block", "tconstruct:cinderslime_block", "tconstruct:knightslime_block"] {
+        for name in ["tconstruct:crafting_station", "tconstruct:modifier_worktable", "tconstruct:part_chest", "tconstruct:tinkers_chest", "tconstruct:soulsteel_block", "tconstruct:slimesteel_block", "tconstruct:cinderslime_block", "tconstruct:knightslime_block"] {
             if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }

@@ -14,6 +14,8 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
             .and_then(|_| crate::tconstruct_source_anvil_capacity::input_capacity(name)));
     let is_station = if builder.is_some() && actual == builder { false } else if capacity.is_some() { true } else { return Continue(()); };
     let capacity = capacity.unwrap_or(3);
+    let chest_side = !is_station && matches!(menu.slots, crate::lan::menu::Slots::Double(table,_) if world.chunks.__horizon_mixins_tconstruct_chest_guest_pages().contains_key(&(conn,hub.guests[gi].placed_at,menu.window,table)));
+    if chest_side && packet.slot != 22 { return Continue(()); }
     let side_shulker = if let crate::lan::menu::Slots::Double(_, side) = menu.slots {
         let side_state = world.block(side.0, side.1, side.2).0 as usize;
         hub.encoder.block_ids.get(side_state).and_then(|id| usize::try_from(*id).ok())
@@ -101,10 +103,17 @@ fn guest_tconstruct_part_output(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                     let Some(BlockEntity::Chest(items)) = world.block_entities.get(&partner) else { break; };
                     side.extend_from_slice(items);
                 }
+                let chest_kind=if chest_side { match side.len() { 256=>Some(crate::tconstruct_chest_rules::ChestKind::Part),64=>Some(crate::tconstruct_chest_rules::ChestKind::Tinkers),_=>None } } else {None};
+                let tagged=world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok()).and_then(|tags|tags.get("tconstruct:chest_parts")).is_some_and(|tags|tags.contains(output.item.as_ref()));
                 let (Some((material, pattern)), Some(BlockEntity::Chest(slots))) = (containers, world.block_entities.get_mut(&key)) else { break; };
                 let guest = &mut hub.guests[gi];
                 let crafted_item = output.item.to_string();
-                let Some((give, crafted_count)) = crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound)) else { break; };
+                let result=if let Some(kind)=chest_kind {
+                    crate::tconstruct_tx::source_quick_take_part_chest_plan(slots, &mut guest.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, kind, tagged, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound))
+                } else {
+                    crate::tconstruct_tx::source_quick_take_part_plan(slots, &mut guest.inventory, &mut side, &plan, output, leftover, alternatives, material, pattern, max, can_stack, |bound| crate::tconstruct_source_builder_world::source_random_draw(rules.items(), bound))
+                };
+                let Some((give, crafted_count)) = result else { break; };
                 crafted.push((crafted_item, crafted_count));
                 if let Some(side_pos) = side_pos {
                     if let Some(BlockEntity::Chest(items)) = world.block_entities.get_mut(&side_pos) { *items = side[..first_side_len].to_vec(); }

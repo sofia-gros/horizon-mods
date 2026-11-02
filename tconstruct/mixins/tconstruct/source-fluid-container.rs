@@ -106,7 +106,7 @@ pub(super) fn quick_input(slots: &mut [Option<ItemStack>; 2], stack: &mut Option
     if held.count == 0 { *stack = None; }
     true
 }
-fn filled_bucket(fluid: &str) -> Option<String> {
+pub(super) fn filled_bucket(fluid: &str) -> Option<String> {
     match fluid {
         "minecraft:water" => Some("minecraft:water_bucket".into()),
         "minecraft:lava" => Some("minecraft:lava_bucket".into()),

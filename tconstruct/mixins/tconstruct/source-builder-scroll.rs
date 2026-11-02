@@ -1,5 +1,33 @@
 fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    if let Some((_,count,offset,_)) = crate::game::tconstruct_crafting_station::side(game) {
+        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width,r.config.height]) else { return Continue(()); };
+        let batch = horizon_client::hud::HudBatch::new(size); let (ox,oy) = game.inventory_origin(&batch);
+        let left = crate::game::tconstruct_source_side_layout::left(count);
+        let width = crate::game::tconstruct_source_side_layout::columns(count) as f32 * 18.0 + 24.0;
+        let height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0 + 24.0;
+        if (ox+left..ox+left+width).contains(&game.cursor.0) && (oy..oy+height).contains(&game.cursor.1) {
+            let max = crate::game::tconstruct_source_side_layout::max_offset(count);
+            crate::game::tconstruct_crafting_station::set_scroll(game,(offset as i32-delta.signum() as i32).clamp(0,max as i32) as usize);
+            return Break(());
+        }
+    }
+    if crate::game::tconstruct_chest_ui::kind(game).is_some() {
+        let Some(pos) = game.container else { return Break(()); };
+        let Some((count, scroll)) = crate::game::tconstruct_chest_ui::page(game) else { return Break(()); };
+        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width,r.config.height]) else { return Break(()); };
+        let batch=horizon_client::hud::HudBatch::new(size); let (ox,oy)=game.inventory_origin(&batch);
+        let (x,y)=(game.cursor.0-ox,game.cursor.1-oy);
+        if !(7.0..169.0).contains(&x) || !(17.0..89.0).contains(&y) { return Continue(()); }
+        if let Some(index)=crate::game::tconstruct_chest_rules::hit_slot(count,scroll,x,y) {
+            let lookup=if game.remote.is_some() { index-scroll*crate::game::tconstruct_chest_rules::CHEST_COLUMNS } else { index };
+            if game.container.and_then(|key|game.world.block_entities.get(&key)).and_then(|e|e.slots().get(lookup)).is_some_and(Option::is_some) { return Continue(()); }
+        }
+        let max=crate::game::tconstruct_chest_rules::max_scroll(count);
+        let next=(scroll as i32-delta.signum() as i32).clamp(0,max as i32) as usize;
+        crate::game::tconstruct_chest_ui::set_scroll(game,next);
+        return Break(());
+    }
     if crate::game::tconstruct_ui::kind(game) == Some(true) {
         let Some(pos) = game.container else { return Continue(()); };
         let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
@@ -26,8 +54,9 @@ fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::Con
         let width = columns as f32 * 18.0 + 24.0;
         let height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0 + 24.0;
         if max > 0 && (ox + left..ox + left + width).contains(&game.cursor.0) && (oy..oy + height).contains(&game.cursor.1) {
-            let state = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default();
-            state.0 = (state.0 as i32 - delta.signum() as i32).clamp(0, max as i32) as usize;
+            let current=game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos).map_or(0,|s|s.0);
+            let next=(current as i32-delta.signum() as i32).clamp(0,max as i32) as usize;
+            crate::game::tconstruct_ui::set_side_scroll(game,next);
             return Break(());
         }
         if (ox + 180.0..ox + 180.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, false)).contains(&game.cursor.0) && (oy..oy + 184.0).contains(&game.cursor.1) {

@@ -7,7 +7,7 @@ pub(super) fn tabbed(name: &str) -> bool {
         | "tconstruct:cast_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil")
 }
 pub(super) fn supported(name: &str) -> bool {
-    matches!(name, "tconstruct:part_builder" | "tconstruct:tinker_station" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil")
+    matches!(name, "tconstruct:part_builder" | "tconstruct:tinker_station" | "tconstruct:crafting_station" | "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:modifier_worktable" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil")
 }
 pub(super) fn collect(start: Pos, name_at: impl Fn(Pos) -> String) -> Vec<(Pos, String)> {
     let mut visited = std::collections::HashSet::new();
@@ -60,5 +60,5 @@ pub(super) fn from_game(game: &super::Game<'_>, start: Pos) -> Vec<(Pos, String)
 }
 
 pub(super) fn start(game: &super::Game<'_>) -> Option<Pos> {
-    if game.remote.is_some() { super::remote::tconstruct_source_machine_remote::position(game) } else { game.container }
+    if game.remote.is_some() { super::remote::tconstruct_source_machine_remote::position(game) } else { game.container.or_else(||super::tconstruct_crafting_station::position(game)) }
 }

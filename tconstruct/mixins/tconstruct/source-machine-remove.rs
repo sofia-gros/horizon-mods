@@ -1,5 +1,15 @@
 fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizon_core::position::BlockPos, old: horizon_world::registry::BlockStateId, side_effects: bool) {
     let name = level.facts.get(old).name.clone();
+    if &*name == "tconstruct:tinkers_chest" {
+        let at=(pos.x,pos.y,pos.z);
+        if side_effects {
+            if let Some(value)=crate::game::tconstruct_source_melter_store::read(level.world,at,"tconstruct:modifier_chest") {
+                let entry=level.pending.copied.entry([pos.x,pos.y,pos.z]).or_insert_with(|| (name.to_string(),horizon_world::nbt::Compound::new()));
+                entry.1.insert("tconstruct:internal_chest_color".into(),value);
+            }
+        }
+        crate::game::tconstruct_source_melter_store::clear(level.world,at);
+    }
     if matches!(&*name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable") {
         let at = (pos.x, pos.y, pos.z);
         if side_effects {

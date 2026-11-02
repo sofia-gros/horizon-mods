@@ -76,7 +76,7 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-plate-armor-text
         if '/' in name or not name.endswith('.png'):
             raise ValueError('Invalid plate armor texture name: ' + name)
         (gui / ('tconstruct_plate_' + name)).write_bytes(armor_textures.read(name))
-for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel'):
+for name in ('part_builder', 'tinker_station', 'worktable', 'icons', 'generic', 'panel', 'blank_extra_row'):
     (gui / ('tconstruct_' + name + '.png')).write_bytes((Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui' / (name + '.png')).read_bytes())
 # The startup overlay and manual preparation share this source manifest.
 icon_sources = json.loads((repository / 'content/assets/tconstruct/runtime/modifier-icon-sources.json').read_text())

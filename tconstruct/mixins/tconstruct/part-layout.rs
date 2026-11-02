@@ -1,4 +1,11 @@
 fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<(f32, f32)> {
+    if let Some((_,count,offset,_)) = crate::game::tconstruct_crafting_station::side(game) {
+        if (600..648).contains(&slot) {
+            let index = offset * crate::game::tconstruct_source_side_layout::columns(count) + slot - 600;
+            return std::ops::ControlFlow::Break(crate::game::tconstruct_source_side_layout::slot_position(count, offset, index).unwrap_or((-10000.0,-10000.0)));
+        }
+    }
+    if let Some(pos) = crate::game::tconstruct_chest_ui::position(game, slot) { return std::ops::ControlFlow::Break(pos); }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
         let position = match slot {
@@ -57,7 +64,8 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
                 game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
             } else { game.container_size().saturating_sub(27) };
             let offset = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos)).map_or(0, |state| state.0);
-            crate::game::tconstruct_source_side_layout::slot_position(count, offset, slot - 327).unwrap_or((-10000.0, -10000.0))
+            let index = if crate::game::tconstruct_ui::side_chest_kind(game).is_some() { offset * crate::game::tconstruct_source_side_layout::columns(count) + slot - 327 } else { slot - 327 };
+            crate::game::tconstruct_source_side_layout::slot_position(count, offset, index).unwrap_or((-10000.0, -10000.0))
         },
         _ => return std::ops::ControlFlow::Continue(()),
     };

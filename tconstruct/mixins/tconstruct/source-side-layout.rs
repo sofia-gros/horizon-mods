@@ -10,6 +10,8 @@ pub(super) fn title_code(name: &str) -> i16 {
         "minecraft:dispenser" => 3,
         "minecraft:dropper" => 4,
         "minecraft:hopper" => 5,
+        "tconstruct:part_chest" => 7,
+        "tconstruct:tinkers_chest" => 8,
         name if name.ends_with("shulker_box") => 6,
         _ => 0,
     }
@@ -18,6 +20,7 @@ pub(super) fn title_key(code: i16) -> &'static str {
     match code {
         1 => "container.chest", 2 => "container.barrel", 3 => "container.dispenser",
         4 => "container.dropper", 5 => "container.hopper", 6 => "container.shulkerBox",
+        7 => "gui.tconstruct.part_chest", 8 => "gui.tconstruct.tinkers_chest",
         _ => "container.inventory",
     }
 }

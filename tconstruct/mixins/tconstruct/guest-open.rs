@@ -1,6 +1,33 @@
 fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, pos: (i32, i32, i32)) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     let machine = game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name.clone();
+    if &*machine == "tconstruct:crafting_station" {
+        return Break(crate::game::lan_crafting::tconstruct_crafting_lan::open(game, host, conn, pos));
+    }
+    let chest_kind = match &*machine {
+        "tconstruct:part_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Part),
+        "tconstruct:tinkers_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Tinkers),
+        _ => None,
+    };
+    if let Some(kind) = chest_kind {
+        game.ensure_datapacks();
+        let entity=game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(vec![None;kind.slots()]));
+        let BlockEntity::Chest(items)=entity else { return Break(false); };
+        if items.len()!=kind.slots() { return Break(false); }
+        let visual=if kind==crate::game::tconstruct_chest_rules::ChestKind::Part { crate::game::tconstruct_chest_rules::part_visual_size(items.iter().map(Option::is_some),items.len()) } else { items.len() };
+        let projected=crate::game::tconstruct_chest_rules::project(items,0);
+        let Some(guest)=host.hub.guest(conn) else { return Break(false); };
+        let joined=guest.placed_at;
+        game.guest_container_closed(host,conn); game.lan_station_closed(host,conn,None); game.lan_crafting_closed(host,conn,None);
+        let title=if kind==crate::game::tconstruct_chest_rules::ChestKind::Part { "TConstruct Part Chest" } else { "TConstruct Tinkers Chest" };
+        host.hub.open_container(conn,"minecraft:generic_9x6",horizon_protocol::text::literal(title),pos,horizon_client::lan::menu::Slots::Block(pos),projected);
+        if let Some(guest)=host.hub.guest(conn) { if let Some(window)=guest.menu.as_ref().map(|m|m.window) {
+            game.world.chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().insert((conn,joined,window,pos),(0,visual));
+            guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container:window,id:30101,value:visual as i16 }));
+            guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container:window,id:30102,value:0 }));
+        }}
+        return Break(true);
+    }
     if matches!(&*machine, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
         game.ensure_datapacks();
         if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &machine) { return Break(false); }
@@ -15,6 +42,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (0, state.slots.len()));
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);
+        game.lan_crafting_closed(host, conn, None);
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, [None, None], 0));
         let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         let title = if &*machine == "tconstruct:foundry_controller" { "TConstruct Foundry" } else { "TConstruct Smeltery" };
@@ -39,6 +67,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);
+        game.lan_crafting_closed(host, conn, None);
         let title = if &*machine == "tconstruct:seared_melter" { "TConstruct Melter" } else { "TConstruct Heater" };
         let menu = if has_heater { "minecraft:generic_9x6" } else { "minecraft:generic_9x3" };
         host.hub.open_container(conn, menu, horizon_protocol::text::literal(title), pos, slots, items);
@@ -59,21 +88,36 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(vec![None; 27]));
     game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));
     let side = if title == "TConstruct Part Builder" { crate::game::tconstruct_ui::side_inventory(game, pos, true) } else { None };
+    let side_chest = side.and_then(|at| match &*game.res.facts().get(game.world.block(at.0,at.1,at.2)).name {
+        "tconstruct:part_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Part),
+        "tconstruct:tinkers_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Tinkers), _ => None,
+    });
     let partner = side.and_then(|side| game.chest_partner(side).map(|(partner, _)| partner));
+    if side_chest.is_some() { title = "TConstruct Part Builder Double"; }
     if let Some(partner) = partner {
         game.world.chunks.__horizon_mixins_tconstruct_builder_double_partner_mut().insert(pos, partner);
         title = "TConstruct Part Builder Double";
     } else { game.world.chunks.__horizon_mixins_tconstruct_builder_double_partner_mut().remove(&pos); }
     let slots = side.map_or(horizon_client::lan::menu::Slots::Block(pos), |side| horizon_client::lan::menu::Slots::Double(pos, side));
-    let Some(items) = host.hub.guest(conn).and_then(|g| slots.read(&game.world, g)) else { return Break(false); };
+    let items = if side_chest.is_some() {
+        let Some(side_pos)=side else { return Break(false); };
+        let (Some(first),Some(second))=(game.world.block_entities.get(&pos),game.world.block_entities.get(&side_pos)) else { return Break(false); };
+        let mut items=first.slots().to_vec();items.extend(crate::game::tconstruct_chest_rules::project_side(second.slots(),0));items
+    } else {
+        let Some(items)=host.hub.guest(conn).and_then(|g| slots.read(&game.world,g)) else { return Break(false); };items
+    };
     game.guest_container_closed(host, conn);
     game.lan_station_closed(host, conn, None);
+    game.lan_crafting_closed(host, conn, None);
     let menu = match items.len() { 36 => "minecraft:generic_9x4", 54 | 81 => "minecraft:generic_9x6", _ => "minecraft:generic_9x3" };
     host.hub.open_container(conn, menu, horizon_protocol::text::literal(title), pos, slots, items);
     if title.starts_with("TConstruct Part Builder") {
         let count = side.and_then(|side| game.world.block_entities.get(&side)).map_or(0, |entity| entity.slots().len()) + partner.and_then(|pos| game.world.block_entities.get(&pos)).map_or(0, |entity| entity.slots().len());
         if let Some(guest) = host.hub.guest(conn) {
             if let Some(window) = guest.menu.as_ref().map(|menu| menu.window) {
+                if side_chest.is_some() {
+                    game.world.chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().insert((conn,guest.placed_at,window,pos),(0,count));
+                }
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30000, value: count as i16 }));
                 let title = side.map_or(0, |side| crate::game::tconstruct_source_side_layout::title_code(&game.res.facts().get(game.world.block(side.0, side.1, side.2)).name));
                 guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30001, value: title }));

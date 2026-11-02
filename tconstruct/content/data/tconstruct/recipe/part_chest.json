@@ -1,0 +1,18 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " p ",
+    "xCx",
+    "xwx"
+  ],
+  "key": {
+    "p": "tconstruct:pattern",
+    "x": "#tconstruct:source_forge_rods_wooden",
+    "C": "#tconstruct:source_forge_chests_wooden",
+    "w": "#minecraft:planks"
+  },
+  "result": {
+    "id": "tconstruct:part_chest"
+  }
+}
