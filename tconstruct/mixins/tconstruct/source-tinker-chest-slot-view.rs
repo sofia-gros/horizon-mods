@@ -6,7 +6,7 @@ fn tconstruct_chest_slot_view(game: &mut crate::game::Game<'_>, slot: usize) -> 
                 return std::ops::ControlFlow::Break(item);
             }
             let index = offset * crate::game::tconstruct_source_side_layout::columns(count) + slot - 600;
-            let item = game.world.block_entities.get(&side).and_then(|entity| entity.slots().get(index)).cloned().flatten();
+            let item = crate::game::tconstruct_crafting_station::side_items(game,side).and_then(|items|items.get(index).cloned()).flatten();
             return std::ops::ControlFlow::Break(item);
         }
     }

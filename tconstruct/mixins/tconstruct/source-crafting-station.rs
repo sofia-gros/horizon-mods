@@ -39,11 +39,11 @@ pub(super) fn side(game: &Game<'_>) -> Option<((i32, i32, i32), usize, usize, su
     if let Some((count,offset,kind)) = remote_side(game) { return Some(((0,0,0),count,offset,kind)); }
     let table = position(game)?;
     let pos = *game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table)?;
-    let count = game.world.block_entities.get(&pos)?.slots().len();
+    let count = side_items(game,pos)?.len();
     let kind = match &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name {
         "tconstruct:part_chest" => ChestKind::Part,
         "tconstruct:tinkers_chest" => ChestKind::Tinkers,
-        _ if matches!(count,5|9|27) && game.chest_partner(pos).is_none() => ChestKind::Plain(count),
+        _ if matches!(count,5|9|27|54) => ChestKind::Plain(count),
         _ => return None,
     };
     if count != kind.slots() { return None; }
@@ -51,12 +51,39 @@ pub(super) fn side(game: &Game<'_>) -> Option<((i32, i32, i32), usize, usize, su
     Some((pos, count, offset, kind))
 }
 
+fn side_parts(game: &Game<'_>,pos:(i32,i32,i32)) -> Option<Vec<(i32,i32,i32)>> {
+    let own=game.world.block_entities.get(&pos)?.slots().len();
+    match game.chest_partner(pos) {
+        Some((other,own_first)) if own==27 && game.world.block_entities.get(&other).is_some_and(|e|e.slots().len()==27) => Some(if own_first {vec![pos,other]} else {vec![other,pos]}),
+        Some(_) => None,
+        None => Some(vec![pos]),
+    }
+}
+
+pub(super) fn side_items(game: &Game<'_>,pos:(i32,i32,i32)) -> Option<Vec<Option<ItemStack>>> {
+    let mut result=Vec::new();
+    for part in side_parts(game,pos)? { result.extend_from_slice(game.world.block_entities.get(&part)?.slots()); }
+    Some(result)
+}
+
+pub(super) fn write_side(game: &mut Game<'_>,pos:(i32,i32,i32),items:Vec<Option<ItemStack>>) -> bool {
+    let Some(parts)=side_parts(game,pos) else {return false;};
+    let lengths:Vec<_>=parts.iter().map(|p|game.world.block_entities.get(p).map_or(0,|e|e.slots().len())).collect();
+    if lengths.iter().sum::<usize>()!=items.len() || parts.iter().any(|p|!matches!(game.world.block_entities.get(p),Some(BlockEntity::Chest(_)))) {return false;}
+    let mut start=0;
+    for (part,count) in parts.into_iter().zip(lengths) {
+        if let Some(BlockEntity::Chest(slots))=game.world.block_entities.get_mut(&part) {*slots=items[start..start+count].to_vec();}
+        game.world.modified.insert((part.0>>4,part.2>>4));start+=count;
+    }
+    true
+}
+
 pub(super) fn remote_side(game: &Game<'_>) -> Option<(usize,usize,super::tconstruct_chest_rules::ChestKind)> {
     use super::tconstruct_chest_rules::ChestKind;
     if game.remote_menu_title().map(|title|title.plain()).as_deref() != Some("TConstruct Crafting Station") { return None; }
     let (window,count,offset,_) = game.world.chunks.__horizon_mixins_tconstruct_crafting_side_client().as_ref()?;
     if *window != game.remote_menu_id() { return None; }
-    let kind = match *count {256=>ChestKind::Part,64=>ChestKind::Tinkers,5|9|27=>ChestKind::Plain(*count),_=>return None};
+    let kind = match *count {256=>ChestKind::Part,64=>ChestKind::Tinkers,5|9|27|54=>ChestKind::Plain(*count),_=>return None};
     Some((*count,*offset,kind))
 }
 

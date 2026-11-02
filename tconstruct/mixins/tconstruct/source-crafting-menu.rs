@@ -4,8 +4,7 @@ fn tconstruct_crafting_menu(game: &mut crate::game::Game<'_>, ops: &[(Option<usi
     crate::game::tconstruct_crafting_station::refresh(game);
     if matches!(ops, [(Some(200), _, Input::QuickMove)]) {
         if let Some((pos,_,_,kind))=crate::game::tconstruct_crafting_station::side(game) {
-            let Some(BlockEntity::Chest(items))=game.world.block_entities.get(&pos) else {return std::ops::ControlFlow::Break(true);};
-            let mut side=items.clone();
+            let Some(mut side)=crate::game::tconstruct_crafting_station::side_items(game,pos) else {return std::ops::ControlFlow::Break(true);};
             let mut commit_side=false;
             let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok()).and_then(|v|v.get("tconstruct:chest_parts")).cloned().unwrap_or_default();
             let handled=game.menu_session(|menu,env,_| {
@@ -14,8 +13,7 @@ fn tconstruct_crafting_menu(game: &mut crate::game::Game<'_>, ops: &[(Option<usi
                 Some(true)
             });
             if commit_side {
-                if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&pos) {*items=side;}
-                game.world.modified.insert((pos.0>>4,pos.2>>4));
+                let _=crate::game::tconstruct_crafting_station::write_side(game,pos,side);
             }
             crate::game::tconstruct_crafting_station::sync(game);
             return std::ops::ControlFlow::Break(handled);

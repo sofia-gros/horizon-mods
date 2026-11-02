@@ -30,10 +30,10 @@ pub(crate) fn open(game: &mut Game<'_>, host: &mut LanHost, conn: u32, pos: Pos)
     });
     host.play.entry(conn).or_default().crafting.table = Some((window, 0, menu, [pos.0, pos.1, pos.2]));
     game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_sessions_mut().insert((conn, joined, window), pos);
-    let side = crate::game::tconstruct_ui::side_inventory(game, pos, true).filter(|side|game.chest_partner(*side).is_none());
+    let side = crate::game::tconstruct_ui::side_inventory(game, pos, true);
     if let Some(side) = side {
-        let count = game.world.block_entities.get(&side).map_or(0, |entity| entity.slots().len());
-        if matches!(count,5|9|27|64|256) {
+        let count = crate::game::tconstruct_crafting_station::side_items(game,side).map_or(0, |items|items.len());
+        if matches!(count,5|9|27|54|64|256) {
             game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side_mut().insert((conn,joined,window),(side,0));
             host.hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData {container:window,id:30110,value:count as i16}));
             host.hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData {container:window,id:30111,value:0}));
@@ -57,9 +57,9 @@ pub(crate) fn click(game: &mut Game<'_>, host: &mut LanHost, conn: u32, packet: 
     if station(game, pos) && !host.hub.guests[gi].spectator() && host.hub.guests[gi].within_block_range([pos.0, pos.1, pos.2], 4.0) {
         if let Some(grid) = items(game, pos) {
             let side=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&(conn,joined,window)).copied().and_then(|(pos,_)| {
-                let BlockEntity::Chest(items)=game.world.block_entities.get(&pos)? else {return None;};
-                let kind=match items.len() {256=>crate::game::tconstruct_chest_rules::ChestKind::Part,64=>crate::game::tconstruct_chest_rules::ChestKind::Tinkers,n @ (5|9|27)=>crate::game::tconstruct_chest_rules::ChestKind::Plain(n),_=>return None};
-                Some((pos,kind,items.clone()))
+                let items=crate::game::tconstruct_crafting_station::side_items(game,pos)?;
+                let kind=match items.len() {256=>crate::game::tconstruct_chest_rules::ChestKind::Part,64=>crate::game::tconstruct_chest_rules::ChestKind::Tinkers,n @ (5|9|27|54)=>crate::game::tconstruct_chest_rules::ChestKind::Plain(n),_=>return None};
+                Some((pos,kind,items))
             });
             let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok()).and_then(|v|v.get("tconstruct:chest_parts")).cloned().unwrap_or_default();
             let mut updated_side=None;
@@ -83,8 +83,7 @@ pub(crate) fn click(game: &mut Game<'_>, host: &mut LanHost, conn: u32, packet: 
                 let _ = menu.click(env, i32::from(packet.slot), i32::from(packet.button), input(packet.input));
             });
             if let Some((side,items))=updated_side {
-                if let Some(BlockEntity::Chest(current))=game.world.block_entities.get_mut(&side) {*current=items;}
-                game.world.modified.insert((side.0>>4,side.2>>4));
+                let _=crate::game::tconstruct_crafting_station::write_side(game,side,items);
             }
             if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&pos) {
                 if items.len() == 9 { for (i, slot) in items.iter_mut().enumerate() { *slot = menu.slot(i + 1).cloned(); } }
@@ -105,16 +104,16 @@ fn quick_player(game: &mut Game<'_>,host: &mut LanHost,gi: usize,joined: u64,tab
     if !valid || !station(game,table) || host.hub.guests[gi].spectator() || !host.hub.guests[gi].within_block_range([table.0,table.1,table.2],4.0) {game.lan_send_table_content(host,conn);return true;}
     let index=packet.slot as usize-10;let index=if index<27 {index+9} else {index-27};
     let Some(stack)=host.hub.guests[gi].inventory[index].clone() else {return false;};
-    let Some(BlockEntity::Chest(existing))=game.world.block_entities.get(&side) else {return false;};
-    let kind=match existing.len() {256=>ChestKind::Part,64=>ChestKind::Tinkers,n @ (5|9|27)=>ChestKind::Plain(n),_=>return false};
+    let Some(existing)=crate::game::tconstruct_crafting_station::side_items(game,side) else {return false;};
+    let kind=match existing.len() {256=>ChestKind::Part,64=>ChestKind::Tinkers,n @ (5|9|27|54)=>ChestKind::Plain(n),_=>return false};
     let max=game.res.items().get(&stack.item).map_or(64,|info|info.max_stack).max(1);
     let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok());
     let part=tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(stack.item.as_ref()));
-    let mut items=existing.clone();let old=stack.count;
+    let mut items=existing;let old=stack.count;
     let remainder=chest::insert_across(kind,&mut items,stack,max,part);
     if remainder.as_ref().map_or(0,|s|s.count)==old {return false;}
-    if let Some(BlockEntity::Chest(existing))=game.world.block_entities.get_mut(&side) {*existing=items;}
-    host.hub.guests[gi].inventory[index]=remainder;game.world.modified.insert((side.0>>4,side.2>>4));
+    if !crate::game::tconstruct_crafting_station::write_side(game,side,items) {return true;}
+    host.hub.guests[gi].inventory[index]=remainder;
     game.lan_send_table_content(host,conn);true
 }
 
@@ -140,8 +139,8 @@ fn side_click(game: &mut Game<'_>, host: &mut LanHost, gi: usize, joined: u64, t
     let valid_state=host.play.get(&conn).and_then(|p|p.crafting.table.as_ref()).is_some_and(|(window,state,_,_)|*window==packet.container && *state==packet.state);
     if !valid_state { game.lan_send_table_content(host,conn); return true; }
     if !station(game,table) || host.hub.guests[gi].spectator() || !host.hub.guests[gi].within_block_range([table.0,table.1,table.2],4.0) { return true; }
-    let Some(BlockEntity::Chest(existing)) = game.world.block_entities.get(&side) else { return true; };
-    let kind = match existing.len() {256=>ChestKind::Part,64=>ChestKind::Tinkers,n @ (5|9|27)=>ChestKind::Plain(n),_=>return true};
+    let Some(existing) = crate::game::tconstruct_crafting_station::side_items(game,side) else { return true; };
+    let kind = match existing.len() {256=>ChestKind::Part,64=>ChestKind::Tinkers,n @ (5|9|27|54)=>ChestKind::Plain(n),_=>return true};
     let visible=crate::game::tconstruct_source_side_layout::visible_rows(existing.len())*crate::game::tconstruct_source_side_layout::columns(existing.len());
     if packet.slot as usize-46>=visible {return true;}
     let index = offset*crate::game::tconstruct_source_side_layout::columns(existing.len())+(packet.slot as usize-46);
@@ -152,7 +151,7 @@ fn side_click(game: &mut Game<'_>, host: &mut LanHost, gi: usize, joined: u64, t
     let max=candidate.and_then(|s|game.res.items().get(&s.item)).map_or(64,|info|info.max_stack).max(1);
     let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok());
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
-    let mut side_items=existing.clone();
+    let mut side_items=existing;
     let mut changed=false;
     match packet.input {
         0 => changed=chest::pickup_slot(kind,&mut side_items,index,&mut carried,packet.button==1,max,part),
@@ -163,8 +162,7 @@ fn side_click(game: &mut Game<'_>, host: &mut LanHost, gi: usize, joined: u64, t
         _=>{},
     }
     if changed {
-        if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&side) {*items=side_items;}
-        game.world.modified.insert((side.0>>4,side.2>>4));
+        if !crate::game::tconstruct_crafting_station::write_side(game,side,side_items) {return true;}
         host.hub.guests[gi].inventory=inventory;host.hub.guests[gi].carried=carried;
     }
     game.lan_send_table_content(host,conn);
@@ -177,7 +175,7 @@ pub(crate) fn content(game: &mut Game<'_>,host: &mut LanHost,conn: u32) -> Contr
     let Some((window,state,menu,_))=host.play.get_mut(&conn).and_then(|p|p.crafting.table.as_mut()) else {return Continue(());};
     let key=(conn,joined,*window);
     if !game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_sessions().contains_key(&key) {return Continue(());}
-    let extra=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&key).and_then(|(side,offset)|game.world.block_entities.get(side).map(|entity|(*offset,entity.slots())));
+    let extra=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&key).and_then(|(side,offset)|crate::game::tconstruct_crafting_station::side_items(game,*side).map(|items|(*offset,items)));
     let mut slots: Vec<Option<ItemStack>>=(0..10).map(|i|menu.slot(i).cloned()).collect();
     let grid=slots[1..10].to_vec();
     slots.extend((9..36).chain(0..9).map(|i|host.hub.guests[gi].inventory[i].clone()));
@@ -196,7 +194,7 @@ pub(crate) fn update_viewers(game: &mut Game<'_>,host: &mut LanHost) {
     for ((conn,joined,window),pos) in sessions {
         let Some(gi)=host.hub.guests.iter().position(|g|g.conn==conn && g.placed_at==joined) else {continue;};
         let Some(grid)=items(game,pos) else {continue;};
-        let extra=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&(conn,joined,window)).and_then(|(side,offset)|game.world.block_entities.get(side).map(|entity|(*offset,entity.slots())))
+        let extra=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&(conn,joined,window)).and_then(|(side,offset)|crate::game::tconstruct_crafting_station::side_items(game,*side).map(|items|(*offset,items)))
             .map(|(offset,items)| (0..48).map(|i|items.get(offset*crate::game::tconstruct_source_side_layout::columns(items.len())+i).cloned().flatten()).collect::<Vec<_>>()).unwrap_or_default();
         if game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_views().get(&(conn,joined,window)).is_some_and(|view|view.0==grid && view.1==extra) {continue;}
         let Some((active,state,mut menu,stored_pos))=host.play.get_mut(&conn).and_then(|p|p.crafting.table.take_if(|(active,..)|*active==window)) else {continue;};
@@ -214,7 +212,7 @@ pub(crate) fn scroll(game: &mut Game<'_>,host: &mut LanHost,conn: u32,window: i3
     if !host.play.get(&conn).and_then(|p|p.crafting.table.as_ref()).is_some_and(|(active,_,_,_)|*active==window) {return Break(());}
     if !station(game,table) || host.hub.guests[gi].spectator() || !host.hub.guests[gi].within_block_range([table.0,table.1,table.2],4.0) {return Break(());}
     let Some(&(side,_))=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&key) else {return Break(());};
-    let Some(BlockEntity::Chest(items))=game.world.block_entities.get(&side) else {return Break(());};
+    let Some(items)=crate::game::tconstruct_crafting_station::side_items(game,side) else {return Break(());};
     let offset=((id-43000) as usize).min(crate::game::tconstruct_source_side_layout::max_offset(items.len()));
     game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side_mut().insert(key,(side,offset));
     host.hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData {container:window,id:30111,value:offset as i16}));
