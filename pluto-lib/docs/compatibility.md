@@ -19,4 +19,4 @@ The native Creative and component-transport bundles target Horizon [`5197790e584
 
 The independent native Creative and component-transport demos were built and run on Linux with Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and the same Mixins revision. See [component transport](component-transport.md) for the observed host display limitation and the scope of LAN checks. Neither result establishes Tinkers integration.
 
-Horizon `4c908814b193366ce50e137254f9d35101390e81` is a newer upstream candidate and has not been tested with these bundles.
+Horizon `aa60eb76ea82bd66c29fea352e3ab5771e62ab26` is a newer, untested candidate. Its Creative slot hook changes the guest-to-host path, so the LAN checks above do not establish compatibility with it.
