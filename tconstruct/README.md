@@ -4,7 +4,7 @@ This work-in-progress port brings Tinkers' Construct's parts and tool stations t
 
 The in-progress [Materials and You reader](docs/materials-and-you.md) adds the original English first guide, crafting recipe and a two-page reader; tested paths and remaining display differences are described there.
 
-The [Part Chest and Tinker's Chest work](docs/tinker-part-chests.md) is in progress. Its source recipes, storage, screens and adjacent crafting paths have draft implementations but have not yet been validated in a game.
+The [Part Chest and Tinker's Chest work](docs/tinker-part-chests.md) is in progress. Source crafting, representative storage and adjacent workstation paths have Linux and LAN checks; further click modes, components and Windows still need testing.
 
 ## Try it
 
