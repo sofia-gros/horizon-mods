@@ -507,12 +507,12 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                 })
                 .or_else(|| {
                     let item = value.get("item")?;
-                    let id = item.get("item")?.as_str()?;
+                    let id = super::tconstruct_materials_book_recipe::showcase_item(item)?;
                     if id == "tconstruct:creative_slot" {
                         let slot = item.pointer("/nbt/slot")?.as_str()?;
                         let source = match slot { "upgrades" => "upgrade", "abilities" => "ability", "defense" => "defense", "slotless" => "slotless", _ => return None };
                         Some(serde_json::json!({"source_icon":source}))
-                    } else { Some(serde_json::json!({"item":id})) }
+                    } else { Some(serde_json::json!({"showcase_item":id})) }
                 });
             let mut text = String::new();
             if let Some(s) = value.get("subText").and_then(|v| v.as_str()) { text.push_str(s); }
@@ -530,8 +530,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                     let lines: Vec<_> = tooltip.iter().filter_map(|v| v.as_str().or_else(|| v.get("text").and_then(|s| s.as_str()))).take(16).collect();
                     if !lines.is_empty() { graphic["tooltip"] = serde_json::json!(lines); }
                 }
-                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
-                    let height = if graphic.get("source_icon").is_some() { 40.0 }
+                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
+                    let height = if graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() { 40.0 }
                         else if graphic.get("slots").is_some() { if graphic.get("grid").and_then(|v| v.as_u64()) == Some(2) { 78.0 } else { 114.0 } }
                         else { graphic.get("height").and_then(|v| v.as_u64()).unwrap_or(100).min(100) as f32 };
                     let rows = ((137.0 - height) / 9.0).floor().max(1.0) as usize;
