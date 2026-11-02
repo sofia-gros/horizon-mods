@@ -7,3 +7,4 @@ license = "MIT"
 
 [dependencies]
 serde_json = "1"
+horizon-items = { git = "https://github.com/horizon-rust/horizon.git", rev = "b6c936f82b08798057161bdfa577e3aac53fb91e" }

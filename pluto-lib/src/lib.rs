@@ -151,6 +151,22 @@ pub fn add_paged_creative_tabs(
     inventory: &Value,
     groups: &[PagedCreativeTab<'_>],
 ) -> Result<Value, RegistrationError> {
+    add_paged_creative_tabs_with_visibility(inventory, groups, &[])
+}
+
+/// Append tabs, excluding the listed tab IDs from Creative search.
+/// An item also present in a searchable tab remains searchable.
+pub fn add_paged_creative_tabs_with_visibility(
+    inventory: &Value,
+    groups: &[PagedCreativeTab<'_>],
+    search_excluded_tabs: &[&str],
+) -> Result<Value, RegistrationError> {
+    if search_excluded_tabs
+        .iter()
+        .any(|id| !groups.iter().any(|tab| tab.id == *id))
+    {
+        return Err(RegistrationError("unknown search-excluded tab".into()));
+    }
     let mut out = inventory.clone();
     let tabs = out
         .get_mut("tabs")
@@ -190,6 +206,77 @@ pub fn add_paged_creative_tabs(
             .unwrap_or(("TOP", 0));
         occupied.insert((row.to_owned(), column));
         tabs.push(json!({"id":tab.id,"title":tab.title,"icon":tab.icon,"row":row,"column":column,"items":tab.items,"type":"CATEGORY","visible":true}));
+    }
+    // Horizon builds its search index from a separate SEARCH tab. Extend that
+    // prepared data while keeping its existing entries and parallel metadata.
+    let candidates: Vec<&str> = groups
+        .iter()
+        .filter(|tab| !search_excluded_tabs.contains(&tab.id))
+        .flat_map(|tab| tab.items.iter().copied())
+        .collect();
+    if !candidates.is_empty() {
+        let search = tabs
+            .iter_mut()
+            .find(|tab| tab.get("type").and_then(Value::as_str) == Some("SEARCH"))
+            .ok_or_else(|| RegistrationError("missing Creative search tab".into()))?;
+        let object = search
+            .as_object_mut()
+            .ok_or_else(|| RegistrationError("invalid Creative search tab".into()))?;
+        let mut items = object
+            .get("items")
+            .and_then(Value::as_array)
+            .cloned()
+            .ok_or_else(|| RegistrationError("invalid search items".into()))?;
+        let mut lines = object
+            .get("lines")
+            .map(|v| {
+                v.as_array()
+                    .cloned()
+                    .ok_or_else(|| RegistrationError("invalid search lines".into()))
+            })
+            .transpose()?
+            .unwrap_or_default();
+        let mut tags = object
+            .get("tags")
+            .map(|v| {
+                v.as_array()
+                    .cloned()
+                    .ok_or_else(|| RegistrationError("invalid search tags".into()))
+            })
+            .transpose()?
+            .unwrap_or_default();
+        if lines.len() > items.len() || tags.len() > items.len() {
+            return Err(RegistrationError(
+                "search metadata exceeds item count".into(),
+            ));
+        }
+        lines.resize(items.len(), json!([]));
+        tags.resize(items.len(), json!([]));
+        let parse = |v: &str| horizon_items::item_data::parse_stack(v).map_err(RegistrationError);
+        let mut seen = Vec::new();
+        for item in &items {
+            if let Some(stack) = parse(
+                item.as_str()
+                    .ok_or_else(|| RegistrationError("invalid search stack".into()))?,
+            )? {
+                seen.push(stack);
+            }
+        }
+        for value in candidates {
+            let Some(stack) = parse(value)? else {
+                continue;
+            };
+            if seen.iter().any(|old| old.same_item_same_components(&stack)) {
+                continue;
+            }
+            seen.push(stack);
+            items.push(json!(value));
+            lines.push(json!([]));
+            tags.push(json!([]));
+        }
+        object.insert("items".into(), items.into());
+        object.insert("lines".into(), lines.into());
+        object.insert("tags".into(), tags.into());
     }
     Ok(out)
 }
@@ -264,6 +351,45 @@ mod tests {
         let output = add_paged_creative_tabs(&base, &[tab]).unwrap();
         assert_eq!(output["tabs"][2]["column"], 1);
         assert_eq!(output["tabs"][2]["row"], "TOP");
+    }
+    #[test]
+    fn search_keeps_metadata_and_deduplicates_by_item_and_components() {
+        let base = json!({"tabs":[{"id":"minecraft:search", "type":"SEARCH", "items":["{count:1,id:\"minecraft:stone\"}"], "lines":[["Stone"]], "tags":[["minecraft:stone"]]}]});
+        let diamond = "{count:1,id:\"minecraft:diamond\"}";
+        let same = "{id:\"minecraft:diamond\",count:2}";
+        let custom =
+            "{count:1,id:\"minecraft:diamond\",components:{\"minecraft:custom_data\":{foo:1}}}";
+        let tabs = [
+            PagedCreativeTab {
+                id: "demo:first",
+                title: "First",
+                icon: "x",
+                items: vec![diamond, custom],
+            },
+            PagedCreativeTab {
+                id: "demo:second",
+                title: "Second",
+                icon: "x",
+                items: vec![same],
+            },
+            PagedCreativeTab {
+                id: "demo:private",
+                title: "Private",
+                icon: "x",
+                items: vec!["{count:1,id:\"minecraft:emerald\"}"],
+            },
+        ];
+        let output =
+            add_paged_creative_tabs_with_visibility(&base, &tabs, &["demo:private"]).unwrap();
+        let search = &output["tabs"][0];
+        assert_eq!(
+            search["items"],
+            json!(["{count:1,id:\"minecraft:stone\"}", diamond, custom])
+        );
+        assert_eq!(search["lines"], json!([["Stone"], [], []]));
+        assert_eq!(search["tags"], json!([["minecraft:stone"], [], []]));
+        assert_eq!(base["tabs"][0]["items"].as_array().unwrap().len(), 1);
+        assert!(add_paged_creative_tabs_with_visibility(&base, &tabs, &["demo:missing"]).is_err());
     }
     #[test]
     fn paged_tabs_reject_duplicate_ids_without_mutating_input() {
