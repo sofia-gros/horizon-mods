@@ -1,0 +1,7 @@
+# TConstruct LAN component fixture
+
+`cases.json` supplies SNBT stack inputs for the generic host encode/decode tests. The generated pickaxe is the unchanged earlier Creative output; the second case adds representative valid TConstruct fields and presentation components synthetically. It is a transport fixture, not a claim that those upgrades were naturally applied or that the augmented combination is valid gameplay. The vanilla control carries a non-unit count.
+
+For each case, round-trip through the host-to-guest and guest-to-host paths using the target host's actual item and registry mappings. Assert the same item, count, damage and all components, including nested material IDs, attack/mining stats, mining rules, upgrades and overslime, as well as lore and item model. No component may occur twice. Ordinary vanilla stacks and unrelated custom data must stay intact. Also test a server-origin wire patch, preserving unknown/removed components where the host supports it, and save/reload as separate checks.
+
+The old TConstruct hooks manually append `custom_data` for any stack carrying it, plus lore and item model for TConstruct IDs, and then cancel the host conversion. They do not independently prove full component or wire-patch preservation. The target host's shared conversion now has native handling for these three components, but that is a source observation, not an end-to-end LAN result. Do not remove either old hook solely on this fixture's parse test. Dedicated-server behavior is not established.
