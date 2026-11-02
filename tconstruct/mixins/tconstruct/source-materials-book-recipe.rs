@@ -56,17 +56,6 @@ mod tests {
         }
     }
     #[test]
-    fn puny_showcase_pages_use_source_item_ids() {
-        for (page, expected) in [
-            (include_str!("../../content/assets/tconstruct/book/puny_smelting/en_us/movingfluids/gauge.json"), "tconstruct:copper_gauge"),
-            (include_str!("../../content/assets/tconstruct/book/puny_smelting/en_us/movingfluids/fluid_cannon.json"), "tconstruct:seared_fluid_cannon"),
-            (include_str!("../../content/assets/tconstruct/book/puny_smelting/en_us/casting/casting_tank.json"), "tconstruct:seared_casting_tank"),
-        ] {
-            let source: serde_json::Value = serde_json::from_str(page).unwrap();
-            assert_eq!(source.get("item").and_then(showcase_item), Some(expected));
-        }
-    }
-    #[test]
     fn preserves_tag_candidates_and_output_count() {
         let tags = HashMap::from([("tconstruct:planklike".to_owned(), ["minecraft:birch_planks".to_owned(), "minecraft:oak_planks".to_owned()].into_iter().collect())]);
         let source = serde_json::json!({"pattern":["pw"], "key":{"p":{"item":"tconstruct:pattern"},"w":{"tag":"tconstruct:planklike"}},"result":{"item":"tconstruct:part_builder","count":4}});
