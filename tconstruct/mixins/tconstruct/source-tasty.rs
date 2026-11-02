@@ -59,15 +59,16 @@ fn eat(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut Option<ItemSt
 // active, without ending that use. Limit this to known supported active uses.
 pub(super) fn concurrent_tick(game: &mut super::Game<'_>, stack: &ItemStack) {
     if game.remote.is_some() || !matches!(game.using, Some((_, 16))) { return; }
-    let active = matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:battlesign" | "tconstruct:travelers_shield" | "tconstruct:plate_shield")
+    let active = matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:crossbow" | "tconstruct:battlesign" | "tconstruct:travelers_shield" | "tconstruct:plate_shield")
         || (!super::tconstruct_source_slurping::passive_item(stack) && super::tconstruct_source_slurping::plan(game, stack).is_some());
     if !active || !game.player.as_ref().is_some_and(|p| !p.health.dead_or_dying() && (game.creative || p.health.food.food < 20)) { return; }
     let Some((tasty, scrumptious)) = levels(game, stack) else { return; };
     let Some((_, _, damage)) = profile(tasty, scrumptious) else { return; };
     let Some(max) = super::tconstruct_source_melee_shape::intact(stack) else { return; };
-    // The host continues this tick with its earlier stack snapshot. Defer a
-    // breaking bite until that continuation can see the new broken state.
-    if !game.creative && stack.damage.saturating_add(damage) >= max { return; }
+    // Launcher continuation re-reads the held stack after this callback.
+    // Other active uses still carry the earlier stack for this tick.
+    let launcher = matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:crossbow");
+    if !launcher && !game.creative && stack.damage.saturating_add(damage) >= max { return; }
     if !game.held().is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(stack)) { return; }
     let mut result = Some(stack.clone());
     eat(game, stack, &mut result);

@@ -36,16 +36,19 @@ precedence. A follow-up supports a material-derived Scrumptious combination: its
 saturation and direct durability costs are combined and poison is removed.
 Savory and stored Scrumptious/Savory upgrades remain refused.
 
-A subsequent candidate bites at tick 16 during an active Longbow, supported
-shield, or Slurping use without ending it. It excludes crossbows, breaking bites,
-and other active interactions pending safe stack-continuation integration.
+A subsequent candidate bites at tick 16 during an active Longbow, Crossbow, supported
+shield, or Slurping use without ending it. Launcher continuations re-read the updated stack after the bite; a broken
+crossbow is not loaded. Breaking bites during shields or Slurping and other
+active interactions remain deferred. The host crossbow loads during its use
+tick; source crossbow loading occurs on release, an existing integration
+difference requiring game verification.
 Counter-attacks, representative bacon,
 food particles, durability-changed callbacks and other mixed edible modifiers
 remain open. The source eating and burp sound events are played locally using
 the source pitch formula; delivery to other players is not established. Runtime validation must cover offhand and LAN actor
 routing, immediate release/cancellation, full versus hungry and creative,
 levels 1/2, near-break and unbreakable flags, current max health/food,
-Slurping before/at/after tick 16, Longbow release and shield use, crossbow and near-break exclusions, two-guest sound routing and duplicates, Tasty + Scrumptious poison removal and unsupported edible combinations, item identity changes,
+Slurping before/at/after tick 16, Longbow release and shield use, crossbow charging and near-break behavior, shield/Slurping near-break exclusions, two-guest sound routing and duplicates, Tasty + Scrumptious poison removal and unsupported edible combinations, item identity changes,
 repeated use and save/reload. Focused source arithmetic tests exist but were
 not run by the development session.
 
