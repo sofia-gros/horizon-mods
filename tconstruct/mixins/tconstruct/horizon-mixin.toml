@@ -3398,7 +3398,7 @@ id = "crafting-station-sync-click"
 target = "horizon_client::game::Game<'_>::click_inventory"
 kind = "RETURN"
 helper = "source-crafting-sync.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "value", ty = "()", value = "$value" }]
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]
 id = "crafting-station-close"

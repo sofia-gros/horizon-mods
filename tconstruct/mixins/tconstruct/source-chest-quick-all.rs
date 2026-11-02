@@ -45,5 +45,15 @@ pub(super) fn run(game: &mut Game<'_>,host: &mut LanHost,conn:u32,window:i32) ->
         host.hub.guests[gi].send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData{container:window,id:30101,value:visual as i16}));
         host.hub.guests[gi].send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData{container:window,id:30102,value:offset as i16}));chest::project(&contents,offset)
     };
-    host.hub.send_menu_content(gi,view);Break(())
+    let mut items=view;
+    items.extend((9..36).chain(0..9).map(|i|host.hub.guests[gi].inventory[i].clone()));
+    let net=items.iter().map(|item|host.hub.stack(item)).collect();
+    let carried=host.hub.stack(&host.hub.guests[gi].carried.clone());
+    let guest=&mut host.hub.guests[gi];
+    let Some(menu)=guest.menu.as_mut() else {return Break(());};
+    menu.state=(menu.state+1)&0x7fff;
+    let content=horizon_protocol::packets::play::ContainerSetContent {container:window,state:menu.state,items:net,carried};
+    menu.sent=items;
+    guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetContent(content));
+    Break(())
 }

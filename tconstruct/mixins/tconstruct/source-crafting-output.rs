@@ -2,7 +2,7 @@ use super::*;
 
 // Take crafting results through the existing menu engine and stage the source
 // side/player/empty-side move before committing the side inventory.
-pub(super) fn quick(menu: &mut horizon_client::menu::Menu, env: &horizon_client::menu::Env<'_>, side: &mut Vec<Option<ItemStack>>, kind: super::tconstruct_chest_rules::ChestKind, tags: &std::collections::HashSet<String>) -> Result<(),()> {
+pub(super) fn quick(menu: &mut horizon_client::menu::Menu, env: &horizon_client::menu::Env<'_>, side: &mut Vec<Option<ItemStack>>, kind: super::tconstruct_chest_rules::ChestKind, tags: &std::collections::HashSet<String>) -> std::result::Result<(),()> {
     use horizon_client::menu::Input;
     for _ in 0..64 {
         let Some(output)=menu.slot(0).cloned() else {break;};
