@@ -11,6 +11,7 @@ fn tconstruct_machine_wire_receive(game: &mut crate::game::Game<'_>, pos: [i32; 
         Some("tconstruct:basin") => &["tconstruct:seared_basin"],
         Some("tconstruct:smeltery") => &["tconstruct:smeltery_controller", "tconstruct:foundry_controller"],
         Some("tconstruct:fuel_tank") => &["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "tconstruct:scorched_fuel_tank", "tconstruct:scorched_fuel_gauge"],
+        Some("tconstruct:lantern") => &["tconstruct:seared_lantern", "tconstruct:scorched_lantern"],
         Some("tconstruct:ingot_tank") => &["tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge", "tconstruct:scorched_ingot_tank", "tconstruct:scorched_ingot_gauge"],
         _ => return Continue(()),
     };
