@@ -13,3 +13,5 @@ This build temporarily disables specific hooks whose Horizon Mixins targets cann
 | Crumbling with Stonebound | An isolated mining test did not match the expected ordering; the combination has not been validated. |
 
 Previously captured game tests describe the revisions stated alongside them. They do not verify the full provisional build. The Part Chest and Tinker's Chest transactions were tested with the eight affected injections omitted; their world appearance and Crafting Station integration were not covered. See [chest details](tinker-part-chests.md) and [host update evidence](host-upgrade.md).
+
+The verified development target remains Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. At the latest check, Horizon main was `fd57b867944179eb0c9d7bfe8e4f83653103f98a` (811 commits and 539 changed files later, including rendering and menu code); that newer revision has not been built or tested with this port. Mixins main remained the verified revision.
