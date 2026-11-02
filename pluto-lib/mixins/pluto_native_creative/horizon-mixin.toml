@@ -36,3 +36,10 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "pluto_crafting_remainder"
 source = "crafting-remainder.rs"
 visibility = "pub"
+
+[[module]]
+id = "stack-fluid"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_fluid"
+source = "stack-fluid.rs"
+visibility = "pub"
