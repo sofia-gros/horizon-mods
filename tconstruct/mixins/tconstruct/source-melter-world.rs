@@ -60,12 +60,19 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
     let stack = input?;
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Regular casts are limited to undamaged tools; composite
-    // casts do not repair. Both require unupgraded tools and unchanged traits.
+    // casts do not repair. Supported gem upgrades are rebuilt through the
+    // Station path; other modifier and material-trait changes remain closed.
     if stack.count == 1 && stack.item.starts_with("tconstruct:") {
         let candidate = (|| {
             use horizon_world::nbt::Tag;
             let custom = stack.data()?.other("minecraft:custom_data")?;
-            match custom.get("tic_upgrades") { None => {}, Some(Tag::Compound(values)) if values.is_empty() => {}, _ => return None }
+            match custom.get("tic_upgrades") {
+                None => {},
+                Some(Tag::Compound(values)) if values.iter().all(|(id, value)|
+                    matches!(id.to_string_lossy().as_str(), "tconstruct:diamond" | "tconstruct:emerald")
+                        && matches!(value, Tag::Int(1))) => {},
+                _ => return None,
+            }
             match custom.get("tic_broken") { None | Some(Tag::Byte(0)) => {}, _ => return None }
             let old_max = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => return None };
             if stack.damage >= old_max { return None; }
