@@ -35,6 +35,9 @@ pub(super) fn prepare(
         target.position[1].checked_add(target.face[1])?,
         target.position[2].checked_add(target.face[2])?,
     ];
+    if at != request.position {
+        return None;
+    }
     if at[1] < game.world.shape.min_y
         || at[1] >= game.world.shape.max_y()
         || !game.world.loaded(at[0], at[2])
@@ -44,7 +47,10 @@ pub(super) fn prepare(
     }
     let old = game.world.block(at[0], at[1], at[2]);
     let facts = game.res.facts().get(old);
-    if !facts.replaceable || (!request.replace_liquids && facts.has_class("LiquidBlock")) {
+    if !facts.replaceable
+        || (!request.replace_liquids && facts.has_class("LiquidBlock"))
+        || (request.reject_same_block && facts.name.as_ref() == request.block_id.as_str())
+    {
         return None;
     }
     let normal = request.support_direction;
@@ -82,7 +88,7 @@ pub(super) fn prepare(
 }
 
 /// `true` means the host accepted a raw block write. Events are processed by
-/// the caller only after it has committed the already-prepared item data.
+/// the caller before checking the final state and committing item data.
 pub(super) fn apply(game: &mut super::Game<'_>, at: [i32; 3], state: super::BlockStateId) -> bool {
     game.with_level(|b, level, ticks| {
         b.set_block(

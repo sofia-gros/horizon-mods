@@ -38,6 +38,8 @@ pub struct BlockTarget {
 /// One candidate placement, committed only with a handled block use.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlacementRequest {
+    /// Destination candidate. This prototype accepts only clicked position plus face.
+    pub position: [i32; 3],
     /// Namespaced block ID and registered state properties.
     pub block_id: String,
     pub properties: BTreeMap<String, String>,
@@ -45,12 +47,15 @@ pub struct PlacementRequest {
     pub support_direction: [i32; 3],
     /// Permit replacing a liquid destination when the host marks it replaceable.
     pub replace_liquids: bool,
+    /// Reject when the destination already has the requested block ID.
+    pub reject_same_block: bool,
 }
 /// The host reports whether a requested placement took effect.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PlacementOutcome {
     Rejected,
     Applied {
+        final_state_matches: bool,
         item_committed: bool,
         events_ok: bool,
     },
@@ -307,10 +312,12 @@ mod placement_tests {
             BlockUse {
                 outcome: self.0,
                 placement: Some(PlacementRequest {
+                    position: [0, 2, 0],
                     block_id: "example:block".into(),
                     properties: BTreeMap::new(),
                     support_direction: [0, -1, 0],
                     replace_liquids: false,
+                    reject_same_block: true,
                 }),
             }
         }
