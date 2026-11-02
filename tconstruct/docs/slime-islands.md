@@ -256,3 +256,22 @@ and #223 heads remain unchanged. The joint b53 build for other work is not
 verification of this island candidate; its combined official plan, stage,
 build, game and survival behavior still need validation. Source slime fluids
 remain omitted as described above.
+
+## Experimental inland, Nether and End terrain
+
+The original inland Sky/Clay, Nether Blood and End island structure sets,
+biome tags, weighted definitions and source templates are connected as
+partial terrain. Ender/Blood fern and grass registrations supply their marker
+choices. Source Ender slime and magma fluid palette entries are ignored at
+placement, leaving pre-existing blocks at those positions. The marker's chosen
+unsupported vanilla tree, Ender tree or Blood fungus is saved with the piece
+and its initial marker random draw is consumed; the feature itself is not yet
+placed. The missing feature changes later marker RNG and leaves generated
+chunks without those trees or fungi. Updating the mod does not automatically
+repair chunks already generated, so use a disposable world for validation.
+
+This is not complete source generation: source fluids, the deferred tree and
+fungus features, slime mob overrides and several plant behaviors remain open.
+The reference templates remain untouched. Target Mixins plan, loading, biome
+selection, weighted placement, markers, terrain, block drops, missing-fluid
+positions, save/reload and local/LAN regressions require dedicated validation.

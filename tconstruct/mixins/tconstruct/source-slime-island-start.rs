@@ -73,14 +73,21 @@ pub(crate) fn generate(registry: &StructureRegistry, resources: &StructureResour
         _ => return None,
     };
     let mirror = match random.next_int_bound(3).ok()? { 0 => Mirror::None, 1 => Mirror::LeftRight, _ => Mirror::FrontBack };
-    let tree = if trees.is_empty() { None } else {
+    let (tree, deferred_tree) = if trees.is_empty() { (None, None) } else {
         let id = draw(&trees, &mut random)?;
-        let feature = source_entry(resources, "features.json", id)?;
-        // Reject rather than silently replacing unsupported tree/fungus types.
-        Some(SlimeTreeSpec::from_json(id, &feature)?)
+        match id {
+            "tconstruct:earth_slime_island_tree" | "tconstruct:sky_slime_island_tree" => {
+                let feature = source_entry(resources, "features.json", id)?;
+                (Some(SlimeTreeSpec::from_json(id, &feature)?), None)
+            }
+            "tconstruct:ender_slime_tree" | "tconstruct:ender_slime_tree_tall" |
+            "tconstruct:blood_slime_island_fungus" | "minecraft:oak" | "minecraft:birch" |
+            "minecraft:spruce" | "minecraft:acacia" | "minecraft:jungle_tree_no_vine" => (None, Some(id.to_owned())),
+            _ => return None,
+        }
     };
     let vines = source.get("vines").and_then(Value::as_str).map(str::to_owned);
-    let markers = MarkerConfig { structure: def.name.clone(), tree, grasses, vine: vines };
+    let markers = MarkerConfig { structure: def.name.clone(), tree, deferred_tree, grasses, vine: vines };
     let piece = IslandPiece::new(resources, template, [chunk.x * 16 + 8, height, chunk.z * 16 + 8],
         rotation, mirror, markers, 0)?;
     Some(StructureStart::new(structure, def, chunk, vec![Piece::Legacy(Box::new(piece))]))

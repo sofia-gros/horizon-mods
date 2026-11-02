@@ -14,6 +14,10 @@ use super::{tconstruct_slime_island_marker_world as marker,
 pub(crate) struct MarkerConfig {
     pub structure: String,
     pub tree: Option<SlimeTreeSpec>,
+    /// The selected original feature is retained even when its generator is
+    /// unavailable, so saved partial starts do not lose the source choice.
+    #[serde(default)]
+    pub deferred_tree: Option<String>,
     pub grasses: Vec<(String, u32)>,
     pub vine: Option<String>,
 }
@@ -82,7 +86,15 @@ impl LegacyPiece for IslandPiece {
         let Some(markers) = self.template.place_at(ctx, self.template.position, &[])? else { return Ok(()); };
         for (name, pos) in markers {
             match name.as_str() {
-                "tconstruct:slime_tree" => { marker::tree_marker(ctx, &mut budget, self.markers.tree.as_ref().map(SlimeTreeSpec::config), pos)?; }
+                "tconstruct:slime_tree" => {
+                    if self.markers.deferred_tree.is_some() {
+                        // Consume the source marker's initial draw, but do not
+                        // replace an unsupported tree with another feature.
+                        if budget.placed() < super::tconstruct_slime_island_markers::MAX_TREES { ctx.random.boolean(); }
+                    } else {
+                        marker::tree_marker(ctx, &mut budget, self.markers.tree.as_ref().map(SlimeTreeSpec::config), pos)?;
+                    }
+                }
                 "tconstruct:slime_tall_grass" => { marker::grass_marker(ctx, &self.markers.grasses, pos)?; }
                 "tconstruct:slime_vine" => { marker::vine_marker(ctx, self.markers.vine.as_deref(), pos)?; }
                 _ => {},

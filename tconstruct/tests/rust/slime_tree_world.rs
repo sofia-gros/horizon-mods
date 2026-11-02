@@ -221,7 +221,7 @@ mod tests {
             "tconstruct/content/reference/slime-islands/data/tconstruct/worldgen/configured_feature/earth_slime_island_tree.json").unwrap()).unwrap();
         let tree = tconstruct_slime_tree_config::SlimeTreeSpec::from_json("tconstruct:earth_slime_island_tree", &source).unwrap();
         let markers = tconstruct_slime_island_piece::MarkerConfig { structure: "tconstruct:earth_slime_island".into(),
-            tree: Some(tree), grasses: vec![("tconstruct:earth_slime_tall_grass".into(), 7), ("tconstruct:earth_slime_fern".into(), 1)], vine: None };
+            tree: Some(tree), deferred_tree: None, grasses: vec![("tconstruct:earth_slime_tall_grass".into(), 7), ("tconstruct:earth_slime_fern".into(), 1)], vine: None };
         let piece = tconstruct_slime_island_piece::IslandPiece::new(&resources, "tconstruct:test/island", [8, 80, 24],
             Rotation::Clockwise90, Mirror::FrontBack, markers, 2).unwrap();
         let saved = piece.save().unwrap();
