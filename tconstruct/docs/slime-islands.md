@@ -287,3 +287,22 @@ is consumed without creating the missing tree. Exact waterlogging, placement,
 leaf drop predicates, hook ordering, game behavior, persistence and LAN require
 validation. Dedicated-server coverage and normal Ender tree acquisition are
 not established.
+
+## Experimental planted slime fungi
+
+Blood and Ichor fungus saplings and their source hat blocks are registered.
+Bone meal checks the original slimy-soil tag and source 40% success chance,
+then calls Horizon's existing huge-fungus placement for a source-derived
+configuration matching the underlying block. Blood preserves the source
+`planted=true` flag and Ichor preserves `planted=false`. Each of the 33
+currently registered original soil blocks has a configured variant, because
+the host feature accepts one base block while the original uses a tag. A
+third-party addition to that tag has no corresponding variant yet. The
+runtime conservatively refuses placement across an unloaded chunk boundary.
+
+This connects planted growth only; the island's Blood fungus marker remains
+deferred. Compare the host writer's block-update flags, source replaceability
+and RNG against TConstruct before claiming parity. Tag loading, all feature
+variants, bone-meal consumption, obstruction, chunk boundaries, source loot,
+save/reload, vanilla-fungus regression and local/LAN need dedicated testing.
+Dedicated-server support and normal acquisition are not established.
