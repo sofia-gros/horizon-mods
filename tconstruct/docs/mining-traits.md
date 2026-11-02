@@ -24,11 +24,11 @@ the earlier melee calculation mistakenly included material percent and
 `multiply_base` bonuses. The implementation corrects that multiplier for the existing
 Jagged/Stonebound melee path too. Representative melee and repair regressions passed.
 
-Original modifier priority runs Maintained before the percentage-based Jagged
+Dwarven is connected on the development branch between Maintained and the percentage-based Jagged and Stonebound effects. Its height-dependent host and client mining hooks have not been game-tested; existing tools need regeneration to receive the trait data.
+
+Original modifier priority runs Maintained before Dwarven and the percentage-based Jagged
 and Stonebound effects; equal-priority effects retain source insertion order.
-The synchronized custom tool data includes the generated mining rules because
-the current network codec does not preserve the per-stack `minecraft:tool`
-patch. Existing saved tools need a supported regeneration or part replacement
+The development branch uses PlutoLib transport for prepared per-stack `minecraft:tool` data; the complete TConstruct LAN path remains unverified. Legacy custom tool data is retained for existing boundaries. Existing saved tools need a supported regeneration or part replacement
 before the new fields are added. See [Harvest tiers and effective blocks](harvest-rules.md)
 for representative tier, drop and LAN validation; not all tools and materials
 have been individually tested.
