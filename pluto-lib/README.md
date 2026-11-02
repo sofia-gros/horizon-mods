@@ -10,7 +10,7 @@ Define items and blocks with a small Rust API, then make them available in the C
 
 ## What works today
 
-PlutoLib generates template-based item and block declarations and prepares Creative inventory data. Creative tabs currently use available positions on Horizon's existing screen; switching between overflow tabs is planned.
+PlutoLib generates template-based item and block declarations and prepares Creative inventory data. The Creative paging adapter adds navigation when tabs exceed the screen's available positions. See [Creative paging](docs/creative-overflow.md).
 
 ## Start with a small example
 
@@ -31,8 +31,6 @@ This writes content declarations. Include them with your mod’s manifest and as
 
 ## Compatibility
 
-Verified demo: Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e` on Linux.
-
-Planned native integration target: Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`; not exercised by this demo. Compatibility with other revisions is not promised; source changes may require rebuilding. PlutoLib is not a Fabric compatibility layer.
+The unreleased `0.1.0` development version has been tested on Linux with pinned Horizon and Mixins commits. See [compatibility](docs/compatibility.md) for the verified combination, the initial demo's Mixins limitation, and development targets.
 
 The existing Python Creative helper remains available; see its [guide](docs/creative-tabs.md).
