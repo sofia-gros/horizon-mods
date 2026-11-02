@@ -114,3 +114,9 @@ A follow-up corrects two direct NBT compound lookups to use the host's
 `JavaString` key type. The old-host diagnostic fixture passed its focused tests
 with this correction; the exact follow-up head still needs the dedicated tests
 and official target type check.
+
+The combined stat/splash candidate's formal apply stopped at `E_MODULE` for
+support sources with inner documentation headers. A follow-up replaces those
+headers with ordinary comments; a manifest-source scan found no remaining
+leading inner-doc headers. The follow-up's formal apply and subsequent type or
+game checks remain pending.
