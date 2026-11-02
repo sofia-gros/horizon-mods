@@ -81,8 +81,11 @@ fn can_set_tagged(stack: &ItemStack, fluid: Option<&str>, tag: Option<&horizon_w
     Some(result)
 }
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    accepts_with_color(stack, known_fluid, false)
+}
+pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
     if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
-    if stack.item.as_ref() == "minecraft:potion" { return simple_potion(stack).is_some(); }
+    if stack.item.as_ref() == "minecraft:potion" { return potion_data(stack, allow_color).is_some(); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
 // Translate only the losslessly represented base potion and optional color.
@@ -100,7 +103,6 @@ fn potion_data(stack: &ItemStack, allow_color: bool) -> Option<(String, Option<i
     if let Some(color) = color { plain.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(color))); }
     stack.same_item_same_components(&plain).then(|| (potion.to_owned(), color))
 }
-fn simple_potion(stack: &ItemStack) -> Option<String> { potion_data(stack, false).map(|(potion, _)| potion) }
 
 pub(super) fn potion_tag(tag: &horizon_world::nbt::Tag, allow_color: bool) -> Option<(String, Option<i32>)> {
     use horizon_world::nbt::Tag;
@@ -127,6 +129,10 @@ pub(super) fn potion_stack(item: &str, potion: &str, color: Option<i32>) -> Item
 /// accepts inserted items; all changes are staged in caller-owned copies.
 pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<ItemStack>, index: usize,
     right: bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    click_with_color(slots, carried, index, right, known_fluid, false)
+}
+pub(super) fn click_with_color(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<ItemStack>, index: usize,
+    right: bool, known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
     if index > 1 { return false; }
     if index == 1 && carried.is_some() { return false; }
     let Some(mut held) = carried.take() else {
@@ -138,7 +144,7 @@ pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<Ite
         *carried = Some(taken);
         return true;
     };
-    if index != 0 || !accepts(&held, known_fluid) { *carried = Some(held); return false; }
+    if index != 0 || !accepts_with_color(&held, known_fluid, allow_color) { *carried = Some(held); return false; }
     let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     match slots[index].as_mut() {
         None => {
@@ -159,8 +165,12 @@ pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<Ite
 /// Stage a shift move from player inventory into the input slot.
 pub(super) fn quick_input(slots: &mut [Option<ItemStack>; 2], stack: &mut Option<ItemStack>,
     known_fluid: &impl Fn(&str) -> bool) -> bool {
+    quick_input_with_color(slots, stack, known_fluid, false)
+}
+pub(super) fn quick_input_with_color(slots: &mut [Option<ItemStack>; 2], stack: &mut Option<ItemStack>,
+    known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
     let Some(held) = stack.as_mut() else { return false; };
-    if !accepts(held, known_fluid) { return false; }
+    if !accepts_with_color(held, known_fluid, allow_color) { return false; }
     let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     let amount = match slots[0].as_mut() {
         None => {
