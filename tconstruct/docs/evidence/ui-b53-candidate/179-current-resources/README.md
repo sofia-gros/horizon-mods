@@ -1,0 +1,5 @@
+# Station rejection, combined candidate
+
+Candidate source: cc868cdb5d335278df1aa819b2a2e817d75a6a74, host b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9, Mixins ddd9700b21997c95d95ac6ee5ecafe3830cf622a. Client SHA-256 `16cff912e03bc7879da2b5b2cc6cebe9b98a7265bd6a6bbdb9c4562243c7ef51`; ctl `ec9677b7bdd3e83f48a262bbd348c8be8b5767724e6087a5febe34ea5706ba46`. The isolated build has a Pluto comment fix and preparation namespace declaration; the isolated content replaces the invalid `minecraft:metal` sound block reference with `minecraft:iron_bars`. It is not an unmodified candidate build.
+
+In a fresh creative fixture, a damage-100 pig-iron pickaxe and dirt in the Station produced no output and remained in input slots. The image is a real client screenshot. Positive bacon repair was not tested: `give @s tconstruct:bacon` did not supply a registered item and the harness stopped before the positive case. This does not establish PR #179 completion. Other tester-owned multiplayer, persistence and quantity gates remain outside this case.
