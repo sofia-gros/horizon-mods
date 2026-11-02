@@ -10,10 +10,12 @@ fn tconstruct_side_chest_click(
     let Some(side)=game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table).copied() else { return Break(true); };
     let Some(slot)=slot else { return Break(true); };
     if slot==322 || (324..=326).contains(&slot) { return Continue(()); }
-    if !matches!(button,0|1) { return Break(true); }
+    if !matches!(input,Input::Swap|Input::Clone) && !matches!(button,0|1) { return Break(true); }
     let offset=game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&table).map_or(0,|s|s.0);
     let actual=(327..381).contains(&slot).then_some(offset*6+slot.saturating_sub(327));
-    let candidate=if input==Input::QuickMove {
+    let candidate=if input==Input::Swap {
+        if button==40 {game.offhand.as_ref()} else {usize::try_from(button).ok().and_then(|i|game.inventory.get(i)).and_then(Option::as_ref)}
+    } else if input==Input::QuickMove {
         if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)}
         else if (300..302).contains(&slot) { game.world.block_entities.get(&table).and_then(|e|e.slots().get(slot-300)).and_then(Option::as_ref) }
         else {actual.and_then(|i|game.world.block_entities.get(&side).and_then(|e|e.slots().get(i)).and_then(Option::as_ref))}
@@ -23,6 +25,7 @@ fn tconstruct_side_chest_click(
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
     let pattern=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
     let mut changed=false;
+    let mut dropped=None;
     match input {
         Input::Pickup if slot<36 => changed=crate::game::tconstruct_chest_rules::pickup_player(&mut game.inventory,slot,&mut game.carried,button==1,max),
         Input::Pickup if (300..302).contains(&slot) => {
@@ -55,8 +58,26 @@ fn tconstruct_side_chest_click(
                 changed=remaining.as_ref().map_or(0,|s|s.count)!=old;*cell=remaining;
             }}}
         }
+        Input::Swap if actual.is_some() => {
+            let registry=game.res.items();
+            if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&side) {
+                if let Some(left)=crate::game::tconstruct_chest_rules::swap_slot(kind,items,actual.unwrap(),&mut game.inventory,&mut game.offhand,button,max,part,|inventory,stack| {
+                    let limit=registry.get(&stack.item).map_or(64,|info|info.max_stack).max(1);crate::game::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                }) {changed=true;dropped=left;}
+            }
+        }
+        Input::Swap if slot<36 => {
+            if button==40 {std::mem::swap(&mut game.inventory[slot],&mut game.offhand);changed=true;}
+            else if (0..9).contains(&button) {game.inventory.swap(slot,button as usize);changed=true;}
+        }
+        Input::Throw if game.carried.is_none() => {
+            if slot<36 {dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut game.inventory,slot,button!=0);}
+            else if let Some(i)=actual {if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&side) {dropped=crate::game::tconstruct_chest_rules::take_for_drop(items,i,button!=0);}}
+            changed=dropped.is_some();
+        }
         _=>{},
     }
     if changed { game.world.modified.insert((table.0>>4,table.2>>4));game.world.modified.insert((side.0>>4,side.2>>4)); }
+    if let (Some(stack),Some(eye))=(dropped,game.eye_position()) {game.throw_from_eyes(stack,eye,false);}
     Break(true)
 }

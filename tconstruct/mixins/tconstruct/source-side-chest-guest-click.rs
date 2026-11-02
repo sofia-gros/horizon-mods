@@ -22,14 +22,15 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
     let side_slot=raw.filter(|i|(27..75).contains(i)).map(|i|scroll*6+i-27).filter(|i|*i<count);
     let table_slot=raw.filter(|i|*i<2);
     let player=raw.filter(|i|(81..117).contains(i)).map(|i| {let i=i-81;if i<27 {i+9} else {i-27}});
-    let mut inventory=hub.guests[gi].inventory.clone();let mut carried=hub.guests[gi].carried.clone();
-    let candidate=if packet.input==1 { side_slot.and_then(|i|side_items[i].as_ref()).or_else(||table_slot.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref())) } else {carried.as_ref()};
+    let mut inventory=hub.guests[gi].inventory.clone();let mut carried=hub.guests[gi].carried.clone();let mut offhand=hub.guests[gi].offhand.clone();
+    let candidate=if packet.input==2 {if packet.button==40 {offhand.as_ref()} else {usize::try_from(packet.button).ok().and_then(|i|inventory.get(i)).and_then(Option::as_ref)}} else if packet.input==1 { side_slot.and_then(|i|side_items[i].as_ref()).or_else(||table_slot.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref())) } else {carried.as_ref()};
     let max=candidate.map_or(64,|s|rules.max_stack(&s.item).max(1));
     let tags=world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok());
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
     let pattern=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
     let mut changed=false;
-    if matches!(packet.button,0|1) {
+    let mut dropped=None;
+    if matches!(packet.button,0|1) || packet.input==2 {
         match (packet.input,side_slot,table_slot,player) {
             (0,Some(i),_,_) => changed=chest::pickup_slot(kind,&mut side_items,i,&mut carried,packet.button==1,max,part),
             (0,_,Some(i),_) if i!=0 || carried.is_none() || pattern => changed=chest::pickup_player(&mut table_items,i,&mut carried,packet.button==1,max),
@@ -47,6 +48,15 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
                 let old=stack.count;let rem=crate::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
                 changed=rem.as_ref().map_or(0,|s|s.count)!=old;table_items[i]=rem;
             },
+            (2,Some(i),_,_) => if let Some(left)=chest::swap_slot(kind,&mut side_items,i,&mut inventory,&mut offhand,i32::from(packet.button),max,part,|inventory,stack| {
+                let limit=rules.max_stack(&stack.item).max(1);crate::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+            }) {changed=true;dropped=left;},
+            (2,_,_,Some(i)) => {
+                if packet.button==40 {std::mem::swap(&mut inventory[i],&mut offhand);changed=true;}
+                else if (0..9).contains(&packet.button) {inventory.swap(i,packet.button as usize);changed=true;}
+            },
+            (4,Some(i),_,_) if carried.is_none() => {dropped=chest::take_for_drop(&mut side_items,i,packet.button!=0);changed=dropped.is_some();},
+            (4,_,_,Some(i)) if carried.is_none() => {dropped=chest::take_for_drop(&mut inventory,i,packet.button!=0);changed=dropped.is_some();},
             _=>{},
         }
     }
@@ -54,8 +64,12 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
         if let Some(crate::containers::BlockEntity::Chest(items))=world.block_entities.get_mut(&table) {*items=table_items.clone();} else {return Break(Vec::new());}
         if let Some(crate::containers::BlockEntity::Chest(items))=world.block_entities.get_mut(&side) {*items=side_items.clone();} else {return Break(Vec::new());}
         world.modified.insert((table.0>>4,table.2>>4));world.modified.insert((side.0>>4,side.2>>4));
-        hub.guests[gi].inventory=inventory;hub.guests[gi].carried=carried;
+        hub.guests[gi].inventory=inventory;hub.guests[gi].carried=carried;hub.guests[gi].offhand=offhand;
+        if packet.input==2 && packet.button==40 {
+            let item=hub.stack(&hub.guests[gi].offhand.clone());let guest=&mut hub.guests[gi];guest.menu_state=(guest.menu_state+1)&0x7fff;
+            guest.send(&C::ContainerSetSlot(play::ContainerSetSlot {container:0,state:guest.menu_state,slot:45,item}));
+        }
     }
     let mut view=table_items;view.extend(chest::project_side(&side_items,scroll));hub.send_menu_content(gi,view);
-    Break(Vec::new())
+    Break(dropped.into_iter().collect())
 }

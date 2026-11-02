@@ -144,27 +144,38 @@ fn side_click(game: &mut Game<'_>, host: &mut LanHost, gi: usize, joined: u64, t
     let visible=crate::game::tconstruct_source_side_layout::visible_rows(existing.len())*crate::game::tconstruct_source_side_layout::columns(existing.len());
     if packet.slot as usize-46>=visible {return true;}
     let index = offset*crate::game::tconstruct_source_side_layout::columns(existing.len())+(packet.slot as usize-46);
-    if index>=existing.len() || !matches!(packet.button,0|1) { return true; }
+    if index>=existing.len() || (packet.input!=2 && !matches!(packet.button,0|1)) { return true; }
     let mut inventory=host.hub.guests[gi].inventory.clone();
     let mut carried=host.hub.guests[gi].carried.clone();
-    let candidate=if packet.input==1 {existing[index].as_ref()} else {carried.as_ref()};
+    let mut offhand=host.hub.guests[gi].offhand.clone();
+    let candidate=if packet.input==2 {if packet.button==40 {offhand.as_ref()} else {usize::try_from(packet.button).ok().and_then(|i|inventory.get(i)).and_then(Option::as_ref)}} else if packet.input==1 {existing[index].as_ref()} else {carried.as_ref()};
     let max=candidate.and_then(|s|game.res.items().get(&s.item)).map_or(64,|info|info.max_stack).max(1);
     let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok());
     let part=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
     let mut side_items=existing;
     let mut changed=false;
+    let mut dropped=None;
     match packet.input {
         0 => changed=chest::pickup_slot(kind,&mut side_items,index,&mut carried,packet.button==1,max,part),
         1 => if let Some(stack)=side_items[index].take() {
             let old=stack.count;let remainder=crate::game::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
             changed=remainder.as_ref().map_or(0,|s|s.count)!=old;side_items[index]=remainder;
         },
+        2 => if let Some(left)=chest::swap_slot(kind,&mut side_items,index,&mut inventory,&mut offhand,i32::from(packet.button),max,part,|inventory,stack| {
+            let limit=game.res.items().get(&stack.item).map_or(64,|info|info.max_stack).max(1);crate::game::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+        }) {changed=true;dropped=left;},
+        4 if carried.is_none() => {dropped=chest::take_for_drop(&mut side_items,index,packet.button!=0);changed=dropped.is_some();},
         _=>{},
     }
     if changed {
         if !crate::game::tconstruct_crafting_station::write_side(game,side,side_items) {return true;}
-        host.hub.guests[gi].inventory=inventory;host.hub.guests[gi].carried=carried;
+        host.hub.guests[gi].inventory=inventory;host.hub.guests[gi].carried=carried;host.hub.guests[gi].offhand=offhand;
+        if packet.input==2 && packet.button==40 {
+            let item=host.hub.stack(&host.hub.guests[gi].offhand.clone());let guest=&mut host.hub.guests[gi];guest.menu_state=(guest.menu_state+1)&0x7fff;
+            guest.send(&C::ContainerSetSlot(play::ContainerSetSlot {container:0,state:guest.menu_state,slot:45,item}));
+        }
     }
+    if let Some(stack)=dropped {game.drop_guest_items(host,gi,vec![stack]);}
     game.lan_send_table_content(host,conn);
     true
 }
