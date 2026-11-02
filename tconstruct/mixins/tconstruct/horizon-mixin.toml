@@ -71,7 +71,7 @@ source = "source-machine-prepare.rs"
 
 [[injection]]
 id = "prepare-station-resources"
-target = "horizon_client::entry::main_with"
+target = "horizon_client::entry::main"
 kind = "HEAD"
 helper = "prepare.rs"
 
