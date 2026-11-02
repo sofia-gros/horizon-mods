@@ -558,6 +558,9 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
 }
 
 fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path, tabs: &mut [serde_json::Value]) -> Result<(), Box<dyn std::error::Error>> {
+    let path = horizon_protocol::registry::Builtin::find(out).ok_or("missing built-in registry report")?;
+    let builtin = horizon_protocol::registry::Builtin::load(&path)?;
+    let block_ids = builtin.get("minecraft:block").ok_or("missing block registry")?;
     let items: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("items.json"))?)?;
         // Give supported Creative tool variants the same source-derived base
         // stats and mining rules as a tool assembled in the station. Other tool
@@ -613,6 +616,7 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                                     if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }
                                 }
+                                crate::tconstruct_source_tool_normalize::finalize_tool(&mut stack, |id| block_ids.id(id))?;
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }
                         }

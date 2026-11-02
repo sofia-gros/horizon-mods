@@ -39,7 +39,7 @@ Follow the [Linux setup guide](docs/linux.md) or [Windows setup guide](docs/wind
 
 A manually run Mixins validation workflow can produce an Actions artifact containing `tconstruct.hnmod` and `tconstruct.hmod`. Install the native bundle through a compatible desktop Horizon Launcher, and install and enable the content mod in the instance’s `horizon-mods/` directory. See the [official native-mod guide](https://github.com/horizon-rust/horizon/blob/374b50d48f0968bd08f7026c7fabb117c8ecb8a6/docs/native-mods.md).
 
-**Native installation and startup resource preparation are experimental and unverified.** The current development branch also requires PlutoLib’s native Creative bundle; its installation alongside TConstruct has not yet been verified. See [PlutoLib native installation](../pluto-lib/docs/native-installation.md). The official native build documentation does not establish a smartphone build path; smartphone installation and gameplay remain unverified. The Linux and Windows guides describe the manual preparation path.
+**Native installation and startup resource preparation are experimental and unverified.** The current development branch also requires PlutoLib’s native Creative and experimental Tool transport bundles; its installation alongside TConstruct has not yet been verified. See [PlutoLib native installation](../pluto-lib/docs/native-installation.md). The official native build documentation does not establish a smartphone build path; smartphone installation and gameplay remain unverified. The Linux and Windows guides describe the manual preparation path.
 
 ## Compatibility
 

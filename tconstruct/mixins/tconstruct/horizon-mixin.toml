@@ -579,6 +579,16 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "resolved-block-ids"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,i32>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "resolved-block-tags"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
@@ -2485,6 +2495,19 @@ id = "items-source-mining-math"
 file = "crates/horizon-items/src/items.rs"
 name = "tconstruct_source_mining_math"
 source = "source-mining-math.rs"
+
+[[module]]
+id = "game-source-tool-normalize"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_tool_normalize"
+source = "source-tool-normalize.rs"
+
+[[module]]
+id = "lib-source-tool-normalize"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_tool_normalize"
+source = "source-tool-normalize.rs"
+visibility = "pub"
 
 [[module]]
 id = "game-source-mining-stack"

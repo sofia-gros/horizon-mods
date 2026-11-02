@@ -73,6 +73,8 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
     super::tconstruct_source_mining_stack::apply(&mut output, &stats, &levels, &order, has_tag("tconstruct:modifiable/harvest"))?;
     super::tconstruct_source_overslime::rebuild(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/ranged"), has_tag("tconstruct:modifiable/harvest"))?;
+    let block_ids = world.chunks.__horizon_mixins_tconstruct_resolved_block_ids().as_ref().and_then(|ids| ids.as_ref().ok());
+    super::tconstruct_source_tool_normalize::finalize_tool(&mut output, |id| block_ids.and_then(|ids| ids.get(id).copied())).ok()?;
     Some(output)
 }
 
@@ -273,6 +275,8 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     }
     if consumed.len() == 1 { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut tool, remaining as u32);
+    let block_ids = world.chunks.__horizon_mixins_tconstruct_resolved_block_ids().as_ref().and_then(|ids| ids.as_ref().ok());
+    super::tconstruct_source_tool_normalize::finalize_tool(&mut tool, |id| block_ids.and_then(|ids| ids.get(id).copied())).ok()?;
     Some((tool, consumed))
 }
 

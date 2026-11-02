@@ -12,6 +12,7 @@ p.add_argument('--mixins', type=Path, required=True)
 p.add_argument('--mixins-revision', help='full Mixins commit SHA for a reproducible build; defaults to the latest official revision')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
 p.add_argument('--pluto-native-creative', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_native_creative', help='PlutoLib native Creative Mixins bundle')
+p.add_argument('--pluto-transport', type=Path, default=root.parent / 'pluto-lib/mixins/pluto_transport_3a', help='PlutoLib experimental Tool transport Mixins bundle')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
 a = p.parse_args()
 head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
@@ -31,6 +32,11 @@ mods = a.mods.resolve(strict=True)
 pluto = a.pluto_native_creative.resolve()
 if not (pluto / 'horizon-mixin.toml').is_file():
     p.error(f'{pluto}: PlutoLib native Creative bundle is required')
+transport = a.pluto_transport.resolve()
+if not (transport / 'horizon-mixin.toml').is_file():
+    p.error(f'{transport}: PlutoLib Tool transport bundle is required')
+if (mods / 'pluto_transport_3a').exists():
+    p.error('supply the PlutoLib transport bundle only through --pluto-transport')
 if (mods / 'pluto_creative').exists():
     p.error('the legacy PlutoLib Creative paging adapter cannot be combined with native Horizon paging')
 if (mods / 'pluto_native_creative').exists():
@@ -59,4 +65,5 @@ with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
     combined = Path(temp) / 'bundles'
     shutil.copytree(mods, combined)
     shutil.copytree(pluto, combined / 'pluto_native_creative')
+    shutil.copytree(transport, combined / 'pluto_transport_3a')
     subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)
