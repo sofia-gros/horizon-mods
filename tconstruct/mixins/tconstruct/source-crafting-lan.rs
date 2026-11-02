@@ -16,6 +16,7 @@ fn session(game: &Game<'_>, conn: u32, joined: u64, window: i32) -> Option<Pos> 
 }
 
 pub(crate) fn open(game: &mut Game<'_>, host: &mut LanHost, conn: u32, pos: Pos) -> bool {
+    if !crate::game::tconstruct_crafting_station::PROVISIONAL_ENABLED { return false; }
     game.ensure_datapacks();
     game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(vec![None; 9]));
     let Some(grid) = items(game, pos) else { return false; };

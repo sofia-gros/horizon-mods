@@ -1,5 +1,7 @@
 # Making parts and tools
 
+> **Development build:** The Crafting Station, wearable armor assembly, Reinforced and Unbreakable are temporarily unavailable. Some material traits and appearances are incomplete. See [provisional limitations](provisional.md); older tests below describe their stated revisions.
+
 Use a Part Builder to make parts, then assemble supported tools at a Tinker Station. The examples below were tested on Linux; the Windows launcher and gameplay remain unverified.
 
 ## Browse equipment in Creative
@@ -48,7 +50,7 @@ Place and open the Part Builder. Put a pattern and the log in the two input slot
 
 ## Store parts beside a workstation
 
-Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder or Crafting Station to access its inventory while working. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
+Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder to access its inventory while working. The Crafting Station is temporarily unavailable. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
 
 ![A Part Chest beside a Part Builder in a LAN test](part-chest-builder-lan.png)
 
@@ -86,7 +88,7 @@ A Part Builder can show a connected container alongside its own slots. You can m
 
 ## Other equipment
 
-The resource preparation now registers additional source equipment IDs. A Linux test obtained a Broad Axe, Dagger, Plate Helmet, and Skyslime Staff with commands, displayed their icons, and placed the helmet in the head slot. Material armor mitigates damage and loses durability when hit; a broken piece stays in its slot but provides no armor or toughness until repaired at a Tinker Station. Representative repair, fire and LAN cases are described in [material armor damage and repair](armor-durability.md). Other acquisition paths, unique equipment effects, and worn armor appearance remain incomplete or unverified. Materials, traits, modifiers, and tool-specific actions are still in development.
+The resource preparation now registers additional source equipment IDs. A Linux test obtained a Broad Axe, Dagger, Plate Helmet, and Skyslime Staff with commands, displayed their icons, and placed the helmet in the head slot. In earlier builds, material armor mitigated damage and lost durability when hit; a broken piece stays in its slot but provides no armor or toughness until repaired at a Tinker Station. Representative repair, fire and LAN cases are described in [material armor damage and repair](armor-durability.md). Other acquisition paths, unique equipment effects, and worn armor appearance remain incomplete or unverified. Materials, traits, modifiers, and tool-specific actions are still in development.
 
 ![A Plate Helmet in the head slot with equipment icons in the hotbar](equipment-registration.png)
 

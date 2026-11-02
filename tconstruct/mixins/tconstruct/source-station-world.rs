@@ -73,6 +73,17 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     if !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &levels) { return None; }
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
+    // Do not create newly wearable armor while its wear hook is unavailable.
+    // Existing items remain readable and repairable; no saved data is changed.
+    if original.is_none() && has_tag("tconstruct:modifiable/armor/worn") {
+        *reason = Some("Wearable armor is unavailable in this development build".into());
+        return None;
+    }
+    let previous = original.and_then(|stack| super::tconstruct_source_material_traits::levels(world, stack)).map(|v| v.levels).unwrap_or_default();
+    if ["tconstruct:dense", "tconstruct:reinforced", "tconstruct:unbreakable"].iter().any(|id| levels.get(*id).copied().unwrap_or(0) > previous.get(*id).copied().unwrap_or(0)) {
+        *reason = Some("Durability prevention traits are unavailable in this development build".into());
+        return None;
+    }
     super::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/armor/worn"))?;
     super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
