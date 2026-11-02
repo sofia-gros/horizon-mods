@@ -23,7 +23,7 @@ The single-file package targets Horizon `7084e67744cbb4fe25961f24126e15b6b36f052
 
 The development bundle can include Mixins per-instance `[[state]]` declarations
 and their `[[state.constructor]]` entries. The landing state is transient and
-belongs to each player motion instance; it does not prescribe an equipment rule
+is scoped to a world and keyed by player entity ID; it does not prescribe an equipment rule
 or a landing effect. Its combined-package planning, constructor coverage, type
 checking, and gameplay behavior still require validation.
 
@@ -33,7 +33,8 @@ without state. They check unique declaration IDs, constructor preservation,
 module and helper archive references, and deterministic package output. The
 updated checks must be run by the validation owner on the integrated candidate.
 
-The landing-state follow-up targets `horizon_client_lib::motion::PlayerMotion`,
-the crate that owns `motion.rs`; the earlier `horizon_client` target failed the
-official apply. The corrected target still requires official plan/apply and type
-verification.
+The landing-state follow-up stores a transient map on the existing
+`horizon_client_render::chunk_map::ChunkMap` construction boundary. The
+PlayerMotion constructor could not be transformed by the pinned Mixins. The
+map clears with the chunk map; equipment state is overwritten when an actor is
+entered. This alternative requires official plan/apply and type verification.

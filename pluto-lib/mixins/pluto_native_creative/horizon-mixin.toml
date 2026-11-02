@@ -25,18 +25,25 @@ visibility = "pub"
 
 [[module]]
 id = "landing-state-api"
-file = "crates/horizon-client/src/motion.rs"
+file = "crates/horizon-client-render/src/chunk_map.rs"
 name = "pluto_landing_state"
 source = "landing-state.rs"
 visibility = "pub"
 
 [[state]]
 id = "landing-state"
-target = "horizon_client_lib::motion::PlayerMotion"
-ty = "crate::motion::pluto_landing_state::LandingState"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<i32, crate::chunk_map::pluto_landing_state::LandingState>"
 initial = "::core::default::Default::default()"
 
 [[state.constructor]]
-target = "horizon_client_lib::motion::PlayerMotion::new"
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[injection]]
+id = "landing-state-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "landing-clear.rs"
+bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]

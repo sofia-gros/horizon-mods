@@ -88,7 +88,7 @@ Sky Geodes generated in a new Linux world and supplied crystals for a Worktable 
 The initial Grout, Seared Brick and Scorched Brick crafting route and ordinary brick controller casting are connected in development. A representative Linux run on the generated binary reached a crafted, placed Tinkers' Anvil from Grout, including filled-gauge rejection, empty-gauge consumption, LAN Melter input and Anvil save/reload. The run used vanilla raw material and fuel fixtures, accelerated processing, and recovered an accidentally cast Copper Block with the vanilla recipe before continuing. The Scorched route and wider vanilla regression were not checked in this run. Other retextured controller casts remain unfinished. Nether cobalt ore generation, iron-tier mining and raw-ore blasting have representative Linux game checks with supplied tools and fuel; a combined run also cast Cobalt parts and assembled a tool. Composite material casting has representative Linux checks for copper oxidation and Nahuatl, including save/reload, a LAN guest, and use in tools. Tests used supplied raw materials and equipment; broader recipes and survival acquisition remain open.
 
 A Slime Boots landing candidate is being connected through PlutoLib's per-player
-landing state. Equipment can mark the state from the intrinsic Bouncy trait or a
+landing state, scoped by world and player entity ID. Equipment can mark the state from the intrinsic Bouncy trait or a
 Bouncy modifier on unbroken armor. The candidate connects local landing damage
 and post-collision velocity. A dependent candidate also supplies the acting guest’s
 equipment and crouch state and applies its pending rebound after server travel.
