@@ -1,20 +1,13 @@
-pub(super) fn mod_snapshot(game: &crate::game::Game<'_>) -> (std::collections::HashMap<String, Option<bool>>, bool) {
-    #[cfg(feature = "mods")]
-    {
-        use horizon_mods::Status;
-        let entries = game.mods.mods.entries();
-        let mut states = std::collections::HashMap::new();
-        for entry in entries {
-            let Some(manifest) = &entry.manifest else { continue; };
-            let state = match &entry.status { Status::Running => Some(true), Status::Off | Status::Failed(_) => Some(false), Status::Elsewhere => None };
-            states.entry(manifest.id.clone()).and_modify(|old| {
-                *old = match (*old, state) { (Some(true), _) | (_, Some(true)) => Some(true), (None, _) | (_, None) => None, _ => Some(false) };
-            }).or_insert(state);
-        }
-        (states, !entries.is_empty() && entries.iter().all(|entry| entry.manifest.is_some()))
+pub(super) fn mod_snapshot(game: &mut crate::game::Game<'_>) -> (std::collections::HashMap<String, Option<bool>>, bool) {
+    let mut native = Vec::new();
+    game.native_mods(&mut native);
+    let mut states = std::collections::HashMap::new();
+    for entry in native {
+        if !entry.id.is_empty() { states.insert(entry.id.clone(), Some(game.native_on(&entry.id))); }
     }
-    #[cfg(not(feature = "mods"))]
-    { let _ = game; (std::collections::HashMap::new(), false) }
+    // Unadvertised native hooks and rejected content announcements make the
+    // complete set unknowable; a missing ID must remain unknown.
+    (states, false)
 }
 
 pub(super) fn capture(game: &mut crate::game::Game<'_>) {
@@ -100,9 +93,8 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         .map_err(|error| error.to_string())
         .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
         .and_then(|source| crate::game::tconstruct_source_melting_lookup::tank_fluid_tags(&fluid_tags, &source));
-    // The runtime entries report actual start results; configured paths or
-    // installed files alone do not establish a loaded mod. Elsewhere means
-    // another execution role owns it and does not prove it started there.
+    // Capture actual native-hook presence; content package names are not
+    // sufficient proof that their overlay survived all validation.
     let (states, complete) = mod_snapshot(game);
     let mod_presence = crate::game::tconstruct_source_melter_world::ModPresence { states, complete };
     // All source-recipe consumers share this snapshot. Resolve Forge wrappers
