@@ -1476,26 +1476,17 @@ pub(super) fn source_quick_move_to_builder(
 pub(super) fn source_quick_move_player(
     inventory: &mut [Option<ItemStack>], mut stack: ItemStack, max: u32, stackable: bool,
 ) -> Option<ItemStack> {
-    if inventory.len() < 36 || max == 0 { return Some(stack); }
+    if inventory.len() < 36 || max == 0 || stack.count == 0 { return Some(stack); }
     let order = (0..9).rev().chain((9..36).rev()).collect::<Vec<_>>();
-    if stackable {
+    let kind = super::tconstruct_chest_rules::ChestKind::Plain(inventory.len());
+    for occupied in [true, false] {
+        if occupied && !stackable { continue; }
         for &i in &order {
-            if let Some(existing) = &mut inventory[i] {
-                if existing.same_item_same_components(&stack) && existing.count < max {
-                    let moved = (max - existing.count).min(stack.count);
-                    existing.count += moved;
-                    stack.count -= moved;
-                    if stack.count == 0 { return None; }
-                }
+            if inventory[i].is_some() != occupied { continue; }
+            match super::tconstruct_chest_rules::insert_slot(kind, inventory, i, stack, max, true) {
+                Some(remaining) => stack = remaining,
+                None => return None,
             }
-        }
-    }
-    for i in order {
-        if inventory[i].is_none() {
-            let moved = stack.count.min(max);
-            inventory[i] = Some(ItemStack { count: moved, ..stack.clone() });
-            stack.count -= moved;
-            if stack.count == 0 { return None; }
         }
     }
     Some(stack)
@@ -2943,6 +2934,27 @@ mod tests {
         let leftover = source_quick_move_player(&mut full, ItemStack::new("tconstruct:tool_handle", 3), 64, true).unwrap();
         assert_eq!(full[8].as_ref().unwrap().count, 64);
         assert_eq!(leftover.count, 2);
+    }
+
+    #[test]
+    fn source_quick_move_player_preserves_identity_and_rejects_without_consuming() {
+        let mut inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
+        let incoming = ItemStack::new("tconstruct:tool_handle", 3);
+        let mut different = incoming.clone();
+        different.count = 62;
+        different.damage = 1;
+        inventory[8] = Some(different.clone());
+        inventory[7] = Some(ItemStack::new("tconstruct:tool_handle", 63));
+        let remainder = source_quick_move_player(&mut inventory, incoming.clone(), 64, true).unwrap();
+        assert_eq!(inventory[8], Some(different));
+        assert_eq!(inventory[7].as_ref().unwrap().count, 64);
+        assert_eq!(remainder.count, 2);
+        let before = inventory.clone();
+        assert_eq!(source_quick_move_player(&mut inventory, remainder.clone(), 0, true), Some(remainder));
+        assert_eq!(inventory, before);
+        let mut short = vec![None; 35];
+        assert_eq!(source_quick_move_player(&mut short, incoming.clone(), 64, true), Some(incoming));
+        assert!(short.iter().all(Option::is_none));
     }
 
     #[test]
