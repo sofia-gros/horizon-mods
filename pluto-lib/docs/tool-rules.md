@@ -1,6 +1,6 @@
 # Evaluate a Tool's rules
 
-A Tool component can give each item stack its own mining rules. PlutoLib evaluates the rules in order and falls back to Horizon's item definition when the stack has no Tool component. This is an experimental native bundle targeting Horizon `aa60eb76ea82bd66c29fea352e3ab5771e62ab26` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`; it has not yet been built or tested in a game.
+A Tool component can give each item stack its own mining rules. PlutoLib evaluates the rules in order and falls back to Horizon's item definition when the stack has no Tool component. This experimental native bundle targets Horizon `aa60eb76ea82bd66c29fea352e3ab5771e62ab26` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its Linux client build and the demo's component-based mining have been checked; the complete LAN check remains open.
 
 The reusable evaluator accepts plain Rust data and a callback that matches a block ID or `#`-prefixed tag against the block being mined:
 
@@ -26,12 +26,14 @@ To evaluate a Tool already stored as SNBT, use `parse_tool(Some(snbt))?` and the
 
 The native adapter reads the actual `minecraft:tool` component and uses Horizon's block and tag matching. With no component, or a component it cannot parse, it leaves Horizon's result in place. Extra fields are not validated by this evaluator, so prepare components before using them. Use [Tool preparation](component-transport.md) before registering or changing a component. The adapter covers speed and drop correctness; it does not apply a per-stack `damage_per_block` value. Horizon reads `can_destroy_blocks_in_creative` from the stack separately. The adapter contains no material, modifier or broken-tool rules. Interaction with other native mods that intercept these methods, including Tinkers, is not yet verified.
 
-The [independent demo](../examples/tool-rules-demo/mixins/pluto_tool_rules_demo/demo.rs) prepares a pickaxe with two matching rules: the first denies drops and the second supplies speed 2. The vanilla diamond pickaxe's item definition supplies a different speed and allows the stone drop, making component evaluation distinguishable from fallback in the planned game check. The demo and target version are not yet game-verified.
+The [independent demo](../examples/tool-rules-demo/mixins/pluto_tool_rules_demo/demo.rs) prepares a pickaxe with two matching rules: the first denies drops and the second supplies speed 2. In a Linux game, this pickaxe broke stone without a drop; a vanilla diamond pickaxe without the component broke stone faster and dropped cobblestone in a preliminary check.
+
+![The Pluto Tool Rules creative tab in Horizon](tool-rules-demo.png)
 
 ## Try the demo
 
 Stage `mixins/pluto_native_creative`, `mixins/pluto_transport_3a`, `mixins/pluto_component_display_3a`, `mixins/pluto_tool_rules`, and `examples/tool-rules-demo/mixins/pluto_tool_rules_demo` as sibling bundles with official Mixins. Build the pinned Horizon client, then set `PLUTO_DEMO_RESOURCES` to prepared resources and `PLUTO_DEMO_OVERLAY` to a new path outside them. Launch the client with `--resources` pointing to that overlay, as in the [native Creative demo](native-creative.md). The older bundle directory names are retained; their manifests identify the actual target revision.
 
-In the planned check, select **Pluto Tool Rules** in Creative, obtain the pickaxe, and compare its mining speed and drops against the same item without the per-stack Tool component. A guest round trip and a Creative slot update must also be checked on the candidate host. No game result is claimed until those checks pass.
+Select **Pluto Tool Rules** in Creative, obtain the pickaxe, and compare its mining speed and drops against the same item without the per-stack Tool component. A complete guest round trip and Creative slot update check remain open on the final build.
 
 For the LAN hook check, set `PLUTO_DEMO_TEST_CREATIVE_GUARD=1` on the host. This demo-only guard rejects a creative update that would put count 4 in slot 44; it leaves the same count in other slots unchanged. Seed slot 44 with a stack of eight, then try splitting it and compare the server-corrected slot with an allowed split in another slot. In a preliminary game check, the server restored the eight in slot 44 but the guest retained four on its cursor and could place them in another slot. The hook cancels one slot update; it does not make the entire split atomic. Do not use this guard as an inventory transaction. The guard is absent from the reusable Tool rules bundle.
