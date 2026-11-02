@@ -35,3 +35,16 @@ The removed attack-bonus function cannot safely be replaced solely with the new 
 The coordinated validation target is Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Horizon changed two files since `40e044da777dfb56fd9df2ff0fc2b0a3abba4578`: streaming and world-generation decoration ordering. Prior limited plans were run on the earlier revision; they must be rerun where applicable. Recheck upstream before merge. The current host has its own Creative paging; do not stack the old PlutoLib paging adapter on it. The shared Creative migration targets registration and search data, while TConstruct keeps its material and stat generation.
 
 The 42-module split limited plan was rerun successfully on `5afa1de5f750b4b89ca23347b1d3aba296c278b0`. It checks declarations and collisions, not generated Rust types, LAN behavior or resource initialization.
+
+Attack-path inspection on Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0`:
+
+| Path | Authoritative computation |
+| --- | --- |
+| Single player / LAN host attacking a mob | `Game::attack` → `attack_mob` → `melee_damage` → `attack_damage` |
+| LAN guest attacking a mob | Host `guest_attack` swaps in the guest with `as_guest`, then calls `attack_mob` and the same computation |
+| Host or guest PvP | `pvp_strike` uses `melee_damage` on the attacking player; the host applies the strike |
+| Remote client prediction | `remote_player_attack` uses `own_attribute` for attacker slowdown; it is not the server's damage computation |
+
+The old `effect_attack_bonus` hook is provisionally moved to `attack_damage`. It evaluates the TConstruct material delta as an additive modifier on a cloned player attribute map, retaining host-side strength, weakness and attribute operation ordering without modifying the live map. A single-injection limited plan succeeds; this is not a type check or proof of once-only damage, equipment synchronization, prediction, or TConstruct damage and durability behavior. These require the later combined build and game checks.
+
+On `40e044da777dfb56fd9df2ff0fc2b0a3abba4578`, the one-injection `Mesher::face` plan returns `E_INVALID_BINDING` for its destructured `(id, state)` parameter. Its lower-level `quad` lacks the source block, position and material context required by the storage, connected-texture and chest hooks. The one-injection `durability_loss` plan returns `E_UNSUPPORTED_MACRO`; moving it to the non-macro `wear` return does pass a plan, but misses direct creature/dispenser callers and runs after the native durability event and trigger. Those alternatives are not equivalent. Candidate minimal upstream improvements are safe bindings for destructured parameters and unambiguous resolution of local macro identities in injection targets; no diagnostic is disabled. These diagnostics were obtained on `40e044da`, not a completed full plan on the final coordinated revision.

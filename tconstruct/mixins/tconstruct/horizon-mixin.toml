@@ -1825,7 +1825,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "material-melee-bonus"
-target = "horizon_client::game::enchant_effects::Game<'_>::effect_attack_bonus"
+target = "horizon_client::game::hand::Game<'_>::attack_damage"
 kind = "HEAD"
 cancellable = true
 helper = "material-melee-bonus.rs"
