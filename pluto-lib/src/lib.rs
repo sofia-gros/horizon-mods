@@ -404,3 +404,6 @@ mod tests {
         assert_eq!(base["tabs"].as_array().unwrap().len(), 1);
     }
 }
+
+/// Creative preparation for Horizon with native paging.
+pub use pluto_creative_api as native_creative;

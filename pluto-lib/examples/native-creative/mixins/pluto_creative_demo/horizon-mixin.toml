@@ -1,0 +1,19 @@
+[mod]
+id = "pluto_creative_demo"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "5afa1de5f750b4b89ca23347b1d3aba296c278b0"
+
+[[module]]
+id = "demo"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_creative_demo"
+source = "demo.rs"
+
+[[injection]]
+id = "prepare-demo"
+target = "horizon_client::entry::main"
+kind = "HEAD"
+helper = "prepare.rs"

@@ -12,3 +12,7 @@ The initial registration demo was also run on this Horizon revision on Linux, bu
 ## Development target
 
 The combination above is the current development target, not a released compatibility guarantee. Horizon [`e12185820a6bc85dd5ed04adc7b8b7a4bdc16102`](https://github.com/horizon-rust/horizon/commit/e12185820a6bc85dd5ed04adc7b8b7a4bdc16102) is a candidate for future work and has not been tested with PlutoLib. PlutoLib does not promise compatibility with every Horizon or Mixins revision; a new combination may require rebuilding and source changes.
+
+The experimental [native Creative preparation](native-creative.md) targets Horizon [`5afa1de5f750b4b89ca23347b1d3aba296c278b0`](https://github.com/horizon-rust/horizon/commit/5afa1de5f750b4b89ca23347b1d3aba296c278b0) and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its Mixins plan and standalone preparation tests ran on Linux; the native host has not been built or tested in game. The standalone wrapper uses the previously pinned `b6c936f…` parser, not the target host parser. This is a development target, not a verified release.
+
+At the time of comparison, `40e044da777dfb56fd9df2ff0fc2b0a3abba4578` is an ancestor of `5afa1de5f750b4b89ca23347b1d3aba296c278b0`; the intervening source diff changes `horizon-client-render/src/streaming.rs` and `horizon-world/src/worldgen/decoration_order.rs`. This source comparison is not runtime compatibility evidence.
