@@ -103,9 +103,8 @@ property in addition to its template's five face properties. These are
 preparation for the island marker and tree code, not proof of natural island
 generation or acquisition.
 
-Random ticks are explicitly disabled on these registrations: source slime
-sapling growth, leaf decay and vine growth still need their own behavior, and
-inheriting vanilla growth would produce the wrong result. Source foliage tint,
+Source-specific sapling and leaf random-tick paths are experimental; vine growth
+remains separate, and inheriting vanilla growth would produce the wrong result. Source foliage tint,
 complete template block and fluid registration, other island sets and save/reload remain open. The target registry, model and
 loot loading, face/stage combinations, tree placement, source drop conditions
 and vanilla plant regressions all require dedicated validation.
@@ -155,3 +154,40 @@ reloaded when render assets load. Missing or invalid maps leave the host tint
 unchanged. Item tint, particle tint and resource-reload behavior still require
 implementation or validation. The target Mixins plan, shader compatibility,
 color-map indexing and actual world rendering have not been tested.
+
+## Experimental slime leaf lifecycle
+
+Earth and Sky slime leaves now request random ticks. A source-specific
+neighbor-update hook schedules their distance updates, and a scheduled-tick
+hook computes distance only from `tconstruct:slimy_logs` and the original
+Earth, Sky and Ender slime-leaf IDs. The registered source log tag includes
+all four original slimewood log/wood families. When distance is seven and the
+leaf is not persistent, the existing leaf random-tick path handles decay and
+block loot. Normal vanilla leaves keep their existing behavior.
+
+If the slime-log tag or a required state cannot be resolved, the source hook
+keeps the leaf state rather than falling through to vanilla's different log
+rules. Placement requests persistent leaves using the same source distance calculation;
+if required source data is unavailable, placement is refused rather than
+using vanilla distance rules. Ender leaf registration, Sky-vine support updates,
+sapling growth, soil spreading, bonemeal and dedicated-server behavior remain
+unverified or unimplemented. The target injection plan, source tag resolution,
+placed/persistent leaves, log removal, loot, cross-chunk behavior and
+single-player/LAN/save regression require dedicated validation.
+
+## Experimental planted slime trees
+
+Earth and Sky saplings now have source soil survival, two-stage random
+advancement and bone-meal hooks. Their runtime tree writer reuses the same
+source height and canopy calculations as the island writer, including the
+source Earth 4+0..2 height and Sky 5+0..3 height with its one-in-ten doubling;
+planted Sky trees do not have the island tree's vines. It checks the source
+slimy-soil and leaves tags, only replaces air or leaves, and declines a tree
+at an unloaded chunk boundary rather than writing to ungenerated chunks. That
+loaded-area guard is a conservative runtime limitation.
+
+The target Mixins plan, type compatibility, normal and bone-meal growth, RNG
+order, blocked placement, cross-chunk behavior, soil survival, original leaf
+distance, save/reload and local/LAN behavior require dedicated verification.
+Dedicated-server growth, other sapling types and tree feature integration for
+other island sets remain open.
