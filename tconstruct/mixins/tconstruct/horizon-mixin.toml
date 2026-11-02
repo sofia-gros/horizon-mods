@@ -1913,19 +1913,17 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_snow_boots"
 source = "source-snow-boots.rs"
 
+# Preserve the host's vanilla boots result and add the source equipment flag
+# before sync_player_body copies it into the player motion.
 [[injection]]
-id = "source-snow-boots-sync"
+id = "source-snow-boots-sync-flag"
 target = "horizon_client::game::Game<'_>::sync_player_body"
-kind = "RETURN"
-helper = "snow-boots-sync.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
-[[injection]]
-id = "source-snow-boots-equipment"
-target = "horizon_client::game::Game<'_>::apply_equipment"
-kind = "RETURN"
-helper = "snow-boots-equipment.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+kind = "MODIFY_VARIABLE"
+variable = { name = "leather_boots", ordinal = 0, at = "STORE" }
+ordinal = 0
+require = 1
+helper = "snow-boots-sync-flag.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
 [[module]]
 id = "server-source-material-traits"
