@@ -81,3 +81,18 @@ both bows at equal charge and altitude while jumping, on the ground, in water,
 on a ladder and riding; repeat after changing the material. Confirm save/reload
 and check the guest path separately. Use a labelled material fixture if natural
 acquisition is unavailable. No new gameplay or LAN result is claimed.
+
+## Solid projectile damage
+
+Invar's Solid trait adds 0.75 projectile damage per level, scaled by the
+tool definition's projectile-damage additive multiplier. It combines with
+Diamond and Ductile during stat rebuilding and is removed on material swap;
+it is not added again when the same tool is rebuilt. This implements only the
+projectile-damage portion of the [original Solid definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/solid.json).
+
+Current-target compilation and gameplay are pending. Invar is a compatibility
+material; this does not add its natural acquisition path. Verification should
+cover both bows, zero/one/multiple Solid levels, definition multipliers,
+Diamond and Ductile combinations, repeated rebuilding, material replacement,
+and save/reload. The trait's protection, movement and gravity portions remain
+separate work.
