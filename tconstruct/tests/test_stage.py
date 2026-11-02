@@ -42,10 +42,14 @@ class StageExport(unittest.TestCase):
             manifest = f'[mod]\nid = "pluto_native_creative"\n[compatibility]\nhorizon_revision = "{horizon_revision}"\n[[crate]]\nid = "api"\npath = "pluto_native_creative/api"\n'
             for name in ('pluto_transport_3a', 'pluto_tool_rules', 'pluto_component_display_3a', 'pluto_component_bar', 'pluto_items_b2'):
                 manifest += f'[[module]]\nid = "{name}-fixture"\n'
+            manifest += '[[crate]]\nid = "inventory"\npath = "pluto_native_creative/inventory-api"\n[[module]]\nid = "pluto_native_creative-inventory-export"\n'
             (pluto / 'horizon-mixin.toml').write_text(manifest)
             api = pluto / 'pluto_native_creative/api'
             api.mkdir(parents=True)
             (api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
+            inventory = pluto / 'pluto_native_creative/inventory-api'
+            inventory.mkdir(parents=True)
+            (inventory / 'Cargo.toml').write_text('[package]\nname = "pluto-inventory-api"\nversion = "0.1.0"\n')
             bindir = root / 'bin'
             bindir.mkdir()
             cargo = bindir / 'cargo'
@@ -93,6 +97,12 @@ chmod +x "$2/release/horizon-mixins"
             self.assertNotEqual(rejected.returncode, 0)
             self.assertIn('legacy PlutoLib API', rejected.stderr)
             old.write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
+            inventory_manifest = inventory / 'Cargo.toml'
+            inventory_manifest.write_text('[package]\nname = "wrong-inventory"\nversion = "0.1.0"\n')
+            rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--pluto-bundle', str(pluto), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'missing-inventory-output')], env=env, capture_output=True, text=True)
+            self.assertNotEqual(rejected.returncode, 0)
+            self.assertIn('inventory API', rejected.stderr)
+            inventory_manifest.write_text('[package]\nname = "pluto-inventory-api"\nversion = "0.1.0"\n')
             duplicate_api = pluto / 'duplicate-api'
             duplicate_api.mkdir()
             (duplicate_api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')

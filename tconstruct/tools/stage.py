@@ -51,7 +51,7 @@ for candidate in mods.iterdir():
             if not crate_path.is_relative_to(candidate.resolve()):
                 p.error(f'{mixin}: crate path escapes its bundle')
             package = tomllib.loads((crate_path / 'Cargo.toml').read_text()).get('package', {}).get('name')
-            if package in ('pluto-api', 'pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
+            if package in ('pluto-api', 'pluto-inventory-api', 'pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
                 p.error(f'{mixin}: duplicate PlutoLib API crate')
     except (OSError, tomllib.TOMLDecodeError) as error:
         p.error(f'{mixin}: {error}')
@@ -60,6 +60,7 @@ entries = data.get('module', []) + data.get('injection', [])
 if any(not any(str(entry.get('id', '')).startswith(prefix) for entry in entries) for prefix in components):
     p.error('PlutoLib bundle is incomplete; use the installed unified package')
 api_count = 0
+inventory_count = 0
 for crate in data.get('crate', []):
     crate_path = (pluto / str(crate.get('path', ''))).resolve()
     if not crate_path.is_relative_to(pluto):
@@ -72,8 +73,12 @@ for crate in data.get('crate', []):
         p.error('legacy PlutoLib API crate conflicts with the shared facade')
     if package == 'pluto-api':
         api_count += 1
+    if package == 'pluto-inventory-api':
+        inventory_count += 1
 if api_count != 1:
     p.error('PlutoLib unified bundle must provide exactly one pluto-api facade')
+if inventory_count != 1 or not any(entry.get('id') == 'pluto_native_creative-inventory-export' for entry in data.get('module', [])):
+    p.error('PlutoLib unified bundle must provide exactly one inventory API and its public export')
 original = output / 'original'
 source = output / 'mixins-source'
 if original.exists() or (output / 'modded').exists() or source.exists():

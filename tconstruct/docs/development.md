@@ -19,7 +19,7 @@ You need Python, Rust, Git, a checkout of the pinned Horizon revision, and a Hor
 python3 tconstruct/tools/stage.py --horizon /path/to/horizon --mixins /path/to/horizon-mixins --pluto-bundle /path/to/installed.incoming/pluto_native_creative/mixins/pluto_native_creative
 ```
 
-The development target requires the unified PlutoLib native bundle, built from PlutoLib `f9680baa4f0d28b9ca735cfba615765bf897ae35`. The bundle contains Creative, item, Tool, transport and display adapters with one `pluto-api` crate. Use the Mixins bundle directory extracted by the official launcher, or extract the `.hnmod` for staging with Horizon's native bundle reader:
+The development target requires the unified PlutoLib native bundle, built from PlutoLib `5520a221655e9ea5b55b9ce32a46bca511c3ae71`. The bundle contains Creative, item, Tool, transport, display and inventory APIs. It supplies one `pluto-api` facade and one `pluto-inventory-api` crate. Use the Mixins bundle directory extracted by the official launcher, or extract the `.hnmod` for staging with Horizon's native bundle reader:
 
 ```sh
 python3 tconstruct/tools/extract_pluto.py --horizon /path/to/horizon --package /path/to/plutolib.hnmod --output /path/to/installed.incoming

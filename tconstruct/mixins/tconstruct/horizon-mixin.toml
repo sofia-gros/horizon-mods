@@ -3950,3 +3950,15 @@ id = "game-source-mining-context"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_mining_context"
 source = "source-mining-context-shared.rs"
+
+[[module]]
+id = "host-chest-inventory-api"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_inventory_api"
+source = "chest-inventory-api-game.rs"
+
+[[module]]
+id = "server-chest-inventory-api"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_inventory_api"
+source = "chest-inventory-api-lib.rs"

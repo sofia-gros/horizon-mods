@@ -80,9 +80,9 @@ jobs:
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          git fetch --no-tags origin f9680baa4f0d28b9ca735cfba615765bf897ae35
+          git fetch --no-tags origin 5520a221655e9ea5b55b9ce32a46bca511c3ae71
           mkdir -p "$RUNNER_TEMP/pluto-source"
-          git archive f9680baa4f0d28b9ca735cfba615765bf897ae35 pluto-lib | tar -x -C "$RUNNER_TEMP/pluto-source"
+          git archive 5520a221655e9ea5b55b9ce32a46bca511c3ae71 pluto-lib | tar -x -C "$RUNNER_TEMP/pluto-source"
           mkdir -p "$RUNNER_TEMP/pluto-source/pluto-lib/.work"
           (cd "$RUNNER_TEMP/pluto-source/pluto-lib" && python3 tools/package_native.py .work/plutolib.hnmod)
           python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/pluto-lib/.work/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
