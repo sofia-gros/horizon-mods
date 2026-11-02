@@ -79,13 +79,13 @@ impl Catalog<'_> {
             }
         }
     }
-    pub(super) fn molding(&self, material: &str, pattern: Option<&str>, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MoldingRecipe)> {
+    pub(super) fn molding(&self, basin: bool, material: &str, pattern: Option<&str>, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MoldingRecipe)> {
         if !self.known_items.contains(material) || pattern.is_some_and(|item| !self.known_items.contains(item)) { return None; }
         let in_tag = |tag: &str, item: &str| self.item_tags.get(tag).is_some_and(|items| items.contains(item));
         let mut found = None;
         for (id, bytes) in self.recipes {
             let Some(recipe) = MoldingRecipe::parse(bytes, conditions) else { continue; };
-            if !self.known_items.contains(&recipe.result) || !recipe.material.matches(material, &in_tag) { continue; }
+            if recipe.basin != basin || !self.known_items.contains(&recipe.result) || !recipe.material.matches(material, &in_tag) { continue; }
             if !match (&recipe.pattern, pattern) { (None, None) => true, (Some(ingredient), Some(item)) => ingredient.matches(item, &in_tag), _ => false } { continue; }
             if found.as_ref().is_some_and(|(_, previous)| previous != &recipe) { return None; }
             if found.is_none() { found = Some((id.clone(), recipe)); }
