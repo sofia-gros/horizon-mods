@@ -97,7 +97,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "minecraft:amethyst_block",
         BlockProperties {
             hardness: Some(2.0),
-            explosion_resistance: Some(6.0),
+            explosion_resistance: Some(1200.0),
             requires_tool: Some(true),
         },
     )?;
@@ -108,6 +108,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             hardness: Some(2.0),
             explosion_resistance: Some(0.0),
             requires_tool: Some(false),
+        },
+    )?;
+    registry.block_with_properties(
+        "blast_low",
+        "minecraft:amethyst_block",
+        BlockProperties {
+            hardness: Some(2.0),
+            explosion_resistance: Some(0.0),
+            requires_tool: Some(true),
         },
     )?;
     registry.block("inherited_block", "minecraft:amethyst_block")?;
@@ -165,7 +174,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     fs::write(
         tag,
         serde_json::to_vec_pretty(
-            &serde_json::json!({"replace":false,"values":["pluto_demo:glowing_block","pluto_demo:free_block","pluto_demo:inherited_block","pluto_demo:unbreakable_block"]}),
+            &serde_json::json!({"replace":false,"values":["pluto_demo:glowing_block","pluto_demo:free_block","pluto_demo:inherited_block","pluto_demo:unbreakable_block","pluto_demo:blast_low"]}),
         )?,
     )?;
     for name in [
@@ -173,6 +182,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         "free_block",
         "inherited_block",
         "unbreakable_block",
+        "blast_low",
     ] {
         let entries = [
             (
