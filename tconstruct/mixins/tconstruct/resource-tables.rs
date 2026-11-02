@@ -435,7 +435,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             }
         }
     }
-    crate::tconstruct_source_harvest_tags::prepare(&cache, &original_out, &runtime.join("forge-harvest-tags.zip"))?;
+    crate::entry::tconstruct_source_harvest_tags::prepare(&cache, &original_out, &runtime.join("forge-harvest-tags.zip"))?;
     std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
     // Restore item components beyond the content loader's template and
     // max-stack declarations, using the player's own cloned item table.
@@ -532,13 +532,13 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
         let mut tag_files = Vec::new();
         collect_tag_files(&original_pack, &original_pack.join("data"), &mut tag_files)?;
         let mut raw_tags = std::collections::BTreeMap::new();
-        crate::tconstruct_source_tags::merge_pack_tags(&mut raw_tags, tag_files, |path| std::fs::read(original_pack.join(path)).ok());
+        crate::entry::tconstruct_source_tags::merge_pack_tags(&mut raw_tags, tag_files, |path| std::fs::read(original_pack.join(path)).ok());
         let registry: std::collections::HashSet<String> = items.as_object().ok_or("invalid item registry")?.keys().cloned().collect();
-        let harvest = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/harvest", &raw_tags, &registry)?;
-        let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
-        let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
-        let armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
-        let ranged = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
+        let harvest = crate::entry::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/harvest", &raw_tags, &registry)?;
+        let melee = crate::entry::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
+        let melee_weapon = crate::entry::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
+        let armor = crate::entry::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
+        let ranged = crate::entry::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
         let creative_path = out.join("creative-inventory.json");
         if creative_path.is_file() {
             let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
@@ -557,20 +557,20 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
                             for id in &ids {
                                 let Some(name) = id.strip_prefix("tconstruct:") else { maps.clear(); break; };
                                 let Ok(bytes) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/materials/stats/{name}.json"))) else { maps.clear(); break; };
-                                let Ok(merged) = crate::tconstruct_tx::source_merge_material_stats(&[bytes]) else { maps.clear(); break; };
+                                let Ok(merged) = crate::entry::tconstruct_tx::source_merge_material_stats(&[bytes]) else { maps.clear(); break; };
                                 maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
                             }
                             if maps.len() != ids.len() { continue; }
-                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
-                                let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
+                            if let Some(mut stack) = crate::entry::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
+                                let traits = crate::entry::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
                                     let (namespace, path) = id.split_once(':')?;
                                     std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
                                 });
-                                if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
-                                    if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
-                                    if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
-                                    if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
-                                    if crate::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }
+                                if let (Some((traits, order)), Some(stats)) = (traits, crate::entry::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
+                                    if crate::entry::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
+                                    if crate::entry::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
+                                    if crate::entry::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
+                                    if crate::entry::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }
                                 }
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }

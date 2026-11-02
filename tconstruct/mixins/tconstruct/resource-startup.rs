@@ -5,7 +5,7 @@ fn tconstruct_startup_resources(root: &mut std::path::PathBuf) {
         log::error!("TConstruct content or prepared resource pack is missing; stopping startup");
         std::process::exit(1);
     }
-    if let Err(error) = horizon_client::tconstruct_resource_tables::startup(root) {
+    if let Err(error) = horizon_client::entry::tconstruct_resource_tables::startup(root) {
         eprintln!("TConstruct resource preparation failed; the game cannot safely open a world: {error}");
         log::error!("TConstruct resource preparation failed; stopping startup: {error}");
         std::process::exit(1);

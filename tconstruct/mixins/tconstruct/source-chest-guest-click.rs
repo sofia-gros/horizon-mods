@@ -1,6 +1,6 @@
 fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play::ContainerClick, world: &mut World, rules: &dyn Rules) -> std::ops::ControlFlow<Vec<ItemStack>> {
     use std::ops::ControlFlow::{Break,Continue};
-    use crate::tconstruct_chest_rules::{self as chest,ChestKind};
+    use crate::entry::tconstruct_chest_rules::{self as chest,ChestKind};
     let Some(gi)=hub.guests.iter().position(|g|g.conn==conn) else { return Continue(()); };
     let Some(menu)=hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if !matches!(menu.slots,crate::lan::menu::Slots::Block(_)) { return Continue(()); }
@@ -72,7 +72,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
             (0,Some(i),_) => changed=chest::pickup_slot(kind,&mut contents,i,&mut carried,packet.button==1,max,tagged),
             (0,_,Some(i)) => changed=chest::pickup_player(&mut inventory,i,&mut carried,packet.button==1,max),
             (1,Some(i),_) => if let Some(stack)=contents[i].take() {
-                let old=stack.count;let remaining=crate::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
+                let old=stack.count;let remaining=crate::entry::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
                 changed=remaining.as_ref().map_or(0,|s|s.count)!=old;contents[i]=remaining;
             },
             (1,_,Some(i)) => if let Some(stack)=inventory[i].take() {
@@ -80,7 +80,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
                 changed=remaining.as_ref().map_or(0,|s|s.count)!=old;inventory[i]=remaining;
             },
             (2,Some(i),_) => if let Some(left)=chest::swap_slot(kind,&mut contents,i,&mut inventory,&mut offhand,i32::from(packet.button),max,tagged,|inventory,stack| {
-                let limit=rules.max_stack(&stack.item).max(1);crate::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                let limit=rules.max_stack(&stack.item).max(1);crate::entry::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
             }) {changed=true;dropped=left;},
             (2,_,Some(i)) => {
                 if packet.button==40 {std::mem::swap(&mut inventory[i],&mut offhand);changed=true;}

@@ -1,6 +1,6 @@
 # Horizon host update (draft)
 
-This work targets official Horizon `e12185820a6bc85dd5ed04adc7b8b7a4bdc16102` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
+This work targets official Horizon `40e044da777dfb56fd9df2ff0fc2b0a3abba4578` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
 
 The new host supports content block `state_properties` and `default_state`, which may represent the source vine stages. Its world fluid kind still contains only empty, water and lava families; the original slime world fluids remain unresolved. Do not enable incomplete island generation or replace slime fluid with water.
 
@@ -19,3 +19,9 @@ Grouped limited plans also reached `E_UNSUPPORTED_MACRO` at the durability, knoc
 The newer `Game::wear` delegates to `durability_loss`, but creature and dispenser paths also call `durability_loss` directly. Moving the modifier hook to `wear` alone would omit those callers, so it is not an equivalent blanket replacement.
 
 After these paths are adapted and the complete plan and targeted checks pass, the intended single regression build and game pass covers crafting and station transactions, equipment and attacks, atlas and connected-block rendering, casting, persistence, and local and LAN interactions. It must use the fixed host and Mixins commits above. Windows and dedicated-server behavior need their own evidence; neither is established by a Linux build. Island generation remains disabled until its original materials, world fluids and feature placement are connected and validated.
+
+The official main revision was checked again on 2026-11-02: Horizon advanced from `e12185820a6bc85dd5ed04adc7b8b7a4bdc16102` to `40e044da777dfb56fd9df2ff0fc2b0a3abba4578` (25 changed files, including mesher and remote gameplay); Mixins remained `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Earlier plan results describe the former host and are not evidence for the new one. Recheck both official branches before merging.
+
+A minimal one-module application reproduces the `lib.rs` glob conflict on the new host. The same payload applies when placed in the public `entry.rs` module, and a limited plan accepting the 42 relocated support modules succeeds. Their adjusted paths and visibility are provisional: dependency type checking, the full plan and game behavior remain unverified.
+
+Creative preparation already calls PlutoLib's Python `register_item_groups` during manual preparation. Automatic native startup independently duplicates tab registration in Rust, so it does not yet share that API. TConstruct-specific generated material stats and item components must remain intact in either path. A reusable native registration API and its packaging/initialization contract are needed before replacing that duplicate; do not assume Python is present in the native runtime.

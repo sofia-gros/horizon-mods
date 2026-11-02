@@ -11,12 +11,12 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         let worktable = hub.sync.builtin.get("minecraft:block").and_then(|r| r.id("tconstruct:modifier_worktable")).is_some_and(|id| Some(id) == actual);
         let capacity = ["tconstruct:tinker_station", "tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"].into_iter()
             .find_map(|name| hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(name))
-                .filter(|id| Some(*id) == actual).and_then(|_| crate::tconstruct_source_anvil_capacity::input_capacity(name)));
+                .filter(|id| Some(*id) == actual).and_then(|_| crate::entry::tconstruct_source_anvil_capacity::input_capacity(name)));
         if let Some(capacity) = capacity {
             let (window, old_menu_state) = (menu.window, menu.state);
             if worktable {
                 let selected = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos).map(String::as_str);
-                let index = selected.and_then(crate::tconstruct_source_upgrade_rules::selection_index).map(|index| index as i16).unwrap_or(-1);
+                let index = selected.and_then(crate::entry::tconstruct_source_upgrade_rules::selection_index).map(|index| index as i16).unwrap_or(-1);
                 hub.guests[i].send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 29999, value: index }));
             }
             let layouts = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref().map(|snapshot| {
@@ -24,7 +24,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                     .filter_map(|(id, layers)| Some(vec![id.clone(), std::str::from_utf8(layers.last()?).ok()?.to_owned()]))
                     .flatten().collect::<Vec<_>>()
             });
-            let frame = layouts.as_ref().and_then(|layouts| crate::tconstruct_source_builder_wire::encode(layouts));
+            let frame = layouts.as_ref().and_then(|layouts| crate::entry::tconstruct_source_builder_wire::encode(layouts));
             let guest = &mut hub.guests[i];
             if let Some(menu) = guest.menu.as_mut() {
                 let wire = frame.as_deref().unwrap_or(&[i16::MIN]);
@@ -41,19 +41,19 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
-            let mut build = if worktable { None } else { crate::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output) };
+            let mut build = if worktable { None } else { crate::entry::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output) };
             if let Some(output) = build.as_mut() {
                 let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
-                crate::tconstruct_source_station_name::name_result(output, name);
+                crate::entry::tconstruct_source_station_name::name_result(output, name);
             }
             let mut operation = if worktable {
                 world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)
-                    .and_then(|selected| crate::tconstruct_source_station_world::extraction_plan(world, slots, selected)).map(|plan| plan.output)
-            } else { crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output) };
+                    .and_then(|selected| crate::entry::tconstruct_source_station_world::extraction_plan(world, slots, selected)).map(|plan| plan.output)
+            } else { crate::entry::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output) };
             if capacity == 5 {
                 if let Some(output) = operation.as_mut() {
                     let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
-                    crate::tconstruct_source_station_name::name_result(output, name);
+                    crate::entry::tconstruct_source_station_name::name_result(output, name);
                 }
             }
             if build.is_none() && operation.is_none() {
@@ -64,9 +64,9 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);
             if changed {
                 let tool = build.as_ref().or(operation.as_ref()).or_else(|| slots.first().and_then(Option::as_ref));
-                let traits = tool.and_then(|tool| crate::tconstruct_source_material_traits::levels(world, tool))
+                let traits = tool.and_then(|tool| crate::entry::tconstruct_source_material_traits::levels(world, tool))
                     .and_then(|traits| serde_json::to_string(&traits.levels).ok()).unwrap_or_else(|| "{}".to_owned());
-                let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits]).filter(|frame| frame.len() < 1767);
+                let trait_frame = crate::entry::tconstruct_source_builder_wire::encode(&[traits]).filter(|frame| frame.len() < 1767);
                 let build_net = hub.stack(&build);
                 let operation_net = hub.stack(&operation);
                 let guest = &mut hub.guests[i];
@@ -89,23 +89,23 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             continue;
         }
         if builder.is_none() || hub.encoder.block_ids.get(state).copied() != builder { continue; }
-        let patterns = crate::tconstruct_source_builder_world::refresh(world, pos);
-        let encoded = patterns.as_ref().and_then(|patterns| crate::tconstruct_source_builder_wire::encode(patterns));
+        let patterns = crate::entry::tconstruct_source_builder_world::refresh(world, pos);
+        let encoded = patterns.as_ref().and_then(|patterns| crate::entry::tconstruct_source_builder_wire::encode(patterns));
         let value = world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)
             .and_then(|selected| patterns.as_ref()?.iter().position(|pattern| pattern == selected))
             .map(|index| index as i16).unwrap_or(-1);
         let preview = hub.sync.builtin.get("minecraft:item").and_then(|registry| {
-            crate::tconstruct_source_builder_world::refresh_preview(world, pos,
+            crate::entry::tconstruct_source_builder_world::refresh_preview(world, pos,
                 || registry.names.iter().filter(|id| !id.is_empty()).cloned().collect())
         });
         let preview_key = (hub.guests[i].conn, hub.guests[i].placed_at, menu.window, pos);
-        let mut info = crate::tconstruct_source_builder_world::display_info(world, pos);
+        let mut info = crate::entry::tconstruct_source_builder_world::display_info(world, pos);
         let side = match menu.slots { crate::lan::menu::Slots::Double(_, side) => Some(side), _ => None };
         let custom_name = side.and_then(|side| world.block_names.get(&side)).or_else(||
             world.chunks.__horizon_mixins_tconstruct_builder_double_partner().get(&pos).and_then(|partner| world.block_names.get(partner)))
             .cloned().unwrap_or_default();
         info.push(custom_name);
-        let info_frame = crate::tconstruct_source_builder_wire::encode(&info);
+        let info_frame = crate::entry::tconstruct_source_builder_wire::encode(&info);
         let info_frame = info_frame.filter(|frame| frame.len() < 1767);
         let info_sent = info_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
         let info_changed = world.chunks.__horizon_mixins_tconstruct_builder_info_sent().get(&preview_key) != Some(&info_sent);
@@ -115,7 +115,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         // The original cast cost is world recipe data. Send a complete frame
         // alongside the menu data, never an inferred or partially updated cost.
         let cast_frame = world.chunks.__horizon_mixins_tconstruct_source_cast_costs().as_ref()
-            .and_then(|costs| crate::tconstruct_source_builder_wire::encode(&costs.iter().map(ToString::to_string).collect::<Vec<_>>()));
+            .and_then(|costs| crate::entry::tconstruct_source_builder_wire::encode(&costs.iter().map(ToString::to_string).collect::<Vec<_>>()));
         let sent_frame = cast_frame.clone().unwrap_or_else(|| vec![i16::MIN]);
         let cast_changed = world.chunks.__horizon_mixins_tconstruct_builder_cast_wire_sent().get(&preview_key) != Some(&sent_frame);
         if cast_changed {

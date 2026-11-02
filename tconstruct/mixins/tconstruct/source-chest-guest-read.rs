@@ -7,7 +7,7 @@ fn tconstruct_chest_guest_read(slots: crate::lan::menu::Slots, world: &crate::wo
     if let Some(_)=side {
         let Some(first)=world.block_entities.get(&table) else { return Break(None); };
         let mut result=first.slots().to_vec();
-        result.extend(crate::tconstruct_chest_rules::project_side(entity.slots(),offset));
+        result.extend(crate::entry::tconstruct_chest_rules::project_side(entity.slots(),offset));
         Break(Some(result))
-    } else { Break(Some(crate::tconstruct_chest_rules::project(entity.slots(),offset))) }
+    } else { Break(Some(crate::entry::tconstruct_chest_rules::project(entity.slots(),offset))) }
 }

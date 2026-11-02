@@ -1,6 +1,6 @@
 fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play::ContainerClick, world: &mut World, rules: &dyn Rules) -> std::ops::ControlFlow<Vec<ItemStack>> {
     use std::ops::ControlFlow::{Break,Continue};
-    use crate::tconstruct_chest_rules::{self as chest,ChestKind};
+    use crate::entry::tconstruct_chest_rules::{self as chest,ChestKind};
     let Some(gi)=hub.guests.iter().position(|g|g.conn==conn) else { return Continue(()); };
     let Some(menu)=hub.guests[gi].menu.as_ref() else { return Continue(()); };
     let crate::lan::menu::Slots::Double(table,side)=menu.slots else { return Continue(()); };
@@ -73,25 +73,25 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
                 let mut cursor=vec![carried.take()];dropped=chest::take_for_drop(&mut cursor,0,packet.button==0);carried=cursor.pop().flatten();changed=dropped.is_some();
             },
             (1,_,_,Some(i)) => if let Some(stack)=inventory[i].take() {
-                let old=stack.count;let rem=crate::tconstruct_tx::source_quick_move_to_builder(&mut table_items,&mut [],stack,max,max>1,pattern);
+                let old=stack.count;let rem=crate::entry::tconstruct_tx::source_quick_move_to_builder(&mut table_items,&mut [],stack,max,max>1,pattern);
                 let rem=rem.and_then(|stack|chest::insert_across(kind,&mut side_items,stack,max,part));
                 changed=rem.as_ref().map_or(0,|s|s.count)!=old;inventory[i]=rem;
             },
             (1,Some(i),_,_) => if let Some(stack)=side_items[i].take() {
-                let old=stack.count;let rem=crate::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
+                let old=stack.count;let rem=crate::entry::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
                 changed=rem.as_ref().map_or(0,|s|s.count)!=old;side_items[i]=rem;
             },
             (1,_,Some(i),_) => if let Some(stack)=table_items[i].take() {
-                let old=stack.count;let rem=crate::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
+                let old=stack.count;let rem=crate::entry::tconstruct_tx::source_quick_move_player(&mut inventory,stack,max,max>1);
                 changed=rem.as_ref().map_or(0,|s|s.count)!=old;table_items[i]=rem;
             },
             (2,Some(i),_,_) => if let Some(left)=chest::swap_slot(kind,&mut side_items,i,&mut inventory,&mut offhand,i32::from(packet.button),max,part,|inventory,stack| {
-                let limit=rules.max_stack(&stack.item).max(1);crate::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                let limit=rules.max_stack(&stack.item).max(1);crate::entry::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
             }) {changed=true;dropped=left;},
             (2,_,Some(i),_) if i!=0 || candidate_empty || pattern => {
                 let kind=ChestKind::Plain(table_items.len());
                 if let Some(left)=chest::swap_slot(kind,&mut table_items,i,&mut inventory,&mut offhand,i32::from(packet.button),max,true,|inventory,stack| {
-                    let limit=rules.max_stack(&stack.item).max(1);crate::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
+                    let limit=rules.max_stack(&stack.item).max(1);crate::entry::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
                 }) {changed=true;dropped=left;}
             },
             (2,_,_,Some(i)) => {
