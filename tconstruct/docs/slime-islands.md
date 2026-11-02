@@ -204,3 +204,20 @@ slime sapling growth, vine random growth and dedicated-server coverage remain
 open. The target injection plan, exact light/occlusion and random-draw order,
 chunk edges, snow, fluids, save/reload and vanilla grass regressions require
 dedicated validation.
+
+## Experimental Sky slime-vine updates
+
+The Sky vine requests random ticks and uses the source side-attachment,
+three-stage downward growth, floating-length and random-draw rules. A neighbor
+update preserves sides supported by the source slime-leaf tag or by a
+non-terminal vine above, and removes unsupported vines. The source tag includes
+Earth and Sky leaves; its Ender entry is optional until Ender leaves are
+registered. Vine placement, Ender vines, full island generation, the target
+injection plan, support shapes, world and save behavior, RNG order and
+single-player/LAN validation remain open. Vanilla vine behavior is unchanged.
+
+Sky vine placement additionally follows the source ordered look directions,
+existing-vine side checks and source attachment rules. It uses a narrow bridge
+to the host placement context's direction ordering. The bridge plan, placing
+on each face, replacement, no-support rejection, player/dispenser behavior,
+item consumption and local/LAN regression require dedicated validation.
