@@ -245,3 +245,14 @@ use the source hardness and resistance of 0.75. The Ender vine and its
 natural acquisition have not been tested; Ender slime leaves and islands are
 not yet registered as a complete generation route. Forge's extended shears
 action and dedicated-server behavior remain open.
+
+## b53 follow-up candidate
+
+The follow-up candidate is based on main `61613253e4aa06eb2e739a9f6343a93652f014f8`
+and targets Horizon `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` with Mixins
+`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Use the unified PlutoLib
+bundle built for that exact host by the joint build owner. The earlier #220
+and #223 heads remain unchanged. The joint b53 build for other work is not
+verification of this island candidate; its combined official plan, stage,
+build, game and survival behavior still need validation. Source slime fluids
+remain omitted as described above.

@@ -17,3 +17,11 @@ The source TConstruct data is pinned to [`f4e77d43f39ba1047bf93ae816b7e1beaab514
 This branch targets Horizon [`fd6cfda6bdef59a53aee830009f78c14832b0308`](https://github.com/horizon-rust/horizon/commit/fd6cfda6bdef59a53aee830009f78c14832b0308) with Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. A Linux client built with PlutoLib code `add61038f819910542d4c05d660f7c857c62fa07` passed the representative checks in the [host update evidence](host-upgrade.md), but the branch is not yet fully verified or merged. Advanced durability text is missing for a damaged Longbow with a per-stack maximum when its item template has no durability line. The durability bar itself appeared. Windows, smartphones and dedicated servers remain unverified. Check upstream again before merging. Slime-island generation and source world fluids remain incomplete.
 
 The next development target is Horizon `9a6f7dd5a193d709f389adeb1f51858465b8f747` with the same Mixins revision. Its combined build and game checks are in progress; the fd6 evidence above does not establish this target.
+
+### Island and foliage follow-up
+
+The island/foliage integration follow-up targets Horizon
+`b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` and Mixins
+`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It requires a unified
+PlutoLib bundle targeting that host. The joint b53 build for other changes
+does not verify this candidate. See [slime islands](slime-islands.md).
