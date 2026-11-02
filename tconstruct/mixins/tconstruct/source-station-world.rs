@@ -144,7 +144,8 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
     };
     let has_slurping = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:slurping")), Some(Tag::Int(level)) if *level > 0);
     let has_spilling = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:spilling")), Some(Tag::Int(level)) if *level > 0);
-    if tank_level > 0 || has_slurping || has_spilling || fields.get(&"tic_tank_capacity".into()).is_some() {
+    let has_splashing = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:splashing")), Some(Tag::Int(level)) if *level > 0);
+    if tank_level > 0 || has_slurping || has_spilling || has_splashing || fields.get(&"tic_tank_capacity".into()).is_some() {
         let mut probe = output.clone();
         probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
         // Fail before any transaction is committed if stored fluid is malformed.

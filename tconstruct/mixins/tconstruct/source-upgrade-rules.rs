@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 15] = [
+const UPGRADES: [(&str, i32); 16] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1), ("tconstruct:splashing", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -82,6 +82,7 @@ fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        "tconstruct:splashing" => matches!(item, "tconstruct:sky_staff" | "tconstruct:earth_staff" | "tconstruct:ichor_staff" | "tconstruct:ender_staff" | "tconstruct:melting_pan"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
@@ -99,7 +100,7 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum() }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -200,10 +201,10 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
-            if !matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") && amount(tool, id) != 0 { continue; }
-            if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") && amount(tool, id) >= i16::MAX as i32 { continue; }
+            if !matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") && amount(tool, id) != 0 { continue; }
+            if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") && amount(tool, id) >= i16::MAX as i32 { continue; }
             if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
                 && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
@@ -234,7 +235,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") { amount(tool, id).checked_add(1)? } else { 1 };
+            let next_level = if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") { amount(tool, id).checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
