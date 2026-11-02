@@ -41,6 +41,10 @@ A manually run Mixins validation workflow can produce an Actions artifact contai
 
 **This two-file installation and its startup resource preparation are experimental and unverified.** The official native build documentation does not establish a smartphone build path; smartphone installation and gameplay remain unverified. The Linux and Windows guides describe the manual preparation path.
 
+## Compatibility
+
+The current verified Linux combination uses development version `0.1.0` with pinned Horizon and Mixins commits. See [compatibility](docs/compatibility.md) for the exact revisions, test scope, and update target.
+
 ## Development status
 
 This port is under active development. See the [progress guide](docs/roadmap.md) for implemented features, known gaps, and verification coverage.
