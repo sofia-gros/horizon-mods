@@ -378,3 +378,5 @@ The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack dama
 Material-part melting now uses the existing source casting-cost and material lookup to resolve `material_melting`, scale primary and Foundry byproducts by part cost, and compute source melting time. Missing tags, material definitions, costs or fluid outputs fail closed. Runtime and LAN behavior await verification.
 
 Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
+
+Scorched Table and gold bars now have standalone source-shaped recipes, source models and the common casting transaction. Scorched Table requires a physical input, and gold bars are matched through the source empty-table-cast tag without consumption. The empty covered-state appearance and full Forge gold-ingot tag alternatives remain incomplete; operation, save and LAN await verification.
