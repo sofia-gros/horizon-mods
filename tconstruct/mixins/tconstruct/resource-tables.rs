@@ -148,7 +148,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         // Source glow is a six-directional, non-colliding light source.
         // Use the same empty collision for every orientation in both tables.
         let glow_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
-            .filter_map(|(id, row)| (row.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:glow")).then_some(id)).collect();
+            .filter_map(|(id, row)| matches!(row.get(0).and_then(serde_json::Value::as_str), Some("tconstruct:glow" | "tconstruct:copper_gauge")).then_some(id)).collect();
         if !glow_ids.is_empty() {
             let air = facts["defaults"]["minecraft:air"].as_u64().ok_or("missing air state")? as usize;
             for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
@@ -253,14 +253,20 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         // collision stays empty in both collision tables above.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
-                if state.get(0).and_then(serde_json::Value::as_str) != Some("tconstruct:glow") { continue; }
+                let name = state.get(0).and_then(serde_json::Value::as_str);
+                if !matches!(name, Some("tconstruct:glow" | "tconstruct:copper_gauge")) { continue; }
                 let facing = state.pointer("/4/properties/facing").and_then(serde_json::Value::as_str).ok_or("missing glow facing")?;
-                let b: [f64;6] = match facing {
+                let b: [f64;6] = if name == Some("tconstruct:copper_gauge") { match facing {
+                    "down" => [0.25,0.9375,0.25,0.75,1.0,0.75], "up" => [0.25,0.0,0.25,0.75,0.0625,0.75],
+                    "north" => [0.25,0.25,0.9375,0.75,0.75,1.0], "south" => [0.25,0.25,0.0,0.75,0.75,0.0625],
+                    "west" => [0.9375,0.25,0.25,1.0,0.75,0.75], "east" => [0.0,0.25,0.25,0.0625,0.75,0.75],
+                    _ => return Err("invalid gauge facing".into()),
+                }} else { match facing {
                     "down" => [0.0,0.0,0.0,1.0,0.0625,1.0], "up" => [0.0,0.9375,0.0,1.0,1.0,1.0],
                     "north" => [0.0,0.0,0.0,1.0,1.0,0.0625], "south" => [0.0,0.0,0.9375,1.0,1.0,1.0],
                     "west" => [0.0,0.0,0.0,0.0625,1.0,1.0], "east" => [0.9375,0.0,0.0,1.0,1.0,1.0],
                     _ => return Err("invalid glow facing".into()),
-                };
+                }};
                 let mut edges = Vec::new();
                 for axis in 0..3 { let a = (axis+1)%3; let c = (axis+2)%3;
                     for aa in [0,1] { for cc in [0,1] {
