@@ -32,3 +32,5 @@ The consolidated Creative and short-use item API was built and exercised on Linu
 Horizon `e6406b7a04521323dace51d860747dc93dc67ebc` is a newer upstream candidate and has not been verified with this combined API.
 
 The [single-file native library](native-installation.md) was built and exercised on Linux from development commit `2d70296717a49dee97fbb03e45e3bcef40ec14c4` with Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The official bundle validator and launcher extraction harness passed; the complete launcher application, Windows and Tinkers integration remain unverified.
+
+The [inventory planner demo](../examples/inventory/README.md) was built on Linux from the extracted single native package with Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Local and LAN guest moves, host save/reload and guest reconnect were checked. Tinkers integration, Windows and full launcher installation remain unverified.

@@ -1,6 +1,6 @@
 # Install the native library
 
-PlutoLib's development package is one source-only `.hnmod` shared by native mods. It contains the Creative and item APIs, component transport, Tool rules, and durability tooltip and bar adapters. It does not contain a consuming mod, demo hooks, mod assets or the unfinished world-placement prototype.
+PlutoLib's development package is one source-only `.hnmod` shared by native mods. It contains the Creative and item APIs, a two-slot [inventory move planner](inventory.md), component transport, Tool rules, and durability tooltip and bar adapters. It does not contain a consuming mod, demo hooks, mod assets or the unfinished world-placement prototype.
 
 ## Build the bundle
 
@@ -11,7 +11,7 @@ mkdir -p .work
 python3 tools/package_native.py .work/plutolib.hnmod
 ```
 
-The native mod ID is `pluto_native_creative`; its Mixins source is under `mixins/pluto_native_creative/`, and its Cargo crate is `pluto-api` (imported as `pluto_api`). The output must not already exist. Python builds the archive; it is not needed by the native API. The component source directories remain available for development, but the generated archive combines them as one official Mixins bundle with one `pluto_api` crate.
+The native mod ID is `pluto_native_creative`; its Mixins source is under `mixins/pluto_native_creative/`, and its Cargo crate is `pluto-api` (imported as `pluto_api`). The output must not already exist. Python builds the archive; it is not needed by the native API. The component source directories remain available for development, but the generated archive combines them as one official Mixins bundle with one `pluto_api` crate and one shared inventory-planning crate.
 
 ## Use it with a mod
 

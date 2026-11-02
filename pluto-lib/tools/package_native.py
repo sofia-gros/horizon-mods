@@ -17,6 +17,7 @@ COMPONENTS = (
     "pluto_items_b2",
 )
 API_FILES = ("api/Cargo.toml", "api/src/lib.rs", "api/src/creative.rs", "api/src/item.rs")
+INVENTORY_FILES = ("inventory-api/Cargo.toml", "inventory-api/src/lib.rs")
 
 
 def _value(value):
@@ -74,9 +75,9 @@ def _bundle(manifest: dict) -> tuple[bytes, dict[str, bytes]]:
                     rel = _relative(entry[key])
                     entry[key] = f"{name}/{rel}"
                     if key == "path":
-                        if name != "pluto_native_creative" or rel != "api":
+                        if name != "pluto_native_creative" or rel not in ("api", "inventory-api"):
                             raise ValueError(f"{name}: unsupported crate path {rel}")
-                        for item in API_FILES:
+                        for item in API_FILES if rel == "api" else INVENTORY_FILES:
                             files[f"{name}/{item}"] = _regular(root / item)
                     else:
                         files[f"{name}/{rel}"] = _regular(root / rel)

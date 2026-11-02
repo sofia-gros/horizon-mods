@@ -10,3 +10,15 @@ horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
 id = "creative-api"
 path = "api"
 dependent = "horizon-client"
+
+[[crate]]
+id = "inventory-api"
+path = "inventory-api"
+dependent = "horizon-client-lib"
+
+[[module]]
+id = "inventory-export"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_inventory"
+source = "inventory-export.rs"
+visibility = "pub"
