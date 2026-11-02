@@ -1,0 +1,7 @@
+# Introduction recipe check
+
+2026-11-02; isolated creative fixture with supplied Materials and You, integrated tree `dbcfba54881049687da34d8c31462cede8b1802f`, client SHA-256 `955f2d745b901f90a8a1858303d809c975f17c65e584f67cf08d100fe74a39b0`. Existing final prepared resources; no survival claim.
+
+Introduction index links for Part Builder Crafting and Tinker Station Crafting navigate to their illustrated source recipe, and the return control returns to the index. Part Builder output hover reads “Part Builder”. Tinker Station has two identically named index entries because its description continues on the next page; both links lead to the corresponding spread. The 2×2 and 3×3 displayed pattern shapes match the original recipe data. Screenshots are actual client captures.
+
+Static limitation for recipe owner: original `tables/part_builder` and `tables/tinker_station` both use `#tconstruct:planklike`, which includes `#minecraft:planks`, `tconstruct:blazewood`, and `tconstruct:nahuatl`; the prepared executable's native crafting recipes use only `#minecraft:planks`. This is a data comparison, not proof those two additional ingredients are registered or usable, and this check did not exercise crafting. Verify the actual ingredient registration and gameplay before changing recipes. Matching vanilla planks shown in the screenshots do not prove parity for those source-specific ingredients.
