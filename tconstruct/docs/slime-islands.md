@@ -145,3 +145,23 @@ unconnected because their original feature types and resources are not yet
 implemented. The target-version injections, loading, placement and saved-start
 restoration require dedicated plan, build and in-game validation; no natural
 generation or survival acquisition is claimed until that succeeds.
+
+## Experimental slime leaf lifecycle
+
+Earth and Sky slime leaves now request random ticks. A source-specific
+neighbor-update hook schedules their distance updates, and a scheduled-tick
+hook computes distance only from `tconstruct:slimy_logs` and the original
+Earth, Sky and Ender slime-leaf IDs. The registered source log tag includes
+all four original slimewood log/wood families. When distance is seven and the
+leaf is not persistent, the existing leaf random-tick path handles decay and
+block loot. Normal vanilla leaves keep their existing behavior.
+
+If the slime-log tag or a required state cannot be resolved, the source hook
+keeps the leaf state rather than falling through to vanilla's different log
+rules. Placement requests persistent leaves using the same source distance calculation;
+if required source data is unavailable, placement is refused rather than
+using vanilla distance rules. Ender leaf registration, Sky-vine support updates,
+sapling growth, soil spreading, bonemeal and dedicated-server behavior remain
+unverified or unimplemented. The target injection plan, source tag resolution,
+placed/persistent leaves, log removal, loot, cross-chunk behavior and
+single-player/LAN/save regression require dedicated validation.
