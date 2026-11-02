@@ -6,4 +6,4 @@ Build `pluto_inventory_api` and the matching Horizon `horizon_items` and `horizo
 
 ## Content declaration fixture
 
-`item_declaration_host.rs` reads the generated demo using `PLUTO_DEMO_DIR`, packages its item declaration and checks it with the pinned Horizon content parser. Set `PLUTO_PROBE_HMOD` to a disposable output file; the test overwrites it. Compile it with `rustc --test`, the matching dependency directory and `--extern horizon_mods=...`, then run the test binary. This checks declaration loading, not gameplay.
+`item_declaration_host.rs` reads the generated demo using `PLUTO_DEMO_DIR`, packages both item declarations and checks them with the pinned Horizon content parser. Set `PLUTO_PROBE_HMOD` to a disposable output file; the test overwrites it. Compile it with `rustc --test`, the matching dependency directory and `--extern horizon_mods=...`, then run the test binary. This checks declaration loading, not gameplay.
