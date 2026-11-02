@@ -159,6 +159,19 @@ impl Catalog<'_> {
         }
         found
     }
+    pub(super) fn can_filling(&self, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+        if !self.known_items.contains("tconstruct:copper_can") || !self.known_fluids.contains(fluid) { return None; }
+        let id = self.recipes.iter().find_map(|(id, bytes)| {
+            let value: Value = serde_json::from_slice(bytes).ok()?;
+            if value.get("type")?.as_str()? != "tconstruct:table_filling" || value.get("container")?.as_str()? != "tconstruct:copper_can" || value.get("fluid_amount")?.as_u64()? != 90 { return None; }
+            match value.get("conditions") { None => {}, Some(Value::Array(values)) if conditions(values) => {}, _ => return None }
+            Some(id.clone())
+        })?;
+        Some((id, CastingRecipe { basin: false, retextured: false, cast: Some(Ingredient::Item("tconstruct:copper_can".into())),
+            consumes_cast: true, switch_slots: false, fluid: FluidSpec { id: fluid.to_owned(), tagged: false, amount: 90 },
+            output: Output::Item("tconstruct:copper_can".into()), cooling_time: 5 }))
+    }
+
     pub(super) fn bucket_filling(&self, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String)> {
         if !self.known_items.contains("minecraft:bucket") || !self.known_fluids.contains(fluid) { return None; }
         let output = super::tconstruct_source_fluid_container::filled_bucket(fluid)?;
