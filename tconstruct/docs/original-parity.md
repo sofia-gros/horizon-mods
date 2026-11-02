@@ -376,3 +376,5 @@ The Smeltery recipe catalog resolves `forge:conditional` candidates in source or
 The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack damage, known maximum durability and source unit rounding, including Foundry byproducts. Unknown or malformed maximum-damage components fail closed; exact runtime, reload and LAN behavior await verification.
 
 Material-part melting now uses the existing source casting-cost and material lookup to resolve `material_melting`, scale primary and Foundry byproducts by part cost, and compute source melting time. Missing tags, material definitions, costs or fluid outputs fail closed. Runtime and LAN behavior await verification.
+
+Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.

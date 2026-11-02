@@ -24,7 +24,7 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
     match block {
         "tconstruct:seared_melter" => Some("tconstruct:melter"),
         "tconstruct:seared_heater" => Some("tconstruct:heater"),
-        "tconstruct:seared_faucet" => Some("tconstruct:faucet"),
+        "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => Some("tconstruct:faucet"),
         "tconstruct:seared_table" => Some("tconstruct:table"),
         "tconstruct:seared_basin" => Some("tconstruct:basin"),
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => Some("tconstruct:smeltery"),

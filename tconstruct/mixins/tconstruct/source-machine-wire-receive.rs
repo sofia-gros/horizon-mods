@@ -6,7 +6,7 @@ fn tconstruct_machine_wire_receive(game: &mut crate::game::Game<'_>, pos: [i32; 
         Some("tconstruct:anvil") => &["tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"],
         Some("tconstruct:melter") => &["tconstruct:seared_melter"],
         Some("tconstruct:heater") => &["tconstruct:seared_heater"],
-        Some("tconstruct:faucet") => &["tconstruct:seared_faucet"],
+        Some("tconstruct:faucet") => &["tconstruct:seared_faucet", "tconstruct:scorched_faucet"],
         Some("tconstruct:table") => &["tconstruct:seared_table"],
         Some("tconstruct:basin") => &["tconstruct:seared_basin"],
         Some("tconstruct:smeltery") => &["tconstruct:smeltery_controller", "tconstruct:foundry_controller"],
