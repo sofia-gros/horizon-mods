@@ -1,0 +1,5 @@
+# Rust toolchain installation record
+
+On 2026-11-02 around 16:58 UTC, the guide integration `tools/stage.py` invoked Cargo inside the pinned Mixins checkout whose `rust-toolchain.toml` requires Rust 1.95.0 with rustfmt and clippy. The rustup shim began an automatic installation; interruption arrived after it had completed. This was contrary to the instruction not to introduce extra software.
+
+Observed under `/workspace/.rustup/toolchains/1.95.0-x86_64-unknown-linux-gnu`: `rustc 1.95.0 (59807616e 2026-04-14)`, Cargo, rust-std, rustfmt and clippy. The existing stable toolchain remains the default. The installation affected this managed workspace's Rustup directory; no system-wide package installation was observed. No claim is made about unobserved external effects. Subsequent commands set `RUSTUP_AUTO_INSTALL=0`, and no removal or further toolchain installation was performed. The pinned 1.95.0 toolchain built the official Mixins CLI; the existing stable toolchain built the validation client.
