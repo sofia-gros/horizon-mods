@@ -17,12 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 15] = [
+const UPGRADES: [(&str, i32); 16] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
+    ("tconstruct:power", 72),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -82,6 +83,7 @@ fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        "tconstruct:power" => item == "tconstruct:longbow",
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
@@ -434,6 +436,7 @@ pub fn apply_stats(
                 "tconstruct:vintage" => draw_multiply *= 1.0 - 0.1 * trait_level,
                 "tconstruct:ductile" => projectile_add += 0.25 * trait_level,
                 "tconstruct:solid" => projectile_add += 0.75 * trait_level,
+                "tconstruct:power" if amount(tool, &id) > 0 || trait_level > 0.0 => projectile_add += 0.5 + 0.5 * (effective(tool, &id, 72) + trait_level),
                 _ => {},
             }
         }
@@ -458,6 +461,28 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn power_longbow_incremental_damage_and_slot_scope() {
+        use super::*;
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:projectile_damage":2}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        assert!(supported("tconstruct:power", "tconstruct:longbow"));
+        assert!(!supported("tconstruct:power", "tconstruct:crossbow"));
+        for (points, expected) in [(0, 2.0), (1, 2.0 + 0.5 + 0.5 / 72.0), (72, 3.0), (360, 5.0)] {
+            let mut tool = ItemStack::new("tconstruct:longbow", 1);
+            tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:power", Tag::Int(points))])),
+                ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:power".into())])),
+            ])));
+            apply_stats(&mut tool, &stats, &BTreeMap::new(), false, false).unwrap();
+            apply_stats(&mut tool, &stats, &BTreeMap::new(), false, false).unwrap();
+            let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+            assert!(matches!(custom.get("tic_projectile_damage"), Some(Tag::Float(v)) if (f32::from_bits(*v) - expected).abs() < 0.00001));
+            assert_eq!(valid_slots(&tool, &BTreeMap::new(), 5, 0), true);
+            if points > 0 { assert!(!valid_slots(&tool, &BTreeMap::new(), 0, 0)); }
+        }
+    }
+
     #[test]
     fn source_cobalt_and_amethyst_bronze_crossbow_reference() {
         use super::*;

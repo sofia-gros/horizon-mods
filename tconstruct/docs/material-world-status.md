@@ -165,3 +165,19 @@ candidate. All support-module source files referenced by its checked-in
 TConstruct and Pluto manifests were statically scanned for inner documentation
 attributes and shebangs. No such source lines remained at that scan. The merged
 candidate has not passed formal package, apply, type or runtime checks.
+
+### Longbow Power candidate
+
+The original Power upgrade accepts Ichor slime crystals on the longbow: 72
+items per level, at most five levels, with one upgrade slot per level. Its
+projectile-damage addition is `0.5 + 0.5 * effective_level` while present,
+including partial levels. This candidate connects that recipe to the existing
+upgrade and ordered ranged-stat paths. The two supported bows have different
+source tags: the crossbow does not accept Power. These changes are source-level
+only and still need official apply, type and game verification. A full natural
+crystal-to-upgrade survival route has not been demonstrated.
+
+For a base projectile stat of 2, check zero, one, 72 and 360 crystal points:
+expected values are 2, approximately 2.506944, 3 and 5 respectively. Also check
+slot limits, extraction and reapplication, save/reload, and rejection on a
+crossbow. Values before downstream arrow effects are the comparison point.
