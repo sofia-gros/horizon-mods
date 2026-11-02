@@ -56,10 +56,36 @@ pub(crate) fn click(game: &mut Game<'_>, host: &mut LanHost, conn: u32, packet: 
     let Some((window, state, mut menu, stored_pos)) = host.play.get_mut(&conn).and_then(|play| play.crafting.table.take_if(|(window, ..)| *window == packet.container)) else { return Break(true); };
     if station(game, pos) && !host.hub.guests[gi].spectator() && host.hub.guests[gi].within_block_range([pos.0, pos.1, pos.2], 4.0) {
         if let Some(grid) = items(game, pos) {
+            let side=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&(conn,joined,window)).copied().and_then(|(pos,_)| {
+                let BlockEntity::Chest(items)=game.world.block_entities.get(&pos)? else {return None;};
+                let kind=match items.len() {256=>crate::game::tconstruct_chest_rules::ChestKind::Part,64=>crate::game::tconstruct_chest_rules::ChestKind::Tinkers,_=>return None};
+                Some((pos,kind,items.clone()))
+            });
+            let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok()).and_then(|v|v.get("tconstruct:chest_parts")).cloned().unwrap_or_default();
+            let mut updated_side=None;
             game.guest_menu_op(host, gi, &mut menu, |menu, env| {
                 for (i, stack) in grid.into_iter().enumerate() { menu.set_slot(env, i + 1, stack); }
+                if packet.slot==0 && packet.input==1 {
+                    if let Some((pos,kind,mut items))=side {
+                        let saved_grid:Vec<_>=(1..10).map(|i|menu.slot(i).cloned()).collect();
+                        let saved_inventory:Vec<_>=(0..36).map(|i|menu.player_item(i).cloned()).collect();
+                        let saved_carried=menu.carried.clone();
+                        let lengths=(menu.drops.len(),menu.dropped.len(),menu.sounds.len(),menu.player_sounds.len(),menu.crafted.len());
+                        if crate::game::tconstruct_crafting_output::quick(menu,env,&mut items,kind,&tags).is_ok() {updated_side=Some((pos,items));}
+                        else {
+                            for (i,stack) in saved_grid.into_iter().enumerate() {menu.set_slot(env,i+1,stack);}
+                            for (i,stack) in saved_inventory.into_iter().enumerate() {menu.set_player_item(i,stack);}
+                            menu.carried=saved_carried;menu.drops.truncate(lengths.0);menu.dropped.truncate(lengths.1);menu.sounds.truncate(lengths.2);menu.player_sounds.truncate(lengths.3);menu.crafted.truncate(lengths.4);
+                        }
+                        return;
+                    }
+                }
                 let _ = menu.click(env, i32::from(packet.slot), i32::from(packet.button), input(packet.input));
             });
+            if let Some((side,items))=updated_side {
+                if let Some(BlockEntity::Chest(current))=game.world.block_entities.get_mut(&side) {*current=items;}
+                game.world.modified.insert((side.0>>4,side.2>>4));
+            }
             if let Some(BlockEntity::Chest(items)) = game.world.block_entities.get_mut(&pos) {
                 if items.len() == 9 { for (i, slot) in items.iter_mut().enumerate() { *slot = menu.slot(i + 1).cloned(); } }
             }

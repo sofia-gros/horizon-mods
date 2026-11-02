@@ -62,6 +62,36 @@ pub(super) fn insert_across(
     remaining
 }
 
+/// Source workstation results first refill existing side stacks, then use
+/// player inventory, then try empty side slots.
+pub(super) fn insert_existing(
+    kind: ChestKind, slots: &mut [Option<horizon_items::items::ItemStack>],
+    incoming: horizon_items::items::ItemStack, item_limit: u32, tagged_part: bool,
+) -> Option<horizon_items::items::ItemStack> {
+    let mut remaining = Some(incoming);
+    for slot in 0..slots.len() {
+        if slots[slot].is_none() { continue; }
+        let Some(stack) = remaining.take() else { return None; };
+        remaining = insert_slot(kind, slots, slot, stack, item_limit, tagged_part);
+    }
+    remaining
+}
+
+pub(super) fn plan_crafted_output(
+    kind: ChestKind, side: &[Option<horizon_items::items::ItemStack>],
+    inventory: &[Option<horizon_items::items::ItemStack>], output: horizon_items::items::ItemStack,
+    item_limit: u32, tagged_part: bool,
+    move_player: impl FnOnce(&mut [Option<horizon_items::items::ItemStack>],horizon_items::items::ItemStack) -> Option<horizon_items::items::ItemStack>,
+) -> Option<(Vec<Option<horizon_items::items::ItemStack>>,Vec<Option<horizon_items::items::ItemStack>>,Option<horizon_items::items::ItemStack>)> {
+    if side.len()!=kind.slots() || inventory.len()!=36 {return None;}
+    let original=output.count;let mut side=side.to_vec();let mut inventory=inventory.to_vec();
+    let rest=insert_existing(kind,&mut side,output,item_limit,tagged_part);
+    let rest=rest.and_then(|stack|move_player(&mut inventory,stack));
+    let rest=rest.and_then(|stack|insert_across(kind,&mut side,stack,item_limit,tagged_part));
+    if rest.as_ref().map_or(0,|stack|stack.count)==original {return None;}
+    Some((side,inventory,rest))
+}
+
 /// Apply a normal left/right click to a chest slot; all other input modes are
 /// handled separately by the caller. Every stack mutation keeps its components.
 pub(super) fn pickup_slot(
@@ -258,6 +288,32 @@ mod tests {
         assert!(insert_across(ChestKind::Tinkers, &mut tinkers, ItemStack::new("minecraft:stone", 5), 64, false).is_none());
         assert_eq!(tinkers[7].as_ref().unwrap().count, 16);
         assert_eq!(tinkers[0].as_ref().unwrap().count, 4);
+    }
+    #[test]
+    fn refill_stage_keeps_empty_slots_for_after_player_inventory() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![None;64];side[7]=Some(ItemStack::new("minecraft:stone",15));
+        let rest=insert_existing(ChestKind::Tinkers,&mut side,ItemStack::new("minecraft:stone",5),64,false).unwrap();
+        assert_eq!((side[7].as_ref().unwrap().count,rest.count),(16,4));
+        assert!(side[0].is_none());
+    }
+    #[test]
+    fn crafted_result_fills_side_then_player_and_rejects_full_destinations() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![None;64];side[0]=Some(ItemStack::new("minecraft:stone",15));
+        let inventory=vec![None;36];
+        let give=|inventory:&mut [Option<ItemStack>],mut stack:ItemStack| {
+            let index=inventory.iter().position(Option::is_none)?;
+            let count=stack.count.min(64);let mut placed=stack.clone();placed.count=count;inventory[index]=Some(placed);stack.count-=count;
+            (stack.count>0).then_some(stack)
+        };
+        let (next,player,left)=plan_crafted_output(ChestKind::Tinkers,&side,&inventory,ItemStack::new("minecraft:stone",5),64,false,give).unwrap();
+        assert_eq!(next[0].as_ref().unwrap().count,16);
+        assert_eq!(player[0].as_ref().unwrap().count,4);
+        assert!(next[1].is_none() && left.is_none());
+        let full=vec![Some(ItemStack::new("minecraft:stone",16));64];
+        let packed=vec![Some(ItemStack::new("minecraft:stone",64));36];
+        assert!(plan_crafted_output(ChestKind::Tinkers,&full,&packed,ItemStack::new("minecraft:stone",1),64,false,|_,s|Some(s)).is_none());
     }
     #[test]
     fn guest_projection_has_only_real_page_slots() {

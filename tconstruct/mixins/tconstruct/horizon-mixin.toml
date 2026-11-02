@@ -3615,3 +3615,9 @@ bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "ops", ty = "&[(Option<usize>,i32,horizon_client::menu::Input)]", value = "ops" },
 ]
+
+[[module]]
+id = "source-crafting-output"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_crafting_output"
+source = "source-crafting-output.rs"
