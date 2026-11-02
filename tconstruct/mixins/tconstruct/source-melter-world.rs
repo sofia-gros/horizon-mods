@@ -31,7 +31,7 @@ fn conditional_test(value: &serde_json::Value, registries: &HashMap<String, Tags
     }
 }
 
-fn conditional_conditions(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<bool> {
+pub(super) fn conditional_conditions(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<bool> {
     for value in values { if !conditional_test(value, registries, config, items)? { return Some(false); } }
     Some(true)
 }

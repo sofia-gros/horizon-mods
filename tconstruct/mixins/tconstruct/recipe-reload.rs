@@ -98,11 +98,19 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         let wrapper = serde_json::from_slice::<serde_json::Value>(bytes).ok()
             .and_then(|value| value.get("type").and_then(serde_json::Value::as_str).map(str::to_owned))
             .is_some_and(|kind| kind == "forge:conditional");
-        if !wrapper { return true; }
+        if wrapper {
+            let Some((registries, config, items)) = &condition_context else { return false; };
+            let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items) else { return false; };
+            *bytes = selected;
+        }
+        // Forge also gates ordinary recipes with a top-level conditions list.
+        // Applying it here protects consumers that only parse the recipe body.
+        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { return true; };
+        let Some(raw_conditions) = value.get("conditions") else { return true; };
+        let Some(conditions) = raw_conditions.as_array() else { return false; };
+        if conditions.is_empty() { return true; }
         let Some((registries, config, items)) = &condition_context else { return false; };
-        let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items) else { return false; };
-        *bytes = selected;
-        true
+        crate::game::tconstruct_source_melter_world::conditional_conditions(conditions, registries, config, items) == Some(true)
     });
     // Preserve an explicit failure when any required input is unavailable.
     // These definitions describe the current Horizon registries, which do not
