@@ -180,13 +180,13 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 return Some((id, recipe, output));
             }
         }
-        if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
-            catalog.duplication(&stack.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
-        })? {
-            let mut output = stack.clone();
-            output.count = 1;
-            return Some((id, recipe, output));
-        }
+    }
+    if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+        catalog.duplication(basin, &stack.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })? {
+        let mut output = stack.clone();
+        output.count = 1;
+        return Some((id, recipe, output));
     }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Regular casts are limited to undamaged tools; composite

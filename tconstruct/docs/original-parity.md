@@ -382,3 +382,5 @@ Scorched Faucet now uses the existing faucet transaction, ticking, collision, so
 Scorched Table and gold bars now have standalone source-shaped recipes, source models and the common casting transaction. Scorched Table requires a physical input, and gold bars are matched through the source empty-table-cast tag without consumption. The empty covered-state appearance and full Forge gold-ingot tag alternatives remain incomplete; operation, save and LAN await verification.
 
 The source `molding_basin` serializer now uses the same material/pattern transaction as `molding_table`, with the two recipe types kept separate. No basin molding recipe is added; datapack-supplied cases and integrated operation await verification.
+
+The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
