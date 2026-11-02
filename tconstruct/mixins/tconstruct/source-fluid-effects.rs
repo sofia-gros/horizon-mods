@@ -17,6 +17,7 @@ pub(super) enum EntityEffect {
     Mob(MobEffect),
     Remove(String),
     Hunger { hunger: i32, saturation: f32, always: bool },
+    Push { flat: f32, each_level: f32 },
 }
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Effects {
@@ -102,6 +103,13 @@ pub(super) fn parse_entity(value: &Value) -> Option<Effects> {
                     "tconstruct:remove_effect" => {
                         if obj.keys().any(|k| !matches!(k.as_str(), "type" | "effect")) { return None; }
                         Some(EntityEffect::Remove(obj.get("effect")?.as_str()?.to_owned()))
+                    }
+                    "tconstruct:push_entity" => {
+                        if obj.keys().any(|key| !matches!(key.as_str(), "type" | "flat" | "each_level")) { return None; }
+                        let flat = obj.get("flat").map_or(Some(0.0), Value::as_f64)? as f32;
+                        let each_level = obj.get("each_level").map_or(Some(0.0), Value::as_f64)? as f32;
+                        if !flat.is_finite() || !each_level.is_finite() { return None; }
+                        Some(EntityEffect::Push { flat, each_level })
                     }
                     "tconstruct:restore_hunger" => {
                         if obj.keys().any(|k| !matches!(k.as_str(), "type" | "hunger" | "saturation" | "can_always_eat" | "representative_item")) { return None; }

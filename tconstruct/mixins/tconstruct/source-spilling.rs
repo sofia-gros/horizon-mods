@@ -69,7 +69,7 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
     let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return None; };
     let strength = (*level as f32).min(fluid.amount as f32 / recipe.amount as f32);
     if strength <= 0.0 { return None; }
-    enum Action { Add(&'static str, i32, i32), RemovePoison }
+    enum Action { Add(&'static str, i32, i32), RemovePoison, Push([f64; 3]) }
     let mut planned = Vec::new();
     let mut ids = HashSet::new();
     for effect in recipe.entity {
@@ -77,6 +77,19 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
             super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => effect,
             // RestoreHungerFluidEffect applies only to players, not mobs.
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => continue,
+            super::tconstruct_source_fluid_effects::EntityEffect::Push { flat, each_level } => {
+                if each_level == 0.0 && strength < 1.0 { continue; }
+                let Some(player) = game.player.as_ref() else { return None; };
+                let target = game.mobs[index].position;
+                let delta = [target.x - player.position.x, target.y - player.position.y, target.z - player.position.z];
+                let length = delta.iter().map(|d| d * d).sum::<f64>().sqrt();
+                let magnitude = f64::from(flat + each_level * strength);
+                if !length.is_finite() || length == 0.0 || !magnitude.is_finite() || magnitude == 0.0 { continue; }
+                let used_scale = if each_level == 0.0 { 1.0 } else { strength };
+                let used = ((recipe.amount as f32 * used_scale.min(strength)).ceil() as u32).min(fluid.amount);
+                if used > 0 { planned.push((Action::Push(delta.map(|d| d / length * magnitude)), used)); }
+                continue;
+            }
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
                 let Some(known) = horizon_client::brewing::effect(&id) else { return None; };
                 if !ids.insert(known.id) { return None; }
@@ -115,6 +128,11 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
                 mob.add_effect(id, duration, amplifier);
                 let after = mob.extra.effects.iter().find(|entry| entry.0 == id).copied();
                 before != after
+            }
+            Action::Push(delta) => {
+                let velocity = mob.velocity;
+                mob.velocity = horizon_core::geometry::Vec3::new(velocity.x + delta[0], velocity.y + delta[1], velocity.z + delta[2]);
+                true
             }
             Action::RemovePoison => {
                 let before = mob.extra.effects.len();

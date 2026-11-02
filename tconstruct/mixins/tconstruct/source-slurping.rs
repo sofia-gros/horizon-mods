@@ -68,6 +68,7 @@ pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
                 if strength < 1.0 || game.potions.effects.get(known.id).is_none() { continue; }
                 (PlayerAction::Remove(known.id), 1.0)
             }
+            super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => return None,
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { hunger, saturation, always } => {
                 if hunger_seen { return None; } hunger_seen = true;
                 let player = game.player.as_ref()?;
