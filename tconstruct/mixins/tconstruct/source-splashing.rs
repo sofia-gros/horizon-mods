@@ -336,7 +336,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
 /// Source AOE paths for bundled glow/fire/snow placement effects.
 /// Non-empty tool AOE iterators and other block-effect forms stay unresolved.
 pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
-    if game.remote.is_some() || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
+    if game.remote.is_some() || !right_click(game, stack) || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
     if !matches!(face, [0, -1, 0] | [0, 1, 0] | [0, 0, -1] | [0, 0, 1] | [-1, 0, 0] | [1, 0, 0]) { return None; }
     if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
     let mut vein = None;
@@ -360,15 +360,37 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
     let effects = recipe.get("block_effects")?.as_array()?;
-    if effects.len() != 1 || effects[0].get("type")?.as_str()? != "tconstruct:place_block" { return None; }
-    let block = effects[0].get("block")?.as_str()?;
-    if !matches!(block, "tconstruct:glow" | "minecraft:fire" | "minecraft:snow") { return None; }
-    if effects[0].as_object()?.keys().any(|key| key != "type" && key != "block" && key != "sound") { return None; }
-    let sound = match effects[0].get("sound") { None => None, Some(value) => Some(value.as_str()?.to_owned()) };
+    if effects.len() != 1 { return None; }
+    let effect = effects[0].as_object()?;
+    let kind = effect.get("type")?.as_str()?;
+    let is_cloud = kind == "tconstruct:mob_effect_cloud";
+    let mut cloud = Vec::new();
+    let (block, sound) = if is_cloud {
+        if *level != 1 || effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
+        for entry in effect.get("effects")?.as_array()? {
+            let entry = entry.as_object()?;
+            if entry.keys().any(|key| !matches!(key.as_str(), "effect" | "time" | "level")) { return None; }
+            let def = horizon_client::brewing::effect(entry.get("effect")?.as_str()?)?;
+            if def.instant || horizon_client::brewing::is_mod_effect(def.id) { return None; }
+            let duration = i32::try_from(entry.get("time").map_or(Some(-1), serde_json::Value::as_i64)?).ok()?;
+            let level = i32::try_from(entry.get("level").map_or(Some(1), serde_json::Value::as_i64)?).ok()?;
+            if !(1..=256).contains(&level) { return None; }
+            if duration > 10 { duration.checked_mul(4)?; cloud.push((def.id, duration, level - 1)); }
+        }
+        if cloud.is_empty() { return None; }
+        ("", None)
+    } else {
+        if kind != "tconstruct:place_block" || !game.may_build() { return None; }
+        let block = effect.get("block")?.as_str()?;
+        if !matches!(block, "tconstruct:glow" | "minecraft:fire" | "minecraft:snow") { return None; }
+        if effect.keys().any(|key| !matches!(key.as_str(), "type" | "block" | "sound")) { return None; }
+        let sound = match effect.get("sound") { None => None, Some(value) => Some(value.as_str()?.to_owned()) };
+        (block, sound)
+    };
     let amount = u32::try_from(recipe.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
     // Snow layers use BlockItem placement and require the actual hit point.
     // The game exposes the packet's forced hit here for guest interactions.
-    let hit_point = if block == "minecraft:snow" {
+    let hit_point = if block == "minecraft:snow" || is_cloud {
         let hit = game.pick()?;
         if hit.pos != clicked || hit.face != face { return None; }
         Some(hit.point)
@@ -409,7 +431,12 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     item: "minecraft:snow".to_owned(), can_use_game_master_blocks: game.can_use_game_master_blocks(),
                 })
             } else { None };
-            let target = if let Some(context) = snow_context.as_ref() {
+            let target = if is_cloud {
+                let Some(x) = position[0].checked_add(face[0]) else { continue; };
+                let Some(y) = position[1].checked_add(face[1]) else { continue; };
+                let Some(z) = position[2].checked_add(face[2]) else { continue; };
+                [x, y, z]
+            } else if let Some(context) = snow_context.as_ref() {
                 let Some((pos, state)) = game.with_level(|blocks, world, ticks| blocks.placement_state(world, ticks, context)) else { continue; };
                 if game.res.facts().get(state).name.as_ref() != "minecraft:snow" { continue; }
                 [pos.x, pos.y, pos.z]
@@ -422,6 +449,13 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             };
             let before = game.world.block(target[0], target[1], target[2]);
             let attempt = (|| -> horizon_client::Result<bool> {
+                if is_cloud {
+                    if !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
+                    let hit = hit_point.unwrap();
+                    let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
+                    super::potions::tconstruct_source_fluid_cloud::spawn(game, at, cloud.clone());
+                    return Ok(true);
+                }
                 if block == "tconstruct:glow" {
                     return super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]]);
                 }
@@ -448,9 +482,11 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             match attempt {
                 Ok(true) => {
                     successes += 1;
-                    let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
-                    game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
-                    game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
+                    if !is_cloud {
+                        let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
+                        game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
+                        game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
+                    }
                 }
                 Ok(false) => {}
                 Err(error) => {
