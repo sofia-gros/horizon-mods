@@ -1,0 +1,8 @@
+--- /workspace/scratch/ui-b53-fluid-read-original.rs	2026-11-02 21:22:11.518426443 +0000
++++ /workspace/scratch/ui-b53-combined/pluto_native_creative/pluto_native_creative/fluid-read.rs	2026-11-02 21:22:11.521251329 +0000
+@@ -1,4 +1,4 @@
+-//! Read-only access to the host's registered block-entity fluid tanks.
++// Read-only access to the host's registered block-entity fluid tanks.
+ use crate::{containers::BlockEntity, world::World};
+ use horizon_core::geometry::Direction;
+ use horizon_world::nbt::Tag;

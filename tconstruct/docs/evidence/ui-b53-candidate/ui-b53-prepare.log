@@ -1,0 +1,1 @@
+tconstruct resource preparation: assets/mantle/lang/en_us.json: a mod adds files in its own namespaces (assets/tconstruct/ and those listed in namespaces) or to vanilla and convention (c) tags
