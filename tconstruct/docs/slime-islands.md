@@ -234,3 +234,14 @@ the unified PlutoLib bundle built for that exact Horizon target from this
 checkout's `pluto-lib` tree `aa8a6068ae9f24938f935a665733bf67cac53fea`;
 the bundle itself is not supplied or verified by this integration branch.
 No combined plan, stage, build or game result is claimed.
+
+## Experimental Ender slime vine
+
+The source Ender slime vine now shares Sky vine's source three-stage growth,
+placement and support logic while retaining its own identity: only a vine of
+the same kind above supports a hanging side. It uses the original Ender vine
+assets, shears loot and Ender foliage color map. Both registered slime vines
+use the source hardness and resistance of 0.75. The Ender vine and its
+natural acquisition have not been tested; Ender slime leaves and islands are
+not yet registered as a complete generation route. Forge's extended shears
+action and dedicated-server behavior remain open.
