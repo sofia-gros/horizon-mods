@@ -321,12 +321,17 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     let netherite = amount(tool, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
     let heavy = levels.get("tconstruct:heavy").copied().unwrap_or(0).max(0) as f32;
     let wool = levels.get("tconstruct:knockback_resistance").copied().unwrap_or(0).max(0) as f32;
+    let forming = levels.get("tconstruct:forming").copied().unwrap_or(0).max(0) as f32;
+    let armor_value = (stats.armor + (forming + if diamond { 1.0 } else { 0.0 }) * stats.armor_add_multiplier).clamp(0.0, 30.0);
     let knockback_resistance = (stats.knockback_resistance
-        + (0.15 * heavy + 0.1 * wool + if netherite { 0.05 } else { 0.0 }) * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0);
+        + (0.15 * heavy + 0.1 * wool + 0.05 * forming + if netherite { 0.05 } else { 0.0 }) * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0);
     if !diamond && !emerald && !netherite {
         let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
         let Tag::Compound(ref mut fields) = custom else { return None; };
-        if armor { fields.insert("tic_knockback_resistance".into(), Tag::Float(knockback_resistance.to_bits())); }
+        if armor {
+            fields.insert("tic_armor".into(), Tag::Float(armor_value.to_bits()));
+            fields.insert("tic_knockback_resistance".into(), Tag::Float(knockback_resistance.to_bits()));
+        }
         fields.remove(&"tconstruct:diamond_armor".into());
         fields.remove(&"tconstruct:netherite".into());
         fields.remove(&"tic_attack_conditional_multiplier".into());
@@ -346,7 +351,7 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     if emerald { fields.insert("tic_attack_conditional_multiplier".into(), Tag::Float(1.25f32.to_bits())); }
     else { fields.remove(&"tic_attack_conditional_multiplier".into()); }
     if armor {
-        if diamond { fields.insert("tic_armor".into(), Tag::Float((stats.armor + stats.armor_add_multiplier).clamp(0.0, 30.0).to_bits())); }
+        fields.insert("tic_armor".into(), Tag::Float(armor_value.to_bits()));
         if emerald || netherite {
             let ductile = *levels.get("tconstruct:ductile").unwrap_or(&0) as f32;
             let bonus = i32::from(emerald) + i32::from(netherite);
