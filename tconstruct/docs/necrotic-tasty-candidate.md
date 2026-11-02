@@ -15,7 +15,7 @@ prepared entity tags. Its mob-attack context is per actor, invalidates parent
 contexts on nested attacks, checks the actual landed attack record and held
 stack, and applies the host player healing event before setting health.
 
-This covers the supported mob melee callback. PvP,
+This covers the supported mob melee callback. Melee PvP,
 armor-stand behavior, world datapack tag overlays and other source hooks are
 not established. A follow-up adds the original `necrotic_heal` event mapping
 and local audio call; guest sound delivery remains unverified. Verify real package tag loading and
@@ -78,7 +78,7 @@ owner is unresolved. The complete saved-arrow path still needs a game test.
 
 This remains a partial path: source runs before damage if not blocked, whereas
 the host combines shield and other refusals and the candidate requires Hurt.
-PvP and mob hit refusals are not implemented. Test local and guest mob hits,
+PvP mob-hit refusals and host-player victims are not implemented. Test local and guest mob hits,
 blacklist, health lower than arrow power, failed and nested hits, projectile
 identity, disconnected guest, canceled healing and shot save/reload. The
 state and injection have not passed official plan, type or game checks.
@@ -90,8 +90,12 @@ is swapped into `game.player` while `projectile_hit` determines the outcome.
 Only after that returns does it restore `game.lan`. A correct implementation
 must retain projectile identity, shooter UUID and victim pre-hit health across
 that scope, record the actual outcome, then resolve and heal the shooter after
-restoration. Applying the mob path inside the victim scope would heal the
-wrong player. No such PvP handoff is currently connected. The host's
+restoration. A subsequent candidate implements this for a guest victim and a
+connected shooter, using an invalidating stack of scopes and exact projectile
+and shooter UUID matching. It accepts only the host Hurt outcome. Nested hits,
+disconnection, refused hits and mismatched owners must not heal. The return
+injection and complete game behavior are unverified; the host-player victim
+route and melee PvP remain open. The host's
 `projectile_pvp_victim` also requires a resolved player owner; test saved
 arrows separately rather than assuming the UUID fallback extends that route.
 
