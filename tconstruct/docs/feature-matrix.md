@@ -29,4 +29,4 @@ Broaden material and tool coverage while preserving item components and
 host-authoritative input/output transactions.
 
 The ordered v0.5 acceptance stages are tracked in the [roadmap](roadmap.md).
-PlutoLib work beyond the existing Creative support is deferred until v1.0 or later.
+Shared PlutoLib APIs are being adopted alongside the current Horizon update; see the [host upgrade notes](host-upgrade.md) for scope and verification.
