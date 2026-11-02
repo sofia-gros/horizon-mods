@@ -1,0 +1,3 @@
+# Bacon consumption fixture
+
+Same mixed #263-content / earlier cc868cdb client and isolated namespace/build corrections as [the Tasty fixture](../263-tasty-old-client/README.md); not a #263 exact source build. A disposable copied world had the player's saved `foodLevel` set from 20 to 10 as a controlled fixture. In survival while looking away from blocks, the player used one Bacon: food increased 10 -> 14 and Bacon disappeared from inventory. Screenshots are actual client captures. The generated item registry states nutrition 4 and saturation 0.6; saturation was not measured in game. Prior attempts that faced a Melter opened its menu instead of eating and were not counted.
