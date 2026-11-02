@@ -19,3 +19,13 @@ id = "register-tooltip"
 target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
 kind = "HEAD"
 helper = "register.rs"
+
+[[injection]]
+id = "demo-stack-limit"
+target = "horizon_world::item_defaults::native_modify_default_components"
+kind = "HEAD"
+helper = "stack_limit.rs"
+bindings = [
+ { name = "item", ty = "&str", value = "item" },
+ { name = "components", ty = "&mut serde_json::Map<String, serde_json::Value>", value = "&mut *components" },
+]
