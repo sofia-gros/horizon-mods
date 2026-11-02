@@ -299,6 +299,8 @@ The station can also resolve source `tconstruct:modifier_repair` recipes with va
 
 The conditional resolver is supplied in both host and server module trees so the station does not depend on the host-only Melter module. Melter and recipe reload retain the same resolver. An integrated build is required to verify the transformed host; syntax parsing alone does not establish compilation.
 
+A follow-up candidate handles nested Forge difference and intersection ingredients for modifier repair, with unknown ingredient forms rejected. It also includes ordinary tool-definition trait modules when counting the repair modifier and the supported Cultivated, Preserved and Dense factors, respecting explicit `tool_traits` hook selection. Optional relevant traits and definition-provided Emerald remain unsupported. Conditional recipe support is supplied by the separately integrated condition resolver. These additions require gameplay, LAN, quantity and save/reload verification.
+
 The station material-repair path also resolves the source `material_repair` module's explicit `stat_type` against that material's merged stats. This covers the source shape used by the staffs and Flint and Brick when their registered repair materials are available, including tools without a material-part list. Unknown material stats still produce no repair. This addition awaits integration and game verification; it does not establish the remaining modifier repair recipes.
 
 At the pinned revision, `MaterialStatsModule.addTraits` adds traits from each
