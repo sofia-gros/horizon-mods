@@ -103,10 +103,9 @@ fn can_set_tagged(stack: &ItemStack, fluid: Option<&str>, tag: Option<&horizon_w
 // Capacity is written during the narrow source-validated Station rebuild.
 fn tool_capacity(stack: &ItemStack) -> Option<u32> {
     use horizon_world::nbt::Tag;
-    if stack.count != 1 || stack.item.as_ref() != "tconstruct:pickaxe" || stack.wire_patch().is_some() { return None; }
+    if stack.count != 1 || !stack.item.starts_with("tconstruct:") || stack.wire_patch().is_some() { return None; }
     let data = stack.data()?.other("minecraft:custom_data")?;
-    if !matches!(data.get("tic_upgrades")?.get("tconstruct:tank"), Some(Tag::Int(1))) { return None; }
-    match data.get("tic_tank_capacity")? { Tag::Int(1000) => Some(1000), _ => None }
+    match data.get("tic_tank_capacity")? { Tag::Int(n) if *n > 0 => u32::try_from(*n).ok(), _ => None }
 }
 
 fn transfer_tool(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
