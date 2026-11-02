@@ -2958,6 +2958,15 @@ mod tests {
     }
 
     #[test]
+    fn source_quick_move_player_does_not_merge_unstackable_items() {
+        let mut inventory = vec![None; 36];
+        inventory[8] = Some(ItemStack::new("tconstruct:tool_handle", 1));
+        assert!(source_quick_move_player(&mut inventory, ItemStack::new("tconstruct:tool_handle", 1), 64, false).is_none());
+        assert_eq!(inventory[8].as_ref().unwrap().count, 1);
+        assert_eq!(inventory[7].as_ref().unwrap().count, 1);
+    }
+
+    #[test]
     fn repair_rechecks_split_inputs_and_never_consumes_excess() {
         let mut slots = vec![None; 27];
         let mut tool = ItemStack::new("tconstruct:flint_pickaxe", 1);
