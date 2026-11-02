@@ -2911,6 +2911,23 @@ cancellable = true
 helper = "source-melee-extra-hit.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "_index", ty = "usize", value = "index" }]
 
+[[state]]
+id = "necrotic-melee-pvp"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Vec<Option<(usize, u32, [i32; 4], f32, Option<u32>, [i32; 4], horizon_items::items::ItemStack)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-necrotic-melee-pvp-head"
+target = "horizon_client::game::lan_pvp::Game<'_>::pvp_land"
+kind = "HEAD"
+helper = "necrotic-melee-pvp-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "victim", ty = "Victim", value = "victim" }, { name = "strike", ty = "&Strike", value = "s" }]
+
 [[injection]]
 id = "source-melee-pvp-wear"
 target = "horizon_client::game::lan_pvp::Game<'_>::pvp_land"

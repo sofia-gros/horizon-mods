@@ -48,7 +48,7 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     heal_player(game, amount);
 }
 
-fn heal_player(game: &mut super::Game<'_>, mut amount: f32) {
+pub(super) fn heal_player(game: &mut super::Game<'_>, mut amount: f32) {
     let Some(player) = game.player.as_mut() else { return; };
     if player.health.dead_or_dying() { return; }
     let current = player.health.health();

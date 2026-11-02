@@ -15,7 +15,7 @@ prepared entity tags. Its mob-attack context is per actor, invalidates parent
 contexts on nested attacks, checks the actual landed attack record and held
 stack, and applies the host player healing event before setting health.
 
-This covers the supported mob melee callback. Melee PvP,
+This covers the supported mob melee callback.
 armor-stand behavior, world datapack tag overlays and other source hooks are
 not established. A follow-up adds the original `necrotic_heal` event mapping
 and local audio call; guest sound delivery remains unverified. Verify real package tag loading and
@@ -95,7 +95,7 @@ connected shooter, using an invalidating stack of scopes and exact projectile
 and shooter UUID matching. It accepts only the host Hurt outcome. Nested hits,
 disconnection, refused hits and mismatched owners must not heal. The return
 injection and complete game behavior are unverified; a follow-up handles a guest arrow hitting the host with a separate
-projectile-ID/UUID handoff. Melee PvP remains open. The host's
+projectile-ID/UUID handoff. The host's
 `projectile_pvp_victim` also requires a resolved player owner; test saved
 arrows separately rather than assuming the UUID fallback extends that route.
 
@@ -113,3 +113,24 @@ connected guest's UUID matches the arrow owner, then rechecks that connection
 after Hurt before switching to the shooter and healing. Verify disconnection,
 reconnection under a different UUID, nested impacts, shield/PvP refusal,
 health caps and owner restoration; this has not passed plan, apply or game.
+
+A subsequent melee candidate captures the guest victim's pre-hit health and
+UUID, attacker UUID and weapon at `pvp_land`, then compares post-hit health
+after a successful hit. It requires a fully charged critical, checks the
+blacklist and same attack/weapon, and invalidates outer scopes on nested PvP.
+The existing successful-hit weapon-wear handler is retained. Host victims,
+refused hits and ambiguous or disconnected actors remain outside this path.
+The source calculates health loss before later knockback and other effects;
+the host return boundary follows those effects, so interactions affecting the
+victim between them require dedicated verification. No official plan, type or
+game test has established this candidate.
+
+## Candidate dependency map
+
+The combined branch builds on #329 (bounded mob melee and Tasty), #330
+(mixed food and sounds), #332 (mob projectile), #334 (concurrent food),
+#335 (launcher wear), #336 (saved arrow UUID), #338 (guest projectile victim),
+and #339 (host projectile victim). Each fixed head remains independently
+reviewable. This branch adds melee PvP; #325 remains the independent fixed
+integration baseline. Validate the combined head and its declared base, not
+the earlier candidates as if they included later changes.
