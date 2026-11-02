@@ -56,6 +56,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         let merged = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
+    if original.is_some_and(|stack| !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(stack)) { return None; }
     let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
@@ -201,8 +202,10 @@ pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Optio
 
 fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
     if !matches!(input_capacity, 3 | 5) { return None; }
-    let mut tool = slots.first()?.as_ref()?.clone();
-    if !tool.item.starts_with("tconstruct:") || tool.count != 1 || tool.damage == 0 { return None; }
+    let original = slots.first()?.as_ref()?;
+    if !original.item.starts_with("tconstruct:") || original.count != 1 || original.damage == 0 { return None; }
+    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(original) { return None; }
+    let mut tool = original.clone();
     let custom = tool.data()?.other("minecraft:custom_data")?;
     let Tag::List(ids) = custom.get("tic_materials")? else { return None; };
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;

@@ -37,3 +37,32 @@ pub fn finalize_tool(
     if let Some(custom) = custom { stack.data_mut().set_other("minecraft:custom_data", Some(custom)); }
     Ok(())
 }
+
+// Check the original snapshot before repair or rebuild changes damage/components.
+// Only patches whose contents are known to survive the selected host+adapter
+// are allowed to be regenerated; unsupported additions and all removals fail closed.
+pub fn patch_safe_for_tool_mutation(stack: &ItemStack) -> bool {
+    use horizon_protocol::item::{component, Component, WirePatch};
+    use std::collections::HashSet;
+    let Some(data) = stack.data() else { return true; };
+    let Some(raw) = data.wire.patch() else { return true; };
+    if stack.wire_patch().is_none() { return false; }
+    let Ok((added, removed)) = WirePatch::decode(raw) else { return false; };
+    if !removed.is_empty() { return false; }
+    let mut seen = HashSet::new();
+    added.iter().all(|(id, value)| {
+        if !seen.insert(*id) { return false; }
+        match (*id, value) {
+            (component::CUSTOM_DATA, Component::Nbt(tag)) => data.other("minecraft:custom_data") == Some(tag),
+            (component::MAX_DAMAGE, Component::Int(value)) => matches!(data.other("minecraft:max_damage"), Some(Tag::Int(max)) if max == value),
+            (component::DAMAGE, Component::Int(value)) => u32::try_from(*value).ok() == Some(stack.damage),
+            (component::UNBREAKABLE, Component::Unit) => data.other("minecraft:unbreakable").is_some(),
+            (component::ITEM_MODEL, Component::Ident(value)) => matches!(data.other("minecraft:item_model"), Some(Tag::String(model)) if model.to_string_lossy() == value.as_str()),
+            (component::LORE, Component::Lore(lines)) => matches!(data.other("minecraft:lore"), Some(Tag::List(actual)) if actual == lines),
+            // The shared Tool decoder must have restored the component; its
+            // finalizer will separately validate and canonicalize it.
+            (28, Component::Raw(_)) => data.other("minecraft:tool").is_some(),
+            _ => false,
+        }
+    })
+}
