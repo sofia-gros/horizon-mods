@@ -59,11 +59,8 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
                 if *pos != key && crate::game::tconstruct_source_workstation_tabs::supported(name) {
                     let pos = *pos;
                     if crate::game::lan_actions::tconstruct_source_workstation_tabs_lan::open(game, host, conn, pos) {
-                        if let Some(guest) = host.hub.guest(conn) {
-                            if let Some(new_window) = guest.menu.as_ref().map(|menu| menu.window) {
-                                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: new_window, id: -1, value: (id - 31000) as i16 }));
-                            }
-                        }
+                        let active=host.hub.guests.iter().find(|guest|guest.conn==conn).and_then(|guest|guest.menu.as_ref().map(|menu|menu.window)).or_else(||crate::game::lan_crafting::tconstruct_crafting_lan::active_window(host,conn));
+                        if let Some(new_window)=active {host.hub.send_to(conn,&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: new_window, id: -1, value: (id - 31000) as i16 }));}
                     }
                 }
             }

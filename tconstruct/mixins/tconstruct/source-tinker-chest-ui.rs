@@ -78,6 +78,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
         let progress=if max==0 { 0.0 } else { scroll as f32/max as f32 };
         region(batch,7.0,25.0,10.0,15.0,158.0,17.0+progress*57.0,10.0,15.0);
     }
+    super::tconstruct_source_workstation_tabs_ui::draw(game,batch,ox,oy,false);
     let (key, fallback) = match kind(game) { Some(ChestKind::Part) => ("gui.tconstruct.part_chest","Part Chest"), _ => ("gui.tconstruct.tinkers_chest","Tinker's Chest") };
     let color=horizon_client::hud::rgba(64,64,64,255);
     batch.text(atlas,&game.translate(key,fallback),ox+8.0,oy+6.0,color,false);

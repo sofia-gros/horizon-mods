@@ -18,7 +18,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         let projected=crate::game::tconstruct_chest_rules::project(items,0);
         let Some(guest)=host.hub.guest(conn) else { return Break(false); };
         let joined=guest.placed_at;
-        game.guest_container_closed(host,conn); game.lan_station_closed(host,conn,None);
+        game.guest_container_closed(host,conn); game.lan_station_closed(host,conn,None); game.lan_crafting_closed(host,conn,None);
         let title=if kind==crate::game::tconstruct_chest_rules::ChestKind::Part { "TConstruct Part Chest" } else { "TConstruct Tinkers Chest" };
         host.hub.open_container(conn,"minecraft:generic_9x6",horizon_protocol::text::literal(title),pos,horizon_client::lan::menu::Slots::Block(pos),projected);
         if let Some(guest)=host.hub.guest(conn) { if let Some(window)=guest.menu.as_ref().map(|m|m.window) {
@@ -42,6 +42,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages_mut().insert(key, (0, state.slots.len()));
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);
+        game.lan_crafting_closed(host, conn, None);
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, [None, None], 0));
         let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         let title = if &*machine == "tconstruct:foundry_controller" { "TConstruct Foundry" } else { "TConstruct Smeltery" };
@@ -66,6 +67,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
         let Some(items) = host.hub.guest(conn).and_then(|guest| slots.read(&game.world, guest)) else { return Break(false); };
         game.guest_container_closed(host, conn);
         game.lan_station_closed(host, conn, None);
+        game.lan_crafting_closed(host, conn, None);
         let title = if &*machine == "tconstruct:seared_melter" { "TConstruct Melter" } else { "TConstruct Heater" };
         let menu = if has_heater { "minecraft:generic_9x6" } else { "minecraft:generic_9x3" };
         host.hub.open_container(conn, menu, horizon_protocol::text::literal(title), pos, slots, items);
@@ -106,6 +108,7 @@ fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     };
     game.guest_container_closed(host, conn);
     game.lan_station_closed(host, conn, None);
+    game.lan_crafting_closed(host, conn, None);
     let menu = match items.len() { 36 => "minecraft:generic_9x4", 54 | 81 => "minecraft:generic_9x6", _ => "minecraft:generic_9x3" };
     host.hub.open_container(conn, menu, horizon_protocol::text::literal(title), pos, slots, items);
     if title.starts_with("TConstruct Part Builder") {

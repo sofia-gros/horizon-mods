@@ -1,5 +1,20 @@
 fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
+    let crafting=crate::game::tconstruct_crafting_station::position(game).is_some() || game.remote_menu_title().map(|t|t.plain()).as_deref()==Some("TConstruct Crafting Station");
+    if !right && (crafting || crate::game::tconstruct_chest_ui::kind(game).is_some()) {
+        if let (Some(start),Some(size))=(crate::game::tconstruct_source_workstation_tabs::start(game),game.renderer.as_ref().map(|r|[r.config.width,r.config.height])) {
+            let batch=horizon_client::hud::HudBatch::new(size);let (ox,oy)=game.inventory_origin(&batch);
+            let tabs=crate::game::tconstruct_source_workstation_tabs::from_game(game,start);
+            if let Some(index)=crate::game::tconstruct_source_workstation_tabs::hit(tabs.len(),false,game.cursor.0-ox,game.cursor.1-oy) {
+                let (pos,name)=&tabs[index];
+                if *pos!=start && crate::game::tconstruct_source_workstation_tabs::supported(name) {
+                    if game.remote.is_some() {game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick {container:game.remote_menu_id(),button:31000+index as i32}));}
+                    else {let carried=game.carried.take();game.close_container();game.carried=carried;game.open_station([pos.0,pos.1,pos.2],name);}
+                }
+                return Break(true);
+            }
+        }
+    }
     if !right {
         if let Some((_,count,_,_)) = crate::game::tconstruct_crafting_station::side(game) {
             if let (Some(pos),Some(size)) = (crate::game::tconstruct_crafting_station::scroll_key(game),game.renderer.as_ref().map(|r| [r.config.width,r.config.height])) {

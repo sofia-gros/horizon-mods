@@ -3739,3 +3739,20 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[module]]
+id = "source-workstation-tabs-ui"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_workstation_tabs_ui"
+source = "source-workstation-tabs-ui.rs"
+
+[[injection]]
+id = "source-workstation-outside"
+target = "horizon_client::game::Game<'_>::clicked_outside"
+kind = "HEAD"
+cancellable = true
+helper = "source-workstation-outside.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
+]

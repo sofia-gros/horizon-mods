@@ -3,6 +3,7 @@ use super::*;
 use std::ops::ControlFlow::{self, Break, Continue};
 
 type Pos = (i32, i32, i32);
+pub(crate) fn active_window(host: &LanHost,conn: u32) -> Option<i32> {host.play.get(&conn)?.crafting.table.as_ref().map(|(window,_,_,_)|*window)}
 fn station(game: &Game<'_>, pos: Pos) -> bool {
     &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:crafting_station"
 }
@@ -306,6 +307,7 @@ pub(crate) fn update_viewers(game: &mut Game<'_>,host: &mut LanHost) {
 }
 
 pub(crate) fn scroll(game: &mut Game<'_>,host: &mut LanHost,conn: u32,window: i32,id: i32) -> ControlFlow<()> {
+    if (31000..31006).contains(&id) {return tab(game,host,conn,window,(id-31000) as usize);}
     if id==44000 {return quick_all(game,host,conn,window);}
     if !(43000..=43043).contains(&id) {return Continue(());}
     let Some(gi)=host.hub.guests.iter().position(|g|g.conn==conn) else {return Continue(());};
@@ -320,6 +322,22 @@ pub(crate) fn scroll(game: &mut Game<'_>,host: &mut LanHost,conn: u32,window: i3
     game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side_mut().insert(key,(side,offset));
     host.hub.guests[gi].send(&C::ContainerSetData(play::ContainerSetData {container:window,id:30111,value:offset as i16}));
     game.lan_send_table_content(host,conn);
+    Break(())
+}
+
+fn tab(game: &mut Game<'_>,host: &mut LanHost,conn: u32,window: i32,index: usize) -> ControlFlow<()> {
+    let Some(gi)=host.hub.guests.iter().position(|g|g.conn==conn) else {return Continue(());};
+    let joined=host.hub.guests[gi].placed_at;
+    let Some(current)=session(game,conn,joined,window) else {return Continue(());};
+    if !station(game,current) || host.hub.guests[gi].spectator() || !host.hub.guests[gi].within_block_range([current.0,current.1,current.2],4.0) {return Break(());}
+    let tabs=crate::game::tconstruct_source_workstation_tabs::from_game(game,current);
+    let Some((pos,name))=tabs.get(index) else {return Break(());};
+    if *pos==current || !crate::game::tconstruct_source_workstation_tabs::supported(name) {return Break(());}
+    let pos=*pos;
+    if crate::game::lan_actions::tconstruct_source_workstation_tabs_lan::open(game,host,conn,pos) {
+        let active=host.hub.guests.iter().find(|g|g.conn==conn).and_then(|g|g.menu.as_ref().map(|menu|menu.window)).or_else(||active_window(host,conn));
+        if let Some(active)=active {host.hub.send_to(conn,&C::ContainerSetData(play::ContainerSetData{container:active,id:-1,value:index as i16}));}
+    }
     Break(())
 }
 

@@ -1,4 +1,7 @@
 fn tconstruct_crafting_side_draw(game: &mut crate::game::Game<'_>, batch: &mut horizon_client::hud::HudBatch, ox: f32, oy: f32) {
+    if crate::game::tconstruct_crafting_station::position(game).is_some() || game.remote_menu_title().map(|t|t.plain()).as_deref()==Some("TConstruct Crafting Station") {
+        crate::game::tconstruct_source_workstation_tabs_ui::draw(game,batch,ox,oy,false);
+    }
     let Some((pos, count, offset, kind)) = crate::game::tconstruct_crafting_station::side(game) else { return; };
     let key = match kind {
         crate::game::tconstruct_chest_rules::ChestKind::Part => "gui.tconstruct.part_chest",
