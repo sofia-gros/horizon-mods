@@ -1,0 +1,5 @@
+# Diagnostic Melter fuel gauge round trips
+
+Same generated-source diagnostic client, patch SHA, limited base and corrections as [the extraction fixture](../328-diagnostic-can/README.md); **not** an official Mixins application or full exact-head build of #328.
+
+A copied world had the Melter's heater replaced by a Seared Fuel Tank supplied with 1,000 mB lava as a fixture. The local player and LAN guest each clicked the Melter fuel gauge with an empty Copper Can, received a lava-filled can, then right-clicked it back into the same gauge. Logs show both filled and emptied item components. After orderly shutdown the host save retained 1,000 mB lava in the fuel tank and 900 mB molten copper in the Melter. Images are actual client captures. The first attempt's guest renderer failed to lock its software graphics adapter, so it was excluded; the successful run used existing software rendering with one worker thread. Invalid containers, targetless screens and formal exact-head integration remain separately gated.
