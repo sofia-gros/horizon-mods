@@ -28,3 +28,22 @@ armor-specific abilities are not implemented by this change.
 Official Mixins `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab` transformed runtime `7fb00d0fb7f9ccda0d13df3971d03fcc1aa05d14` in 197.39 seconds; the Linux client/ctl build succeeded in 20.32 seconds. Two Rust slot-mapping tests and the 44 TConstruct plus 7 root Python tests passed.
 
 Representative Linux game tests confirmed the first hit uses the equipped armor and toughness before a last-durability helmet breaks; the next hit uses only the remaining chestplate. Both items consumed one point, the helmet stayed equipped, and an iron Station repair restored its armor and toughness. Save/reload, a steel-plating replacement with Ductile toughness, Traveler's Helmet statless leather repair, Slime Wings fixed phantom repair, a fire-resistant slot, magic armor bypass, hosted LAN guest break/sync, and vanilla iron armor break were also checked. Some items used synthetic material data to isolate the behavior. These are representative cases, not all armor families, modifiers, damage types or platforms; Windows remains unverified.
+
+## Heavy armor stat
+
+When a material-bearing armor item is assembled or rebuilt at a Station, the
+Heavy trait adds `0.15 * level` to its knockback-resistance stat, scaled by the
+tool definition's additive multiplier. Netherite's separate `0.05` stat bonus
+combines with Heavy before the stat is clamped to the source range of 0–1.
+Replacing the material recalculates the value from the base stats. The existing
+armor attribute path reads the resulting value when worn.
+
+This implements only the armor-stat portion of the original [Heavy
+definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/heavy.json).
+Its movement-speed and gravity attributes, the non-armor resistance attribute,
+and the Creative resource-generation path require separate work. Lead is a
+compatibility material, so the change does not establish its natural
+acquisition. Rust syntax was checked; unit, plan, build and gameplay are pending.
+Verify zero/one/multiple levels, non-unit multipliers, Netherite combinations,
+clamp, equip/unequip, material swap, save/reload and LAN, using labelled
+fixtures when needed. Armor wear remains subject to its separate hold.
