@@ -109,3 +109,8 @@ plan could not resolve `MotionWorld::player_fall_damage` through either tested
 module path. The unrelated stat, crafting and fluid candidates remain present.
 The generic Pluto landing state remains included; neither this isolation nor its
 formal apply, type or gameplay validation is established by the earlier tests.
+
+A follow-up corrects two direct NBT compound lookups to use the host's
+`JavaString` key type. The old-host diagnostic fixture passed its focused tests
+with this correction; the exact follow-up head still needs the dedicated tests
+and official target type check.
