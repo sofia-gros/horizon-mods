@@ -42,11 +42,18 @@ pub(crate) fn projectile_stats_at_airborne(stack: &ItemStack, y: f32, max_height
         }
     }
     let level = match custom.get("tic_dwarven") { Some(Tag::Int(value)) => *value, _ => 0 };
-    let multiplier = match custom.get("tic_dwarven_velocity_multiplier") {
-        Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return Some((velocity, spread)),
-    };
-    if level <= 0 || !multiplier.is_finite() || !y.is_finite() { return Some((velocity, spread)); }
-    Some((super::tconstruct_source_dwarven::boost(y, max_height, level, velocity, 0.05 * multiplier).clamp(0.0, 1024.0), spread))
+    if let Some(multiplier) = stat(stack, "tic_dwarven_velocity_multiplier").filter(|value| value.is_finite()) {
+        if level > 0 && y.is_finite() {
+            velocity = super::tconstruct_source_dwarven::boost(y, max_height, level, velocity, 0.05 * multiplier);
+        }
+    }
+    // Overwield's source priority 75 runs after Dwarven's priority 85.
+    let level = match custom.get("tic_overwield_ranged") { Some(Tag::Int(n)) => (*n).max(0), _ => 0 };
+    let amount = match custom.get("tic_overslime") { Some(Tag::Int(n)) => (*n).max(0), _ => 0 };
+    if let Some(multiplier) = stat(stack, "tic_overwield_velocity_multiplier").filter(|value| value.is_finite()) {
+        velocity += level.min(amount) as f32 * 0.06 * multiplier;
+    }
+    Some((velocity.clamp(0.0, 1024.0), spread))
 }
 
 fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable: bool) -> bool {

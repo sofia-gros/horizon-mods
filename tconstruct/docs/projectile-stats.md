@@ -115,3 +115,21 @@ pending. Verification should compare both bows at health 20, 11, 6, and 1,
 including multiple levels, definition stat multipliers, other damage modifiers,
 rebuild and material replacement, save/reload, and LAN guest behavior. Label any
 command-supplied material as a fixture.
+
+## Overwield ranged stats
+
+Overwield adds `0.06 * min(currentOverslime, level) * statMultiplier` to both
+projectile velocity and draw speed. The value is read from the tool at use time,
+so refill, depletion and material replacement change the next calculation. The
+velocity adjustment follows Dwarven's altitude adjustment, matching their source
+priorities. Crossbow Quick Charge and Vintage contribute to the stored draw
+multiplier; Netherite contributes to the velocity multiplier.
+
+This implements the two ranged-stat modules in the [original Overwield
+definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+The source launch-capacity spend is not connected here, so the full ranged
+behavior is incomplete. Rust syntax was checked; unit, plan, build and gameplay
+checks are pending. Verify zero/partial/full Overslime at multiple levels,
+charge times for both bows, velocity at low and high altitude with Dwarven,
+Quick Charge, Netherite, material replacement, reload and LAN. Record a fixture
+when the material is not naturally available.

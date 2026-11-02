@@ -403,6 +403,11 @@ pub fn apply_stats(
         let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
             * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32
                 + 0.75 * level("tconstruct:solid").max(0) as f32)).clamp(0.0, 1024.0);
+        fields.insert("tic_overwield_ranged".into(), Tag::Int(level("tconstruct:overwield").max(0)));
+        fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float((stats.draw_speed_add_multiplier
+            * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
+            * (1.0 - 0.1 * vintage)).to_bits()));
+        fields.insert("tic_overwield_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
         fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
