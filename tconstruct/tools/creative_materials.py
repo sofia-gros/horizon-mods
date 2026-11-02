@@ -64,10 +64,22 @@ def build_variants(tabs, definitions, materials):
             if definition.get('hidden', False) or stat_path not in archive.namelist():
                 continue
             stats = set(json.loads(archive.read(stat_path)).get('stats', {}))
+            trait_path = prefix + 'traits/' + material + '.json'
+            if trait_path in archive.namelist():
+                traits = json.loads(archive.read(trait_path)).get('default', [])
+                if any(trait.get('name') in {'tconstruct:dense', 'tconstruct:reinforced', 'tconstruct:unbreakable'} for trait in traits if isinstance(trait, dict)):
+                    continue
             visible.append((definition.get('tier', 0), definition.get('sortOrder', 0),
                             'tconstruct:' + material, stats))
         visible.sort(key=lambda row: (row[0], row[1], row[2]))
         ordered = [(name, stats) for _, _, name, stats in visible]
+    # Keep the item registrations for existing saves, but don't offer new
+    # wearable armor while its durability hook is unavailable.
+    from pathlib import Path
+    tag_root = Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-tags/data/tconstruct/tags/items/modifiable/armor'
+    worn = set()
+    for part in ('boots', 'leggings', 'chestplate', 'helmets'):
+        worn.update(json.loads((tag_root / (part + '.json')).read_text())['values'])
     result = copy.deepcopy(tabs)
     with zipfile.ZipFile(definitions) as archive:
         for tab in result:
@@ -75,6 +87,8 @@ def build_variants(tabs, definitions, materials):
             for raw in tab['items']:
                 # The source tab file contains only simple, registered item IDs.
                 name = raw.split('id:"', 1)[1].split('"', 1)[0]
+                if name in worn:
+                    continue
                 short = name.split(':', 1)[1]
                 definition_name = 'slime_chestplate' if short == 'slimy_chestplate' else short
                 path = 'data/tconstruct/tinkering/tool_definitions/' + definition_name + '.json'

@@ -24,6 +24,9 @@ class CreativeRegistrationFixture(unittest.TestCase):
             ROOT / 'content/reference/tconstruct-materials.zip',
         )[0]['items']
         self.assertIn(groups[0]['items'][1], expanded)
+        original = build_variants(source, ROOT / 'content/reference/tconstruct-tool-definitions.zip', ROOT / 'content/reference/tconstruct-materials.zip')[0]['items']
+        self.assertFalse(any('tconstruct:plate_helmet' in item or 'tconstruct:slime_wings' in item for item in original))
+        self.assertFalse(any('tconstruct:osmium' in item for item in original))
         blocks = add_block_items(source, ROOT / 'content/data/tconstruct/horizon/block')
         self.assertIn(groups[1]['items'][0], blocks[1]['items'])
         search = fixture['inventory']['tabs'][1]

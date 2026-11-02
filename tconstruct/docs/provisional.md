@@ -12,4 +12,6 @@ This build temporarily disables features whose Horizon Mixins targets cannot cur
 | Excavator and Battlesign built-in knockback | Disabled | Their extra built-in melee knockback is unavailable. Other tool behavior is separate. |
 | Crumbling with Stonebound | Incomplete | An isolated mining test did not match the expected ordering; the combination has not been validated. |
 
+Wearable armor and Crafting Station are also omitted from the mod Creative tabs. Creative material variants with the pinned source’s unavailable default durability-prevention traits are omitted; item registrations are retained for existing saves.
+
 Previously captured game tests describe the revisions stated alongside them. They do not verify the full provisional build. The Part Chest and Tinker's Chest transactions were tested with the eight affected injections omitted; their world appearance and Crafting Station integration were not covered. See [chest details](tinker-part-chests.md) and [host update evidence](host-upgrade.md).
