@@ -1,1 +1,1 @@
-{"template": "minecraft:amethyst_block", "properties": {"light": 10}}
+{"template":"minecraft:amethyst_block","properties":{"light":10,"random_ticks":true}}

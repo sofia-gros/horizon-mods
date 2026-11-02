@@ -3906,3 +3906,22 @@ id = "source-material-wire-merge"
 file = "crates/horizon-client/src/lan/chunks.rs"
 name = "tconstruct_source_material_wire_merge"
 source = "source-material-wire-merge.rs"
+
+[[module]]
+id = "source-geode-growth"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_geode_growth"
+source = "source-geode-growth.rs"
+
+[[injection]]
+id = "source-geode-random-tick"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
+kind = "HEAD"
+helper = "source-geode-random-tick.rs"
+bindings = [
+  { name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" },
+  { name = "ticks", ty = "&mut Ticks", value = "ticks" },
+  { name = "pos", ty = "BlockPos", value = "pos" },
+  { name = "state", ty = "BlockStateId", value = "state" },
+  { name = "handled", ty = "&mut bool", value = "&mut *handled" },
+]
