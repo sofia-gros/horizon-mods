@@ -279,7 +279,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     *claimed = true;
 }
 
-/// Source zero-offset AOE paths for bundled glow/fire placement effects.
+/// Source AOE paths for bundled glow/fire/snow placement effects.
 /// Non-empty tool AOE iterators and other block-effect forms stay unresolved.
 pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
     if game.remote.is_some() || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
@@ -308,10 +308,17 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let effects = recipe.get("block_effects")?.as_array()?;
     if effects.len() != 1 || effects[0].get("type")?.as_str()? != "tconstruct:place_block" { return None; }
     let block = effects[0].get("block")?.as_str()?;
-    if !matches!(block, "tconstruct:glow" | "minecraft:fire") { return None; }
+    if !matches!(block, "tconstruct:glow" | "minecraft:fire" | "minecraft:snow") { return None; }
     if effects[0].as_object()?.keys().any(|key| key != "type" && key != "block" && key != "sound") { return None; }
     let sound = match effects[0].get("sound") { None => None, Some(value) => Some(value.as_str()?.to_owned()) };
     let amount = u32::try_from(recipe.pointer("/fluid/amount")?.as_u64()?).ok().filter(|amount| *amount > 0)?;
+    // Snow layers use BlockItem placement and require the actual hit point.
+    // The game exposes the packet's forced hit here for guest interactions.
+    let hit_point = if block == "minecraft:snow" {
+        let hit = game.pick()?;
+        if hit.pos != clicked || hit.face != face { return None; }
+        Some(hit.point)
+    } else { None };
     let held = game.held()?;
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
     // Stage every possible remainder before changing the world. Failed
@@ -354,6 +361,27 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     None => game.options.dedicated.is_none(),
                 };
                 if !permitted || !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
+                if block == "minecraft:snow" {
+                    // The normal BlockItem path handles placement context and
+                    // survival. Snow-layer stacking is retained as a separate
+                    // unsupported case until the destination can be staged.
+                    if !game.res.facts().is_air(game.world.block(target[0], target[1], target[2])) { return Ok(false); }
+                    let face = match face { [0,-1,0] => horizon_core::geometry::Direction::Down, [0,1,0] => horizon_core::geometry::Direction::Up, [0,0,-1] => horizon_core::geometry::Direction::North, [0,0,1] => horizon_core::geometry::Direction::South, [-1,0,0] => horizon_core::geometry::Direction::West, [1,0,0] => horizon_core::geometry::Direction::East, _ => return Ok(false) };
+                    let hit = hit_point.unwrap();
+                    let offset = [position[0] - clicked[0], position[1] - clicked[1], position[2] - clicked[2]];
+                    let context = horizon_world::level::PlaceContext {
+                        clicked_pos: horizon_core::position::BlockPos::new(position[0], position[1], position[2]),
+                        face, hit: horizon_core::geometry::Vec3::new(hit[0] + f64::from(offset[0]), hit[1] + f64::from(offset[1]), hit[2] + f64::from(offset[2])),
+                        inside: false, yaw: game.yaw, pitch: game.pitch,
+                        sneaking: game.keys.contains(&super::KeyCode::ShiftLeft),
+                        item: "minecraft:snow".to_owned(), can_use_game_master_blocks: game.can_use_game_master_blocks(),
+                    };
+                    let preview = game.with_level(|blocks, world, ticks| blocks.placement_state(world, ticks, &context));
+                    if !preview.is_some_and(|(pos, state)| [pos.x, pos.y, pos.z] == target && game.res.facts().get(state).name.as_ref() == "minecraft:snow") { return Ok(false); }
+                    let outcome = game.with_level(|blocks, world, ticks| blocks.place_block(world, ticks, &context));
+                    game.process_level_events()?;
+                    return Ok(matches!(outcome, horizon_world::level::PlaceOutcome::Placed { pos, .. } if [pos.x, pos.y, pos.z] == target));
+                }
                 let pos = horizon_core::position::BlockPos::new(target[0], target[1], target[2]);
                 let (state, survives) = game.with_level(|blocks, world, ticks| {
                     let state = blocks.fire_state_for(world, ticks, pos);
