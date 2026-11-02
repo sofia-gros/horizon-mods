@@ -3582,14 +3582,12 @@ bindings = [
 
 [[injection]]
 id = "crafting-station-client-data"
-target = "horizon_client::game::remote_stations::Game<'_>::remote_station_data"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
 kind = "HEAD"
-cancellable = true
 helper = "source-crafting-client-data.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
-  { name = "id", ty = "usize", value = "id" },
-  { name = "value", ty = "i16", value = "value" },
+  { name = "packet", ty = "&horizon_protocol::packets::play::Clientbound", value = "&packet" },
 ]
 
 [[injection]]
