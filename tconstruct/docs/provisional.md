@@ -7,7 +7,7 @@ This build temporarily disables specific hooks whose Horizon Mixins targets cann
 | Reinforced and Unbreakable | New application is temporarily disabled because ordinary wear prevention is unavailable. Existing modifier data is retained but does not give the intended protection. |
 | Dense and other durability-prevention traits | The affected wear effect is unavailable; material items and tool construction remain available. |
 | Wearable material armor | Armor remains available. Its material armor and toughness calculation is separate from the disabled dynamic wear and armor Overslime writeback; those durability effects are incomplete. |
-| Crafting Station | The screen and recipe remain available. Host grid writeback after some clicks is under investigation and may affect stored ingredients; LAN has a separate transaction path. Do not rely on persistence until it is verified. |
+| Crafting Station | The screen and recipe remain available. On the local host, grid clicks use a synchronized transaction; normal result clicks and recipe-book auto-placement are temporarily blocked, while Shift-click result retrieval is being verified. LAN guests use a separate path and have not been verified for this revision. |
 | Material-specific storage rendering and connected glass | Storage material data remains, but material-specific world faces, connected glass faces and Tinker's Chest world tint are unavailable. Dyed items keep their data. |
 | Excavator and Battlesign built-in knockback | Their extra built-in melee knockback is unavailable; their other behavior is separate. |
 | Crumbling with Stonebound | An isolated mining test did not match the expected ordering; the combination has not been validated. |
