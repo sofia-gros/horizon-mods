@@ -84,7 +84,7 @@ the conditional projectile velocity portion remains unimplemented.
 Focused local Rust tests checked trait presence, grounded and broken cases,
 and the Maintained combination after airborne and water penalties, using the
 saved older host NBT library. An isolated official Mixins plan resolved both
-final speed reads and their local captures; the full combined plan remains pending. The combined Linux client confirmed a supplied tool retains its Airborne data over save/reload. Broken-tool gameplay timed out; material swapping, natural acquisition, LAN and Windows remain unverified. In the combined
+final speed reads and their local captures. The combined Linux transform and build passed on Horizon `02c8607e`; the main branch's earlier pinned host was not retested in that run. The combined Linux client confirmed a supplied tool retains its Airborne data over save/reload. Broken-tool gameplay timed out; material swapping, natural acquisition, LAN and Windows remain unverified. In the combined
 client, make a supported harvest tool with Skyslime Vine, compare the same
 block on the ground and while airborne, including one ineffective block, then
 repeat after breaking the tool and after replacing that material. Capture both
