@@ -343,4 +343,4 @@ PartCastItem cost tooltips are being connected to the source material-casting re
 
 Casting-table `table_duplication` now matches the source cast and fluid tags, retains the original input and copies its item data into the result. The bundled smithing-template recipe uses 500 mB molten diamond; this path awaits verification. Unsupported casting forms remain separate.
 
-The source `table_filling` recipe supports a plain empty bucket for registered bucket fluids through the existing casting transaction. It consumes the empty bucket and 1,000 mB and cools for five ticks; this path awaits game verification. Other fluid-capability containers and component-bearing buckets remain unsupported.
+The source `table_filling` recipe supports a plain empty bucket for registered bucket fluids through the existing casting transaction. It consumes the empty bucket and 1,000 mB and cools for five ticks; this path awaits game verification. The filled bucket preserves input components; other fluid-capability containers remain unsupported.
