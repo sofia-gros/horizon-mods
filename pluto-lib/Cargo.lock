@@ -179,11 +179,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pluto-item-api"
+version = "0.1.0"
+
+[[package]]
 name = "pluto-lib"
 version = "0.1.0"
 dependencies = [
  "horizon-items",
  "pluto-creative-api",
+ "pluto-item-api",
  "serde_json",
 ]
 
