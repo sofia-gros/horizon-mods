@@ -286,9 +286,10 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
     }
     if let Some(result) = spec.get("result") {
+        let result = result.as_array().and_then(|items| (!items.is_empty()).then(|| &items[cycle % items.len()])).unwrap_or(result);
         let id = result.as_str().or_else(|| result.get("id").and_then(|v| v.as_str()));
         if let Some(id) = id {
-            let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
+            let count = result.get("count").or_else(|| spec.get("count")).and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
             let damage = result.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
             let maximum = result.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
             let x = ox + if grid == 2 { 118.0 } else { 146.0 };

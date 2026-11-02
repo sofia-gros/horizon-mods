@@ -500,15 +500,22 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                         let nbt = item.get("nbt");
                         let damage = nbt.and_then(|v| v.get("Damage")).and_then(|v| v.as_u64()).unwrap_or(0);
                         let maximum = nbt.and_then(|v| v.get("tic_stats")).and_then(|v| v.get("tconstruct:durability")).and_then(|v| v.as_u64());
-                        Some(serde_json::json!({"id":id, "damage":damage, "max_damage":maximum}))
+                        let count = item.get("amount_needed").and_then(|v| v.as_u64()).unwrap_or(1).clamp(1, u32::MAX as u64);
+                        Some(serde_json::json!({"id":id, "damage":damage, "max_damage":maximum, "count":count}))
+                    };
+                    let source_choices = |value: &serde_json::Value| -> Option<serde_json::Value> {
+                        if let Some(choices) = value.as_array() {
+                            let choices: Vec<_> = choices.iter().filter_map(&source_stack).collect();
+                            if choices.is_empty() { None } else { Some(serde_json::json!(choices)) }
+                        } else { source_stack(value) }
                     };
                     let mut slots: Vec<Option<serde_json::Value>> = vec![None; 9];
                     for (y, row) in rows.iter().take(3).enumerate() {
                         for (x, item) in row.as_array()?.iter().take(3).enumerate() {
-                            slots[y * 3 + x] = source_stack(item);
+                            slots[y * 3 + x] = source_choices(item);
                         }
                     }
-                    let result = value.get("result").and_then(source_stack);
+                    let result = value.get("result").and_then(source_choices);
                     let grid = if value.get("grid_size").and_then(|v| v.as_str()) == Some("small") { 2 } else { 3 };
                     Some(serde_json::json!({"slots":slots, "result":result, "grid":grid}))
                 })
