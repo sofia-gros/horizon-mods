@@ -60,7 +60,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         let merged = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
-    if original.is_some_and(|stack| !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(stack)) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
+    // Existing inputs are checked before mutation by the operation planner.
     let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
@@ -184,7 +184,10 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
         (stats.get("tconstruct:head")?.get("durability")?.as_f64()? as f32 * cost as f32 / 3.0) as u32
     } else { 0 };
     if !changed && (tool.damage == 0 || repair == 0) { return None; }
-    let mut output = assemble(world, definition, &tool.item, &identities, Some(tool), reason)?;
+    let Some(verified) = super::tconstruct_source_tool_normalize::clone_for_tool_mutation(tool) else {
+        *reason = Some("Cannot modify: unsupported saved item components".into()); return None;
+    };
+    let mut output = assemble(world, definition, &tool.item, &identities, Some(&verified), reason)?;
     let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let modules = parsed.get("modules")?.as_array()?;
     let base_slots = |name: &str| -> Option<i32> {
@@ -326,8 +329,9 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
-    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(tool) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
-    let mut upgraded = tool.clone();
+    let Some(mut upgraded) = super::tconstruct_source_tool_normalize::clone_for_tool_mutation(tool) else {
+        *reason = Some("Cannot modify: unsupported saved item components".into()); return None;
+    };
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
     let Tag::Compound(ref mut fields) = custom else { return None; };
@@ -360,8 +364,9 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     let (namespace,name) = tool.item.split_once(':')?;
     let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|t|t.levels).unwrap_or_default();
-    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(tool) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
-    let mut upgraded = tool.clone();
+    let Some(mut upgraded) = super::tconstruct_source_tool_normalize::clone_for_tool_mutation(tool) else {
+        *reason = Some("Cannot modify: unsupported saved item components".into()); return None;
+    };
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str,Tag)>::new()));
     let Tag::Compound(ref mut fields) = custom else { return None; };
@@ -401,7 +406,7 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::extract_upgrade_with_traits(tags, tool, slots.get(1..=2)?, id, &traits)?;
-    let mut modified = tool.clone();
+    let mut modified = super::tconstruct_source_tool_normalize::clone_for_tool_mutation(tool)?;
     let mut custom = modified.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let Tag::Compound(upgrades) = fields.get_mut(&"tic_upgrades".into())? else { return None; };

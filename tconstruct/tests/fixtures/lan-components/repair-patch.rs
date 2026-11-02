@@ -83,3 +83,36 @@ fn renamed_tool_with_lore_and_model_is_not_rejected() {
         assert!(data.other(key).is_some(), "{key}");
     }
 }
+
+#[test]
+fn cached_patch_is_checked_before_modifier_refill_or_extraction_mutation() {
+    use crate::tconstruct_source_tool_normalize::clone_for_tool_mutation;
+    use horizon_world::nbt::Tag;
+    for operation in ["modifier", "overslime", "extraction"] {
+        let original = damaged_tool(false, false);
+        let mut changed = clone_for_tool_mutation(&original).expect("known patch accepted");
+        let mut custom = changed.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+        let Tag::Compound(ref mut fields) = custom else { panic!("expected custom data") };
+        fields.insert("fixture_operation".into(), Tag::String(operation.into()));
+        changed.data_mut().set_other("minecraft:custom_data", Some(custom));
+        assert!(changed.wire_patch().is_none());
+        // Rechecking this changed clone would incorrectly reject it.
+        assert!(!patch_safe_for_tool_mutation(&changed));
+        finalize_tool(&mut changed, |_| None).unwrap();
+        let mut slots = vec![Some(original), Some(ItemStack::new("minecraft:iron_ingot", 3))];
+        let mut carried = None;
+        assert!(take_repair(&mut slots, &mut carried, changed, &[(0, 1), (1, 1)]));
+        assert_eq!(slots[1].as_ref().unwrap().count, 2);
+        assert!(carried.is_some());
+    }
+}
+
+#[test]
+fn unsupported_patch_is_rejected_before_any_input_mutation() {
+    use crate::tconstruct_source_tool_normalize::clone_for_tool_mutation;
+    let original = damaged_tool(true, false);
+    let slots = [Some(original), Some(ItemStack::new("minecraft:iron_ingot", 3))];
+    assert!(clone_for_tool_mutation(slots[0].as_ref().unwrap()).is_none());
+    assert_eq!(slots[0].as_ref().unwrap().damage, 10);
+    assert_eq!(slots[1].as_ref().unwrap().count, 3);
+}

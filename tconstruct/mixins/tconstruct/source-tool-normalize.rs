@@ -68,3 +68,8 @@ pub fn patch_safe_for_tool_mutation(stack: &ItemStack) -> bool {
         }
     })
 }
+
+/// Validate the untouched input once before changing any stack components.
+pub fn clone_for_tool_mutation(stack: &ItemStack) -> Option<ItemStack> {
+    patch_safe_for_tool_mutation(stack).then(|| stack.clone())
+}
