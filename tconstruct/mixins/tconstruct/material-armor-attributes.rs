@@ -57,7 +57,11 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         }
     }
     let Some(player) = game.player.as_mut() else { return; };
-    horizon_client::motion::pluto_landing_state::get_mut(player).enabled = landing_enabled;
+    let state = horizon_client_render::chunk_map::pluto_landing_state::get_mut(&mut game.world.chunks, player.entity_id);
+    state.enabled = landing_enabled;
+    state.guest = false;
+    state.rebound_y = None;
+    state.damage_multiplier = None;
     for (attribute, id, amount, op) in values {
         if player.set_modifier(&attribute, &id, amount, op, true).is_ok() {
             game.applied_modifiers.push((attribute, id));

@@ -23,7 +23,23 @@ The single-file package targets Horizon `7084e67744cbb4fe25961f24126e15b6b36f052
 
 The development bundle can include Mixins per-instance `[[state]]` declarations
 and their `[[state.constructor]]` entries. The landing state is transient and
-belongs to each player motion instance; it does not prescribe an equipment rule
+is scoped to a world and keyed by player entity ID; it does not prescribe an equipment rule
 or a landing effect. Its combined-package planning, constructor coverage, type
 checking, and gameplay behavior still require validation.
 
+
+The native package checks cover both the landing-state manifest and a fixture
+without state. They check unique declaration IDs, constructor preservation,
+module and helper archive references, and deterministic package output. The
+updated checks must be run by the validation owner on the integrated candidate.
+
+The landing-state follow-up stores a transient map on the existing
+`horizon_client_render::chunk_map::ChunkMap` construction boundary. The
+PlayerMotion constructor could not be transformed by the pinned Mixins. The
+map clears with the chunk map; equipment state is overwritten when an actor is
+entered. This alternative requires official plan/apply and type verification.
+
+On the fixed integrated candidate, the ChunkMap state and clear hook passed a
+state-only official plan. The combined apply then failed to resolve TConstruct's
+landing target. A follow-up names `MotionWorld` by its defining module; its
+combined apply, bindings and runtime behavior remain to be verified.
