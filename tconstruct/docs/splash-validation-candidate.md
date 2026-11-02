@@ -1,5 +1,11 @@
 # Splashing validation candidate
 
+## Follow-up integration
+
+The follow-up candidate descends from #261 at `5b60ce7ff6710b4d4b631f7d09a67a9e4ed07002` and includes the bounded `mob_effect_cloud` implementation described in `original-parity.md`, plus the product-resource and remote-Melter fixes equivalent to #263 and #265. It retains the #259 series and main base below. Those PRs' fixed heads remain unchanged; use the follow-up candidate's own Git commit for the exact integrated input. The cloud accepts only the stated single-action, full-fluid, level-one and non-instant known-vanilla subset; the normal recipe remains disabled. The resource and Melter changes have separate validation and must not be treated as passed merely because they are included here.
+
+In addition to the cases below, use the supplied venom recipe (50 mB, poison and strength) on a replaceable adjacent block and check cloud location, wait, shrinking, status durations, consumption and cooldown. Include a non-replaceable target, less than 50 mB, unsupported mixed effects, ordinary fire/snow placement, multiple positions, save/reload, and an integrated-owner/guest case. Do not infer support for the excluded cloud forms from a positive venom result.
+
 This candidate integrates the submitted splash series through source head `a34e32ca1a6748c239e330746d341c0fba11616e` on top of current `origin/main` `61613253e4aa06eb2e739a9f6343a93652f014f8`. The fixed #248, #250, #252, #254 and #257 heads are ancestors; their individual heads have not changed. The separate #246 effect-ID fix is already represented by the equivalent change in #248; do not apply it twice.
 
 Use the same repository commit for both TConstruct and PlutoLib. At the source head the PlutoLib `stack-fluid.rs` blob is `1bb39399c4beb0b56787147eab554fc92b08d91e`, its native mixin manifest blob is `ab571599f5a20ba8e7f4634bd40828359ffc9d3e`, and the TConstruct mixin manifest blob is `a094d03becef2ee717f80be70075db4eb2e0192b`. This records matching source content, not a packaged or applied artifact. The formal requested execution target is Horizon `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`; neither build nor game execution has been done for this candidate.
