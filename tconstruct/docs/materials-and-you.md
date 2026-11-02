@@ -22,3 +22,5 @@ The following figures are from the earlier two-page runtime `87d61cb`, not the n
 ![A source crafting diagram in the test world](materials-and-you-recipe-test.png)
 
 The crafting-grid texture is from Mantle 1.20 revision `17c287ad52f7b10154e07fa7570dc7bccd74ca2b`, under the MIT license in `third_party/mantle/LICENSE`.
+
+The pinned guide JSON and images are ordinary files under `content/assets/tconstruct/book/`. The content overlay supplies the same paths to the reader and LAN host; resource preparation copies the original guide images into the GUI atlas. There is no separate guide ZIP to install. The `.hmod` content package and `.hnmod` native package remain separate, and this directory change has not yet been checked in a packaged game.
