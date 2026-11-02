@@ -44,11 +44,9 @@ fn tconstruct_crafting_menu(game: &mut crate::game::Game<'_>, ops: &[(Option<usi
                 commit_side=true;
                 Some(true)
             });
-            if commit_side {
-                let _=crate::game::tconstruct_crafting_station::write_side(game,pos,side);
-                notify_crafted(game, item_crafted);
-            }
+            if commit_side { let _=crate::game::tconstruct_crafting_station::write_side(game,pos,side); }
             crate::game::tconstruct_crafting_station::sync(game);
+            if commit_side { notify_crafted(game, item_crafted); }
             return std::ops::ControlFlow::Break(handled);
         }
     }
@@ -71,7 +69,7 @@ fn tconstruct_crafting_menu(game: &mut crate::game::Game<'_>, ops: &[(Option<usi
         item_crafted = std::mem::take(&mut menu.item_crafted);
         Some(true)
     });
-    if handled { notify_crafted(game, item_crafted); }
     crate::game::tconstruct_crafting_station::sync(game);
+    if handled { notify_crafted(game, item_crafted); }
     std::ops::ControlFlow::Break(handled)
 }
