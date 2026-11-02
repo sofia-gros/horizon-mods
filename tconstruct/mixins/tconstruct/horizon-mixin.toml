@@ -2872,7 +2872,7 @@ source = "source-armor-wear.rs"
 
 [[injection]]
 id = "anvil-material-recipe"
-target = "horizon_client::crafting::Recipes::assemble_if_matches"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
 kind = "HEAD"
 cancellable = true
 helper = "anvil-material-recipe.rs"
@@ -2889,7 +2889,7 @@ source = "survival-empty-tank.rs"
 
 [[injection]]
 id = "survival-melter-no-container"
-target = "horizon_client::crafting::Recipes::assemble_if_matches"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
 kind = "HEAD"
 cancellable = true
 helper = "survival-melter-recipe.rs"
@@ -2900,7 +2900,7 @@ bindings = [
 
 [[injection]]
 id = "netherite-dropped-item-environment"
-target = "horizon_client::entities::ItemEntity::environment_tick"
+target = "horizon_client_lib::entities::ItemEntity::environment_tick"
 kind = "RETURN"
 helper = "netherite-dropped-item.rs"
 bindings = [
@@ -2954,7 +2954,7 @@ visibility = "pub"
 
 [[injection]]
 id = "overslime-crafting-assemble"
-target = "horizon_client::crafting::Recipes::assemble_if_matches"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
 kind = "HEAD"
 cancellable = true
 helper = "source-overslime-craft-assemble.rs"
@@ -2962,7 +2962,7 @@ bindings = [{ name = "input", ty = "&Input<'_>", value = "input" }, { name = "re
 
 [[injection]]
 id = "overslime-crafting-remainders"
-target = "horizon_client::crafting::Recipes::remainders"
+target = "horizon_client_lib::crafting::Recipes::remainders"
 kind = "HEAD"
 cancellable = true
 helper = "source-overslime-craft-remainders.rs"
