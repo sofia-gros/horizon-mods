@@ -272,6 +272,21 @@ pub(super) struct CastingRecipe {
     pub basin: bool, pub retextured: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
     pub switch_slots: bool, pub fluid: FluidSpec, pub output: Output, pub cooling_time: u32,
 }
+/// The source potion serializer copies the fluid tag into its result.
+pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<CastingRecipe> {
+    let value: Value = serde_json::from_slice(bytes).ok()?;
+    let basin = match value.get("type")?.as_str()? {
+        "tconstruct:casting_table_potion" => false,
+        "tconstruct:casting_basin_potion" => true,
+        _ => return None,
+    };
+    if !enabled(&value, conditions) { return None; }
+    let cooling_time = match value.get("cooling_time") { None => 5, Some(n) => u32::try_from(n.as_u64()?).ok()? };
+    if cooling_time == 0 { return None; }
+    Some(CastingRecipe { basin, retextured: false, cast: Some(Ingredient::parse(value.get("bottle")?)?),
+        consumes_cast: true, switch_slots: false, fluid: FluidSpec::parse(value.get("fluid")?)?,
+        output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
+}
 
 /// The source material casting recipe and the independent fluid-to-material
 /// recipe are joined only after the current world's tags are resolved.
