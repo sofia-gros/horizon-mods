@@ -7,7 +7,7 @@ use super::tconstruct_world::World;
 type Pos = (i32, i32, i32);
 
 fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) -> bool {
-    if !matches!(key, "tconstruct:anvil" | "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank") { return false; }
+    if !matches!(key, "tconstruct:modifier_chest" | "tconstruct:anvil" | "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank") { return false; }
     if let Some((_, tag)) = sources.iter_mut().find(|(at, _)| *at == pos) {
         if tag.get("id") != Some(&Tag::String(key.into())) { return false; }
         let Tag::Compound(map) = tag else { return false; };
@@ -50,7 +50,13 @@ pub(super) fn clear_different(world: &mut World, pos: Pos, key: &str) {
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
     let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
     let saved = chunk.saved.as_deref()?;
-    saved.block_entity_sources.iter().find(|(at, _)| *at == pos)?.1.get(key).cloned()
+    let raw=&saved.block_entity_sources.iter().find(|(at, _)| *at == pos)?.1;
+    if let Some(value)=raw.get(key) {return Some(value.clone());}
+    if key=="tconstruct:modifier_chest" && matches!(raw.get("id"),Some(Tag::String(id)) if id.to_string_lossy()==key) {
+        let mut data=Compound::new();if let Some(color)=raw.get("color") {data.insert("color".into(),color.clone());}
+        return Some(Tag::Compound(data));
+    }
+    None
 }
 
 pub(super) fn write(world: &mut World, pos: Pos, key: &str, value: Tag) -> bool {

@@ -104,7 +104,8 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         // Register the source machine IDs for persisted block entities. The
         // five machines use chest-like live inventories, but their custom IDs
         // keep machine metadata outside vanilla chest canonicalization.
-        let machines = [("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
+        let machines = [("tconstruct:crafting_station", "tconstruct:crafting_station"), ("tconstruct:part_chest", "tconstruct:part_chest"), ("tconstruct:tinkers_chest", "tconstruct:modifier_chest"),
+            ("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
             ("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
             ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
             ("tconstruct:seared_basin", "tconstruct:basin"), ("tconstruct:smeltery_controller", "tconstruct:smeltery"),

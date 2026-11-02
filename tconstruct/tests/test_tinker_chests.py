@@ -35,5 +35,11 @@ class TinkerChestSourceTest(unittest.TestCase):
             for texture in ["front", "side", "top", "drawer_front", "drawer_side"]:
                 self.assertTrue((assets / f"textures/block/chest/{kind}/{texture}.png").is_file())
 
+    def test_tinkers_chest_uses_the_source_default_dye(self):
+        item = json.loads((ROOT / "assets/tconstruct/items/tinkers_chest.json").read_text())
+        self.assertEqual(item["model"]["tints"], [{"type": "minecraft:dye", "default": 0x407686}])
+        recipe = json.loads((ROOT / "data/tconstruct/recipe/tinkers_chest_dyed.json").read_text())
+        self.assertEqual((recipe["type"],recipe["target"],recipe["dye"]), ("minecraft:crafting_dye","tconstruct:tinkers_chest","#minecraft:dyes"))
+
 if __name__ == "__main__":
     unittest.main()

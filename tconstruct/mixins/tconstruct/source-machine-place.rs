@@ -6,6 +6,13 @@ fn tconstruct_machine_place(game: &mut crate::game::Game<'_>, pos: [i32; 3], sta
     let chest_slots = match &*name { "tconstruct:crafting_station" => 9, "tconstruct:part_chest" => 256, "tconstruct:tinkers_chest" => 64, _ => 0 };
     if chest_slots != 0 {
         game.world.block_entities.get_or_insert_with(key, || horizon_client::containers::BlockEntity::Chest(vec![None; chest_slots]));
+        if &*name == "tconstruct:tinkers_chest" {
+            use horizon_world::nbt::{Compound,Tag};
+            let mut data=Compound::new();
+            if let Some(color)=stack.data().and_then(|data|data.dyed_color) {data.insert("color".into(),Tag::Int(color));}
+            crate::game::tconstruct_source_melter_store::clear_different(&mut game.world,key,"tconstruct:modifier_chest");
+            let _=crate::game::tconstruct_source_melter_store::write(&mut game.world,key,"tconstruct:modifier_chest",Tag::Compound(data));
+        }
         return;
     }
     if matches!(&*name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable") {

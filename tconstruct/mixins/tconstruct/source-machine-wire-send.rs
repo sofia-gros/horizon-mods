@@ -10,6 +10,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             let Some(Tag::String(id)) = raw.get("id") else { continue; };
             let id = id.to_string_lossy();
             let blocks: &[&str] = match id.as_str() {
+                "tconstruct:modifier_chest" => &["tconstruct:tinkers_chest"],
                 "tconstruct:anvil" => &["tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"],
                 "tconstruct:melter" => &["tconstruct:seared_melter"],
                 "tconstruct:heater" => &["tconstruct:seared_heater"],
@@ -25,7 +26,10 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
             let state = ctx.world.block(pos.0, pos.1, pos.2).0 as usize;
             let Some(block_id) = hub.encoder.block_ids.get(state).copied() else { continue; };
             if !blocks.iter().any(|block| hub.sync.builtin.get("minecraft:block").and_then(|r| r.id(block)) == Some(block_id)) { continue; }
-            let Some(value) = raw.get(id.as_str()) else { continue; };
+            let chest_value = if id=="tconstruct:modifier_chest" && raw.get(id.as_str()).is_none() {
+                let mut data=Compound::new();if let Some(color)=raw.get("color") {data.insert("color".into(),color.clone());}Some(Tag::Compound(data))
+            } else {None};
+            let Some(value) = raw.get(id.as_str()).or(chest_value.as_ref()) else { continue; };
             let progress = match value.get("heat_codes") { Some(Tag::IntArray(values)) if id == "tconstruct:smeltery" => Some(values.clone()), _ => None };
             let mut value = value.clone();
             // Phase is only the server's scheduling cursor. Sending it would

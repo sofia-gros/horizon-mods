@@ -3641,3 +3641,22 @@ bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
 ]
+
+[[injection]]
+id = "tinkers-chest-world-tint"
+target = "horizon_client::mesher::Mesher<'_>::face"
+kind = "RETURN"
+helper = "source-chest-tint.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "out", ty = "&mut SectionMesh", value = "&mut *out" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "&mut *tints" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+]
+
+[[module]]
+id = "chest-tint-math"
+file = "crates/horizon-client/src/mesher.rs"
+name = "tconstruct_chest_tint_math"
+source = "source-chest-tint-math.rs"

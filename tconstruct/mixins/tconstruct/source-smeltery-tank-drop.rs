@@ -1,5 +1,15 @@
 fn smeltery_tank_drop(pending: &mut crate::game::spill::Pending, pos: [i32; 3], stack: &mut horizon_client::items::ItemStack) {
     use horizon_world::nbt::{Compound, Tag};
+    if &*stack.item == "tconstruct:tinkers_chest" {
+        if let Some((item,patch))=pending.copied.get_mut(&pos) {
+            if item==&*stack.item {
+                if let Some(Tag::Int(color))=patch.remove(&"tconstruct:internal_chest_color".into()).and_then(|tag|tag.get("color").cloned()) {
+                    stack.data_mut().dyed_color=Some(color);
+                }
+            }
+        }
+        return;
+    }
     if matches!(&*stack.item, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable") {
         if let Some((item, patch)) = pending.copied.get_mut(&pos) {
             if item == &*stack.item {
