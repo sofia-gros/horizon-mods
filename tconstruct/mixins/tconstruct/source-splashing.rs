@@ -212,7 +212,7 @@ pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f
     intersects && (0..3).map(|i| { let delta = target[i] - candidate[i]; delta * delta }).sum::<f64>() < radius * radius
 }
 
-/// Full fluid makes independent status-effect targets order-insensitive. With
+/// Full fluid makes supported independent target effects order-insensitive. With
 /// just a primary and one secondary, their source order is known even when
 /// the remaining fluid scales the second target's effect.
 pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStack, level: i32, count: usize, order_known: bool) -> bool {
@@ -223,9 +223,12 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
     if fluid.tag.is_some() || fluid.amount == 0 || fluid.amount > *capacity as u32 { return false; }
     let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return false; };
     let mut ids = std::collections::HashSet::new();
+    let mut hunger_seen = false;
     if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
         super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| horizon_client::brewing::is_mod_effect(known.id) || matches!(known.id, "instant_health" | "instant_damage") || !ids.insert(known.id)),
-        _ => true,
+        super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::brewing::effect(id).is_none_or(|known| known.id != "poison" || !ids.insert(known.id)),
+        super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => { let duplicate = hunger_seen; hunger_seen = true; duplicate },
+        super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => true,
     }) { return false; }
     if order_known { return true; }
     u32::try_from(count).ok().and_then(|count| recipe.amount.checked_mul(level as u32).and_then(|amount| amount.checked_mul(count))).is_some_and(|required| fluid.amount >= required)
@@ -290,8 +293,8 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     }
     if !player_targets.is_empty() {
         // This packet can only carry the mutable LanHost at its outer return.
-        // Only order-independent, fully funded effects are deferred: a partial
-        // budget or an unsupported target/form passes through unchanged.
+        // Larger groups require full funding; a primary with one secondary
+        // retains its known order even with partial fluid.
         let Some(conn) = game.lan_acting else { return; };
         if targets.iter().any(|index| !super::tconstruct_source_spilling::eligible_mob(&game.mobs[*index])) { return; }
         if !deferred_recipe_supported(game, &stack, *level, targets.len() + player_targets.len(), targets.len() == 1 && player_targets.len() == 1) { return; }
