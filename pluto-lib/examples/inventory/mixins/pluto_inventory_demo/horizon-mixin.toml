@@ -1,0 +1,36 @@
+[mod]
+id = "pluto_inventory_demo"
+version = "0.1.0"
+priority = 200
+[compatibility]
+horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
+[[module]]
+id = "shared"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_inventory_demo_shared"
+source = "shared.rs"
+visibility = "pub"
+[[module]]
+id = "display"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_inventory_demo"
+source = "display.rs"
+[[injection]]
+id = "use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "use.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+[[injection]]
+id = "tooltip"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
+kind = "HEAD"
+helper = "tooltip.rs"
+bindings = [
+ { name = "stack", ty = "&ItemStack", value = "stack" },
+ { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "&mut *lines" },
+]
