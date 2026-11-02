@@ -68,8 +68,8 @@ pub(super) fn single_block(game: &super::Game<'_>, stack: &ItemStack) -> bool {
     true
 }
 
-/// Resolve the source two-dimensional, small circle iterator. The order of
-/// the existing side-hit plane matches RectangleIterator (width first).
+/// Source circle iterator, including its optional depth component. The source
+/// walks depth, height and width in that order and uses integer radius squared.
 pub(super) fn circle_offsets(game: &super::Game<'_>, stack: &ItemStack, origin: [i32; 3], face: [i32; 3]) -> Option<Vec<[i32; 3]>> {
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
     let expanded = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:expanded") + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
@@ -79,14 +79,24 @@ pub(super) fn circle_offsets(game: &super::Game<'_>, stack: &ItemStack, origin: 
     let definition: serde_json::Value = serde_json::from_slice(bytes).ok()?;
     let modules = definition.get("modules")?.as_array()?;
     let aoe: Vec<_> = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str).is_some_and(|kind| kind.ends_with("_aoe"))).collect();
-    if aoe.len() != 1 || aoe[0].get("type")?.as_str()? != "tconstruct:circle_aoe" || aoe[0].get("3D").and_then(serde_json::Value::as_bool) != Some(false) { return None; }
-    let diameter = i32::try_from(aoe[0].get("diameter")?.as_i64()?).ok()?.checked_add(expanded)?;
-    if !matches!(diameter, 2 | 3) { return None; }
+    if aoe.len() != 1 || aoe[0].get("type")?.as_str()? != "tconstruct:circle_aoe" { return None; }
+    let diameter = i32::try_from(aoe[0].get("diameter").map_or(Some(1), serde_json::Value::as_i64)?).ok()?.checked_add(expanded)?;
+    if !(1..=33).contains(&diameter) { return None; }
+    if diameter == 1 { return Some(Vec::new()); }
+    let is_3d = match aoe[0].get("3D") { None => false, Some(value) => value.as_bool()? };
+    let radius = diameter / 2;
     let radius_squared = diameter * diameter / 4;
-    Some(super::tconstruct_source_area_shape::plane(origin, face, game.yaw)?.into_iter().filter(|position| {
-        let distance: i32 = (0..3).map(|axis| (position[axis] - origin[axis]).pow(2)).sum();
-        distance <= radius_squared
-    }).collect())
+    let look = match ((game.yaw / 90.0 + 0.5).floor() as i32).rem_euclid(4) { 0 => [0, 0, 1], 1 => [-1, 0, 0], 2 => [0, 0, -1], _ => [1, 0, 0] };
+    let (width, height) = if face[1] != 0 { ([-look[2], 0, look[0]], look) } else { ([face[2], 0, -face[0]], [0, 1, 0]) };
+    let depth = [-face[0], -face[1], -face[2]];
+    let mut out = Vec::new();
+    for dz in 0..=(if is_3d { radius } else { 0 }) { for dy in -radius..=radius { for dx in -radius..=radius {
+        if (dx == 0 && dy == 0 && dz == 0) || dx * dx + dy * dy + dz * dz > radius_squared { continue; }
+        let mut at = origin;
+        for axis in 0..3 { at[axis] = at[axis].checked_add(width[axis] * dx + height[axis] * dy + depth[axis] * dz)?; }
+        out.push(at);
+    }}}
+    Some(out)
 }
 
 /// Source BoxAOEIterator: depth, then height, then width. Unknown or very
