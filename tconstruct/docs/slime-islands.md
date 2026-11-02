@@ -355,6 +355,14 @@ source dirt except grass blocks and mycelium, and replaces other blocks with
 dirt; the source Forge `onTreeGrow` extension for third-party blocks is not
 implemented. Roots use the host water-state query. The island marker remains
 deferred: the host's `PieceWorld` interface does not expose the shape-edge
-updates needed by tree placement. The live connection, root placement,
+updates or block-tag queries needed by tree placement. On the b53 host,
+`structure::legacy::PieceWorld` would need object-safe forwarding methods for
+`PlacementContext::update_shape_at_face(position, direction, flags)` and
+`PlacementContext::block_matches_tag(position, tag)`, with the existing blanket
+`PieceWorld for W` implementation delegating to `W: PlacementContext`. The
+underlying world implements these operations, but `PieceContext.world` erases
+that interface. The pinned Mixins `WRAP_OPERATION` also requires a target
+parameter as a method receiver, while this call uses the local piece `p`.
+The live connection, root placement,
 waterlogging, leaf ordering and random draws require official apply, type,
 package and in-game verification. No Ender tree growth is claimed as tested.
