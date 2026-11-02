@@ -3621,3 +3621,23 @@ id = "source-crafting-output"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_crafting_output"
 source = "source-crafting-output.rs"
+
+[[state]]
+id = "crafting-guest-views"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32),(Vec<Option<horizon_items::items::ItemStack>>,Vec<Option<horizon_items::items::ItemStack>>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "crafting-station-lan-update"
+target = "horizon_client::game::lan_actions::Game<'_>::tick_guests"
+kind = "HEAD"
+helper = "source-crafting-lan-update.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+]

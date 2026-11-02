@@ -125,6 +125,7 @@ pub(crate) fn close(game: &mut Game<'_>, host: &mut LanHost, conn: u32, joined: 
     let key = (conn, joined, *actual);
     let Some(pos) = game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_sessions_mut().remove(&key) else { return; };
     game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side_mut().remove(&key);
+    game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_views_mut().remove(&key);
     // The block is updated after each transaction. It may have been removed
     // since the last click; in either case the temporary copies are not drops.
     let env = game.menu_env();
@@ -172,17 +173,35 @@ pub(crate) fn content(game: &mut Game<'_>,host: &mut LanHost,conn: u32) -> Contr
     let Some(gi)=host.hub.guests.iter().position(|g|g.conn==conn) else {return Continue(());};
     let joined=host.hub.guests[gi].placed_at;
     let Some((window,state,menu,_))=host.play.get_mut(&conn).and_then(|p|p.crafting.table.as_mut()) else {return Continue(());};
-    let Some(&(side,offset))=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&(conn,joined,*window)) else {return Continue(());};
-    let Some(BlockEntity::Chest(items))=game.world.block_entities.get(&side) else {return Continue(());};
+    let key=(conn,joined,*window);
+    if !game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_sessions().contains_key(&key) {return Continue(());}
+    let extra=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&key).and_then(|(side,offset)|game.world.block_entities.get(side).map(|entity|(*offset,entity.slots())));
     let mut slots: Vec<Option<ItemStack>>=(0..10).map(|i|menu.slot(i).cloned()).collect();
+    let grid=slots[1..10].to_vec();
     slots.extend((9..36).chain(0..9).map(|i|host.hub.guests[gi].inventory[i].clone()));
-    let start=offset*6;
-    slots.extend((0..48).map(|i|items.get(start+i).cloned().flatten()));
+    let extra=extra.map(|(offset,items)| {let start=offset*6;(0..48).map(|i|items.get(start+i).cloned().flatten()).collect::<Vec<_>>()}).unwrap_or_default();
+    slots.extend(extra.iter().cloned());
+    game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_views_mut().insert(key,(grid,extra));
     *state=(*state+1)&0x7fff;let (window,state)=(*window,*state);
     let net=slots.iter().map(|slot|host.hub.stack(slot)).collect();
     let carried=host.hub.stack(&host.hub.guests[gi].carried.clone());
     host.hub.send_to(conn,&C::ContainerSetContent(play::ContainerSetContent {container:window,state,items:net,carried}));
     Break(())
+}
+
+pub(crate) fn update_viewers(game: &mut Game<'_>,host: &mut LanHost) {
+    let sessions:Vec<_>=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_sessions().iter().map(|(k,v)|(*k,*v)).collect();
+    for ((conn,joined,window),pos) in sessions {
+        let Some(gi)=host.hub.guests.iter().position(|g|g.conn==conn && g.placed_at==joined) else {continue;};
+        let Some(grid)=items(game,pos) else {continue;};
+        let extra=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&(conn,joined,window)).and_then(|(side,offset)|game.world.block_entities.get(side).map(|entity|(*offset,entity.slots())))
+            .map(|(offset,items)| (0..48).map(|i|items.get(offset*6+i).cloned().flatten()).collect::<Vec<_>>()).unwrap_or_default();
+        if game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_views().get(&(conn,joined,window)).is_some_and(|view|view.0==grid && view.1==extra) {continue;}
+        let Some((active,state,mut menu,stored_pos))=host.play.get_mut(&conn).and_then(|p|p.crafting.table.take_if(|(active,..)|*active==window)) else {continue;};
+        game.guest_menu_op(host,gi,&mut menu,|menu,env| {for (i,stack) in grid.into_iter().enumerate() {menu.set_slot(env,i+1,stack);}});
+        host.play.entry(conn).or_default().crafting.table=Some((active,state,menu,stored_pos));
+        game.lan_send_table_content(host,conn);
+    }
 }
 
 pub(crate) fn scroll(game: &mut Game<'_>,host: &mut LanHost,conn: u32,window: i32,id: i32) -> ControlFlow<()> {
