@@ -38,6 +38,13 @@ pub(super) fn friendly(levels: &std::collections::BTreeMap<String, i32>, overfor
 mod tests {
     use super::*;
     #[test]
+    fn overlord_copies_unreduced_float_durability_before_final_capacity_truncation() {
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 1, 100.0, 1.0), 60);
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 6, 100.0, 1.0), 110);
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 7, 100.0, 1.0), 120);
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 1, 99.9, 1.0), 59);
+    }
+    #[test]
     fn capacity_uses_fractional_upgrade_and_source_global_multiplier() {
         assert_eq!(capacity(true, 0, 0, 0, 1.0), 50);
         assert_eq!(capacity(true, 1, 0, 0, 1.0), 68);
@@ -105,10 +112,17 @@ pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     use horizon_world::nbt::Tag;
     let has = upgrade(stack,"tconstruct:overslime") > 0 || levels.get("tconstruct:overslime").copied().unwrap_or(0) > 0;
     let overforced = upgrade(stack,"tconstruct:overforced");
-    let durability = amount(stack, "tic_max_damage") as f32;
+    // StatCopy runs before the other modules of Overlord and reads a float,
+    // not the final integer durability after Overlord's own reduction.
+    let diamond = upgrade(stack, "tconstruct:diamond") > 0;
     let emerald = upgrade(stack, "tconstruct:emerald") > 0;
     let netherite = upgrade(stack, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
-    let source_multiplier = stats.durability_multiplier_unit * if emerald { 1.5 } else { 1.0 } * if netherite { 1.2 } else { 1.0 };
+    let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
+    let preserved = levels.get("tconstruct:preserved").copied().unwrap_or(0) as f32;
+    let ductile = levels.get("tconstruct:ductile").copied().unwrap_or(0) as f32;
+    let percent = stats.durability_percent_raw + preserved * 0.15 + ductile * 0.1 + if emerald { 0.5 } else { 0.0 } + if netherite { 0.2 } else { 0.0 };
+    let source_multiplier = stats.durability_multiplier_unit;
+    let durability = (stats.durability_base_raw + diamond_add) * (1.0 + percent) * source_multiplier;
     let cap = capacity_with_overlord(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, levels.get("tconstruct:overlord").copied().unwrap_or(0), durability, source_multiplier);
     let unfriendly = has && !friendly(levels, overforced);
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();

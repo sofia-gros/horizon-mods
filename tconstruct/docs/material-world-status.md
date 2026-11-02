@@ -49,8 +49,8 @@ complete from the selected rows above or from registration alone.
 
 The Queen's Slime source trait includes Overlord and Overslime. The Overlord
 candidate applies the source durability `multiply_base` reduction (15% per
-level through six, then 99.999%) and copies 10% of the resulting durability
-per level into Overslime through the source stat-copy multiplier order. These
+level through six, then 99.999%) and copies 10% of durability per level into Overslime before its own
+durability reduction, using the source float stat and global multiplier order. These
 changes are not yet applied, type-checked or verified in game. Acceptance must
 cover levels 0, 1, 6 and 7, material multipliers, Diamond, Emerald, Netherite,
 Overcast, replacement/removal, and shield-capacity clamping without duplicated
