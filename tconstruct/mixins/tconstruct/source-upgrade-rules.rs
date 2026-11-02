@@ -524,7 +524,8 @@ mod tests {
         };
         let mut cobalt_bow = make(&["tconstruct:lightweight","tconstruct:stringy"]);
         let cobalt_levels = BTreeMap::from([("tconstruct:lightweight".into(),2),("tconstruct:stringy".into(),1)]);
-        let cobalt_stats = stats(&[cobalt.clone(),cobalt,string.clone()]);
+        let cobalt_parts = [cobalt.clone(),cobalt,string.clone()];
+        let cobalt_stats = stats(&cobalt_parts);
         apply_stats(&mut cobalt_bow,&cobalt_stats,&cobalt_levels,false,false).unwrap();
         let data=cobalt_bow.data().unwrap().other("minecraft:custom_data").unwrap();
         assert!(matches!(data.get("tic_draw_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.3875).abs()<0.0001));
@@ -532,7 +533,8 @@ mod tests {
         assert!(matches!(data.get("tic_accuracy"),Some(Tag::Float(v)) if (f32::from_bits(*v)-0.85).abs()<0.0001));
         let mut bronze_bow = make(&["tconstruct:crystalbound","tconstruct:cultivated","tconstruct:stringy"]);
         let bronze_levels = BTreeMap::from([("tconstruct:crystalbound".into(),1),("tconstruct:cultivated".into(),1),("tconstruct:stringy".into(),1)]);
-        let bronze_stats = stats(&[bronze,wood,string]);
+        let bronze_parts = [bronze,wood,string];
+        let bronze_stats = stats(&bronze_parts);
         apply_stats(&mut bronze_bow,&bronze_stats,&bronze_levels,false,false).unwrap();
         let data=bronze_bow.data().unwrap().other("minecraft:custom_data").unwrap();
         assert!(matches!(data.get("tic_draw_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.0625).abs()<0.0001));
