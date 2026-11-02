@@ -262,3 +262,9 @@ reported `E_SELECTOR` for the foliage face hook because its site ordinal was
 missing. The follow-up specifies ordinal zero and retains `require = 1` for
 Mesher::face's single `tint` initialization. This source-level correction has
 not yet passed the official plan/apply, type check or game validation.
+
+The b53 follow-up apply after the tint selector fix reached support-module
+loading but reported `E_MODULE`: four module source files used inner-doc
+comments, which are parsed as file attributes. The follow-up changes those
+comments to ordinary comments. Its official apply, type check, build and game
+behavior remain unverified.

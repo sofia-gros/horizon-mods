@@ -1,4 +1,4 @@
-//! Planted Earth/Sky trees, using the same source shape as island generation.
+// Planted Earth/Sky trees, using the same source shape as island generation.
 use super::*;
 use horizon_core::random::RandomSource;
 use std::collections::BTreeSet;

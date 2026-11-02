@@ -1,4 +1,4 @@
-//! Source slime vine random growth and neighbor connection rules.
+// Source slime vine random growth and neighbor connection rules.
 use super::*;
 use horizon_core::{geometry::Direction, random::RandomSource};
 const SIDES: [(Direction, &str, (i32,i32,i32)); 4] = [
