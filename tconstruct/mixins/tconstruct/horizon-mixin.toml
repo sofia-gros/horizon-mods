@@ -3945,3 +3945,23 @@ kind = "HEAD"
 cancellable = true
 helper = "source-crafting-recipe-guard.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-slime-vine"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_slime_vine"
+source = "source-slime-vine.rs"
+
+[[injection]]
+id = "source-slime-vine-random"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
+kind = "HEAD"
+helper = "source-slime-vine-random.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
+
+[[injection]]
+id = "source-slime-vine-update"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
+kind = "HEAD"
+helper = "source-slime-vine-update.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "direction", ty = "Direction", value = "direction" }, { name = "new", ty = "&mut Option<BlockStateId>", value = "&mut *new" }]

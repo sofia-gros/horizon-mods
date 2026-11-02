@@ -145,3 +145,14 @@ unconnected because their original feature types and resources are not yet
 implemented. The target-version injections, loading, placement and saved-start
 restoration require dedicated plan, build and in-game validation; no natural
 generation or survival acquisition is claimed until that succeeds.
+
+## Experimental Sky slime-vine updates
+
+The Sky vine requests random ticks and uses the source side-attachment,
+three-stage downward growth, floating-length and random-draw rules. A neighbor
+update preserves sides supported by the source slime-leaf tag or by a
+non-terminal vine above, and removes unsupported vines. The source tag includes
+Earth and Sky leaves; its Ender entry is optional until Ender leaves are
+registered. Vine placement, Ender vines, full island generation, the target
+injection plan, support shapes, world and save behavior, RNG order and
+single-player/LAN validation remain open. Vanilla vine behavior is unchanged.
