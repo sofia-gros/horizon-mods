@@ -2,29 +2,21 @@
 
 Horizon already carries custom data, lore and item models in its native stack conversion. PlutoLib does not add a second codec for these fields on the newer host. The older [item behavior demo](item-behaviors.md) still targets its original Horizon version and retains its original adapters; it has not been ported to the newer host.
 
-## What has been checked
+## Independent demo
 
-The [fixture](../fixtures/stack_transport_3a.rs) uses the actual Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` stack encoder, wire codec and decoder. Two sequential conversions preserved a nested custom-data compound, lore, item model, item ID, count, damage and unbreakable, with each tested component appearing once. A decoded stack retained its cached wire patch after a count-only change. The two conversions call the shared codec twice; they do not execute the host and guest wrappers. Patch retention was checked before sending, not on an actual transmission. This fixture itself does not establish LAN or save/reload behavior.
+On Linux, the [demo](../examples/transport-demo/mixins/pluto_transport_demo/demo.rs) was built with Horizon `5197790e5846a82cfc84d9703e37c4c1b75be09c` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. A LAN guest received a prepared pickaxe’s actual Tool, max-damage and custom-data components, mined stone, and retained the components and updated damage after the world was saved and reloaded. The guest also split and recombined a Tool-bearing stack, reconnected with its count and components intact, and found the demo item through Creative search. A vanilla cobblestone drop was observed. These checks cover representative accepted values; they do not cover arbitrary future components or unprepared saved stacks.
 
-A separately supplied Tinkers fixture at commit `45497078ea4d3359c6b383bcca70f11674cfb373` preserved custom data, lore, item model, item ID and count in this conversion. Both tested pickaxes lost `minecraft:max_damage` and `minecraft:tool` when a newly constructed stack was encoded; the vanilla stone control retained its count. The two pickaxes therefore did not retain all components. The fixture checks the outgoing component IDs directly, using the host registry IDs for both fields. An experimental [max-damage adapter](../mixins/pluto_transport_3a/horizon-mixin.toml) adds the official integer component to a newly encoded stack without changing an existing component or wire patch; its helper also preserves a removal marker. The fixture verifies this narrow behavior. It is experimental and is not included in the distributed bundle. The experimental adapter also encodes and decodes the standard 26.3 `tool` raw component. Its fixture covers the supplied pickaxes’ actual mining rules, tag-based and explicit block lists, and retention of unrelated patch entries across a count-only change. The host alone retains tool bytes but does not reconstruct the item component. The adapter is a prototype: unsupported tool fields, unresolved registry IDs, mutated server patches, and actual host/guest wrapper behavior still require investigation; if encoding fails, it currently falls back to the host, which can omit the tool component. The older adapters do not independently repair this gap. Do not remove or combine adapters on the strength of these checks alone; their cancellable hooks can also interfere with one another.
+The separate experimental tooltip bundle showed `59 / 60` for a stack with damage 1 and max damage 60. It replaces an existing advanced tooltip line; it does not change the durability bar, durability enforcement or mining rules. The host’s mining path still uses item-definition rules, so mining stone does not establish that it used the stack’s Tool rules. Tinkers integration, the full launcher installation path and Windows remain unverified.
 
-For accepted values, the fixture checks prepared generated and modified stacks through both slot codecs, including Tool, max damage, custom data, lore and item model. It does not run the guest or host wrappers. The pre-existing host limitation for unrecognised entries of a modified cached patch is distinct from this accepted-field contract. A complete replacement still needs real bidirectional LAN and save/reload checks. This result is not a claim that Tinkers or item behavior works on the newer host.
+![The demo pickaxe and its component-based durability tooltip](transport-519-tooltip.png)
 
-## Independent demo status
+*The prepared pickaxe in the independent demo, with the tooltip bundle enabled.*
 
-On Linux with Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`, the [independent demo](../examples/transport-demo/mixins/pluto_transport_demo/demo.rs) generated a prepared diamond pickaxe. A LAN guest received its actual Tool and max-damage components, mined stone, and retained those components and the updated damage after the host saved and reloaded the world. A vanilla cobblestone drop was also observed.
+![The demo pickaxe in Creative search](transport-519-search.png)
 
-The end-to-end check is **not complete**. The stack has `max_damage:60`, but the host’s advanced tooltip displayed the diamond pickaxe’s default maximum, `1561`. The host mining path also reads item-definition rules, so the observed stone mining does not prove it used the stack’s Tool rules. A guest split a server-origin, Tool-bearing stack from eight items into two groups of four, merged them again, and reconnected with all eight and their Tool and custom data intact. Creative search returned the same item and component representation as the demo tab. This exercises the count-only path; it does not establish preservation of every unknown future patch. Tinkers integration, Windows and newer Horizon revisions have not been verified.
+*The LAN guest finds the same prepared stack through Creative search.*
 
-An experimental separate [tooltip helper](../mixins/pluto_component_display_3a/horizon-mixin.toml) replaces an existing durability tooltip line using the stack component and leaves stacks without it unchanged. A lightweight test and Mixins plan pass, but it has not been built into the game or checked on a newer host. It does not change the durability bar, mining behavior or durability enforcement.
-
-![The independent transport demo Creative tab](transport-demo.png)
-
-*The demo pickaxe is registered through the Creative API; its Tool value is prepared by the transport API.*
-
-![The transport demo pickaxe in Creative search](transport-search.png)
-
-*The guest finds the same prepared stack through Creative search.*
+The [codec fixture](../fixtures/stack_transport_3a.rs) and a separately supplied Tinkers fixture at commit `45497078ea4d3359c6b383bcca70f11674cfb373` were also checked against the earlier `3a264943` host. Without the adapter, its encoder omitted per-stack `minecraft:max_damage` and `minecraft:tool`; the fixture separates that from decoder behavior. The older adapters do not independently repair this gap. Do not combine cancellable adapters on the same conversion boundary without a coexistence check.
 
 ## Prepare a Tool component
 
@@ -39,6 +31,8 @@ let canonical = horizon_client::pluto_tool_codec::prepare_tool(
 ```
 
 The callback resolves an explicit block ID against the current host registry and returns `None` when absent; tag-only rules need no numeric lookup. `lookup_block_id` stands for the consuming mod’s registry adapter. The result and errors are host-independent strings and `ToolError`; invalid SNBT, an unresolved block ID and unsupported fields are errors before registration. The borrowed input is never modified: prepare the result before replacing the original component or consuming recipe inputs, and retain the original stack on error. Apply the same entry when a Tool changes; a damage-only change need not rebuild it. Store the returned canonical value so the sender and receiver use the same stack and search identity.
+
+The experimental transport contract covers Tool values accepted by this entry with the current registry, together with standard `max_damage` and `damage`, on the pinned Horizon and Mixins pair. It does not claim support for unprepared external values or arbitrary future component patches. Callers must prepare a replacement before committing a Tool change; normal damage-only changes do not need a new Tool value.
 
 This entry is experimental and exists only in the staged native client; it is not in the released package. It does not discover or migrate existing saved stacks. A common load boundary with access to the correct registry has not been established; callers must not assume existing inventory, container or dropped stacks were normalized.
 
