@@ -1,26 +1,45 @@
-use pluto_lib::{add_creative_tabs, CreativeTab, Registry};
+use pluto_lib::{
+    add_creative_tabs, add_paged_creative_tabs, CreativeTab, PagedCreativeTab, Registry,
+};
 use std::{env, fs, path::Path};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = env::args().collect();
-    if args.len() != 3 {
-        return Err("usage: demo OUTPUT_DIR PREPARED_CREATIVE_JSON".into());
+    if args.len() != 3 && !(args.len() == 4 && args[3] == "--overflow") {
+        return Err("usage: demo OUTPUT_DIR PREPARED_CREATIVE_JSON [--overflow]".into());
     }
     let root = Path::new(&args[1]);
     let inventory = serde_json::from_slice(&fs::read(&args[2])?)?;
     let gem = "{count:1,id:\"pluto_demo:gem\"}";
     let block = "{count:1,id:\"pluto_demo:glowing_block\"}";
-    let tabs = add_creative_tabs(
-        &inventory,
-        &[CreativeTab {
-            id: "pluto_demo:things",
-            title: "Pluto Demo",
-            icon: gem,
-            row: "TOP",
-            column: 5,
-            items: vec![gem, block],
-        }],
-    )?;
+    let tabs = if args.len() == 4 {
+        let ids: Vec<_> = (1..=17).map(|n| format!("pluto_demo:page_{n}")).collect();
+        let titles: Vec<_> = (1..=17).map(|n| format!("Pluto Demo {n}")).collect();
+        let groups: Vec<_> = ids
+            .iter()
+            .zip(&titles)
+            .enumerate()
+            .map(|(i, (id, title))| PagedCreativeTab {
+                id,
+                title,
+                icon: if i % 2 == 0 { gem } else { block },
+                items: if i % 2 == 0 { vec![gem] } else { vec![block] },
+            })
+            .collect();
+        add_paged_creative_tabs(&inventory, &groups)?
+    } else {
+        add_creative_tabs(
+            &inventory,
+            &[CreativeTab {
+                id: "pluto_demo:things",
+                title: "Pluto Demo",
+                icon: gem,
+                row: "TOP",
+                column: 5,
+                items: vec![gem, block],
+            }],
+        )?
+    };
     let mut registry = Registry::new("pluto_demo")?;
     registry.item("gem", "minecraft:amethyst_shard")?;
     registry.block("glowing_block", "minecraft:amethyst_block")?;

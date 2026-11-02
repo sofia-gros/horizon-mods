@@ -1,0 +1,51 @@
+[mod]
+id = "pluto_creative"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[module]]
+id = "page-core"
+file = "crates/horizon-client/src/creative.rs"
+name = "pluto_paging"
+source = "paging.rs"
+visibility = "pub"
+
+[[state]]
+id = "pages"
+target = "horizon_client::creative::Creative"
+ty = "crate::creative::pluto_paging::Pages<crate::creative::Tab>"
+initial = "::core::default::Default::default()"
+
+[[state.constructor]]
+target = "horizon_client::creative::Creative::new"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "prepare-pages"
+target = "horizon_client::game::Game<'_>::draw_creative"
+kind = "HEAD"
+helper = "prepare.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "draw-buttons"
+target = "horizon_client::game::Game<'_>::draw_creative"
+kind = "RETURN"
+helper = "draw.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+]
+
+[[injection]]
+id = "click-buttons"
+target = "horizon_client::game::Game<'_>::click_creative"
+kind = "HEAD"
+cancellable = true
+helper = "click.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
