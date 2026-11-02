@@ -35,16 +35,21 @@ pub struct BlockTarget {
     pub position: [i32; 3],
     pub face: [i32; 3],
 }
+/// One support direction and the state properties to use when it is valid.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SupportCandidate {
+    pub direction: [i32; 3],
+    pub properties: BTreeMap<String, String>,
+}
 /// One candidate placement, committed only with a handled block use.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PlacementRequest {
     /// Destination candidate. This prototype accepts only clicked position plus face.
     pub position: [i32; 3],
-    /// Namespaced block ID and registered state properties.
+    /// Namespaced block ID.
     pub block_id: String,
-    pub properties: BTreeMap<String, String>,
-    /// Direction from the destination to the adjacent supporting block.
-    pub support_direction: [i32; 3],
+    /// At most six support directions, in caller-selected priority order.
+    pub supports: Vec<SupportCandidate>,
     /// Permit replacing a liquid destination when the host marks it replaceable.
     pub replace_liquids: bool,
     /// Reject when the destination already has the requested block ID.
@@ -314,8 +319,10 @@ mod placement_tests {
                 placement: Some(PlacementRequest {
                     position: [0, 2, 0],
                     block_id: "example:block".into(),
-                    properties: BTreeMap::new(),
-                    support_direction: [0, -1, 0],
+                    supports: vec![SupportCandidate {
+                        direction: [0, -1, 0],
+                        properties: BTreeMap::new(),
+                    }],
                     replace_liquids: false,
                     reject_same_block: true,
                 }),

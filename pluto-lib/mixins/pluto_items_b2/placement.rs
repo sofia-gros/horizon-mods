@@ -15,16 +15,15 @@ fn direction(n: [i32; 3]) -> Option<Direction> {
     }
 }
 
-/// `None` is a normal rejection. Do not use this for a LAN guest: the
-/// adjacent destination's spawn-protection policy is not available here.
+/// `None` is a normal rejection. Guest placement requires a matching
+/// host-captured spawn-protection decision for this exact packet.
 pub(super) fn prepare(
     game: &super::Game<'_>,
     target: BlockTarget,
     request: &PlacementRequest,
 ) -> Option<([i32; 3], super::BlockStateId)> {
     if game.remote.is_some()
-        || game.lan_acting.is_some()
-        || game.options.dedicated.is_some()
+        || (game.lan_acting.is_none() && game.options.dedicated.is_some())
         || !game.may_build()
     {
         return None;
@@ -35,6 +34,17 @@ pub(super) fn prepare(
         target.position[1].checked_add(target.face[1])?,
         target.position[2].checked_add(target.face[2])?,
     ];
+    if let Some(conn) = game.lan_acting {
+        let decision = game
+            .world
+            .chunks
+            .__horizon_mixins_pluto_items_b2_placement_guest_check()
+            .get(&conn)
+            .copied();
+        if !super::pluto_guest_policy::permits(decision, at) {
+            return None;
+        }
+    }
     if at != request.position {
         return None;
     }
@@ -53,42 +63,59 @@ pub(super) fn prepare(
     {
         return None;
     }
-    let normal = request.support_direction;
-    direction(normal)?;
-    let support = [
-        at[0].checked_add(normal[0])?,
-        at[1].checked_add(normal[1])?,
-        at[2].checked_add(normal[2])?,
-    ];
-    if !game.world.loaded(support[0], support[2]) {
-        return None;
-    }
-    let face = direction([-normal[0], -normal[1], -normal[2]])?;
-    let supporting = game.world.block(support[0], support[1], support[2]);
-    let (_, shape) = game
-        .pack
-        .context
-        .tables
-        .visibility
-        .occlusion_face(supporting, face)?;
-    if !shape
-        .join_is_not_empty(&VoxelShape::block(), ShapeOp::XOR)
-        .is_ok_and(|difference| !difference)
-    {
+    if request.supports.is_empty() || request.supports.len() > 6 {
         return None;
     }
     let registry = game.pack.assets.registry;
     let default = registry.default_state(&request.block_id)?;
-    let mut state = registry.state(default)?.clone();
-    for (key, value) in &request.properties {
-        state.properties.insert(key.clone(), value.clone());
+    let mut candidates = Vec::with_capacity(request.supports.len());
+    for candidate in &request.supports {
+        let normal = candidate.direction;
+        direction(normal)?;
+        if candidates.iter().any(|(seen, _)| *seen == normal) {
+            return None;
+        }
+        let mut state = registry.state(default)?.clone();
+        for (key, value) in &candidate.properties {
+            state.properties.insert(key.clone(), value.clone());
+        }
+        candidates.push((normal, registry.resolve(&state).ok()?));
     }
-    let state = registry.resolve(&state).ok()?;
+    let state = super::pluto_support_policy::select(candidates, |normal| {
+        let Some(x) = at[0].checked_add(normal[0]) else {
+            return false;
+        };
+        let Some(y) = at[1].checked_add(normal[1]) else {
+            return false;
+        };
+        let Some(z) = at[2].checked_add(normal[2]) else {
+            return false;
+        };
+        if !game.world.loaded(x, z) {
+            return false;
+        }
+        let Some(face) = direction([-normal[0], -normal[1], -normal[2]]) else {
+            return false;
+        };
+        let supporting = game.world.block(x, y, z);
+        let Some((_, shape)) = game
+            .pack
+            .context
+            .tables
+            .visibility
+            .occlusion_face(supporting, face)
+        else {
+            return false;
+        };
+        shape
+            .join_is_not_empty(&VoxelShape::block(), ShapeOp::XOR)
+            .is_ok_and(|difference| !difference)
+    })?;
     Some((at, state))
 }
 
 /// `true` means the host accepted a raw block write. Events are processed by
-/// the caller before checking the final state and committing item data.
+/// the caller after committing the prepared item data.
 pub(super) fn apply(game: &mut super::Game<'_>, at: [i32; 3], state: super::BlockStateId) -> bool {
     game.with_level(|b, level, ticks| {
         b.set_block(

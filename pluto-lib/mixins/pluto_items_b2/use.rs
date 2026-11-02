@@ -99,29 +99,34 @@ fn pluto_use_b2(
                     return Break(Ok(UseResult::Fail));
                 }
                 // The block write has happened. Never return Pass or invite a retry.
-                let events_ok = match game.process_level_events() {
-                    Ok(()) => true,
-                    Err(error) => {
-                        eprintln!(
-                            "PlutoLib: events failed after committed block placement: {error}"
-                        );
-                        false
-                    }
-                };
-                let final_state_matches = game.world.block(at[0], at[1], at[2]) == state;
-                let item_committed = if final_state_matches {
-                    if let Some(current) = game.held_mut().as_mut().filter(|current| {
-                        current.count == stack.count && current.same_item_same_components(stack)
-                    }) {
-                        *current = updated;
-                        true
-                    } else {
-                        eprintln!("PlutoLib: held item changed during committed block placement");
-                        false
-                    }
-                } else {
-                    false
-                };
+                // A raw write committed world effects. Commit the prepared item
+                // before later events can fail or replace the destination state.
+                let (item_committed, events_ok, final_state_matches) =
+                    crate::game::pluto_placement_commit::finish(
+                        game,
+                        |game| {
+                            if let Some(current) = game.held_mut().as_mut().filter(|current| {
+                                current.count == stack.count
+                                    && current.same_item_same_components(stack)
+                            }) {
+                                *current = updated;
+                                true
+                            } else {
+                                eprintln!(
+                                    "PlutoLib: held item changed during committed block placement"
+                                );
+                                false
+                            }
+                        },
+                        |game| match game.process_level_events() {
+                            Ok(()) => true,
+                            Err(error) => {
+                                eprintln!("PlutoLib: events failed after committed block placement: {error}");
+                                false
+                            }
+                        },
+                        |game| game.world.block(at[0], at[1], at[2]) == state,
+                    );
                 let result = PlacementOutcome::Applied {
                     final_state_matches,
                     item_committed,

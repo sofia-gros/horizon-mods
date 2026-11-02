@@ -34,3 +34,52 @@ bindings = [
  { name = "stack", ty = "&ItemStack", value = "stack" },
  { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "&mut *lines" },
 ]
+
+[[state]]
+id = "placement-guest-check"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32,Option<([i32;3],u32)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "placement-guest-policy"
+target = "horizon_client::game::lan_actions::Game<'_>::enter_guest"
+kind = "HEAD"
+helper = "guest-placement.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" },
+ { name = "conn", ty = "u32", value = "conn" },
+]
+
+[[injection]]
+id = "placement-guest-policy-clear"
+target = "horizon_client::game::lan_actions::Game<'_>::leave_guest"
+kind = "HEAD"
+helper = "guest-placement-clear.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "swap", ty = "&crate::game::lan_actions::GuestSwap", value = "&swap" },
+]
+
+[[module]]
+id = "guest-policy"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_guest_policy"
+source = "guest-policy.rs"
+
+[[module]]
+id = "support-policy"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_support_policy"
+source = "support-policy.rs"
+
+[[module]]
+id = "placement-commit"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_placement_commit"
+source = "placement-commit.rs"
