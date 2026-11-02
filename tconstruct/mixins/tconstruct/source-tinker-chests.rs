@@ -62,6 +62,39 @@ pub(super) fn insert_across(
     remaining
 }
 
+/// Apply a normal left/right click to a chest slot; all other input modes are
+/// handled separately by the caller. Every stack mutation keeps its components.
+pub(super) fn pickup_slot(
+    kind: ChestKind, slots: &mut [Option<horizon_items::items::ItemStack>],
+    slot: usize, carried: &mut Option<horizon_items::items::ItemStack>,
+    right: bool, item_limit: u32, tagged_part: bool,
+) -> bool {
+    if slots.len() != kind.slots() || slot >= slots.len() { return false; }
+    let Some(mut cursor) = carried.take() else {
+        let Some(mut existing) = slots[slot].take() else { return false; };
+        if right && existing.count > 1 {
+            let count = existing.count.div_ceil(2);
+            let mut taken = existing.clone(); taken.count = count;
+            existing.count -= count; slots[slot] = Some(existing); *carried = Some(taken);
+        } else { *carried = Some(existing); }
+        return true;
+    };
+    if slots[slot].as_ref().is_some_and(|existing| !existing.same_item_same_components(&cursor)) {
+        let first = slots.iter().position(|current| current.as_ref().is_some_and(|s| s.same_item_same_components(&cursor)));
+        if !kind.accepts(slot, first, tagged_part) || cursor.count > kind.slot_limit(item_limit) { *carried = Some(cursor); return false; }
+        *carried = slots[slot].replace(cursor);
+        return true;
+    }
+    let requested = if right { 1 } else { cursor.count };
+    let mut offered = cursor.clone(); offered.count = requested;
+    let remainder = insert_slot(kind, slots, slot, offered, item_limit, tagged_part);
+    let unmoved = remainder.map_or(0, |stack| stack.count);
+    let moved = requested - unmoved;
+    cursor.count -= moved;
+    if cursor.count != 0 { *carried = Some(cursor); }
+    moved != 0
+}
+
 /// Original scaling inventory shows one spare slot after the last occupied
 /// position, capped by its own capacity. It does not limit other inventories.
 pub(super) fn part_visual_size(occupied: impl DoubleEndedIterator<Item = bool> + ExactSizeIterator, capacity: usize) -> usize {
@@ -129,6 +162,25 @@ mod tests {
         let mut tinkers = vec![None; 64];
         assert_eq!(insert_slot(ChestKind::Tinkers, &mut tinkers, 0, ItemStack::new("minecraft:stone", 20), 64, false).unwrap().count, 4);
         assert_eq!(tinkers[0].as_ref().unwrap().count, 16);
+    }
+    #[test]
+    fn pickup_right_click_and_swap_respect_part_rules() {
+        use horizon_items::items::ItemStack;
+        let mut slots = vec![None; 256];
+        let mut carried = Some(ItemStack::new("tconstruct:tool_handle", 10));
+        assert!(pickup_slot(ChestKind::Part, &mut slots, 0, &mut carried, false, 64, true));
+        assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (8, 2));
+        assert!(!pickup_slot(ChestKind::Part, &mut slots, 1, &mut carried, false, 64, true));
+        assert_eq!(carried.as_ref().unwrap().count, 2);
+        carried = None;
+        assert!(pickup_slot(ChestKind::Part, &mut slots, 0, &mut carried, true, 64, true));
+        assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (4, 4));
+        assert!(pickup_slot(ChestKind::Part, &mut slots, 0, &mut carried, true, 64, true));
+        assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (5, 3));
+        carried = Some(ItemStack::new("minecraft:stone", 1));
+        assert!(!pickup_slot(ChestKind::Part, &mut slots, 0, &mut carried, false, 64, false));
+        assert_eq!(carried.as_ref().unwrap().item.as_ref(), "minecraft:stone");
+        assert_eq!(slots[0].as_ref().unwrap().count, 5);
     }
     #[test]
     fn shift_move_merges_first_and_preserves_overflow() {
