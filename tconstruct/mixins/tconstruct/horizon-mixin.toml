@@ -1449,13 +1449,14 @@ require = 1
 
 [[injection]]
 id = "storage-atlas"
-target = "horizon_client_render::assets::Assets::reload"
+target = "horizon_client_render::sprites::Sprites::insert"
 kind = "HEAD"
 cancellable = true
-helper = "storage-atlas.rs"
+helper = "storage-atlas-extra.rs"
 bindings = [
-  { name = "assets", ty = "&Assets", value = "self" },
+  { name = "sprites", ty = "&mut Sprites", value = "&mut *self" },
   { name = "root", ty = "&Path", value = "root" },
+  { name = "name", ty = "&str", value = "name" },
 ]
 
 [[injection]]
