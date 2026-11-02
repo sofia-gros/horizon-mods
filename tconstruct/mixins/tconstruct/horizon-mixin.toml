@@ -4208,6 +4208,13 @@ helper = "source-splashing-interact.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "entity", ty = "i32", value = "entity" }, { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" }, { name = "claimed", ty = "&mut bool", value = "&mut *claimed" }]
 
 [[injection]]
+id = "source-splash-bottle-brewing"
+target = "horizon_client::stations::StationData::load"
+kind = "RETURN"
+helper = "source-splash-bottle-brewing.rs"
+bindings = [{ name = "value", ty = "Self", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
+
+[[injection]]
 id = "source-splashing-block"
 target = "horizon_client::game::Game<'_>::use_block_transformer"
 kind = "HEAD"
