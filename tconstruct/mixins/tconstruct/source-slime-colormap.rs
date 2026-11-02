@@ -1,4 +1,4 @@
-//! Original position-dependent slime foliage colors, reloaded with render assets.
+// Original position-dependent slime foliage colors, reloaded with render assets.
 use std::{path::Path, sync::{OnceLock, RwLock}};
 
 static MAPS: OnceLock<RwLock<[Option<Vec<u32>>; 5]>> = OnceLock::new();

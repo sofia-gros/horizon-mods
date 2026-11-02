@@ -324,3 +324,15 @@ block-write boundaries, RNG/placement comparison with the original, tree
 budget, save/reload, local/LAN and normal-world tests remain necessary. Use a
 disposable world until these checks pass; earlier chunks without fungi are not
 retrogened.
+
+The official b53 apply for candidate `f0b9ee660e22fb35517e798d053d0f3672d6136b`
+reported `E_SELECTOR` for the foliage face hook because its site ordinal was
+missing. The follow-up specifies ordinal zero and retains `require = 1` for
+Mesher::face's single `tint` initialization. This source-level correction has
+not yet passed the official plan/apply, type check or game validation.
+
+The b53 follow-up apply after the tint selector fix reached support-module
+loading but reported `E_MODULE`: four module source files used inner-doc
+comments, which are parsed as file attributes. The follow-up changes those
+comments to ordinary comments. Its official apply, type check, build and game
+behavior remain unverified.
