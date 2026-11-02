@@ -2,7 +2,7 @@
 
 This work-in-progress port brings Tinkers' Construct's parts and tool stations to Horizon. It uses Horizon's existing Minecraft resources and recipes where available.
 
-The in-progress [Materials and You reader](docs/materials-and-you.md) adds the original first guide and crafting recipe; its initial text view and remaining display work are described there.
+The in-progress [Materials and You reader](docs/materials-and-you.md) adds the original English first guide, crafting recipe and a two-page reader; tested paths and remaining display differences are described there.
 
 ## Try it
 

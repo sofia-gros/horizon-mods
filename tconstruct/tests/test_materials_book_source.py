@@ -58,6 +58,33 @@ class MaterialsBookSourceTest(unittest.TestCase):
             self.assertTrue(armor['text'])
             self.assertTrue(armor['properties'])
 
+    def test_modifier_showcases_have_source_slot_icons(self):
+        with zipfile.ZipFile(ARCHIVE) as archive:
+            names = set(archive.namelist())
+            for page, slot, icon in [('abilities', 'abilities', 'ability'), ('defense', 'defense', 'defense'), ('slotless', 'slotless', 'slotless'), ('upgrades', 'upgrades', 'upgrade')]:
+                data = json.loads(archive.read(PREFIX + 'en_us/modifiers/' + page + '.json'))
+                self.assertEqual(data['item']['nbt']['slot'], slot)
+                self.assertIn('assets/tconstruct/book/images/slot/' + icon + '.png', names)
+
+    def test_material_panel_has_original_colors_and_part_stats(self):
+        with zipfile.ZipFile(ARCHIVE) as archive:
+            colors = json.loads(archive.read('assets/tconstruct/book/source-colors.json'))
+            self.assertEqual(colors['material.tconstruct']['wood'], '#8e661b')
+            self.assertEqual(colors['material.tconstruct']['flint'], '#696969')
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
+            wood = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/wood.json'))['stats']
+            self.assertEqual(wood['tconstruct:head']['durability'], 60)
+            self.assertIn('tconstruct:handle', wood)
+            self.assertIn('tconstruct:binding', wood)
+
+    def test_tool_preview_uses_original_parts_and_table_art(self):
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-tool-definitions.zip') as archive:
+            data = json.loads(archive.read('data/tconstruct/tinkering/tool_definitions/pickaxe.json'))
+            module = next(m for m in data['modules'] if m['type'] == 'tconstruct:part_stats')
+            self.assertEqual(module['parts'], ['tconstruct:pick_head', 'tconstruct:tool_handle', 'tconstruct:tool_binding'])
+        with zipfile.ZipFile(ARCHIVE) as archive:
+            self.assertIn('assets/tconstruct/book/images/modify.png', archive.namelist())
+
     def test_original_repair_example_preserves_damage_values(self):
         with zipfile.ZipFile(ARCHIVE) as archive:
             repair = json.loads(archive.read(PREFIX + 'en_us/tools/repairing.json'))

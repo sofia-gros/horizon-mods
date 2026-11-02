@@ -3167,3 +3167,19 @@ id = "materials-book-spread"
 file = "crates/horizon-client/src/game/books.rs"
 name = "tconstruct_materials_book_spread"
 source = "source-materials-book-spread.rs"
+
+[[state]]
+id = "materials-book-history"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<usize>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "materials-book-layout"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_layout"
+source = "source-materials-book-layout.rs"
