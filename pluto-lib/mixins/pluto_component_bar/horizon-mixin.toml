@@ -1,0 +1,24 @@
+[mod]
+id = "pluto_component_bar"
+version = "0.1.0"
+priority = 1000
+
+[compatibility]
+horizon_revision = "b2e71aca04c7f62f24eefd7dd0324bae9c04954f"
+
+[[module]]
+id = "policy"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_component_bar"
+source = "policy.rs"
+
+[[injection]]
+id = "component-bar"
+target = "horizon_client::game::native_hooks::Game<'_>::native_item_bar"
+kind = "HEAD"
+helper = "bar.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "stack", ty = "&ItemStack", value = "stack" },
+  { name = "bar", ty = "&mut Option<(i32, u32)>", value = "&mut *bar" },
+]
