@@ -1,6 +1,6 @@
 // Shared per-stack effective-block recognition and conditional calculations.
 use horizon_world::nbt::Tag;
-use super::tconstruct_source_mining_math::{Conditional, conditional_speed};
+use super::tconstruct_source_mining_math::{Conditional, conditional_speed_at};
 
 /// Haste on a non-harvest chestplate applies the source player mining-speed multiplier.
 pub(super) fn haste_armor_multiplier(custom: &Tag, damage: u32) -> f32 {
@@ -58,7 +58,7 @@ pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &st
     evaluated_speed(tool, block, in_tag).flatten()
 }
 
-pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32) -> Option<f32> {
+pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
@@ -70,11 +70,12 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
             "tconstruct:jagged" => Conditional::Jagged(*level),
             "tconstruct:stonebound" => Conditional::Stonebound(*level),
             "tconstruct:maintained" => Conditional::Maintained(*level),
+            "tconstruct:dwarven" => Conditional::Dwarven(*level),
             _ => continue,
         };
         ordered.push(effect);
     }
-    Some(conditional_speed(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered))
+    Some(conditional_speed_at(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position))
 }
 
 #[cfg(test)]

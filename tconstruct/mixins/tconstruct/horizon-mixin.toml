@@ -2526,7 +2526,7 @@ kind = "MODIFY_VARIABLE"
 variable = { name = "speed", ordinal = 0, at = "STORE" }
 require = 5
 ordinal = 1
-helper = "source-mining-context.rs"
+helper = "source-mining-context-host.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
 
 [[injection]]
@@ -2537,7 +2537,7 @@ variable = { name = "speed", ordinal = 0, at = "STORE" }
 require = 5
 ordinal = 1
 helper = "source-mining-context.rs"
-bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
+bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
 
 [[module]]
 id = "game-source-harvest-tags"
@@ -3925,3 +3925,28 @@ bindings = [
   { name = "state", ty = "BlockStateId", value = "state" },
   { name = "handled", ty = "&mut bool", value = "&mut *handled" },
 ]
+
+[[module]]
+id = "source-dwarven"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_dwarven"
+source = "source-dwarven.rs"
+
+[[module]]
+id = "lib-source-dwarven"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_dwarven"
+source = "source-dwarven.rs"
+visibility = "pub"
+
+[[module]]
+id = "items-source-dwarven"
+file = "crates/horizon-items/src/items.rs"
+name = "tconstruct_source_dwarven"
+source = "source-dwarven.rs"
+
+[[module]]
+id = "game-source-mining-context"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_mining_context"
+source = "source-mining-context-shared.rs"

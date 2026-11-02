@@ -1,6 +1,6 @@
 // Original stat boosts and effective-block conditional mining modifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32) }
+pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
@@ -14,8 +14,13 @@ pub(super) fn base_speed_unclamped(base: f32, add_scale: f32, lightweight: i32, 
 }
 
 /// Source priority: maintained (100) before percent traits (75), stable within a priority.
-pub(super) fn conditional_speed(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
+pub(super) fn conditional_speed(speed: f32, loss: u32, maximum: u32, durability_all: f32,
     mining_all: f32, modifiers: &[Conditional]) -> f32 {
+    conditional_speed_at(speed, loss, maximum, durability_all, mining_all, modifiers, None)
+}
+
+pub(super) fn conditional_speed_at(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
+    mining_all: f32, modifiers: &[Conditional], position: Option<(i32, i32)>) -> f32 {
     let wear = (loss as f32 / durability_all.max(f32::MIN_POSITIVE)).sqrt() * 0.01;
     let half = maximum as f32 * 0.5;
     let remaining = maximum.saturating_sub(loss) as f32;
@@ -25,11 +30,18 @@ pub(super) fn conditional_speed(mut speed: f32, loss: u32, maximum: u32, durabil
             speed += maintained * level.max(0) as f32 * 6.0 * mining_all;
         }
     }
+    if let Some((y, max_height)) = position {
+        for modifier in modifiers {
+            if let Conditional::Dwarven(level) = *modifier {
+                speed = super::tconstruct_source_dwarven::boost(y as f32, max_height, level, speed, 6.0 * mining_all);
+            }
+        }
+    }
     for modifier in modifiers {
         match *modifier {
             Conditional::Jagged(level) => speed *= 1.0 - wear * level.max(0) as f32,
             Conditional::Stonebound(level) => speed *= 1.0 + wear * level.max(0) as f32,
-            Conditional::Maintained(_) => {},
+            Conditional::Maintained(_) | Conditional::Dwarven(_) => {},
         }
     }
     speed.max(0.0)
@@ -38,6 +50,14 @@ pub(super) fn conditional_speed(mut speed: f32, loss: u32, maximum: u32, durabil
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn dwarven_runs_between_maintained_and_percent_traits() {
+        let effects = [Conditional::Jagged(1), Conditional::Dwarven(1), Conditional::Maintained(1)];
+        let actual = conditional_speed_at(4.0, 25, 100, 1.0, 1.0, &effects, Some((0, 320)));
+        assert!((actual - 12.35).abs() < 0.0001);
+        let high = conditional_speed_at(4.0, 25, 100, 1.0, 1.0, &effects, Some((256, 320)));
+        assert!((high - 1.6625).abs() < 0.0001);
+    }
     #[test]
     fn source_static_operations_and_clamp() {
         assert!((base_speed(3.5, 1.0, 1, 1, 1, false) - 3.9123).abs() < 0.0001);
