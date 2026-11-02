@@ -4070,3 +4070,10 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use
 kind = "HEAD"
 helper = "source-slurping-finish.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+[[injection]]
+id = "source-slurping-bow-tick"
+target = "horizon_client::game::advancements::Game<'_>::trigger_using_item"
+kind = "HEAD"
+helper = "source-slurping-bow-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]

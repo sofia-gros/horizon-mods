@@ -8,7 +8,10 @@ pub(super) struct MobEffect {
     pub id: String,
     pub time: i32,
     pub amplifier: i32,
+    pub action: TimeAction,
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum TimeAction { Add, Set }
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct Effects {
     pub amount: u32,
@@ -41,11 +44,12 @@ pub(super) fn resolve(
             None => Vec::new(),
             Some(Value::Array(effects)) => effects.iter().map(|effect| {
                 let obj = effect.as_object()?;
-                if obj.get("type")?.as_str()? != "tconstruct:mob_effect" || obj.get("action")?.as_str()? != "add" { return None; }
+                if obj.get("type")?.as_str()? != "tconstruct:mob_effect" { return None; }
+                let action = match obj.get("action")?.as_str()? { "add" => TimeAction::Add, "set" => TimeAction::Set, _ => return None };
                 if obj.keys().any(|k| !matches!(k.as_str(), "type" | "action" | "effect" | "time" | "level")) { return None; }
-                let time = i32::try_from(obj.get("time")?.as_i64()?).ok().filter(|n| *n > 0)?;
+                let time = i32::try_from(obj.get("time").map_or(Some(-1), Value::as_i64)?).ok().filter(|n| *n > 0 || *n == -1)?;
                 let level = i32::try_from(obj.get("level").map_or(Some(1), Value::as_i64)?).ok().filter(|n| (1..=256).contains(n))?;
-                Some(MobEffect { id: obj.get("effect")?.as_str()?.to_owned(), time, amplifier: level - 1 })
+                Some(MobEffect { id: obj.get("effect")?.as_str()?.to_owned(), time, amplifier: level - 1, action })
             }).collect::<Option<Vec<_>>>()?,
             _ => return None,
         };

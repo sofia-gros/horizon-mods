@@ -196,7 +196,7 @@ pub(super) fn plan_with_traits(
             continue;
         }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
-            || tags.get("tconstruct:modifiable/ranged/bows").is_some_and(|items| items.contains(tool.item.as_ref()))
+            || tool.item.as_ref() == "tconstruct:crossbow"
             || tags.get("tconstruct:modifiable/shields").is_some_and(|items| items.contains(tool.item.as_ref()))) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
