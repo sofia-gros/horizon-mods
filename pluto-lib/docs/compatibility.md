@@ -18,3 +18,5 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 The native Creative and component-transport bundles target Horizon [`5197790e5846a82cfc84d9703e37c4c1b75be09c`](https://github.com/horizon-rust/horizon/commit/5197790e5846a82cfc84d9703e37c4c1b75be09c) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). The Mixins plan and native Creative bundle check passed. On Linux, the independent transport demo was built and run with this pair; its [LAN and tooltip checks](component-transport.md) do not establish Tinkers integration.
 
 The independent native Creative and component-transport demos were built and run on Linux with Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and the same Mixins revision. See [component transport](component-transport.md) for the observed host display limitation and the scope of LAN checks. Neither result establishes Tinkers integration.
+
+Horizon `4c908814b193366ce50e137254f9d35101390e81` is a newer upstream candidate and has not been tested with these bundles.
