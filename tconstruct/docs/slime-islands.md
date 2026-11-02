@@ -306,3 +306,21 @@ and RNG against TConstruct before claiming parity. Tag loading, all feature
 variants, bone-meal consumption, obstruction, chunk boundaries, source loot,
 save/reload, vanilla-fungus regression and local/LAN need dedicated testing.
 Dedicated-server support and normal acquisition are not established.
+
+## Experimental Blood island fungus markers
+
+The Blood island's selected fungus marker now attempts the original unplanted
+fungus algorithm rather than always skipping it. It uses the source slimy
+nylium and grow-through tags, source height, large-fungus and cap RNG order,
+and the host's per-state replaceability facts. Successful placements count
+against the original three-tree budget. The generation depth is persisted with
+the piece; older saved pieces use the current generator depth. If host tree
+facts are unavailable, the marker remains deferred. The original Ender and
+vanilla tree markers remain deferred, and source fluids are still omitted.
+
+Only syntax checks have been performed. Official target plan/type checking,
+structure start and saved-start bindings, tag and state-fact resolution,
+block-write boundaries, RNG/placement comparison with the original, tree
+budget, save/reload, local/LAN and normal-world tests remain necessary. Use a
+disposable world until these checks pass; earlier chunks without fungi are not
+retrogened.

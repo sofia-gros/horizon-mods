@@ -3102,7 +3102,7 @@ target = "horizon_world::worldgen::structure::start::try_generate"
 kind = "HEAD"
 cancellable = true
 helper = "source-slime-island-start-hook.rs"
-bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "any_biome", ty = "bool", value = "any_biome" }]
+bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "bindings", ty = "&FeatureBlockBindings<'_>", value = "bindings" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "any_biome", ty = "bool", value = "any_biome" }]
 
 [[module]]
 id = "materials-book"
@@ -3965,6 +3965,7 @@ id = "source-slime-colormap-face"
 target = "horizon_client_render::mesher::Mesher<'_>::face"
 kind = "MODIFY_VARIABLE"
 variable = { name = "tint", ordinal = 0, at = "STORE" }
+ordinal = 0
 require = 1
 helper = "source-slime-colormap-face.rs"
 bindings = [{ name = "value", ty = "Option<u32>", value = "$value" }, { name = "mesher", ty = "&Mesher<'_>", value = "self" }, { name = "tints", ty = "&Tints<'_>", value = "&*tints" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "id", ty = "&u32", value = "$local_ref:id:0" }, { name = "face", ty = "&BakedFace", value = "face" }]
@@ -4163,3 +4164,9 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bone
 kind = "HEAD"
 helper = "source-slime-fungus-perform.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
+
+[[module]]
+id = "island-slime-fungus"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_island_slime_fungus"
+source = "source-island-slime-fungus.rs"

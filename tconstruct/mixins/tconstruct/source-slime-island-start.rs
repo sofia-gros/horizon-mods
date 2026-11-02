@@ -40,7 +40,13 @@ fn source_entry(resources: &StructureResources, bundle: &str, id: &str) -> Optio
     serde_json::from_str(map.get(id)?.as_str()?).ok()
 }
 
-pub(crate) fn generate(registry: &StructureRegistry, resources: &StructureResources,
+pub(crate) fn fungus_replaceable(bindings: &FeatureBlockBindings<'_>, resources: &StructureResources) -> Option<std::sync::Arc<Vec<bool>>> {
+    let facts = bindings.tree_blocks().ok()?;
+    Some(std::sync::Arc::new((0..resources.registry.len()).map(|id|
+        facts.has(crate::registry::BlockStateId(id as u32), crate::worldgen::tree_blocks::REPLACEABLE)).collect()))
+}
+
+pub(crate) fn generate(registry: &StructureRegistry, resources: &StructureResources, bindings: &FeatureBlockBindings<'_>,
     context: &mut impl StartContext, structure: usize, chunk: ChunkPos, any_biome: bool) -> Option<StructureStart> {
     let def = registry.structures.get(structure)?;
     context.set_valid_biomes((!any_biome).then_some(&def.biomes));
@@ -89,6 +95,6 @@ pub(crate) fn generate(registry: &StructureRegistry, resources: &StructureResour
     let vines = source.get("vines").and_then(Value::as_str).map(str::to_owned);
     let markers = MarkerConfig { structure: def.name.clone(), tree, deferred_tree, grasses, vine: vines };
     let piece = IslandPiece::new(resources, template, [chunk.x * 16 + 8, height, chunk.z * 16 + 8],
-        rotation, mirror, markers, 0)?;
+        rotation, mirror, markers, 0, fungus_replaceable(bindings, resources), context.generation().height)?;
     Some(StructureStart::new(structure, def, chunk, vec![Piece::Legacy(Box::new(piece))]))
 }
