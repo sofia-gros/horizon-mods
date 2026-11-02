@@ -3883,3 +3883,20 @@ id = "source-bow-start"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_bow_start"
 source = "source-bow-start.rs"
+
+[[module]]
+id = "server-source-menu-wire-cache"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_menu_wire_cache"
+source = "source-menu-wire-cache.rs"
+visibility = "pub"
+
+[[state]]
+id = "menu-wire-sent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32,(i32,i32,i32)),(i16,Vec<i16>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

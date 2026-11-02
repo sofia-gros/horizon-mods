@@ -2138,7 +2138,7 @@ mod tests {
         let mut slots = vec![None; 27];
         let mut tool = ItemStack::new("tconstruct:flint_pickaxe", 1);
         tool.damage = 85;
-        tool.data_mut().custom_name = Some("Named tool".into());
+        tool.data_mut().custom_name = Some(horizon_world::nbt::Tag::String("Named tool".into()));
         tool.data_mut().other.push(("example:custom".into(), horizon_world::nbt::Tag::Int(17)));
         slots[0] = Some(tool.clone());
         slots[1] = Some(ItemStack::new("minecraft:flint", 1));

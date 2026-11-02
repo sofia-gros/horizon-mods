@@ -33,7 +33,7 @@ fn material_block_wire_chunk(
     // The remainder is the pinned Horizon ChunkEncoder::body serialization,
     // retaining its section, light and block-entity order.
     let heightmaps = encoder.heightmaps_of(chunk);
-    let lights = encoder.light_sections(chunk, encoder.around(chunk, world));
+    let lights = encoder.light_sections(chunk, encoder.around(chunk, world, &|_, _| None));
     let buffer: usize = wires.iter().map(|w| w.len()).sum();
     let mut tags = Writer::new();
     List::<BlockEntityInfo>::write(&entities, &mut tags);

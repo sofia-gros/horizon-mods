@@ -46,7 +46,7 @@ pub(super) fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Resu
     for index in 0..forge.len() {
         use std::io::Read;
         let mut entry = forge.by_index(index)?;
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let Some(path) = name.strip_prefix("data/forge/tags/blocks/").and_then(|value| value.strip_suffix(".json")) else { continue; };
         if path.split('/').any(|part| part.is_empty() || part == "." || part == "..") { return Err("invalid Forge harvest tag path".into()); }
         let mut bytes = Vec::new(); entry.read_to_end(&mut bytes)?;

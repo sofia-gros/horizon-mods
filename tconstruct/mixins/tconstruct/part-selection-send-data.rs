@@ -25,11 +25,16 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                     .flatten().collect::<Vec<_>>()
             });
             let frame = layouts.as_ref().and_then(|layouts| crate::tconstruct_source_builder_wire::encode(layouts));
+            let wire_key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
+            let wire = frame.as_deref().unwrap_or(&[i16::MIN]);
+            let (_, wire_changed) = crate::tconstruct_source_menu_wire_cache::changed(
+                world.chunks.__horizon_mixins_tconstruct_menu_wire_sent().get(&wire_key), -1, wire);
+            if wire_changed {
+                world.chunks.__horizon_mixins_tconstruct_menu_wire_sent_mut().insert(wire_key, (-1, wire.to_vec()));
+            }
             let guest = &mut hub.guests[i];
             if let Some(menu) = guest.menu.as_mut() {
-                let wire = frame.as_deref().unwrap_or(&[i16::MIN]);
-                if menu.sent_data != wire {
-                    menu.sent_data = wire.to_vec();
+                if wire_changed {
                     let window = menu.window;
                     let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
                     if let Some(frame) = frame {
@@ -125,15 +130,12 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         }
         let guest = &mut hub.guests[i];
         let Some(menu) = guest.menu.as_mut() else { continue; };
-        if menu.sent_data.is_empty() { menu.sent_data.push(i16::MIN); }
         let wire = encoded.as_deref().unwrap_or(&[i16::MIN]);
-        let wire_changed = menu.sent_data.get(1..) != Some(wire);
-        if wire_changed {
-            menu.sent_data.truncate(1);
-            menu.sent_data.extend_from_slice(wire);
+        let (selection_changed, wire_changed) = crate::tconstruct_source_menu_wire_cache::changed(
+            world.chunks.__horizon_mixins_tconstruct_menu_wire_sent().get(&preview_key), value, wire);
+        if selection_changed || wire_changed {
+            world.chunks.__horizon_mixins_tconstruct_menu_wire_sent_mut().insert(preview_key, (value, wire.to_vec()));
         }
-        let selection_changed = menu.sent_data[0] != value;
-        menu.sent_data[0] = value;
         let window = menu.window;
         if info_changed {
             let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
