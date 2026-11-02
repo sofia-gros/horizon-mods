@@ -1,6 +1,7 @@
 fn tconstruct_crafting_side_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button: i32, input: horizon_client::menu::Input) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     use horizon_client::menu::Input;
+    if game.remote.is_some() { return Continue(()); }
     let Some((side,count,offset,kind)) = crate::game::tconstruct_crafting_station::side(game) else { return Continue(()); };
     let Some(slot) = slot else { return Continue(()); };
     let side_slot = (600..648).contains(&slot).then_some(offset * crate::game::tconstruct_source_side_layout::columns(count) + slot.saturating_sub(600)).filter(|i| *i < count);

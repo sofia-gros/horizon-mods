@@ -36,6 +36,7 @@ pub(super) fn open(game: &mut Game<'_>, pos: [i32; 3]) -> bool {
 
 pub(super) fn side(game: &Game<'_>) -> Option<((i32, i32, i32), usize, usize, super::tconstruct_chest_rules::ChestKind)> {
     use super::tconstruct_chest_rules::ChestKind;
+    if let Some((count,offset,kind)) = remote_side(game) { return Some(((0,0,0),count,offset,kind)); }
     let table = position(game)?;
     let pos = *game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table)?;
     let kind = match &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name {
@@ -47,6 +48,27 @@ pub(super) fn side(game: &Game<'_>) -> Option<((i32, i32, i32), usize, usize, su
     if count != kind.slots() { return None; }
     let offset = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&table).map_or(0, |state| state.0);
     Some((pos, count, offset, kind))
+}
+
+pub(super) fn remote_side(game: &Game<'_>) -> Option<(usize,usize,super::tconstruct_chest_rules::ChestKind)> {
+    use super::tconstruct_chest_rules::ChestKind;
+    if game.remote_menu_title().map(|title|title.plain()).as_deref() != Some("TConstruct Crafting Station") { return None; }
+    let (window,count,offset,_) = game.world.chunks.__horizon_mixins_tconstruct_crafting_side_client().as_ref()?;
+    if *window != game.remote_menu_id() { return None; }
+    let kind = match *count {256=>ChestKind::Part,64=>ChestKind::Tinkers,_=>return None};
+    Some((*count,*offset,kind))
+}
+
+pub(super) fn set_scroll(game: &mut Game<'_>,offset: usize) {
+    if remote_side(game).is_some() {
+        game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick {container:game.remote_menu_id(),button:43000+offset as i32}));
+    } else if let Some(pos)=position(game) {
+        game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default().0=offset;
+    }
+}
+
+pub(super) fn scroll_key(game: &Game<'_>) -> Option<(i32,i32,i32)> {
+    if remote_side(game).is_some() { Some((i32::MIN,game.remote_menu_id(),0)) } else { position(game) }
 }
 
 pub(super) fn sync(game: &mut Game<'_>) {

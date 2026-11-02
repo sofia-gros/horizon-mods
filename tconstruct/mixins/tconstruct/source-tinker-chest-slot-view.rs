@@ -1,6 +1,10 @@
 fn tconstruct_chest_slot_view(game: &mut crate::game::Game<'_>, slot: usize) -> std::ops::ControlFlow<Option<ItemStack>> {
     if let Some((side,count,offset,_)) = crate::game::tconstruct_crafting_station::side(game) {
         if (600..648).contains(&slot) {
+            if crate::game::tconstruct_crafting_station::remote_side(game).is_some() {
+                let item=game.world.chunks.__horizon_mixins_tconstruct_crafting_side_client().as_ref().and_then(|(_,_,_,items)|items.get(slot-600)).cloned().flatten();
+                return std::ops::ControlFlow::Break(item);
+            }
             let index = offset * crate::game::tconstruct_source_side_layout::columns(count) + slot - 600;
             let item = game.world.block_entities.get(&side).and_then(|entity| entity.slots().get(index)).cloned().flatten();
             return std::ops::ControlFlow::Break(item);
