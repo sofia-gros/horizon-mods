@@ -145,6 +145,30 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }
         true
     });
+    // The source basin mud recipe uses BlockTagIngredient. Resolve its block
+    // tag through Block::asItem's exported state fact, not a guessed matching
+    // item identifier. Keep it unsupported when either registry is missing.
+    if let (Ok(block_tags), Some(rest)) = (&resolved_blocks, game.res.rest.get()) {
+        for bytes in recipes.values_mut() {
+            let Ok(mut recipe) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+            if recipe.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:casting_basin") { continue; }
+            let Some(cast) = recipe.get_mut("cast") else { continue; };
+            let Some(object) = cast.as_object() else { continue; };
+            if object.len() != 2 || object.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:block_tag") { continue; }
+            let Some(tag) = object.get("tag").and_then(serde_json::Value::as_str) else { continue; };
+            let Some(blocks) = block_tags.get(tag) else { continue; };
+            let mut items = std::collections::BTreeSet::new();
+            for facts in &game.res.facts().states {
+                if blocks.contains(facts.name.as_ref()) && facts.item.as_ref() != "minecraft:air"
+                    && rest.items.items.contains_key(&facts.item) {
+                    items.insert(facts.item.to_string());
+                }
+            }
+            if items.is_empty() { continue; }
+            *cast = serde_json::Value::Array(items.into_iter().map(|item| serde_json::json!({"item": item})).collect());
+            if let Ok(rewritten) = serde_json::to_vec(&recipe) { *bytes = rewritten; }
+        }
+    }
     // Preserve an explicit failure when any required input is unavailable.
     // These definitions describe the current Horizon registries, which do not
     // yet contain every original TConstruct item or fluid.
