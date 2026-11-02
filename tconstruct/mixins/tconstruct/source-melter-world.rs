@@ -63,14 +63,15 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
     if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid) {
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
-    let stack = input?;
-    if !basin {
-        if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
-            catalog.duplication(&stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
-        })? {
-            let mut output = stack.clone();
-            output.count = 1;
-            return Some((id, recipe, output));
+    if let Some(stack) = input {
+        if !basin {
+            if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+                catalog.duplication(&stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+            })? {
+                let mut output = stack.clone();
+                output.count = 1;
+                return Some((id, recipe, output));
+            }
         }
     }
     let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
