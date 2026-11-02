@@ -3,6 +3,8 @@ struct Wand;
 impl ItemBehavior for Wand {
     fn on_use(&self, data: &mut ItemData) -> UseOutcome {
         let charge = data.get("demo:charge").unwrap_or(0);
+        // A negative test fixture exercises Pass without changing the stack.
+        if charge < 0 { return UseOutcome::Pass; }
         if charge >= 20 { return UseOutcome::Cancel; }
         data.set("demo:charge", charge + 1);
         UseOutcome::Handled
