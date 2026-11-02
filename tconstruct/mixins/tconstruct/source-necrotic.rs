@@ -44,7 +44,11 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     if before.count != stack.count || stack.count != 1 || !before.same_item_same_components(&stack) || stack.wire_patch().is_some() || super::tconstruct_source_melee_shape::intact(&stack).is_none() { return; }
     let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, &stack) else { return; };
     let level = traits.levels.get("tconstruct:necrotic").copied().unwrap_or(0);
-    let Some(mut amount) = heal_amount(level, dealt, scale, crit, landed) else { return; };
+    let Some(amount) = heal_amount(level, dealt, scale, crit, landed) else { return; };
+    heal_player(game, amount);
+}
+
+fn heal_player(game: &mut super::Game<'_>, mut amount: f32) {
     let Some(player) = game.player.as_mut() else { return; };
     if player.health.dead_or_dying() { return; }
     let current = player.health.health();
@@ -56,9 +60,120 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     game.audio.play("tconstruct:necrotic_heal", Some(at), 1.0, 1.0);
 }
 
+// A bounded handoff connects the pre-hit health with the outcome for the same
+// tracked arrow and acting player. A subsequent hit invalidates stale entries.
+pub(super) fn projectile_begin(
+    game: &mut super::Game<'_>,
+    p: &horizon_client::projectiles::Projectile,
+    hit: horizon_client::projectiles::Hit,
+) {
+    use horizon_client::{
+        mobs::Who,
+        projectiles::{Hit, ProjectileKind},
+    };
+    let actor = game.lan_acting;
+    game.world
+        .chunks
+        .__horizon_mixins_tconstruct_necrotic_projectile_mut()
+        .remove(&actor);
+    if game.remote.is_some()
+        || p.id == 0
+        || p.owner != Some(Who::Player)
+        || (p.guest.is_some() && p.guest != actor)
+    {
+        return;
+    }
+    let Hit::Entity {
+        who: Who::Mob(id), ..
+    } = hit
+    else {
+        return;
+    };
+    let ProjectileKind::Arrow { base_damage, .. } = &p.kind else {
+        return;
+    };
+    let Some(mob) = game.mobs.iter().find(|m| m.id == id) else {
+        return;
+    };
+    let kind = if mob.kind.id.contains(':') {
+        mob.kind.id.to_string()
+    } else {
+        format!("minecraft:{}", mob.kind.id)
+    };
+    let data = game.res.mob_data();
+    if !data
+        .entity_tags
+        .contains_key("tconstruct:necrotic_blacklist")
+        || data.entity_has("tconstruct:necrotic_blacklist", &kind)
+    {
+        return;
+    }
+    let Some(weapon) = p.arrow.as_ref().and_then(|a| a.fired_from_weapon.as_ref()) else {
+        return;
+    };
+    let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, weapon) else {
+        return;
+    };
+    let level = traits
+        .levels
+        .get("tconstruct:necrotic")
+        .copied()
+        .unwrap_or(0);
+    let speed =
+        (p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y + p.velocity.z * p.velocity.z)
+            .sqrt();
+    let Some(amount) = projectile_amount(level, mob.health, *base_damage, speed) else {
+        return;
+    };
+    game.world
+        .chunks
+        .__horizon_mixins_tconstruct_necrotic_projectile_mut()
+        .insert(actor, (p.id, amount));
+}
+
+fn projectile_amount(level: i32, health: f32, base: f64, speed: f64) -> Option<f32> {
+    if level <= 0 || !health.is_finite() || health <= 0.0 || !base.is_finite() || !speed.is_finite()
+    {
+        return None;
+    }
+    let power = (base * speed).clamp(0.0, i32::MAX as f64).ceil() as f32;
+    if power <= 0.0 {
+        return None;
+    }
+    Some(0.05 * level as f32 * health.min(power))
+}
+
+pub(super) fn projectile_finish(
+    game: &mut super::Game<'_>,
+    p: &horizon_client::projectiles::Projectile,
+    outcome: horizon_client::arrows::EntityHit,
+) {
+    let actor = game.lan_acting;
+    let pending = game
+        .world
+        .chunks
+        .__horizon_mixins_tconstruct_necrotic_projectile_mut()
+        .remove(&actor);
+    if outcome != horizon_client::arrows::EntityHit::Hurt
+        || p.guest.is_some_and(|guest| Some(guest) != actor)
+    {
+        return;
+    }
+    if let Some((_, amount)) = pending.filter(|(id, _)| *id == p.id) {
+        heal_player(game, amount);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn projectile_uses_pre_hit_health_and_ceiled_arrow_power() {
+        assert_eq!(projectile_amount(2, 20.0, 2.0, 1.1), Some(0.3));
+        assert_eq!(projectile_amount(1, 2.0, 10.0, 3.0), Some(0.1));
+        assert_eq!(projectile_amount(1, 2.0, 0.0, 3.0), None);
+        assert_eq!(projectile_amount(0, 2.0, 1.0, 3.0), None);
+    }
     #[test]
     fn melee_heal_requires_landed_charged_critical_and_scales_damage() {
         assert_eq!(heal_amount(2, 10.0, 1.0, true, true), Some(1.0));

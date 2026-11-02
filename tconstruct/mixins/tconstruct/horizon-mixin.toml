@@ -4280,6 +4280,30 @@ helper = "necrotic-hit.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
 
 [[state]]
+id = "necrotic-projectile"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, (u32, f32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-necrotic-projectile-begin"
+target = "horizon_client::game::creatures::Game<'_>::projectile_hit"
+kind = "HEAD"
+helper = "necrotic-projectile-begin.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" }, { name = "hit", ty = "horizon_client::projectiles::Hit", value = "hit" }]
+
+[[injection]]
+id = "source-necrotic-projectile-finish"
+target = "horizon_client::game::creatures::Game<'_>::finish_arrow_hit"
+kind = "HEAD"
+helper = "necrotic-projectile-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "&arrow" }, { name = "outcome", ty = "horizon_client::arrows::EntityHit", value = "outcome" }]
+
+[[state]]
 id = "spilling-context"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "std::collections::HashMap<Option<u32>, Vec<Option<(u32, horizon_items::items::ItemStack)>>>"

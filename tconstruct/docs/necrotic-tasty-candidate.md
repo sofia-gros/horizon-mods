@@ -15,7 +15,7 @@ prepared entity tags. Its mob-attack context is per actor, invalidates parent
 contexts on nested attacks, checks the actual landed attack record and held
 stack, and applies the host player healing event before setting health.
 
-This covers the supported mob melee callback only. Projectile healing, PvP,
+This covers the supported mob melee callback. PvP,
 armor-stand behavior, world datapack tag overlays and other source hooks are
 not established. A follow-up adds the original `necrotic_heal` event mapping
 and local audio call; guest sound delivery remains unverified. Verify real package tag loading and
@@ -59,12 +59,18 @@ its existing mining and ranged stat effects remain separate.
 
 ## Projectile and player targets
 
-The host `projectile_hit` sees the firing weapon and target, but it executes
-before the source-equivalent blocked/hurt outcome is resolved. The later
-`finish_arrow_hit` receives an outcome but not the target's pre-hit health;
-LAN projectile routing can also swap the victim into `game.player` while the
-shooter is a different guest. The candidate therefore does not infer shooter
-identity or heal from the wrong health value. A scoped handoff of projectile,
-target pre-hit health, outcome and shooter identity is still required; this is
-a concrete remaining implementation task, not a claim that shooting is
-impossible. PvP melee requires the analogous attacker/victim separation.
+For tracked player arrows hitting mobs, the candidate records the pre-hit
+health, firing weapon and source arrow power at `projectile_hit` entry, keyed
+by acting player and projectile ID, and consumes that record only for the same
+arrow at `finish_arrow_hit` with `Hurt`. A later impact invalidates a stale
+record; an offline guest cannot use the host's health. Source power is
+`ceil(clamp(base_damage * speed, 0, i32::MAX))`; healing is 5% per level of
+the smaller of that power and pre-hit health. Firing-weapon persistence after
+reload is not established.
+
+This remains a partial path: source runs before damage if not blocked, whereas
+the host combines shield and other refusals and the candidate requires Hurt.
+PvP and mob hit refusals are not implemented. Test local and guest mob hits,
+blacklist, health lower than arrow power, failed and nested hits, projectile
+identity, disconnected guest, canceled healing and shot save/reload. The
+state and injection have not passed official plan, type or game checks.
