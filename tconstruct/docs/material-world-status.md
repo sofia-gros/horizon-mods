@@ -103,3 +103,9 @@ splash candidate #266 and the world-scoped Bouncy follow-up #264. It retains the
 workstation upgrade-order changes and the fluid/crafting declarations from both
 branches. This merge has not passed official package, plan/apply, type, runtime
 or conflict-regression checks; use the exact integration head for those checks.
+
+The follow-up integration excludes the Bouncy landing injections: the formal
+plan could not resolve `MotionWorld::player_fall_damage` through either tested
+module path. The unrelated stat, crafting and fluid candidates remain present.
+The generic Pluto landing state remains included; neither this isolation nor its
+formal apply, type or gameplay validation is established by the earlier tests.
