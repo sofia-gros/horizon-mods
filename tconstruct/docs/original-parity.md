@@ -295,6 +295,10 @@ and complete lifecycle parity remain open.
 
 ### Repair calculation investigation
 
+The station can also resolve source `tconstruct:modifier_repair` recipes with vanilla item/tag ingredients, such as repairing a tool with Tasty using bacon. It requires a recognized durability tool, matching inputs and resolvable material traits, scales the repair by the modifier level and supported repair factors, and consumes only the needed inputs after the result is accepted. Conditional recipes and tool-definition traits that could change the repair remain conservative exclusions. Gameplay, LAN and save/reload validation are pending.
+
+The station material-repair path also resolves the source `material_repair` module's explicit `stat_type` against that material's merged stats. This covers the source shape used by the staffs and Flint and Brick when their registered repair materials are available, including tools without a material-part list. Unknown material stats still produce no repair. This addition awaits integration and game verification; it does not establish the remaining modifier repair recipes.
+
 At the pinned revision, `MaterialStatsModule.addTraits` adds traits from each
 part and `ModifierEntry.merge` adds levels. The default wood trait data names
 Cultivated with `each_level: 0.5`; `RepairModule` applies its percent formula.
@@ -356,3 +360,7 @@ The container slot can also fill a glass bottle with a plain potion from 250 mB 
 The direct tank interaction also accepts plain splash and lingering potions. Their returned bottle is selected from the resolved source bottle tag if it has one registered item, or is a glass bottle when the tag is empty; missing tag context or an ambiguous tag refuses the exchange. Other paths and filling those specialized bottles remain unsupported. This is unverified in game and LAN.
 
 Alloy input matching now supports source `catalyst` fluids: they must be present in the required amount but are not consumed. This enables the source water/lava molten-obsidian recipe in code; integrated operation, fuel and persistence remain unverified.
+
+Part-swapping table and basin serializers now have a narrow ordinary casting candidate for undamaged, unupgraded tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged ordinary swaps, modifier or trait changes and explicit material predicates remain unsupported; no game or LAN behavior has been verified for this candidate.
+
+The same candidate also resolves composite-fluid part swaps after checking ordinary casting precedence. For this composite path, undamaged or damaged unbroken tools are accepted only if the damage fits both old and new durability; the original composite operation does not repair. Changed traits, upgrades and other modifier hooks remain unsupported. This addition awaits runtime verification.

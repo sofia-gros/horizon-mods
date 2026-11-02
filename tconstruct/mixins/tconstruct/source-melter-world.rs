@@ -102,6 +102,50 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             return Some((id, recipe, output));
         }
     }
+    // The source rebuilds and validates a tool when metal replaces one of its
+    // materials. Regular casts are limited to undamaged tools; composite
+    // casts do not repair. Both require unupgraded tools and unchanged traits.
+    if stack.count == 1 && stack.item.starts_with("tconstruct:") {
+        let candidate = (|| {
+            use horizon_world::nbt::Tag;
+            let custom = stack.data()?.other("minecraft:custom_data")?;
+            match custom.get("tic_upgrades") { None => {}, Some(Tag::Compound(values)) if values.is_empty() => {}, _ => return None }
+            match custom.get("tic_broken") { None | Some(Tag::Byte(0)) => {}, _ => return None }
+            let old_max = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => return None };
+            if stack.damage >= old_max { return None; }
+            let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+            let (namespace, name) = stack.item.split_once(':')?;
+            let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+            let building = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
+                .filter_map(|bytes| super::tconstruct_source_station_recipes::BuildingRecipe::parse(bytes))
+                .find(|recipe| recipe.result == &*stack.item)?;
+            let parts = building.parts(definition)?;
+            let Tag::List(values) = custom.get("tic_materials")? else { return None; };
+            let identities = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<_>>>()?;
+            if identities.len() != parts.len() { return None; }
+            let ((id, recipe, material, index), composite) = with_catalog(world, |catalog, registries, config| {
+                let supports = |index, material: &str| {
+                    let Some(part) = parts.get(index) else { return false; };
+                    let Some(old) = identities.get(index) else { return false; };
+                    let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
+                    canonical(old) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
+                        .is_ok_and(|(_, supported)| supported.contains(part))
+                };
+                let conditions = |values: &[serde_json::Value]| super::tconstruct_tx::source_conditions_match(values, registries, config).unwrap_or(false);
+                catalog.part_swap_casting(basin, &stack.item, fluid, &supports, &conditions).map(|value| (value, false))
+                    .or_else(|| catalog.composite_part_swap(basin, &stack.item, fluid, &identities, &supports, &conditions).map(|value| (value, true)))
+            })??;
+            if !composite && stack.damage != 0 { return None; }
+            let mut next = identities; *next.get_mut(index)? = material;
+            let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
+            let max_damage = match output.data()?.other("minecraft:custom_data")?.get("tic_max_damage")? {
+                Tag::Int(value) if *value > 0 => *value as u32, _ => return None,
+            };
+            if stack.damage >= max_damage { return None; }
+            Some((id, recipe, output))
+        })();
+        if candidate.is_some() { return candidate; }
+    }
     let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
     let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
         .ok().map(|(_, parts)| parts.contains(output));
