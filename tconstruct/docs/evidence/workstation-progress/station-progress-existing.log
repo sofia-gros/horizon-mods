@@ -1,0 +1,6 @@
+OLD INV {'tconstruct:part_builder': 1, 'tconstruct:tinker_station': 1}
+AFTER UPDATE tconstruct:tools/part_builder {'criteria': {'crafted_block': '2026-11-02 20:17:30 +0000'}, 'done': True}
+AFTER UPDATE tconstruct:tools/tinker_station {'criteria': {'crafted_block': '2026-11-02 20:17:30 +0000'}, 'done': True}
+AFTER RELOAD tconstruct:tools/part_builder {'criteria': {'crafted_block': '2026-11-02 20:17:30 +0000'}, 'done': True}
+AFTER RELOAD tconstruct:tools/tinker_station {'criteria': {'crafted_block': '2026-11-02 20:17:30 +0000'}, 'done': True}
+PASS existing held workstations grant once and survive reload

@@ -1,0 +1,3 @@
+GUEST {'tconstruct:materials_and_you': 1, 'tconstruct:part_builder': 1, 'tconstruct:tinker_station': 1}
+PLAYER a01e3843-e521-3998-958a-f459800e4d11.json {'part_builder': None, 'tinker_station': None}
+PLAYER 404198aa-cc64-3021-9fdf-8766c0d0096c.json {'part_builder': {'criteria': {'crafted_block': '2026-11-02 20:18:45 +0000'}, 'done': True}, 'tinker_station': {'criteria': {'crafted_block': '2026-11-02 20:18:47 +0000'}, 'done': True}}
