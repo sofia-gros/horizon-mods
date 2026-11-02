@@ -1,0 +1,7 @@
+# Recipe book display follow-up
+
+2026-11-02, isolated world and supplied items; prior client `955f2d745b901f90a8a1858303d809c975f17c65e584f67cf08d100fe74a39b0`, source tree `dbcfba54881049687da34d8c31462cede8b1802f`. Uses the overlay-only fixture in the adjacent evidence directory, not production assets.
+
+Both workstation recipe IDs were learned, manually craftable and persisted. Neither appeared with Show All or Showing Craftable selected, including with sufficient Pattern and Nahuatl in the inventory. To isolate namespace, the same enabled world pack then provided two synthetic shapeless recipes: `minecraft:namespace_probe` yielding a diamond and `tconstruct:namespace_probe` yielding an emerald. `/recipe give` reported both unlocked, but neither synthetic output appeared in the book with Show All selected after reopening. This does not establish which internal stage loses the entries, and synthetic recipes are not product data. The symptom is not limited to the TConstruct namespace or the craftable filter.
+
+At fixed host revision `02c8607ee8ebd216f2f535c1eb7b62b572830df2`, `RecipeIndex::load` merges pack recipes, `Book::build` uses `crafting::recipe_id`, and `ClientBook::collections` maps known display IDs to book entries before category/filtering. A debug comparison of actual IDs in both sets is still required before assigning a code fix. LAN display, override priority and native contribution remain unverified. Do not ship a reward-only advancement while its unlock can be lost.

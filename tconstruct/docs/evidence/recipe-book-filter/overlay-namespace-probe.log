@@ -1,0 +1,3 @@
+CMD reload {'chat': ['Reloading!'], 'ok': True}
+CMD recipe give @s minecraft:namespace_probe {'chat': ['Unlocked 1 recipe(s) for Player'], 'ok': True}
+CMD recipe give @s tconstruct:namespace_probe {'chat': ['Unlocked 1 recipe(s) for Player'], 'ok': True}
