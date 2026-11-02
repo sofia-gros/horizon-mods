@@ -116,3 +116,30 @@ fn unsupported_patch_is_rejected_before_any_input_mutation() {
     assert_eq!(slots[0].as_ref().unwrap().damage, 10);
     assert_eq!(slots[1].as_ref().unwrap().count, 3);
 }
+
+#[test]
+fn real_recipe_plans_accept_known_patch_and_unknown_patch_is_retained() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use crate::{tconstruct_source_overslime, tconstruct_source_tool_normalize::clone_for_tool_mutation, tconstruct_source_upgrade_rules};
+    let recipe = br#"{"type":"tconstruct:modifier","allow_crystal":true,"check_trait_level":true,"inputs":[{"item":"minecraft:glowstone"},{"item":"minecraft:daylight_detector"},{"item":"minecraft:shroomlight"}],"level":1,"result":"tconstruct:glowing","slots":{"abilities":1},"tools":{"tag":"tconstruct:modifiable/durability"}}"#.to_vec();
+    let recipes = BTreeMap::from([("glowing".to_owned(), recipe)]);
+    let tags = HashMap::from([
+        ("tconstruct:modifiable".to_owned(), HashSet::from(["tconstruct:pickaxe".to_owned()])),
+        ("tconstruct:modifiable/durability".to_owned(), HashSet::from(["tconstruct:pickaxe".to_owned()])),
+    ]);
+    let inputs = ["minecraft:glowstone", "minecraft:daylight_detector", "minecraft:shroomlight"].map(|id| Some(ItemStack::new(id, 1)));
+    let known = damaged_tool(false, true);
+    let clone = clone_for_tool_mutation(&known).expect("known patch accepted");
+    let upgrade = tconstruct_source_upgrade_rules::plan_with_traits(&recipes, &tags, &clone, &inputs, 10, 1, &BTreeMap::new()).expect("real modifier recipe");
+    assert_eq!(upgrade.id, "tconstruct:glowing");
+    assert_eq!(upgrade.consumed, vec![(0, 1), (1, 1), (2, 1), (3, 1)]);
+    let extraction_inputs = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+    let extraction = tconstruct_source_upgrade_rules::extract_upgrade_with_traits(&tags, &clone, &extraction_inputs, "tconstruct:reinforced", &BTreeMap::new()).expect("real extraction recipe");
+    assert_eq!(extraction.upgrade.amount, 4);
+    assert_eq!(tconstruct_source_overslime::refill(12, 50, 10, 3, 0), Some((42, 3)));
+    let unknown = damaged_tool(true, true);
+    let slots = [Some(unknown), Some(ItemStack::new("minecraft:glowstone", 1))];
+    assert!(clone_for_tool_mutation(slots[0].as_ref().unwrap()).is_none());
+    assert_eq!(slots[0].as_ref().unwrap().damage, 10);
+    assert_eq!(slots[1].as_ref().unwrap().count, 1);
+}
