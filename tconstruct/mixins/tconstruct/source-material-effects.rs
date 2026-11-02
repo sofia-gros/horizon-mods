@@ -93,16 +93,13 @@ pub fn apply_stat_traits(
 ) -> Option<()> {
     let preserved = levels.get("tconstruct:preserved").copied().unwrap_or(0);
     let ductile = levels.get("tconstruct:ductile").copied().unwrap_or(0);
-    let boost = durability_boost(preserved, ductile);
+    let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0);
+    let penalty = if overlord >= 7 { -0.99999 } else { -0.15 * overlord as f32 };
+    let boost = durability_boost(preserved, ductile) + penalty;
     if boost == 0.0 {
         return Some(());
     }
-    let durability = boosted_durability(
-        stats.durability,
-        stats.durability_boost_unit,
-        preserved,
-        ductile,
-    );
+    let durability = ((stats.durability + stats.durability_boost_unit * boost) as i32).max(1);
     if durability < 1 {
         return None;
     }

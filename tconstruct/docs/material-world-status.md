@@ -44,3 +44,14 @@ F02 material conditions and statistics, F05 equipment actions, F06 armor
 behavior, F12 modifier modules, and F14/F15 generation and loot still contain
 additional source entries requiring individual audit. Do not mark a whole area
 complete from the selected rows above or from registration alone.
+
+## Overlord durability and Overslime candidate
+
+The Queen's Slime source trait includes Overlord and Overslime. The Overlord
+candidate applies the source durability `multiply_base` reduction (15% per
+level through six, then 99.999%) and copies 10% of the resulting durability
+per level into Overslime through the source stat-copy multiplier order. These
+changes are not yet applied, type-checked or verified in game. Acceptance must
+cover levels 0, 1, 6 and 7, material multipliers, Diamond, Emerald, Netherite,
+Overcast, replacement/removal, and shield-capacity clamping without duplicated
+bonuses. Compare against the original stat builder before claiming parity.

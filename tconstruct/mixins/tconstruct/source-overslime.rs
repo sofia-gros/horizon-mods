@@ -1,10 +1,16 @@
 // Source Overslime capacity, refill and damage-shield arithmetic.
 // The armor/durability multiplier is the source global durability multiplier.
 pub(super) fn capacity(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32) -> u32 {
+    capacity_with_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier)
+}
+
+fn capacity_with_overlord(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, overlord: i32, durability: f32, source_multiplier: f32) -> u32 {
     let base = if has_overslime { 50.0 } else { 0.0 };
     let effective = overforced_amount.max(0) as f32 / 4.0 + overforced_trait.max(0) as f32;
     let overcast = overcast.max(0) as f32;
-    ((base + 75.0 * effective + 25.0 * overcast) * (1.0 + 0.5 * overcast) * durability_multiplier.max(0.0)).clamp(0.0, 32767.0) as u32
+    let multiplier = durability_multiplier.max(0.0);
+    let copied = if source_multiplier > 0.0 { durability.max(0.0) * 0.1 * overlord.max(0) as f32 / source_multiplier } else { 0.0 };
+    ((base + 75.0 * effective + 25.0 * overcast + copied) * (1.0 + 0.5 * overcast) * multiplier).clamp(0.0, 32767.0) as u32
 }
 
 /// Returns (shield remaining, damage passed to later modifiers).
@@ -99,7 +105,11 @@ pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     use horizon_world::nbt::Tag;
     let has = upgrade(stack,"tconstruct:overslime") > 0 || levels.get("tconstruct:overslime").copied().unwrap_or(0) > 0;
     let overforced = upgrade(stack,"tconstruct:overforced");
-    let cap = capacity(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit);
+    let durability = amount(stack, "tic_max_damage") as f32;
+    let emerald = upgrade(stack, "tconstruct:emerald") > 0;
+    let netherite = upgrade(stack, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
+    let source_multiplier = stats.durability_multiplier_unit * if emerald { 1.5 } else { 1.0 } * if netherite { 1.2 } else { 1.0 };
+    let cap = capacity_with_overlord(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, levels.get("tconstruct:overlord").copied().unwrap_or(0), durability, source_multiplier);
     let unfriendly = has && !friendly(levels, overforced);
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
