@@ -1,0 +1,4 @@
+CMD datapack list {'chat': ['There are 2 data pack(s) enabled: [vanilla (built-in)], [file/overlay-only (world)]', 'There are no more data packs available'], 'ok': True}
+CMD recipe take @s tconstruct:part_builder {'chat': ['Took 1 recipe(s) from Player'], 'ok': True}
+CMD recipe give @s tconstruct:part_builder {'chat': ['Unlocked 1 recipe(s) for Player'], 'ok': True}
+CMD recipe give @s tconstruct:tinker_station {'chat': ['No new recipes were learned'], 'ok': True}
