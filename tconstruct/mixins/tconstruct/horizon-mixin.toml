@@ -3102,7 +3102,7 @@ target = "horizon_world::worldgen::structure::start::try_generate"
 kind = "HEAD"
 cancellable = true
 helper = "source-slime-island-start-hook.rs"
-bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }]
+bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "any_biome", ty = "bool", value = "any_biome" }]
 
 [[module]]
 id = "materials-book"

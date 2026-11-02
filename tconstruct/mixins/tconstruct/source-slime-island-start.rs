@@ -23,17 +23,29 @@ fn draw<'a>(choices: &'a [(String, u32)], random: &mut WorldgenRandom<LegacyRand
 }
 
 fn source_entry(resources: &StructureResources, bundle: &str, id: &str) -> Option<Value> {
+    if bundle == "features.json" {
+        // Keep the original custom feature outside the host's vanilla feature
+        // catalog, whose decoder does not understand tconstruct:slime_tree.
+        let name = match id {
+            "tconstruct:earth_slime_island_tree" => "earth_slime_island_tree.json",
+            "tconstruct:sky_slime_island_tree" => "sky_slime_island_tree.json",
+            _ => return None,
+        };
+        let root = resources.dir.parent()?.parent()?;
+        let data = std::fs::read(root.join("data/tconstruct/island_feature").join(name)).ok()?;
+        return serde_json::from_slice(&data).ok();
+    }
     let dir = resources.dir.parent()?;
     let map: Value = serde_json::from_slice(&std::fs::read(dir.join(bundle)).ok()?).ok()?;
     serde_json::from_str(map.get(id)?.as_str()?).ok()
 }
 
 pub(crate) fn generate(registry: &StructureRegistry, resources: &StructureResources,
-    context: &mut impl StartContext, structure: usize, chunk: ChunkPos) -> Option<StructureStart> {
+    context: &mut impl StartContext, structure: usize, chunk: ChunkPos, any_biome: bool) -> Option<StructureStart> {
     let def = registry.structures.get(structure)?;
-    context.set_valid_biomes(&def.biomes);
+    context.set_valid_biomes((!any_biome).then_some(&def.biomes));
     let surface = top_of_chunk_center(context, chunk, HeightmapType::WorldSurfaceWg)?;
-    if !def.biomes.contains(&context.noise_biome(surface.map(|v| v >> 2))) { return None; }
+    if !any_biome && !def.biomes.contains(&context.noise_biome(surface.map(|v| v >> 2))) { return None; }
     let source = source_entry(resources, "structures.json", &def.name)?;
     if source.get("type")?.as_str()? != "tconstruct:island" { return None; }
     let templates = entries(&source, "templates")?;

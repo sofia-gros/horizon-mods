@@ -1,5 +1,4 @@
-// Island template piece and its persisted marker state. It is not installed
-// into structure starts until the full island resources are available.
+// Island template piece and its persisted marker state.
 use crate::nbt::{Compound, Tag};
 use crate::worldgen::placement::PlacementQueryError;
 use crate::worldgen::structure::{BoundingBox, Mirror, Rotation, StructureResources,
@@ -38,7 +37,7 @@ impl IslandPiece {
         if template.size.iter().any(|v| *v <= 0) || !template.entities.is_empty() { return None; }
         Some(Self { template: TemplatePiece::new("tconstruct:island_piece", template_id,
             template, pos, rotation, mirror, [0; 3], Arc::new(ProcessorList(Vec::new())),
-            false, vec!["minecraft:structure_block".to_owned()], TemplateHandler::Plain),
+            false, vec!["minecraft:structure_block".to_owned(), "minecraft:structure_void".to_owned()], TemplateHandler::Plain),
             markers, trees: Mutex::new(budget) })
     }
 
