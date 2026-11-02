@@ -54,7 +54,7 @@ The output must not exist and must be separate from the source; its parent must 
 
 To run the native demo, stage both `mixins/pluto_native_creative` and `examples/native-creative/mixins/pluto_creative_demo` as sibling bundles and build the fixed Horizon client with official Mixins. Set the same two environment variables when starting that client, and pass the overlay path as `--resources`. The demo's entry hook creates the overlay before the client loads it; use a fresh overlay path for each preparation.
 
-On Linux with the [verified host and Mixins](compatibility.md), the demo showed its 12 tabs over two mod pages. A component-bearing stack was obtained from a tab and from search; the original vanilla search entries and metadata remained intact. The target's standard page controls performed the page changes. Windows and combined Tinkers integration remain unverified.
+On Linux with the [verified host and Mixins](compatibility.md), the demo showed its 12 tabs over two mod pages. A component-bearing stack was obtained from a tab and from search; the original vanilla search entries and metadata remained intact. The target's standard page controls performed the page changes. TConstruct uses the shared registration on the earlier tested pair; the new target and Windows remain unverified.
 
 ![A native Creative demo tab in Horizon](native-creative-3a.png)
 
