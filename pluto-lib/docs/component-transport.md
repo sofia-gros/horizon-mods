@@ -22,7 +22,9 @@ let canonical = horizon_client::pluto_tool_codec::prepare_tool(
 // Store `canonical` as the item's `minecraft:tool` SNBT.
 ```
 
-The callback resolves an explicit block ID against the current host registry and returns `None` when absent; tags need no numeric lookup. `lookup_block_id` stands for the consuming mod’s registry adapter. The result and errors are host-independent strings and `ToolError`; invalid SNBT, an unresolved block ID and unsupported fields are errors before registration. Apply the same entry on each Tool change. Store the returned canonical value, so the sender and receiver use the same stack and search identity. This entry is experimental and exists only in the staged native client; it is not in the released package.
+The callback resolves an explicit block ID against the current host registry and returns `None` when absent; tag-only rules need no numeric lookup. `lookup_block_id` stands for the consuming mod’s registry adapter. The result and errors are host-independent strings and `ToolError`; invalid SNBT, an unresolved block ID and unsupported fields are errors before registration. The borrowed input is never modified: prepare the result before replacing the original component or consuming recipe inputs, and retain the original stack on error. Apply the same entry when a Tool changes; a damage-only change need not rebuild it. Store the returned canonical value so the sender and receiver use the same stack and search identity.
+
+This entry is experimental and exists only in the staged native client; it is not in the released package. It does not discover or migrate existing saved stacks. A common load boundary with access to the correct registry has not been established; callers must not assume existing inventory, container or dropped stacks were normalized.
 
 ## Prototype limits
 
