@@ -1,0 +1,3 @@
+BEFORE {'tconstruct:materials_and_you': 1}
+AFTER {'tconstruct:materials_and_you': 1}
+PASS starting book once and reload
