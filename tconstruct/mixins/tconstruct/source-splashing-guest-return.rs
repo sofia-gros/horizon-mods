@@ -4,8 +4,8 @@ fn tconstruct_splashing_guest_return(value: (), game: &mut crate::game::Game<'_>
     let Some((stack, slot, mobs, players, creative, level)) = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().remove(&conn) else { return value; };
     // All checks happen before the first target is mutated. This is still one
     // packet turn: no guest action can interleave with these guest swaps.
-    let Some(actor) = host.hub.guests.iter().find(|guest| guest.conn == conn && guest.placed) else { return value; };
-    if players.iter().any(|id| !host.hub.guests.iter().any(|guest| guest.conn == *id && guest.placed && guest.dimension == actor.dimension)) { return value; }
+    let Some(actor) = host.hub.guests.iter().find(|guest| guest.conn == conn && guest.placed && guest.motion.is_some()) else { return value; };
+    if players.iter().any(|id| !host.hub.guests.iter().any(|guest| guest.conn == *id && guest.placed && guest.motion.is_some() && guest.dimension == actor.dimension)) { return value; }
     if mobs.iter().any(|id| !game.mobs.iter().any(|mob| mob.id == *id && mob.alive() && crate::game::tconstruct_source_spilling::eligible_mob(mob))) { return value; }
     let intact = game.as_guest(host, conn, |g| g.stack_in(slot).is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(&stack))).unwrap_or(false);
     if !intact { return value; }

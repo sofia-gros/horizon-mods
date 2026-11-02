@@ -281,7 +281,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
         // this deferred path. Do not skip unknown actions in a mixed recipe.
         let mut ids = std::collections::HashSet::new();
         if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
-            super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| !ids.insert(known.id)),
+            super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| horizon_client::brewing::is_mod_effect(known.id) || matches!(known.id, "instant_health" | "instant_damage") || !ids.insert(known.id)),
             _ => true,
         }) { return; }
         let Some(count) = u32::try_from(targets.len() + player_targets.len()).ok() else { return; };

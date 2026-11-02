@@ -14,6 +14,7 @@ fn tconstruct_splashing_guest_head(game: &mut crate::game::Game<'_>, host: &crat
             players
         })
     } else { None };
+    game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().remove(&conn);
     let pending = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope_mut();
     pending.remove(&conn);
     if let Some(players) = nearby { pending.insert(conn, players); }
