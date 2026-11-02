@@ -1,30 +1,34 @@
+<div align="center">
+
 # Horizon Mods
 
-This repository contains mods for [Horizon](https://github.com/horizon-rust/horizon), a Minecraft-compatible game written in Rust. Each mod has its own directory, resources, tests, and documentation.
+**Mods and reusable libraries for Horizon.**
 
-## Mods
+Explore Tinkers’ Construct for Horizon and PlutoLib, a Rust library for building mods with reusable APIs.
 
-| Mod | Status | Guide |
-| --- | --- | --- |
-| Tinkers' Construct | Work in progress | [Tinkers' Construct](tconstruct/README.md) |
+PlutoLib’s Rust APIs are in development; the current Creative-tab tooling is Python.
 
-In the current Linux build, you can browse equipment in Creative, make parts,
-assemble and repair supported tools, apply Sharpness and Swiftstrike, place a
-selection of Tinkers blocks, use material harvest tiers and representative mining traits, mine a 3×3 area with Creative-obtained hammers and excavators, harvest and replant crops with a Kama or Scythe, melt and cast copper, make a small Smeltery alloy,
-and recover a copper ore byproduct in a Foundry. Many block and equipment behaviors are still in development.
+[![Horizon](https://img.shields.io/badge/Horizon-Mods-547da5)](https://github.com/horizon-rust/horizon)
+[![Horizon Mixins](https://img.shields.io/badge/Horizon-Mixins-6d8498)](https://github.com/horizon-rust/horizon-mixins)
 
-![A pickaxe and quartz in the Tinker Station](tconstruct/docs/station-upgrade-preview.png)
+[**Tinkers’ Construct**](tconstruct/README.md) · [**PlutoLib**](pluto-lib/README.md) · [**Getting Started**](tconstruct/docs/playing.md)
 
-*Add materials at the Tinker Station and take the resulting tool.*
+<img src="tconstruct/docs/part-chest-builder-lan.png" alt="A Part Chest beside a Part Builder in a Horizon LAN test" width="760">
 
-## Get started
+</div>
 
-To try the current mod, follow the [Windows guide](tconstruct/docs/windows-playtest.md) or [Linux guide](tconstruct/docs/linux.md). The Windows launcher has not yet been verified on a Windows PC, and a reported startup error remains under investigation.
+## Explore the projects
 
-To work on a mod, start with the [development guide](docs/development.md).
+### [Tinkers’ Construct](tconstruct/README.md)
 
-## Shared library
+Build tools from parts, repair and modify your equipment, and turn molten materials into new creations.
 
-[pluto lib](pluto-lib/README.md) provides shared mod functionality, starting with Creative tab registration.
+### [PlutoLib](pluto-lib/README.md)
 
-The [Anvil guide](tconstruct/docs/anvil-assembly.md) describes five-input assembly and representative Linux LAN checks; Windows remains untested.
+Reusable Rust APIs for Horizon mod developers. Active development starts with item and block registration and creative inventory integration.
+
+## Start here
+
+- **Playing:** Start with [Tinkers’ Construct](tconstruct/README.md) and its illustrated [play guide](tconstruct/docs/playing.md).
+- **Making mods:** See [PlutoLib](pluto-lib/README.md) and the [development guide](docs/development.md).
+- **Following progress:** See the [Tinkers’ Construct roadmap](tconstruct/docs/roadmap.md) and [PlutoLib’s current plans](pluto-lib/README.md).
