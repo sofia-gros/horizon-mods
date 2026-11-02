@@ -130,7 +130,7 @@ iteration and other original users of the RNG are not yet reproduced, so a
 particular seeded sequence is not claimed to match the original.
 The source recycling recipes use `TinkerFluids.venomBottle`: it has a
 16-item stack limit, glass-bottle crafting remainder, venom fluid content and
-food effects. It is registered and command-supplied tests verify its glass-bottle remainder; normal acquisition and fluid capability remain incomplete.
+food effects. It is registered and command-supplied tests verify its glass-bottle remainder; normal acquisition and general fluid capability remain incomplete. The smeltery container-transfer path now supports emptying a Venom Bottle into 250 mB of venom and returning a glass bottle; this path awaits game verification.
 `PartBuilderBlockEntity.onCraft` gives the recipe leftover before shrinking
 inputs; its `shrinkSlot` also returns each input item's crafting remainder
 (multiplied by consumed count). Reproducing both paths is required for venom
