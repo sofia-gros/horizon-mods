@@ -27,7 +27,6 @@ fn tconstruct_crafting_lan_recipe_guard(
     let Some((window, state, mut menu, saved_pos)) = host.play.get_mut(&conn).and_then(|play| play.crafting.table.take_if(|(window, ..)| *window == packet.container)) else { return Break(()); };
     if menu.slot_count() != 46 {
         host.play.entry(conn).or_default().crafting.table = Some((window, state, menu, saved_pos));
-        game.lan_send_table_content(host, conn);
         return Break(());
     }
     let original_inventory = host.hub.guests[gi].inventory.clone();
