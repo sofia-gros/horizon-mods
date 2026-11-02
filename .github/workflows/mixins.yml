@@ -75,8 +75,11 @@ jobs:
           HORIZON_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')"
           git -C ../horizon-official fetch --depth 1 origin "$HORIZON_REVISION"
           git -C ../horizon-official checkout --detach FETCH_HEAD
-          git clone --depth 1 https://github.com/horizon-rust/horizon-mixins.git ../horizon-mixins
-          git -C ../horizon-mixins rev-parse HEAD
+          git init ../horizon-mixins
+          git -C ../horizon-mixins remote add origin https://github.com/horizon-rust/horizon-mixins.git
+          MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
+          git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
+          git -C ../horizon-mixins checkout --detach FETCH_HEAD
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |

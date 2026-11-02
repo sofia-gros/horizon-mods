@@ -1,6 +1,6 @@
 # Build and test Tinkers' Construct
 
-The mod applies its Mixins to the Horizon revision in `compatibility.json`. Builds normally use the latest official Horizon Mixins revision.
+Builds use the Horizon and Mixins revisions pinned in `compatibility.json`. Check upstream updates separately before changing the verified pair.
 
 ## Run the lightweight tests
 
@@ -13,7 +13,7 @@ python3 -m unittest discover -s tconstruct/tests -v
 
 ## Prepare a modded source tree
 
-You need Python, Rust, Git, a checkout of the pinned Horizon revision, and a Horizon Mixins repository. From the repository root, replace the two paths with your local checkouts:
+You need Python, Rust, Git, a checkout of the pinned Horizon revision, and a Horizon Mixins repository. From the repository root, replace the example paths with your local checkouts and installed bundle:
 
 ```sh
 python3 tconstruct/tools/stage.py --horizon /path/to/horizon --mixins /path/to/horizon-mixins --pluto-bundle /path/to/installed.incoming/pluto_native_creative/mixins/pluto_native_creative
@@ -27,7 +27,7 @@ python3 tconstruct/tools/extract_pluto.py --horizon /path/to/horizon --package /
 
 The output directory must not already exist. Do not stage the old individual PlutoLib adapters alongside the unified bundle. Install PlutoLib separately from TConstruct; TConstruct still requires its own `.hnmod` and `.hmod`. See [PlutoLib native installation](../../pluto-lib/docs/native-installation.md). Combined installation and gameplay remain unverified.
 
-The generated source is placed in `tconstruct/target/modded`. The resolved Mixins commit is printed and saved in `tconstruct/target/mixins-revision.txt`. To reproduce a build, pass `--mixins-revision FULL_COMMIT_SHA` and ensure that commit exists in the Mixins repository. Build the client with:
+The generated source is placed in `tconstruct/target/modded`. The resolved Mixins commit is printed and saved in `tconstruct/target/mixins-revision.txt`. The default is the pinned revision; `--mixins-revision FULL_COMMIT_SHA` selects an explicit revision for a separate compatibility test. Ensure the selected commit exists in the Mixins repository. Build the client with:
 
 ```sh
 cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features

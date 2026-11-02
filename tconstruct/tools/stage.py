@@ -9,7 +9,7 @@ compat = json.loads((root / 'compatibility.json').read_text())
 p = argparse.ArgumentParser()
 p.add_argument('--horizon', type=Path, required=True)
 p.add_argument('--mixins', type=Path, required=True)
-p.add_argument('--mixins-revision', help='full Mixins commit SHA for a reproducible build; defaults to the latest official revision')
+p.add_argument('--mixins-revision', help='full Mixins commit SHA; defaults to the revision in compatibility.json')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
 p.add_argument('--pluto-bundle', type=Path, required=True, help='installed PlutoLib unified Mixins bundle directory')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
@@ -17,13 +17,13 @@ a = p.parse_args()
 head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
 if head != compat['horizon_revision']:
     p.error(f'{a.horizon}: expected {compat["horizon_revision"]}, found {head}')
-if a.mixins_revision:
-    if not re.fullmatch(r'[0-9a-f]{40}', a.mixins_revision):
-        p.error('--mixins-revision must be a full lowercase commit SHA')
-    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', a.mixins_revision + '^{commit}'], text=True).strip()
-else:
-    subprocess.run(['git', '-C', str(a.mixins), 'fetch', '--no-tags', compat['mixins_repository'], 'HEAD'], check=True)
-    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', 'FETCH_HEAD^{commit}'], text=True).strip()
+requested_revision = a.mixins_revision or compat['mixins_revision']
+if not re.fullmatch(r'[0-9a-f]{40}', requested_revision):
+    p.error('Mixins revision must be a full lowercase commit SHA')
+try:
+    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', requested_revision + '^{commit}'], text=True, stderr=subprocess.DEVNULL).strip()
+except subprocess.CalledProcessError:
+    p.error(f'{a.mixins}: required Mixins revision {requested_revision} is not present; fetch it before staging')
 print(f'Horizon Mixins revision: {revision}', flush=True)
 output = a.output_dir.resolve()
 output.mkdir(parents=True, exist_ok=True)
