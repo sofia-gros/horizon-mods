@@ -53,6 +53,14 @@ fn initial(kind: &str) -> Option<Tag> {
     })
 }
 
+fn no_crafting_remainder(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack) -> Option<bool> {
+    if stack.item.as_ref() == "tconstruct:copper_can" || super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item).is_some() {
+        return super::tconstruct_source_fluid_container::no_crafting_remainder(stack);
+    }
+    let info = game.res.items().get(&stack.item)?;
+    horizon_client::pluto_crafting_remainder::plain_has_no_remainder(stack, info.crafting_remainder.as_deref())
+}
+
 fn damaged_recipe(game: &super::Game<'_>, stack: &horizon_items::items::ItemStack)
     -> Option<(String, super::tconstruct_source_melting_recipes::FoundryRecipe, String, Vec<(String, u32)>)> {
     use horizon_world::nbt::Tag;
@@ -114,12 +122,12 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let recipes: Vec<_> = if state.phase == 0 || state.phase == 1 {
         state.slots.iter().map(|slot| slot.as_ref().and_then(|stack| {
             if foundry {
-                super::tconstruct_source_melter_world::foundry_melting(&game.world, &stack.item)
+                super::tconstruct_source_melter_world::foundry_melting_stack(&game.world, stack, no_crafting_remainder(game, stack))
                     .or_else(|| damaged_recipe(game, stack))
                     .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack))
                     .map(|(id, recipe, fluid, byproducts)| (id, recipe.melting, fluid, byproducts))
             } else {
-                super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
+                super::tconstruct_source_melter_world::melting_stack(&game.world, stack, no_crafting_remainder(game, stack))
                     .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
                     .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
                     .map(|(id, recipe, fluid)| (id, recipe, fluid, Vec::new()))
@@ -500,7 +508,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     // the intervening ticks.
     let recipes: Vec<_> = if melter.phase == 0 || melter.phase == 2 {
         melter.slots.iter().map(|slot| slot.as_ref().and_then(|stack|
-            super::tconstruct_source_melter_world::melting(&game.world, &stack.item)
+            super::tconstruct_source_melter_world::melting_stack(&game.world, stack, no_crafting_remainder(game, stack))
                 .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
                 .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid))))).collect()
     } else { vec![None; melter.slots.len()] };

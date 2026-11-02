@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
+pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>), NoContainer(Box<Ingredient>) }
 
 impl Ingredient {
     pub(super) fn parse(value: &Value) -> Option<Self> {
@@ -21,6 +21,20 @@ impl Ingredient {
         if obj.get("type").and_then(Value::as_str) == Some("forge:difference") {
             if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
             return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
+        }
+        if obj.get("type").and_then(Value::as_str) == Some("tconstruct:no_container") {
+            let nested = if let Some(value) = obj.get("match") {
+                if obj.len() != 2 { return None; }
+                Self::parse(value)?
+            } else {
+                if obj.keys().any(|key| key != "type" && key != "item" && key != "tag") { return None; }
+                match (obj.get("item"), obj.get("tag")) {
+                    (Some(id), None) => Self::Item(id.as_str()?.to_owned()),
+                    (None, Some(id)) => Self::Tag(id.as_str()?.to_owned()),
+                    _ => return None,
+                }
+            };
+            return Some(Self::NoContainer(Box::new(nested)));
         }
         // With the default ANY predicate the source material ingredient only
         // tests its nested item or tag, without reading material NBT.
@@ -42,12 +56,16 @@ impl Ingredient {
         }
     }
     pub(super) fn matches(&self, item: &str, in_tag: &impl Fn(&str, &str) -> bool) -> bool {
+        self.matches_with_container(item, in_tag, None).unwrap_or(false)
+    }
+    pub(super) fn matches_with_container(&self, item: &str, in_tag: &impl Fn(&str, &str) -> bool, no_container: Option<bool>) -> Option<bool> {
         match self {
-            Self::Item(id) => id == item,
-            Self::Tag(tag) => in_tag(tag, item),
-            Self::Any(choices) => choices.iter().any(|choice| choice.matches(item, in_tag)),
-            Self::All(choices) => choices.iter().all(|choice| choice.matches(item, in_tag)),
-            Self::Difference(base, removed) => base.matches(item, in_tag) && !removed.matches(item, in_tag),
+            Self::Item(id) => Some(id == item),
+            Self::Tag(tag) => Some(in_tag(tag, item)),
+            Self::Any(choices) => { let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(true) => return Some(true), Some(false) => {}, None => unknown = true } } if unknown { None } else { Some(false) } },
+            Self::All(choices) => { let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(false) => return Some(false), Some(true) => {}, None => unknown = true } } if unknown { None } else { Some(true) } },
+            Self::Difference(base, removed) => Some(base.matches_with_container(item, in_tag, no_container)? && !removed.matches_with_container(item, in_tag, no_container)?),
+            Self::NoContainer(inner) => Some(inner.matches_with_container(item, in_tag, no_container)? && no_container?),
         }
     }
 }
@@ -490,6 +508,17 @@ fn enabled(value: &Value, conditions: &impl Fn(&[Value]) -> bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn container_ingredients_require_known_stack_state() {
+        let v = serde_json::json!({"type":"tconstruct:no_container", "match":[{"item":"tconstruct:seared_fuel_gauge"},{"item":"tconstruct:seared_ingot_gauge"}]});
+        let ingredient = Ingredient::parse(&v).unwrap();
+        let tags = |_: &str, _: &str| false;
+        assert_eq!(ingredient.matches_with_container("tconstruct:seared_fuel_gauge", &tags, Some(true)), Some(true));
+        assert_eq!(ingredient.matches_with_container("tconstruct:seared_fuel_gauge", &tags, Some(false)), Some(false));
+        assert_eq!(ingredient.matches_with_container("tconstruct:seared_fuel_gauge", &tags, None), None);
+        assert_eq!(ingredient.matches_with_container("minecraft:stone", &tags, None), Some(false));
+    }
+
     const COPPER: &[u8] = br#"{"type":"tconstruct:melting","ingredient":{"tag":"forge:ingots/copper"},"result":{"amount":90,"tag":"forge:molten_copper"},"temperature":500,"time":50}"#;
     const CAST: &[u8] = br#"{"type":"tconstruct:casting_table","cast":{"tag":"tconstruct:casts/multi_use/ingot"},"cooling_time":50,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"tag":"forge:ingots/copper"}}"#;
     #[test]

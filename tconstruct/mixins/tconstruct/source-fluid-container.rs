@@ -61,6 +61,25 @@ fn can_contents(stack: &ItemStack) -> Option<(Option<String>, Option<horizon_wor
         _ => None,
     }
 }
+/// Source NoContainerIngredient for the explicitly supported TConstruct
+/// portable containers. Opaque or malformed data remains unknown.
+pub(super) fn no_crafting_remainder(stack: &ItemStack) -> Option<bool> {
+    use horizon_world::nbt::Tag;
+    if stack.count == 0 || stack.wire_patch().is_some() { return None; }
+    if stack.item.as_ref() == "tconstruct:copper_can" {
+        return can_contents(stack).map(|(fluid, _)| fluid.is_none());
+    }
+    super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item)?;
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+        None => Some(true),
+        Some(Tag::Compound(data)) => match data.get(&"tconstruct:tank".into()) {
+            None => Some(true),
+            Some(Tag::Compound(_)) => Some(false),
+            Some(_) => None,
+        },
+        Some(_) => None,
+    }
+}
 pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
     let (fluid, tag) = can_contents(stack)?;
     tag.is_none().then_some(fluid)
@@ -485,6 +504,20 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn source_remainder_requires_no_tank_compound_or_can_fluid() {
+        use super::*;
+        use horizon_world::nbt::Tag;
+        let mut tank = ItemStack::new("tconstruct:seared_fuel_gauge", 1);
+        assert_eq!(no_crafting_remainder(&tank), Some(true));
+        tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("amount", Tag::Int(0))]))])));
+        assert_eq!(no_crafting_remainder(&tank), Some(false));
+        let mut can = ItemStack::new("tconstruct:copper_can", 1);
+        assert_eq!(no_crafting_remainder(&can), Some(true));
+        can = can_set_fluid(&can, Some("minecraft:water")).unwrap();
+        assert_eq!(no_crafting_remainder(&can), Some(false));
+        assert_eq!(no_crafting_remainder(&ItemStack::new("minecraft:stone", 1)), None);
+    }
     #[test]
     fn lantern_transfer_keeps_tag_and_refuses_ambiguous_variants() {
         use horizon_world::nbt::Tag;

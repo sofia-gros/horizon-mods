@@ -214,12 +214,15 @@ impl Catalog<'_> {
         None
     }
     pub(super) fn melting(&self, item: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MeltingRecipe, String)> {
+        self.melting_with_container(item, None, conditions)
+    }
+    pub(super) fn melting_with_container(&self, item: &str, no_container: Option<bool>, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MeltingRecipe, String)> {
         if !self.known_items.contains(item) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, MeltingRecipe, String)> = None;
         for (id, bytes) in self.recipes {
             let Some(recipe) = MeltingRecipe::parse(bytes, conditions) else { continue; };
-            if !recipe.input.matches(item, &in_tag) { continue; }
+            if !recipe.input.matches_with_container(item, &in_tag, no_container)? { continue; }
             let Some(fluid) = self.resolved_fluid(&recipe.output) else { continue; };
             if let Some((_, previous, previous_fluid)) = &found {
                 if previous.temperature != recipe.temperature || previous.time != recipe.time
@@ -262,12 +265,16 @@ impl Catalog<'_> {
     }
     pub(super) fn foundry_melting(&self, item: &str, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+        self.foundry_melting_with_container(item, None, conditions)
+    }
+    pub(super) fn foundry_melting_with_container(&self, item: &str, no_container: Option<bool>, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
         if !self.known_items.contains(item) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> = None;
         for (id, bytes) in self.recipes {
             let Some(recipe) = FoundryRecipe::parse(bytes, conditions) else { continue; };
-            if !recipe.melting.input.matches(item, &in_tag) { continue; }
+            if !recipe.melting.input.matches_with_container(item, &in_tag, no_container)? { continue; }
             let Some(primary) = self.resolved_fluid(&recipe.melting.output) else { continue; };
             let Some(byproducts) = recipe.byproducts.iter().map(|fluid|
                 self.resolved_fluid(fluid).map(|id| (id, fluid.amount))).collect::<Option<Vec<_>>>() else { continue; };

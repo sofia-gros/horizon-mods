@@ -29,3 +29,10 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "pluto_fluid"
 source = "fluid-read.rs"
 visibility = "pub"
+
+[[module]]
+id = "crafting-remainder"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_crafting_remainder"
+source = "crafting-remainder.rs"
+visibility = "pub"

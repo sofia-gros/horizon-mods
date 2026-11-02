@@ -46,6 +46,24 @@ fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<
         || value.get("ingredient").is_some_and(|v| ingredient_matches(v, item, tags))
 }
 
+// Match stack-sensitive no-container ingredients using the supported source
+// portable item implementations. Unknown contents never become a match.
+fn stack_ingredient_matches(value: &Value, stack: &ItemStack, tags: &HashMap<String, HashSet<String>>) -> bool {
+    if value.get("type").and_then(Value::as_str) != Some("tconstruct:no_container") {
+        return ingredient_matches(value, &stack.item, tags);
+    }
+    let nested = if let Some(inner) = value.get("match") {
+        if value.as_object().is_none_or(|object| object.len() != 2) { return false; }
+        inner.clone()
+    } else {
+        let Some(mut object) = value.as_object().cloned() else { return false; };
+        object.remove("type");
+        Value::Object(object)
+    };
+    ingredient_matches(&nested, &stack.item, tags)
+        && super::tconstruct_source_fluid_container::no_crafting_remainder(stack) == Some(true)
+}
+
 pub(super) fn selection_id(index: usize) -> Option<&'static str> {
     UPGRADES.get(index).map(|(id, _)| *id)
 }
@@ -205,7 +223,7 @@ pub(super) fn plan_with_traits(
                 let mut matched = true;
                 for ingredient in ingredients {
                     let found = present.iter().enumerate().position(|(i, (_, stack))| !used[i] && stack.count > 0 &&
-                        ingredient_matches(ingredient, &stack.item, tags));
+                        stack_ingredient_matches(ingredient, stack, tags));
                     if let Some(index) = found { used[index] = true; consumed.push((present[index].0, 1)); }
                     else { matched = false; break; }
                 }
