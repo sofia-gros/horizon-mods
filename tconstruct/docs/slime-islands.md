@@ -340,3 +340,16 @@ behavior remain unverified.
 The later Ender-propagule and planted/island-fungus support modules also use
 ordinary comments so that the Mixins module loader does not interpret their
 headers as file attributes. Their combined official apply remains unverified.
+
+## Ender tree components
+
+The original Enderbark root block, item, loot and axe tag are registered. Its
+source-specific vertical adjacent-root face culling is not implemented. A
+shared Ender-tree component provides the four source congealed-slime/root
+replacement mappings and the original leaf-vine decorator's ordered 0.125
+random draws and maximum four-block hanging extensions. The component is
+compiled into both worldgen and live-world target modules, but it is **not
+connected to either Ender tree placement path yet**. Root placement,
+waterlogging, leaf ordering and chunk-write adapters still require integration;
+there is no claim of Ender tree growth. The code and block are not yet plan,
+type, package or in-game tested.

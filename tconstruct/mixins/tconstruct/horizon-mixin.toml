@@ -4170,3 +4170,15 @@ id = "island-slime-fungus"
 file = "crates/horizon-world/src/worldgen/structure/start.rs"
 name = "tconstruct_island_slime_fungus"
 source = "source-island-slime-fungus.rs"
+
+[[module]]
+id = "ender-tree-components-worldgen"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_ender_tree_components"
+source = "source-ender-tree-components.rs"
+
+[[module]]
+id = "ender-tree-components-live"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_ender_tree_components"
+source = "source-ender-tree-components.rs"
