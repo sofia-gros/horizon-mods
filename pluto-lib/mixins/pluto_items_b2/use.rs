@@ -9,13 +9,29 @@ fn pluto_use_b2(
     if game.remote.is_some() || !pluto_item_api_b2::contains(&stack.item) {
         return Continue(());
     }
-    let context = UseContext {
-        actor: game.native_acting_player().map(|p| Actor {
+    let actor = game
+        .native_acting_player()
+        .map(|p| Actor {
             id: p.uuid,
             dimension: p.dimension,
             position: p.position,
             permission: p.permission,
-        }),
+        })
+        .or_else(|| {
+            let position = game
+                .player
+                .as_ref()
+                .map(|p| [p.position.x, p.position.y, p.position.z])?;
+            let id = horizon_client::lan::playerdata::ints_uuid(game.acting_player_uuid());
+            Some(Actor {
+                id,
+                dimension: game.dim.id().to_owned(),
+                position,
+                permission: game.ui.registries.permission,
+            })
+        });
+    let context = UseContext {
+        actor,
         hand: match game.hand {
             HostHand::Main => Hand::Main,
             HostHand::Off => Hand::Off,
