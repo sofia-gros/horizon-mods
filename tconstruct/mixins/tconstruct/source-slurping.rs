@@ -38,17 +38,24 @@ pub(super) fn recipe(game: &super::Game<'_>, fluid_id: &str) -> Option<super::tc
 }
 
 pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
+    plan_for(game, stack, "tconstruct:slurping", None)
+}
+
+/// Resolve the same player effect against another held-fluid ability.
+pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str, override_level: Option<i32>) -> Option<Plan> {
     if stack.count != 1 || stack.wire_patch().is_some() { return None; }
     let custom = stack.data()?.other("minecraft:custom_data")?;
     if matches!(custom.get("tic_broken"), Some(Tag::Byte(v)) if *v != 0) { return None; }
-    let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:slurping")? else { return None; };
-    if *level <= 0 { return None; }
+    let Tag::Int(installed) = custom.get("tic_upgrades")?.get(modifier)? else { return None; };
+    if *installed <= 0 { return None; }
+    let level = override_level.unwrap_or(*installed);
+    if level <= 0 { return None; }
     let capacity = match custom.get("tic_tank_capacity")? { Tag::Int(n) if *n > 0 => *n as u32, _ => return None };
     let fluid = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid")??;
     if fluid.amount > capacity || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = recipe(game, &fluid.id)?;
     if recipe.entity.is_empty() { return None; }
-    let strength = (*level as f32).min(fluid.amount as f32 / recipe.amount as f32);
+    let strength = (level as f32).min(fluid.amount as f32 / recipe.amount as f32);
     if strength <= 0.0 { return None; }
     let mut effects = Vec::new();
     let mut targeted = HashSet::new();
@@ -59,7 +66,7 @@ pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
                 let known = horizon_client::brewing::effect(&effect.id)?;
                 if !targeted.insert(known.id) { return None; }
                 let existing = game.potions.effects.get(known.id).map(|current| (current.duration, current.amplifier));
-                let Some((duration, used_scale)) = super::tconstruct_source_fluid_effects::mob_duration(&effect, strength, *level as f32, existing) else { continue; };
+                let Some((duration, used_scale)) = super::tconstruct_source_fluid_effects::mob_duration(&effect, strength, level as f32, existing) else { continue; };
                 (PlayerAction::Mob(known.id, duration, effect.amplifier), used_scale)
             }
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
@@ -87,8 +94,13 @@ pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
 }
 
 pub(super) fn finish(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut Option<ItemStack>) {
-    if game.remote.is_some() || !result.as_ref().is_some_and(|held| held.damage == stack.damage && held.same_item_same_components(stack)) { return; }
-    let Some(plan) = plan(game, stack) else { return; };
+    let consume = !game.creative;
+    let _ = finish_for(game, stack, result, "tconstruct:slurping", None, consume);
+}
+
+pub(super) fn finish_for(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut Option<ItemStack>, modifier: &str, override_level: Option<i32>, consume: bool) -> bool {
+    if game.remote.is_some() || !result.as_ref().is_some_and(|held| held.damage == stack.damage && held.same_item_same_components(stack)) { return false; }
+    let Some(plan) = plan_for(game, stack, modifier, override_level) else { return false; };
     let mut successful: Option<(u32, ItemStack)> = None;
     for (action, used, drained) in plan.effects {
         let applied = match action {
@@ -108,5 +120,7 @@ pub(super) fn finish(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut
             successful = Some((used, drained));
         }
     }
-    if !game.creative { if let Some((_, drained)) = successful { *result = Some(drained); } }
+    let applied = successful.is_some();
+    if consume { if let Some((_, drained)) = successful { *result = Some(drained); } }
+    applied
 }
