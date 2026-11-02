@@ -32,11 +32,11 @@ visibility = "pub"
 
 [[state]]
 id = "landing-state"
-target = "horizon_client::motion::PlayerMotion"
+target = "horizon_client_lib::motion::PlayerMotion"
 ty = "crate::motion::pluto_landing_state::LandingState"
 initial = "::core::default::Default::default()"
 
 [[state.constructor]]
-target = "horizon_client::motion::PlayerMotion::new"
+target = "horizon_client_lib::motion::PlayerMotion::new"
 selector = "Self"
 require = 1

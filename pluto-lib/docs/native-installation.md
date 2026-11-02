@@ -32,3 +32,8 @@ The native package checks cover both the landing-state manifest and a fixture
 without state. They check unique declaration IDs, constructor preservation,
 module and helper archive references, and deterministic package output. The
 updated checks must be run by the validation owner on the integrated candidate.
+
+The landing-state follow-up targets `horizon_client_lib::motion::PlayerMotion`,
+the crate that owns `motion.rs`; the earlier `horizon_client` target failed the
+official apply. The corrected target still requires official plan/apply and type
+verification.

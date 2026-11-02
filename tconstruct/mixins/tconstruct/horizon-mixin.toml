@@ -3897,7 +3897,7 @@ visibility = "pub(crate)"
 
 [[injection]]
 id = "source-bouncy-factor"
-target = "horizon_client::landing::MotionWorld<'_, '_, '_>::player_fall_damage"
+target = "horizon_client_lib::landing::MotionWorld<'_, '_, '_>::player_fall_damage"
 kind = "MODIFY_VARIABLE"
 variable = { name = "multiplier", ordinal = 0, at = "STORE" }
 require = 1
@@ -3907,14 +3907,14 @@ bindings = [{ name = "value", ty = "f32", value = "$value" }, { name = "world", 
 
 [[injection]]
 id = "source-bouncy-finish"
-target = "horizon_client::motion::<MotionWorld<'_, '_, '_> as EntityMoveWorld>::restitute"
+target = "horizon_client_lib::motion::<MotionWorld<'_, '_, '_> as EntityMoveWorld>::restitute"
 kind = "RETURN"
 helper = "source-bouncy-finish.rs"
 bindings = [{ name = "value", ty = "crate::Result<()>", value = "$value" }, { name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
 
 [[injection]]
 id = "source-bouncy-reset"
-target = "horizon_client::motion::<MotionWorld<'_, '_, '_> as EntityMoveWorld>::check_fall_damage"
+target = "horizon_client_lib::motion::<MotionWorld<'_, '_, '_> as EntityMoveWorld>::check_fall_damage"
 kind = "HEAD"
 helper = "source-bouncy-reset.rs"
 bindings = [{ name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }, { name = "dy", ty = "f64", value = "dy" }]
@@ -3928,7 +3928,7 @@ bindings = [{ name = "value", ty = "Option<GuestSwap>", value = "$value" }, { na
 
 [[injection]]
 id = "source-bouncy-guest-finish"
-target = "horizon_client::motion::MotionWorld<'_, '_, '_>::server_travel"
+target = "horizon_client_lib::motion::MotionWorld<'_, '_, '_>::server_travel"
 kind = "RETURN"
 helper = "source-bouncy-guest-finish.rs"
 bindings = [{ name = "value", ty = "crate::Result<()>", value = "$value" }, { name = "world", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
