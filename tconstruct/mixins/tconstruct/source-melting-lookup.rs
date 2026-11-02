@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, MoldingRecipe, Output};
 
 /// Supported source material predicates. Unknown forms fail closed, including
 /// inside negation, rather than becoming unrestricted.
@@ -78,6 +78,19 @@ impl Catalog<'_> {
                 values.next().is_none().then_some(value)
             }
         }
+    }
+    pub(super) fn molding(&self, material: &str, pattern: Option<&str>, conditions: &impl Fn(&[Value]) -> bool) -> Option<MoldingRecipe> {
+        if !self.known_items.contains(material) || pattern.is_some_and(|item| !self.known_items.contains(item)) { return None; }
+        let in_tag = |tag: &str, item: &str| self.item_tags.get(tag).is_some_and(|items| items.contains(item));
+        let mut found = None;
+        for bytes in self.recipes.values() {
+            let Some(recipe) = MoldingRecipe::parse(bytes, conditions) else { continue; };
+            if !self.known_items.contains(&recipe.result) || !recipe.material.matches(material, &in_tag) { continue; }
+            if !match (&recipe.pattern, pattern) { (None, None) => true, (Some(ingredient), Some(item)) => ingredient.matches(item, &in_tag), _ => false } { continue; }
+            if found.as_ref().is_some_and(|previous| previous != &recipe) { return None; }
+            found = Some(recipe);
+        }
+        found
     }
     pub(super) fn fluid_fuel(&self, fluid: &str, available: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<FluidFuel> {
         for bytes in self.recipes.values() {

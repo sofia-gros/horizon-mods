@@ -357,6 +357,40 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
     let held = game.held().cloned();
     let mut taken = None;
     let mut remaining = None;
+    // Molding uses the placed material and one held pattern, before the
+    // ordinary pickup path. Preserve a reusable pattern in the output slot.
+    if kind == "tconstruct:table" && casting.output.is_none() {
+        if let Some(material) = casting.input.as_ref() {
+            let pattern = held.as_ref().map(|stack| stack.item.as_ref());
+            if let Some(recipe) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, pattern) {
+                let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
+                if let Some(mut stack) = held.clone() {
+                    if !recipe.pattern_consumed { let mut item = stack.clone(); item.count = 1; casting.output = Some(item); }
+                    stack.count -= 1;
+                    remaining = Some((stack.count > 0).then_some(stack));
+                    casting.input = Some(result);
+                } else { casting.input = None; taken = Some(result); }
+                if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+                if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
+                    slots[0] = casting.input.clone(); slots[1] = casting.output.clone();
+                }
+                if let Some(remaining) = remaining { *game.held_mut() = remaining; }
+                if let Some(stack) = taken { game.give_or_drop(stack); }
+                return true;
+            }
+            // A mold-less recipe also applies when the player is holding an
+            // unrelated item; leave that item untouched and give the result.
+            if held.is_some() {
+                if let Some(recipe) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, None) {
+                    casting.input = None;
+                    if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+                    if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
+                    game.give_or_drop(horizon_items::items::ItemStack::new(&recipe.result, 1));
+                    return true;
+                }
+            }
+        }
+    }
     if casting.input.is_none() && casting.output.is_none() {
         let Some(mut stack) = held else { return true; };
         let mut item = stack.clone(); item.count = 1;

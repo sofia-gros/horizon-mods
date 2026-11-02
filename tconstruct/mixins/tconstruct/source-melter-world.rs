@@ -19,6 +19,12 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
     Some(f(&catalog, &registries, config))
 }
 
+pub(super) fn molding(world: &World, material: &str, pattern: Option<&str>) -> Option<super::tconstruct_source_melting_recipes::MoldingRecipe> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.molding(material, pattern, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.melting(item, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
