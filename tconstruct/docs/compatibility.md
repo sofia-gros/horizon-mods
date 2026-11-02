@@ -11,4 +11,4 @@ The source TConstruct data used for this port is pinned to [`f4e77d43f39ba1047bf
 
 ## Development target
 
-The separate [Horizon update draft](https://github.com/sofia-gros/horizon-mods/pull/59) investigates official Horizon [`e12185820a6bc85dd5ed04adc7b8b7a4bdc16102`](https://github.com/horizon-rust/horizon/commit/e12185820a6bc85dd5ed04adc7b8b7a4bdc16102) with the same Mixins revision. This is an adaptation target, not a supported or validated combination. Slime-island generation and source world fluids remain incomplete.
+The separate [Horizon update draft](https://github.com/sofia-gros/horizon-mods/pull/59) investigates official Horizon [`3a264943c7a3a3ed02e6ee608443f558d98f208f`](https://github.com/horizon-rust/horizon/commit/3a264943c7a3a3ed02e6ee608443f558d98f208f) with the same Mixins revision. This is an adaptation target, not a supported or validated combination. Slime-island generation and source world fluids remain incomplete.
