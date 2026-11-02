@@ -1,0 +1,2 @@
+{"id": "tconstruct:heater", "tconstruct:heater": {}, "x": 0, "y": 71, "z": 2}
+{"id": "tconstruct:melter", "tconstruct:melter": {"fuel": 0, "fuel_quality": 400, "fuel_temperature": 0, "heat_codes": "<array 3>", "phase": 1, "progress": "<array 3>", "rate": 8, "slots": [{}, {}, {}], "tank": {"amount": 810, "fluid": "tconstruct:molten_copper"}, "temperature": 800}, "x": 0, "y": 72, "z": 2}
