@@ -3424,6 +3424,20 @@ file = "crates/horizon-client/src/game/lan_crafting.rs"
 name = "tconstruct_crafting_lan"
 source = "source-crafting-lan.rs"
 
+# LAN recipe placement is a separate server entry point from menu clicks.
+[[injection]]
+id = "crafting-station-lan-recipe-guard"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_place_recipe"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-lan-recipe-guard.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&horizon_protocol::packets::recipes::PlaceRecipe", value = "p" },
+]
+
 [[injection]]
 id = "crafting-station-lan-click"
 target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_click"
