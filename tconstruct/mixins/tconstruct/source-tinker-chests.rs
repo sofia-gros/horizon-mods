@@ -2,20 +2,20 @@
 // the resolved parts tag, so ordinary inventories keep their own limits.
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) enum ChestKind { Part, Tinkers }
+pub(super) enum ChestKind { Part, Tinkers, Plain(usize) }
 
 impl ChestKind {
     pub(super) fn slots(self) -> usize {
-        match self { Self::Part => 256, Self::Tinkers => 64 }
+        match self { Self::Part => 256, Self::Tinkers => 64, Self::Plain(slots) => slots }
     }
     pub(super) fn slot_limit(self, item_limit: u32) -> u32 {
-        item_limit.min(match self { Self::Part => 8, Self::Tinkers => 16 })
+        item_limit.min(match self { Self::Part => 8, Self::Tinkers => 16, Self::Plain(_) => item_limit })
     }
     /// `first_equal` must use the full item and component identity, not count.
     pub(super) fn accepts(self, slot: usize, first_equal: Option<usize>, tagged_part: bool) -> bool {
         if slot >= self.slots() { return false; }
         match self {
-            Self::Tinkers => true,
+            Self::Tinkers | Self::Plain(_) => true,
             Self::Part => first_equal.map_or(tagged_part, |first| first == slot),
         }
     }
@@ -296,6 +296,13 @@ mod tests {
         let rest=insert_existing(ChestKind::Tinkers,&mut side,ItemStack::new("minecraft:stone",5),64,false).unwrap();
         assert_eq!((side[7].as_ref().unwrap().count,rest.count),(16,4));
         assert!(side[0].is_none());
+    }
+    #[test]
+    fn plain_side_inventory_keeps_its_own_stack_limit() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![None;27];
+        assert!(insert_across(ChestKind::Plain(27),&mut side,ItemStack::new("minecraft:stone",64),64,false).is_none());
+        assert_eq!(side[0].as_ref().unwrap().count,64);
     }
     #[test]
     fn crafted_result_fills_side_then_player_and_rejects_full_destinations() {

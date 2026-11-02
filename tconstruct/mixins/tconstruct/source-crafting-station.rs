@@ -39,12 +39,13 @@ pub(super) fn side(game: &Game<'_>) -> Option<((i32, i32, i32), usize, usize, su
     if let Some((count,offset,kind)) = remote_side(game) { return Some(((0,0,0),count,offset,kind)); }
     let table = position(game)?;
     let pos = *game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table)?;
+    let count = game.world.block_entities.get(&pos)?.slots().len();
     let kind = match &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name {
         "tconstruct:part_chest" => ChestKind::Part,
         "tconstruct:tinkers_chest" => ChestKind::Tinkers,
+        _ if matches!(count,5|9|27) && game.chest_partner(pos).is_none() => ChestKind::Plain(count),
         _ => return None,
     };
-    let count = game.world.block_entities.get(&pos)?.slots().len();
     if count != kind.slots() { return None; }
     let offset = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&table).map_or(0, |state| state.0);
     Some((pos, count, offset, kind))
@@ -55,7 +56,7 @@ pub(super) fn remote_side(game: &Game<'_>) -> Option<(usize,usize,super::tconstr
     if game.remote_menu_title().map(|title|title.plain()).as_deref() != Some("TConstruct Crafting Station") { return None; }
     let (window,count,offset,_) = game.world.chunks.__horizon_mixins_tconstruct_crafting_side_client().as_ref()?;
     if *window != game.remote_menu_id() { return None; }
-    let kind = match *count {256=>ChestKind::Part,64=>ChestKind::Tinkers,_=>return None};
+    let kind = match *count {256=>ChestKind::Part,64=>ChestKind::Tinkers,5|9|27=>ChestKind::Plain(*count),_=>return None};
     Some((*count,*offset,kind))
 }
 
