@@ -1,0 +1,32 @@
+"""Pinned source recipes and resource references for the chest feature."""
+import json
+import unittest
+import zipfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1] / "content"
+
+class TinkerChestSourceTest(unittest.TestCase):
+    def test_source_recipes_and_item_declarations(self):
+        for name, ingredient in [("part_chest", "#forge:rods/wooden"), ("tinkers_chest", "#forge:gems/lapis")]:
+            recipe = json.loads((ROOT / f"data/tconstruct/recipe/{name}.json").read_text())
+            self.assertEqual(recipe["pattern"], [" p ", "xCx", "xwx"])
+            self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "x": ingredient, "C": "#forge:chests/wooden", "w": "#minecraft:planks"})
+            self.assertEqual(recipe["result"]["id"], f"tconstruct:{name}")
+            self.assertTrue((ROOT / f"data/tconstruct/horizon/block/{name}.json").is_file())
+            self.assertTrue((ROOT / f"assets/tconstruct/items/{name}.json").is_file())
+            self.assertTrue((ROOT / f"data/tconstruct/loot_table/blocks/{name}.json").is_file())
+        with zipfile.ZipFile(ROOT / "reference/forge-47.4.0-data.zip") as archive:
+            for tag in ["chests/wooden", "rods/wooden", "gems/lapis"]:
+                self.assertIn(f"data/forge/tags/items/{tag}.json", archive.namelist())
+
+    def test_original_facing_models_and_textures(self):
+        assets = ROOT / "assets/tconstruct"
+        for name, kind in [("part_chest", "part"), ("tinkers_chest", "tinkers")]:
+            state = json.loads((assets / f"blockstates/{name}.json").read_text())
+            self.assertEqual(set(state["variants"]), {f"facing={face}" for face in ["north", "east", "south", "west"]})
+            for texture in ["front", "side", "top", "drawer_front", "drawer_side"]:
+                self.assertTrue((assets / f"textures/block/chest/{kind}/{texture}.png").is_file())
+
+if __name__ == "__main__":
+    unittest.main()
