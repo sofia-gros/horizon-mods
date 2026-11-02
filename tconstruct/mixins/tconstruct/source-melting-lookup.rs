@@ -118,10 +118,18 @@ impl Catalog<'_> {
     /// Conditions and tags are evaluated against this world's snapshots.
     pub(super) fn alloy(&self, fluids: &[(String, u32)], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, Vec<(String, u32)>, String, u32)> {
+        self.alloy_except(fluids, &[], capacity, temperature, conditions)
+    }
+    /// Stop before a recipe whose ingredients could select a tagged entry;
+    /// selecting a later recipe could change source recipe ordering. The
+    /// caller still includes tagged entries in capacity accounting.
+    pub(super) fn alloy_except(&self, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, Vec<(String, u32)>, String, u32)> {
         let total = fluids.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
         for (id, bytes) in self.recipes {
             let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
             if recipe.temperature > temperature { continue; }
+            if recipe.inputs.iter().any(|ingredient| tagged.iter().any(|fluid| self.matches_fluid(ingredient, fluid))) { return None; }
             let Some(output) = self.resolved_fluid(&recipe.output) else { continue; };
             let mut used = HashSet::new();
             let mut inputs = Vec::with_capacity(recipe.inputs.len());
