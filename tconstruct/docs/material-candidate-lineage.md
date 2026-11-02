@@ -60,3 +60,15 @@ candidate and was not replayed. Existing fluid ability and Blindshot guards are
 preserved during the Gilded merge. #142 Forming and #164 Step Up recipe remain
 separate pending comparison. Package, target apply, type and game behavior of
 this combined source remain unverified.
+
+The subsequent target-integration candidate ports #268's named Ingredient
+field for the declared 0c host and #305's narrower guest splash completion
+hook. The other #305 dependencies are not implied to be included. Both fixes
+are source-level; the 0c apply/type/game results must be checked on this exact
+head. The previous #298 official apply stopped at guest packet RETURN.
+
+The subsequent follow-up ports Forming #142 together with the previously
+separate Heavy/Wool knockback and Ductile toughness contributions, and ports
+Step Up recipe #164 without replacing the existing #163 equipment behavior.
+The source stat and recipe effects must be checked on the exact integration
+head; this inclusion does not imply formal apply or gameplay success.

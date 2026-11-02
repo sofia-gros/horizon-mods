@@ -47,3 +47,12 @@ state need target verification. Test Gilded levels, slot exhaustion, rejected
 salvage without consumption, rebuilding, fluid abilities and partial Speedy
 progress together, including save/reload and LAN. These are unverified source
 candidates, not game results.
+
+The next integration ports #142 Forming armor and #164 Step Up recipe handling.
+Forming adds one armor and 0.05 knockback resistance per level in the source
+stat builder, including when no gem is installed; the calculation also carries
+the earlier Heavy, Wool and Ductile contributions. Step Up consumes the source
+recipe's upgrade slot and respects its leggings tag and level range. Verify
+material replacement and removal, gem/no-gem combinations, modifier ordering,
+partial or full inventories, salvage, two levels, broken equipment, save/reload
+and LAN on the integrated target. These paths are syntax-checked only.
