@@ -165,6 +165,8 @@ A representative Linux run made a wooden Pick Head in the Part Builder, cast its
 
 ### Reinforced
 
+> **Currently unavailable:** Reinforced cannot be applied in the provisional build. The recipe and observations below describe an earlier build.
+
 Melt obsidian and cast an Obsidian Pane, then cast molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. Ordinary tool, armor and ranged weapon wear can be prevented. Extract and reapply Reinforced with a Modifier Crystal. Glowing and its modifier-caused wear are not implemented.
 
 ![Casting Emerald Reinforcements](reinforced-natural-cast.png)
@@ -187,6 +189,8 @@ The in-development ranged upgrades use magma cream for Quick Charge on Crossbows
 
 
 ## Netherite and Unbreakable
+
+> **Currently unavailable:** Unbreakable cannot be applied in the provisional build. Netherite remains separate; the Unbreakable recipe and observations below describe an earlier build.
 
 Netherite takes one Netherite Upgrade Smithing Template and one Netherite Ingot with a durable tool in a Tinker Station or either Anvil. It consumes one upgrade slot. The original modifier improves durability, mining, melee, armor toughness and knockback resistance, and Longbow/Crossbow projectile speed where those stats apply. Netherite uses rare rarity for workstation tooltips and held names. Dropped-item fire, lava and cactus protection is connected; other damage sources and the full entity lifecycle await game verification.
 
