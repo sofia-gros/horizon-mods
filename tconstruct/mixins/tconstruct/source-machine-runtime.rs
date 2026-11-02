@@ -340,13 +340,13 @@ pub(super) fn interact_casting_tank(game: &mut super::Game<'_>, pos: Pos, clicke
     true
 }
 
-fn cannon_at(game: &super::Game<'_>, pos: Pos) -> Option<super::tconstruct_source_fluid_cannon::Cannon> {
+pub(super) fn cannon_at(game: &super::Game<'_>, pos: Pos) -> Option<super::tconstruct_source_fluid_cannon::Cannon> {
     let mut state = super::tconstruct_source_fluid_cannon::Cannon::from_nbt(&store::read(&game.world,pos,"tconstruct:fluid_cannon")?)?;
     let BlockEntity::Chest(slots) = game.world.block_entities.get(&pos)? else { return None; };
     state.item = slots.first()?.clone();
     state.lossless().then_some(state)
 }
-fn save_cannon(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_fluid_cannon::Cannon) -> bool {
+pub(super) fn save_cannon(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_fluid_cannon::Cannon) -> bool {
     if !state.lossless() || !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(slots)) if !slots.is_empty()) { return false; }
     if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",state.to_nbt()) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = state.item.clone(); }

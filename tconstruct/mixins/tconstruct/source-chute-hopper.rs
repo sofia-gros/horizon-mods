@@ -141,6 +141,10 @@ pub(super) fn eject(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hopp
     let Some(facing) = game.containers().prop(state, "facing").and_then(dir_from_name) else { return Continue(()); };
     let target = offset(pos, facing);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
+    if &*name == "tconstruct:seared_fluid_cannon" {
+        game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
+        return Break(cannon_transfer(game, hopper, target, true));
+    }
     if &*name == "tconstruct:seared_casting_tank" {
         game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
         return Break(casting_tank_transfer(game, hopper, target, true));
@@ -155,6 +159,10 @@ pub(super) fn suck(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hoppe
     let Some(y) = pos.1.checked_add(1) else { return Continue(()); };
     let target = (pos.0, y, pos.2);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
+    if &*name == "tconstruct:seared_fluid_cannon" {
+        game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
+        return Break(cannon_transfer(game, hopper, target, false));
+    }
     if &*name == "tconstruct:seared_casting_tank" {
         game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
         return Break(casting_tank_transfer(game, hopper, target, false));
@@ -162,6 +170,64 @@ pub(super) fn suck(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hoppe
     if !matches!(&*name, "tconstruct:seared_chute" | "tconstruct:scorched_chute") { return Continue(()); }
     game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
     Break(tconstruct_chute_transfer(game, hopper, target, false))
+}
+
+fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32,i32,i32), push: bool) -> bool {
+    use horizon_client::{containers::BlockEntity, pluto_inventory::{plan_between, StackSnapshot}};
+    if hopper.kind != Kind::Hopper || hopper.parts.len() != 1 || hopper.len() != 5 { return false; }
+    let hopper_pos = hopper.parts[0].0;
+    let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get(&hopper_pos) else { return false; };
+    if slots.len() != 5 { return false; }
+    let before = slots.clone();
+    let Some(mut cannon) = crate::game::tconstruct_source_machine_runtime::cannon_at(game,target) else { return false; };
+    let machine_before = cannon.to_nbt();
+    fn snapshot(value: &Option<horizon_items::items::ItemStack>) -> Option<StackSnapshot<'_,horizon_items::items::ItemStack>> {
+        value.as_ref().filter(|s| s.count > 0).map(|item| StackSnapshot { item, count: item.count })
+    }
+    let mut choice = None;
+    let containers = game.containers();
+    if push {
+        if cannon.item.as_ref().is_some_and(|s| s.wire_patch().is_some()) { return false; }
+        for (index, source) in before.iter().enumerate() {
+            let Some(item) = source.as_ref().filter(|s| s.count > 0 && s.wire_patch().is_none()) else { continue; };
+            let max = containers.max_stack(item).min(64);
+            if plan_between(snapshot(source),snapshot(&cannon.item),1,|_,_| max,|_,_| true,|a,b| a.same_item_same_components(b)).ok().flatten().is_some() {
+                choice = Some((index,item.clone())); break;
+            }
+        }
+    } else {
+        let Some(item) = cannon.item.as_ref().filter(|s| s.count > 0 && s.wire_patch().is_none()) else { return false; };
+        for (index,dest) in before.iter().enumerate() {
+            if dest.as_ref().is_some_and(|s| s.wire_patch().is_some()) || !containers.can_place(hopper,index,item) { continue; }
+            let max = containers.max_stack(item);
+            if plan_between(snapshot(&cannon.item),snapshot(dest),1,|_,_| max,|_,_| true,|a,b| a.same_item_same_components(b)).ok().flatten().is_some() {
+                choice = Some((index,item.clone())); break;
+            }
+        }
+    }
+    let Some((index,mut item)) = choice else { return false; };
+    let (from,to) = if push { (hopper_pos,target) } else { (target,hopper_pos) };
+    let mut cancel = false;
+    game.native_inventory_move_item([from.0,from.1,from.2],[to.0,to.1,to.2],&item.item,&mut cancel);
+    if cancel || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before)
+        || crate::game::tconstruct_source_machine_runtime::cannon_at(game,target).is_none_or(|state| state.to_nbt() != machine_before) { return false; }
+    let mut after = before.clone(); item.count = 1;
+    if push {
+        let Some(source) = after[index].as_mut() else { return false; };
+        source.count -= 1; if source.count == 0 { after[index] = None; }
+        if let Some(dest) = cannon.item.as_mut() { dest.count += 1; } else { cannon.item = Some(item); }
+    } else {
+        let Some(source) = cannon.item.as_mut() else { return false; };
+        source.count -= 1; if source.count == 0 { cannon.item = None; }
+        if let Some(dest) = after[index].as_mut() { dest.count += 1; } else { after[index] = Some(item); }
+    }
+    let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&hopper_pos) else { return false; };
+    *slots = after;
+    if !crate::game::tconstruct_source_machine_runtime::save_cannon(game,target,&cannon) {
+        if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&hopper_pos) { *slots = before; }
+        return false;
+    }
+    true
 }
 
 // The source sided inventory inserts only into INPUT and extracts only from
