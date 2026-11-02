@@ -1,0 +1,3 @@
+BEFORE {'tconstruct:tools/materials_and_you': {'criteria': {'crafted_book': '2026-11-02 19:37:31 +0000'}, 'done': True}, 'tconstruct:smeltery/puny_smelting': {'criteria': {'crafted_book': '2026-11-02 19:37:38 +0000'}, 'done': True}}
+AFTER {'tconstruct:tools/materials_and_you': {'criteria': {'crafted_book': '2026-11-02 19:37:31 +0000'}, 'done': True}, 'tconstruct:smeltery/puny_smelting': {'criteria': {'crafted_book': '2026-11-02 19:37:38 +0000'}, 'done': True}}
+PASS saved advancement criteria remain complete without re-award

@@ -1,0 +1,9 @@
+# Guide-referenced device handoff
+
+Source reference: TConstruct 1.20.1 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. These are source device/block-item behaviors, not merely book-rendering assets. The tested final overlay's `items.json` did not register any of the three IDs. PR #100 handles both source showcase ID forms but does not implement these devices.
+
+- `tconstruct:copper_gauge`: source registration `TinkerSmeltery.java` uses Mantle `GaugeBlock` and TConstruct `GaugeBlockEntity`, which finds a neighboring fluid handler. Source `SmelteryRecipeProvider` uses copper ingots and a clear glass pane, output four. Needs registered block/item, placement/orientation, neighbor fluid-read/display and source recipe; validate empty/filled neighbor, state changes and save/LAN. Assign the shared fluid device boundary with F10/F11 owner.
+- `tconstruct:seared_fluid_cannon`: `FluidCannonBlock` / `FluidCannonBlockEntity`; source registration gives a two-bucket tank and the block responds to redstone neighbor changes and scheduled shooting. Source shaped recipe uses redstone, a compatible tank and copper ingots. F11 requires the registered block/item, state/tank/interactions, redstone firing and source fluid behaviors, capacity, persistence and LAN verification.
+- `tconstruct:seared_casting_tank`: `CastingTankBlock` / `CastingTankBlockEntity`, source recipe uses seared bricks, glass and copper. F11 requires registered block/item, fluid and inventory/container transfer, block interaction, automation, capacity, save/reload and LAN behavior. Its book description is source prose, not proof of implementation.
+
+Do not add icon-only placeholder registrations or claim a machine works based solely on book display. Exact supported source conditions, amounts, output recipes and failure cases must be checked in the pinned provider/classes and handled under the owning machine work, not by the guide reader.

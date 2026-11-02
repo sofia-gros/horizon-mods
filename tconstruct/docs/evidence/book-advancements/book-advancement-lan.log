@@ -1,0 +1,3 @@
+INVENTORY {'tconstruct:materials_and_you': 1, 'tconstruct:puny_smelting': 1}
+ADVSCREEN {'ok': True}
+UI {'frame': 25, 'gui_size': [480.0, 270.0], 'screen': 'advancements', 'widgets': [{'bounds': [140.0, 243.0, 200.0, 20.0], 'enabled': True, 'id': 'done', 'kind': 'button', 'label': 'Done'}]}
