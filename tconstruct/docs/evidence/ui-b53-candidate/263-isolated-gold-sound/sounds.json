@@ -1,0 +1,40 @@
+{
+  "tconstruct:gold_bars": {
+    "break": {
+      "id": "minecraft:block.iron.break"
+    },
+    "fall": {
+      "id": "minecraft:block.iron.fall"
+    },
+    "hit": {
+      "id": "minecraft:block.iron.hit"
+    },
+    "pitch": 1.0,
+    "place": {
+      "id": "minecraft:block.iron.place"
+    },
+    "step": {
+      "id": "minecraft:block.iron.step"
+    },
+    "volume": 1.0
+  },
+  "minecraft:iron_bars": {
+    "break": {
+      "id": "minecraft:block.iron.break"
+    },
+    "fall": {
+      "id": "minecraft:block.iron.fall"
+    },
+    "hit": {
+      "id": "minecraft:block.iron.hit"
+    },
+    "pitch": 1.0,
+    "place": {
+      "id": "minecraft:block.iron.place"
+    },
+    "step": {
+      "id": "minecraft:block.iron.step"
+    },
+    "volume": 1.0
+  }
+}
