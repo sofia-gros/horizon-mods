@@ -118,21 +118,29 @@ impl Catalog<'_> {
     /// Conditions and tags are evaluated against this world's snapshots.
     pub(super) fn alloy(&self, fluids: &[(String, u32)], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, Vec<(String, u32)>, String, u32)> {
+        self.alloy_except(fluids, &[], capacity, temperature, conditions)
+    }
+    /// Stop before a recipe whose ingredients could select a tagged entry;
+    /// selecting a later recipe could change source recipe ordering. The
+    /// caller still includes tagged entries in capacity accounting.
+    pub(super) fn alloy_except(&self, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, Vec<(String, u32)>, String, u32)> {
         let total = fluids.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
         for (id, bytes) in self.recipes {
             let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
             if recipe.temperature > temperature { continue; }
+            if recipe.inputs.iter().any(|ingredient| tagged.iter().any(|fluid| self.matches_fluid(ingredient, fluid))) { return None; }
             let Some(output) = self.resolved_fluid(&recipe.output) else { continue; };
             let mut used = HashSet::new();
             let mut inputs = Vec::with_capacity(recipe.inputs.len());
-            for ingredient in &recipe.inputs {
+            for (ingredient, catalyst) in recipe.inputs.iter().zip(&recipe.catalysts) {
                 let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
                     !used.contains(index) && *amount >= ingredient.amount && self.matches_fluid(ingredient, fluid));
                 let Some((index, (fluid, _))) = matched else { break; };
                 used.insert(index);
-                inputs.push((fluid.clone(), ingredient.amount));
+                if !*catalyst { inputs.push((fluid.clone(), ingredient.amount)); }
             }
-            if inputs.len() == recipe.inputs.len() {
+            if used.len() == recipe.inputs.len() {
                 let removed = inputs.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
                 if recipe.output.amount.saturating_sub(removed) > capacity.saturating_sub(total) { continue; }
                 return Some((id.clone(), inputs, output, recipe.output.amount));
@@ -375,6 +383,19 @@ mod tests {
         assert_eq!(output, "minecraft:lava_bucket");
         assert!(catalog.bucket_filling("tconstruct:venom", &|_| true).is_none());
         assert!(catalog.bucket_filling("minecraft:water", &|_| true).is_none());
+    }
+    #[test]
+    fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
+        let recipes = [("obsidian".into(), br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100}],"result":{"fluid":"tconstruct:molten_obsidian","amount":100},"temperature":1000}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let items = HashSet::new(); let tags = HashMap::new();
+        let fluids = ["minecraft:water".into(), "minecraft:lava".into(), "tconstruct:molten_obsidian".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let available = [("minecraft:water".into(), 250), ("minecraft:lava".into(), 100)];
+        let (_, inputs, output, amount) = catalog.alloy(&available, 350, 1000, &|_| true).unwrap();
+        assert_eq!(inputs, vec![("minecraft:lava".into(), 100)]);
+        assert_eq!((output.as_str(), amount), ("tconstruct:molten_obsidian", 100));
+        assert!(catalog.alloy(&available[1..], 350, 1000, &|_| true).is_none());
+        assert!(catalog.alloy(&available, 350, 999, &|_| true).is_none());
     }
     #[test]
     fn fluid_fuel_requires_known_fluid_and_enough_amount() {

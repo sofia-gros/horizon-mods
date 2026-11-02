@@ -37,10 +37,10 @@ pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, Foun
     })?
 }
 
-pub(super) fn alloy(world: &World, fluids: &[(String, u32)], capacity: u32, temperature: u32)
+pub(super) fn alloy(world: &World, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32)
     -> Option<(String, Vec<(String, u32)>, String, u32)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.alloy(fluids, capacity, temperature, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.alloy_except(fluids, tagged, capacity, temperature, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
     })?
 }
 
