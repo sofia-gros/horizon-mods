@@ -69,6 +69,7 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
     let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return None; };
     let strength = (*level as f32).min(fluid.amount as f32 / recipe.amount as f32);
     if strength <= 0.0 { return None; }
+    enum Action { Add(&'static str, i32, i32), RemovePoison }
     let mut planned = Vec::new();
     let mut ids = HashSet::new();
     for effect in recipe.entity {
@@ -78,7 +79,12 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => continue,
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
                 let Some(known) = horizon_client::brewing::effect(&id) else { return None; };
-                if strength >= 1.0 && game.mobs[index].extra.effects.iter().any(|entry| entry.0 == known.id) { return None; }
+                if !ids.insert(known.id) { return None; }
+                if strength < 1.0 || !game.mobs[index].extra.effects.iter().any(|entry| entry.0 == known.id) { continue; }
+                // Poison has no removal-time attribute effects. Other removals
+                // require their own source removal and notification handlers.
+                if known.id != "minecraft:poison" { return None; }
+                planned.push((Action::RemovePoison, recipe.amount));
                 continue;
             }
         };
@@ -89,24 +95,36 @@ pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, 
         let existing = game.mobs[index].extra.effects.iter().find(|entry| entry.0 == known.id).map(|entry| (entry.1, entry.2));
         let Some((duration, scale)) = super::tconstruct_source_fluid_effects::mob_duration(&effect, strength, *level as f32, existing) else { continue; };
         let used = ((recipe.amount as f32 * scale.min(strength)).ceil() as u32).min(fluid.amount);
-        if used > 0 { planned.push((known.id, duration, effect.amplifier, used)); }
+        if used > 0 { planned.push((Action::Add(known.id, duration, effect.amplifier), used)); }
     }
     if planned.is_empty() { return None; }
     // Validate every possible remainder before applying any effect.
     let mut remainders = Vec::new();
-    for (_, _, _, used) in &planned {
+    for (_, used) in &planned {
         let mut fluid = fluid.clone(); fluid.amount -= *used;
         let Some(drained) = super::pluto_stack_fluid::write(&stack, "tic_persistent", "tconstruct:tank_fluid", (fluid.amount > 0).then_some(&fluid), capacity) else { return None; };
         remainders.push(drained);
     }
     if simulate { return Some(stack); }
     let mut consumed = None;
-    for ((id, duration, amplifier, used), drained) in planned.into_iter().zip(remainders) {
+    for ((action, used), drained) in planned.into_iter().zip(remainders) {
         let mob = &mut game.mobs[index];
-        let before = mob.extra.effects.iter().find(|entry| entry.0 == id).copied();
-        mob.add_effect(id, duration, amplifier);
-        let after = mob.extra.effects.iter().find(|entry| entry.0 == id).copied();
-        if before != after && consumed.as_ref().is_none_or(|(amount, _)| used > *amount) { consumed = Some((used, drained)); }
+        let changed = match action {
+            Action::Add(id, duration, amplifier) => {
+                let before = mob.extra.effects.iter().find(|entry| entry.0 == id).copied();
+                mob.add_effect(id, duration, amplifier);
+                let after = mob.extra.effects.iter().find(|entry| entry.0 == id).copied();
+                before != after
+            }
+            Action::RemovePoison => {
+                let before = mob.extra.effects.len();
+                mob.extra.effects.retain(|entry| entry.0 != "minecraft:poison");
+                mob.extra.hidden_effects.retain(|id| *id != "minecraft:poison");
+                mob.extra.ambient_effects.retain(|id| *id != "minecraft:poison");
+                before != mob.extra.effects.len()
+            }
+        };
+        if changed && consumed.as_ref().is_none_or(|(amount, _)| used > *amount) { consumed = Some((used, drained)); }
     }
     consumed.map(|(_, drained)| drained)
 }
