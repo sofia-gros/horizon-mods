@@ -68,8 +68,8 @@ by acting player and projectile ID, and consumes that record only for the same
 arrow at `finish_arrow_hit` with `Hurt`. A later impact invalidates a stale
 record; an offline guest cannot use the host's health. Source power is
 `ceil(clamp(base_damage * speed, 0, i32::MAX))`; healing is 5% per level of
-the smaller of that power and pre-hit health. Firing-weapon persistence after
-reload is not established.
+the smaller of that power and pre-hit health. The formal host `entity_nbt.rs` writes and reads the arrow `weapon` stack;
+owner resolution and the whole saved-arrow path still need a game test.
 
 This remains a partial path: source runs before damage if not blocked, whereas
 the host combines shield and other refusals and the candidate requires Hurt.
@@ -77,3 +77,10 @@ PvP and mob hit refusals are not implemented. Test local and guest mob hits,
 blacklist, health lower than arrow power, failed and nested hits, projectile
 identity, disconnected guest, canceled healing and shot save/reload. The
 state and injection have not passed official plan, type or game checks.
+
+For PvP, `lan_projectile_hit` enters `guest_hit_by` and swaps `game.player`
+to the victim before recursively handling the projectile. The hit outcome
+is therefore in the victim scope while healing requires the shooter's scope.
+A correct handoff must retain the shooter's identity across that swap and
+apply healing to that actor after the blocked/hurt result; the current mob-only
+handoff intentionally does not implement this.
