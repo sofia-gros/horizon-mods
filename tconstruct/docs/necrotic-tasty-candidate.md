@@ -72,7 +72,9 @@ arrow at `finish_arrow_hit` with `Hurt`. A later impact invalidates a stale
 record; an offline guest cannot use the host's health. Source power is
 `ceil(clamp(base_damage * speed, 0, i32::MAX))`; healing is 5% per level of
 the smaller of that power and pre-hit health. The formal host `entity_nbt.rs` writes and reads the arrow `weapon` stack;
-owner resolution and the whole saved-arrow path still need a game test.
+`claim_owner` resolves connected guests by UUID but does not resolve the host
+player. A follow-up compares the retained UUID to the acting player when the
+owner is unresolved. The complete saved-arrow path still needs a game test.
 
 This remains a partial path: source runs before damage if not blocked, whereas
 the host combines shield and other refusals and the candidate requires Hurt.

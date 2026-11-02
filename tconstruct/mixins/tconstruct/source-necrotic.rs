@@ -76,13 +76,14 @@ pub(super) fn projectile_begin(
         .chunks
         .__horizon_mixins_tconstruct_necrotic_projectile_mut()
         .remove(&actor);
-    if game.remote.is_some()
-        || p.id == 0
-        || p.owner != Some(Who::Player)
-        || (p.guest.is_some() && p.guest != actor)
-    {
+    if game.remote.is_some() || p.id == 0 || (p.guest.is_some() && p.guest != actor) {
         return;
     }
+    // Loaded arrows retain the owner's UUID even when claim_owner cannot
+    // reconstruct a host-player Who. Match the current actor exactly.
+    let owned = p.owner == Some(Who::Player)
+        || (p.owner.is_none() && p.owner_uuid.is_some_and(|id| id == game.acting_player_uuid()));
+    if !owned { return; }
     let Hit::Entity {
         who: Who::Mob(id), ..
     } = hit
