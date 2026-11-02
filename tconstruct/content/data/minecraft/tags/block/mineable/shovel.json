@@ -1,1 +1,14 @@
-{"values":["tconstruct:earth_congealed_slime","tconstruct:sky_congealed_slime","tconstruct:ichor_congealed_slime","tconstruct:ender_congealed_slime"]}
+{
+  "values": [
+    "tconstruct:earth_congealed_slime",
+    "tconstruct:sky_congealed_slime",
+    "tconstruct:ichor_congealed_slime",
+    "tconstruct:ender_congealed_slime",
+    "tconstruct:earth_slime_dirt",
+    "tconstruct:sky_slime_dirt",
+    "tconstruct:earth_earth_slime_grass",
+    "tconstruct:earth_sky_slime_grass",
+    "tconstruct:sky_earth_slime_grass",
+    "tconstruct:sky_sky_slime_grass"
+  ]
+}

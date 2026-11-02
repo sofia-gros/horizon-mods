@@ -112,3 +112,9 @@ and vanilla plant regressions all require dedicated validation.
 The two registered leaves are added to `minecraft:leaves` so the existing
 tree writer can recognize them as replaceable; other original slime leaves
 are not registered or added by this batch.
+
+The four Earth/Sky slime-grass combinations present in the Earth and Sky
+island templates are also registered with their pinned source models and
+Silk Touch versus underlying slime-dirt loot. Their random ticks are disabled
+until source spreading and bonemeal behavior is connected. Soil tag resolution
+and source-tinted rendering remain open; registration does not enable islands.
