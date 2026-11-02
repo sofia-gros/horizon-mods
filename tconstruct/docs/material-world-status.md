@@ -158,3 +158,10 @@ headers with ordinary comments; a manifest-source scan found no remaining
 leading inner-doc headers. The follow-up's formal apply and subsequent type or
 game checks remain pending.
 
+
+The ranged/fluids integration candidate combines the source-backed crossbow
+references, the fluid support-module header correction and the potion-cloud
+candidate. All support-module source files referenced by its checked-in
+TConstruct and Pluto manifests were statically scanned for inner documentation
+attributes and shebangs. No such source lines remained at that scan. The merged
+candidate has not passed formal package, apply, type or runtime checks.
