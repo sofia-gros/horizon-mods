@@ -94,3 +94,8 @@ and post-collision velocity. A dependent candidate also supplies the acting gues
 equipment and crouch state and applies its pending rebound after server travel.
 Both candidates require official apply, type and game validation; guest movement
 ordering, velocity synchronization and isolation from other players are unverified.
+
+The combined Bouncy integration candidate uses the shared PlutoLib landing state
+and targets Horizon `7084e67744cbb4fe25961f24126e15b6b36f0523` with Mixins
+`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its pinned revisions match, but the
+combined apply, type check and local/LAN game behavior remain unverified.
