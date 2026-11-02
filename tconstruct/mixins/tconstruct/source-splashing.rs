@@ -221,7 +221,7 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
     if *capacity <= 0 { return false; }
     let Some(Some(fluid)) = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid") else { return false; };
     if fluid.tag.is_some() || fluid.amount == 0 || fluid.amount > *capacity as u32 { return false; }
-    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return false; };
+    let Some(recipe) = super::tconstruct_source_slurping::tagged_recipe(game, &fluid.id, fluid.tag.as_ref()) else { return false; };
     let mut ids = std::collections::HashSet::new();
     let mut hunger_seen = false;
     if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
@@ -229,6 +229,7 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
         super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::brewing::effect(id).is_none_or(|known| known.id != "poison" || !ids.insert(known.id)),
         super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => { let duplicate = hunger_seen; hunger_seen = true; duplicate },
         super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => true,
+        super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => true,
     }) { return false; }
     if order_known { return true; }
     u32::try_from(count).ok().and_then(|count| recipe.amount.checked_mul(level as u32).and_then(|amount| amount.checked_mul(count))).is_some_and(|required| fluid.amount >= required)
