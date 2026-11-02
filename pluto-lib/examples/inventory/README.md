@@ -15,10 +15,10 @@ In a disposable world with commands enabled, set up the hotbar with:
 /item replace entity @s hotbar.5 with minecraft:air
 ```
 
-Use the stick once. On success, slot 1 is empty, slots 2 and 3 each hold eight stones with marker 1, slot 4 still holds the different marker 2 stack, and slot 5 remains empty. Hover over the stick in the inventory to see the success line. The hook only runs for the demo stick and leaves the transaction unchanged if the setup does not match.
+Use the stick once. On success, slot 1 is empty, slots 2 and 3 each hold eight stones with marker 1, slot 4 still holds the different marker 2 stack, and slot 5 remains empty. On the local host, hover over the stick in the inventory to see the success line. This demo-only indicator is process-local and is not synchronized to a LAN guest. The hook only runs for the demo stick and leaves the transaction unchanged if the setup does not match.
 
-On Linux with the pinned Horizon/Mixins pair, the checks succeeded locally and for a LAN guest. Both inventories retained counts and custom data after a host save/reload and guest reconnect. This exercises the host’s existing synchronization; it is not a networking API.
+On Linux with the pinned Horizon/Mixins pair, the checks succeeded locally and for a LAN guest. The local and guest inventory results were checked independently and retained their counts and custom data after a host save/reload and guest reconnect. The local tooltip does not establish the guest result. This exercises the host’s existing synchronization; it is not a networking API.
 
 ![The inventory demo after the move](../../docs/inventory-demo.png)
 
-*The two eight-item stacks and the verified demo tooltip after the consumer commits the plans.*
+*The local host shows the two eight-item stacks and its process-local success tooltip.*
