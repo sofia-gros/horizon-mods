@@ -1,0 +1,9 @@
+CASE tconstruct:part_builder oak OUTPUT tconstruct:part_builder
+CASE tconstruct:part_builder mixed OUTPUT tconstruct:part_builder
+CASE tconstruct:part_builder missing-pattern OUTPUT None
+CASE tconstruct:part_builder nonmember OUTPUT None
+CASE tconstruct:tinker_station oak OUTPUT tconstruct:tinker_station
+CASE tconstruct:tinker_station mixed OUTPUT tconstruct:tinker_station
+CASE tconstruct:tinker_station missing-pattern OUTPUT None
+CASE tconstruct:tinker_station nonmember OUTPUT None
+PASS ordinary mixed missing and nonmember boundaries
