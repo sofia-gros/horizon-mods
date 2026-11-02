@@ -1752,6 +1752,19 @@ name = "tconstruct_source_station_world"
 source = "source-station-world.rs"
 
 [[module]]
+id = "host-source-conditions"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_conditions"
+source = "source-conditions.rs"
+
+[[module]]
+id = "server-source-conditions"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_conditions"
+source = "source-conditions.rs"
+visibility = "pub"
+
+[[module]]
 id = "server-source-station-world"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_world"

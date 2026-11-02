@@ -297,6 +297,8 @@ and complete lifecycle parity remain open.
 
 The station can also resolve source `tconstruct:modifier_repair` recipes with vanilla item/tag ingredients, such as repairing a tool with Tasty using bacon. It requires a recognized durability tool, matching inputs and resolvable material traits, scales the repair by the modifier level and supported repair factors, and consumes only the needed inputs after the result is accepted. Known recipe conditions use the shared source resolver; unknown conditions and tool-definition traits that could change the repair remain conservative exclusions. Gameplay, LAN and save/reload validation are pending.
 
+The conditional resolver is supplied in both host and server module trees so the station does not depend on the host-only Melter module. Melter and recipe reload retain the same resolver. An integrated build is required to verify the transformed host; syntax parsing alone does not establish compilation.
+
 The station material-repair path also resolves the source `material_repair` module's explicit `stat_type` against that material's merged stats. This covers the source shape used by the staffs and Flint and Brick when their registered repair materials are available, including tools without a material-part list. Unknown material stats still produce no repair. This addition awaits integration and game verification; it does not establish the remaining modifier repair recipes.
 
 At the pinned revision, `MaterialStatsModule.addTraits` adds traits from each
