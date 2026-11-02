@@ -3,7 +3,7 @@
 use horizon_client_lib::{item_sync, items::ItemStack, lan::guest::stack_to_network};
 use horizon_protocol::{
     buf::{Codec, Reader, Writer},
-    item::{component, Slot},
+    item::{component, DelimitedSlot, Slot},
     registry::{Builtin, Dynamic, Ids},
 };
 use horizon_world::nbt::Tag;
@@ -379,6 +379,15 @@ fn main() {
                 all.added
                     .push((component::RARITY, horizon_protocol::item::Component::Int(2)));
                 all.removed.push(component::ITEM_NAME);
+                let mut guest_wire = Writer::new();
+                DelimitedSlot::write(&Some(all.clone()), &mut guest_wire);
+                let guest_read = DelimitedSlot::read(&mut Reader::new(&guest_wire.data))
+                    .unwrap()
+                    .unwrap();
+                assert!(guest_read.component(28).is_some());
+                assert!(guest_read.component(component::MAX_DAMAGE).is_some());
+                assert!(guest_read.component(component::RARITY).is_some());
+                assert!(guest_read.removed.contains(&component::ITEM_NAME));
                 let mut encoded_wire = Writer::new();
                 Slot::write(&Some(all), &mut encoded_wire);
                 let received = Slot::read(&mut Reader::new(&encoded_wire.data))
