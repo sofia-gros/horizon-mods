@@ -73,3 +73,13 @@ registry. Verify generated Creative variants against source-built Station
 items for Forming, Heavy, Wool and Ductile with non-unit stat multipliers;
 compare slimy chestplate and unrelated items, preparation, reload and tooltips.
 This is syntax-checked only and has no package or gameplay result.
+
+The #325 formal apply stopped at the `sync_player_body` RETURN hook with
+`E_UNSUPPORTED_CONTROL_FLOW`; an isolated `apply_equipment` RETURN diagnostic
+also reported `E_UNSUPPORTED_MACRO`. A subsequent candidate omits those two
+hooks and instead proposes modifying the single `leather_boots` local at its
+STORE before `sync_player_body` writes the player field. The host's existing
+value is retained. This different boundary has not passed official plan or
+apply. Local walking, guest/server synchronization, equipment changes and
+powder-snow placement must be checked independently; the earlier generic
+placement hook remains omitted.
