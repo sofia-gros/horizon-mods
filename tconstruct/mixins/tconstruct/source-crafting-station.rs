@@ -89,9 +89,9 @@ pub(super) fn refresh(game: &mut Game<'_>) {
 
 pub(super) fn close(game: &mut Game<'_>) {
     let Some(pos) = position(game) else { return; };
-    sync(game);
     // The host's vanilla close returns its temporary grid to the player.
-    // This grid is a view of block-owned slots and must stay in the block.
+    // Each completed transaction already updated the block. Do not overwrite
+    // it here: a LAN guest may have edited it since this view last refreshed.
     game.craft_grid.fill(None);
     game.world.chunks.__horizon_mixins_tconstruct_crafting_sessions_mut().remove(&pos);
     game.world.chunks.__horizon_mixins_tconstruct_builder_side_mut().remove(&pos);

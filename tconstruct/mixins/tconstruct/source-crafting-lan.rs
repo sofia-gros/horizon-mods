@@ -52,6 +52,7 @@ pub(crate) fn click(game: &mut Game<'_>, host: &mut LanHost, conn: u32, packet: 
     if (46..94).contains(&packet.slot) {
         return Break(side_click(game,host,gi,joined,pos,packet));
     }
+    if packet.input==1 && (10..46).contains(&packet.slot) && quick_player(game,host,gi,joined,pos,packet) { return Break(true); }
     let Some((window, state, mut menu, stored_pos)) = host.play.get_mut(&conn).and_then(|play| play.crafting.table.take_if(|(window, ..)| *window == packet.container)) else { return Break(true); };
     if station(game, pos) && !host.hub.guests[gi].spectator() && host.hub.guests[gi].within_block_range([pos.0, pos.1, pos.2], 4.0) {
         if let Some(grid) = items(game, pos) {
@@ -68,6 +69,27 @@ pub(crate) fn click(game: &mut Game<'_>, host: &mut LanHost, conn: u32, packet: 
     host.play.entry(conn).or_default().crafting.table = Some((window, state, menu, stored_pos));
     game.lan_send_table_content(host, conn);
     Break(true)
+}
+
+fn quick_player(game: &mut Game<'_>,host: &mut LanHost,gi: usize,joined: u64,table: Pos,packet: &play::ContainerClick) -> bool {
+    use crate::game::tconstruct_chest_rules::{self as chest,ChestKind};
+    let conn=host.hub.guests[gi].conn;let key=(conn,joined,packet.container);
+    let Some(&(side,_))=game.world.chunks.__horizon_mixins_tconstruct_crafting_guest_side().get(&key) else {return false;};
+    let valid=host.play.get(&conn).and_then(|p|p.crafting.table.as_ref()).is_some_and(|(window,state,_,_)|*window==packet.container && *state==packet.state);
+    if !valid || !station(game,table) || host.hub.guests[gi].spectator() || !host.hub.guests[gi].within_block_range([table.0,table.1,table.2],4.0) {game.lan_send_table_content(host,conn);return true;}
+    let index=packet.slot as usize-10;let index=if index<27 {index+9} else {index-27};
+    let Some(stack)=host.hub.guests[gi].inventory[index].clone() else {return false;};
+    let Some(BlockEntity::Chest(existing))=game.world.block_entities.get(&side) else {return false;};
+    let kind=match existing.len() {256=>ChestKind::Part,64=>ChestKind::Tinkers,_=>return false};
+    let max=game.res.items().get(&stack.item).map_or(64,|info|info.max_stack).max(1);
+    let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v|v.as_ref().ok());
+    let part=tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(stack.item.as_ref()));
+    let mut items=existing.clone();let old=stack.count;
+    let remainder=chest::insert_across(kind,&mut items,stack,max,part);
+    if remainder.as_ref().map_or(0,|s|s.count)==old {return false;}
+    if let Some(BlockEntity::Chest(existing))=game.world.block_entities.get_mut(&side) {*existing=items;}
+    host.hub.guests[gi].inventory[index]=remainder;game.world.modified.insert((side.0>>4,side.2>>4));
+    game.lan_send_table_content(host,conn);true
 }
 
 // Empty the temporary menu copy before vanilla close/leave returns its slots.
