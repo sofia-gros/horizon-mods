@@ -3068,3 +3068,118 @@ bindings = [
   { name = "x", ty = "f32", value = "x" },
   { name = "y", ty = "f32", value = "y" },
 ]
+
+[[module]]
+id = "materials-book"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book"
+source = "source-materials-book.rs"
+
+[[injection]]
+id = "materials-book-use"
+target = "horizon_client::game::books::Game<'_>::use_book"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-use.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
+
+[[injection]]
+id = "materials-book-remote"
+target = "horizon_client::game::books::Game<'_>::remote_use_book"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-remote.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
+
+[[injection]]
+id = "materials-book-draw"
+target = "horizon_client::game::books::Game<'_>::draw_book"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-draw.rs"
+bindings = [{ name = "game", ty = "&Game<'_>", value = "&*self" }, { name = "batch", ty = "&mut HudBatch", value = "&mut *batch" }]
+
+[[injection]]
+id = "materials-starting-book"
+target = "horizon_client::game::advancements::Game<'_>::tick_advancements"
+kind = "HEAD"
+helper = "source-materials-starting-book.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "materials-book-request"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-request.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&S", value = "&packet" }]
+
+[[injection]]
+id = "materials-book-response"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-response.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
+
+[[module]]
+id = "materials-book-index"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_index"
+source = "source-materials-book-index.rs"
+
+[[module]]
+id = "materials-book-wire"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_wire"
+source = "source-materials-book-wire.rs"
+
+[[module]]
+id = "materials-book-recipe"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_recipe"
+source = "source-materials-book-recipe.rs"
+
+[[module]]
+id = "materials-book-stat"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_stat"
+source = "source-materials-book-stat.rs"
+
+[[injection]]
+id = "materials-book-click"
+target = "horizon_client::game::books::Game<'_>::book_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-click.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "size", ty = "[u32; 2]", value = "size" }]
+
+[[injection]]
+id = "materials-book-turn"
+target = "horizon_client::game::books::Game<'_>::turn_page"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-turn.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "forward", ty = "bool", value = "forward" }]
+
+[[module]]
+id = "materials-book-spread"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_spread"
+source = "source-materials-book-spread.rs"
+
+[[state]]
+id = "materials-book-history"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "Option<usize>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "materials-book-layout"
+file = "crates/horizon-client/src/game/books.rs"
+name = "tconstruct_materials_book_layout"
+source = "source-materials-book-layout.rs"

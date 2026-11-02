@@ -1,5 +1,23 @@
 // Shared post-processing for manually prepared and startup content roots.
 pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+        // The guide's pinned source images join the same GUI atlas in both
+        // manual and startup preparation. Only its own bundled PNGs are read.
+        let guide = content_path.join("assets/tconstruct/materials-and-you.zip");
+        if guide.is_file() {
+            use std::io::Read;
+            let mut archive = zip::ZipArchive::new(std::fs::File::open(guide)?)?;
+            let target = out.join("assets/minecraft/textures/gui");
+            std::fs::create_dir_all(&target)?;
+            for index in 0..archive.len() {
+                let mut file = archive.by_index(index)?;
+                let Some(name) = file.name().strip_prefix("assets/tconstruct/book/images/") else { continue; };
+                if !name.ends_with(".png") || !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) || name.contains("..") { continue; }
+                let sprite = format!("tconstruct_book_{}", name.trim_end_matches(".png").replace(['/', '-'], "_"));
+                let mut bytes = Vec::new();
+                file.read_to_end(&mut bytes)?;
+                std::fs::write(target.join(format!("{sprite}.png")), bytes)?;
+            }
+        }
         // Project source geode and cobalt biome modifiers into the generated bundle,
         // preserving source registration order and the vanilla base pack.
         if content_path.join("data/tconstruct/worldgen/placed_feature/sky_geode.json").is_file()

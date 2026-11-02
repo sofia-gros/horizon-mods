@@ -287,6 +287,31 @@ pub(super) fn source_conditions_match(
     Some(true)
 }
 
+/// Enumerate registered ordinary items accepted by a source material ingredient.
+/// Instrument-bearing variants need component-aware display stacks and remain
+/// unavailable to callers that only have item IDs.
+pub(super) fn source_plain_ingredient_items(
+    value: &serde_json::Value,
+    items: &std::collections::HashSet<String>,
+    tags: &std::collections::HashMap<String, std::collections::HashSet<String>>,
+) -> Option<Vec<String>> {
+    fn plain(ingredient: &SourceIngredient) -> bool {
+        match ingredient {
+            SourceIngredient::Item(_) | SourceIngredient::Tag(_) => true,
+            SourceIngredient::Any(values) => values.iter().all(plain),
+            SourceIngredient::Difference(a, b) => plain(a) && plain(b),
+            SourceIngredient::Instrument { .. } => false,
+        }
+    }
+    let ingredient = SourceIngredient::parse(value)?;
+    if !plain(&ingredient) { return None; }
+    let instruments = std::collections::HashSet::new();
+    let instrument_tags = std::collections::HashMap::new();
+    let mut matching: Vec<_> = items.iter().filter(|item| ingredient.matches(item, None, tags, &instruments, &instrument_tags)).cloned().collect();
+    matching.sort();
+    Some(matching)
+}
+
 /// Source ItemOutput forms in the pinned material recipes. Tag selection and
 /// NBT decoding are deliberately deferred until the world registry is present.
 #[allow(dead_code)]
@@ -1740,6 +1765,19 @@ pub(super) fn take(stacks: &mut [Option<ItemStack>], carried: &mut Option<ItemSt
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn plain_material_ingredient_enumerates_tag_difference_without_inventing_instruments() {
+        use std::collections::{HashMap, HashSet};
+        let items = HashSet::from(["minecraft:oak_log".to_owned(), "minecraft:birch_log".to_owned()]);
+        let tags = HashMap::from([
+            ("minecraft:logs".to_owned(), items.clone()),
+            ("test:ignored".to_owned(), HashSet::from(["minecraft:birch_log".to_owned()])),
+        ]);
+        let source = serde_json::json!({"type":"forge:difference", "base":{"tag":"minecraft:logs"}, "subtracted":{"tag":"test:ignored"}});
+        assert_eq!(super::source_plain_ingredient_items(&source, &items, &tags), Some(vec!["minecraft:oak_log".to_owned()]));
+        let instrument = serde_json::json!({"type":"tconstruct:instrument", "item":"minecraft:goat_horn", "instrument":"minecraft:ponder_goat_horn"});
+        assert_eq!(super::source_plain_ingredient_items(&instrument, &items, &tags), None);
+    }
     #[test]
     fn player_quick_move_prefers_builder_inputs_then_side() {
         use super::*;
