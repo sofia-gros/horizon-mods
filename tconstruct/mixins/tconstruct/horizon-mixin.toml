@@ -3892,7 +3892,7 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_inventory_api"
 source = "chest-inventory-api-lib.rs"
 
-# Refuse local station recipe placement until its reported item loss is fixed.
+# Stage local recipe placement and persist its validated menu grid.
 [[injection]]
 id = "crafting-station-recipe-placement-guard"
 target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
