@@ -111,7 +111,7 @@ fn effect_instance(value: &horizon_world::nbt::Tag, to_source: bool, depth: u8) 
     let Tag::Compound(fields) = value else { return None; };
     let (id_key, target_id) = if to_source { ("id", "Id") } else { ("Id", "id") };
     let id = match (to_source, fields.get(&id_key.into())?) {
-        (true, Tag::String(id)) => Tag::Byte((EFFECT_IDS.iter().position(|candidate| *candidate == id.to_string_lossy().as_ref())? + 1) as i8),
+        (true, Tag::String(id)) => Tag::Byte((EFFECT_IDS.iter().position(|candidate| *candidate == id.to_string_lossy().as_str())? + 1) as i8),
         (false, Tag::Byte(id)) if *id > 0 => Tag::String((*EFFECT_IDS.get(*id as usize - 1)?).into()),
         _ => return None,
     };
@@ -119,7 +119,7 @@ fn effect_instance(value: &horizon_world::nbt::Tag, to_source: bool, depth: u8) 
     for (key, value) in fields {
         let name = key.to_string_lossy();
         if name == id_key { continue; }
-        let (old, modern) = match (to_source, name.as_ref()) {
+        let (old, modern) = match (to_source, name.as_str()) {
             (true, "amplifier") | (false, "Amplifier") => ("Amplifier", "amplifier"),
             (true, "duration") | (false, "Duration") => ("Duration", "duration"),
             (true, "ambient") | (false, "Ambient") => ("Ambient", "ambient"),
