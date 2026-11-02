@@ -3893,6 +3893,7 @@ id = "source-bouncy-motion"
 file = "crates/horizon-client/src/motion.rs"
 name = "tconstruct_bouncy_motion"
 source = "source-bouncy-motion.rs"
+visibility = "pub(crate)"
 
 [[injection]]
 id = "source-bouncy-factor"
