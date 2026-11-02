@@ -1,6 +1,6 @@
 # Part Chest and Tinker's Chest
 
-> Local Crafting Station grid synchronization is being rechecked; normal result clicks and recipe-book auto-placement are temporarily blocked. Earlier observations below refer to the revisions identified with them. See [provisional limitations](provisional.md).
+> Local Crafting Station grid synchronization is being rechecked; recipe-book auto-placement is temporarily blocked while normal and Shift result transactions are being verified. Earlier observations below refer to the revisions identified with them. See [provisional limitations](provisional.md).
 
 This draft targets TConstruct revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The Part Chest accepts tagged parts, holds at most eight identical item-and-component variants per slot, forbids duplicate variants in separate slots, and grows to 256 slots. The Tinker's Chest holds 64 slots of up to 16 items each. Both use their original shaped recipes, block models and textures; original assets are covered by `third_party/tconstruct/LICENSE`. The recipe ingredient aliases contain the pinned Forge tags' available vanilla entries and reference the original Forge tags when Horizon loads them. Forge-only datapack additions are not yet verified in Horizon's ordinary crafting tag loader.
 
