@@ -26,6 +26,18 @@ registry.block_with_properties("gem_block", "minecraft:amethyst_block", BlockPro
 
 Each field is optional; use `..Default::default()` to inherit the rest. Hardness must be finite and nonnegative, or -1 for an unbreakable block; explosion resistance must be finite and nonnegative. Invalid properties are rejected without reserving the name. `block` continues to inherit all properties. These are content declarations, not runtime block behavior.
 
+To also specify emitted light and a sound template, use `block_with_settings`:
+
+```rust
+use pluto_lib::{BlockPresentation, BlockProperties, Registry};
+let mut registry = Registry::new("example")?;
+registry.block_with_settings("lamp", "minecraft:amethyst_block", BlockProperties::default(),
+    BlockPresentation { light: Some(14), sounds: Some("minecraft:anvil") })?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Light is 0–15; an explicit 0 emits no light, while `None` inherits the template. `sounds` names a vanilla **block** whose sound settings are copied, not a sound event. Registry validates the ID format; Horizon checks whether the block exists during resource preparation. Both settings may be omitted independently.
+
 `add_creative_tabs(&inventory, &tabs)` returns a copy of the JSON document. A tab has a namespaced ID, nonempty title and icon, `TOP` or `BOTTOM` row, column 0–6, and an ordered list of SNBT stacks. Duplicate IDs and occupied visible positions are rejected; Horizon's hotbar position may be reused, matching the existing Python helper. The API does not validate SNBT syntax or whether its item IDs are registered; supply valid stacks for registered items. The original inventory is never changed.
 
 This is preparation-time registration, not Fabric's runtime registry or a runtime tab event. Template registration does not attach runtime behavior; the experimental [Tool rules adapter](tool-rules.md) is separate. Vanilla templates and available properties are determined by the target Horizon version. The demo's Creative overlay must be installed separately from its content mod.

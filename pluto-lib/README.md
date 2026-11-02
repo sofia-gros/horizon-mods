@@ -2,7 +2,7 @@
 
 **Reusable Rust APIs for Horizon mods.**
 
-Define items and blocks with a small Rust API, then make them available in the Creative inventory. PlutoLib builds on Horizon’s mod system; it is not a mod loader.
+Define items and blocks with a small Rust API, then make them available in the Creative inventory. Block declarations can override properties such as emitted light and sound templates. PlutoLib builds on Horizon’s mod system; it is not a mod loader.
 
 ![The PlutoLib demo Creative tab in Horizon](docs/demo-tab.png)
 

@@ -40,6 +40,13 @@ pub struct BlockProperties {
     pub requires_tool: Option<bool>,
 }
 
+/// Optional emitted light and vanilla block sound template.
+#[derive(Debug, Default, Clone, Copy)]
+pub struct BlockPresentation<'a> {
+    pub light: Option<u8>,
+    pub sounds: Option<&'a str>,
+}
+
 /// A single content mod's generated declarations. Duplicate IDs are rejected.
 pub struct Registry {
     namespace: String,
@@ -96,6 +103,24 @@ impl Registry {
         template: &str,
         properties: BlockProperties,
     ) -> Result<(), RegistrationError> {
+        self.block_with_settings(name, template, properties, BlockPresentation::default())
+    }
+    /// Add a block with optional physical and presentation properties.
+    pub fn block_with_settings(
+        &mut self,
+        name: &str,
+        template: &str,
+        properties: BlockProperties,
+        presentation: BlockPresentation<'_>,
+    ) -> Result<(), RegistrationError> {
+        if presentation.light.is_some_and(|v| v > 15) {
+            return Err(RegistrationError("light must be 0 to 15".into()));
+        }
+        if presentation.sounds.is_some_and(|s| !vanilla(s)) {
+            return Err(RegistrationError(
+                "sounds must be a minecraft block ID".into(),
+            ));
+        }
         if properties
             .hardness
             .is_some_and(|v| !v.is_finite() || (v < 0.0 && v != -1.0))
@@ -121,6 +146,12 @@ impl Registry {
         }
         if let Some(v) = properties.requires_tool {
             values.insert("requires_tool".into(), json!(v));
+        }
+        if let Some(v) = presentation.light {
+            values.insert("light".into(), json!(v));
+        }
+        if let Some(v) = presentation.sounds {
+            values.insert("sounds".into(), json!(v));
         }
         let mut declaration = json!({"template": template});
         if !values.is_empty() {
@@ -360,6 +391,94 @@ mod paging;
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn block_presentation_boundaries_and_legacy_calls() {
+        let mut r = Registry::new("demo").unwrap();
+        r.block("legacy", "minecraft:stone").unwrap();
+        assert_eq!(
+            r.entries.last().unwrap().2,
+            json!({"template":"minecraft:stone"})
+        );
+        r.block_with_properties(
+            "physical",
+            "minecraft:stone",
+            BlockProperties {
+                hardness: Some(1.0),
+                explosion_resistance: None,
+                requires_tool: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            r.entries.last().unwrap().2["properties"],
+            json!({"hardness":1.0})
+        );
+        for light in [0, 15] {
+            r.block_with_settings(
+                &format!("light_{light}"),
+                "minecraft:stone",
+                BlockProperties::default(),
+                BlockPresentation {
+                    light: Some(light),
+                    sounds: Some("minecraft:anvil"),
+                },
+            )
+            .unwrap();
+            assert_eq!(
+                r.entries.last().unwrap().2["properties"],
+                json!({"light":light,"sounds":"minecraft:anvil"})
+            );
+        }
+        for presentation in [
+            BlockPresentation {
+                light: Some(16),
+                sounds: None,
+            },
+            BlockPresentation {
+                light: None,
+                sounds: Some("other:anvil"),
+            },
+            BlockPresentation {
+                light: None,
+                sounds: Some("minecraft:"),
+            },
+        ] {
+            assert!(r
+                .block_with_settings(
+                    "retry",
+                    "minecraft:stone",
+                    BlockProperties::default(),
+                    presentation
+                )
+                .is_err());
+        }
+        r.block_with_settings(
+            "retry",
+            "minecraft:stone",
+            BlockProperties::default(),
+            BlockPresentation {
+                light: Some(0),
+                sounds: None,
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            r.entries.last().unwrap().2["properties"],
+            json!({"light":0})
+        );
+        assert!(r.item("retry", "minecraft:stick").is_err());
+        // Existence is checked by Horizon's resource preparation, not by Registry.
+        r.block_with_settings(
+            "unknown",
+            "minecraft:stone",
+            BlockProperties::default(),
+            BlockPresentation {
+                light: None,
+                sounds: Some("minecraft:not_a_real_block"),
+            },
+        )
+        .unwrap();
+    }
     #[test]
     fn block_properties_inherit_validate_and_leave_failed_names_available() {
         let mut r = Registry::new("demo").unwrap();
