@@ -16,3 +16,5 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 ## Development target
 
 The native Creative bundle and package target Horizon [`3a264943c7a3a3ed02e6ee608443f558d98f208f`](https://github.com/horizon-rust/horizon/commit/3a264943c7a3a3ed02e6ee608443f558d98f208f) with Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. On Linux, the independent demo built and ran with this pair: page switching and retrieval of a component-bearing stack were checked. The standalone package also passed the official native bundle check. Combined Tinkers integration remains unverified. Rebuilding or source changes may be necessary when changing the Horizon or Mixins revision.
+
+The independent component-transport demo was also built on Linux with the `3a264943` / `ddd9700` pair. Its [validation and known display limitation](component-transport.md) are separate from Tinkers integration. Upstream Horizon `848a87b7319dc8c799bc0e812368ade7c8e8baa8` was observed later but has not been tested with this prototype.
