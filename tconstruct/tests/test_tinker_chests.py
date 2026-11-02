@@ -41,5 +41,13 @@ class TinkerChestSourceTest(unittest.TestCase):
         recipe = json.loads((ROOT / "data/tconstruct/recipe/tinkers_chest_dyed.json").read_text())
         self.assertEqual((recipe["type"],recipe["target"],recipe["dye"]), ("minecraft:crafting_dye","tconstruct:tinkers_chest","#minecraft:dyes"))
 
+    def test_glazed_template_chests_have_local_and_remote_use_hooks(self):
+        mixins = ROOT.parent / "mixins/tconstruct"
+        local = (mixins / "source-machine-use.rs").read_text()
+        remote = (mixins / "source-machine-reacts.rs").read_text()
+        for name in ("tconstruct:part_chest", "tconstruct:tinkers_chest"):
+            self.assertIn(name, local)
+            self.assertIn(name, remote)
+
 if __name__ == "__main__":
     unittest.main()

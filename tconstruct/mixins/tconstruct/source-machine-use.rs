@@ -10,7 +10,7 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
     let pos = (hit.pos[0], hit.pos[1], hit.pos[2]);
     let handled = match &*name {
         "tconstruct:crafting_station" => crate::game::tconstruct_crafting_station::open(game, hit.pos),
-        "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
+        "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
         "tconstruct:seared_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
         "tconstruct:seared_table" | "tconstruct:seared_basin" => crate::game::tconstruct_source_machine_runtime::interact_casting(game, pos, &name),
