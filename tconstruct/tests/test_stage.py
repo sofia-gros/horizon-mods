@@ -86,10 +86,16 @@ chmod +x "$2/release/horizon-mixins"
             old.write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
             item_manifest = bundles / 'pluto_items_b2/horizon-mixin.toml'
             original_manifest = item_manifest.read_text()
+            item_api = bundles / 'pluto_items_b2/api'
+            item_api.mkdir()
+            (item_api / 'Cargo.toml').write_text('[package]\nname = "pluto-api"\nversion = "0.1.0"\n')
             item_manifest.write_text(original_manifest + '\n[[crate]]\nid = "duplicate"\npath = "api"\n')
             rejected = subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(project / 'duplicate-crate-output')], env=env, capture_output=True, text=True)
             self.assertNotEqual(rejected.returncode, 0)
             self.assertIn('share the Creative facade', rejected.stderr)
+            (item_api / 'Cargo.toml').write_text('[package]\nname = "unrelated-helper"\nversion = "0.1.0"\n')
+            allowed = project / 'unrelated-crate-output'
+            subprocess.run([sys.executable, str(project / 'tools/stage.py'), '--horizon', str(repos[0]), '--mixins', str(repos[1]), '--mixins-revision', revision, '--mods', str(project / 'tests/fixtures'), '--output-dir', str(allowed)], env=env, check=True)
             item_manifest.write_text(original_manifest)
             (repos[1] / 'upstream-update').write_text('new revision')
             git(repos[1], 'add', 'upstream-update')

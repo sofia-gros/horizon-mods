@@ -53,8 +53,15 @@ for bundle_id, path in bundles.items():
         p.error(f'{manifest}: {error}')
     if data.get('mod', {}).get('id') != bundle_id or data.get('compatibility', {}).get('horizon_revision') != head:
         p.error(f'{manifest}: bundle id or Horizon revision does not match {bundle_id} / {head}')
-    if bundle_id == 'pluto_items_b2' and data.get('crate'):
-        p.error('the PlutoLib item adapter must share the Creative facade, not declare another crate')
+    if bundle_id == 'pluto_items_b2':
+        for crate in data.get('crate', []):
+            crate_path = path / str(crate.get('path', '')) / 'Cargo.toml'
+            try:
+                package = tomllib.loads(crate_path.read_text()).get('package', {}).get('name')
+            except (OSError, tomllib.TOMLDecodeError) as error:
+                p.error(f'{crate_path}: {error}')
+            if package in ('pluto-api', 'pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
+                p.error('the PlutoLib item adapter must share the Creative facade, not declare another API crate')
 for legacy in ('pluto_creative', 'pluto_items'):
     if (mods / legacy).exists():
         p.error(f'{legacy}: legacy PlutoLib adapter cannot be combined with the native bundles')
