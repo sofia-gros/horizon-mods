@@ -1,0 +1,69 @@
+[mod]
+id = "pluto_items"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[crate]]
+id = "api"
+path = "api"
+dependent = "horizon-client"
+
+[[module]]
+id = "adapter"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_item_adapter"
+source = "adapter.rs"
+
+[[injection]]
+id = "use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "use.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "remote-use"
+target = "horizon_client::game::remote::item_has_use"
+kind = "HEAD"
+cancellable = true
+helper = "remote.rs"
+bindings = [{ name = "info", ty = "&horizon_client::items::ItemInfo", value = "info" }]
+
+[[injection]]
+id = "tooltip"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+kind = "RETURN"
+helper = "tooltip.rs"
+bindings = [
+  { name = "value", ty = "Vec<(horizon_client::text::Text, u32)>", value = "$value" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+]
+
+[[injection]]
+id = "send-custom-data"
+target = "horizon_client::lan::hub::Hub::stack"
+kind = "HEAD"
+cancellable = true
+helper = "network-host.rs"
+bindings = [
+  { name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
+
+[[injection]]
+id = "client-custom-data"
+target = "horizon_client::game::remote::Game<'_>::to_network"
+kind = "HEAD"
+cancellable = true
+helper = "network-client.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
