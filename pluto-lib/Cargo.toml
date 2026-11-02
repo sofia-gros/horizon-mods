@@ -6,5 +6,6 @@ description = "Resource registration helpers for Horizon mods"
 license = "MIT"
 
 [dependencies]
+pluto-item-api = { path = "mixins/pluto_items/api" }
 serde_json = "1"
 horizon-items = { git = "https://github.com/horizon-rust/horizon.git", rev = "b6c936f82b08798057161bdfa577e3aac53fb91e" }
