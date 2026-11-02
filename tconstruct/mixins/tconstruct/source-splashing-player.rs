@@ -5,7 +5,7 @@ pub(super) fn queue(game: &mut super::Game<'_>, entity: i32) -> bool {
     if game.remote.is_some() { return false; }
     let Some(actor) = game.lan_acting else { return false; };
     let Some(snapshot) = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope().get(&actor).cloned() else { return false; };
-    let Some((Some(primary), _, origin, min, max)) = snapshot.iter().find(|(_, id, _, _, _)| *id == entity).copied() else { return false; };
+    let Some((Some(primary), _, origin, min, max, true)) = snapshot.iter().find(|(_, id, _, _, _, _)| *id == entity).copied() else { return false; };
     let Some(stack) = game.held().cloned() else { return false; };
     if !super::tconstruct_source_splashing::right_click(game, &stack) || super::tconstruct_source_melee_shape::intact(&stack).is_none() || game.cooldowns.is_on_cooldown(&stack.item) { return false; }
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return false; };
@@ -23,11 +23,12 @@ pub(super) fn queue(game: &mut super::Game<'_>, entity: i32) -> bool {
         delta.iter().map(|component| component * component).sum::<f64>() < radius * radius
     }) { return false; }
     let mut players = vec![primary];
-    for (conn, id, position, lower, upper) in snapshot {
+    for (conn, id, position, lower, upper, ready) in snapshot {
         if id == entity { continue; }
         if conn.is_none() {
             if (0..3).map(|axis| (position[axis] - origin[axis]).powi(2)).sum::<f64>() < radius * radius { return false; }
         } else if super::tconstruct_source_splashing::in_range(origin, position, (min, max), (lower, upper), expanded) {
+            if !ready { return false; }
             players.push(conn.unwrap());
         }
     }

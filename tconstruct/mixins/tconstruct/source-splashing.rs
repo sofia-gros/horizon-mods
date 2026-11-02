@@ -244,7 +244,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     } else {
         game.lan.as_ref().map(|host| host.hub.guests.iter().filter(|guest| guest.placed && guest.dimension == game.dim.id()).map(|guest| {
             let bounds = guest.bounds(); let min = bounds.min_position(); let max = bounds.max_position();
-            (Some(guest.conn), guest.entity_id, guest.position, [min.x, min.y, min.z], [max.x, max.y, max.z])
+            (Some(guest.conn), guest.entity_id, guest.position, [min.x, min.y, min.z], [max.x, max.y, max.z], guest.motion.is_some())
         }).collect()).unwrap_or_default()
     };
     let Some(stack) = stack.cloned() else { return; };
@@ -269,10 +269,11 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     // is not yet implemented. Do not perform a partial area operation.
     let radius = 1.0 + f64::from(expanded);
     let mut player_targets = Vec::new();
-    for (conn, _entity_id, position, min, max) in other_players {
+    for (conn, _entity_id, position, min, max, ready) in other_players {
         if conn.is_none() {
             if (0..3).map(|axis| (position[axis] - origin[axis]).powi(2)).sum::<f64>() < radius * radius { return; }
         } else if in_range(origin, position, target_bounds, (min, max), expanded) {
+            if !ready { return; }
             player_targets.push(conn.unwrap());
         }
     }
