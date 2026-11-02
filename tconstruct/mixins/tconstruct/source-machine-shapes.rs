@@ -7,7 +7,7 @@ fn inside(p: [usize; 3], b: [usize; 6]) -> bool {
 }
 fn filled(kind: &str, facing: &str, p: [usize; 3]) -> bool {
     let (outer, holes): ([usize; 6], Vec<[usize; 6]>) = match kind {
-        "tconstruct:seared_faucet" => {
+        "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => {
             let (a,b) = match facing {
                 "down" => ([4,10,4,12,16,12], [6,10,6,10,16,10]),
                 "north" => ([4,4,10,12,10,16], [6,6,10,10,10,16]),
@@ -18,14 +18,14 @@ fn filled(kind: &str, facing: &str, p: [usize; 3]) -> bool {
             }; (a, vec![b])
         },
         "tconstruct:seared_basin" => ([0,0,0,16,16,16], vec![[0,0,5,16,2,11],[5,0,0,11,2,16],[2,4,2,14,16,14]]),
-        "tconstruct:seared_table" => ([0,0,0,16,16,16], vec![[4,0,0,12,10,16],[0,0,4,16,10,12],[1,15,1,15,16,15]]),
+        "tconstruct:seared_table" | "tconstruct:scorched_table" => ([0,0,0,16,16,16], vec![[4,0,0,12,10,16],[0,0,4,16,10,12],[1,15,1,15,16,15]]),
         _ => return false,
     };
     inside(p, outer) && !holes.into_iter().any(|b| inside(p,b))
 }
 
 pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
-    if !matches!(kind, "tconstruct:seared_faucet" | "tconstruct:seared_basin" | "tconstruct:seared_table") { return None; }
+    if !matches!(kind, "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_basin" | "tconstruct:seared_table" | "tconstruct:scorched_table") { return None; }
     if kind.ends_with("faucet") && !matches!(facing, "down"|"north"|"south"|"west"|"east") { return None; }
     let mut grid = vec![0u8; 4096];
     let mut boxes = Vec::new();
@@ -83,6 +83,7 @@ pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
    let s=shape("tconstruct:seared_faucet",direction).unwrap();
    assert_eq!(s.grid.iter().filter(|x| **x!=0).count(), if direction == "down" { 288 } else { 192 });
    assert!(!s.edges.is_empty());
+   assert_eq!(shape("tconstruct:scorched_faucet",direction).unwrap().grid, s.grid);
   }
   assert!(!filled("tconstruct:seared_faucet","north",[8,8,12]));
   assert!(filled("tconstruct:seared_faucet","north",[5,8,12]));
@@ -93,5 +94,6 @@ pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
   assert!(filled("tconstruct:seared_basin","north",[1,8,8]));
   assert!(!filled("tconstruct:seared_table","north",[8,4,8]));
   assert!(filled("tconstruct:seared_table","north",[1,4,1]));
+  assert_eq!(shape("tconstruct:seared_table","north").unwrap().grid, shape("tconstruct:scorched_table","north").unwrap().grid);
  }
 }

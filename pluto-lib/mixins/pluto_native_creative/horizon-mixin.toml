@@ -40,3 +40,31 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::motion::PlayerMotion::new"
 selector = "Self"
 require = 1
+
+[[module]]
+id = "fluid-read"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_fluid"
+source = "fluid-read.rs"
+visibility = "pub"
+
+[[module]]
+id = "crafting-remainder"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_crafting_remainder"
+source = "crafting-remainder.rs"
+visibility = "pub"
+
+[[module]]
+id = "stack-fluid"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_fluid"
+source = "stack-fluid.rs"
+visibility = "pub"
+
+[[module]]
+id = "host-stack-fluid"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_stack_fluid"
+source = "stack-fluid.rs"
+

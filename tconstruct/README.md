@@ -24,8 +24,9 @@ Bring Tinkers’ Construct’s tool-building and material progression to Horizon
 - **Build tools from parts.** Make components at a Part Builder and assemble supported tools at a [Tinker Station or Anvil](docs/anvil-assembly.md).
 - **Repair, swap parts, and apply modifiers.** Maintain and customize supported equipment; the [play guide](docs/playing.md) describes tested examples.
 - **Melt materials, create alloys, and cast parts.** Start a workshop with [melting and casting](docs/melter-casting.md), then explore [Smeltery alloys](docs/smeltery.md).
-- **Store parts and materials beside your workstations.** Use the [Part Chest and Tinker’s Chest](docs/tinker-part-chests.md) beside a Part Builder. Local Crafting Station transactions have representative checks; recipe-book auto-placement is temporarily unavailable.
+- **Store parts and materials beside your workstations.** Use the [Part Chest and Tinker’s Chest](docs/tinker-part-chests.md) beside a Part Builder. Local Crafting Station transactions have representative checks; a replacement recipe-book placement path is implemented but remains unverified after a prior item-loss failure.
 - **Browse recipes and materials in the in-game guide.** Open [Materials and You](docs/materials-and-you.md) for the original English first guide.
+- **Track guide acquisition.** The first two [guide advancements](docs/book-acquisition-advancements.md) and the initial [workstation advancements](docs/workstation-advancements.md) use source inventory criteria; the remaining progression is incomplete.
 
 <div align="center">
 <img src="docs/part-chest-builder-lan.png" alt="A Part Chest beside a Part Builder in a LAN test" width="720">

@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 12] = [
+const UPGRADES: [(&str, i32); 15] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -44,6 +44,24 @@ fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<
     value.get("item").and_then(Value::as_str).is_some_and(|v| v == item)
         || value.get("tag").and_then(Value::as_str).and_then(|tag| tags.get(tag)).is_some_and(|v| v.contains(item))
         || value.get("ingredient").is_some_and(|v| ingredient_matches(v, item, tags))
+}
+
+// Match stack-sensitive no-container ingredients using the supported source
+// portable item implementations. Unknown contents never become a match.
+fn stack_ingredient_matches(value: &Value, stack: &ItemStack, tags: &HashMap<String, HashSet<String>>) -> bool {
+    if value.get("type").and_then(Value::as_str) != Some("tconstruct:no_container") {
+        return ingredient_matches(value, &stack.item, tags);
+    }
+    let nested = if let Some(inner) = value.get("match") {
+        if value.as_object().is_none_or(|object| object.len() != 2) { return false; }
+        inner.clone()
+    } else {
+        let Some(mut object) = value.as_object().cloned() else { return false; };
+        object.remove("type");
+        Value::Object(object)
+    };
+    ingredient_matches(&nested, &stack.item, tags)
+        && super::tconstruct_source_fluid_container::no_crafting_remainder(stack) == Some(true)
 }
 
 pub(super) fn selection_id(index: usize) -> Option<&'static str> {
@@ -81,7 +99,7 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum() }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -177,17 +195,20 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
+) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
-            if amount(tool, id) != 0 { continue; }
+            if !matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") && amount(tool, id) != 0 { continue; }
+            if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") && amount(tool, id) >= i16::MAX as i32 { continue; }
             if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
                 && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
             let ability_cost = value.pointer("/slots/abilities").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
-            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
+            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").map_or(1, |value| value.as_i64().unwrap_or(0)) != 1 { continue; }
             if id == "tconstruct:unbreakable" {
                 let level = |name: &str, needed: i32| amount(tool, name) / needed + traits.get(name).copied().unwrap_or(0);
                 if level("tconstruct:netherite", 1) < 1 || level("tconstruct:reinforced", 4) < 5 { continue; }
@@ -205,7 +226,7 @@ pub(super) fn plan_with_traits(
                 let mut matched = true;
                 for ingredient in ingredients {
                     let found = present.iter().enumerate().position(|(i, (_, stack))| !used[i] && stack.count > 0 &&
-                        ingredient_matches(ingredient, &stack.item, tags));
+                        stack_ingredient_matches(ingredient, stack, tags));
                     if let Some(index) = found { used[index] = true; consumed.push((present[index].0, 1)); }
                     else { matched = false; break; }
                 }
@@ -213,7 +234,8 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            return Some(UpgradePlan { id: id.to_owned(), amount: 1, consumed, leftover });
+            let next_level = if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") { amount(tool, id).checked_add(1)? } else { 1 };
+            return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
         let Some(input) = value.get("input") else {
@@ -460,6 +482,22 @@ mod tests {
         assert!(valid_slots(&tool,&BTreeMap::from([("tconstruct:enhanced".into(),1)]),3,1));
         assert!(!valid_slots(&tool,&BTreeMap::new(),3,1));
         assert!(valid_slots(&tool,&BTreeMap::new(),4,1));
+    }
+
+    #[test]
+    fn tank_recipe_adds_one_level_and_requires_an_upgrade_slot() {
+        let recipe = br#"{"type":"tconstruct:modifier","inputs":[{"type":"tconstruct:no_container","tag":"tconstruct:tanks"}],"result":"tconstruct:tank","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/held"}}"#.to_vec();
+        let recipes = BTreeMap::from([("tank".into(), recipe)]);
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/held".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+            ("tconstruct:tanks".into(), HashSet::from(["tconstruct:seared_fuel_gauge".into()])),
+        ]);
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        let inputs = [Some(ItemStack::new("tconstruct:seared_fuel_gauge", 1))];
+        assert_eq!(plan(&recipes, &tags, &tool, &inputs, 3).unwrap().amount, 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:tank", Tag::Int(1))]))])));
+        assert_eq!(plan(&recipes, &tags, &tool, &inputs, 3).unwrap().amount, 2);
+        assert!(plan(&recipes, &tags, &tool, &inputs, 1).is_none());
     }
 
     #[test]
