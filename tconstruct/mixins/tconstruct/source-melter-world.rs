@@ -66,7 +66,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             use horizon_world::nbt::Tag;
             let custom = stack.data()?.other("minecraft:custom_data")?;
             match custom.get("tic_upgrades") { None => {}, Some(Tag::Compound(values)) if values.is_empty() => {}, _ => return None }
-            if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return None; }
+            match custom.get("tic_broken") { None | Some(Tag::Byte(0)) => {}, _ => return None }
             let old_max = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => return None };
             if stack.damage >= old_max { return None; }
             let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
