@@ -5,7 +5,7 @@ fn tconstruct_crafting_side_click(game: &mut crate::game::Game<'_>, slot: Option
     let Some((side,count,offset,kind)) = crate::game::tconstruct_crafting_station::side(game) else { return Continue(()); };
     let Some(slot) = slot else { return Continue(()); };
     let side_slot = (600..648).contains(&slot).then_some(offset * crate::game::tconstruct_source_side_layout::columns(count) + slot.saturating_sub(600)).filter(|i| *i < count);
-    if side_slot.is_none() && !(slot < 36 && input == Input::QuickMove) { return Continue(()); }
+    if side_slot.is_none() && !(slot < 36 && input == Input::QuickMove) && !(input==Input::PickupAll && (slot<36 || (100..109).contains(&slot))) { return Continue(()); }
     if !matches!(input,Input::Swap|Input::Clone) && !matches!(button, 0 | 1) { return Break(true); }
     let Some(mut items)=crate::game::tconstruct_crafting_station::side_items(game,side) else {return Break(true);};
     let candidate = if input == Input::Swap {
@@ -43,6 +43,18 @@ fn tconstruct_crafting_side_click(game: &mut crate::game::Game<'_>, slot: Option
         (Input::Throw,Some(i)) if game.carried.is_none() => {dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut items,i,button!=0);changed=dropped.is_some();},
         (Input::Clone,Some(i)) if game.creative && game.carried.is_none() => {
             if let Some(stack)=items[i].as_ref() {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);game.carried=Some(copy);changed=true;}
+        },
+        (Input::PickupAll,_) if game.carried.is_some() => {
+            let clicked=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else if (100..109).contains(&slot) {game.craft_grid.get(slot-100).and_then(Option::as_ref)} else {side_slot.and_then(|i|items.get(i)).and_then(Option::as_ref)};
+            if clicked.is_none() {
+                let mut combined=game.craft_grid.clone();combined.extend(game.inventory.clone());
+                let start=offset*crate::game::tconstruct_source_side_layout::columns(count);
+                let visible=crate::game::tconstruct_source_side_layout::visible_rows(count)*crate::game::tconstruct_source_side_layout::columns(count);
+                let mut order:Vec<_>=(0..9).map(|i|(false,i)).chain((start..(start+visible).min(count)).map(|i|(true,i))).chain((9..36).chain(0..9).map(|i|(false,9+i))).collect();
+                if button!=0 {order.reverse();}
+                changed=crate::game::tconstruct_chest_rules::pickup_all_ordered(&mut items,&mut combined,&mut game.carried,&order,max);
+                if changed {game.craft_grid=combined[..9].to_vec();game.inventory=combined[9..].to_vec();crate::game::tconstruct_crafting_station::sync(game);}
+            }
         },
         _ => {},
     }

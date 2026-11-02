@@ -79,6 +79,17 @@ fn tconstruct_side_chest_click(
             let stack=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else if (300..302).contains(&slot) {game.world.block_entities.get(&table).and_then(|e|e.slots().get(slot-300)).and_then(Option::as_ref)} else {actual.and_then(|i|game.world.block_entities.get(&side).and_then(|e|e.slots().get(i)).and_then(Option::as_ref))};
             if let Some(stack)=stack {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);game.carried=Some(copy);changed=true;}
         }
+        Input::PickupAll if game.carried.is_some() => {
+            let clicked=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else if (300..302).contains(&slot) {game.world.block_entities.get(&table).and_then(|e|e.slots().get(slot-300)).and_then(Option::as_ref)} else {actual.and_then(|i|game.world.block_entities.get(&side).and_then(|e|e.slots().get(i)).and_then(Option::as_ref))};
+            if clicked.is_none() {
+                let Some(BlockEntity::Chest(input))=game.world.block_entities.get(&table) else {return Break(true);};
+                let mut combined=input.clone();combined.extend(game.inventory.clone());
+                let start=offset*6;let mut order:Vec<_>=(0..2).map(|i|(false,i)).chain((start..(start+48).min(kind.slots())).map(|i|(true,i))).chain((9..36).chain(0..9).map(|i|(false,27+i))).collect();
+                if button!=0 {order.reverse();}
+                if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&side) {changed=crate::game::tconstruct_chest_rules::pickup_all_ordered(items,&mut combined,&mut game.carried,&order,max);}
+                if changed {if let Some(BlockEntity::Chest(input))=game.world.block_entities.get_mut(&table) {*input=combined[..27].to_vec();}game.inventory=combined[27..].to_vec();}
+            }
+        }
         _=>{},
     }
     if changed { game.world.modified.insert((table.0>>4,table.2>>4));game.world.modified.insert((side.0>>4,side.2>>4)); }

@@ -93,6 +93,16 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
                 let stack=side.and_then(|i|side_items[i].as_ref()).or_else(||table.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref()));
                 if let Some(stack)=stack {let mut copy=stack.clone();copy.count=rules.max_stack(&copy.item).max(1);carried=Some(copy);changed=true;}
             },
+            (6,side,table_slot,player) if carried.is_some() => {
+                let clicked=side.and_then(|i|side_items[i].as_ref()).or_else(||table_slot.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref()));
+                if clicked.is_none() && (side.is_some() || table_slot.is_some() || player.is_some()) {
+                    let mut combined=table_items.clone();combined.extend(inventory.clone());let start=scroll*6;
+                    let mut order:Vec<_>=(0..2).map(|i|(false,i)).chain((start..(start+48).min(count)).map(|i|(true,i))).chain((9..36).chain(0..9).map(|i|(false,27+i))).collect();
+                    if packet.button!=0 {order.reverse();}
+                    changed=chest::pickup_all_ordered(&mut side_items,&mut combined,&mut carried,&order,max);
+                    if changed {table_items=combined[..27].to_vec();inventory=combined[27..].to_vec();}
+                }
+            },
             _=>{},
         }
     }

@@ -170,13 +170,20 @@ pub(super) fn pickup_all(
     inventory: &mut [Option<horizon_items::items::ItemStack>], carried: &mut Option<horizon_items::items::ItemStack>,
     reverse: bool, item_limit: u32,
 ) -> bool {
-    let Some(cursor)=carried.as_mut() else {return false;};
-    if cursor.count>=item_limit {return false;}
     let mut order:Vec<_>=visible.iter().copied().map(|i|(true,i)).chain((9..inventory.len()).chain(0..inventory.len().min(9)).map(|i|(false,i))).collect();
     if reverse {order.reverse();}
+    pickup_all_ordered(side,inventory,carried,&order,item_limit)
+}
+
+pub(super) fn pickup_all_ordered(
+    side: &mut [Option<horizon_items::items::ItemStack>], inventory: &mut [Option<horizon_items::items::ItemStack>],
+    carried: &mut Option<horizon_items::items::ItemStack>, order: &[(bool,usize)],item_limit: u32,
+) -> bool {
+    let Some(cursor)=carried.as_mut() else {return false;};
+    if cursor.count>=item_limit {return false;}
     let before=cursor.count;
     for full_pass in [false,true] {
-        for &(is_side,index) in &order {
+        for &(is_side,index) in order {
             let cell=if is_side {side.get_mut(index)} else {inventory.get_mut(index)};
             let Some(cell)=cell else {continue;};
             let Some(stack)=cell.as_mut() else {continue;};
@@ -444,6 +451,15 @@ mod tests {
         let mut inventory=vec![None;36];inventory[9]=Some(ItemStack::new("minecraft:stone",3));let mut hand=Some(ItemStack::new("minecraft:stone",1));
         assert!(pickup_all(&mut side,&(0..32).collect::<Vec<_>>(),&mut inventory,&mut hand,false,64));
         assert_eq!(hand.unwrap().count,8);assert!(side[0].is_none());assert_eq!(side[40].as_ref().unwrap().count,7);
+    }
+    #[test]
+    fn workstation_collection_respects_grid_then_side_then_player_order() {
+        use horizon_items::items::ItemStack;
+        let mut side=vec![Some(ItemStack::new("minecraft:stone",4))];
+        let mut combined=vec![Some(ItemStack::new("minecraft:stone",5)),Some(ItemStack::new("minecraft:stone",6))];
+        let mut hand=Some(ItemStack::new("minecraft:stone",58));
+        assert!(pickup_all_ordered(&mut side,&mut combined,&mut hand,&[(false,0),(true,0),(false,1)],64));
+        assert_eq!(hand.unwrap().count,64);assert!(combined[0].is_none());assert_eq!(side[0].as_ref().unwrap().count,3);assert_eq!(combined[1].as_ref().unwrap().count,6);
     }
     #[test]
     fn dragging_parts_respects_unique_variant_and_preserves_remainder() {
