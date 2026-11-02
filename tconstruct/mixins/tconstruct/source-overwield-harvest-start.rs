@@ -1,0 +1,25 @@
+// This native boundary runs after host break permissions but before mod
+// cancellation and actual removal. Area recursion spends only on its first call.
+fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>) {
+    use horizon_world::nbt::Tag;
+    let actor = game.lan_acting;
+    let active = game.world.chunks.__horizon_mixins_tconstruct_area_active().contains(&actor);
+    if active && game.world.chunks.__horizon_mixins_tconstruct_area_overwield_spent().contains(&actor) { return; }
+    let Some(stack) = game.inventory[game.selected].as_ref() else { return; };
+    let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return; };
+    if !matches!(custom.get("tic_max_damage"), Some(Tag::Int(max)) if *max > 0 && stack.damage < *max as u32) { return; }
+    let tags = &game.items().item_tags;
+    let broad = tags.get("tconstruct:modifiable/broad").is_some_and(|items| items.contains(stack.item.as_ref()));
+    let harvest = tags.get("tconstruct:modifiable/harvest").is_some_and(|items| items.contains(stack.item.as_ref()));
+    if !broad && !harvest { return; }
+    let Some(Tag::List(traits)) = custom.get("tic_mining_traits") else { return; };
+    let level = traits.iter().find_map(|entry| match (entry.get("id"), entry.get("level")) {
+        (Some(Tag::String(id)), Some(Tag::Int(level))) if id.to_string_lossy() == "tconstruct:overwield" => Some((*level).max(0) as u32),
+        _ => None,
+    }).unwrap_or(0);
+    if level == 0 { return; }
+    if let Some(held) = game.inventory[game.selected].as_mut() {
+        crate::game::tconstruct_source_overslime::spend(held, level.saturating_mul(if broad { 5 } else { 1 }));
+    }
+    if active { game.world.chunks.__horizon_mixins_tconstruct_area_overwield_spent_mut().insert(actor); }
+}

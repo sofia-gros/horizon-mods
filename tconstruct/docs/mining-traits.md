@@ -115,23 +115,21 @@ material replacement and save/reload. Use labelled fixtures where necessary.
 The broad-tool speed module instead uses `1 + 0.2 * min(overslime, 5 * level) / 5`
 on effective blocks. This reads the same live Overslime value and uses the loaded
 broad tag; it does not use AOE size as the amount. The source additionally spends up to five Overslime per level at the start of
-the harvest transaction. The existing AOE break path now performs that spend
-once before the center and extra blocks. Ordinary single-block paths and other
-capacity consumers still need separate integration; this is not complete coverage.
+the harvest transaction. A subsequent candidate runs the spend through the host native destroy boundary,
+once per area operation. Other capacity consumers remain incomplete.
 
 Rust syntax was checked. Tests, current-target build and gameplay are pending.
 Check levels 1 and 2 at amounts 0, 1, 4, 5, 6 and 10, ineffective blocks,
 AOE center and extra blocks, material swaps, save/reload and multiplayer.
 
-### Successful single and area harvest candidate
+### Pre-break harvest candidate
 
-A follow-up moves Overwield spending to the existing host held-tool mining
-callback, which is reached after non-creative block removal and before normal
-tool wear. Small harvest tools spend up to one Overslime per level; broad tools
-spend up to five per level. An actor-scoped area marker limits broad spending to
-one successful block in a multi-block operation. The held stack is refreshed
-before wear so the shield calculation sees the remaining capacity. Broken tools
-and missing source tags do not spend. The source `startHarvest` hook runs before
-the source block break, so failure timing differs from this host integration;
-verify failed, canceled and ineffective breaks rather than treating them as
-source parity. Formal plan/apply, type/build and gameplay remain pending.
+The follow-up replaces #318's after-removal spend with a `HEAD` hook on the
+host's `native_destroy_block`, before native cancellation and actual removal.
+Small harvest tools spend up to one Overslime per level and broad tools up to
+five; actor-scoped area state prevents an additional spend for extra blocks.
+Broken tools and missing source tags do not spend. The host calls this boundary
+after its own permission and item checks, while the original `startHarvest` runs
+before its `breakBlock` path, so all failure and creative cases remain unproven.
+The original pre-break timing is the goal; this candidate is not yet source
+parity. Official plan/apply, type/build and gameplay remain pending.

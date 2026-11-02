@@ -2708,6 +2708,13 @@ selector = "Self"
 require = 1
 
 [[injection]]
+id = "source-overwield-harvest-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
+kind = "HEAD"
+helper = "source-overwield-harvest-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
 id = "source-area-guest-hit"
 target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
 kind = "HEAD"

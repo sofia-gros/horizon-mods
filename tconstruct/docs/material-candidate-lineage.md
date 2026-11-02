@@ -85,9 +85,8 @@ spend. The #82 Airborne penalty boundary and later ordered stat calculations are
 retained. These paths still need formal apply and gameplay checks; ordinary
 single-block capacity spending and other Overslime consumers remain incomplete.
 
-The subsequent Overwield follow-up connects successful single-block spending
-and moves broad spending to the first successful block before wear, with
-per-actor area state. Earlier #101 pre-break spending is replaced, not added.
-The host success boundary differs from the original pre-break start hook; its
-failure, creative, broken tool, actor isolation and AOE semantics need explicit
-verification on the combined head. Other capacity consumers remain incomplete.
+The #318 success-boundary spend is replaced in the next candidate by a
+pre-removal `native_destroy_block` hook. The host performs permission checks
+before that boundary, so it still requires source comparison for restricted,
+cancelled and creative cases. Actor-scoped area state prevents repeated spends;
+formal apply and gameplay remain pending. Other capacity consumers remain open.
