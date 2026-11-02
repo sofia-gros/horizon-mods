@@ -30,6 +30,18 @@ fn integer(tag: Option<&Tag>, default: i32) -> Option<i32> {
         _ => None,
     }
 }
+fn valid_identifier(name: &str) -> bool {
+    let (namespace, path) = name.split_once(':').unwrap_or(("minecraft", name));
+    !namespace.is_empty()
+        && !path.is_empty()
+        && name.len() <= 32767
+        && namespace
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"_.-".contains(&b))
+        && path
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"_/.-".contains(&b))
+}
 fn boolean(tag: &Tag) -> Option<bool> {
     match tag {
         Tag::Byte(0) => Some(false),
@@ -38,7 +50,7 @@ fn boolean(tag: &Tag) -> Option<bool> {
     }
 }
 
-pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec<u8>> {
+pub(crate) fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec<u8>> {
     let Tag::Compound(fields) = tool else {
         return None;
     };
@@ -75,12 +87,15 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
         let blocks = rule.get("blocks")?;
         if let Some(name) = string(blocks) {
             if let Some(tag) = name.strip_prefix('#') {
-                if tag.is_empty() || tag.len() > 32767 {
+                if !valid_identifier(tag) {
                     return None;
                 }
                 w.varint(0);
                 w.string(tag);
             } else {
+                if !valid_identifier(&name) {
+                    return None;
+                }
                 w.varint(2);
                 let block = id("minecraft:block", &name)?;
                 if block < 0 {
@@ -91,7 +106,11 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
         } else if let Tag::List(names) = blocks {
             w.varint(i32::try_from(names.len()).ok()?.checked_add(1)?);
             for name in names {
-                let block = id("minecraft:block", &string(name)?)?;
+                let name = string(name)?;
+                if !valid_identifier(&name) {
+                    return None;
+                }
+                let block = id("minecraft:block", &name)?;
                 if block < 0 {
                     return None;
                 }
@@ -129,7 +148,7 @@ pub fn encode(tool: &Tag, id: &impl Fn(&str, &str) -> Option<i32>) -> Option<Vec
     Some(w.data)
 }
 
-pub fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Option<Tag> {
+pub(crate) fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Option<Tag> {
     let mut r = Reader::new(bytes);
     let count = r.count(r.remaining()).ok()?;
     let mut rules = Vec::with_capacity(count);
@@ -193,7 +212,10 @@ pub fn decode(bytes: &[u8], name: &impl Fn(i32) -> Option<String>) -> Option<Tag
 
 /// Canonical saved representation of the values actually carried by the Tool stream.
 /// An ID-to-name collision is rejected rather than choosing an arbitrary name.
-pub fn canonicalize(tool: &Tag, resolve: &impl Fn(&str, &str) -> Option<i32>) -> Option<Tag> {
+pub(crate) fn canonicalize(
+    tool: &Tag,
+    resolve: &impl Fn(&str, &str) -> Option<i32>,
+) -> Option<Tag> {
     let names = std::cell::RefCell::new(std::collections::BTreeMap::<i32, String>::new());
     let bytes = encode(tool, &|registry, name| {
         let id = resolve(registry, name)?;
@@ -205,4 +227,51 @@ pub fn canonicalize(tool: &Tag, resolve: &impl Fn(&str, &str) -> Option<i32>) ->
         Some(id)
     })?;
     decode(&bytes, &|id| names.borrow().get(&id).cloned())
+}
+
+/// Error returned before registering or changing a Tool component.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ToolError {
+    InvalidSnbt,
+    UnknownBlock(String),
+    InvalidOrUnsupported,
+}
+impl std::fmt::Display for ToolError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidSnbt => f.write_str("invalid Tool SNBT"),
+            Self::UnknownBlock(name) => write!(f, "unresolved block ID: {name}"),
+            Self::InvalidOrUnsupported => {
+                f.write_str("invalid or unsupported Tool fields or registry mapping")
+            }
+        }
+    }
+}
+impl std::error::Error for ToolError {}
+
+/// Validate and normalize a Tool component before it is registered or changed.
+/// The caller supplies the current connection's block registry mapping. The
+/// return value is canonical SNBT and the interface exposes no host types.
+pub fn prepare_tool(
+    snbt: &str,
+    resolve_block: impl Fn(&str) -> Option<i32>,
+) -> Result<String, ToolError> {
+    let (tool, used) = horizon_world::nbt::parse_snbt(snbt).map_err(|_| ToolError::InvalidSnbt)?;
+    if !snbt[used..].trim().is_empty() {
+        return Err(ToolError::InvalidSnbt);
+    }
+    let missing = std::cell::RefCell::new(None);
+    let result = canonicalize(&tool, &|_, name| match resolve_block(name) {
+        Some(id) if id >= 0 => Some(id),
+        _ => {
+            *missing.borrow_mut() = Some(name.to_owned());
+            None
+        }
+    });
+    let Some(tool) = result else {
+        return Err(missing
+            .into_inner()
+            .map_or(ToolError::InvalidOrUnsupported, ToolError::UnknownBlock));
+    };
+    Ok(crate::item_data::canon_tag(&tool))
 }

@@ -366,6 +366,35 @@ fn main() {
         pluto_tool_codec::canonicalize(&tag_tool, &resolve),
         pluto_tool_codec::canonicalize(&one, &resolve)
     );
+    // The public SNBT entry validates once and returns the canonical value to store.
+    let single = r#"{rules:[{blocks:"minecraft:stone"}]}"#;
+    let canonical_snbt =
+        pluto_tool_codec::prepare_tool(single, |name| (name == "minecraft:stone").then_some(7))
+            .unwrap();
+    let explicit = r#"{rules:[{blocks:["minecraft:stone"]}],default_mining_speed:1.0f,damage_per_block:1,can_destroy_blocks_in_creative:1b}"#;
+    assert_eq!(
+        canonical_snbt,
+        pluto_tool_codec::prepare_tool(explicit, |name| (name == "minecraft:stone").then_some(7))
+            .unwrap()
+    );
+    assert_eq!(
+        pluto_tool_codec::prepare_tool(single, |_| None),
+        Err(pluto_tool_codec::ToolError::UnknownBlock(
+            "minecraft:stone".into()
+        ))
+    );
+    assert!(matches!(
+        pluto_tool_codec::prepare_tool("{rules:[]} trailing", |_| None),
+        Err(pluto_tool_codec::ToolError::InvalidSnbt)
+    ));
+    assert!(matches!(
+        pluto_tool_codec::prepare_tool("{rules:[],unknown:1}", |_| None),
+        Err(pluto_tool_codec::ToolError::InvalidOrUnsupported)
+    ));
+    assert!(matches!(
+        pluto_tool_codec::prepare_tool(r##"{rules:[{blocks:"#Bad Tag"}]}"##, |_| None),
+        Err(pluto_tool_codec::ToolError::InvalidOrUnsupported)
+    ));
     let plain = ItemStack::new("minecraft:stick", 2);
     let wire = stack_to_network(ids, |_, _| None, &Some(plain)).unwrap();
     assert!(wire.added.is_empty());
@@ -441,6 +470,55 @@ fn main() {
                 "{id}: max_damage"
             );
             if let Some(original_tool) = original.data().and_then(|d| d.other("minecraft:tool")) {
+                let prepared = pluto_tool_codec::prepare_tool(
+                    &horizon_client_lib::item_data::canon_tag(original_tool),
+                    |_| None,
+                )
+                .expect("consumer preparation");
+                let (prepared_tag, _) = horizon_world::nbt::parse_snbt(&prepared).unwrap();
+                let mut prepared_stack = original.clone();
+                prepared_stack
+                    .data_mut()
+                    .set_other("minecraft:tool", Some(prepared_tag));
+                let transport =
+                    stack_to_network(|_| 1, |_, _| None, &Some(prepared_stack.clone())).unwrap();
+                let transport =
+                    max_damage_adapter::apply(Some(transport), &Some(prepared_stack.clone()))
+                        .unwrap();
+                let transport =
+                    tool_encoder::apply(Some(transport), &Some(prepared_stack.clone()), &|_, _| {
+                        None
+                    })
+                    .unwrap();
+                let mut bytes = Writer::new();
+                Slot::write(&Some(transport), &mut bytes);
+                let received = Slot::read(&mut Reader::new(&bytes.data)).unwrap().unwrap();
+                let restored =
+                    item_sync::from_network(&received, &case_builtin, &Dynamic::default());
+                let restored =
+                    tool_decoder::apply(restored, &received, &case_builtin, &Dynamic::default());
+                assert_eq!(
+                    prepared_stack
+                        .data()
+                        .and_then(|d| d.other("minecraft:tool")),
+                    restored.data().and_then(|d| d.other("minecraft:tool"))
+                );
+                assert_eq!(
+                    prepared_stack
+                        .data()
+                        .and_then(|d| d.other("minecraft:max_damage")),
+                    restored
+                        .data()
+                        .and_then(|d| d.other("minecraft:max_damage"))
+                );
+                assert!(
+                    prepared_stack.same_item_same_components(&restored),
+                    "{id}: prepared identity"
+                );
+                assert_eq!(
+                    horizon_client_lib::item_data::canon_stack(Some(&prepared_stack)),
+                    horizon_client_lib::item_data::canon_stack(Some(&restored))
+                );
                 let encoded =
                     pluto_tool_codec::encode(original_tool, &|_, _| None).expect("tool encode");
                 let mut official = wire.clone();
@@ -520,7 +598,36 @@ fn main() {
                 // absent from its item model after a changed cached patch.
                 assert!(fallback.component(component::RARITY).is_none());
                 assert!(!fallback.removed.contains(&component::ITEM_NAME));
-                let _ = tool_encoder::apply(Some(fallback), &changed, &|_, _| None).unwrap();
+                let repaired = max_damage_adapter::apply(Some(fallback), &changed).unwrap();
+                let repaired = tool_encoder::apply(Some(repaired), &changed, &|_, _| None).unwrap();
+                let mut changed_bytes = Writer::new();
+                DelimitedSlot::write(&Some(repaired), &mut changed_bytes);
+                let changed_wire = DelimitedSlot::read(&mut Reader::new(&changed_bytes.data))
+                    .unwrap()
+                    .unwrap();
+                let changed_back =
+                    item_sync::from_network(&changed_wire, &case_builtin, &Dynamic::default());
+                let changed_back = tool_decoder::apply(
+                    changed_back,
+                    &changed_wire,
+                    &case_builtin,
+                    &Dynamic::default(),
+                );
+                let expected = changed.as_ref().unwrap();
+                assert_eq!(changed_back.damage, expected.damage);
+                for key in [
+                    "minecraft:tool",
+                    "minecraft:max_damage",
+                    "minecraft:custom_data",
+                    "minecraft:lore",
+                    "minecraft:item_model",
+                ] {
+                    assert_eq!(
+                        changed_back.data().and_then(|d| d.other(key)),
+                        expected.data().and_then(|d| d.other(key)),
+                        "{id}: changed {key}"
+                    );
+                }
 
                 println!("{id}: standard tool bytes and actual mining rules round-trip");
             }

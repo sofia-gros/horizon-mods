@@ -19,6 +19,7 @@ id = "tool-codec"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "pluto_tool_codec"
 source = "tool_codec.rs"
+visibility = "pub"
 
 [[injection]]
 id = "tool-encode"
