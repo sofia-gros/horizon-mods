@@ -36,13 +36,16 @@ precedence. A follow-up supports a material-derived Scrumptious combination: its
 saturation and direct durability costs are combined and poison is removed.
 Savory and stored Scrumptious/Savory upgrades remain refused.
 
-Eating while another use is active, counter-attacks, representative bacon,
+A subsequent candidate bites at tick 16 during an active Longbow, supported
+shield, or Slurping use without ending it. It excludes crossbows, breaking bites,
+and other active interactions pending safe stack-continuation integration.
+Counter-attacks, representative bacon,
 food particles, durability-changed callbacks and other mixed edible modifiers
 remain open. The source eating and burp sound events are played locally using
 the source pitch formula; delivery to other players is not established. Runtime validation must cover offhand and LAN actor
 routing, immediate release/cancellation, full versus hungry and creative,
 levels 1/2, near-break and unbreakable flags, current max health/food,
-Slurping, Tasty + Scrumptious poison removal and unsupported edible combinations, item identity changes,
+Slurping before/at/after tick 16, Longbow release and shield use, crossbow and near-break exclusions, two-guest sound routing and duplicates, Tasty + Scrumptious poison removal and unsupported edible combinations, item identity changes,
 repeated use and save/reload. Focused source arithmetic tests exist but were
 not run by the development session.
 

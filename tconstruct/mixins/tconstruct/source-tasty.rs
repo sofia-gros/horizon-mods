@@ -12,8 +12,7 @@ fn profile(tasty: i32, scrumptious: i32) -> Option<(i32, f32, u32)> {
 
 pub(super) fn levels(game: &super::Game<'_>, stack: &ItemStack) -> Option<(i32, i32)> {
     if !stack.item.starts_with("tconstruct:") || stack.count != 1 || stack.wire_patch().is_some()
-        || super::tconstruct_source_melee_shape::intact(stack).is_none()
-        || super::tconstruct_source_slurping::passive_item(stack) { return None; }
+        || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
     if traits.levels.get("tconstruct:savory").copied().unwrap_or(0) > 0 { return None; }
     let upgrades = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_upgrades"));
@@ -25,13 +24,17 @@ pub(super) fn levels(game: &super::Game<'_>, stack: &ItemStack) -> Option<(i32, 
 }
 
 pub(super) fn can_start(game: &super::Game<'_>, stack: &ItemStack) -> bool {
-    levels(game, stack).is_some() && game.player.as_ref().is_some_and(|player| !player.health.dead_or_dying() && (game.creative || player.health.food.food < 20))
+    !super::tconstruct_source_slurping::passive_item(stack) && levels(game, stack).is_some() && game.player.as_ref().is_some_and(|player| !player.health.dead_or_dying() && (game.creative || player.health.food.food < 20))
         && super::tconstruct_source_slurping::plan(game, stack).is_none()
 }
 
 pub(super) fn finish(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut Option<ItemStack>) {
     if game.remote.is_some() || !result.as_ref().is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(stack)) { return; }
     if !can_start(game, stack) { return; }
+    eat(game, stack, result);
+}
+
+fn eat(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut Option<ItemStack>) {
     let Some((tasty, scrumptious)) = levels(game, stack) else { return; };
     let Some((hunger, saturation, damage)) = profile(tasty, scrumptious) else { return; };
     let mut next = stack.clone();
@@ -50,6 +53,25 @@ pub(super) fn finish(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut
     }
 
     *result = Some(next);
+}
+
+// The source EdibleModule runs once at 16 ticks while another modifier is
+// active, without ending that use. Limit this to known supported active uses.
+pub(super) fn concurrent_tick(game: &mut super::Game<'_>, stack: &ItemStack) {
+    if game.remote.is_some() || !matches!(game.using, Some((_, 16))) { return; }
+    let active = matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:battlesign" | "tconstruct:travelers_shield" | "tconstruct:plate_shield")
+        || (!super::tconstruct_source_slurping::passive_item(stack) && super::tconstruct_source_slurping::plan(game, stack).is_some());
+    if !active || !game.player.as_ref().is_some_and(|p| !p.health.dead_or_dying() && (game.creative || p.health.food.food < 20)) { return; }
+    let Some((tasty, scrumptious)) = levels(game, stack) else { return; };
+    let Some((_, _, damage)) = profile(tasty, scrumptious) else { return; };
+    let Some(max) = super::tconstruct_source_melee_shape::intact(stack) else { return; };
+    // The host continues this tick with its earlier stack snapshot. Defer a
+    // breaking bite until that continuation can see the new broken state.
+    if !game.creative && stack.damage.saturating_add(damage) >= max { return; }
+    if !game.held().is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(stack)) { return; }
+    let mut result = Some(stack.clone());
+    eat(game, stack, &mut result);
+    *game.held_mut() = result;
 }
 
 #[cfg(test)]
