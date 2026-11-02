@@ -50,6 +50,14 @@ PLUTO_DEMO_OVERLAY="$PWD/.work/native-creative-demo" \\
   cargo run --locked --example native_creative_prepare
 ```
 
-The output must not exist and must be separate from the source; its parent must exist. It uses Unix symbolic links for unchanged resources. The standalone wrapper currently links the older Horizon parser pinned by `pluto-lib`; it verifies preparation flow, not compatibility with the new host. The native bundle is designed for Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its plan and Rust unit tests have run; transformation, host compilation, game behavior and Windows have not yet been verified. No game screenshot is available yet.
+The output must not exist and must be separate from the source; its parent must exist. It uses Unix symbolic links for unchanged resources. The standalone wrapper links the older Horizon parser pinned by `pluto-lib`; use the target host parser when staging the native bundle.
+
+To run the native demo, stage both `mixins/pluto_native_creative` and `examples/native-creative/mixins/pluto_creative_demo` as sibling bundles and build the fixed Horizon client with official Mixins. Set the same two environment variables when starting that client, and pass the overlay path as `--resources`. The demo's entry hook creates the overlay before the client loads it; use a fresh overlay path for each preparation.
+
+On Linux with the [verified host and Mixins](compatibility.md), the demo showed its 12 tabs over two mod pages. A component-bearing stack was obtained from a tab and from search; the original vanilla search entries and metadata remained intact. The target's standard page controls performed the page changes. Windows and combined Tinkers integration remain unverified.
+
+![A native Creative demo tab in Horizon](native-creative-demo.png)
+
+*The second demo tab and its component-bearing stack, using Horizon's page controls.*
 
 The generic [fixture runner](../examples/native_creative_fixture.rs) reads a JSON object with an `inventory` and `groups` for integration checks. It uses the standalone library's older pinned parser and is a test tool, not the native startup adapter. A representative fixture from the Tinkers port at `9b657daf9454df7d35e120c0909791e228807c58` retained the input group IDs, icons, ordered stacks, material components and existing search metadata. That fixture does not prove its later stat enrichment or game behavior; integration must pass the enriched final stacks.
