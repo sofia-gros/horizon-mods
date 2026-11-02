@@ -3,13 +3,21 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use std::collections::{HashMap, HashSet};
 
+pub(super) fn passive_item(stack: &ItemStack) -> bool {
+    matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:crossbow" | "tconstruct:battlesign" | "tconstruct:travelers_shield" | "tconstruct:plate_shield")
+}
+
+enum PlayerAction {
+    Mob(&'static str, i32, i32),
+    Remove(&'static str),
+    Hunger(i32, f32),
+}
 pub(super) struct Plan {
-    effects: Vec<(&'static str, i32, i32, u32, ItemStack)>,
+    effects: Vec<(PlayerAction, u32, ItemStack)>,
 }
 
 pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
     if stack.count != 1 || stack.wire_patch().is_some() { return None; }
-    if &*stack.item == "tconstruct:crossbow" { return None; }
     let custom = stack.data()?.other("minecraft:custom_data")?;
     if matches!(custom.get("tic_broken"), Some(Tag::Byte(v)) if *v != 0) { return None; }
     let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:slurping")? else { return None; };
@@ -34,31 +42,52 @@ pub(super) fn plan(game: &super::Game<'_>, stack: &ItemStack) -> Option<Plan> {
     let strength = (*level as f32).min(fluid.amount as f32 / recipe.amount as f32);
     if strength <= 0.0 { return None; }
     let mut effects = Vec::new();
+    let mut targeted = HashSet::new();
+    let mut hunger_seen = false;
     for effect in recipe.entity {
-        let known = horizon_client::brewing::effect(&effect.id)?;
-        let infinite = effect.time == -1;
-        if infinite && strength < 1.0 { continue; }
-        let extra = if infinite { -1 } else { (effect.time as f32 * strength) as i32 };
-        if !infinite && extra <= 0 { continue; }
-        let (duration, used_scale) = if infinite { (-1, 1.0) } else { match game.potions.effects.get(known.id) {
-            Some(existing) if existing.amplifier > effect.amplifier => continue,
-            Some(existing) if existing.amplifier == effect.amplifier && existing.duration < 0 => continue,
-            Some(existing) if existing.amplifier == effect.amplifier => match effect.action {
-                super::tconstruct_source_fluid_effects::TimeAction::Add => (existing.duration.checked_add(extra)?, strength),
-                super::tconstruct_source_fluid_effects::TimeAction::Set => {
-                    let previous = existing.duration as f32 / effect.time as f32;
-                    let effective = (strength + previous).min(*level as f32);
-                    if effective < previous { continue; }
-                    ((effect.time as f32 * effective) as i32, effective - previous)
-                }
-            },
-            _ => (extra, strength),
-        }};
+        let (action, used_scale) = match effect {
+            super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => {
+                let known = horizon_client::brewing::effect(&effect.id)?;
+                if !targeted.insert(known.id) { return None; }
+                let infinite = effect.time == -1;
+                if infinite && strength < 1.0 { continue; }
+                let extra = if infinite { -1 } else { (effect.time as f32 * strength) as i32 };
+                if !infinite && extra <= 0 { continue; }
+                let (duration, used_scale) = if infinite { (-1, 1.0) } else { match game.potions.effects.get(known.id) {
+                    Some(existing) if existing.amplifier > effect.amplifier => continue,
+                    Some(existing) if existing.amplifier == effect.amplifier && existing.duration < 0 => continue,
+                    Some(existing) if existing.amplifier == effect.amplifier => match effect.action {
+                        super::tconstruct_source_fluid_effects::TimeAction::Add => (existing.duration.checked_add(extra)?, strength),
+                        super::tconstruct_source_fluid_effects::TimeAction::Set => {
+                            let previous = existing.duration as f32 / effect.time as f32;
+                            let effective = (strength + previous).min(*level as f32);
+                            if effective < previous { continue; }
+                            ((effect.time as f32 * effective) as i32, effective - previous)
+                        }
+                    },
+                    _ => (extra, strength),
+                }};
+                if duration == 0 { continue; }
+                (PlayerAction::Mob(known.id, duration, effect.amplifier), used_scale)
+            }
+            super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
+                let known = horizon_client::brewing::effect(&id)?;
+                if !targeted.insert(known.id) { return None; }
+                if strength < 1.0 || game.potions.effects.get(known.id).is_none() { continue; }
+                (PlayerAction::Remove(known.id), 1.0)
+            }
+            super::tconstruct_source_fluid_effects::EntityEffect::Hunger { hunger, saturation, always } => {
+                if hunger_seen { return None; } hunger_seen = true;
+                let player = game.player.as_ref()?;
+                if !always && !game.creative && player.health.food.food >= 20 { continue; }
+                (PlayerAction::Hunger((hunger as f32 * strength) as i32, saturation), strength)
+            }
+        };
         let used = ((recipe.amount as f32 * used_scale.min(strength)).ceil() as u32).min(fluid.amount);
-        if duration == 0 || used == 0 { continue; }
+        if used == 0 { continue; }
         let mut remainder = fluid.clone(); remainder.amount -= used;
         let drained = super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remainder.amount > 0).then_some(&remainder), capacity)?;
-        effects.push((known.id, duration, effect.amplifier, used, drained));
+        effects.push((action, used, drained));
     }
     if effects.is_empty() { return None; }
     Some(Plan { effects })
@@ -68,9 +97,21 @@ pub(super) fn finish(game: &mut super::Game<'_>, stack: &ItemStack, result: &mut
     if game.remote.is_some() || !result.as_ref().is_some_and(|held| held.damage == stack.damage && held.same_item_same_components(stack)) { return; }
     let Some(plan) = plan(game, stack) else { return; };
     let mut successful: Option<(u32, ItemStack)> = None;
-    for (id, duration, amplifier, used, drained) in plan.effects {
-        if game.add_player_effect(horizon_client::effects::EffectInstance::new(id, duration, amplifier))
-            && successful.as_ref().is_none_or(|(prior, _)| used > *prior) {
+    for (action, used, drained) in plan.effects {
+        let applied = match action {
+            PlayerAction::Mob(id, duration, amplifier) => game.add_player_effect(horizon_client::effects::EffectInstance::new(id, duration, amplifier)),
+            PlayerAction::Remove(id) => {
+                let before = game.potions.effects.list.len();
+                game.potions.effects.list.retain(|effect| effect.id != id);
+                let changed = game.potions.effects.list.len() != before;
+                if changed { game.apply_effect_status(); }
+                changed
+            }
+            PlayerAction::Hunger(hunger, saturation) => {
+                game.apply_effect_action(horizon_client::effects::EffectAction::Eat(hunger, saturation)); true
+            }
+        };
+        if applied && successful.as_ref().is_none_or(|(prior, _)| used > *prior) {
             successful = Some((used, drained));
         }
     }
