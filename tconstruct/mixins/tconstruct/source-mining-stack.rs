@@ -25,7 +25,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     // to carry traits such as Crumbling, which also applies when ineffective.
     let mut tool = stack.data().and_then(|data| data.other("minecraft:tool")).cloned();
     if let Some(ref mut tool) = tool {
-        let Tag::Compound(ref mut fields) = tool else { return None; };
+        let Tag::Compound(fields) = tool else { return None; };
         let Some(Tag::List(rules)) = fields.get_mut(&"rules".into()) else { return None; };
         for rule in rules {
             let Tag::Compound(fields) = rule else { continue; };
