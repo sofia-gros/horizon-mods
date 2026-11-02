@@ -1,5 +1,7 @@
 # Give an item a behavior
 
+For the newer native short-use adapter, see [short item use](item-use-b2.md).
+
 The experimental item API lets a native mod register a handler for a namespaced item ID. The independent [wand demo](../examples/wand/mixins/pluto_wand/behavior.rs) increments its own charge on use and displays that value in the tooltip:
 
 ```rust
