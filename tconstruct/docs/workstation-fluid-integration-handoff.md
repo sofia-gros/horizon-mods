@@ -27,3 +27,7 @@ results for the merge.
 ## Melter pointer and package namespaces follow-up
 
 This follow-up carries #337's retained remote screen position into the Melter gauge transfer entry point. The b53 UI diagnostic covered can transfers, fuel and incompatible fluids; exact integrated-head apply/build and live behavior remain pending. The content package generator declares `mantle` and `forge` as additional namespaces because its normal package actually contains `assets/mantle/lang/en_us.json` and `data/forge` entries. The declared namespaces are subject to the target host's normal collision and content checks; package generation alone is not a resource-preparation pass.
+
+## Brewing selector follow-up
+
+The exact #333 official apply rejected `horizon_client::stations::StationData::load` as an unresolved target. A separate diagnostic reached the owning `horizon_client_lib` target but rejected its `Self` return. This candidate instead selects the concrete `crate::brewing::Brewing::load(root, items, overlay)` expression inside `horizon_client_lib::stations::StationData::load` and adds the same bottle conversions to its owned `Brewing` value. The expression and item argument are from the target host, and the existing conflict/idempotence guards remain. This new selector is proposed pending official plan/apply/type and exact-host brewing tests; no selector or safety check is bypassed.
