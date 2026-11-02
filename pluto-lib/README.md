@@ -1,26 +1,23 @@
-# pluto lib
+# PlutoLib
 
-pluto lib is a shared library for Horizon mods. Its first feature adds mod tabs to the prepared Creative inventory. Item, block, armor, effect, GUI and inventory APIs are planned for later.
+PlutoLib helps Rust developers prepare content for Horizon mods. It does not load mods; Horizon loads the generated content. Its first Rust API creates item and block declarations and adds Creative tabs to prepared inventory data.
 
-## Add a Creative tab
+```rust
+use pluto_lib::Registry;
 
-Add the repository’s `pluto-lib/` directory to Python’s module path. A mod supplies an ordered list of item stacks in Horizon's SNBT format. This example adds one item to an unused tab position:
-
-```python
-from pluto_lib.creative import register_item_groups
-
-updated = register_item_groups(prepared_inventory, [{
-    'id': 'example:tools',
-    'title': 'Example Tools',
-    'icon': '{count:1,id:"example:hammer"}',
-    'row': 'TOP',
-    'column': 5,
-    'items': ['{count:1,id:"example:hammer"}'],
-}])
+let mut registry = Registry::new("my_mod")?;
+registry.item("gem", "minecraft:amethyst_shard")?;
+registry.block("gem_block", "minecraft:amethyst_block")?;
+registry.write_to(std::path::Path::new("generated-content"))?;
+# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`register_item_groups` returns a copy; it does not edit the input. IDs, icons and stacks must refer to items registered by the mod. A stack may include components in its SNBT. The current Horizon screen provides a fixed set of tab positions; choose an unused one. The function rejects duplicate IDs or positions.
+This writes Horizon content declarations under `generated-content/data/my_mod/horizon/`. Add a manifest and assets before loading the content. Blocks also receive an item by default. For a complete example, see the [guide and demo](docs/getting-started.md); see the [API notes](docs/api.md) for validation and limits.
 
-Tinkers' Construct uses its own tab data in `tconstruct/content/creative-tabs.json`. The resource path and Creative screen were tested together on Linux; Windows remains unverified.
+## Compatibility
 
-For the complete tab format and integration details, see [Register a Creative tab](docs/creative-tabs.md).
+The target combination for this unreleased API is Horizon commit `b6c936f82b08798057161bdfa577e3aac53fb91e` and horizon-mixins commit `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Content declarations target Horizon's content API 0.2. This combination has not yet been validated with the demo in a running game. Compatibility with other revisions is not promised; source changes may require rebuilding. PlutoLib is not a Fabric compatibility layer.
+
+## Current scope
+
+The Rust API generates template-based item and block declarations and transforms a prepared Creative inventory. It does not yet register runtime behavior or dynamically resize the Creative screen. Block entities, equipment behavior, GUI, books, inventory, recipes, events, persistence and sync are planned, not implemented. The existing Python Creative helper and its [guide](docs/creative-tabs.md) remain available to existing users.
