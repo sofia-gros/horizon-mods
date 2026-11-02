@@ -12,7 +12,7 @@ of these traits are not implied to be complete.
 
 Station and Creative regeneration store the original harvest-tagged tool's
 Lightweight/Heavy/Vintage/Entangled stat and Jagged/Stonebound/Maintained levels on the item. A shared item boundary recognizes effective per-stack tool
-rules for both the client and host; separate context hooks apply conditional
+rules for both the client and host using the active world item tags; separate context hooks apply conditional
 speed after mining efficiency and potion effects, before underwater/airborne
 penalties. Materials and part swaps rebuild the stored values. Previously saved
 tools need regeneration before these new fields are present.

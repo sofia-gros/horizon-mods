@@ -8,7 +8,7 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
     let Some(data) = stack.data() else { return speed; };
     let Some(custom) = data.other("minecraft:custom_data") else { return speed; };
     let effective = match data.other("minecraft:tool") {
-        Some(tool) => match crate::game::tconstruct_source_mining_rules::evaluated_speed(tool, &facts.name, |tag, block| game.res.items().block_in_tag(tag, block)) {
+        Some(tool) => match crate::game::tconstruct_source_mining_rules::evaluated_speed(tool, &facts.name, |tag, block| game.items().block_in_tag(tag, block)) {
             Some(value) => value.is_some(),
             None => return speed,
         },
