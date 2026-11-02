@@ -103,9 +103,9 @@ property in addition to its template's five face properties. These are
 preparation for the island marker and tree code, not proof of natural island
 generation or acquisition.
 
-Source-specific sapling and leaf random-tick paths are experimental; vine growth
-remains separate, and inheriting vanilla growth would produce the wrong result. Source foliage tint,
-complete template block and fluid registration, other island sets and save/reload remain open. The target registry, model and
+Source-specific sapling, leaf, grass and vine updates and foliage terrain tint
+are experimental and unverified. Other island sets, source fluids and
+save/reload remain open. The target registry, model and
 loot loading, face/stage combinations, tree placement, source drop conditions
 and vanilla plant regressions all require dedicated validation.
 The two registered leaves are added to `minecraft:leaves` so the existing
@@ -139,7 +139,8 @@ those positions. No water, lava or inert block is presented as slime fluid.
 Consequently pools are absent and existing water or other terrain may remain;
 this is partial generation, not source-equivalent fluid behavior.
 
-Custom slime mobs and their spawn overrides, item tint and the plant random ticks are still missing. Sky-inland/clay, End and Nether sets remain
+Custom slime mobs and their spawn overrides and item tint are still missing.
+Plant random-tick candidates require validation. Sky-inland/clay, End and Nether sets remain
 unconnected because their original feature types and resources are not yet
 implemented. The target-version injections, loading, placement and saved-start
 restoration require dedicated plan, build and in-game validation; no natural
@@ -170,9 +171,9 @@ If the slime-log tag or a required state cannot be resolved, the source hook
 keeps the leaf state rather than falling through to vanilla's different log
 rules. Placement requests persistent leaves using the same source distance calculation;
 if required source data is unavailable, placement is refused rather than
-using vanilla distance rules. Ender leaf registration, Sky-vine support updates,
-sapling growth, soil spreading, bonemeal and dedicated-server behavior remain
-unverified or unimplemented. The target injection plan, source tag resolution,
+using vanilla distance rules. Ender leaf registration and dedicated-server
+behavior remain incomplete; Sky-vine support, sapling growth and grass
+spreading are experimental candidates requiring validation. The target injection plan, source tag resolution,
 placed/persistent leaves, log removal, loot, cross-chunk behavior and
 single-player/LAN/save regression require dedicated validation.
 
@@ -199,9 +200,9 @@ The registered slime grasses request random ticks. The local authoritative
 server hook applies the source grass validity, light and four spread attempts
 to vanilla and slime dirt, including the source loaded-area and water checks.
 The source Nylium variant reverts to its underlying dirt when blocked; it
-does not use the overworld grass-spreading branch. Source grass bonemeal,
-slime sapling growth, vine random growth and dedicated-server coverage remain
-open. The target injection plan, exact light/occlusion and random-draw order,
+does not use the overworld grass-spreading branch. Source grass bonemeal and
+dedicated-server coverage remain open; sapling and vine growth are separate
+experimental candidates. The target injection plan, exact light/occlusion and random-draw order,
 chunk edges, snow, fluids, save/reload and vanilla grass regressions require
 dedicated validation.
 
@@ -212,7 +213,7 @@ three-stage downward growth, floating-length and random-draw rules. A neighbor
 update preserves sides supported by the source slime-leaf tag or by a
 non-terminal vine above, and removes unsupported vines. The source tag includes
 Earth and Sky leaves; its Ender entry is optional until Ender leaves are
-registered. Vine placement, Ender vines, full island generation, the target
+registered. Ender vines, full island generation, the target
 injection plan, support shapes, world and save behavior, RNG order and
 single-player/LAN validation remain open. Vanilla vine behavior is unchanged.
 
@@ -221,3 +222,15 @@ existing-vine side checks and source attachment rules. It uses a narrow bridge
 to the host placement context's direction ordering. The bridge plan, placing
 on each face, replacement, no-support rejection, player/dispenser behavior,
 item consumption and local/LAN regression require dedicated validation.
+
+## Combined validation candidate
+
+The combined branch is based on repository main `283cc1a21fd7880a05312400b5d8e531027d442e`.
+Its source dependencies are #191 → #200, followed by #204, #206 → #218,
+#208 and #212 → #215. It also includes #173's congealed-slime loot.
+The TConstruct target is Horizon `9a6f7dd5a193d709f389adeb1f51858465b8f747`
+and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Stage it with
+the unified PlutoLib bundle built for that exact Horizon target from this
+checkout's `pluto-lib` tree `aa8a6068ae9f24938f935a665733bf67cac53fea`;
+the bundle itself is not supplied or verified by this integration branch.
+No combined plan, stage, build or game result is claimed.
