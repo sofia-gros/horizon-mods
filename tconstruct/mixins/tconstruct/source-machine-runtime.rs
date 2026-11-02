@@ -362,7 +362,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
     if kind == "tconstruct:table" && casting.output.is_none() {
         if let Some(material) = casting.input.as_ref() {
             let pattern = held.as_ref().map(|stack| stack.item.as_ref());
-            if let Some(recipe) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, pattern) {
+            if let Some((recipe_id, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, pattern) {
                 let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
                 if let Some(mut stack) = held.clone() {
                     if !recipe.pattern_consumed { let mut item = stack.clone(); item.count = 1; casting.output = Some(item); }
@@ -376,16 +376,24 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
                 }
                 if let Some(remaining) = remaining { *game.held_mut() = remaining; }
                 if let Some(stack) = taken { game.give_or_drop(stack); }
+                let player = game.native_acting_id();
+                let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
+                game.native_item_crafted(player, &recipe_id, &result);
+                game.stats.add("crafted", &result.item, 1);
                 return true;
             }
             // A mold-less recipe also applies when the player is holding an
             // unrelated item; leave that item untouched and give the result.
             if held.is_some() {
-                if let Some(recipe) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, None) {
+                if let Some((recipe_id, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, None) {
                     casting.input = None;
                     if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
                     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
-                    game.give_or_drop(horizon_items::items::ItemStack::new(&recipe.result, 1));
+                    let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
+                    game.give_or_drop(result.clone());
+                    let player = game.native_acting_id();
+                    game.native_item_crafted(player, &recipe_id, &result);
+                    game.stats.add("crafted", &result.item, 1);
                     return true;
                 }
             }
