@@ -3,6 +3,11 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use std::collections::HashSet;
 
+pub(super) fn eligible_mob(mob: &horizon_client::mobs::Mob) -> bool {
+    let kind = mob.kind.id.strip_prefix("minecraft:").unwrap_or(&mob.kind.id);
+    matches!(kind, "pig" | "cow" | "sheep" | "chicken" | "rabbit" | "horse" | "donkey" | "mule" | "llama" | "trader_llama" | "goat" | "panda" | "polar_bear" | "fox" | "wolf" | "cat" | "ocelot" | "parrot" | "turtle" | "frog" | "axolotl" | "squid" | "glow_squid" | "cod" | "salmon" | "tropical_fish" | "pufferfish" | "dolphin" | "bat" | "villager" | "wandering_trader" | "zombie" | "husk" | "drowned" | "zombie_villager" | "skeleton" | "stray" | "bogged" | "zombified_piglin" | "zoglin" | "phantom" | "creeper" | "enderman" | "endermite" | "silverfish" | "slime" | "magma_cube" | "witch" | "pillager" | "vindicator" | "piglin" | "piglin_brute" | "hoglin" | "ghast" | "blaze" | "strider" | "guardian" | "elder_guardian" | "evoker" | "vex" | "ravager")
+}
+
 pub(super) fn begin(game: &mut super::Game<'_>, index: usize) {
     if game.remote.is_some() { return; }
     let actor = game.lan_acting;
@@ -51,11 +56,8 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
 
 /// Apply a supported source entity effect and consume only a successful use.
 pub(super) fn apply(game: &mut super::Game<'_>, index: usize, stack: ItemStack, modifier: &str, simulate: bool) -> Option<ItemStack> {
-    // Unknown modded entities and entities with special overrides remain
-    // unavailable until their canBeAffected behavior is represented by the host.
     let mob = &game.mobs[index];
-    let kind = mob.kind.id.strip_prefix("minecraft:").unwrap_or(&mob.kind.id);
-    if !matches!(kind, "pig" | "cow" | "sheep" | "chicken" | "rabbit" | "horse" | "donkey" | "mule" | "llama" | "trader_llama" | "goat" | "panda" | "polar_bear" | "fox" | "wolf" | "cat" | "ocelot" | "parrot" | "turtle" | "frog" | "axolotl" | "squid" | "glow_squid" | "cod" | "salmon" | "tropical_fish" | "pufferfish" | "dolphin" | "bat" | "villager" | "wandering_trader" | "zombie" | "husk" | "drowned" | "zombie_villager" | "skeleton" | "stray" | "bogged" | "zombified_piglin" | "zoglin" | "phantom" | "creeper" | "enderman" | "endermite" | "silverfish" | "slime" | "magma_cube" | "witch" | "pillager" | "vindicator" | "piglin" | "piglin_brute" | "hoglin" | "ghast" | "blaze" | "strider" | "guardian" | "elder_guardian" | "evoker" | "vex" | "ravager") { return None; }
+    if !eligible_mob(mob) { return None; }
     let undead = mob.kind.flags.undead;
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return None; };
     if matches!(custom.get("tic_broken"), Some(Tag::Byte(n)) if *n != 0) { return None; }

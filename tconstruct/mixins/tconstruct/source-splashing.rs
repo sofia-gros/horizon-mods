@@ -223,7 +223,10 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
         let Some(positions) = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope().get(&conn) else { return; };
         positions.clone()
     } else {
-        game.lan.as_ref().map(|host| host.hub.guests.iter().filter(|guest| guest.placed && guest.dimension == game.dim.id()).map(|guest| guest.position).collect()).unwrap_or_default()
+        game.lan.as_ref().map(|host| host.hub.guests.iter().filter(|guest| guest.placed && guest.dimension == game.dim.id()).map(|guest| {
+            let bounds = guest.bounds(); let min = bounds.min_position(); let max = bounds.max_position();
+            (Some(guest.conn), guest.position, [min.x, min.y, min.z], [max.x, max.y, max.z])
+        }).collect()).unwrap_or_default()
     };
     let Some(stack) = stack.cloned() else { return; };
     if !right_click(game, &stack) || super::tconstruct_source_melee_shape::intact(&stack).is_none() || game.cooldowns.is_on_cooldown(&stack.item) { return; }
@@ -246,9 +249,14 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     // Living armor stands also receive source effects, but their effect adapter
     // is not yet implemented. Do not perform a partial area operation.
     let radius = 1.0 + f64::from(expanded);
-    // Only the actual affected area is held back until player effects have an
-    // authoritative host-backed execution path.
-    if other_players.iter().any(|position| (0..3).map(|axis| (position[axis] - origin[axis]).powi(2)).sum::<f64>() < radius * radius) { return; }
+    let mut player_targets = Vec::new();
+    for (conn, position, min, max) in other_players {
+        if conn.is_none() {
+            if (0..3).map(|axis| (position[axis] - origin[axis]).powi(2)).sum::<f64>() < radius * radius { return; }
+        } else if in_range(origin, position, target_bounds, (min, max), expanded) {
+            player_targets.push(conn.unwrap());
+        }
+    }
     if game.armor_stands.iter().any(|stand| !stand.marker && {
         let delta = [stand.position.x - origin[0], stand.position.y - origin[1], stand.position.z - origin[2]];
         delta.iter().map(|component| component * component).sum::<f64>() < radius * radius
@@ -259,6 +267,34 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
         let pos = [mob.position.x, mob.position.y, mob.position.z];
         let bounds = mob.bounds(); let min = bounds.min_position(); let max = bounds.max_position();
         if in_range(origin, pos, target_bounds, ([min.x, min.y, min.z], [max.x, max.y, max.z]), expanded) { targets.push(i); }
+    }
+    if !player_targets.is_empty() {
+        // This packet can only carry the mutable LanHost at its outer return.
+        // Only order-independent, fully funded effects are deferred: a partial
+        // budget or an unsupported target/form passes through unchanged.
+        let Some(conn) = game.lan_acting else { return; };
+        if targets.iter().any(|index| !super::tconstruct_source_spilling::eligible_mob(&game.mobs[*index])) { return; }
+        let Some(Some(fluid)) = super::pluto_stack_fluid::read(&stack, "tic_persistent", "tconstruct:tank_fluid") else { return; };
+        if fluid.tag.is_some() { return; }
+        let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return; };
+        // Only status-effect actions have an established player adapter in
+        // this deferred path. Do not skip unknown actions in a mixed recipe.
+        let mut ids = std::collections::HashSet::new();
+        if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
+            super::tconstruct_source_fluid_effects::EntityEffect::Mob(effect) => horizon_client::brewing::effect(&effect.id).is_none_or(|known| !ids.insert(known.id)),
+            _ => true,
+        }) { return; }
+        let Some(count) = u32::try_from(targets.len() + player_targets.len()).ok() else { return; };
+        let Some(required) = recipe.amount.checked_mul(*level as u32).and_then(|amount| amount.checked_mul(count)) else { return; };
+        if fluid.amount < required { return; }
+        let mob_ids = targets.iter().map(|index| game.mobs[*index].id).collect();
+        let slot = game.held_slot();
+        let creative = game.creative;
+        let modifier_level = *level;
+        game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().insert(conn, (stack.clone(), slot, mob_ids, player_targets, creative, modifier_level));
+        game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
+        *claimed = true;
+        return;
     }
     // A primary target can reject an effect while a nearby target accepts it.
     if !targets.iter().any(|index| super::tconstruct_source_spilling::apply(game, *index, stack.clone(), "tconstruct:splashing", true).is_some()) { return; }

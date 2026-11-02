@@ -1,4 +1,42 @@
-fn tconstruct_splashing_guest_return(value: (), game: &mut crate::game::Game<'_>, conn: u32) -> () {
+// Complete the deferred operation while this packet still owns LanHost.
+fn tconstruct_splashing_guest_return(value: (), game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32) -> () {
     game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope_mut().remove(&conn);
+    let Some((stack, slot, mobs, players, creative, level)) = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().remove(&conn) else { return value; };
+    // All checks happen before the first target is mutated. This is still one
+    // packet turn: no guest action can interleave with these guest swaps.
+    let Some(actor) = host.hub.guests.iter().find(|guest| guest.conn == conn && guest.placed) else { return value; };
+    if players.iter().any(|id| !host.hub.guests.iter().any(|guest| guest.conn == *id && guest.placed && guest.dimension == actor.dimension)) { return value; }
+    if mobs.iter().any(|id| !game.mobs.iter().any(|mob| mob.id == *id && mob.alive() && crate::game::tconstruct_source_spilling::eligible_mob(mob))) { return value; }
+    let intact = game.as_guest(host, conn, |g| g.stack_in(slot).is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(&stack))).unwrap_or(false);
+    if !intact { return value; }
+    let mut working = stack.clone();
+    let mut applied = 0u32;
+    // The recipe is fully funded for all candidates and contains only status
+    // effects, so source entity order cannot change the result or fluid scale.
+    for id in mobs {
+        let Some(index) = game.mobs.iter().position(|mob| mob.id == id && mob.alive()) else { continue; };
+        let result = game.as_guest(host, conn, |g| crate::game::tconstruct_source_spilling::apply(g, index, working.clone(), "tconstruct:splashing", false)).flatten();
+        if let Some(drained) = result { working = drained; applied += 1; }
+    }
+    for target in players {
+        let mut result = Some(working.clone());
+        let changed = game.as_guest(host, target, |g| crate::game::tconstruct_source_slurping::finish_for(g, &working, &mut result, "tconstruct:splashing", None, true)).unwrap_or(false);
+        if changed { if let Some(drained) = result { working = drained; applied += 1; } }
+    }
+    if applied > 0 && !creative {
+        // The actor's item has been parked in LanHost throughout target swaps.
+        let _ = game.as_guest(host, conn, |g| {
+            let same = g.stack_in(slot).is_some_and(|held| held.count == stack.count && held.damage == stack.damage && held.same_item_same_components(&stack));
+            if !same { return; }
+            *g.stack_in_mut(slot) = Some(working);
+            let Some(current) = g.stack_in(slot).cloned() else { return; };
+            let wear = applied.saturating_mul(level as u32);
+            let (loss, shield) = crate::game::tconstruct_source_overslime_host::damage_with_cause(g, &current, wear, Some("tconstruct:splashing"));
+            if let Some(held) = g.stack_in_mut(slot).as_mut() {
+                crate::game::tconstruct_source_overslime::spend(held, shield);
+                crate::game::tconstruct_tx::fixed_damage(held, loss);
+            }
+        });
+    }
     value
 }
