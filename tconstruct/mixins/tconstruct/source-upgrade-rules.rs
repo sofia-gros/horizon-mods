@@ -54,6 +54,12 @@ pub(super) fn selection_index(id: &str) -> Option<usize> {
     UPGRADES.iter().position(|(candidate, _)| *candidate == id)
 }
 
+/// Upgrades whose wear hooks are unavailable in the provisional release.
+/// Keep their recipe logic and saved data so they can be restored later.
+pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
+    !matches!(id, "tconstruct:reinforced" | "tconstruct:unbreakable")
+}
+
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
@@ -410,6 +416,12 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn provisional_release_disables_wear_upgrades_only() {
+        assert!(!super::provisional_upgrade_enabled("tconstruct:reinforced"));
+        assert!(!super::provisional_upgrade_enabled("tconstruct:unbreakable"));
+        assert!(super::provisional_upgrade_enabled("tconstruct:diamond"));
+    }
     use super::*;
 
     #[test]

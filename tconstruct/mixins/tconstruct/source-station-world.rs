@@ -330,6 +330,10 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
+    if !super::tconstruct_source_upgrade_rules::provisional_upgrade_enabled(&plan.id) {
+        *reason = Some(format!("Unavailable upgrade in this development build: {}", plan.id));
+        return None;
+    }
     let mut upgraded = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     };
@@ -452,6 +456,7 @@ pub(super) fn operation_plan_diagnostic(world: &super::tconstruct_world::World, 
     if !matches!(input_capacity, 3 | 5) { return None; }
     if let Some(plan) = overslime_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
     if let Some(plan) = upgrade_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
+    if reason.as_deref().is_some_and(|message| message.starts_with("Unavailable upgrade in this development build:")) { return None; }
     if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity, reason).or_else(|| repair_plan_with_capacity(world, slots, input_capacity, reason)) {
         *reason = None; return Some(StationOperation { output, consumed, leftovers: Vec::new() });
     }
