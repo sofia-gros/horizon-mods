@@ -451,12 +451,12 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                 let list: Vec<_> = match loads { Some(serde_json::Value::Array(a)) => a.iter().collect(), Some(v) => vec![v], None => vec![] };
                 for load in list {
                     let Some(tag) = load.get("tag").and_then(|v| v.as_str()) else { continue; };
-                    let Some(path) = load.get("path").and_then(|v| v.as_str()) else { continue; };
+                    let Some(tool_path) = load.get("path").and_then(|v| v.as_str()) else { continue; };
                     let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { continue; };
                     let Some(tools) = tags.get(tag) else { continue; };
                     let mut tools: Vec<_> = tools.iter().collect(); tools.sort();
                     for id in tools {
-                        let file = format!("{root}en_us/{path}/{}.json", id.replace(':', "_"));
+                        let file = format!("{root}en_us/{tool_path}/{}.json", id.replace(':', "_"));
                         let Some(raw) = read(path, &file) else { continue; };
                         let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
                         let fallback = id.split(':').next_back().unwrap_or(id);
