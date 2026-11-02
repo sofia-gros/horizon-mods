@@ -1,6 +1,6 @@
 # Horizon host update (draft)
 
-This work targets official Horizon `aa60eb76ea82bd66c29fea352e3ab5771e62ab26` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
+This work targets official Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
 
 The new host supports content block `state_properties` and `default_state`, which may represent the source vine stages. Its world fluid kind still contains only empty, water and lava families; the original slime world fluids remain unresolved. Do not enable incomplete island generation or replace slime fluid with water.
 
@@ -76,3 +76,5 @@ An isolated compatibility check on Horizon `b2e71aca04c7f62f24eefd7dd0324bae9c04
 The scratch manifest omitted eight injections: `storage-mesh-face`, `connected-mesh-face`, `tinkers-chest-world-tint` (destructured `Mesher::face` binding); `dense-durability-loss`, `armor-wear-record`, `armor-wear-end`, `source-melee-knockback-return`, and `crafting-station-sync-click` (ambiguous local macros in their target functions). Their related modules remained in the check, but these helpers and their behaviors were not type-checked or run. Production retains all eight. The complete production plan, gameplay, LAN, saving, Windows and dedicated server remain unverified.
 
 The material storage block chunk hook now targets `body_with`, which covers both initial streamed chunks and `body_in` callers and forwards the supplied proto-section lookup to the original lighting calculation. Its material field is merged into matching block-entity tags without replacing unrelated fields. A focused codec test, boundary check and isolated client-library type check pass on b2; actual initial LAN rendering and subsequent updates are not yet verified. Anvil and other machine metadata use a separate update path.
+
+The coordinated next check targets Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` and PlutoLib `84f7511d4ec75105c7b02b721bb468ab01cec350`. The direct b2-to-cabe source diff changes 204 files. At the start of this check, official Horizon main was `6c951a6f5194c72bf126378a893b0f75b48cd153`, a further 188-file diff; it is an unverified candidate, not the selected test target. The cabe TConstruct integration has not yet been checked or game-tested.
