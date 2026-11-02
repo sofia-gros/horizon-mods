@@ -17,3 +17,5 @@ The original chest blockstates, models and block textures are copied from the pi
 The shared insertion primitives now retain complete item components, use the source chest's per-slot limit, reject Part Chest duplicate variants and non-parts, and return any overflow. Their direct-slot and shift-move behavior has lightweight coverage; actual menu and server call sites are not connected yet.
 
 Both block and item declarations and their original shaped recipe ingredients are present, along with source model files and block drops. The menus and transaction hooks are not connected; the draft must not be treated as usable until those paths are complete and verified. The Tinker's Chest uses the source legacy block-entity ID `tconstruct:modifier_chest` on save.
+
+The chest-screen cell geometry follows the source's eight columns, four rows and 12-pixel scrollbar. A common position/hit calculation covers the final Part Chest slot, but the screen and scrolling events are not connected yet.

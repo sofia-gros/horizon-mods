@@ -69,6 +69,28 @@ pub(super) fn part_visual_size(occupied: impl DoubleEndedIterator<Item = bool> +
         .unwrap_or(1).min(capacity)
 }
 
+/// TinkerChestScreen's ScalingChestScreen: 162×72, 12-pixel slider,
+/// 18-pixel cells, at (7,17) within the original 176-wide parent.
+pub(super) const CHEST_COLUMNS: usize = 8;
+pub(super) const CHEST_ROWS: usize = 4;
+pub(super) fn max_scroll(visual_size: usize) -> usize {
+    visual_size.div_ceil(CHEST_COLUMNS).saturating_sub(CHEST_ROWS)
+}
+pub(super) fn visible_slot(visual_size: usize, scroll: usize, slot: usize) -> Option<(f32, f32)> {
+    let first = scroll.min(max_scroll(visual_size)) * CHEST_COLUMNS;
+    if slot >= visual_size || slot < first || slot >= first + CHEST_COLUMNS * CHEST_ROWS { return None; }
+    let shown = slot - first;
+    Some((8.0 + (shown % CHEST_COLUMNS) as f32 * 18.0, 18.0 + (shown / CHEST_COLUMNS) as f32 * 18.0))
+}
+pub(super) fn hit_slot(visual_size: usize, scroll: usize, x: f32, y: f32) -> Option<usize> {
+    if x < 8.0 || y < 18.0 { return None; }
+    let col = ((x - 8.0) / 18.0).floor() as usize;
+    let row = ((y - 18.0) / 18.0).floor() as usize;
+    if col >= CHEST_COLUMNS || row >= CHEST_ROWS || (x - 8.0) % 18.0 >= 16.0 || (y - 18.0) % 18.0 >= 16.0 { return None; }
+    let slot = scroll.min(max_scroll(visual_size)) * CHEST_COLUMNS + row * CHEST_COLUMNS + col;
+    (slot < visual_size).then_some(slot)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,6 +143,18 @@ mod tests {
         assert!(insert_across(ChestKind::Tinkers, &mut tinkers, ItemStack::new("minecraft:stone", 5), 64, false).is_none());
         assert_eq!(tinkers[7].as_ref().unwrap().count, 16);
         assert_eq!(tinkers[0].as_ref().unwrap().count, 4);
+    }
+    #[test]
+    fn source_chest_slots_scroll_and_hit_the_same_visible_cells() {
+        assert_eq!(max_scroll(256), 28);
+        assert_eq!(max_scroll(64), 4);
+        assert_eq!(max_scroll(1), 0);
+        assert_eq!(visible_slot(256, 28, 255), Some((134.0, 72.0)));
+        assert_eq!(hit_slot(256, 28, 134.0, 72.0), Some(255));
+        assert_eq!(hit_slot(256, 28, 150.0, 72.0), None);
+        assert_eq!(hit_slot(1, 0, 8.0, 18.0), Some(0));
+        assert_eq!(hit_slot(1, 0, 26.0, 18.0), None);
+        assert_eq!(visible_slot(256, 28, 223), None);
     }
     #[test]
     fn part_inventory_grows_and_shrinks_to_one_spare_slot() {
