@@ -97,3 +97,9 @@ speed 1 with Lightweight 1 and Swiftstrike 1 is 1.13; mining speed 4 with
 Lightweight 1 and Heavy 1 is 4.92. These candidate paths and focused tests are
 not yet applied, type-checked or verified in game. Other modifier modules and
 unsupported stat operations are not claimed complete.
+
+The stat integration candidate combines the non-durability stat branch with
+splash candidate #266 and the world-scoped Bouncy follow-up #264. It retains the
+workstation upgrade-order changes and the fluid/crafting declarations from both
+branches. This merge has not passed official package, plan/apply, type, runtime
+or conflict-regression checks; use the exact integration head for those checks.
