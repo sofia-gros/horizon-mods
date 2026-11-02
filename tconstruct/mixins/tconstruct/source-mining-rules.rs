@@ -27,6 +27,33 @@ mod haste_tests {
     }
 }
 
+// Airborne's percent module runs after flat mining bonuses and does not
+// require an effective tool. A broken tool cannot apply modifiers.
+pub(super) fn airborne_multiplier(custom: &Tag, damage: u32, on_ground: bool) -> f32 {
+    if on_ground { return 1.0; }
+    let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return 1.0; };
+    if *max <= 0 || damage >= *max as u32 { return 1.0; }
+    let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return 1.0; };
+    if modifiers.iter().any(|modifier| matches!((modifier.get("id"), modifier.get("level")),
+        (Some(Tag::String(id)), Some(Tag::Int(level))) if id.to_string_lossy() == "tconstruct:airborne" && *level > 0)) { 5.0 } else { 1.0 }
+}
+
+#[cfg(test)]
+mod airborne_tests {
+    use super::*;
+    #[test]
+    fn only_unbroken_airborne_trait_boosts_airborne_speed() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([("id", Tag::String("tconstruct:airborne".into())), ("level", Tag::Int(1))])])),
+        ]);
+        assert_eq!(airborne_multiplier(&custom, 0, false), 5.0);
+        assert_eq!(airborne_multiplier(&custom, 0, true), 1.0);
+        assert_eq!(airborne_multiplier(&custom, 100, false), 1.0);
+        assert_eq!(airborne_multiplier(&Tag::compound(Vec::<(&str, Tag)>::new()), 0, false), 1.0);
+    }
+}
+
 // Evaluate the actual Tool with PlutoLib. A missing or invalid component leaves
 // host fallback decisions to the caller.
 fn outcome(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<super::tconstruct_tool_api::rules::Outcome> {

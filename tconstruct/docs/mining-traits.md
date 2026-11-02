@@ -70,3 +70,21 @@ Mixins CI and independent review are still pending.
 ![Dense repair in the Tinker Station](material-mining-repair.png)
 
 ![LAN guest's cobalt tool](material-mining-lan.png)
+
+## Airborne mining
+
+The Skyslime Vine Airborne trait multiplies mining speed by five while the
+holder is off the ground, including on blocks where the tool is ineffective.
+It applies after flat conditional mining bonuses and does not apply to broken
+tools. Rebuilding or swapping material updates the stored trait. This implements
+the mining portion of the [original Airborne definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/airborne.json);
+the conditional projectile velocity portion remains unimplemented.
+
+A focused local Rust test checked trait presence, grounded and broken cases
+using the saved older host NBT library. Current-target compilation, gameplay,
+material acquisition, save/reload and LAN remain unverified. In the combined
+client, make a supported harvest tool with Skyslime Vine, compare the same
+block on the ground and while airborne, including one ineffective block, then
+repeat after breaking the tool and after replacing that material. Capture both
+local and LAN guest behavior; use a labelled fixture if the material is not yet
+naturally obtainable.
