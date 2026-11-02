@@ -25,10 +25,6 @@ pub(super) fn resolve(
     for (id, layers) in layers {
         if !id.contains(":tinkering/fluid_effects/") { continue; }
         let value: Value = serde_json::from_slice(layers.last()?).ok()?;
-        if let Some(raw) = value.get("conditions") {
-            let condition = conditions(raw.as_array()?)?;
-            if !condition { continue; }
-        }
         let spec = value.get("fluid")?.as_object()?;
         let matched = match (spec.get("fluid"), spec.get("tag")) {
             (Some(id), None) => id.as_str()? == fluid,
@@ -36,6 +32,10 @@ pub(super) fn resolve(
             _ => return None,
         };
         if !matched { continue; }
+        if let Some(raw) = value.get("conditions") {
+            let condition = conditions(raw.as_array()?)?;
+            if !condition { continue; }
+        }
         let amount = u32::try_from(spec.get("amount")?.as_u64()?).ok().filter(|n| *n > 0)?;
         let effects = match value.get("entity_effects") {
             None => Vec::new(),

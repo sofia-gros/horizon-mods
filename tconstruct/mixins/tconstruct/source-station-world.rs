@@ -142,7 +142,8 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
         Some(Tag::Int(level)) if (1..=i16::MAX as i32).contains(level) => *level,
         _ => return None,
     };
-    if tank_level > 0 || fields.get(&"tic_tank_capacity".into()).is_some() {
+    let has_slurping = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:slurping")), Some(Tag::Int(level)) if *level > 0);
+    if tank_level > 0 || has_slurping || fields.get(&"tic_tank_capacity".into()).is_some() {
         let mut probe = output.clone();
         probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
         // Fail before any transaction is committed if stored fluid is malformed.
