@@ -1,0 +1,3 @@
+# Melter at normal tick rate
+
+Same candidate, local corrections, floor and starting ingredients as [the accelerated fixture](../melter-display/README.md), but without a tick-rate command. After 400 ticks, the menu and `data get block` both showed 9 copper ingots and 1 coal; saved chunk metadata held 90 mB molten copper, the same 9 ingots, and remaining fuel. The screenshots show the input slots after waiting and reopening. In the accelerated fixture all 10 ingots had been processed into 900 mB, so empty ingredient slots there alone do not establish a UI update bug. The fluid area appears gray in these screenshots; actual fluid display/tooltip behavior requires independent investigation. No claim of lost fluid is made.
