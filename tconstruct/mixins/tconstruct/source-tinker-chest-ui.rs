@@ -3,7 +3,13 @@ use super::tconstruct_chest_rules::{self as rules, ChestKind};
 
 /// Direct local chest screen. Guest menus use their authoritative packet path.
 pub(super) fn kind(game: &Game<'_>) -> Option<ChestKind> {
-    if game.remote.is_some() { return None; }
+    if game.remote.is_some() {
+        return match game.remote_menu_title().map(|title|title.plain()).as_deref() {
+            Some("TConstruct Part Chest") => Some(ChestKind::Part),
+            Some("TConstruct Tinkers Chest") => Some(ChestKind::Tinkers),
+            _ => None,
+        };
+    }
     let key = game.container?;
     match &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name {
         "tconstruct:part_chest" => Some(ChestKind::Part),
@@ -14,6 +20,10 @@ pub(super) fn kind(game: &Game<'_>) -> Option<ChestKind> {
 
 pub(super) fn page(game: &Game<'_>) -> Option<(usize, usize)> {
     let kind = kind(game)?;
+    if game.remote.is_some() {
+        let key=super::remote::tconstruct_source_machine_remote::position(game)?;
+        return game.world.chunks.__horizon_mixins_tconstruct_chest_ui_pages().get(&key).copied();
+    }
     let key = game.container?;
     let BlockEntity::Chest(slots) = game.world.block_entities.get(&key)? else { return None; };
     if slots.len() != kind.slots() { return None; }
@@ -27,8 +37,23 @@ pub(super) fn position(game: &Game<'_>, slot: usize) -> Option<(f32,f32)> {
     match slot {
         0..=8 => Some((8.0 + slot as f32 * 18.0, 160.0)),
         9..=35 => Some((8.0 + ((slot - 9) % 9) as f32 * 18.0, 102.0 + ((slot - 9) / 9) as f32 * 18.0)),
-        300..=555 => Some(rules::visible_slot(count, scroll, slot - 300).unwrap_or((-10000.0,-10000.0))),
+        300..=555 => {
+            let index=if game.remote.is_some() { scroll*rules::CHEST_COLUMNS+slot-300 } else { slot-300 };
+            Some(rules::visible_slot(count, scroll, index).unwrap_or((-10000.0,-10000.0)))
+        },
         _ => None,
+    }
+}
+
+pub(super) fn set_scroll(game: &mut Game<'_>, next: usize) {
+    let Some((count,_))=page(game) else { return; };
+    let next=next.min(rules::max_scroll(count));
+    if game.remote.is_some() {
+        if let Some((window,_))=game.remote.as_ref().and_then(|r|r.menu.as_ref()) {
+            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container:*window,button:41000+next as i32 }));
+        }
+    } else if let Some(pos)=game.container {
+        game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default().0=next;
     }
 }
 

@@ -134,6 +134,16 @@ pub(super) fn part_visual_size(occupied: impl DoubleEndedIterator<Item = bool> +
         .unwrap_or(1).min(capacity)
 }
 
+/// A guest uses the existing 54-slot vanilla transport, with 32 real source
+/// slots on the current page. Padding never maps to storage.
+pub(super) fn project(slots: &[Option<horizon_items::items::ItemStack>], scroll: usize) -> Vec<Option<horizon_items::items::ItemStack>> {
+    let mut out = vec![None;54]; let first=scroll*CHEST_COLUMNS;
+    for (visible, target) in out.iter_mut().take(CHEST_COLUMNS*CHEST_ROWS).enumerate() {
+        if let Some(item)=slots.get(first+visible) { *target=item.clone(); }
+    }
+    out
+}
+
 /// TinkerChestScreen's ScalingChestScreen: 162×72, 12-pixel slider,
 /// 18-pixel cells, at (7,17) within the original 176-wide parent.
 pub(super) const CHEST_COLUMNS: usize = 8;
@@ -238,6 +248,14 @@ mod tests {
         assert!(insert_across(ChestKind::Tinkers, &mut tinkers, ItemStack::new("minecraft:stone", 5), 64, false).is_none());
         assert_eq!(tinkers[7].as_ref().unwrap().count, 16);
         assert_eq!(tinkers[0].as_ref().unwrap().count, 4);
+    }
+    #[test]
+    fn guest_projection_has_only_real_page_slots() {
+        use horizon_items::items::ItemStack;
+        let mut slots=vec![None;256];slots[0]=Some(ItemStack::new("minecraft:stone",1));slots[255]=Some(ItemStack::new("minecraft:diamond",1));
+        let first=project(&slots,0);let last=project(&slots,28);
+        assert_eq!(first.len(),54);assert_eq!(first[0].as_ref().unwrap().item.as_ref(),"minecraft:stone");
+        assert_eq!(last[31].as_ref().unwrap().item.as_ref(),"minecraft:diamond");assert!(last[32..].iter().all(Option::is_none));
     }
     #[test]
     fn source_chest_slots_scroll_and_hit_the_same_visible_cells() {

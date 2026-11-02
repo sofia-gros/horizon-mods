@@ -8,7 +8,7 @@ fn builder_drag(game: &mut crate::game::Game<'_>) -> std::ops::ControlFlow<()> {
         let batch=horizon_client::hud::HudBatch::new(size); let (_,oy)=game.inventory_origin(&batch);
         let max=crate::game::tconstruct_chest_rules::max_scroll(count);
         let offset=(((game.cursor.1-oy-24.5)/57.0).clamp(0.0,1.0)*max as f32).round() as usize;
-        game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default().0=offset;
+        crate::game::tconstruct_chest_ui::set_scroll(game,offset);
         return Break(());
     }
     if crate::game::tconstruct_ui::kind(game) != Some(false) { return Continue(()); }

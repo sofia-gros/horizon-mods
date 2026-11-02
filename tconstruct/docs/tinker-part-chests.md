@@ -21,3 +21,5 @@ Both block and item declarations and their original shaped recipe ingredients ar
 The chest-screen cell geometry follows the source's eight columns, four rows and 12-pixel scrollbar. A common position/hit calculation covers the final Part Chest slot, but the screen and scrolling events are not connected yet.
 
 A first local chest screen connection uses the source blank background, original scrolling grid, source item tags, and the shared pickup/shift-move rules. Unsupported gestures are currently blocked; the guest and adjacent workstation paths remain unconnected. This is a draft implementation, not yet transformed, built or tested in the game.
+
+A draft LAN direct-chest path projects the visible 32 slots into the existing 54-slot transport and validates normal/shift clicks on the host, including full component identity. It uses window-scoped page state and rejects virtual slots and unsupported gestures. Client/server integration has only a limited Mixins plan so far; no transform, type check or game test has been run. Adjacent-workstation access remains unconnected.

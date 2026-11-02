@@ -5,6 +5,7 @@ fn tconstruct_chest_click(
     use std::ops::ControlFlow::{Break, Continue};
     use horizon_client::menu::Input;
     let Some(kind) = crate::game::tconstruct_chest_ui::kind(game) else { return Continue(()); };
+    if game.remote.is_some() { return Continue(()); }
     let Some(key) = game.container else { return Break(true); };
     let Some(slot) = slot else { return Break(true); };
     if button != 0 && button != 1 { return Break(true); }

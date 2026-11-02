@@ -10,7 +10,8 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         if (157.0..169.0).contains(&x) && (17.0..89.0).contains(&y) {
             let max = crate::game::tconstruct_chest_rules::max_scroll(count);
             let offset = (((y-24.5)/57.0).clamp(0.0,1.0) * max as f32).round() as usize;
-            *game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(key).or_default() = (offset, max>0);
+            crate::game::tconstruct_chest_ui::set_scroll(game,offset);
+            game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(key).or_default().1 = max>0;
             return Break(true);
         }
         return Continue(());

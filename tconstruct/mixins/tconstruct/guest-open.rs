@@ -1,6 +1,30 @@
 fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, pos: (i32, i32, i32)) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     let machine = game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name.clone();
+    let chest_kind = match &*machine {
+        "tconstruct:part_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Part),
+        "tconstruct:tinkers_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Tinkers),
+        _ => None,
+    };
+    if let Some(kind) = chest_kind {
+        game.ensure_datapacks();
+        let entity=game.world.block_entities.get_or_insert_with(pos, || BlockEntity::Chest(vec![None;kind.slots()]));
+        let BlockEntity::Chest(items)=entity else { return Break(false); };
+        if items.len()!=kind.slots() { return Break(false); }
+        let visual=if kind==crate::game::tconstruct_chest_rules::ChestKind::Part { crate::game::tconstruct_chest_rules::part_visual_size(items.iter().map(Option::is_some),items.len()) } else { items.len() };
+        let projected=crate::game::tconstruct_chest_rules::project(items,0);
+        let Some(guest)=host.hub.guest(conn) else { return Break(false); };
+        let joined=guest.placed_at;
+        game.guest_container_closed(host,conn); game.lan_station_closed(host,conn,None);
+        let title=if kind==crate::game::tconstruct_chest_rules::ChestKind::Part { "TConstruct Part Chest" } else { "TConstruct Tinkers Chest" };
+        host.hub.open_container(conn,"minecraft:generic_9x6",horizon_protocol::text::literal(title),pos,horizon_client::lan::menu::Slots::Block(pos),projected);
+        if let Some(guest)=host.hub.guest(conn) { if let Some(window)=guest.menu.as_ref().map(|m|m.window) {
+            game.world.chunks.__horizon_mixins_tconstruct_chest_guest_pages_mut().insert((conn,joined,window,pos),(0,visual));
+            guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container:window,id:30101,value:visual as i16 }));
+            guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container:window,id:30102,value:0 }));
+        }}
+        return Break(true);
+    }
     if matches!(&*machine, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
         game.ensure_datapacks();
         if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &machine) { return Break(false); }
