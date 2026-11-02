@@ -1,6 +1,6 @@
 # Make a first content mod
 
-The demo creates a gem, a block and a Creative tab using PlutoLib's Rust API. Horizon registers the generated content; the Creative tab is added to a prepared resource file before launch. These are separate steps.
+The demo creates two gems, a block and a Creative tab using PlutoLib's Rust API. Horizon registers the generated content; the Creative tab is added to a prepared resource file before launch. These are separate steps.
 
 ## Generate the demo
 
@@ -8,10 +8,10 @@ You need Rust and a prepared Horizon 26.3 resource directory for the [target rev
 
 ```sh
 mkdir -p .work
-cargo run --locked --example demo -- .work/demo /path/to/horizon-resources/creative-inventory.json
+cargo run --locked --example demo -- .work/demo /path/to/horizon-resources/creative-inventory.json --native-pages
 ```
 
-The output contains `horizon-mod.toml`, item and block declarations, models, names, and a modified `creative-inventory.json`. It references Minecraft textures already present in the game resources; it does not distribute them. Create the parent directory first, as shown above; the output directory itself must not already exist. The example uses the top-row position 5, which must be free of visible non-hotbar tabs.
+The output contains `horizon-mod.toml`, item and block declarations, models, names, and a modified `creative-inventory.json`. It references Minecraft textures already present in the game resources; it does not distribute them. Create the parent directory first, as shown above; the output directory itself must not already exist. The `--native-pages` option uses the target Horizon version’s built-in page controls. The standalone preparation step uses the older pinned parser for stack identity; see [native Creative preparation](native-creative.md).
 
 ## Run it
 
@@ -29,9 +29,9 @@ HORIZON_HOME="$PWD/.work/game-home" /path/to/horizon-client \
   --world PlutoDemo --creative
 ```
 
-Open the Creative inventory and select the gem tab near the top right. Drag the gem and block into the hotbar, then select and place the block. The paths passed to the client should be absolute.
+Open the Creative inventory, advance to the next tab page, and select the Pluto Demo tab. Move the gems and block into the hotbar, then select and place the block. The paths passed to the client should be absolute.
 
-The **Pluto Demo** Creative tab contains a gem and a placeable block. On Linux, the tab was selected, both items were moved to the hotbar, and the block was placed using the target Horizon revision. The gem and block use vanilla template behavior and appearance, and are independent of Tinkers. The demo source is [examples/demo.rs](../examples/demo.rs).
+The **Pluto Demo** tab contains a 16-stack gem, a second gem that inherits its template limit, and a placeable block. On the pinned Linux host, 17 of the first gem split into 16 and 1; 65 of the inherited gem split into 64 and 1. The items retained those counts after a host save/reload and a LAN guest reconnect. A previous demo also checked block placement. These items use vanilla template behavior and appearance and are independent of Tinkers. The demo source is [examples/demo.rs](../examples/demo.rs).
 
 ## Use it in your mod
 
@@ -40,3 +40,7 @@ Create a `Registry` with your mod namespace, add declarations, and write them in
 ![The demo block placed in a Horizon world](demo-block.png)
 
 *The block placed from the demo tab in the Linux test world.*
+
+![Both gems in the native-paged demo](item-stack-limit-tab.png)
+
+*The demo tab and the 16- and 64-item stacks in the hotbar.*

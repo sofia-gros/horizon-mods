@@ -51,7 +51,31 @@ impl Registry {
     }
     /// Add an item based on a vanilla item template.
     pub fn item(&mut self, name: &str, template: &str) -> Result<(), RegistrationError> {
-        self.add("item", name, template, json!({"template": template}))
+        self.add_item(name, template, None)
+    }
+    /// Add an item with an explicit stack limit accepted by Horizon (1 to 99).
+    pub fn item_with_max_stack(
+        &mut self,
+        name: &str,
+        template: &str,
+        max_stack_size: u8,
+    ) -> Result<(), RegistrationError> {
+        self.add_item(name, template, Some(max_stack_size))
+    }
+    fn add_item(
+        &mut self,
+        name: &str,
+        template: &str,
+        max_stack_size: Option<u8>,
+    ) -> Result<(), RegistrationError> {
+        if max_stack_size.is_some_and(|limit| !(1..=99).contains(&limit)) {
+            return Err(RegistrationError("max_stack_size must be 1 to 99".into()));
+        }
+        let mut declaration = json!({"template": template});
+        if let Some(limit) = max_stack_size {
+            declaration["max_stack_size"] = json!(limit);
+        }
+        self.add("item", name, template, declaration)
     }
     /// Add a block and its default block item based on a vanilla block template.
     pub fn block(&mut self, name: &str, template: &str) -> Result<(), RegistrationError> {
@@ -296,6 +320,41 @@ mod tests {
         assert!(r.item("stone", "minecraft:stick").is_err());
         assert!(r.item("../escape", "minecraft:stick").is_err());
         assert!(r.item("stick", "demo:stick").is_err());
+    }
+    #[test]
+    fn item_stack_limit_uses_host_bounds_without_reserving_failed_names() {
+        let mut registry = Registry::new("example").unwrap();
+        registry.item("inherited", "minecraft:stick").unwrap();
+        assert!(registry.entries[0].2.get("max_stack_size").is_none());
+        for limit in [1, 2, 16, 64, 99] {
+            let name = format!("item_{limit}");
+            registry
+                .item_with_max_stack(&name, "minecraft:stick", limit)
+                .unwrap();
+            assert_eq!(
+                registry.entries.last().unwrap().2["max_stack_size"],
+                json!(limit)
+            );
+        }
+        assert!(registry
+            .item_with_max_stack("retry", "minecraft:stick", 0)
+            .is_err());
+        assert!(registry
+            .item_with_max_stack("retry", "minecraft:stick", 100)
+            .is_err());
+        registry
+            .item_with_max_stack("retry", "minecraft:stick", 16)
+            .unwrap();
+        assert!(registry
+            .item_with_max_stack("retry", "minecraft:stick", 16)
+            .is_err());
+        assert!(registry
+            .item_with_max_stack("../bad", "minecraft:stick", 16)
+            .is_err());
+        assert!(registry
+            .item_with_max_stack("bad", "other:template", 16)
+            .is_err());
+        assert!(Registry::new("minecraft").is_err());
     }
     #[test]
     fn creative_preserves_input_order_and_rejects_collisions() {

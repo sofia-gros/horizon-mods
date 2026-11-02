@@ -19,13 +19,13 @@ use pluto_lib::Registry;
 use std::path::Path;
 
 let mut registry = Registry::new("my_mod")?;
-registry.item("gem", "minecraft:amethyst_shard")?;
+registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
 registry.block("gem_block", "minecraft:amethyst_block")?;
 registry.write_to(Path::new("generated-content"))?;
 # Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-This writes content declarations. Include them with your mod’s manifest and assets, as shown in the demo.
+This writes content declarations for a gem that stacks to 16 and a block. Include them with your mod’s manifest and assets, as shown in the demo.
 
 [Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs) · [Native Creative preparation](docs/native-creative.md) · [Native installation](docs/native-installation.md) · [Experimental item behaviors](docs/item-behaviors.md) · [Component transport prototype](docs/component-transport.md) · [Tool rules](docs/tool-rules.md) · [Inventory planning](docs/inventory.md) · [Combined native demo](experiments/unified-target/README.md)
 

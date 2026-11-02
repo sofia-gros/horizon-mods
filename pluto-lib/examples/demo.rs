@@ -1,3 +1,4 @@
+use pluto_lib::native_creative::{register_tabs, Entry, Tab};
 use pluto_lib::{
     add_creative_tabs, add_paged_creative_tabs, CreativeTab, PagedCreativeTab, Registry,
 };
@@ -5,14 +6,19 @@ use std::{env, fs, path::Path};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<_> = env::args().collect();
-    if args.len() != 3 && !(args.len() == 4 && args[3] == "--overflow") {
-        return Err("usage: demo OUTPUT_DIR PREPARED_CREATIVE_JSON [--overflow]".into());
+    if args.len() != 3
+        && !(args.len() == 4 && matches!(args[3].as_str(), "--overflow" | "--native-pages"))
+    {
+        return Err(
+            "usage: demo OUTPUT_DIR PREPARED_CREATIVE_JSON [--overflow|--native-pages]".into(),
+        );
     }
     let root = Path::new(&args[1]);
     let inventory = serde_json::from_slice(&fs::read(&args[2])?)?;
     let gem = "{count:1,id:\"pluto_demo:gem\"}";
+    let inherited = "{count:1,id:\"pluto_demo:gem_inherited\"}";
     let block = "{count:1,id:\"pluto_demo:glowing_block\"}";
-    let tabs = if args.len() == 4 {
+    let tabs = if args.get(3).is_some_and(|arg| arg == "--overflow") {
         let ids: Vec<_> = (1..=17).map(|n| format!("pluto_demo:page_{n}")).collect();
         let titles: Vec<_> = (1..=17).map(|n| format!("Pluto Demo {n}")).collect();
         let groups: Vec<_> = ids
@@ -27,6 +33,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             })
             .collect();
         add_paged_creative_tabs(&inventory, &groups)?
+    } else if args.get(3).is_some_and(|arg| arg == "--native-pages") {
+        let items = [gem, inherited, block]
+            .into_iter()
+            .map(|snbt| Entry {
+                snbt: snbt.into(),
+                searchable: true,
+                permissions_only: false,
+                search_lines: vec!["Pluto Demo".into()],
+                search_tags: Vec::new(),
+            })
+            .collect();
+        register_tabs(
+            &inventory,
+            &[Tab {
+                id: "pluto_demo:things".into(),
+                title: "Pluto Demo".into(),
+                icon: gem.into(),
+                items,
+            }],
+            |s| {
+                let mut item = horizon_items::item_data::parse_stack(s)?.ok_or("empty stack")?;
+                item.count = 1;
+                Ok(horizon_items::item_data::canon_stack(Some(&item)))
+            },
+        )?
     } else {
         add_creative_tabs(
             &inventory,
@@ -36,12 +67,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 icon: gem,
                 row: "TOP",
                 column: 5,
-                items: vec![gem, block],
+                items: vec![gem, inherited, block],
             }],
         )?
     };
     let mut registry = Registry::new("pluto_demo")?;
-    registry.item("gem", "minecraft:amethyst_shard")?;
+    registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
+    registry.item("gem_inherited", "minecraft:amethyst_shard")?;
     registry.block("glowing_block", "minecraft:amethyst_block")?;
     registry.write_to(root)?;
     fs::write(
@@ -52,6 +84,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     for (path, value) in [
         (
             "assets/pluto_demo/items/gem.json",
+            serde_json::json!({"model":{"type":"minecraft:model","model":"pluto_demo:item/gem"}}),
+        ),
+        (
+            "assets/pluto_demo/items/gem_inherited.json",
             serde_json::json!({"model":{"type":"minecraft:model","model":"pluto_demo:item/gem"}}),
         ),
         (
@@ -72,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
         (
             "assets/pluto_demo/lang/en_us.json",
-            serde_json::json!({"item.pluto_demo.gem":"Pluto Gem", "block.pluto_demo.glowing_block":"Pluto Block"}),
+            serde_json::json!({"item.pluto_demo.gem":"Pluto Gem", "item.pluto_demo.gem_inherited":"Template Gem", "block.pluto_demo.glowing_block":"Pluto Block"}),
         ),
     ] {
         let file = root.join(path);
