@@ -1,0 +1,3 @@
+# Direct fuel tank tagged-bucket rejection
+
+Same limited integrated client, resources, #166 inclusion and corrections as [the direct-use fixture](../166-isolated-fuel-tank/README.md); not an unmodified exact-head build. In a fresh survival fixture, a water bucket with `minecraft:custom_data={marker:1}` was verified in hand before use. The empty Seared Fuel Tank rejected it, preserving the water bucket and marker. Using an empty bucket afterward left that bucket empty, confirming the tank stayed empty. Screenshots are actual client captures; the log records held components and states. Other #166 gates remain open.
