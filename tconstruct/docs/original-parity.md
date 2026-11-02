@@ -384,3 +384,5 @@ Scorched Table and gold bars now have standalone source-shaped recipes, source m
 The source `molding_basin` serializer now uses the same material/pattern transaction as `molding_table`, with the two recipe types kept separate. No basin molding recipe is added; datapack-supplied cases and integrated operation await verification.
 
 The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
+
+The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
