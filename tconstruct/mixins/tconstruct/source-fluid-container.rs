@@ -85,13 +85,42 @@ pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) ->
     if stack.item.as_ref() == "minecraft:potion" { return simple_potion(stack).is_some(); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
-// The host currently models a potion ID separately from its other components.
-// Only accept the lossless simple case until custom effects/color are modeled.
-fn simple_potion(stack: &ItemStack) -> Option<String> {
+// Translate only the losslessly represented base potion and optional color.
+fn potion_data(stack: &ItemStack, allow_color: bool) -> Option<(String, Option<i32>)> {
+    use horizon_world::nbt::Tag;
     if !matches!(&*stack.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") || stack.count == 0 || stack.damage != 0 { return None; }
     let potion = stack.potion()?;
-    let plain = ItemStack::new(&stack.item, 1).with_potion(potion);
-    stack.same_item_same_components(&plain).then(|| potion.to_owned())
+    let mut plain = ItemStack::new(&stack.item, 1).with_potion(potion);
+    let extra = stack.data().map(|data| data.potion_extra.as_slice()).unwrap_or(&[]);
+    let color = match extra {
+        [] => None,
+        [(key, Tag::Int(color))] if allow_color && key == "custom_color" => Some(*color),
+        _ => return None,
+    };
+    if let Some(color) = color { plain.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(color))); }
+    stack.same_item_same_components(&plain).then(|| (potion.to_owned(), color))
+}
+fn simple_potion(stack: &ItemStack) -> Option<String> { potion_data(stack, false).map(|(potion, _)| potion) }
+
+pub(super) fn potion_tag(tag: &horizon_world::nbt::Tag, allow_color: bool) -> Option<(String, Option<i32>)> {
+    use horizon_world::nbt::Tag;
+    let Tag::Compound(fields) = tag else { return None; };
+    let Tag::String(potion) = fields.get(&"Potion".into())? else { return None; };
+    let potion = potion.to_string_lossy();
+    if potion.is_empty() || potion == "minecraft:empty" { return None; }
+    let color = match fields.get(&"CustomPotionColor".into()) {
+        None => None,
+        Some(Tag::Int(color)) if allow_color => Some(*color),
+        _ => return None,
+    };
+    if fields.len() != 1 + usize::from(color.is_some()) { return None; }
+    Some((potion, color))
+}
+pub(super) fn potion_stack(item: &str, potion: &str, color: Option<i32>) -> ItemStack {
+    use horizon_world::nbt::Tag;
+    let mut result = ItemStack::new(item, 1).with_potion(potion);
+    if let Some(color) = color { result.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(color))); }
+    result
 }
 
 /// A normal left/right click on either temporary slot. The output never
@@ -174,13 +203,18 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
 pub(super) fn transfer_selected_with_tags(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
     item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> bool {
+    transfer_selected_with_color(tank, slots, direction, selected, known_item, known_fluid, item_tags, false)
+}
+pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
     if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
     if matches!(&*input.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") {
         use horizon_world::nbt::Tag;
         if direction == Direction::FillItem { return false; }
-        let Some(potion) = simple_potion(input) else { return false; };
+        let Some((potion, color)) = potion_data(input, allow_color) else { return false; };
         let empty = match &*input.item {
             "minecraft:potion" => "minecraft:glass_bottle".to_owned(),
             item => {
@@ -194,8 +228,13 @@ pub(super) fn transfer_selected_with_tags(tank: &mut SmelteryTank, slots: &mut [
             }
         };
         if !known_item(&empty) { return false; }
+        if potion == "minecraft:water" && color.is_some() { return false; }
         let (fluid, metadata) = if potion == "minecraft:water" { ("minecraft:water", None) }
-            else { ("tconstruct:potion", Some(Tag::compound([("Potion", Tag::String(potion.as_str().into()))]))) };
+            else {
+                let mut fields = vec![("Potion", Tag::String(potion.as_str().into()))];
+                if let Some(color) = color { fields.push(("CustomPotionColor", Tag::Int(color))); }
+                ("tconstruct:potion", Some(Tag::compound(fields)))
+            };
         let mut next = tank.clone();
         if !known_fluid(fluid) || !next.insert_tagged(fluid, metadata.as_ref(), 250) { return false; }
         let mut remaining = input.clone(); remaining.count -= 1;
@@ -239,13 +278,10 @@ pub(super) fn transfer_selected_with_tags(tank: &mut SmelteryTank, slots: &mut [
         let is_potion = entry.id == "tconstruct:potion";
         let is_water = entry.id == "minecraft:water" && entry.tag.is_none();
         if is_potion || is_water {
-            let potion = if is_water { "minecraft:water".to_owned() } else {
-                let Some(Tag::Compound(fields)) = entry.tag.as_ref() else { return false; };
-                if fields.len() != 1 { return false; }
-                let Some(Tag::String(potion)) = fields.get(&"Potion".into()) else { return false; };
-                let potion = potion.to_string_lossy();
-                if potion.is_empty() || potion == "minecraft:empty" { return false; }
-                potion
+            let (potion, color) = if is_water { ("minecraft:water".to_owned(), None) } else {
+                let Some(tag) = entry.tag.as_ref() else { return false; };
+                let Some(data) = potion_tag(tag, allow_color) else { return false; };
+                data
             };
             let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
             let amount = if is_water { 500 } else { 250 };
@@ -253,7 +289,7 @@ pub(super) fn transfer_selected_with_tags(tank: &mut SmelteryTank, slots: &mut [
             if !known_item("minecraft:potion") || !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
             let mut remaining = input.clone(); remaining.count -= 1;
             slots[0] = (remaining.count > 0).then_some(remaining);
-            slots[1] = Some(ItemStack::new("minecraft:potion", 1).with_potion(&potion)); *tank = next;
+            slots[1] = Some(potion_stack("minecraft:potion", &potion, color)); *tank = next;
             return true;
         }
     }
@@ -295,12 +331,17 @@ pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::
 pub(super) fn transfer_single_with_tags(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
     item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> bool {
+    transfer_single_with_color(tank, slots, direction, known_item, known_fluid, item_tags, false)
+}
+pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool) -> bool {
     let mut staged = SmelteryTank::new(tank.capacity);
     if let Some(id) = tank.fluid.as_deref() {
         if !staged.insert_tagged(id, tank.tag.as_ref(), tank.amount) { return false; }
     }
     let mut staged_slots = slots.clone();
-    if !transfer_selected_with_tags(&mut staged, &mut staged_slots, direction, None, known_item, known_fluid, item_tags) { return false; }
+    if !transfer_selected_with_color(&mut staged, &mut staged_slots, direction, None, known_item, known_fluid, item_tags, allow_color) { return false; }
     if staged.fluids.len() > 1 { return false; }
     *slots = staged_slots;
     tank.amount = staged.total();

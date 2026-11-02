@@ -108,7 +108,7 @@ fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, 
     for face in faces.into_iter().take(if sides { 5 } else { 1 }) {
         for (p, uv) in face.into_iter().zip(uv) {
             out.push(Vertex { pos: (origin + glam::Vec3::from_array(p)).to_array(), uv, layer: 0,
-                color: crate::game::tconstruct_source_melter_render::color(fluid), light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
+                color: crate::game::tconstruct_source_melter_render::color_tagged(fluid, tank.tag.as_ref()), light, normal: [0, 0, 0, 0], glint_uv: [0.0; 2] });
         }
     }
 }

@@ -56,22 +56,17 @@ pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &s
     })?
 }
 
-/// Resolve the source potion serializer for an unmodified base potion tag.
-/// Custom effects, colors and additional NBT require a lossless host codec.
-pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag)
+/// Resolve base potion and, on the local path, its custom color. Unsupported
+/// potion metadata is rejected before reserving the fluid.
+pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag, allow_color: bool)
     -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
-    use horizon_world::nbt::Tag;
-    let Tag::Compound(fields) = tag else { return None; };
-    if fields.len() != 1 { return None; }
-    let Tag::String(potion) = fields.get(&"Potion".into())? else { return None; };
-    let potion = potion.to_string_lossy();
-    if potion.is_empty() || potion == "minecraft:empty" { return None; }
+    let (potion, color) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
     let input = input?;
     let (id, recipe, output) = with_catalog(world, |catalog, registries, config| {
         catalog.potion_casting(basin, &input.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
     })??;
     if !matches!(output.as_str(), "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion" | "minecraft:tipped_arrow") { return None; }
-    Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1).with_potion(&potion)))
+    Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color)))
 }
 
 /// Resolve the completed stack before reserving fluid. Both normal item

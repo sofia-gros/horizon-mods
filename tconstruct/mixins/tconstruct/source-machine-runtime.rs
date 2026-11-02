@@ -180,10 +180,10 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
             .map(|(id, items)| (id.clone(), items.clone())).collect());
     let before = tank.amount;
     let mut slots = [Some(held), None];
-    if !super::tconstruct_source_fluid_container::transfer_single_with_tags(&mut tank, &mut slots,
+    if !super::tconstruct_source_fluid_container::transfer_single_with_color(&mut tank, &mut slots,
         super::tconstruct_source_fluid_container::Direction::Auto,
         &|item| game.res.items().get(item).is_some(),
-        &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref()) { return true; }
+        &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
     if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
     if game.creative {
         // Preserve the held container in creative, but retain fluid removed
@@ -226,9 +226,9 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
             .map(|(id, items)| (id.clone(), items.clone())).collect());
     let before = state.tank.total();
     let mut slots = [Some(held), None];
-    if !super::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut slots,
+    if !super::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut slots,
         super::tconstruct_source_fluid_container::Direction::Auto, None,
-        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref()) { return false; }
+        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return false; }
     if !store::write(&mut game.world, controller, "tconstruct:smeltery", state.to_nbt()) { return false; }
     if game.creative {
         if state.tank.total() < before {
@@ -494,11 +494,11 @@ fn apply_smeltery_take(state: &mut Smeltery, before: &Tank, after: &Tank) -> boo
     before.fluid.as_deref().is_some_and(|id| state.tank.take_tagged(id, before.tag.as_ref(), amount))
 }
 
-fn matched_casting(world: &super::tconstruct_world::World, basin: bool, input: Option<&horizon_items::items::ItemStack>, tank: &Tank)
+fn matched_casting(world: &super::tconstruct_world::World, basin: bool, input: Option<&horizon_items::items::ItemStack>, tank: &Tank, allow_color: bool)
     -> Option<(String, super::tconstruct_source_melting_recipes::CastingRecipe, horizon_items::items::ItemStack)> {
     let fluid = tank.fluid.as_deref()?;
     match tank.tag.as_ref() {
-        Some(tag) => super::tconstruct_source_melter_world::potion_casting_stack(world, basin, input, fluid, tag),
+        Some(tag) => super::tconstruct_source_melter_world::potion_casting_stack(world, basin, input, fluid, tag, allow_color),
         None => super::tconstruct_source_melter_world::casting_stack(world, basin, input, fluid),
     }
 }
@@ -513,7 +513,7 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
     let Some((kind, mut casting)) = casting_at(game, target) else { return false; };
     if casting.recipe.is_none() {
         let input = casting.input.as_ref();
-        let Some((recipe_id, recipe, output)) = matched_casting(&game.world, kind == "tconstruct:basin", input, &fluid) else { return true; };
+        let Some((recipe_id, recipe, output)) = matched_casting(&game.world, kind == "tconstruct:basin", input, &fluid, game.lan.is_none() && game.lan_acting_uuid.is_none()) else { return true; };
         if !casting.prepare(&recipe_id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut fluid, &casting.tank) { return true; }
@@ -554,7 +554,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     if melter.tank.fluid.is_none() { return true; }
     if casting.recipe.is_none() {
         let input = casting.input.as_ref();
-        let Some((id, recipe, output)) = matched_casting(&game.world, casting_kind == "tconstruct:basin", input, &melter.tank) else { return true; };
+        let Some((id, recipe, output)) = matched_casting(&game.world, casting_kind == "tconstruct:basin", input, &melter.tank, game.lan.is_none() && game.lan_acting_uuid.is_none()) else { return true; };
         if !casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut melter.tank, &casting.tank) { return true; }
@@ -591,7 +591,7 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     let Some((kind, mut casting)) = casting_at(game, pos) else { return; };
     if casting.tank.fluid.is_none() { return; }
     let input = casting.input.as_ref();
-    let valid = matched_casting(&game.world, kind == "tconstruct:basin", input, &casting.tank)
+    let valid = matched_casting(&game.world, kind == "tconstruct:basin", input, &casting.tank, game.lan.is_none() && game.lan_acting_uuid.is_none())
         .is_some_and(|(id, recipe, result)| casting.recipe.as_deref() == Some(&id)
             && casting.tank.capacity == recipe.fluid.amount && casting.cooling_time == recipe.cooling_time
             && casting.consumes_cast == recipe.consumes_cast && casting.switch_slots == recipe.switch_slots

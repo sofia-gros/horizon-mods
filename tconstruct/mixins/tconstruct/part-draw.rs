@@ -40,7 +40,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                             while y < height {
                                 let h = (height - y).min(16.0); let mut part = sprite;
                                 part.u1 = part.u0 + 12.0 * du; part.v1 = part.v0 + h * dv;
-                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color_tagged(fluid, tank.tag.as_ref()));
                                 y += h;
                             }
                         }
@@ -62,7 +62,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         while x < 52.0 {
                             let w = (52.0_f32 - x).min(16.0);
                             let mut part = sprite; part.u1 = part.u0 + w * du; part.v1 = part.v0 + h * dv;
-                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, crate::game::tconstruct_source_melter_render::color_tagged(fluid, melter.tank.tag.as_ref()));
                             x += w;
                         }
                         y += h;
