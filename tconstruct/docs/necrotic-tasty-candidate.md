@@ -83,9 +83,23 @@ blacklist, health lower than arrow power, failed and nested hits, projectile
 identity, disconnected guest, canceled healing and shot save/reload. The
 state and injection have not passed official plan, type or game checks.
 
-For PvP, `lan_projectile_hit` enters `guest_hit_by` and swaps `game.player`
-to the victim before recursively handling the projectile. The hit outcome
-is therefore in the victim scope while healing requires the shooter's scope.
-A correct handoff must retain the shooter's identity across that swap and
-apply healing to that actor after the blocked/hurt result; the current mob-only
-handoff intentionally does not implement this.
+For projectile PvP, the formal host first calls `projectile_pvp_victim` and
+`projectile_hits_player`. The latter takes the LAN host out of `game.lan`,
+checks PvP and teams, then enters `guest_hit_by`: the target's player state
+is swapped into `game.player` while `projectile_hit` determines the outcome.
+Only after that returns does it restore `game.lan`. A correct implementation
+must retain projectile identity, shooter UUID and victim pre-hit health across
+that scope, record the actual outcome, then resolve and heal the shooter after
+restoration. Applying the mob path inside the victim scope would heal the
+wrong player. No such PvP handoff is currently connected. The host's
+`projectile_pvp_victim` also requires a resolved player owner; test saved
+arrows separately rather than assuming the UUID fallback extends that route.
+
+For a Tasty bite that breaks a Slurping tool, source `EdibleModule` performs
+the bite during `onUsingTick`; source `SlurpingModule` can still complete its
+independent use. The candidate's `source-slurping::plan_for` rejects broken
+tools and `tick_used_item` keeps the pre-bite stack for the current tick.
+Supporting this case needs an active-use continuation that preserves the
+original use, re-reads the updated stack and allows source-valid completion;
+simply dropping the breaking-bite guard would lose or misapply that use.
+The same stale-stack continuation requires explicit handling for shields.
