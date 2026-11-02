@@ -3,7 +3,7 @@ id = "pluto_component_display_3a"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "3a264943c7a3a3ed02e6ee608443f558d98f208f"
+horizon_revision = "5197790e5846a82cfc84d9703e37c4c1b75be09c"
 [[injection]]
 id = "durability-tooltip"
 target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
