@@ -13,4 +13,4 @@ The initial registration demo was also run on this Horizon revision on Linux, bu
 
 The combination above is the current development target, not a released compatibility guarantee. Horizon [`e12185820a6bc85dd5ed04adc7b8b7a4bdc16102`](https://github.com/horizon-rust/horizon/commit/e12185820a6bc85dd5ed04adc7b8b7a4bdc16102) is a candidate for future work and has not been tested with PlutoLib. PlutoLib does not promise compatibility with every Horizon or Mixins revision; a new combination may require rebuilding and source changes.
 
-The experimental item behavior and wand demo are not yet built or verified in game or over LAN. They target the same pinned combination above.
+The experimental item behavior and wand demo at development commit [`c8795da087962ddfb05b247e1667e9ea62ab5f6a`](https://github.com/sofia-gros/horizon-mods/commit/c8795da087962ddfb05b247e1667e9ea62ab5f6a) were built and run on Linux with the same pinned Horizon and Mixins commits. Local use, tooltip and save/reload, plus a LAN guest use, synchronization and reconnect, were checked. See [item behaviors](item-behaviors.md) for scope and remaining limits.
