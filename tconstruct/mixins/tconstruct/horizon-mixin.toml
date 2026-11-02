@@ -1877,6 +1877,13 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_material_traits"
 source = "source-material-traits.rs"
 
+[[injection]]
+id = "source-golden-armor"
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+kind = "RETURN"
+helper = "golden-armor.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
 [[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"
