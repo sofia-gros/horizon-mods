@@ -117,6 +117,7 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
 /// Other tool AOE iterators and all other block-effect forms stay unresolved.
 pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
     if game.remote.is_some() || !matches!(&*stack.item, "tconstruct:sword" | "tconstruct:dagger") || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
+    if !matches!(face, [0, -1, 0] | [0, 1, 0] | [0, 0, -1] | [0, 0, 1] | [-1, 0, 0] | [1, 0, 0]) { return None; }
     if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
     let custom = stack.data()?.other("minecraft:custom_data")?;
     let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:splashing")? else { return None; };
