@@ -47,3 +47,7 @@ Use fixtures where necessary and do not label them as natural acquisition.
 These are named examples, not an exhaustive count of the remaining trait and
 modifier modules. Keep unreviewed source entries open rather than deriving a
 completion percentage from registry or PR counts.
+
+A subsequent bounded Necrotic melee and Tasty held-use candidate is described in
+[necrotic and Tasty](necrotic-tasty-candidate.md). It does not close the source
+projectile, mixed food, sound, damage registration or equipment-removal gaps.
