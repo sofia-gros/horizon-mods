@@ -158,16 +158,18 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let Some(name) = id.strip_prefix("tconstruct:book/images/").and_then(|s| s.strip_suffix(".png")) else { return; };
         if !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_/-".contains(&c)) { return; }
         let sprite = format!("gui/tconstruct_book_{}", name.replace(['/', '-'], "_"));
+        let mut drawn_height = 0.0;
         if let Some(rect) = atlas.sprites.get(&sprite) {
             let width = spec.get("width").and_then(|v| v.as_u64()).unwrap_or(rect.w as u64).clamp(1, 4096) as f32;
             let height = spec.get("height").and_then(|v| v.as_u64()).unwrap_or(rect.h as u64).clamp(1, 4096) as f32;
             let scale = (182.0 / width).min(100.0 / height).min(1.0);
             let (w, h) = (width * scale, height * scale);
             batch.sprite_scaled(atlas, &sprite, left + 36.0 + (182.0 - w) / 2.0, top + 31.0, w, h, u32::MAX);
-            if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
-                for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
-                    batch.text_styled(atlas, line, left + 36.0, top + 36.0 + h + i as f32 * 9.0, BLACK, false);
-                }
+            drawn_height = h;
+        }
+        if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
+            for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
+                batch.text_styled(atlas, line, left + 36.0, top + 36.0 + drawn_height + i as f32 * 9.0, BLACK, false);
             }
         }
         return;
@@ -278,8 +280,9 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let maximum = chosen.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
         if let Some(id) = id {
             let start = batch.vertices.len();
-            draw_stack(batch, id, 1, damage, maximum, x, y);
+            let stack = draw_stack(batch, id, 1, damage, maximum, x, y);
             batch.scale_since(start, x, y, 2.0, 2.0);
+            if hovered(x, y, 32.0) { item_tooltip = Some(stack); }
         }
     }
     if let Some(result) = spec.get("result") {
@@ -292,8 +295,9 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
             let x = ox + if grid == 2 { 118.0 } else { 146.0 };
             let y = oy + if grid == 2 { 23.0 } else { 41.0 };
             let start = batch.vertices.len();
-            draw_stack(batch, id, count, damage, maximum, x, y);
+            let stack = draw_stack(batch, id, count, damage, maximum, x, y);
             batch.scale_since(start, x, y, 2.0, 2.0);
+            if hovered(x, y, 32.0) { item_tooltip = Some(stack); }
         }
     }
     })();
