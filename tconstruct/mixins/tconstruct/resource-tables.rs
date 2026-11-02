@@ -118,7 +118,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             ("tconstruct:seared_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:seared_ingot_gauge", "tconstruct:ingot_tank"),
             ("tconstruct:scorched_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:scorched_fuel_gauge", "tconstruct:fuel_tank"),
             ("tconstruct:scorched_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:scorched_ingot_gauge", "tconstruct:ingot_tank"),
-            ("tconstruct:seared_lantern", "tconstruct:lantern"), ("tconstruct:scorched_lantern", "tconstruct:lantern"), ("tconstruct:seared_casting_tank", "tconstruct:casting_tank")];
+            ("tconstruct:seared_lantern", "tconstruct:lantern"), ("tconstruct:scorched_lantern", "tconstruct:lantern"), ("tconstruct:seared_casting_tank", "tconstruct:casting_tank"), ("tconstruct:seared_fluid_cannon", "tconstruct:fluid_cannon")];
         let path = out.join("registries.json");
         let mut registries: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         let entries = registries["minecraft:block_entity_type"]["entries"].as_object_mut().ok_or("missing block entity registry")?;
@@ -155,6 +155,19 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 let path = out.join(name);
                 let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
                 super::tconstruct_block_shapes::apply_empty_shape(&mut named.tag, air, &glow_ids)?;
+                std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+            }
+        }
+        // The cannon uses the six-facing End Rod state template but its source
+        // collision is a full cube. Copy only the solid collision geometry.
+        let cannon_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
+            .filter_map(|(id, row)| (row.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:seared_fluid_cannon")).then_some(id)).collect();
+        if !cannon_ids.is_empty() {
+            let solid = facts["defaults"]["minecraft:stone"].as_u64().ok_or("missing stone state")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                super::tconstruct_block_shapes::apply_full_shape(&mut named.tag, solid, &cannon_ids)?;
                 std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
             }
         }
@@ -215,7 +228,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
                 let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
-                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "tconstruct:seared_casting_tank") { continue; }
+                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "tconstruct:seared_casting_tank" | "tconstruct:seared_fluid_cannon") { continue; }
                 let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
                 row["block_entity"] = serde_json::Value::Bool(true);
                 if !matches!(name, "tconstruct:seared_heater" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
@@ -225,6 +238,17 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             }
         }
         super::tconstruct_machine_prepare::apply(&facts, &mut gameplay, out)?;
+        if let Some(stone) = facts["defaults"]["minecraft:stone"].as_u64().map(|id| id as usize) {
+            let outline = gameplay["states"][stone]["outline"].clone();
+            let edges = gameplay["states"][stone]["outline_edges"].clone();
+            if outline.is_null() || edges.is_null() { return Err("missing full-cube outline".into()); }
+            let rows = gameplay["states"].as_array_mut().ok_or("missing gameplay rows")?;
+            for id in &cannon_ids {
+                let row = rows.get_mut(*id).ok_or("missing cannon gameplay row")?;
+                row["outline"] = outline.clone(); row["outline_edges"] = edges.clone();
+                row["full_collision"] = serde_json::json!(true);
+            }
+        }
         // Glow selection is a 1/16-thick sheet on its supporting face; its
         // collision stays empty in both collision tables above.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {

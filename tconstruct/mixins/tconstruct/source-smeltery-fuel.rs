@@ -15,6 +15,7 @@ pub(super) fn item_capacity(name: &str) -> Option<u32> {
     capacity(name).or_else(|| match name {
         "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => Some(50),
         "tconstruct:seared_casting_tank" => Some(4000),
+        "tconstruct:seared_fluid_cannon" => Some(2000),
         _ => None,
     })
 }
