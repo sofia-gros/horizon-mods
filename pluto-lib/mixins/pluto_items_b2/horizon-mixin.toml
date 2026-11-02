@@ -3,7 +3,7 @@ id = "pluto_items_b2"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
+horizon_revision = "fd6cfda6bdef59a53aee830009f78c14832b0308"
 [[module]]
 id = "adapter"
 file = "crates/horizon-client/src/game.rs"

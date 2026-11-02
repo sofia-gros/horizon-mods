@@ -8,7 +8,7 @@ On Linux, the [demo](../examples/transport-demo/mixins/pluto_transport_demo/demo
 
 For the proposed stack-specific durability bar, see [stack durability bars](component-bar.md).
 
-The separate experimental tooltip bundle showed `59 / 60` for a stack with damage 1 and max damage 60. It replaces an existing advanced tooltip line; it does not change the durability bar, durability enforcement or mining rules. The host’s mining path still uses item-definition rules, so mining stone does not establish that it used the stack’s Tool rules. Tinkers integration, the full launcher installation path and Windows remain unverified.
+The separate experimental tooltip bundle showed `59 / 60` for a stack with damage 1 and max damage 60. It replaces an existing advanced tooltip line; it does not change the durability bar, durability enforcement or mining rules. The host’s mining path still uses item-definition rules, so mining stone does not establish that it used the stack’s Tool rules. TConstruct uses the shared transport on the earlier tested pair, with representative Chest component persistence; arbitrary component and old-save cases remain unverified. The new target, full launcher installation and Windows remain unverified.
 
 ![The demo pickaxe and its component-based durability tooltip](transport-519-tooltip.png)
 
