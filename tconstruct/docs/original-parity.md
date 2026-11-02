@@ -340,3 +340,18 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 `DummyMaterialItem.appendHoverText` adds the original translated gray warning for the four stone plating dummy items. The shared tooltip hook uses the source translation. Official Mixins transformation and build succeeded, and the English helmet warning was visually checked in a Linux game; the other three and other languages remain unverified. Cast-cost tooltips use a separate source-recipe path, described below.
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
+
+### Skull material armor stat
+
+The original `SkullStats.apply` updates the armor stat using the skull
+material's `armor` field and the tool definition's scale. The shared material
+stat calculation now handles this field instead of ignoring skull stats. The
+bundled source skull examples have zero armor; a nonzero datapack value is a
+useful verification fixture, not evidence of a naturally obtainable source
+material with that value. Skull durability remains a repair value, while the
+Slime Helmet's durability comes from its slime material.
+
+Rust syntax was checked. Unit tests, official build and gameplay verification
+are pending. Check missing/zero/nonzero armor, non-unit scale, the Slime Helmet's
+slime durability, material replacement, reload, and a malformed value. See the
+original [SkullStats](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/stats/SkullStats.java).
