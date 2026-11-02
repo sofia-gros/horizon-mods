@@ -1,6 +1,6 @@
 # Horizon host update (draft)
 
-This work targets official Horizon `40e044da777dfb56fd9df2ff0fc2b0a3abba4578` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
+This work targets official Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0` and Horizon Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. It adapts the existing TConstruct integrations before the slime-island draft is based on it. This is a compatibility work in progress, not a validated build or a claim that slime islands generate.
 
 The new host supports content block `state_properties` and `default_state`, which may represent the source vine stages. Its world fluid kind still contains only empty, water and lava families; the original slime world fluids remain unresolved. Do not enable incomplete island generation or replace slime fluid with water.
 
@@ -31,3 +31,5 @@ PlutoLib's separate `feat-plutolib-creative-overflow` branch at `a4fa5695ac40cba
 Further dependency inspection found that the initial all-`entry` relocation is invalid for LAN helpers owned by `horizon-client-lib`: that crate cannot depend on the gameplay crate. The draft instead places 38 shared modules in `client_lib.rs` and four resource-only modules in public `entry.rs`; a 42-module limited plan passes on Horizon `40e044da777dfb56fd9df2ff0fc2b0a3abba4578`. This does not type-check or execute the helpers.
 
 The removed attack-bonus function cannot safely be replaced solely with the new `Game::attack_damage`: the remote melee path also reads `own_attribute("minecraft:attack_damage")` directly. A correct adaptation needs both semantics and call coverage checked, including the host's attribute and potion calculations; no damage modifier has been silently dropped or claimed fixed.
+
+The coordinated validation target is Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Horizon changed two files since `40e044da777dfb56fd9df2ff0fc2b0a3abba4578`: streaming and world-generation decoration ordering. Prior limited plans were run on the earlier revision; they must be rerun where applicable. Recheck upstream before merge. The current host has its own Creative paging; do not stack the old PlutoLib paging adapter on it. The shared Creative migration targets registration and search data, while TConstruct keeps its material and stat generation.
