@@ -1,0 +1,88 @@
+# Temporarily disabled while official Mixins cannot instrument these targets.
+# Definitions are kept here for restoration, not loaded by Horizon.
+
+[[injection]]
+id = "storage-mesh-face"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
+kind = "HEAD"
+cancellable = true
+helper = "storage-mesh-face.rs"
+bindings = [
+  { name = "mesher", ty = "&Mesher<'_>", value = "self" },
+  { name = "pad", ty = "&Padded", value = "pad" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "tints" },
+  { name = "out", ty = "&mut SectionMesh", value = "out" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "origin", ty = "[f32; 3]", value = "origin" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+  { name = "ao", ty = "bool", value = "ao" },
+  { name = "state", ty = "&Info", value = "state" },
+]
+
+[[injection]]
+id = "connected-mesh-face"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
+kind = "HEAD"
+cancellable = true
+helper = "connected-mesh-face.rs"
+bindings = [
+  { name = "mesher", ty = "&Mesher<'_>", value = "self" },
+  { name = "pad", ty = "&Padded", value = "pad" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "tints" },
+  { name = "out", ty = "&mut SectionMesh", value = "out" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+  { name = "origin", ty = "[f32; 3]", value = "origin" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+  { name = "ao", ty = "bool", value = "ao" },
+  { name = "state", ty = "&Info", value = "state" },
+]
+
+[[injection]]
+id = "dense-durability-loss"
+target = "horizon_client::game::enchant_effects::Game<'_>::durability_loss"
+kind = "RETURN"
+helper = "source-dense-wear.rs"
+bindings = [{ name = "loss", ty = "u32", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
+
+[[injection]]
+id = "source-melee-knockback-return"
+target = "horizon_client::game::enchant_effects::Game<'_>::extra_knockback"
+kind = "RETURN"
+helper = "source-melee-knockback-return.rs"
+bindings = [{ name = "value", ty = "(f32,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "armor-wear-record"
+target = "horizon_client::game::enchant_effects::Game<'_>::durability_loss"
+kind = "RETURN"
+priority = 90
+helper = "source-armor-wear-record.rs"
+bindings = [{ name = "loss", ty = "u32", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "armor-wear-end"
+target = "horizon_client::game::Game<'_>::hurt_armor"
+kind = "RETURN"
+helper = "source-armor-wear-end.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "crafting-station-sync-click"
+target = "horizon_client::game::Game<'_>::click_inventory"
+kind = "RETURN"
+helper = "source-crafting-sync.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "tinkers-chest-world-tint"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
+kind = "RETURN"
+helper = "source-chest-tint.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "out", ty = "&mut SectionMesh", value = "&mut *out" },
+  { name = "tints", ty = "&mut Tints<'_>", value = "&mut *tints" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+  { name = "face", ty = "&BakedFace", value = "face" },
+]
+

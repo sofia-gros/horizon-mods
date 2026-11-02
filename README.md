@@ -1,6 +1,10 @@
 <div align="center">
 
+<img src="docs/branding/horizon-mods-icon.png" alt="Horizon Mods project icon" width="120">
+
 # Horizon Mods
+
+<img src="docs/branding/horizon-mods-banner.png" alt="Horizon Mods banner" width="900">
 
 **Mods and reusable libraries for Horizon.**
 

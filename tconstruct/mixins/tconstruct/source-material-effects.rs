@@ -86,7 +86,7 @@ pub(super) fn wear_damage_bonus(
 }
 
 /// Apply the supported source stat traits to an assembled or Creative stack.
-pub(super) fn apply_stat_traits(
+pub fn apply_stat_traits(
     stack: &mut horizon_items::items::ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &std::collections::BTreeMap<String, i32>,

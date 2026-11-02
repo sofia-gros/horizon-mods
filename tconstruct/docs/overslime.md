@@ -1,5 +1,7 @@
 # Overslime and Overforced (in progress)
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 ![A pickaxe showing 20 of 68 Overslime in the Tinker Station](overslime-station.png)
 
 This Linux test used supplied ingredients and a supplied pickaxe.

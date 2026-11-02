@@ -1,5 +1,7 @@
 # Making parts and tools
 
+> **Development build:** Reinforced and Unbreakable application, certain durability effects, and some appearances are temporarily unavailable. On a local Crafting Station, recipe-book auto-placement is temporarily blocked; normal and Shift-click results passed a representative local test. See [provisional limitations](provisional.md); older tests below describe their stated revisions.
+
 Use a Part Builder to make parts, then assemble supported tools at a Tinker Station. The examples below were tested on Linux; the Windows launcher and gameplay remain unverified.
 
 ## Browse equipment in Creative
@@ -48,7 +50,7 @@ Place and open the Part Builder. Put a pattern and the log in the two input slot
 
 ## Store parts beside a workstation
 
-Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder or Crafting Station to access its inventory while working. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
+Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder to access its inventory while working. On a local Crafting Station, recipe-book auto-placement is temporarily blocked; normal and Shift-click results passed a representative local test. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
 
 ![A Part Chest beside a Part Builder in a LAN test](part-chest-builder-lan.png)
 
@@ -86,7 +88,7 @@ A Part Builder can show a connected container alongside its own slots. You can m
 
 ## Other equipment
 
-The resource preparation now registers additional source equipment IDs. A Linux test obtained a Broad Axe, Dagger, Plate Helmet, and Skyslime Staff with commands, displayed their icons, and placed the helmet in the head slot. Material armor mitigates damage and loses durability when hit; a broken piece stays in its slot but provides no armor or toughness until repaired at a Tinker Station. Representative repair, fire and LAN cases are described in [material armor damage and repair](armor-durability.md). Other acquisition paths, unique equipment effects, and worn armor appearance remain incomplete or unverified. Materials, traits, modifiers, and tool-specific actions are still in development.
+The resource preparation now registers additional source equipment IDs. A Linux test obtained a Broad Axe, Dagger, Plate Helmet, and Skyslime Staff with commands, displayed their icons, and placed the helmet in the head slot. In earlier builds, material armor mitigated damage and lost durability when hit; a broken piece stays in its slot but provides no armor or toughness until repaired at a Tinker Station. Representative repair, fire and LAN cases are described in [material armor damage and repair](armor-durability.md). Other acquisition paths, unique equipment effects, and worn armor appearance remain incomplete or unverified. Materials, traits, modifiers, and tool-specific actions are still in development.
 
 ![A Plate Helmet in the head slot with equipment icons in the hotbar](equipment-registration.png)
 
@@ -163,6 +165,8 @@ A representative Linux run made a wooden Pick Head in the Part Builder, cast its
 
 ### Reinforced
 
+> **Currently unavailable:** Reinforced cannot be applied in the provisional build. The recipe and observations below describe an earlier build.
+
 Melt obsidian and cast an Obsidian Pane, then cast molten emerald over the pane to make an Emerald Reinforcement. Four reinforcements make one Reinforced level; partial progress uses an upgrade slot. Ordinary tool, armor and ranged weapon wear can be prevented. Extract and reapply Reinforced with a Modifier Crystal. Glowing and its modifier-caused wear are not implemented.
 
 ![Casting Emerald Reinforcements](reinforced-natural-cast.png)
@@ -185,6 +189,8 @@ The in-development ranged upgrades use magma cream for Quick Charge on Crossbows
 
 
 ## Netherite and Unbreakable
+
+> **Currently unavailable:** Unbreakable cannot be applied in the provisional build. Netherite remains separate; the Unbreakable recipe and observations below describe an earlier build.
 
 Netherite takes one Netherite Upgrade Smithing Template and one Netherite Ingot with a durable tool in a Tinker Station or either Anvil. It consumes one upgrade slot. The original modifier improves durability, mining, melee, armor toughness and knockback resistance, and Longbow/Crossbow projectile speed where those stats apply. Netherite uses rare rarity for workstation tooltips and held names. Dropped-item fire, lava and cactus protection is connected; other damage sources and the full entity lifecycle await game verification.
 

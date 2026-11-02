@@ -11,7 +11,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return false; };
         let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return false; };
         if *max <= 0 || stack.damage >= *max as u32 { return false; }
-        let Some(tool) = custom.get("tic_mining_tool") else { return false; };
+        let Some(tool) = stack.data().and_then(|data| data.other("minecraft:tool")) else { return false; };
         crate::game::tconstruct_source_mining_rules::harvestable(tool, block, |tag, block| game.res.items().block_in_tag(tag, block)) == Some(true)
     };
     let Some(tool_name) = game.held().map(|stack| stack.item.to_string()) else { return Continue(()); };

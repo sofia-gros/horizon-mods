@@ -1,0 +1,30 @@
+[mod]
+id = "pluto_tool_rules_demo"
+version = "0.1.0"
+priority = 100
+
+[compatibility]
+horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
+
+[[module]]
+id = "demo"
+file = "crates/horizon-client/src/entry.rs"
+name = "pluto_tool_rules_demo"
+source = "demo.rs"
+
+[[injection]]
+id = "prepare-demo"
+target = "horizon_client::entry::main"
+kind = "HEAD"
+helper = "prepare.rs"
+
+[[injection]]
+id = "demo-creative-slot-guard"
+target = "horizon_client::game::native_hooks::Game<'_>::native_creative_slot"
+kind = "HEAD"
+helper = "creative_slot.rs"
+bindings = [
+  { name = "slot", ty = "i32", value = "slot" },
+  { name = "count", ty = "i32", value = "count" },
+  { name = "cancel", ty = "&mut bool", value = "&mut *cancel" },
+]

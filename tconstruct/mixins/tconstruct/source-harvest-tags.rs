@@ -39,14 +39,14 @@ fn merge_directory(root: &Path, tag_directory: &str, raw: &mut BTreeMap<String, 
     Ok(())
 }
 
-pub(super) fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Result<usize, Error> {
+pub fn prepare(out: &Path, original: &Path, forge_archive: &Path) -> Result<usize, Error> {
     let mut tags = BTreeMap::new();
     merge_directory(out, "block", &mut tags)?;
     let mut forge = zip::ZipArchive::new(std::fs::File::open(forge_archive)?)?;
     for index in 0..forge.len() {
         use std::io::Read;
         let mut entry = forge.by_index(index)?;
-        let name = entry.name().to_owned();
+        let name = entry.name()?.into_owned();
         let Some(path) = name.strip_prefix("data/forge/tags/blocks/").and_then(|value| value.strip_suffix(".json")) else { continue; };
         if path.split('/').any(|part| part.is_empty() || part == "." || part == "..") { return Err("invalid Forge harvest tag path".into()); }
         let mut bytes = Vec::new(); entry.read_to_end(&mut bytes)?;

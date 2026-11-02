@@ -68,4 +68,16 @@ mod tests {
         let encoded = encode(&info).unwrap();
         assert_eq!(decode(encoded[0], &encoded[1..]), Some(info.to_vec()));
     }
+
+    #[test]
+    fn station_reason_frames_replace_failures_and_clear_on_success() {
+        let failed = ["{}", " ", "Cannot modify: unsupported saved item components"].map(str::to_owned);
+        let cleared = ["{}", " ", " "].map(str::to_owned);
+        let frame = encode(&failed).unwrap();
+        assert_eq!(decode(frame[0], &frame[1..]), Some(failed.to_vec()));
+        let next = encode(&cleared).unwrap();
+        assert_eq!(decode(next[0], &next[1..]), Some(cleared.to_vec()));
+        assert_eq!(decode(next[0], &next[1..next.len() - 1]), None);
+    }
+
 }

@@ -1,0 +1,30 @@
+[mod]
+id = "pluto_wand_demo"
+version = "0.1.0"
+priority = 200
+[compatibility]
+horizon_revision = "b6c936f82b08798057161bdfa577e3aac53fb91e"
+
+[[module]]
+id = "behavior"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_wand_demo"
+source = "behavior.rs"
+
+[[injection]]
+id = "register-on-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+helper = "register.rs"
+
+[[injection]]
+id = "register-on-remote"
+target = "horizon_client::game::remote::item_has_use"
+kind = "HEAD"
+helper = "register.rs"
+
+[[injection]]
+id = "register-on-tooltip"
+target = "horizon_client::game::stations::Game<'_>::stack_tooltip"
+kind = "HEAD"
+helper = "register.rs"

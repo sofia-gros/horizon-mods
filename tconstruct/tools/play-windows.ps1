@@ -41,9 +41,8 @@ try {
     $resources = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'horizon-resources.json') -PathType Leaf } | Select-Object -First 1
     if (-not $resources) { $resources = Pick-Folder 'Select your prepared Horizon 26.3 resource folder' }
     if (-not (Test-Path -LiteralPath (Join-Path $resources 'horizon-resources.json') -PathType Leaf)) { throw 'The selected folder is not a prepared Horizon 26.3 resource folder. Prepare it with Horizon Launcher first.' }
-    $mixinsHead = @(& git ls-remote $compat.mixins_repository HEAD)
-    if ($LASTEXITCODE -ne 0 -or $mixinsHead.Count -ne 1 -or -not ($mixinsHead[0] -match '^([0-9a-f]{40})\s+HEAD$')) { throw 'Could not resolve the latest official Horizon Mixins revision.' }
-    $mixinsRevision = $Matches[1].ToLowerInvariant()
+    $mixinsRevision = $compat.mixins_revision
+    if (-not ($mixinsRevision -match '^[0-9a-f]{40}$')) { throw 'compatibility.json does not contain a valid pinned Mixins revision.' }
     Write-Host "Horizon Mixins revision: $mixinsRevision"
     # Key the generated build by actual input bytes, so a ZIP download and local
     # modifications work without writing to or resetting the user's checkout.
@@ -75,7 +74,8 @@ try {
         New-Item -ItemType Directory -Force -Path $build | Out-Null
         Push-Location $Repo
         try {
-            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--output-dir', $build)
+            $PlutoBundle = Pick-Folder 'Select the extracted PlutoLib mixins/pluto_native_creative folder'
+            Run py @('-3', 'tools/stage.py', '--horizon', $horizon, '--mixins', $mixins, '--mixins-revision', $mixinsRevision, '--pluto-bundle', $PlutoBundle, '--output-dir', $build)
             $cargoTarget = Join-Path $HomeDir 'cargo-cache'
             Run cargo @('build', '--locked', '--manifest-path', (Join-Path $build 'modded\Cargo.toml'), '-p', 'horizon-client', '--bin', 'horizon-client', '--no-default-features', '--profile', 'fast', '--target-dir', $cargoTarget)
             Copy-Item -LiteralPath (Join-Path $cargoTarget 'fast\horizon-client.exe') -Destination $game

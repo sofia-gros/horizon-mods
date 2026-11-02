@@ -1,0 +1,31 @@
+[mod]
+id = "pluto_items_b2"
+version = "0.1.0"
+priority = 100
+[compatibility]
+horizon_revision = "9a6f7dd5a193d709f389adeb1f51858465b8f747"
+[[module]]
+id = "adapter"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_item_adapter_b2"
+source = "adapter.rs"
+[[injection]]
+id = "use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "use.rs"
+bindings = [
+ { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+ { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+ { name = "allow_block_actions", ty = "bool", value = "allow_block_actions" },
+]
+[[injection]]
+id = "tooltip"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
+kind = "HEAD"
+helper = "tooltip.rs"
+bindings = [
+ { name = "stack", ty = "&ItemStack", value = "stack" },
+ { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "&mut *lines" },
+]

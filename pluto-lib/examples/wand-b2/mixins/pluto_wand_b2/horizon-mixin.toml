@@ -1,0 +1,31 @@
+[mod]
+id = "pluto_wand_b2"
+version = "0.1.0"
+priority = 200
+[compatibility]
+horizon_revision = "cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7"
+[[module]]
+id = "behavior"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_wand_demo_b2"
+source = "behavior.rs"
+[[injection]]
+id = "register-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+helper = "register.rs"
+[[injection]]
+id = "register-tooltip"
+target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
+kind = "HEAD"
+helper = "register.rs"
+
+[[injection]]
+id = "demo-stack-limit"
+target = "horizon_world::item_defaults::native_modify_default_components"
+kind = "HEAD"
+helper = "stack_limit.rs"
+bindings = [
+ { name = "item", ty = "&str", value = "item" },
+ { name = "components", ty = "&mut serde_json::Map<String, serde_json::Value>", value = "&mut *components" },
+]

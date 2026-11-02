@@ -1,0 +1,36 @@
+{
+  "cases": [
+    {
+      "id": "generated_pickaxe",
+      "provenance": "Previously generated TConstruct Creative stack; reproduced unchanged.",
+      "snbt": "{components:{\"minecraft:custom_data\":{tic_accuracy:0.75f,tic_armor:0.0f,tic_armor_toughness:0.0f,tic_attack_damage:0.5f,tic_attack_speed:1.2f,tic_draw_speed:1.0f,tic_durability_all:1.0f,tic_knockback_resistance:0.0f,tic_materials:[\"tconstruct:wood\",\"tconstruct:wood\",\"tconstruct:string\"],tic_max_damage:60,tic_mining_all:1.0f,tic_mining_tool:{damage_per_block:1,default_mining_speed:1.0f,rules:[{blocks:\"#minecraft:incorrect_for_wooden_tool\",correct_for_drops:0b},{blocks:\"#tconstruct:source_effective/minecraft/mineable/pickaxe\",correct_for_drops:1b,speed:2.0f}]},tic_mining_traits:[],tic_overslime_active:0b,tic_overslime_capacity:0,tic_overslime_overworked:0,tic_velocity:1.0f},\"minecraft:max_damage\":60,\"minecraft:tool\":{damage_per_block:1,default_mining_speed:1.0f,rules:[{blocks:\"#minecraft:incorrect_for_wooden_tool\",correct_for_drops:0b},{blocks:\"#tconstruct:source_effective/minecraft/mineable/pickaxe\",correct_for_drops:1b,speed:2.0f}]}},count:1,id:\"tconstruct:pickaxe\"}",
+      "expected": {
+        "count": 1,
+        "damage": 0,
+        "max_damage": 60,
+        "custom_max_damage": 60,
+        "tool_default_speed": 1.0,
+        "tool_damage_per_block": 1,
+        "pickaxe_rule_speed": 2.0,
+        "pickaxe_rule_correct_for_drops": true,
+        "incorrect_wood_rule_correct_for_drops": false
+      }
+    },
+    {
+      "id": "augmented_pickaxe",
+      "provenance": "Generated stack with representative synthetic upgrade/overslime fields, lore, and item model added for transport coverage.",
+      "snbt": "{components:{\"minecraft:custom_data\":{tic_accuracy:0.75f,tic_armor:0.0f,tic_armor_toughness:0.0f,tic_attack_damage:0.5f,tic_attack_speed:1.2f,tic_draw_speed:1.0f,tic_durability_all:1.0f,tic_knockback_resistance:0.0f,tic_materials:[\"tconstruct:wood\",\"tconstruct:wood\",\"tconstruct:string\"],tic_max_damage:60,tic_mining_all:1.0f,tic_mining_tool:{damage_per_block:1,default_mining_speed:1.0f,rules:[{blocks:\"#minecraft:incorrect_for_wooden_tool\",correct_for_drops:0b},{blocks:\"#tconstruct:source_effective/minecraft/mineable/pickaxe\",correct_for_drops:1b,speed:2.0f}]},tic_mining_traits:[{id:\"tconstruct:jagged\",level:1}],\"fixture:foreign\":{nested:{value:7}},tic_upgrades:{\"tconstruct:haste\":45,\"tconstruct:reinforced\":8},tic_overslime:12,tic_overslime_active:1b,tic_overslime_capacity:50,tic_overslime_overworked:0,tic_velocity:1.0f},\"minecraft:lore\":['{\"text\":\"Workshop tool\"}'],\"minecraft:item_model\":\"tconstruct:flint_pickaxe\",\"minecraft:max_damage\":60,\"minecraft:tool\":{damage_per_block:1,default_mining_speed:1.0f,rules:[{blocks:\"#minecraft:incorrect_for_wooden_tool\",correct_for_drops:0b},{blocks:\"#tconstruct:source_effective/minecraft/mineable/pickaxe\",correct_for_drops:1b,speed:2.0f}]}},count:1,id:\"tconstruct:pickaxe\"}",
+      "expected": {
+        "count": 1,
+        "damage": 0,
+        "max_damage": 60,
+        "note": "Synthetic transport-only combination; not a gameplay speed oracle."
+      }
+    },
+    {
+      "id": "vanilla_stone_count",
+      "provenance": "Vanilla control stack with non-unit count.",
+      "snbt": "{count:17,id:\"minecraft:stone\"}"
+    }
+  ]
+}
