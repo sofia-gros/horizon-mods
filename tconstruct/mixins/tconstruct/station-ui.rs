@@ -134,6 +134,33 @@ pub(super) fn station_accepts_output(game: &Game<'_>, stack: &horizon_items::ite
     layout.input_slots.iter().enumerate().all(|(index, spec)| entity.slots().get(index).and_then(Option::as_ref).is_some_and(|stack| spec.accepts_item(stack.item.as_ref())))
 }
 
+/// Original source chests need component-aware slot rules and paging even
+/// when displayed alongside a Part Builder.
+pub(super) fn side_chest_kind(game: &Game<'_>) -> Option<super::tconstruct_chest_rules::ChestKind> {
+    use super::tconstruct_chest_rules::ChestKind;
+    if kind(game) != Some(false) { return None; }
+    let table=game.container?;
+    if game.remote.is_some() {
+        return match game.world.chunks.__horizon_mixins_tconstruct_builder_side_title().get(&table).copied()? {
+            7=>Some(ChestKind::Part),8=>Some(ChestKind::Tinkers),_=>None,
+        };
+    }
+    let side=*game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table)?;
+    match &*game.res.facts().get(game.world.block(side.0,side.1,side.2)).name {
+        "tconstruct:part_chest"=>Some(ChestKind::Part),"tconstruct:tinkers_chest"=>Some(ChestKind::Tinkers),_=>None,
+    }
+}
+
+pub(super) fn set_side_scroll(game: &mut Game<'_>, offset: usize) {
+    if game.remote.is_some() && side_chest_kind(game).is_some() {
+        if let Some((window,_))=game.remote.as_ref().and_then(|r|r.menu.as_ref()) {
+            game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container:*window,button:42000+offset as i32 }));
+        }
+    } else if let Some(pos)=game.container {
+        game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default().0=offset;
+    }
+}
+
 /// Select the first adjacent container that fits the existing menu protocol.
 pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32), allow_double: bool) -> Option<(i32, i32, i32)> {
     [(0, -1), (1, 0), (0, 1), (-1, 0)].into_iter().find_map(|(dx, dz)| {
@@ -141,6 +168,7 @@ pub(super) fn side_inventory(game: &Game<'_>, key: (i32, i32, i32), allow_double
         let name = &game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
         if matches!(&**name, "tconstruct:part_builder" | "tconstruct:tinker_station" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil") || (!allow_double && game.chest_partner(pos).is_some()) { return None; }
         match game.world.block_entities.get(&pos) {
+            Some(BlockEntity::Chest(items)) if matches!((&**name,items.len()), ("tconstruct:part_chest",256) | ("tconstruct:tinkers_chest",64)) => Some(pos),
             Some(BlockEntity::Chest(items)) if matches!(items.len(), 5 | 9 | 27) => Some(pos),
             _ => None,
         }

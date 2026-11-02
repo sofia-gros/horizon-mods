@@ -3,6 +3,7 @@ fn tconstruct_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, packe
     use crate::tconstruct_chest_rules::{self as chest,ChestKind};
     let Some(gi)=hub.guests.iter().position(|g|g.conn==conn) else { return Continue(()); };
     let Some(menu)=hub.guests[gi].menu.as_ref() else { return Continue(()); };
+    if !matches!(menu.slots,crate::lan::menu::Slots::Block(_)) { return Continue(()); }
     let Some(pos)=menu.pos else { return Continue(()); };
     let key=(conn,hub.guests[gi].placed_at,menu.window,pos);
     let Some(&(scroll,known_count))=world.chunks.__horizon_mixins_tconstruct_chest_guest_pages().get(&key) else { return Continue(()); };

@@ -124,6 +124,7 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
             if game.remote.is_some() { crate::game::remote::tconstruct_source_quick_packet::send(game, i32::from(right), 1); }
             else { crate::game::tconstruct_source_builder_take::quick_take(game, key); }
         }
+        if !station && crate::game::tconstruct_ui::side_chest_kind(game).is_some() && game.slot_at(&batch, game.cursor.0, game.cursor.1).is_some_and(|slot| slot != 322) { return Continue(()); }
         if !station && game.remote.is_some() && game.slot_at(&batch, game.cursor.0, game.cursor.1).is_some_and(|slot| slot < 36) { return Continue(()); }
         return Break(true);
     }
@@ -136,9 +137,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         let slider_h = crate::game::tconstruct_source_side_layout::visible_rows(side_count) as f32 * 18.0;
         if !right && crate::game::tconstruct_source_side_layout::max_offset(side_count) > 0
             && (slider_x..slider_x + 10.0).contains(&(x as f32)) && (17.0..17.0 + slider_h).contains(&(y as f32)) {
-            let state = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(key).or_default();
-            state.0 = crate::game::tconstruct_source_side_layout::drag_offset(side_count, y as f32);
-            state.1 = true;
+            let next=crate::game::tconstruct_source_side_layout::drag_offset(side_count,y as f32);
+            crate::game::tconstruct_ui::set_side_scroll(game,next);
+            game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(key).or_default().1=true;
             return Break(true);
         }
         let patterns = game.world.chunks.__horizon_mixins_tconstruct_builder_choices().get(&key)

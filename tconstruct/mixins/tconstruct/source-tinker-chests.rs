@@ -144,6 +144,16 @@ pub(super) fn project(slots: &[Option<horizon_items::items::ItemStack>], scroll:
     out
 }
 
+/// The side inventory uses six columns and at most eight visible rows.
+/// Six further transport slots are padding for the existing double menu.
+pub(super) fn project_side(slots: &[Option<horizon_items::items::ItemStack>], scroll: usize) -> Vec<Option<horizon_items::items::ItemStack>> {
+    let mut out=vec![None;54]; let first=scroll*6;
+    for (visible,target) in out.iter_mut().take(48).enumerate() {
+        if let Some(item)=slots.get(first+visible) { *target=item.clone(); }
+    }
+    out
+}
+
 /// TinkerChestScreen's ScalingChestScreen: 162×72, 12-pixel slider,
 /// 18-pixel cells, at (7,17) within the original 176-wide parent.
 pub(super) const CHEST_COLUMNS: usize = 8;
@@ -256,6 +266,14 @@ mod tests {
         let first=project(&slots,0);let last=project(&slots,28);
         assert_eq!(first.len(),54);assert_eq!(first[0].as_ref().unwrap().item.as_ref(),"minecraft:stone");
         assert_eq!(last[31].as_ref().unwrap().item.as_ref(),"minecraft:diamond");assert!(last[32..].iter().all(Option::is_none));
+    }
+    #[test]
+    fn builder_side_projection_never_exposes_transport_padding() {
+        use horizon_items::items::ItemStack;
+        let mut slots=vec![None;256];slots[255]=Some(ItemStack::new("tconstruct:tool_handle",1));
+        let page=project_side(&slots,35);
+        assert_eq!(page.len(),54);assert_eq!(page[45].as_ref().unwrap().item.as_ref(),"tconstruct:tool_handle");
+        assert!(page[48..].iter().all(Option::is_none));
     }
     #[test]
     fn source_chest_slots_scroll_and_hit_the_same_visible_cells() {

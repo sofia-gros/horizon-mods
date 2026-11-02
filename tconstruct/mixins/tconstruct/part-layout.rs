@@ -58,7 +58,8 @@ fn tconstruct_layout(game: &crate::game::Game<'_>, slot: usize) -> std::ops::Con
                 game.container.and_then(|key| game.world.chunks.__horizon_mixins_tconstruct_builder_side_size().get(&key).copied()).unwrap_or(game.container_size().saturating_sub(27))
             } else { game.container_size().saturating_sub(27) };
             let offset = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos)).map_or(0, |state| state.0);
-            crate::game::tconstruct_source_side_layout::slot_position(count, offset, slot - 327).unwrap_or((-10000.0, -10000.0))
+            let index = if crate::game::tconstruct_ui::side_chest_kind(game).is_some() { offset * crate::game::tconstruct_source_side_layout::columns(count) + slot - 327 } else { slot - 327 };
+            crate::game::tconstruct_source_side_layout::slot_position(count, offset, index).unwrap_or((-10000.0, -10000.0))
         },
         _ => return std::ops::ControlFlow::Continue(()),
     };

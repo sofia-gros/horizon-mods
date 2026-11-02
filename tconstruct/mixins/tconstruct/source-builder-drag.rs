@@ -18,9 +18,8 @@ fn builder_drag(game: &mut crate::game::Game<'_>) -> std::ops::ControlFlow<()> {
         let batch = horizon_client::hud::HudBatch::new(size);
         let (_, oy) = game.inventory_origin(&batch);
         let count = crate::game::tconstruct_ui::side_count(game);
-        if let Some(state) = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().get_mut(&pos) {
-            state.0 = crate::game::tconstruct_source_side_layout::drag_offset(count, game.cursor.1 - oy);
-        }
+        let next=crate::game::tconstruct_source_side_layout::drag_offset(count,game.cursor.1-oy);
+        crate::game::tconstruct_ui::set_side_scroll(game,next);
         return Break(());
     }
     if !game.world.chunks.__horizon_mixins_tconstruct_builder_scroll().get(&pos).is_some_and(|s| s.2) { return Continue(()); }

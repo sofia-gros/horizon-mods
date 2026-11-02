@@ -42,8 +42,9 @@ fn builder_scroll(game: &mut crate::game::Game<'_>, delta: f32) -> std::ops::Con
         let width = columns as f32 * 18.0 + 24.0;
         let height = crate::game::tconstruct_source_side_layout::visible_rows(count) as f32 * 18.0 + 24.0;
         if max > 0 && (ox + left..ox + left + width).contains(&game.cursor.0) && (oy..oy + height).contains(&game.cursor.1) {
-            let state = game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().entry(pos).or_default();
-            state.0 = (state.0 as i32 - delta.signum() as i32).clamp(0, max as i32) as usize;
+            let current=game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&pos).map_or(0,|s|s.0);
+            let next=(current as i32-delta.signum() as i32).clamp(0,max as i32) as usize;
+            crate::game::tconstruct_ui::set_side_scroll(game,next);
             return Break(());
         }
         if (ox + 180.0..ox + 180.0 + crate::game::tconstruct_builder_info_ui::panel_width(game, false)).contains(&game.cursor.0) && (oy..oy + 184.0).contains(&game.cursor.1) {
