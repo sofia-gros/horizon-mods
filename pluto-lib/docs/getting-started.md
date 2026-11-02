@@ -1,6 +1,6 @@
 # Make a first content mod
 
-The demo creates two gems, a block and a Creative tab using PlutoLib's Rust API. Horizon registers the generated content; the Creative tab is added to a prepared resource file before launch. These are separate steps.
+The demo creates two gems, four example blocks and a Creative tab using PlutoLib's Rust API. Horizon registers the generated content; the Creative tab is added to a prepared resource file before launch. These are separate steps.
 
 ## Generate the demo
 
@@ -31,7 +31,7 @@ HORIZON_HOME="$PWD/.work/game-home" /path/to/horizon-client \
 
 Open the Creative inventory, advance to the next tab page, and select the Pluto Demo tab. Move the gems and block into the hotbar, then select and place the block. The paths passed to the client should be absolute.
 
-The **Pluto Demo** tab contains a 16-stack gem, a second gem that inherits its template limit, and a placeable block. On the pinned Linux host, 17 of the first gem split into 16 and 1; 65 of the inherited gem split into 64 and 1. The items retained those counts after a host save/reload and a LAN guest reconnect. A previous demo also checked block placement. These items use vanilla template behavior and appearance and are independent of Tinkers. The demo source is [examples/demo.rs](../examples/demo.rs).
+The **Pluto Demo** tab contains a 16-stack gem, a second gem that inherits its template limit, and blocks with explicit and inherited properties. On the pinned Linux host, 17 of the first gem split into 16 and 1; 65 of the inherited gem split into 64 and 1. The items retained those counts after a host save/reload and a LAN guest reconnect. A previous demo also checked block placement. The block demo supplies its own pickaxe tag and loot tables; Registry does not generate those assets. On the pinned Linux host, the tool-required block dropped with an iron pickaxe but not by hand; the otherwise comparable block without that requirement dropped by hand. The host accepted hardness -1 and the block survived a three-second pickaxe attempt. Explosion resistance and template inheritance were checked in the generated host data. In a TNT test with otherwise matching blocks at equal distances, the resistance-0 block was destroyed and the resistance-1200 block remained. These items use vanilla template appearance and are independent of Tinkers. The demo source is [examples/demo.rs](../examples/demo.rs).
 
 ## Use it in your mod
 
@@ -44,3 +44,7 @@ Create a `Registry` with your mod namespace, add declarations, and write them in
 ![Both gems in the native-paged demo](item-stack-limit-tab.png)
 
 *The demo tab and the 16- and 64-item stacks in the hotbar.*
+
+![A configured block in the demo world](block-properties-demo.png)
+
+*The configured block and a dropped demo block in the Linux test world.*
