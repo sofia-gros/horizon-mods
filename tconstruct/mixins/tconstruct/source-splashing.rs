@@ -37,6 +37,37 @@ pub(super) fn right_click(game: &super::Game<'_>, stack: &ItemStack) -> bool {
     true
 }
 
+/// The original box, circle and vein iterators all have a single-block form.
+/// Evaluate the actual definition and expanded modifier rather than guessing
+/// based on an item name; non-empty iterator shapes remain unsupported here.
+pub(super) fn single_block(game: &super::Game<'_>, stack: &ItemStack) -> bool {
+    let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, stack) else { return false; };
+    let expanded = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:expanded")
+        + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
+    if expanded != 0 { return false; }
+    let Some((namespace, name)) = stack.item.split_once(':') else { return false; };
+    let Some(layers) = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref() else { return false; };
+    let Some(bytes) = layers.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()) else { return false; };
+    let Ok(definition) = serde_json::from_slice::<serde_json::Value>(bytes) else { return false; };
+    let Some(modules) = definition.get("modules").and_then(serde_json::Value::as_array) else { return false; };
+    for module in modules {
+        let Some(kind) = module.get("type").and_then(serde_json::Value::as_str) else { return false; };
+        match kind {
+            "tconstruct:box_aoe" => {
+                if let Some(bonus) = module.get("bonus") {
+                    let Some(bonus) = bonus.as_object() else { return false; };
+                    if bonus.iter().any(|(key, value)| !matches!(key.as_str(), "width" | "height" | "depth") || value.as_i64() != Some(0)) { return false; }
+                }
+            }
+            "tconstruct:circle_aoe" => if module.get("diameter").and_then(serde_json::Value::as_i64) != Some(1) { return false; },
+            "tconstruct:vein_aoe" => if module.get("max_distance").map_or(Some(0), serde_json::Value::as_i64) != Some(0) { return false; },
+            other if other.ends_with("_aoe") => return false,
+            _ => {}
+        }
+    }
+    true
+}
+
 /// The source tests the candidate box against the target's inflated box and
 /// then compares full 3D entity positions using a strict squared radius.
 pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f64; 3], [f64; 3]), candidate_bounds: ([f64; 3], [f64; 3]), expanded: u32) -> bool {
@@ -113,10 +144,10 @@ pub(super) fn interact(game: &mut super::Game<'_>, entity: i32, stack: Option<&I
     *claimed = true;
 }
 
-/// The single-block default AOE path for the bundled blazing-blood glow effect.
-/// Other tool AOE iterators and all other block-effect forms stay unresolved.
+/// Source zero-offset AOE paths for the bundled blazing-blood glow effect.
+/// Non-empty tool AOE iterators and other block-effect forms stay unresolved.
 pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32; 3], face: [i32; 3]) -> Option<horizon_client::Result<bool>> {
-    if game.remote.is_some() || !matches!(&*stack.item, "tconstruct:sword" | "tconstruct:dagger") || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
+    if game.remote.is_some() || !single_block(game, stack) || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
     if !matches!(face, [0, -1, 0] | [0, 1, 0] | [0, 0, -1] | [0, 0, 1] | [-1, 0, 0] | [1, 0, 0]) { return None; }
     if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
     let custom = stack.data()?.other("minecraft:custom_data")?;
