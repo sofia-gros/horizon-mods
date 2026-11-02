@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "5197790e5846a82cfc84d9703e37c4c1b75be09c"
+horizon_revision = "aa60eb76ea82bd66c29fea352e3ab5771e62ab26"
 
 [[module]]
 id = "demo"

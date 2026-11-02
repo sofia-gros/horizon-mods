@@ -15,8 +15,8 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 
 ## Development target
 
-The native Creative and component-transport bundles target Horizon [`5197790e5846a82cfc84d9703e37c4c1b75be09c`](https://github.com/horizon-rust/horizon/commit/5197790e5846a82cfc84d9703e37c4c1b75be09c) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). The Mixins plan and native Creative bundle check passed. On Linux, the independent transport demo was built and run with this pair; its [LAN and tooltip checks](component-transport.md) do not establish Tinkers integration.
+The native Creative and component-transport demos were checked against Horizon [`5197790e5846a82cfc84d9703e37c4c1b75be09c`](https://github.com/horizon-rust/horizon/commit/5197790e5846a82cfc84d9703e37c4c1b75be09c) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). The Mixins plan and native Creative bundle check passed. On Linux, the independent transport demo was built and run with this pair; its [LAN and tooltip checks](component-transport.md) do not establish Tinkers integration.
 
 The independent native Creative and component-transport demos were built and run on Linux with Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f` and the same Mixins revision. See [component transport](component-transport.md) for the observed host display limitation and the scope of LAN checks. Neither result establishes Tinkers integration.
 
-Horizon `aa60eb76ea82bd66c29fea352e3ab5771e62ab26` is a newer, untested candidate. Its Creative slot hook changes the guest-to-host path, so the LAN checks above do not establish compatibility with it.
+Horizon `aa60eb76ea82bd66c29fea352e3ab5771e62ab26` is the next untested development target for the Tool rules demo. Its Creative slot hook changes the guest-to-host path, so the `5197790` LAN checks do not establish compatibility with it. The currently staged native bundle manifests target this candidate; their game validation is pending.
