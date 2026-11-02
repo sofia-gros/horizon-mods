@@ -149,13 +149,11 @@ generation or survival acquisition is claimed until that succeeds.
 ## Experimental foliage tint
 
 The five original color maps are loaded from the active render resource root.
-For the registered slime grasses, fern, tall grass, leaves and Sky vine, a
-terrain-face tint hook uses the original 256-block coordinate reflection,
-including the original 128-block offset for leaves and vines. The maps are
-reloaded when render assets load. Missing or invalid maps leave the host tint
-unchanged. Item tint, particle tint and resource-reload behavior still require
-implementation or validation. The target Mixins plan, shader compatibility,
-color-map indexing and actual world rendering have not been tested.
+The lookup implements the original 256-block coordinate reflection and the
+128-block leaf/vine offset. The terrain-face hook is currently disconnected
+after the b53 apply diagnostic described below; actual terrain, item and
+particle tint are not implemented by this candidate. Color-map indexing,
+resource reload and shader behavior still need validation.
 
 ## Experimental slime leaf lifecycle
 
@@ -268,3 +266,12 @@ loading but reported `E_MODULE`: four module source files used inner-doc
 comments, which are parsed as file attributes. The follow-up changes those
 comments to ordinary comments. Its official apply, type check, build and game
 behavior remain unverified.
+
+The official b53 apply after the selector and support-module fixes reports
+`E_INVALID_BINDING` for `Mesher::face`, whose `(id, state)` argument is
+destructured. The follow-up omits only the terrain-tint injection so island
+loading and gameplay can be validated separately. `Mesher::tint` also has
+a destructured argument, and `Tints::get` does not identify the block; neither
+is used as a speculative substitute. Source maps and lookup code are retained,
+but position-dependent terrain tint is currently disconnected and is not
+claimed to work. Official apply, build and game checks remain outstanding.
