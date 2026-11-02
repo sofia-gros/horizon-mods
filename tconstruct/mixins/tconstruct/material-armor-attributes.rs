@@ -3,11 +3,13 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
     let mut values = Vec::new();
     for (stack, slot) in game.armor.iter().zip(["head", "chest", "legs", "feet"]) {
         let Some(stack) = stack.as_ref().filter(|stack| stack.item.starts_with("tconstruct:")) else { continue; };
-        if crate::game::tconstruct_source_ranged_wear::is_broken(stack) { continue; }
+        let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
         let Some(data) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { continue; };
-        for (key, attribute) in [("tic_armor", "minecraft:armor"), ("tic_armor_toughness", "minecraft:armor_toughness"), ("tic_knockback_resistance", "minecraft:knockback_resistance")] {
-            if let Some(Tag::Float(bits)) = data.get(key) {
-                values.push((attribute.to_owned(), format!("tconstruct:{key}/{slot}"), f64::from(f32::from_bits(*bits)), "add_value"));
+        if !broken {
+            for (key, attribute) in [("tic_armor", "minecraft:armor"), ("tic_armor_toughness", "minecraft:armor_toughness"), ("tic_knockback_resistance", "minecraft:knockback_resistance")] {
+                if let Some(Tag::Float(bits)) = data.get(key) {
+                    values.push((attribute.to_owned(), format!("tconstruct:{key}/{slot}"), f64::from(f32::from_bits(*bits)), "add_value"));
+                }
             }
         }
         let traits = crate::game::tconstruct_source_material_traits::levels(&game.world, stack);
@@ -20,12 +22,12 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         };
         let level = modifier_level("tconstruct:vintage");
         if level > 0 {
-            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:vintage_movement/{slot}"), -0.1 * f64::from(level), "add_multiplied_total"));
+            if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:vintage_movement/{slot}"), -0.1 * f64::from(level), "add_multiplied_total")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:vintage_gravity/{slot}"), 0.1 * f64::from(level), "add_multiplied_total"));
         }
         let heavy = modifier_level("tconstruct:heavy");
         if heavy > 0 {
-            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:heavy_movement/{slot}"), -0.1 * f64::from(heavy), "add_multiplied_base"));
+            if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:heavy_movement/{slot}"), -0.1 * f64::from(heavy), "add_multiplied_base")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:heavy_gravity/{slot}"), 0.05 * f64::from(heavy), "add_multiplied_total"));
         }
         let featherweight = modifier_level("tconstruct:featherweight");
@@ -33,16 +35,16 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             .and_then(|tags| tags.as_ref().ok())
             .and_then(|tags| tags.get("tconstruct:modifiable/armor"))
             .is_some_and(|items| items.contains(stack.item.as_ref()));
-        if armor && featherweight > 0 {
+        if !broken && armor && featherweight > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:featherweight_movement/{slot}"), 0.05 * f64::from(featherweight), "add_multiplied_base"));
         }
         let solid = modifier_level("tconstruct:solid");
         if solid > 0 {
-            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:solid_movement/{slot}"), -0.1 * f64::from(solid), "add_multiplied_base"));
+            if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:solid_movement/{slot}"), -0.1 * f64::from(solid), "add_multiplied_base")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:solid_gravity/{slot}"), 0.05 * f64::from(solid), "add_multiplied_total"));
         }
         let entwined = modifier_level("tconstruct:entwined");
-        if entwined > 0 {
+        if !broken && entwined > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:entwined_movement/{slot}"), 0.1 * f64::from(entwined), "add_multiplied_total"));
         }
     }
