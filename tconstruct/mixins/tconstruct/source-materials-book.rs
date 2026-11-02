@@ -476,7 +476,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let mut graphic = value.get("image").and_then(|image| {
                 let file = image.get("file")?.as_str()?;
-                Some(serde_json::json!({"image":file,"width":image.get("width")?.as_u64()?,"height":image.get("height")?.as_u64()?}))
+                // Mantle permits omitted dimensions; the renderer falls back
+                // to the atlas sprite's intrinsic width and height.
+                Some(serde_json::json!({"image":file,"width":image.get("width").and_then(|v| v.as_u64()),"height":image.get("height").and_then(|v| v.as_u64())}))
             })
                 .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
                 .or_else(|| {
