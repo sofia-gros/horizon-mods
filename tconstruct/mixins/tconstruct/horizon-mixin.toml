@@ -3756,3 +3756,14 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "batch", ty = "&horizon_client::hud::HudBatch", value = "batch" },
 ]
+
+[[injection]]
+id = "tinkers-chest-pick-color"
+target = "horizon_client::game::block_items::Game<'_>::picked_stack"
+kind = "RETURN"
+helper = "source-chest-pick.rs"
+bindings = [
+  { name = "value", ty = "Option<ItemStack>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "pos", ty = "[i32;3]", value = "pos" },
+]
