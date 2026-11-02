@@ -212,8 +212,7 @@ The Sky vine requests random ticks and uses the source side-attachment,
 three-stage downward growth, floating-length and random-draw rules. A neighbor
 update preserves sides supported by the source slime-leaf tag or by a
 non-terminal vine above, and removes unsupported vines. The source tag includes
-Earth and Sky leaves; its Ender entry is optional until Ender leaves are
-registered. Ender vines, full island generation, the target
+Earth and Sky leaves; its Ender entry is registered by the propagule follow-up. Ender vines, full island generation, the target
 injection plan, support shapes, world and save behavior, RNG order and
 single-player/LAN validation remain open. Vanilla vine behavior is unchanged.
 
@@ -242,8 +241,7 @@ placement and support logic while retaining its own identity: only a vine of
 the same kind above supports a hanging side. It uses the original Ender vine
 assets, shears loot and Ender foliage color map. Both registered slime vines
 use the source hardness and resistance of 0.75. The Ender vine and its
-natural acquisition have not been tested; Ender slime leaves and islands are
-not yet registered as a complete generation route. Forge's extended shears
+natural acquisition have not been tested; Ender leaves and islands do not yet form a complete generation route. Forge's extended shears
 action and dedicated-server behavior remain open.
 
 ## b53 follow-up candidate
@@ -275,3 +273,17 @@ fungus features, slime mob overrides and several plant behaviors remain open.
 The reference templates remain untouched. Target Mixins plan, loading, biome
 selection, weighted placement, markers, terrain, block drops, missing-fluid
 positions, save/reload and local/LAN regressions require dedicated validation.
+
+## Experimental Ender leaves and propagules
+
+Ender slime leaves and propagules are registered with source assets, source
+loot and slimy-leaf tag membership. Leaf distance/decay uses the candidate's
+slime-leaf rules. A leaf can grow a hanging propagule with bone meal; hanging
+propagules age from 0 to 4 and require slimy-leaf support. Planted propagules
+use slime soil, the source one-in-seven random advancement, and the source
+bone-meal success chance. Their stage-1 Ender tree feature is still deferred;
+no vanilla mangrove is substituted, and successful bone meal at that stage
+is consumed without creating the missing tree. Exact waterlogging, placement,
+leaf drop predicates, hook ordering, game behavior, persistence and LAN require
+validation. Dedicated-server coverage and normal Ender tree acquisition are
+not established.

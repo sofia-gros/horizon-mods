@@ -4088,3 +4088,44 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_pl
 kind = "HEAD"
 helper = "source-slime-vine-place.rs"
 bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "context", ty = "&PlacementContext", value = "context" }, { name = "answer", ty = "&mut Option<Option<BlockStateId>>", value = "&mut *answer" }]
+
+[[module]]
+id = "source-ender-propagule"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_ender_propagule"
+source = "source-ender-propagule.rs"
+
+[[injection]]
+id = "source-ender-propagule-random"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_random_tick"
+kind = "HEAD"
+helper = "source-ender-propagule-random.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "handled", ty = "&mut bool", value = "&mut *handled" }]
+
+[[injection]]
+id = "source-ender-propagule-survive"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
+kind = "HEAD"
+helper = "source-ender-propagule-survive.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
+
+[[injection]]
+id = "source-ender-propagule-valid"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
+kind = "HEAD"
+helper = "source-ender-propagule-valid.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+
+[[injection]]
+id = "source-ender-propagule-success"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_bonemeal_success"
+kind = "HEAD"
+helper = "source-ender-propagule-success.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "success", ty = "&mut bool", value = "&mut *success" }]
+
+[[injection]]
+id = "source-ender-propagule-perform"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bonemeal"
+kind = "HEAD"
+helper = "source-ender-propagule-perform.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
