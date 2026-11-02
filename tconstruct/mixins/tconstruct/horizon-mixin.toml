@@ -3965,6 +3965,7 @@ id = "source-slime-colormap-face"
 target = "horizon_client_render::mesher::Mesher<'_>::face"
 kind = "MODIFY_VARIABLE"
 variable = { name = "tint", ordinal = 0, at = "STORE" }
+ordinal = 0
 require = 1
 helper = "source-slime-colormap-face.rs"
 bindings = [{ name = "value", ty = "Option<u32>", value = "$value" }, { name = "mesher", ty = "&Mesher<'_>", value = "self" }, { name = "tints", ty = "&Tints<'_>", value = "&*tints" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "id", ty = "&u32", value = "$local_ref:id:0" }, { name = "face", ty = "&BakedFace", value = "face" }]

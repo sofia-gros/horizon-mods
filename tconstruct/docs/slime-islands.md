@@ -256,3 +256,9 @@ and #223 heads remain unchanged. The joint b53 build for other work is not
 verification of this island candidate; its combined official plan, stage,
 build, game and survival behavior still need validation. Source slime fluids
 remain omitted as described above.
+
+The official b53 apply for candidate `f0b9ee660e22fb35517e798d053d0f3672d6136b`
+reported `E_SELECTOR` for the foliage face hook because its site ordinal was
+missing. The follow-up specifies ordinal zero and retains `require = 1` for
+Mesher::face's single `tint` initialization. This source-level correction has
+not yet passed the official plan/apply, type check or game validation.
