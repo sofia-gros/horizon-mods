@@ -114,18 +114,22 @@ after Hurt before switching to the shooter and healing. Verify disconnection,
 reconnection under a different UUID, nested impacts, shield/PvP refusal,
 health caps and owner restoration; this has not passed plan, apply or game.
 
-A subsequent melee candidate captures the guest victim's pre-hit health and
-UUID, attacker UUID and weapon at `pvp_land`, then compares post-hit health
-after a successful hit. It requires a fully charged critical, checks the
-blacklist and same attack/weapon, and invalidates outer scopes on nested PvP.
-The existing successful-hit weapon-wear handler is retained. Host victims,
-refused hits and ambiguous or disconnected actors remain outside this path.
-A follow-up records post-hit health at `mob_hits_player` return, before
-`pvp_land` applies its subsequent knockback and thorns processing. This still
-follows the host `hurt_player_from` internals, including its damage and block
-hooks; source timing around those hooks needs game verification. If the new
-return injection does not run, no melee PvP healing occurs. No official plan,
-type or game test has established this candidate.
+The #341/#343 melee PvP candidate is disabled in this integration. In source,
+`ToolAttackUtil.attackEntity` records health before the modifier
+`beforeMeleeHit` hooks, calls `target.hurt`, invokes the tool-level
+`afterMeleeHit`, then calculates the health delta before subsequent
+knockback and modifier `afterMeleeHit` hooks. The host `pvp_land` captures
+health after strike construction; `mob_hits_player` calls `hurt_player_from`,
+which runs player damage, blocking and native hooks before returning. The
+source tool-level after-hit boundary is not connected at that point. Changes
+to health in those unaligned hooks can change the source delta, including
+healing and absorption-related cases. Neither equivalence nor safe guards for
+all modifiers are established; no melee PvP healing runs in this candidate.
+
+Verify the source and host call sequences with healing in pre-hit and tool
+after-hit hooks, absorption, armor, canceled/blocked hits, nested attacks,
+totems and changing victim health, and establish an exact boundary before
+reenabling. #341 and #343 remain preserved as unverified historical candidates.
 
 ## Candidate dependency map
 
@@ -133,6 +137,16 @@ The combined branch builds on #329 (bounded mob melee and Tasty), #330
 (mixed food and sounds), #332 (mob projectile), #334 (concurrent food),
 #335 (launcher wear), #336 (saved arrow UUID), #338 (guest projectile victim),
 and #339 (host projectile victim). Each fixed head remains independently
-reviewable. This branch adds melee PvP; #325 remains the independent fixed
+reviewable. This branch defers melee PvP; #325 remains the independent fixed
 integration baseline. Validate the combined head and its declared base, not
 the earlier candidates as if they included later changes.
+
+| Scope | Candidate condition or deferral | Required verification |
+| --- | --- | --- |
+| Necrotic mob melee | Landed, critical, cooldown above 0.9; blacklist and actual damage | Armor, canceled hits, nested attacks, tool identity and guests |
+| Necrotic arrows vs mobs | Tracked matching arrow and actor; host Hurt only | Pre-hit health cap, shield/refusal, reload, disconnected shooter |
+| Necrotic arrows vs players | Guest victim or host victim; UUID and projectile match; host Hurt only | Host/guest pairs, two guests, PvP/team denial, nested hits, reload and reconnect |
+| Necrotic melee PvP | Deferred; health-delta hooks differ | Source hook ordering, healing/absorption, totem and nested damage before enabling |
+| Tasty standalone/mixed | Tasty and supported Scrumptious values and wear | Hunger, saturation, poison, creative, near-break and offhand |
+| Tasty concurrent | Longbow, Crossbow, supported shields and Slurping; shield/Slurping breaking bite deferred | Tick 15/16/17, release, charging, near-break, Slurping completion and guest audio |
+| Entangled removal | Deferred; exact damage type and prior equipment boundary absent | Exact source damage type and slot/previous-stack integration |
