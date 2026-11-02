@@ -14,6 +14,15 @@ pub(super) struct CastingTank {
 mod tests {
     use super::*;
     #[test]
+    fn comparator_uses_source_fluid_fraction() {
+        let mut state = CastingTank::new();
+        assert_eq!(state.comparator(), 0);
+        assert!(state.tank.insert("minecraft:water", 1));
+        assert_eq!(state.comparator(), 1);
+        assert!(state.tank.insert("minecraft:water", 3999));
+        assert_eq!(state.comparator(), 15);
+    }
+    #[test]
     fn one_bucket_moves_only_after_output_is_free_and_survives_save() {
         let mut state = CastingTank::new();
         state.slots[0] = Some(ItemStack::new("minecraft:lava_bucket", 1));
@@ -31,6 +40,9 @@ mod tests {
 }
 impl CastingTank {
     pub(super) fn new() -> Self { Self { tank: Tank::new(4000), slots: [None, None], redstone: false } }
+    pub(super) fn comparator(&self) -> i32 {
+        if self.tank.amount == 0 { 0 } else { 1 + (14 * self.tank.amount / self.tank.capacity) as i32 }
+    }
     pub(super) fn lossless(&self) -> bool {
         self.slots.iter().flatten().all(|stack| {
             if stack.wire_patch().is_some() { return false; }

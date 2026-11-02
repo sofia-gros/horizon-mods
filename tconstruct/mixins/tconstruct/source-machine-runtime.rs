@@ -277,12 +277,20 @@ pub(super) fn casting_tank_at(game: &super::Game<'_>, pos: Pos) -> Option<super:
 pub(super) fn save_casting_tank(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_casting_tank::CastingTank) -> bool {
     if !state.lossless() { return false; }
     if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(slots)) if slots.len() >= 2) { return false; }
+    let before = store::read(&game.world,pos,"tconstruct:casting_tank")
+        .and_then(|tag| super::tconstruct_source_casting_tank::CastingTank::from_nbt(&tag)).map_or(0, |state| state.comparator());
     if !store::write(&mut game.world, pos, "tconstruct:casting_tank", state.to_nbt()) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone();
     }
+    notify_casting_comparator(game, pos, before, state.comparator());
     game.container_changed(pos);
     true
+}
+fn notify_casting_comparator(game: &mut super::Game<'_>, pos: Pos, before: i32, after: i32) {
+    if before == after { return; }
+    let at = horizon_core::position::BlockPos::new(pos.0,pos.1,pos.2);
+    game.with_level(|behaviours, level, ticks| behaviours.update_neighbour_for_output_signal(level,ticks,at));
 }
 pub(super) fn process_casting_tank(game: &mut super::Game<'_>, state: &mut super::tconstruct_source_casting_tank::CastingTank) -> bool {
     game.ensure_datapacks();
@@ -780,13 +788,16 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
     }
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_casting_tank" {
         let Some(mut state) = casting_tank_at(game, target) else { return; };
+        let previous_strength = state.comparator();
         let previous_tank = state.tank.to_nbt();
         faucet.tick(&mut fluid, Some(&mut state.tank));
         if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return; }
         if state.tank.to_nbt() != previous_tank { let _ = process_casting_tank(game, &mut state); }
         if !state.lossless() { return; }
         if store::write_many(&mut game.world, &[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(target,"tconstruct:casting_tank",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
-            if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = state.slots[0]; slots[1] = state.slots[1]; }
+            let strength = state.comparator();
+            if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone(); }
+            notify_casting_comparator(game, target, previous_strength, strength);
         }
         return;
     }
@@ -864,6 +875,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     }
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_casting_tank" {
         let Some(mut state) = casting_tank_at(game, target) else { return; };
+        let previous_strength = state.comparator();
         let previous_tank = state.tank.to_nbt();
         faucet.tick(input, Some(&mut state.tank));
         if state.tank.to_nbt() != previous_tank { let _ = process_casting_tank(game, &mut state); }
@@ -871,7 +883,9 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
         let mut updates = vec![(target,"tconstruct:casting_tank",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())];
         if let Some(melter) = melter { updates.push((source,"tconstruct:melter",melter.to_nbt())); }
         if store::write_many(&mut game.world, &updates) {
-            if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = state.slots[0]; slots[1] = state.slots[1]; }
+            let strength = state.comparator();
+            if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone(); }
+            notify_casting_comparator(game, target, previous_strength, strength);
         }
         return;
     }
