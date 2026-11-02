@@ -10,6 +10,7 @@ use horizon_world::nbt::Tag;
 
 fn main() {
     let mut components = vec![String::new(); 128];
+    components[component::DAMAGE as usize] = "minecraft:damage".into();
     components[component::MAX_DAMAGE as usize] = "minecraft:max_damage".into();
     components[28] = "minecraft:tool".into();
     let mut blocks = vec![String::new(); 8];

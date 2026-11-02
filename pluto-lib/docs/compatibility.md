@@ -15,7 +15,7 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 
 ## Development target
 
-The [combined native demos](../experiments/unified-target/README.md) were built and run on Linux with Horizon [`cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7`](https://github.com/horizon-rust/horizon/commit/cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). A native item with a Creative stack size above 99, Tinkers integration, Windows, and the full launcher path remain unverified.
+The [combined native demos](../experiments/unified-target/README.md) were built and run on Linux with Horizon [`cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7`](https://github.com/horizon-rust/horizon/commit/cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). The demo-only native item limit of 200 was checked in Creative at 199, 200 and 201; Tinkers integration, Windows, and the full launcher path remain unverified.
 
 The independent [short item-use demo](item-use-b2.md) was built and run on Linux with Horizon [`b2e71aca04c7f62f24eefd7dd0324bae9c04954f`](https://github.com/horizon-rust/horizon/commit/b2e71aca04c7f62f24eefd7dd0324bae9c04954f) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). Its local and LAN checks cover the short-use path only; Tinkers and Windows remain unverified.
 

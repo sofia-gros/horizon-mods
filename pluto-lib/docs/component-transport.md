@@ -65,7 +65,7 @@ Unknown fields, malformed values, oversized identifiers, and unresolved block ID
 
 ## Run the fixture
 
-Use a disposable source checkout at Horizon `3a264943c7a3a3ed02e6ee608443f558d98f208f`; these commands add an example to that checkout. From `pluto-lib/`, set `HOST` to the checkout’s absolute path:
+Use a disposable pristine source checkout at Horizon `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7`; these commands add an example to that checkout. From `pluto-lib/`, set `HOST` to the checkout’s absolute path:
 
 ```sh
 HOST=/path/to/disposable-horizon
@@ -85,3 +85,5 @@ TOML
 ```
 
 Use a fresh checkout so the example is added only once. Omit `--offline` if the checkout’s dependencies have not been cached. Append `-- /path/to/cases.json` to inspect consumer stacks: the file contains a `cases` array with `id` and SNBT `snbt` fields. The fixture checks the helpers independently of Mixins; a plan alone does not establish that the transformed client compiles or runs.
+
+The baseline fixture above intentionally runs on a **pristine** host: it asserts that the host encoder omits the two components before applying the helpers. Do not point it at an already transformed library. For a library built with the transport bundle, use the separate [applied-host fixture](../fixtures/stack_transport_applied.rs): it requires exactly one max-damage and one Tool wire component, decodes the actual Tool rules, and checks count and damage. Run it as an example of the transformed `horizon-client-lib` source, using the same method as above but without copying or manually applying the helpers. These are distinct checks; neither establishes a live LAN result on its own.

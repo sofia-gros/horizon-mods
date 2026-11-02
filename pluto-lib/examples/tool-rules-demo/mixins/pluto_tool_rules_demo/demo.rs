@@ -36,13 +36,18 @@ pub fn prepare() -> Result<(), Box<dyn Error>> {
             search_lines: vec!["Pluto Rules Pickaxe".into()],
             search_tags: Vec::new(),
         })
-        .chain([199, 200, 201].into_iter().map(|count| Entry {
-            snbt: format!(r#"{{id:"pluto_wand:wand",count:{count}}}"#),
-            searchable: false,
-            permissions_only: false,
-            search_lines: Vec::new(),
-            search_tags: Vec::new(),
-        }))
+        .chain(
+            std::env::var_os("PLUTO_DEMO_STACK_LIMIT")
+                .into_iter()
+                .flat_map(|_| [199, 200, 201])
+                .map(|count| Entry {
+                    snbt: format!(r#"{{id:"pluto_wand:wand",count:{count}}}"#),
+                    searchable: false,
+                    permissions_only: false,
+                    search_lines: Vec::new(),
+                    search_tags: Vec::new(),
+                }),
+        )
         .collect(),
     }];
     let updated = register_tabs(&doc, &tabs, |s| {
