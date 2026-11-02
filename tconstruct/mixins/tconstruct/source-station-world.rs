@@ -345,7 +345,18 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
         if value.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:modifier_repair") { continue; }
-        if ["conditions", "forge:conditions"].iter().any(|key| value.get(*key).is_some_and(|conditions| conditions.as_array().is_none_or(|entries| !entries.is_empty()))) { continue; }
+        let mut conditions_ok = true;
+        for key in ["conditions", "forge:conditions"] {
+            let Some(raw) = value.get(key) else { continue; };
+            let Some(conditions) = raw.as_array() else { conditions_ok = false; break; };
+            if conditions.is_empty() { continue; }
+            let Some((_, fluid_tags)) = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok()) else { conditions_ok = false; break; };
+            let Some(config) = world.chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { conditions_ok = false; break; };
+            let Some(items) = world.chunks.__horizon_mixins_tconstruct_melter_known_items().as_ref() else { conditions_ok = false; break; };
+            let registries = [("minecraft:item".to_owned(), tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+            if super::tconstruct_source_melter_world::conditional_conditions(conditions, &registries, config, items) != Some(true) { conditions_ok = false; break; }
+        }
+        if !conditions_ok { continue; }
         let Some(modifier) = value.get("modifier").and_then(serde_json::Value::as_str) else { continue; };
         // Material traits are resolved above. Do not guess a tool-definition
         // trait's hook semantics when it can affect this repair.
