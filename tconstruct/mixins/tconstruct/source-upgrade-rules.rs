@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 14] = [
+const UPGRADES: [(&str, i32); 15] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1), ("tconstruct:power", 72), ("tconstruct:blindshot", 10),
+    ("tconstruct:glowing", 1), ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.

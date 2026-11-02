@@ -340,3 +340,38 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 `DummyMaterialItem.appendHoverText` adds the original translated gray warning for the four stone plating dummy items. The shared tooltip hook uses the source translation. Official Mixins transformation and build succeeded, and the English helmet warning was visually checked in a Linux game; the other three and other languages remain unverified. Cast-cost tooltips use a separate source-recipe path, described below.
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
+
+### Material trait fallback by stat type
+
+The pinned material registry resolves a trait's exact stat type first, then its
+registered category fallback, then the material default. The trait selector now
+preserves that order for armor plating and maille and recognizes the source
+armor, ammo and ribcage stat types. Ribcage deliberately has no armor fallback.
+This fixes selection logic only; definitions that use `material_stats` still
+need their material entries connected to this selector separately.
+
+Rust syntax was checked. Unit, plan, build and gameplay are pending. Verify an
+exact plating override against armor fallback and default, empty explicit lists,
+maille, shield core, slime, skull, shell and laces, ribcage without armor
+fallback, and arrow head/shaft/fletching with ammo fallback. Check material
+swaps and saved/LAN stacks. Source:
+[MaterialRegistry](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/materials/MaterialRegistry.java).
+
+### Traits on material-stat equipment
+
+The trait resolver now accepts a tool definition's `material_stats.stat_types`
+as well as `part_stats.parts`, preserving material order and using the original
+stat-type fallback rules. Explicit `material_traits` modules contribute to the
+normal tool trait list only when their hooks include `tconstruct:tool_traits`
+or use the source default hooks; trim-only and rebalanced-only modules are not
+mistaken for normal tool traits. Material-stat tools no longer require an
+unrelated `tool_building` recipe merely to read their traits.
+
+This connects trait selection for these definitions; it does not implement
+every selected modifier, material acquisition, trim rendering or equipment
+behavior. Rust syntax was checked; unit, combined build and gameplay remain
+pending. Verify Plate Shield and Slime armor material order, exact/fallback and
+empty traits, Slime Chestplate's explicit tool-traits module, trim-only hooks,
+missing/invalid indices, material swap, reload and LAN. Compare the pinned
+[MaterialStatsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialStatsModule.java)
+and [MaterialTraitsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialTraitsModule.java).

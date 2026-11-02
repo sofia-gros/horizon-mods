@@ -8,7 +8,7 @@ Open the Melter, put a supported fuel in the heater slot, and add material to th
 
 The input slots are on the left, the heater slot is on the right, and the tank shows the stored liquid.
 
-Place an ingot cast on the table, use the faucet, and wait for the copper ingot to cool. Use an empty basin to cast 900 mB into a copper block. Use the table or basin to collect the finished item.
+Place an ingot cast on the table, use the faucet, and wait for the copper ingot to cool. Use an empty basin to cast 810 mB into a copper block (nine ingots). Use the table or basin to collect the finished item.
 
 The copper sequence, saving and reloading, and shared input and casting in LAN have been checked on Linux. Other materials and Windows have not received the same game checks.
 
@@ -17,3 +17,5 @@ The implementation uses the original recipes, the original Melter ore-rate defau
 Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. The Faucet, Casting Basin and Casting Table use the original selection and collision shapes. A Linux game check covered all five Faucet directions, right-click targeting, the Basin and Table recesses, walking against one Faucet, and falling into the Basin and Table. The Melter screen still opened. Other machine shapes remain to be compared.
 
 ![Casting Basin selection in the Linux test world](casting-basin-selection.png)
+
+For acquisition from gathered resources and a fixture-free acceptance route, see [Survival progression](survival-progression.md).
