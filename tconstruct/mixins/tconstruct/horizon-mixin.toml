@@ -4215,6 +4215,36 @@ helper = "source-splash-bottle-brewing.rs"
 bindings = [{ name = "value", ty = "Self", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
 
 [[injection]]
+id = "source-empty-bottle-use"
+target = "horizon_client::game::potions::Game<'_>::use_potion_item"
+kind = "HEAD"
+cancellable = true
+helper = "source-empty-bottle-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-bottle-fill"
+file = "crates/horizon-client/src/game/potions.rs"
+name = "tconstruct_source_bottle_fill"
+source = "source-bottle-fill.rs"
+
+[[injection]]
+id = "source-bottle-cauldron"
+target = "horizon_client::game::Game<'_>::use_on_cauldron"
+kind = "HEAD"
+cancellable = true
+helper = "source-bottle-cauldron.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+
+[[injection]]
+id = "source-bottle-cauldron-remote"
+target = "horizon_client::game::remote::Game<'_>::remote_block_reacts"
+kind = "HEAD"
+cancellable = true
+helper = "source-bottle-cauldron-remote.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "hit", ty = "&super::Hit", value = "hit" }, { name = "held", ty = "Option<&horizon_items::items::ItemStack>", value = "held" }]
+
+[[injection]]
 id = "source-splashing-block"
 target = "horizon_client::game::Game<'_>::use_block_transformer"
 kind = "HEAD"
