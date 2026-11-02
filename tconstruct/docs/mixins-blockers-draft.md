@@ -1,0 +1,19 @@
+# Unposted Mixins investigation draft
+
+Status: local project documentation only; no upstream issue or pull request has been submitted. These are reproductions on official Horizon `5afa1de5f750b4b89ca23347b1d3aba296c278b0` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`, except where a prior revision is explicitly identified. They do not establish that every possible integration is impossible.
+
+## Destructured function parameter
+
+**Target:** `horizon_client_render::mesher::Mesher<'_>::face`. The host's parameter list includes `(id, state): (u32, &Info)`. A single `HEAD` injection using `storage-mesh-face.rs` and the bindings from `horizon-mixin.toml` produces `E_INVALID_BINDING: destructured function parameters are unsupported` on the earlier `40e044da777dfb56fd9df2ff0fc2b0a3abba4578` host. The target has the same destructured parameter in `5afa1de5f750b4b89ca23347b1d3aba296c278b0`, but the same diagnostic was not rerun on that revision.
+
+**Required behavior:** each affected face needs the original state, absolute block position, face, output mesh and sprite/lighting context. The `quad` and `quad_as` boundaries lack that context. A previous `AFTER_CALL` probe at `mesh_reusing` / `self.face` on the earlier revision failed with `E_UNSUPPORTED_CONTROL_FLOW` in the enclosing closure.
+
+**Possible upstream enhancement:** support bindings for identifiers of a proven irrefutable tuple pattern without changing the original parameter evaluation or borrow/lifetime rules. A suitable upstream test would inject into a minimal `fn face((id, state): (u32, &Info))`, check both bound values and original behavior, and cover shadowing and mutable/borrowed patterns. Unsupported patterns should continue to fail closed.
+
+## Wear calculation and macro identity
+
+**Target:** `horizon_client::game::enchant_effects::Game<'_>::durability_loss`. A single `RETURN` injection from `dense-durability-loss` / `source-dense-wear.rs` returns `E_UNSUPPORTED_MACRO: macro identity is ambiguous; use an unshadowed absolute standard path` on `40e044da777dfb56fd9df2ff0fc2b0a3abba4578`. The function invokes `world_stations!` and `world_items!`. On `5afa1de5f750b4b89ca23347b1d3aba296c278b0`, this same target was not rerun; the two-revision diff does not modify its source file.
+
+**Required behavior:** adjust the returned wear once before the caller's native damage event and durability trigger, including direct creature and dispenser calls. `RETURN` at `wear` plans successfully but executes after those events and omits direct callers. On `5afa1de5f750b4b89ca23347b1d3aba296c278b0`, `MODIFY_EXPRESSION_VALUE` on `self.durability_loss(stack, amount)` inside `wear` plans successfully and would occur at the needed point. Separate one-injection probes for `self.durability_loss(&stack, amount)` in `wear_sun_protection` and `hurt_and_break` both return `E_UNSUPPORTED_CONTROL_FLOW` for their enclosing closure. These plans alone do not type-check captures or establish that every direct path can be safely covered.
+
+**Possible upstream enhancement:** resolve an unambiguously indexed local macro identity for a `RETURN` target while continuing to reject unresolved, shadowed or opaque control-flow macro identities. An upstream fixture should cover safe resolution, shadowing rejection, exactly-once side effects and generated Rust type checking. Alternatively, carefully scoped expression modification in a closure-containing target could be supported if its lexical and control-flow safety is proven. Neither proposal recommends disabling the existing checks.
