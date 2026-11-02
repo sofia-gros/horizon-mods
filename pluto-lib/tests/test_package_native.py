@@ -25,12 +25,14 @@ class NativePackageTests(unittest.TestCase):
                 self.assertEqual(sum(name.endswith("horizon-mixin.toml") for name in names), 1)
                 self.assertFalse(any("demo" in name or "pluto_creative/" in name for name in names))
                 combined = tomllib.loads(archive.read(prefix + "horizon-mixin.toml").decode())
-                self.assertEqual(len(combined["crate"]), 1)
-                self.assertEqual(combined["crate"][0]["path"], "pluto_native_creative/api")
+                self.assertEqual(len(combined["crate"]), 2)
+                self.assertEqual({entry["path"] for entry in combined["crate"]},
+                                 {"pluto_native_creative/api", "pluto_native_creative/inventory-api"})
                 item_sources = [name for name in names if name.endswith("/api/src/item.rs")]
                 self.assertEqual(len(item_sources), 1)
                 self.assertEqual(archive.read(item_sources[0]).count(b"static REGISTRY:"), 1)
                 self.assertNotIn("state", combined)
+                self.assertIn(prefix + "pluto_native_creative/inventory-api/src/lib.rs", names)
                 for component in package.COMPONENTS:
                     root = ROOT / "mixins" / component
                     original = tomllib.loads((root / "horizon-mixin.toml").read_text())
