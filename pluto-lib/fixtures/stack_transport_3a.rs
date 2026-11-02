@@ -371,6 +371,76 @@ fn main() {
     let canonical_snbt =
         pluto_tool_codec::prepare_tool(single, |name| (name == "minecraft:stone").then_some(7))
             .unwrap();
+    // Shape normalization does not claim that any referenced block exists.
+    let shapes = [
+        r#"{rules:[{blocks:"stone",speed:2s}]}"#,
+        r#"{rules:[{blocks:["minecraft:stone"],speed:2.0f}],default_mining_speed:1.0f,damage_per_block:1,can_destroy_blocks_in_creative:1b}"#,
+    ];
+    let shape = pluto_tool_codec::normalize_tool_shape(shapes[0]).unwrap();
+    assert_eq!(
+        shape,
+        pluto_tool_codec::normalize_tool_shape(shapes[1]).unwrap()
+    );
+    assert_eq!(
+        shape,
+        pluto_tool_codec::normalize_tool_shape(&shape).unwrap()
+    );
+    assert_eq!(
+        shape,
+        pluto_tool_codec::prepare_tool(shapes[0], |name| (name == "minecraft:stone").then_some(7))
+            .unwrap()
+    );
+    let missing_block = r#"{rules:[{blocks:"example:not_registered"}]}"#;
+    assert!(pluto_tool_codec::normalize_tool_shape(missing_block).is_ok());
+    assert!(matches!(
+        pluto_tool_codec::prepare_tool(missing_block, |_| None),
+        Err(pluto_tool_codec::ToolError::UnknownBlock(_))
+    ));
+    let unsupported = String::from("{rules:[],unknown:1}");
+    assert_eq!(
+        pluto_tool_codec::normalize_tool_shape(&unsupported),
+        Err(pluto_tool_codec::ToolError::InvalidOrUnsupported)
+    );
+    assert_eq!(unsupported, "{rules:[],unknown:1}");
+    assert_eq!(
+        pluto_tool_codec::normalize_tool_shape(r#"{rules:[{blocks:"stone",unknown:1}]}"#),
+        Err(pluto_tool_codec::ToolError::InvalidOrUnsupported)
+    );
+    let multiple = r#"{rules:[{blocks:["stone","example:unknown","stone"]}]}"#;
+    let multiple = pluto_tool_codec::normalize_tool_shape(multiple).unwrap();
+    assert!(multiple.contains("example:unknown"));
+    assert_eq!(
+        multiple,
+        pluto_tool_codec::normalize_tool_shape(&multiple).unwrap()
+    );
+    assert!(matches!(
+        pluto_tool_codec::normalize_tool_shape("{rules:[]} trailing"),
+        Err(pluto_tool_codec::ToolError::InvalidSnbt)
+    ));
+    let bare_tag = r##"{rules:[{blocks:"#mineable/pickaxe"}]}"##;
+    let full_tag = r##"{rules:[{blocks:"#minecraft:mineable/pickaxe"}]}"##;
+    assert_eq!(
+        pluto_tool_codec::normalize_tool_shape(bare_tag),
+        pluto_tool_codec::normalize_tool_shape(full_tag)
+    );
+    let (normalized_tag, _) = horizon_world::nbt::parse_snbt(&shape).unwrap();
+    let mut saved = ItemStack::new("example:tool", 1);
+    saved
+        .data_mut()
+        .set_other("minecraft:tool", Some(normalized_tag));
+    let encoded_tag = horizon_items::item_nbt::item_to_nbt(&saved);
+    let bytes = horizon_world::nbt::write_network(&encoded_tag, Default::default()).unwrap();
+    let (decoded_tag, _) = horizon_world::nbt::read_network(&bytes, Default::default()).unwrap();
+    let reloaded = horizon_items::item_nbt::item_from_nbt(&decoded_tag).unwrap();
+    assert!(saved.same_item_same_components(&reloaded));
+    let reloaded_tool = reloaded.data().unwrap().other("minecraft:tool").unwrap();
+    assert_eq!(
+        shape,
+        pluto_tool_codec::normalize_tool_shape(&horizon_client_lib::item_data::canon_tag(
+            reloaded_tool
+        ))
+        .unwrap()
+    );
     let explicit = r#"{rules:[{blocks:["minecraft:stone"]}],default_mining_speed:1.0f,damage_per_block:1,can_destroy_blocks_in_creative:1b}"#;
     assert_eq!(
         canonical_snbt,

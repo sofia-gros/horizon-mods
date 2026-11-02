@@ -20,6 +20,23 @@ The [codec fixture](../fixtures/stack_transport_3a.rs) and a separately supplied
 
 ## Prepare a Tool component
 
+When reading an older saved stack without a block registry, normalize its Tool
+shape first:
+
+```rust
+let canonical = horizon_client::pluto_tool_codec::normalize_tool_shape(
+    r#"{rules:[{blocks:"stone"}]}"#,
+)?;
+```
+
+This returns a new canonical SNBT string and never changes the input. It
+normalizes omitted namespaces, holder-set form, defaults and numeric types to
+match the wire representation. Repeating it is stable. Malformed SNBT and
+unsupported fields return an error, so retain the original value on failure.
+Shape normalization does **not** check that a block exists. Validate against
+the actual registry with `prepare_tool` before treating IDs as resolved or
+sending a stack. It does not automatically migrate saved inventories.
+
 When staging `pluto_transport_3a` with the native mod, call its entry before registering or changing a Tool component:
 
 ```rust
