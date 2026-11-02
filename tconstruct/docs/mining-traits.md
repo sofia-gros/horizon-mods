@@ -122,3 +122,16 @@ capacity consumers still need separate integration; this is not complete coverag
 Rust syntax was checked. Tests, current-target build and gameplay are pending.
 Check levels 1 and 2 at amounts 0, 1, 4, 5, 6 and 10, ineffective blocks,
 AOE center and extra blocks, material swaps, save/reload and multiplayer.
+
+### Successful single and area harvest candidate
+
+A follow-up moves Overwield spending to the existing host held-tool mining
+callback, which is reached after non-creative block removal and before normal
+tool wear. Small harvest tools spend up to one Overslime per level; broad tools
+spend up to five per level. An actor-scoped area marker limits broad spending to
+one successful block in a multi-block operation. The held stack is refreshed
+before wear so the shield calculation sees the remaining capacity. Broken tools
+and missing source tags do not spend. The source `startHarvest` hook runs before
+the source block break, so failure timing differs from this host integration;
+verify failed, canceled and ineffective breaks rather than treating them as
+source parity. Formal plan/apply, type/build and gameplay remain pending.

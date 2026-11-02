@@ -2697,6 +2697,16 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[state]]
+id = "area-overwield-spent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[injection]]
 id = "source-area-guest-hit"
 target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
