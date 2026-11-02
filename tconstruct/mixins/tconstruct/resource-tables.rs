@@ -117,7 +117,8 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             ("tconstruct:seared_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:seared_fuel_gauge", "tconstruct:fuel_tank"),
             ("tconstruct:seared_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:seared_ingot_gauge", "tconstruct:ingot_tank"),
             ("tconstruct:scorched_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:scorched_fuel_gauge", "tconstruct:fuel_tank"),
-            ("tconstruct:scorched_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:scorched_ingot_gauge", "tconstruct:ingot_tank")];
+            ("tconstruct:scorched_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:scorched_ingot_gauge", "tconstruct:ingot_tank"),
+            ("tconstruct:seared_lantern", "tconstruct:lantern"), ("tconstruct:scorched_lantern", "tconstruct:lantern")];
         let path = out.join("registries.json");
         let mut registries: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         let entries = registries["minecraft:block_entity_type"]["entries"].as_object_mut().ok_or("missing block entity registry")?;
@@ -214,7 +215,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
                 let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
-                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge") { continue; }
+                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { continue; }
                 let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
                 row["block_entity"] = serde_json::Value::Bool(true);
                 if !matches!(name, "tconstruct:seared_heater" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {

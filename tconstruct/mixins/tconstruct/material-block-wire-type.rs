@@ -7,6 +7,7 @@ fn material_block_wire_type(name: &str) -> std::ops::ControlFlow<Option<&'static
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => "tconstruct:faucet",
         "tconstruct:seared_table" | "tconstruct:scorched_table" => "tconstruct:table",
         "tconstruct:seared_basin" => "tconstruct:basin",
+        "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => "tconstruct:lantern",
         _ => return std::ops::ControlFlow::Continue(()),
     };
     std::ops::ControlFlow::Break(Some(kind))

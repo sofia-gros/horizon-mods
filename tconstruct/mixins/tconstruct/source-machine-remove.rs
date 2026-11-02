@@ -20,7 +20,7 @@ fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizo
         }
         crate::game::tconstruct_source_melter_store::clear(level.world, at);
     }
-    if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::capacity(&name) {
+    if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::item_capacity(&name) {
         let kind = crate::game::tconstruct_source_machine_runtime::kind(&name);
         if side_effects {
             if let Some((_, tank)) = kind.and_then(|kind| crate::game::tconstruct_source_melter_store::read(level.world, (pos.x, pos.y, pos.z), kind)

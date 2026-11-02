@@ -349,7 +349,7 @@ Casting-table `table_duplication` now matches the source cast and fluid tags, re
 
 The source `table_filling` recipe supports a plain empty bucket for registered bucket fluids through the existing casting transaction. It consumes the empty bucket and 1,000 mB and cools for five ticks; this path awaits game verification. As in the source Forge bucket wrapper, filling replaces the input with a new bucket rather than retaining input components. Other fluid-capability containers remain unsupported.
 
-Copper Can has a source-shaped standalone copper-ingot recipe and stores 90 mB per item using custom data. Casting-table filling and supported controller container transfers are connected; tagged fluids, filled-can rendering and the broader Forge copper-ingot tag recipe remain incomplete. Runtime and LAN behavior await verification.
+Copper Can has a source-shaped standalone copper-ingot recipe and stores 90 mB per item using custom data. Casting-table filling and supported controller container transfers are connected; tagged-fluid transfer support is described below, while filled-can rendering and the broader Forge copper-ingot tag recipe remain incomplete. Runtime and LAN behavior await verification.
 
 The single- and multi-fluid tank NBT formats retain optional compound fluid tags and distinguish otherwise identical fluids by tag. Copper Can container-slot transfers preserve tagged fluid data and move one 90 mB can at a time; selecting by ID refuses ambiguous variants. An untagged alloy can run alongside unrelated tagged fluids, whose volume still counts against capacity. If an earlier alloy recipe could select a tagged fluid, matching stops rather than guessing its metadata or changing recipe order. Save, wire synchronization and behavior with older worlds remain unverified.
 
@@ -377,7 +377,7 @@ The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack dama
 
 Material-part melting now uses the existing source casting-cost and material lookup to resolve `material_melting`, scale primary and Foundry byproducts by part cost, and compute source melting time. Missing tags, material definitions, costs or fluid outputs fail closed. Runtime and LAN behavior await verification.
 
-Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
+Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Basin remains separate work.
 
 Scorched Table and gold bars now have standalone source-shaped recipes, source models and the common casting transaction. Scorched Table requires a physical input, and gold bars are matched through the source empty-table-cast tag without consumption. The empty covered-state appearance and full Forge gold-ingot tag alternatives remain incomplete; operation, save and LAN await verification.
 
@@ -386,3 +386,9 @@ The source `molding_basin` serializer now uses the same material/pattern transac
 The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
 
 The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
+
+The source `basin_filling` recipes for seared and scorched fuel and ingot tanks now use the existing tank-item data representation. Filling consumes at most the recipe amount and available capacity, retains other item components, and rejects mixed fluids. This path awaits game verification; lantern support is described below, and other basin containers remain unsupported.
+
+Seared and Scorched Lanterns now have source-shaped standalone recipes, item/block declarations and 50 mB saved tank data. Their source table and basin filling recipes use 10 mB and up to 50 mB respectively. The original dynamic liquid surface, fluid tint and fluid-dependent light are not yet implemented; the default light is zero. All paths await runtime verification.
+
+The Melter and Smeltery container slots also accept lanterns, transferring one item at a time up to its remaining 50 mB capacity or available fluid and preserving other item components. This follows the source container slot's single-item transfer even for stacks; other direct scaled-tank interactions and tagged fluids are not yet represented. This transfer is pending integration and runtime verification.

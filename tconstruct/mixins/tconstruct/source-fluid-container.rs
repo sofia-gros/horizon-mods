@@ -87,6 +87,9 @@ pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) ->
 pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
     if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
     if stack.item.as_ref() == "minecraft:potion" { return potion_data(stack, allow_color).is_some(); }
+    if matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
+        return lantern_tank(stack).is_some();
+    }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
 // Translate only the losslessly represented base potion and optional color.
@@ -126,6 +129,25 @@ pub(super) fn potion_stack(item: &str, potion: &str, color: Option<i32>) -> Item
     result
 }
 
+// Container-slot transfers operate on one item of the stack, as in Mantle's
+// FluidTransferHelper. The item tank representation is shared with casting.
+fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_state::Tank> {
+    use horizon_world::nbt::Tag;
+    if stack.count == 0 || stack.damage != 0 { return None; }
+    let capacity = super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item)?;
+    let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+    match custom {
+        None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
+        Some(Tag::Compound(data)) => match data.get(&"tconstruct:tank".into()) {
+            None => Some(super::tconstruct_source_melter_state::Tank::new(capacity)),
+            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| { let name = key.to_string_lossy(); name == "fluid" || name == "amount" }) =>
+                super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
 /// A normal left/right click on either temporary slot. The output never
 /// accepts inserted items; all changes are staged in caller-owned copies.
 pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<ItemStack>, index: usize,
@@ -146,7 +168,7 @@ pub(super) fn click_with_color(slots: &mut [Option<ItemStack>; 2], carried: &mut
         return true;
     };
     if index != 0 || !accepts_with_color(&held, known_fluid, allow_color) { *carried = Some(held); return false; }
-    let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     match slots[index].as_mut() {
         None => {
             let count = if right { 1 } else { held.count.min(max) };
@@ -172,7 +194,7 @@ pub(super) fn quick_input_with_color(slots: &mut [Option<ItemStack>; 2], stack: 
     known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
     let Some(held) = stack.as_mut() else { return false; };
     if !accepts_with_color(held, known_fluid, allow_color) { return false; }
-    let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     let amount = match slots[0].as_mut() {
         None => {
             let amount = held.count.min(max);
@@ -272,6 +294,39 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
             if !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), 90) { return false; }
             let Some(output) = can_set_tagged(input, Some(&fluid), tag.as_ref()) else { return false; }; output
         };
+        let mut remaining = input.clone(); remaining.count -= 1;
+        slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
+        return true;
+    }
+    if matches!(&*input.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
+        use horizon_world::nbt::{Compound, Tag};
+        if !known_item(&input.item) { return false; }
+        let Some(mut portable) = lantern_tank(input) else { return false; };
+        if portable.tag.is_some() { return false; }
+        let mut next = tank.clone();
+        let mut transferred = false;
+        if portable.amount > 0 && direction != Direction::FillItem {
+            let Some(fluid) = portable.fluid.clone() else { return false; };
+            let amount = portable.amount.min(next.capacity.saturating_sub(next.total()));
+            if known_fluid(&fluid) && amount > 0 && next.insert(&fluid, amount) {
+                if portable.take(amount).is_none() { return false; }
+                transferred = true;
+            }
+        }
+        if !transferred {
+            if direction == Direction::EmptyItem { return false; }
+            let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+            if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
+            let amount = next.amount(&fluid).min(portable.capacity.saturating_sub(portable.amount));
+            if !known_fluid(&fluid) || amount == 0 || !portable.insert(&fluid, amount) || !next.take(&fluid, amount) { return false; }
+        }
+        let mut custom = match input.data().and_then(|data| data.other("minecraft:custom_data")) {
+            None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return false,
+        };
+        if portable.amount == 0 { custom.remove(&"tconstruct:tank".into()); }
+        else { custom.insert("tconstruct:tank".into(), portable.to_nbt()); }
+        let mut output = input.clone(); output.count = 1;
+        output.data_mut().set_other("minecraft:custom_data", (!custom.is_empty()).then_some(Tag::Compound(custom)));
         let mut remaining = input.clone(); remaining.count -= 1;
         slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
         return true;

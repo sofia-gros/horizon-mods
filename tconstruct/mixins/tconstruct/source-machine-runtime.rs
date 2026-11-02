@@ -30,6 +30,7 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => Some("tconstruct:smeltery"),
         "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" => Some("tconstruct:fuel_tank"),
         "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => Some("tconstruct:ingot_tank"),
+        "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => Some("tconstruct:lantern"),
         _ => None,
     }
 }
@@ -43,6 +44,7 @@ fn initial(kind: &str) -> Option<Tag> {
         "tconstruct:smeltery" => Smeltery::new().to_nbt(),
         "tconstruct:fuel_tank" => Tank::new(4000).to_nbt(),
         "tconstruct:ingot_tank" => Tank::new(4320).to_nbt(),
+        "tconstruct:lantern" => Tank::new(50).to_nbt(),
         _ => return None,
     })
 }
