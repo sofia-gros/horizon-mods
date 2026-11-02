@@ -10,7 +10,7 @@ fn tconstruct_necrotic_melee_pvp_head(game: &mut crate::game::Game<'_>, host: &m
     };
     let entry = victim_data.zip(actor).and_then(|((victim_uuid, health), (attacker_uuid, stack))| {
         if !health.is_finite() || !stack.item.starts_with("tconstruct:") || crate::game::tconstruct_source_melee_shape::intact(&stack).is_none() { return None; }
-        Some((strike as *const Strike as usize, victim_conn, victim_uuid, health, strike.attacker, attacker_uuid, stack))
+        Some((strike as *const Strike as usize, victim_conn, victim_uuid, health, strike.attacker, attacker_uuid, stack, None, 0))
     });
     game.world.chunks.__horizon_mixins_tconstruct_necrotic_melee_pvp_mut().push(entry);
 }

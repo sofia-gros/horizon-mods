@@ -120,10 +120,12 @@ after a successful hit. It requires a fully charged critical, checks the
 blacklist and same attack/weapon, and invalidates outer scopes on nested PvP.
 The existing successful-hit weapon-wear handler is retained. Host victims,
 refused hits and ambiguous or disconnected actors remain outside this path.
-The source calculates health loss before later knockback and other effects;
-the host return boundary follows those effects, so interactions affecting the
-victim between them require dedicated verification. No official plan, type or
-game test has established this candidate.
+A follow-up records post-hit health at `mob_hits_player` return, before
+`pvp_land` applies its subsequent knockback and thorns processing. This still
+follows the host `hurt_player_from` internals, including its damage and block
+hooks; source timing around those hooks needs game verification. If the new
+return injection does not run, no melee PvP healing occurs. No official plan,
+type or game test has established this candidate.
 
 ## Candidate dependency map
 

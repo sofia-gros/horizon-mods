@@ -2914,7 +2914,7 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 [[state]]
 id = "necrotic-melee-pvp"
 target = "horizon_client_render::chunk_map::ChunkMap"
-ty = "Vec<Option<(usize, u32, [i32; 4], f32, Option<u32>, [i32; 4], horizon_items::items::ItemStack)>>"
+ty = "Vec<Option<(usize, u32, [i32; 4], f32, Option<u32>, [i32; 4], horizon_items::items::ItemStack, Option<f32>, u32)>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
@@ -2927,6 +2927,20 @@ target = "horizon_client::game::lan_pvp::Game<'_>::pvp_land"
 kind = "HEAD"
 helper = "necrotic-melee-pvp-head.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "victim", ty = "Victim", value = "victim" }, { name = "strike", ty = "&Strike", value = "s" }]
+
+[[injection]]
+id = "source-necrotic-melee-pvp-hurt-head"
+target = "horizon_client::game::creatures::Game<'_>::mob_hits_player"
+kind = "HEAD"
+helper = "necrotic-melee-pvp-hurt-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "damage_type", ty = "&str", value = "damage_type" }]
+
+[[injection]]
+id = "source-necrotic-melee-pvp-hurt"
+target = "horizon_client::game::creatures::Game<'_>::mob_hits_player"
+kind = "RETURN"
+helper = "necrotic-melee-pvp-hurt.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "damage_type", ty = "&str", value = "damage_type" }]
 
 [[injection]]
 id = "source-melee-pvp-wear"
