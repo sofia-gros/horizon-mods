@@ -370,7 +370,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let effect = effects[0].as_object()?;
     let kind = effect.get("type")?.as_str()?;
     let is_cloud = kind == "tconstruct:mob_effect_cloud";
-    if mixed_glow && (!is_cloud || *level != 1) { return None; }
+    if mixed_glow && !is_cloud { return None; }
     let mut cloud = Vec::new();
     let (block, sound) = if is_cloud {
         if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
@@ -410,9 +410,6 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let mut staged = Vec::new();
     let mut remaining = fluid.clone();
     while staged.len() < max_positions && remaining.amount > 0 {
-        // With full level one both successful effects consume the same
-        // amount; the source uses their maximum, not their sum.
-        if mixed_glow && remaining.amount < amount { break; }
         let (used, scaled_cloud) = if is_cloud {
             let scale = (*level as f32).min(remaining.amount as f32 / amount as f32);
             let mut scaled = Vec::new();
@@ -432,7 +429,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
         if used == 0 { break; }
         remaining.amount -= used;
         let updated = super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?;
-        staged.push((updated, scaled_cloud));
+        staged.push((updated, scaled_cloud, used));
     }
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let result = (|| -> horizon_client::Result<bool> {
@@ -486,7 +483,10 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                         super::potions::tconstruct_source_fluid_cloud::spawn(game, at, staged[successes].1.clone());
                         cloud_spawned = true;
                     }
-                    if mixed_glow && game.may_build() {
+                    // Placement requires a full effect level. With strength
+                    // greater than one, hold the place-only case: it would
+                    // consume one level rather than the staged cloud amount.
+                    if mixed_glow && staged[successes].2 >= amount && game.may_build() && (*level == 1 || cloud_spawned) {
                         let placed = super::tconstruct_glowing_world::place(game, glow_target, [-face[0], -face[1], -face[2]])?;
                         if placed {
                             let sound = game.res.facts().get(game.world.block(glow_target[0], glow_target[1], glow_target[2])).sounds.place.clone();
