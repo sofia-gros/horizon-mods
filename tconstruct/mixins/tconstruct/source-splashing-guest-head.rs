@@ -15,6 +15,13 @@ fn tconstruct_splashing_guest_head(game: &mut crate::game::Game<'_>, host: &crat
         })
     } else { None };
     game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().remove(&conn);
+    let packet_info = match packet {
+        horizon_protocol::packets::play::Serverbound::Interact(action) => Some((action.id, action.hand == 1)),
+        _ => None,
+    };
+    let packets = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_packet_mut();
+    packets.remove(&conn);
+    if let Some(packet_info) = packet_info { packets.insert(conn, packet_info); }
     let pending = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope_mut();
     pending.remove(&conn);
     if let Some(players) = nearby { pending.insert(conn, players); }

@@ -1,6 +1,7 @@
 // Complete the deferred operation while this packet still owns LanHost.
 fn tconstruct_splashing_guest_return(value: (), game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32) -> () {
     game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_scope_mut().remove(&conn);
+    game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_packet_mut().remove(&conn);
     let Some((stack, slot, mobs, players, creative, level, player_first)) = game.world.chunks.__horizon_mixins_tconstruct_splashing_guest_pending_mut().remove(&conn) else { return value; };
     // All checks happen before the first target is mutated. This is still one
     // packet turn: no guest action can interleave with these guest swaps.

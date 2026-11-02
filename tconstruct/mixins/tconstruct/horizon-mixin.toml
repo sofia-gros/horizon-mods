@@ -4183,3 +4183,21 @@ kind = "HEAD"
 cancellable = true
 helper = "source-splashing-player-use.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "target", ty = "Option<crate::game::InteractTarget>", value = "target" }]
+
+[[state]]
+id = "splashing-guest-packet"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, (i32, bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-splashing-guest-aim"
+target = "horizon_client::game::lan_actions::Game<'_>::look_at_entity"
+kind = "HEAD"
+cancellable = true
+helper = "source-splashing-guest-aim.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "gi", ty = "usize", value = "gi" }, { name = "id", ty = "i32", value = "id" }, { name = "location", ty = "Option<[f64; 3]>", value = "location" }]
