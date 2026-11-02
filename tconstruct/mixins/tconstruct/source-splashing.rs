@@ -89,6 +89,64 @@ pub(super) fn circle_offsets(game: &super::Game<'_>, stack: &ItemStack, origin: 
     }).collect())
 }
 
+/// Source BoxAOEIterator: depth, then height, then width. Unknown or very
+/// large definitions are refused until their iteration can be bounded safely.
+pub(super) fn box_offsets(game: &super::Game<'_>, stack: &ItemStack, origin: [i32; 3], face: [i32; 3]) -> Option<Vec<[i32; 3]>> {
+    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+    let expanded = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:expanded") + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
+    if expanded < 0 { return None; }
+    let (namespace, name) = stack.item.split_once(':')?;
+    let layers = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+    let bytes = layers.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let modules = definition.get("modules")?.as_array()?;
+    let aoe: Vec<_> = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str).is_some_and(|kind| kind.ends_with("_aoe"))).collect();
+    if aoe.len() != 1 || aoe[0].get("type")?.as_str()? != "tconstruct:box_aoe" { return None; }
+    let size = |raw: Option<&serde_json::Value>| -> Option<[i32; 3]> {
+        let Some(raw) = raw else { return Some([0, 0, 0]); };
+        let obj = raw.as_object()?;
+        if obj.keys().any(|key| !matches!(key.as_str(), "width" | "height" | "depth")) { return None; }
+        let mut out = [0; 3];
+        for (i, key) in ["width", "height", "depth"].iter().enumerate() {
+            out[i] = i32::try_from(obj.get(*key).map_or(Some(0), serde_json::Value::as_i64)?).ok()?;
+            if out[i] < 0 { return None; }
+        }
+        Some(out)
+    };
+    let mut dimensions = size(aoe[0].get("bonus"))?;
+    let expansions = match aoe[0].get("expansions") { None => Vec::new(), Some(value) => value.as_array()?.iter().map(|entry| size(Some(entry))).collect::<Option<Vec<_>>>()? };
+    if !expansions.is_empty() {
+        let cycles = expanded / i32::try_from(expansions.len()).ok()?;
+        let remainder = usize::try_from(expanded % i32::try_from(expansions.len()).ok()?).ok()?;
+        for (i, delta) in expansions.iter().enumerate() {
+            let count = cycles.checked_add(i32::from(i < remainder))?;
+            for axis in 0..3 { dimensions[axis] = dimensions[axis].checked_add(delta[axis].checked_mul(count)?)?; }
+        }
+    }
+    let [w, h, d] = dimensions;
+    if w > 16 || h > 16 || d > 16 { return None; }
+    let look = match ((game.yaw / 90.0 + 0.5).floor() as i32).rem_euclid(4) { 0 => [0, 0, 1], 1 => [-1, 0, 0], 2 => [0, 0, -1], _ => [1, 0, 0] };
+    let clockwise = |direction: [i32; 3]| [-direction[2], 0, direction[0]];
+    let reverse = |direction: [i32; 3]| [-direction[0], -direction[1], -direction[2]];
+    let (width, height, depth, down) = match aoe[0].get("expansion_direction")?.as_str()? {
+        "tconstruct:side_hit" if face[1] != 0 => (clockwise(look), look, reverse(face), true),
+        "tconstruct:side_hit" => ([face[2], 0, -face[0]], [0, 1, 0], reverse(face), true),
+        "tconstruct:pitch" if game.pitch < -60.0 => (clockwise(look), look, [0, 1, 0], true),
+        "tconstruct:pitch" if game.pitch > 60.0 => (clockwise(look), look, [0, -1, 0], true),
+        "tconstruct:pitch" => (clockwise(look), [0, 1, 0], look, true),
+        "tconstruct:height" => { let depth = if face[1] != 0 { look } else { reverse(face) }; (clockwise(depth), [0, 1, 0], depth, false) },
+        _ => return None,
+    };
+    let mut out = Vec::new();
+    for dz in 0..=d { for dy in (if down { -h } else { 0 })..=h { for dx in -w..=w {
+        if dx == 0 && dy == 0 && dz == 0 { continue; }
+        let mut at = origin;
+        for axis in 0..3 { at[axis] = at[axis].checked_add(width[axis] * dx + height[axis] * dy + depth[axis] * dz)?; }
+        out.push(at);
+    }}}
+    Some(out)
+}
+
 /// The source tests the candidate box against the target's inflated box and
 /// then compares full 3D entity positions using a strict squared radius.
 pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f64; 3], [f64; 3]), candidate_bounds: ([f64; 3], [f64; 3]), expanded: u32) -> bool {
@@ -171,7 +229,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if game.remote.is_some() || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
     if !matches!(face, [0, -1, 0] | [0, 1, 0] | [0, 0, -1] | [0, 0, 1] | [-1, 0, 0] | [1, 0, 0]) { return None; }
     if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
-    let offsets = if single_block(game, stack) { Vec::new() } else { circle_offsets(game, stack, clicked, face)? };
+    let offsets = if single_block(game, stack) { Vec::new() } else { circle_offsets(game, stack, clicked, face).or_else(|| box_offsets(game, stack, clicked, face))? };
     let custom = stack.data()?.other("minecraft:custom_data")?;
     let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:splashing")? else { return None; };
     if *level <= 0 || stack.count != 1 || stack.wire_patch().is_some() { return None; }
