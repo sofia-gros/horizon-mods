@@ -12,7 +12,7 @@ Transfers require a full bucket's worth of space or fluid and an empty output sl
 
 In the local world, directly using a supported container on a fuel or ingot tank uses the same staged transfer as the machine's tank display. The tank must have room for the complete transfer or contain enough matching fluid; a rejected transfer leaves both sides unchanged. Direct world interaction with these additional containers still needs LAN and game verification.
 
-The current implementation supports standard 1,000 mB buckets with registered fluid and item IDs. Other fluid containers and buckets carrying custom components are not supported; their data is not discarded. Representative Linux single-player and LAN bucket transfers have been tested. The waiting bucket also resumed after Shift-clicking the output in representative single-player and LAN tests. Windows remains untested.
+The container transaction supports standard 1,000 mB buckets with registered fluid and item IDs, as well as the supported bottle and copper-can cases. Unsupported container data is not discarded. Representative Linux single-player and LAN bucket transfers have been tested. The waiting bucket also resumed after Shift-clicking the output in representative single-player and LAN tests. Windows remains untested.
 
 ## Source assets
 
