@@ -1,6 +1,6 @@
 # Workstation and smeltery integration ledger
 
-This is a development handoff, not a claim that any full feature is complete. Drafts below may be stacked and their fixed heads must be integrated and tested before their behavior is treated as released. The formal game target for the next gate is Horizon `02c8607ee8ebd216f2f535c1eb7b62b572830df2` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Local helper results reported on another host do not substitute for that gate.
+This is a development handoff, not a claim that any full feature is complete. Drafts below may be stacked and their fixed heads must be integrated and tested before their behavior is treated as released. The formal game target for the next gate is Horizon `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Local helper results reported on another host do not substitute for that gate.
 
 | Task | Implemented or submitted subset | Remaining work and external gate |
 | --- | --- | --- |
@@ -17,3 +17,21 @@ This is a development handoff, not a claim that any full feature is complete. Dr
 All local development checks for these new drafts are limited to Rust syntax parsing and, where applicable, TOML/diff checks. The test owner records additional actual test results against exact heads. Release, merge, Actions, and full survival play are not implied by this ledger.
 
 A broader untested integration candidate, `codex/f03-f18-with-lantern` at `3a544454f9b361389f37cebd4d8e9dcf2eedc17e`, combines the workstation, conditional recipe, item-intake, Scorched, Basin, Lantern, Chute and Melter fuel candidates described above. Its conflict resolutions include the shared tagged-potion/Scorched casting path and conservative refusal of tagged or ambiguous Lantern fluid transfers. Stage the PlutoLib bundle from the exact candidate before TConstruct. This candidate has only syntax/TOML/diff checks; it has not replaced the formal test target or passed the product gate.
+
+## Integration status after the device and workstation candidates
+
+The fixed build candidate `codex/v05-main-device-integration` at `b7975d64be22e8b0694622d595e822d5dfb66046` includes current main `283cc1a21fd7880a05312400b5d8e531027d442e`, #201 and the #214 inference fix, #217 workstation recipes, F04 repair integration `40eda6ee9a7650cad312df74b64778b7f5fdccf1`, F10 effect/lantern integration `f650f7c8552cbc941676184251d62a004a74b42f`, and F11 #202/#203/#205/#207/#210/#211/#213/#216 content. Several are cherry-picked, so original PR commits need not be graph ancestors. A later candidate adds #189, #190 and #193. Neither candidate has passed the formal build; the earlier per-task descriptions above are historical and the following status governs these submitted subsets.
+
+| Task | Submitted and awaiting integrated validation | Remaining distinct scope |
+| --- | --- | --- |
+| F03 | #189 modifiable-tool recycling and #217 planklike workstation ingredients; supported recycling and building paths from earlier integration. | Unknown components, complete tool coverage, exact selection and retextured workstation appearance. |
+| F04 | #195 additional modifier repair and material trait resolution on the condition-resolver integration; material repair paths. | Unsupported modifier hooks, ingredients, tool definitions and full save/LAN coverage. |
+| F07 | Material and damageable-item melting and dropped-item intake. | Living-entity melting requires its original damage and effect semantics; other unsupported metadata and recipes. |
+| F08 | Fuel, catalyst and tagged-fluid/alloy integration, including #170 and #184. | Structural edge cases and source fuel/end conditions; build and world verification. |
+| F09 | #190 gem upgrades and #193 bounded damaged and trait-changing swaps added in the later candidate, alongside molding, duplication and material casting. | Unknown modifier/trait hooks and component forms; source repair and item conservation validation. |
+| F10 | Supported tagged tanks, lanterns and custom potion effects in the F10 integration. | Unsupported tagged forms, custom effects and LAN item serialization gaps; color-sensitive LAN restrictions remain narrow. |
+| F11 | Chute and Scorched devices, casting tank, gauge and cannon tank/storage/comparator candidates. | Casting Tank two-tick redstone swap and cannon four-tick firing remain unimplemented. Channel/Platform and other stated device limitations remain open. |
+| F13 | Crafting Station recipe-placement candidate, missing-storage safety and reconciliation. | Exact integrated world, close/save and LAN item-conservation verification. |
+| F18 | Conditional wrapper and native loaded-mod snapshot, with shared condition resolver. | Unknown/unadvertised mod conditions remain conservative; verify source branch order and refresh at runtime. |
+
+All rows distinguish submitted code from a tested or released feature. Re-run the official build against the exact chosen candidate and stage its PlutoLib bundle; the development role has only run Rust syntax and configuration/diff checks.
