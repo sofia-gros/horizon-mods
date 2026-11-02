@@ -2,21 +2,25 @@
 pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         // The guide's pinned source images join the same GUI atlas in both
         // manual and startup preparation. Only its own bundled PNGs are read.
-        let guide = content_path.join("assets/tconstruct/materials-and-you.zip");
-        if guide.is_file() {
-            use std::io::Read;
-            let mut archive = zip::ZipArchive::new(std::fs::File::open(guide)?)?;
+        let guide = content_path.join("assets/tconstruct/book/images");
+        if guide.is_dir() {
+            fn copy_images(root: &std::path::Path, dir: &std::path::Path, target: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+                for entry in std::fs::read_dir(dir)? {
+                    let entry = entry?;
+                    let ty = entry.file_type()?;
+                    let path = entry.path();
+                    if ty.is_dir() { copy_images(root, &path, target)?; continue; }
+                    if !ty.is_file() { continue; }
+                    let name = path.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
+                    if !name.ends_with(".png") || !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) || name.contains("..") { continue; }
+                    let sprite = format!("tconstruct_book_{}", name.trim_end_matches(".png").replace(['/', '-'], "_"));
+                    std::fs::copy(path, target.join(format!("{sprite}.png")))?;
+                }
+                Ok(())
+            }
             let target = out.join("assets/minecraft/textures/gui");
             std::fs::create_dir_all(&target)?;
-            for index in 0..archive.len() {
-                let mut file = archive.by_index(index)?;
-                let Some(name) = file.name().strip_prefix("assets/tconstruct/book/images/") else { continue; };
-                if !name.ends_with(".png") || !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) || name.contains("..") { continue; }
-                let sprite = format!("tconstruct_book_{}", name.trim_end_matches(".png").replace(['/', '-'], "_"));
-                let mut bytes = Vec::new();
-                file.read_to_end(&mut bytes)?;
-                std::fs::write(target.join(format!("{sprite}.png")), bytes)?;
-            }
+            copy_images(&guide, &guide, &target)?;
         }
         // Project source geode and cobalt biome modifiers into the generated bundle,
         // preserving source registration order and the vanilla base pack.

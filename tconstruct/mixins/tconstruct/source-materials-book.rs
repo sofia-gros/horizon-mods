@@ -1,13 +1,9 @@
 // Source pages in Horizon's book screen, with separately drawn source images,
 // recipe references, and material information from the resolved registry.
 use super::*;
-use std::io::Read;
 
-fn read(archive: &mut zip::ZipArchive<std::fs::File>, path: &str) -> Option<String> {
-    let mut file = archive.by_name(path).ok()?;
-    let mut value = String::new();
-    file.read_to_string(&mut value).ok()?;
-    Some(value)
+fn read(root: &std::path::Path, path: &str) -> Option<String> {
+    std::fs::read_to_string(root.join(path)).ok()
 }
 
 // Match the available source page width and reserve vertical space for its title.
@@ -308,12 +304,11 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
 }
 
 pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
-    let mut zip = zip::ZipArchive::new(std::fs::File::open(path).ok()?).ok()?;
     let root = "assets/tconstruct/book/materials_and_you/";
-    let index: serde_json::Value = serde_json::from_str(&read(&mut zip, &format!("{root}index.json"))?).ok()?;
-    let language = read(&mut zip, &format!("{root}en_us/language.lang"))?;
+    let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
+    let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
-    let colors = read(&mut zip, "assets/tconstruct/book/source-colors.json").and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok()).unwrap_or_default();
+    let colors = read(path, "assets/tconstruct/book/source-colors.json").and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok()).unwrap_or_default();
     let material_context = material_book_context(game);
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
@@ -334,7 +329,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", id));
                         let title = game.translate(&format!("item.{namespace}.{name}"), name);
                         let source = format!("assets/tconstruct/book/encyclopedia/en_us/armor/{}.json", id.replace(':', "_"));
-                        let value = read(&mut zip, &source).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
+                        let value = read(path, &source).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
                         chapter_pages.extend(tool_pages(game, &title, id, value.as_ref()));
                     }
                     if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
@@ -446,7 +441,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
             }
             continue;
         }
-        let Some(section) = read(&mut zip, &format!("{root}{data}")) else { continue; };
+        let Some(section) = read(path, &format!("{root}{data}")) else { continue; };
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
@@ -462,7 +457,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                     let mut tools: Vec<_> = tools.iter().collect(); tools.sort();
                     for id in tools {
                         let file = format!("{root}en_us/{path}/{}.json", id.replace(':', "_"));
-                        let Some(raw) = read(&mut zip, &file) else { continue; };
+                        let Some(raw) = read(path, &file) else { continue; };
                         let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
                         let fallback = id.split(':').next_back().unwrap_or(id);
                         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", fallback));
@@ -472,7 +467,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                 }
                 continue;
             }
-            let Some(raw) = read(&mut zip, &format!("{root}en_us/{relative}")) else { continue; };
+            let Some(raw) = read(path, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let mut graphic = value.get("image").and_then(|image| {
@@ -594,7 +589,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
     if &*stack.item != "tconstruct:materials_and_you" { return false; }
     if remote || game.lan_acting.is_none() {
-        let path = game.options.resources.join("assets/tconstruct/materials-and-you.zip");
+        let path = game.options.resources.clone();
         let Some(pages) = source_pages(game, &path) else { return false; };
         *game.world.chunks.__horizon_mixins_tconstruct_materials_book_history_mut() = None;
         game.open_book(BookScreen::View { pages, page: usize::MAX, lectern: None });
