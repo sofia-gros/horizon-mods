@@ -41,6 +41,9 @@ fn tconstruct_crafting_side_click(game: &mut crate::game::Game<'_>, slot: Option
             }) {changed=true;dropped=left;}
         },
         (Input::Throw,Some(i)) if game.carried.is_none() => {dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut items,i,button!=0);changed=dropped.is_some();},
+        (Input::Clone,Some(i)) if game.creative && game.carried.is_none() => {
+            if let Some(stack)=items[i].as_ref() {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);game.carried=Some(copy);changed=true;}
+        },
         _ => {},
     }
     if changed { let _=crate::game::tconstruct_crafting_station::write_side(game,side,items); }

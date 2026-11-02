@@ -75,6 +75,10 @@ fn tconstruct_side_chest_click(
             else if let Some(i)=actual {if let Some(BlockEntity::Chest(items))=game.world.block_entities.get_mut(&side) {dropped=crate::game::tconstruct_chest_rules::take_for_drop(items,i,button!=0);}}
             changed=dropped.is_some();
         }
+        Input::Clone if game.creative && game.carried.is_none() => {
+            let stack=if slot<36 {game.inventory.get(slot).and_then(Option::as_ref)} else if (300..302).contains(&slot) {game.world.block_entities.get(&table).and_then(|e|e.slots().get(slot-300)).and_then(Option::as_ref)} else {actual.and_then(|i|game.world.block_entities.get(&side).and_then(|e|e.slots().get(i)).and_then(Option::as_ref))};
+            if let Some(stack)=stack {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);game.carried=Some(copy);changed=true;}
+        }
         _=>{},
     }
     if changed { game.world.modified.insert((table.0>>4,table.2>>4));game.world.modified.insert((side.0>>4,side.2>>4)); }

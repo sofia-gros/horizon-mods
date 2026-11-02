@@ -144,7 +144,7 @@ fn side_click(game: &mut Game<'_>, host: &mut LanHost, gi: usize, joined: u64, t
     let visible=crate::game::tconstruct_source_side_layout::visible_rows(existing.len())*crate::game::tconstruct_source_side_layout::columns(existing.len());
     if packet.slot as usize-46>=visible {return true;}
     let index = offset*crate::game::tconstruct_source_side_layout::columns(existing.len())+(packet.slot as usize-46);
-    if index>=existing.len() || (packet.input!=2 && !matches!(packet.button,0|1)) { return true; }
+    if index>=existing.len() || (!matches!(packet.input,2|3) && !matches!(packet.button,0|1)) { return true; }
     let mut inventory=host.hub.guests[gi].inventory.clone();
     let mut carried=host.hub.guests[gi].carried.clone();
     let mut offhand=host.hub.guests[gi].offhand.clone();
@@ -165,6 +165,9 @@ fn side_click(game: &mut Game<'_>, host: &mut LanHost, gi: usize, joined: u64, t
             let limit=game.res.items().get(&stack.item).map_or(64,|info|info.max_stack).max(1);crate::game::tconstruct_tx::source_quick_move_player(inventory,stack,limit,limit>1)
         }) {changed=true;dropped=left;},
         4 if carried.is_none() => {dropped=chest::take_for_drop(&mut side_items,index,packet.button!=0);changed=dropped.is_some();},
+        3 if host.hub.guests[gi].creative() && carried.is_none() => {
+            if let Some(stack)=side_items[index].as_ref() {let mut copy=stack.clone();copy.count=game.res.items().get(&copy.item).map_or(64,|info|info.max_stack);carried=Some(copy);changed=true;}
+        },
         _=>{},
     }
     if changed {

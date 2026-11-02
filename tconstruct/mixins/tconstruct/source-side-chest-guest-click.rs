@@ -30,7 +30,7 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
     let pattern=candidate.is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
     let mut changed=false;
     let mut dropped=None;
-    if matches!(packet.button,0|1) || packet.input==2 {
+    if matches!(packet.button,0|1) || matches!(packet.input,2|3) {
         match (packet.input,side_slot,table_slot,player) {
             (0,Some(i),_,_) => changed=chest::pickup_slot(kind,&mut side_items,i,&mut carried,packet.button==1,max,part),
             (0,_,Some(i),_) if i!=0 || carried.is_none() || pattern => changed=chest::pickup_player(&mut table_items,i,&mut carried,packet.button==1,max),
@@ -57,6 +57,10 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
             },
             (4,Some(i),_,_) if carried.is_none() => {dropped=chest::take_for_drop(&mut side_items,i,packet.button!=0);changed=dropped.is_some();},
             (4,_,_,Some(i)) if carried.is_none() => {dropped=chest::take_for_drop(&mut inventory,i,packet.button!=0);changed=dropped.is_some();},
+            (3,side,table,player) if hub.guests[gi].creative() && carried.is_none() => {
+                let stack=side.and_then(|i|side_items[i].as_ref()).or_else(||table.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref()));
+                if let Some(stack)=stack {let mut copy=stack.clone();copy.count=rules.max_stack(&copy.item).max(1);carried=Some(copy);changed=true;}
+            },
             _=>{},
         }
     }
