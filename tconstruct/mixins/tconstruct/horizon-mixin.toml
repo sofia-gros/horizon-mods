@@ -3692,3 +3692,13 @@ initial = "::core::default::Default::default()"
 target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[state]]
+id = "crafting-guest-drag"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32),(u8,Vec<(bool,usize)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1

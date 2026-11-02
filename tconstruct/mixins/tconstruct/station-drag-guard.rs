@@ -1,4 +1,5 @@
 fn tconstruct_drag_guard(game: &crate::game::Game<'_>, ops: &[(Option<usize>, i32, horizon_client::menu::Input)]) -> std::ops::ControlFlow<bool> {
+    if game.remote.is_some() && crate::game::tconstruct_ui::side_chest_kind(game).is_some() && !ops.is_empty() && ops.iter().all(|(_,_,input)|*input==horizon_client::menu::Input::QuickCraft) {return std::ops::ControlFlow::Continue(());}
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
         if ops.iter().any(|(slot, _, input)| {

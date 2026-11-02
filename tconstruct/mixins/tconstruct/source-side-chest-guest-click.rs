@@ -16,12 +16,44 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
     let mut table_items=first.clone();
     if table_items.len()!=27 { return Break(Vec::new()); }
     if packet.state!=state {
+        world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().remove(&key);
         let mut view=table_items;view.extend(chest::project_side(&side_items,scroll));hub.send_menu_content(gi,view);return Break(Vec::new());
     }
     let raw=usize::try_from(packet.slot).ok();
     let side_slot=raw.filter(|i|(27..75).contains(i)).map(|i|scroll*6+i-27).filter(|i|*i<count);
     let table_slot=raw.filter(|i|*i<2);
     let player=raw.filter(|i|(81..117).contains(i)).map(|i| {let i=i-81;if i<27 {i+9} else {i-27}});
+    if packet.input==5 {
+        let mode=((packet.button>>2)&3) as u8;let phase=packet.button&3;
+        if phase==0 {
+            world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().remove(&key);
+            if hub.guests[gi].carried.is_some() && (mode<2 || mode==2 && hub.guests[gi].creative()) {world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().insert(key,(mode,Vec::new()));}
+            return Break(Vec::new());
+        }
+        if phase==1 {
+            let selected=side_slot.map(|i|(true,i)).or_else(||table_slot.map(|i|(false,i))).or_else(||player.map(|i|(false,27+i)));
+            if let Some((stored,slots))=world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().get_mut(&key) {
+                if *stored==mode {if let Some(selected)=selected {if slots.len()<86 && !slots.contains(&selected) {slots.push(selected);}}}
+            }
+            return Break(Vec::new());
+        }
+        let pending=world.chunks.__horizon_mixins_tconstruct_chest_guest_drag_mut().remove(&key);
+        if phase!=2 {return Break(Vec::new());}
+        let Some((_,mut selected))=pending.filter(|(stored,_)|*stored==mode) else {return Break(Vec::new());};
+        let mut combined=table_items.clone();combined.extend(hub.guests[gi].inventory.clone());let mut carried=hub.guests[gi].carried.clone();
+        let max=carried.as_ref().map_or(64,|stack|rules.max_stack(&stack.item).max(1));
+        let tags=world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok());
+        let part=carried.as_ref().is_some_and(|s|tags.and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(s.item.as_ref())));
+        let pattern=carried.as_ref().is_some_and(|s|tags.and_then(|t|t.get("tconstruct:patterns")).is_some_and(|v|v.contains(s.item.as_ref())));
+        if !pattern {selected.retain(|entry|*entry!=(false,0));}
+        if chest::quick_craft(kind,&mut side_items,&mut combined,&mut carried,&selected,mode,max,part,hub.guests[gi].creative()) {
+            if let Some(crate::containers::BlockEntity::Chest(items))=world.block_entities.get_mut(&table) {*items=combined[..27].to_vec();}
+            if let Some(crate::containers::BlockEntity::Chest(items))=world.block_entities.get_mut(&side) {*items=side_items.clone();}
+            world.modified.insert((table.0>>4,table.2>>4));world.modified.insert((side.0>>4,side.2>>4));hub.guests[gi].inventory=combined[27..].to_vec();hub.guests[gi].carried=carried;
+        }
+        let mut view=combined[..27].to_vec();view.extend(chest::project_side(&side_items,scroll));hub.send_menu_content(gi,view);
+        return Break(Vec::new());
+    }
     let mut inventory=hub.guests[gi].inventory.clone();let mut carried=hub.guests[gi].carried.clone();let mut offhand=hub.guests[gi].offhand.clone();
     let candidate=if packet.input==2 {if packet.button==40 {offhand.as_ref()} else {usize::try_from(packet.button).ok().and_then(|i|inventory.get(i)).and_then(Option::as_ref)}} else if packet.input==1 { side_slot.and_then(|i|side_items[i].as_ref()).or_else(||table_slot.and_then(|i|table_items[i].as_ref())).or_else(||player.and_then(|i|inventory[i].as_ref())) } else {carried.as_ref()};
     let max=candidate.map_or(64,|s|rules.max_stack(&s.item).max(1));

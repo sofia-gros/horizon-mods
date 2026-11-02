@@ -2,6 +2,25 @@ fn tconstruct_crafting_menu(game: &mut crate::game::Game<'_>, ops: &[(Option<usi
     use horizon_client::menu::Input;
     if crate::game::tconstruct_crafting_station::position(game).is_none() { return std::ops::ControlFlow::Continue(()); }
     crate::game::tconstruct_crafting_station::refresh(game);
+    if !ops.is_empty() && ops.iter().all(|(_,_,input)|*input==Input::QuickCraft) {
+        if let Some((pos,count,offset,kind))=crate::game::tconstruct_crafting_station::side(game) {
+            let Some(mut side)=crate::game::tconstruct_crafting_station::side_items(game,pos) else {return std::ops::ControlFlow::Break(true);};
+            let Some(cursor)=game.carried.as_ref() else {return std::ops::ControlFlow::Break(true);};
+            let max=game.res.items().get(&cursor.item).map_or(64,|info|info.max_stack).max(1);
+            let tagged=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|r|r.as_ref().ok()).and_then(|t|t.get("tconstruct:chest_parts")).is_some_and(|v|v.contains(cursor.item.as_ref()));
+            let mode=((ops[0].1>>2)&3) as u8;
+            if ops[0].1&3!=0 || ops.last().is_none_or(|(_,button,_)|button&3!=2) {return std::ops::ControlFlow::Break(true);}
+            let selected:Vec<_>=ops.iter().filter_map(|(slot,button,_)| {
+                if button&3!=1 || ((button>>2)&3) as u8!=mode {return None;}
+                match slot {Some(i @ 0..=35)=>Some((false,9+*i)),Some(i @ 100..=108)=>Some((false,*i-100)),Some(i @ 600..=647)=>Some((true,offset*crate::game::tconstruct_source_side_layout::columns(count)+*i-600)),_=>None}
+            }).collect();
+            let mut combined=game.craft_grid.clone();combined.extend(game.inventory.clone());let mut carried=game.carried.clone();
+            if crate::game::tconstruct_chest_rules::quick_craft(kind,&mut side,&mut combined,&mut carried,&selected,mode,max,tagged,game.creative) {
+                if crate::game::tconstruct_crafting_station::write_side(game,pos,side) {game.craft_grid=combined[..9].to_vec();game.inventory=combined[9..].to_vec();game.carried=carried;crate::game::tconstruct_crafting_station::sync(game);}
+            }
+            return std::ops::ControlFlow::Break(true);
+        }
+    }
     if matches!(ops, [(Some(200), _, Input::QuickMove)]) {
         if let Some((pos,_,_,kind))=crate::game::tconstruct_crafting_station::side(game) {
             let Some(mut side)=crate::game::tconstruct_crafting_station::side_items(game,pos) else {return std::ops::ControlFlow::Break(true);};
