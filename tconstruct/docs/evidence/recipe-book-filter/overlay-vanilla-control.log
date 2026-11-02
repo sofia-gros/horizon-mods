@@ -1,0 +1,1 @@
+CMD recipe give @s minecraft:stick {'chat': ['Unlocked 1 recipe(s) for Player'], 'ok': True}
