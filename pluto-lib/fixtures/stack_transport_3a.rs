@@ -8,6 +8,41 @@ use horizon_protocol::{
 };
 use horizon_world::nbt::Tag;
 
+#[path = "../mixins/pluto_transport_3a/tool_codec.rs"]
+mod pluto_tool_codec;
+
+mod item_data {
+    pub use horizon_client_lib::item_data::*;
+}
+mod tool_encoder {
+    use horizon_client_lib::items::ItemStack;
+    use horizon_protocol::item::Stack;
+    include!("../mixins/pluto_transport_3a/tool_encode.rs");
+    pub fn apply(
+        value: Option<Stack>,
+        source: &Option<ItemStack>,
+        registry: &impl Fn(&str, &str) -> Option<i32>,
+    ) -> Option<Stack> {
+        pluto_tool_encode(value, source, registry)
+    }
+}
+mod tool_decoder {
+    use horizon_client_lib::items::ItemStack;
+    use horizon_protocol::{
+        item::Stack,
+        registry::{Builtin, Dynamic},
+    };
+    include!("../mixins/pluto_transport_3a/tool_decode.rs");
+    pub fn apply(
+        value: ItemStack,
+        source: &Stack,
+        builtin: &Builtin,
+        synced: &Dynamic,
+    ) -> ItemStack {
+        pluto_tool_decode(value, source, builtin, synced)
+    }
+}
+
 mod max_damage_adapter {
     use horizon_client_lib::items::ItemStack;
     use horizon_protocol::item::Stack;
@@ -215,6 +250,26 @@ fn main() {
         );
     }
     println!("Observed host gap: max_damage and tool absent after encoding");
+    let direct_tool = Tag::compound([(
+        "rules",
+        Tag::List(vec![Tag::compound([
+            (
+                "blocks",
+                Tag::List(vec![Tag::String("minecraft:stone".into())]),
+            ),
+            ("speed", Tag::Float(2f32.to_bits())),
+        ])]),
+    )]);
+    let direct_bytes = pluto_tool_codec::encode(&direct_tool, &|registry, name| {
+        (registry == "minecraft:block" && name == "minecraft:stone").then_some(7)
+    })
+    .unwrap();
+    let direct_back = pluto_tool_codec::decode(&direct_bytes, &|id| {
+        (id == 7).then_some("minecraft:stone".into())
+    })
+    .unwrap();
+    assert_eq!(direct_back.get("rules"), direct_tool.get("rules"));
+    assert!(pluto_tool_codec::encode(&direct_tool, &|_, _| None).is_none());
     let plain = ItemStack::new("minecraft:stick", 2);
     let wire = stack_to_network(ids, |_, _| None, &Some(plain)).unwrap();
     assert!(wire.added.is_empty());
@@ -271,7 +326,8 @@ fn main() {
                     "{id}: {key}"
                 );
             }
-            let patched = max_damage_adapter::apply(Some(wire), &Some(original.clone())).unwrap();
+            let patched =
+                max_damage_adapter::apply(Some(wire.clone()), &Some(original.clone())).unwrap();
             let mut patch_bytes = Writer::new();
             Slot::write(&Some(patched), &mut patch_bytes);
             let patched_wire = Slot::read(&mut Reader::new(&patch_bytes.data))
@@ -288,6 +344,68 @@ fn main() {
                     .and_then(|d| d.other("minecraft:max_damage")),
                 "{id}: max_damage"
             );
+            if let Some(original_tool) = original.data().and_then(|d| d.other("minecraft:tool")) {
+                let encoded =
+                    pluto_tool_codec::encode(original_tool, &|_, _| None).expect("tool encode");
+                let mut official = wire.clone();
+                official
+                    .added
+                    .push((28, horizon_protocol::item::Component::Raw(encoded.clone())));
+                let mut raw = Writer::new();
+                Slot::write(&Some(official), &mut raw);
+                let read = Slot::read(&mut Reader::new(&raw.data)).unwrap().unwrap();
+                assert!(
+                    matches!(read.component(28), Some(horizon_protocol::item::Component::Raw(v)) if *v == encoded)
+                );
+                let decoded_tool =
+                    pluto_tool_codec::decode(&encoded, &|_| None).expect("tool decode");
+                assert_eq!(original_tool.get("rules"), decoded_tool.get("rules"));
+                assert_eq!(
+                    original_tool.get("default_mining_speed"),
+                    decoded_tool.get("default_mining_speed")
+                );
+                assert_eq!(
+                    original_tool.get("damage_per_block"),
+                    decoded_tool.get("damage_per_block")
+                );
+                let all =
+                    max_damage_adapter::apply(Some(wire.clone()), &Some(original.clone())).unwrap();
+                let all =
+                    tool_encoder::apply(Some(all), &Some(original.clone()), &|_, _| None).unwrap();
+                let all =
+                    tool_encoder::apply(Some(all), &Some(original.clone()), &|_, _| None).unwrap();
+                assert_eq!(all.added.iter().filter(|(id, _)| *id == 28).count(), 1);
+                let mut all = all;
+                all.added
+                    .push((component::RARITY, horizon_protocol::item::Component::Int(2)));
+                all.removed.push(component::ITEM_NAME);
+                let mut encoded_wire = Writer::new();
+                Slot::write(&Some(all), &mut encoded_wire);
+                let received = Slot::read(&mut Reader::new(&encoded_wire.data))
+                    .unwrap()
+                    .unwrap();
+                assert!(received.component(component::RARITY).is_some());
+                assert!(received.removed.contains(&component::ITEM_NAME));
+                let raw_patch = received.wire.0.clone().unwrap();
+                let decoded =
+                    item_sync::from_network(&received, &case_builtin, &Dynamic::default());
+                let mut decoded =
+                    tool_decoder::apply(decoded, &received, &case_builtin, &Dynamic::default());
+                let tool = decoded.data().unwrap().other("minecraft:tool").unwrap();
+                assert_eq!(tool.get("rules"), original_tool.get("rules"));
+                assert_eq!(
+                    tool.get("default_mining_speed"),
+                    original_tool.get("default_mining_speed")
+                );
+                assert_eq!(
+                    tool.get("damage_per_block"),
+                    original_tool.get("damage_per_block")
+                );
+                assert_eq!(decoded.wire_patch().as_deref(), Some(raw_patch.as_ref()));
+                decoded.count += 1;
+                assert_eq!(decoded.wire_patch().as_deref(), Some(raw_patch.as_ref()));
+                println!("{id}: standard tool bytes and actual mining rules round-trip");
+            }
             if original
                 .data()
                 .and_then(|d| d.other("minecraft:tool"))
