@@ -163,28 +163,40 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Exchange a standard lava bucket with a source tank, staging the NBT before
-/// changing the held stack. Other fluid containers are not handled here yet.
+/// Exchange one supported container with a source tank. Stage both sides of
+/// the transfer before persisting the tank or changing the held stack.
 pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(block) else { return false; };
     let Some(kind) = kind(block) else { return false; };
     if !ensure(game, pos, block) { return false; }
     let Some(mut tank) = store::read(&game.world, pos, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) else { return false; };
-    let Some(mut held) = game.held().cloned() else { return true; };
+    let Some(held) = game.held().cloned() else { return true; };
     if held.count == 0 { return false; }
-    let Some(replacement) = super::tconstruct_source_smeltery_fuel::exchange(&mut tank, &held.item) else { return true; };
+    game.ensure_datapacks();
+    let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+        .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
+        .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+            .map(|(id, items)| (id.clone(), items.clone())).collect());
+    let before = tank.amount;
+    let mut slots = [Some(held), None];
+    if !super::tconstruct_source_fluid_container::transfer_single_with_tags(&mut tank, &mut slots,
+        super::tconstruct_source_fluid_container::Direction::Auto,
+        &|item| game.res.items().get(item).is_some(),
+        &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref()) { return true; }
     if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
-    if game.creative && replacement == "minecraft:lava_bucket" {
-        // The held empty bucket remains in creative; do not silently discard
-        // the fluid that was removed from the tank.
-        game.give_or_drop(horizon_items::items::ItemStack::new(replacement, 1));
+    if game.creative {
+        // Preserve the held container in creative, but retain fluid removed
+        // from the tank by giving the filled result to the player.
+        if tank.amount < before {
+            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+        }
     } else if !game.creative {
-        held.count -= 1;
-        if held.count == 0 {
-            *game.held_mut() = Some(horizon_items::items::ItemStack::new(replacement, 1));
+        if let Some(rest) = slots[0].take() {
+            *game.held_mut() = Some(rest);
+            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
         } else {
-            *game.held_mut() = Some(held);
-            game.give_or_drop(horizon_items::items::ItemStack::new(replacement, 1));
+            *game.held_mut() = slots[1].take();
         }
     }
     true
