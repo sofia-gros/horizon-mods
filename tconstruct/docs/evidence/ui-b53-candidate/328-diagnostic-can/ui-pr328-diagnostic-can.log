@@ -1,0 +1,7 @@
+OPEN {"block": {"block": "tconstruct:seared_melter", "loaded": true, "pos": [0, 72, 2], "state": "tconstruct:seared_melter[facing=north,lit=false]"}, "block_before": "tconstruct:seared_melter[facing=north,lit=false]", "changed": false, "inventory_change": {}, "ok": true, "screen": "container"}
+MENU local {"carried": {"count": 1, "custom_name": null, "damage": 0, "enchantments": [], "item": "tconstruct:copper_can", "potion": null, "repair_cost": 0, "stored_enchantments": [], "trim": null}, "info": null, "level": 0, "name": null, "screen": "inventory", "slots": [], "station": null, "xp_seed": 0}
+HELD local {"components": "{\"minecraft:custom_data\":{fluid:\"tconstruct:molten_copper\"}}", "count": 1, "item": "tconstruct:copper_can"}
+OPEN {"block": {"block": "tconstruct:seared_melter", "loaded": true, "pos": [0, 72, 2], "state": "tconstruct:seared_melter[facing=north,lit=false]"}, "block_before": "tconstruct:seared_melter[facing=north,lit=false]", "changed": false, "inventory_change": {}, "ok": true, "screen": "playing"}
+MENU guest {"carried": {"count": 1, "custom_name": null, "damage": 0, "enchantments": [], "item": "tconstruct:copper_can", "potion": null, "repair_cost": 0, "stored_enchantments": [], "trim": null}, "info": null, "level": 0, "name": null, "screen": "inventory", "slots": [], "station": null, "xp_seed": 0}
+HELD guest {"components": "{\"minecraft:custom_data\":{fluid:\"tconstruct:molten_copper\"}}", "count": 1, "item": "tconstruct:copper_can"}
+PASS diagnostic local and guest empty can filled
