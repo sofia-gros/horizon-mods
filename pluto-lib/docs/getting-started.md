@@ -7,10 +7,11 @@ The demo creates a gem, a block and a Creative tab using PlutoLib's Rust API. Ho
 You need Rust and a prepared Horizon 26.3 resource directory for the [target revision](../README.md#compatibility). From `pluto-lib/`, choose a new output directory under `.work`:
 
 ```sh
+mkdir -p .work
 cargo run --locked --example demo -- .work/demo /path/to/horizon-resources/creative-inventory.json
 ```
 
-The output contains `horizon-mod.toml`, item and block declarations, models, names, and a modified `creative-inventory.json`. It references Minecraft textures already present in the game resources; it does not distribute them. The output directory must not already exist. The example uses the top-row position 5, which must be free of visible non-hotbar tabs.
+The output contains `horizon-mod.toml`, item and block declarations, models, names, and a modified `creative-inventory.json`. It references Minecraft textures already present in the game resources; it does not distribute them. Create the parent directory first, as shown above; the output directory itself must not already exist. The example uses the top-row position 5, which must be free of visible non-hotbar tabs.
 
 ## Run it
 
