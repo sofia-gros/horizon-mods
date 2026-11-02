@@ -1,6 +1,9 @@
 fn open_guest_tconstruct(game: &mut crate::game::Game<'_>, host: &mut crate::game::lan::LanHost, conn: u32, pos: (i32, i32, i32)) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     let machine = game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name.clone();
+    if &*machine == "tconstruct:crafting_station" {
+        return Break(crate::game::lan_crafting::tconstruct_crafting_lan::open(game, host, conn, pos));
+    }
     let chest_kind = match &*machine {
         "tconstruct:part_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Part),
         "tconstruct:tinkers_chest" => Some(crate::game::tconstruct_chest_rules::ChestKind::Tinkers),

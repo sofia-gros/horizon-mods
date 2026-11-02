@@ -3425,3 +3425,80 @@ bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
   { name = "ops", ty = "&[(Option<usize>, i32, horizon_client::menu::Input)]", value = "ops" },
 ]
+
+[[state]]
+id = "crafting-guest-sessions"
+target = "horizon_client::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64,i32),(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-crafting-lan"
+file = "crates/horizon-client/src/game/lan_crafting.rs"
+name = "tconstruct_crafting_lan"
+source = "source-crafting-lan.rs"
+
+[[injection]]
+id = "crafting-station-lan-click"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_click"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-lan-click.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&play::ContainerClick", value = "p" },
+]
+
+[[injection]]
+id = "crafting-station-lan-valid"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_table_valid"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-lan-valid.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "guest", ty = "&Guest", value = "g" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "crafting-station-lan-close"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_closed"
+kind = "HEAD"
+helper = "source-crafting-lan-close.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "Option<i32>", value = "window" },
+]
+
+[[injection]]
+id = "crafting-station-lan-left"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+kind = "HEAD"
+helper = "source-crafting-lan-left.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "guest", ty = "&mut Guest", value = "&mut *g" },
+]
+
+[[injection]]
+id = "crafting-station-lan-open"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_open_crafting"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-lan-open.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
