@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 16] = [
+const UPGRADES: [(&str, i32); 17] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -82,7 +82,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
-        "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         "tconstruct:power" => item == "tconstruct:longbow",
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
@@ -108,7 +108,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>();
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>();
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id))
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot")
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
@@ -126,7 +126,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
+        (id != "tconstruct:blindshot" && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -145,7 +145,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !supported(id, &tool.item) { return None; }
+    if id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -281,12 +281,10 @@ pub(super) fn plan_with_traits(
         else {
             continue;
         };
-        let Some(max) = value
-            .pointer("/level/max")
-            .and_then(Value::as_i64)
-            .and_then(|v| i32::try_from(v).ok())
-        else {
-            continue;
+        let max = match value.pointer("/level/max").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()) {
+            Some(max) => max,
+            None if id == "tconstruct:blindshot" && value.get("level").is_none() => i16::MAX as i32,
+            None => continue,
         };
         let cost = value
             .pointer("/slots/upgrades")
@@ -425,6 +423,7 @@ pub fn apply_stats(
             match id.as_str() {
                 "tconstruct:quick_charge" if &*tool.item == "tconstruct:crossbow" => draw_percent += 0.25 * effective(tool, &id, 5),
                 "tconstruct:trueshot" => accuracy_add += 0.1 * effective(tool, &id, 10),
+                "tconstruct:blindshot" => accuracy_add -= 0.1 * (effective(tool, &id, 10) + trait_level),
                 "tconstruct:emerald" if amount(tool, &id) > 0 || trait_level > 0.0 => accuracy_add += 0.1,
                 "tconstruct:netherite" if amount(tool, &id) > 0 || trait_level > 0.0 => velocity_percent += 0.1,
                 "tconstruct:diamond" if amount(tool, &id) > 0 => projectile_add += 0.5,
@@ -461,6 +460,29 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn blindshot_uses_dirt_without_slots_or_salvage() {
+        use super::*;
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","amount_per_item":1,"needed_per_level":10,"input":{"item":"minecraft:dirt"},"result":"tconstruct:blindshot","tools":{"tag":"tconstruct:modifiable/ranged"}}"#.to_vec();
+        let recipes = BTreeMap::from([("blindshot".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/ranged".into(), HashSet::from(["tconstruct:longbow".into(), "tconstruct:crossbow".into()]))]);
+        let inputs = [Some(ItemStack::new("minecraft:dirt", 1))];
+        let mut tool = ItemStack::new("tconstruct:longbow", 1);
+        assert_eq!(plan(&recipes, &tags, &tool, &inputs, 0).unwrap().amount, 1);
+        assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:pickaxe", 1), &inputs, 0).is_none());
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:blindshot", Tag::Int(10))])),
+            ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:blindshot".into())])),
+        ])));
+        assert!(valid_slots(&tool, &BTreeMap::new(), 0, 0));
+        assert!(!extractable(&tool).contains(&"tconstruct:blindshot"));
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:accuracy":0.8}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        apply_stats(&mut tool, &stats, &BTreeMap::new(), false, false).unwrap();
+        let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_accuracy"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 0.7).abs() < 0.00001));
+    }
+
     #[test]
     fn power_longbow_incremental_damage_and_slot_scope() {
         use super::*;

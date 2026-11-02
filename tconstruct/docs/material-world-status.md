@@ -181,3 +181,15 @@ For a base projectile stat of 2, check zero, one, 72 and 360 crystal points:
 expected values are 2, approximately 2.506944, 3 and 5 respectively. Also check
 slot limits, extraction and reapplication, save/reload, and rejection on a
 crossbow. Values before downstream arrow effects are the comparison point.
+
+### Ranged upgrade integration candidate
+
+The newer ranged-stat candidate also carries the earlier Power (#109) and
+Blindshot (#133/#134) transactions and progress labels. Blindshot uses one Dirt
+per point, ten points per level, and does not occupy upgrade slots or have a
+source salvage recipe. Its accuracy decrease is 0.1 per effective level; the
+current connected launcher scope is longbow and crossbow. The original default
+maximum applies when its recipe omits a level range. This integration is a
+source-level candidate, not an apply, type or gameplay result. Check partial
+and full levels, zero free slots, unsupported tools, accuracy minimum, crystal
+and salvage behavior, saved data and progress labels in the integrated build.
