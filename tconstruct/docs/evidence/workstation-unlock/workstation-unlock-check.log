@@ -1,0 +1,3 @@
+tconstruct:recipes/decorations/tables/part_builder {'criteria': {'has_item': '2026-11-02 20:00:12 +0000'}, 'done': True}
+tconstruct:recipes/decorations/tables/tinker_station {'criteria': {'has_item': '2026-11-02 20:00:12 +0000'}, 'done': True}
+PASS pattern awards both recipe unlock advancements
