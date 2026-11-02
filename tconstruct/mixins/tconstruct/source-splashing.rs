@@ -1,6 +1,6 @@
-//! Source right-click selection and nearby entity geometry for splashing.
-//! Runtime effect handling and the Station recipe remain disabled until the
-//! authoritative target enumeration includes guest players and other entities.
+// Source right-click selection and nearby entity geometry for splashing.
+// Runtime effect handling and the Station recipe remain disabled until the
+// authoritative target enumeration includes guest players and other entities.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 

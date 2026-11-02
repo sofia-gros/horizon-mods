@@ -1,6 +1,6 @@
-//! Construct a source-compatible MobEffectFluidEffect cloud through the
-//! existing Horizon cloud tick and tracking path. Kept under game::potions so
-//! its private PotionCloud fields do not require a new shared host framework.
+// Construct a source-compatible MobEffectFluidEffect cloud through the
+// existing Horizon cloud tick and tracking path. Kept under game::potions so
+// its private PotionCloud fields do not require a new shared host framework.
 use crate::game::Game;
 use crate::game::dragon::Breath;
 use super::PotionCloud;

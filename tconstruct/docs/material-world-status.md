@@ -151,3 +151,10 @@ adds Solid once when rebuilding `tic_projectile_damage`, and the projectile
 path reads that stored result. Preserve that single addition when integrating
 #86; do not apply its old formula a second time. Invar's Solid source material
 is compatibility-conditional, so its ordinary acquisition is not asserted.
+
+The combined stat/splash candidate's formal apply stopped at `E_MODULE` for
+support sources with inner documentation headers. A follow-up replaces those
+headers with ordinary comments; a manifest-source scan found no remaining
+leading inner-doc headers. The follow-up's formal apply and subsequent type or
+game checks remain pending.
+

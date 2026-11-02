@@ -1,5 +1,5 @@
-//! Shared source fluid-effect selection for tool modifiers.
-//! Unsupported effects remain unknown and do not authorize a transaction.
+// Shared source fluid-effect selection for tool modifiers.
+// Unsupported effects remain unknown and do not authorize a transaction.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
 
