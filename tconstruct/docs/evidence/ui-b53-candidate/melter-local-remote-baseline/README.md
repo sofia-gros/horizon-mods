@@ -1,0 +1,5 @@
+# Melter local and remote before #265/#269
+
+Earlier cc868cdb combined client SHA-256 `16cff912e03bc7879da2b5b2cc6cebe9b98a7265bd6a6bbdb9c4562243c7ef51`, host b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9 / Mixins ddd9700b21997c95d95ac6ee5ecafe3830cf622a, using #263 content prepared with an isolated namespace declaration. Other isolated build corrections are described in [the lower-tank fixture](../205-lower-tank/README.md). This is not a #265/#269 build.
+
+Copied a Melter fixture with 90 mB copper into a new world, ran at normal tick rate, opened and reopened locally and as a LAN guest, and hovered input and tank. Both local and guest screens displayed their input slots but the central fluid area was gray with no fluid tooltip. A separate normal chest opened for the guest. Inputs decreased naturally during the run; after orderly shutdown the host save contained 6 copper ingots and 360 mB molten copper. `data get block` only exposes live Items, not the chunk metadata. The screenshots are real client captures; this is a comparison baseline, not a claim that #265/#269 has been tested.
