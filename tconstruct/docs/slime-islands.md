@@ -336,3 +336,7 @@ loading but reported `E_MODULE`: four module source files used inner-doc
 comments, which are parsed as file attributes. The follow-up changes those
 comments to ordinary comments. Its official apply, type check, build and game
 behavior remain unverified.
+
+The later Ender-propagule and planted/island-fungus support modules also use
+ordinary comments so that the Mixins module loader does not interpret their
+headers as file attributes. Their combined official apply remains unverified.

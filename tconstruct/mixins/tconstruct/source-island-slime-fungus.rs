@@ -1,4 +1,4 @@
-//! Source unplanted slime fungus, using the host's original tree block facts.
+// Source unplanted slime fungus, using the host's original tree block facts.
 use crate::worldgen::{placement::PlacementQueryError, structure::legacy::{PieceContext, Result}};
 use crate::registry::BlockStateId;
 

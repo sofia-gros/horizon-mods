@@ -1,4 +1,4 @@
-//! Original Ender slime propagule and leaf interactions, excluding tree feature placement.
+// Original Ender slime propagule and leaf interactions, excluding tree feature placement.
 use super::*;
 use horizon_core::random::RandomSource;
 fn block<'a>(level: &'a GameLevel<'_>, state: BlockStateId) -> Option<&'a horizon_world::chunk::BlockState> { level.registry.state(state) }
