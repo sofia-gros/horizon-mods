@@ -63,3 +63,21 @@ material is unavailable in the test world; this is not a survival progression
 claim. Keen remains outside this batch: its original Quartz assignment is to
 ammo, and adding a bow-only number would not implement the material ammunition
 path. Other conditional projectile modifiers and armor effects remain incomplete.
+
+## Airborne projectile velocity
+
+A bow with the Airborne trait adds `0.1 * velocityMultiplier` to arrow velocity
+when its holder is off the ground, out of water, not riding and not climbing.
+The source gives the flat bonus once regardless of trait level. It runs before
+Dwarven's altitude adjustment. The single-player path uses the existing host
+climbable query, including its ladder and trapdoor rules; if the query fails,
+the bonus is not applied. The LAN guest projectile effect is temporarily
+unavailable until the guest's water, climbing and riding state is verified.
+The mining portion is tracked separately in [mining traits](mining-traits.md).
+
+Focused Rust checks use the saved older host's item and NBT libraries; they do
+not validate the current host hook or gameplay. For the combined client, compare
+both bows at equal charge and altitude while jumping, on the ground, in water,
+on a ladder and riding; repeat after changing the material. Confirm save/reload
+and check the guest path separately. Use a labelled material fixture if natural
+acquisition is unavailable. No new gameplay or LAN result is claimed.

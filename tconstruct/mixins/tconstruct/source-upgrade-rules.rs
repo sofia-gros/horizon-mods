@@ -404,6 +404,8 @@ pub fn apply_stats(
             * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32)).clamp(0.0, 1024.0);
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
+        fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
+        fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
         fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));

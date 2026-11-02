@@ -13,7 +13,8 @@ fn tconstruct_bow_release(
         let adjusted = crate::game::tconstruct_ranged_draw::vanilla_charge_ticks(ticks, draw_ticks);
         let actor = game.lan_acting;
         let mut dispatch_ticks = adjusted;
-        if let Some((velocity, spread)) = game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at(stack, player.position.y as f32, game.world.shape.max_y())).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)) {
+        let airborne = crate::game::tconstruct_projectile_stats::airborne(game);
+        if let Some((velocity, spread)) = game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at_airborne(stack, player.position.y as f32, game.world.shape.max_y(), airborne)).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)) {
             let power = crate::game::tconstruct_projectile_stats::bow_charge(ticks, draw_ticks) * 3.0;
             if power * velocity < 0.3 { return Break(()); }
             dispatch_ticks = adjusted.max(3);
