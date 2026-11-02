@@ -46,32 +46,32 @@ bindings = [{ name = "held", ty = "Option<&ItemStack>", value = "held" }]
 
 [[module]]
 id = "source-block-shapes"
-file = "crates/horizon-client/src/logging.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_block_shapes"
 source = "source-block-shapes.rs"
 
 [[module]]
 id = "source-resource-tables"
-file = "crates/horizon-client/src/logging.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_resource_tables"
 source = "resource-tables.rs"
 visibility = "pub"
 
 [[module]]
 id = "source-machine-shapes"
-file = "crates/horizon-client/src/logging.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_machine_shapes"
 source = "source-machine-shapes.rs"
 
 [[module]]
 id = "source-machine-prepare"
-file = "crates/horizon-client/src/logging.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_machine_prepare"
 source = "source-machine-prepare.rs"
 
 [[injection]]
 id = "prepare-station-resources"
-target = "horizon_client::logging::game_home"
+target = "horizon_client::entry::main_with"
 kind = "HEAD"
 helper = "prepare.rs"
 
@@ -391,7 +391,7 @@ bindings = [
 
 [[injection]]
 id = "part-selection-block-change"
-target = "horizon_client::world::World::set"
+target = "horizon_client_render::world::World::set"
 kind = "HEAD"
 helper = "part-selection-block-change.rs"
 bindings = [
@@ -1449,7 +1449,7 @@ require = 1
 
 [[injection]]
 id = "storage-atlas"
-target = "horizon_client::assets::Assets::reload"
+target = "horizon_client_render::assets::Assets::reload"
 kind = "HEAD"
 cancellable = true
 helper = "storage-atlas.rs"
@@ -1460,7 +1460,7 @@ bindings = [
 
 [[injection]]
 id = "storage-mesh-face"
-target = "horizon_client::mesher::Mesher<'_>::face"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
 kind = "HEAD"
 cancellable = true
 helper = "storage-mesh-face.rs"
@@ -1497,19 +1497,19 @@ bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }]
 
 [[module]]
 id = "storage-render-info-streaming"
-file = "crates/horizon-client/src/streaming.rs"
+file = "crates/horizon-client-render/src/streaming.rs"
 name = "tconstruct_storage_render_info"
 source = "source-render-info.rs"
 
 [[module]]
 id = "storage-render-info-mesher"
-file = "crates/horizon-client/src/mesher.rs"
+file = "crates/horizon-client-render/src/mesher.rs"
 name = "tconstruct_storage_render_info"
 source = "source-render-info.rs"
 
 [[injection]]
 id = "storage-region"
-target = "horizon_client::streaming::Streaming::region"
+target = "horizon_client_render::streaming::Streaming::region"
 kind = "HEAD"
 cancellable = true
 helper = "storage-region.rs"
@@ -1971,13 +1971,13 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[module]]
 id = "connected-texture"
-file = "crates/horizon-client/src/mesher.rs"
+file = "crates/horizon-client-render/src/mesher.rs"
 name = "tconstruct_connected_texture"
 source = "connected-texture.rs"
 
 [[injection]]
 id = "connected-mesh-face"
-target = "horizon_client::mesher::Mesher<'_>::face"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
 kind = "HEAD"
 cancellable = true
 helper = "connected-mesh-face.rs"
@@ -3683,7 +3683,7 @@ bindings = [
 
 [[injection]]
 id = "tinkers-chest-world-tint"
-target = "horizon_client::mesher::Mesher<'_>::face"
+target = "horizon_client_render::mesher::Mesher<'_>::face"
 kind = "RETURN"
 helper = "source-chest-tint.rs"
 bindings = [
@@ -3696,7 +3696,7 @@ bindings = [
 
 [[module]]
 id = "chest-tint-math"
-file = "crates/horizon-client/src/mesher.rs"
+file = "crates/horizon-client-render/src/mesher.rs"
 name = "tconstruct_chest_tint_math"
 source = "source-chest-tint-math.rs"
 
