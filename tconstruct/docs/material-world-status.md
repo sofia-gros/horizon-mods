@@ -114,3 +114,15 @@ A follow-up corrects two direct NBT compound lookups to use the host's
 `JavaString` key type. The old-host diagnostic fixture passed its focused tests
 with this correction; the exact follow-up head still needs the dedicated tests
 and official target type check.
+
+## Ranged stat-order candidate
+
+A source candidate rebuilds bow draw speed, velocity, accuracy and projectile
+damage through the same ordered add, multiply-base and multiply-all phases.
+It also connects the Solid trait's source `+0.75` projectile damage per level
+for the supported launchers. The nonzero pre-existing draw/velocity percentage
+in the focused check is a synthetic builder input; natural material coverage is
+not established by it. The candidate has not been applied, type-checked or
+checked in game. Compare source float ordering, material/part swaps, Quick
+Charge, Netherite, Vintage, Solid and conditional arrow velocity on the exact
+integrated target before claiming parity.

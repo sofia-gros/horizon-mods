@@ -410,33 +410,44 @@ pub fn apply_stats(
     let speed = (stats.attack_speed_base_raw + stats.attack_speed_add_raw) * (1.0 + speed_percent) * speed_multiplier;
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
-    let netherite = amount(tool, "tconstruct:netherite") > 0 || level("tconstruct:netherite") > 0;
     if melee { fields.insert("tic_attack_damage".into(), Tag::Float(damage.clamp(0.0, 2048.0).to_bits())); }
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.clamp(0.0, 1024.0).to_bits())); }
-    let quick = effective(tool, "tconstruct:quick_charge", 5);
-    let true_level = effective(tool, "tconstruct:trueshot", 10);
-    let emerald = effective(tool, "tconstruct:emerald", 1).min(1.0);
     if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {
-        let light = level("tconstruct:lightweight").max(0) as f32;
-        let feather = level("tconstruct:featherweight").max(0) as f32;
-        let heavy = level("tconstruct:heavy").max(0) as f32;
-        let vintage = level("tconstruct:vintage").max(0) as f32;
+        let [draw_base, mut draw_add, mut draw_percent, mut draw_multiply] = stats.draw_speed_raw;
+        let [velocity_base, mut velocity_add, mut velocity_percent, velocity_multiply] = stats.velocity_raw;
+        let [accuracy_base, mut accuracy_add, accuracy_percent, accuracy_multiply] = stats.accuracy_raw;
+        let [projectile_base, mut projectile_add, projectile_percent, projectile_multiply] = stats.projectile_damage_raw;
         let crystal = level("tconstruct:crystalbound").max(0) as f32;
-        let entangled = if level("tconstruct:entangled") > 0 { 0.15 } else { 0.0 };
-        let draw = ((stats.draw_speed + stats.draw_speed_add_multiplier * (0.03 * light + 0.05 * feather + entangled))
-            * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
-            * (1.0 - 0.1 * vintage)).clamp(0.0, 1024.0);
-        let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal))
-            * if netherite { 1.1 } else { 1.0 }).clamp(0.0, 1024.0);
-        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy) + 0.05 * feather)).clamp(0.1, 1.0);
-        let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
-            * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32)).clamp(0.0, 1024.0);
+        for id in super::tconstruct_source_material_effects::ordered_modifier_ids(tool, levels) {
+            let trait_level = level(&id).max(0) as f32;
+            match id.as_str() {
+                "tconstruct:quick_charge" if &*tool.item == "tconstruct:crossbow" => draw_percent += 0.25 * effective(tool, &id, 5),
+                "tconstruct:trueshot" => accuracy_add += 0.1 * effective(tool, &id, 10),
+                "tconstruct:emerald" if amount(tool, &id) > 0 || trait_level > 0.0 => accuracy_add += 0.1,
+                "tconstruct:netherite" if amount(tool, &id) > 0 || trait_level > 0.0 => velocity_percent += 0.1,
+                "tconstruct:diamond" if amount(tool, &id) > 0 => projectile_add += 0.5,
+                "tconstruct:lightweight" => { draw_add += 0.03 * trait_level; velocity_add += 0.03 * trait_level; },
+                "tconstruct:featherweight" => { draw_add += 0.05 * trait_level; accuracy_add += 0.05 * trait_level; },
+                "tconstruct:heavy" => accuracy_add += 0.1 * trait_level,
+                "tconstruct:crystalbound" => velocity_add += 0.1 * trait_level,
+                "tconstruct:entangled" if trait_level > 0.0 => draw_add += 0.15,
+                "tconstruct:vintage" => draw_multiply *= 1.0 - 0.1 * trait_level,
+                "tconstruct:ductile" => projectile_add += 0.25 * trait_level,
+                "tconstruct:solid" => projectile_add += 0.75 * trait_level,
+                _ => {},
+            }
+        }
+        let draw = ((draw_base + draw_add) * (1.0 + draw_percent) * draw_multiply).clamp(0.0, 1024.0);
+        let velocity_scale = (1.0 + velocity_percent) * velocity_multiply;
+        let velocity = ((velocity_base + velocity_add) * velocity_scale).clamp(0.0, 1024.0);
+        let accuracy = ((accuracy_base + accuracy_add) * (1.0 + accuracy_percent) * accuracy_multiply).clamp(0.1, 1.0);
+        let projectile_damage = ((projectile_base + projectile_add) * (1.0 + projectile_percent) * projectile_multiply).clamp(0.0, 1024.0);
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
-        fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
+        fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
-        fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
+        fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
@@ -447,6 +458,28 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn ranged_percent_and_solid_follow_builder_phases() {
+        use super::*;
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:draw_speed":1,"tconstruct:velocity":1,"tconstruct:projectile_damage":2}}]}"#;
+        let mut stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        // Represent a pre-existing base percentage to exercise multiply_base.
+        stats.draw_speed_raw[2] = 0.2;
+        stats.velocity_raw[2] = 0.2;
+        let mut tool = ItemStack::new("tconstruct:crossbow", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:quick_charge", Tag::Int(5)), ("tconstruct:netherite", Tag::Int(1))])),
+            ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:quick_charge".into()), Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order", Tag::List(vec![Tag::String("tconstruct:solid".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:solid".into(), 1)]);
+        apply_stats(&mut tool, &stats, &levels, false, false).unwrap();
+        let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_draw_speed"), Some(Tag::Float(v)) if (f32::from_bits(*v)-1.45).abs()<0.0001));
+        assert!(matches!(custom.get("tic_velocity"), Some(Tag::Float(v)) if (f32::from_bits(*v)-1.3).abs()<0.0001));
+        assert!(matches!(custom.get("tic_projectile_damage"), Some(Tag::Float(v)) if (f32::from_bits(*v)-2.75).abs()<0.0001));
+    }
+
     #[test]
     fn same_stat_base_multipliers_add_before_application() {
         use super::*;
