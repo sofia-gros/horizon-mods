@@ -12,6 +12,18 @@ pub(super) fn probe(game:&super::Game<'_>, fake:&ItemStack, kind:u8, at:[i32;3],
     if let Some((id,sound,loot,damage,particle))=game.block_transform(fake,at,face) {
         return Some((id,sound,loot,damage,particle,false));
     }
+    // Pathing's campfire module does not require a top-face interaction.
+    if kind == 1 {
+        let registry = game.pack.assets.registry;
+        if let Some(mut state) = registry.state(game.world.block(at[0], at[1], at[2])).cloned() {
+            if super::tconstruct_source_campfire_select::is_lit_campfire(&state.name, state.properties.get("lit").map(String::as_str)) {
+                state.properties.insert("lit".into(), "false".into());
+                if let Ok(unlit) = registry.resolve(&state) {
+                    return Some((unlit, String::new(), None, 1, "tconstruct:campfire_douse".into(), false));
+                }
+            }
+        }
+    }
     if kind!=1 {return None;}
     let shield=game.offhand.as_ref().and_then(|s|game.res.items().get(&s.item)).is_some_and(|i|i.blocks_attacks.is_some());
     if shield && !game.keys.contains(&super::KeyCode::ShiftLeft) {return None;}

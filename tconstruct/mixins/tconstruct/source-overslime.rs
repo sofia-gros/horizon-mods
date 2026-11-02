@@ -93,7 +93,7 @@ pub(super) fn upgrade(stack: &horizon_items::items::ItemStack, id: &str) -> i32 
     }
 }
 
-pub(super) fn rebuild(stack: &mut horizon_items::items::ItemStack,
+pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &std::collections::BTreeMap<String,i32>, melee: bool, armor: bool, ranged: bool, harvest: bool) -> Option<()> {
     use horizon_world::nbt::Tag;

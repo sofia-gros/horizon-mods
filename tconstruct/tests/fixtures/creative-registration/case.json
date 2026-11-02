@@ -1,0 +1,74 @@
+{
+  "inventory": {
+    "tabs": [
+      {
+        "id": "minecraft:building_blocks",
+        "title": "Building Blocks",
+        "type": "CATEGORY",
+        "row": "TOP",
+        "column": 0,
+        "visible": true,
+        "items": [
+          "{count:1,id:\"minecraft:stone\"}"
+        ]
+      },
+      {
+        "id": "minecraft:search",
+        "title": "Search",
+        "type": "SEARCH",
+        "row": "TOP",
+        "column": 6,
+        "visible": true,
+        "items": [
+          "{count:1,id:\"minecraft:stone\"}"
+        ],
+        "tags": [
+          [
+            "minecraft:stone_tool_materials"
+          ]
+        ],
+        "lines": [
+          [
+            "Original stone tooltip"
+          ]
+        ],
+        "permissions_only": [
+          0
+        ]
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "tconstruct:tools",
+      "title": "Tinkers' Construct Tools",
+      "icon": "{count:1,id:\"tconstruct:pickaxe\"}",
+      "row": "TOP",
+      "column": 5,
+      "items": [
+        "{count:1,id:\"tconstruct:flint_and_brick\"}",
+        "{\"count\":1,\"id\":\"tconstruct:pickaxe\",\"components\":{\"minecraft:custom_data\":{\"tic_materials\":[\"tconstruct:flint\",\"tconstruct:flint\",\"tconstruct:flint\"]}}}"
+      ]
+    },
+    {
+      "id": "tconstruct:blocks",
+      "title": "Tinkers' Construct Blocks",
+      "icon": "{count:1,id:\"tconstruct:seared_bricks\"}",
+      "row": "BOTTOM",
+      "column": 5,
+      "items": [
+        "{count:1,id:\"tconstruct:seared_bricks\"}"
+      ]
+    }
+  ],
+  "search_expectations": {
+    "preserve_existing": "minecraft:stone",
+    "include": [
+      "tconstruct:flint_and_brick",
+      "tconstruct:pickaxe",
+      "tconstruct:seared_bricks"
+    ],
+    "component_key": "tic_materials",
+    "parallel_metadata_preserved": true
+  }
+}

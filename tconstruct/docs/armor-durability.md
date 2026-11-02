@@ -1,5 +1,7 @@
 # Material armor damage and repair
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 This draft targets material armor damage mitigation, per-slot durability,
 broken-item retention and disabled broken attributes, and restoration after
 Station repair. Existing Horizon damage-source, armor, enchantment and LAN

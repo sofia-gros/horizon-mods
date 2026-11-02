@@ -58,14 +58,14 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     });
     // Resolve against the actual Horizon built-in registry. This may be a
     // strict subset of the original mod's fluids until those are ported.
-    let resolved_blocks = horizon_protocol::registry::Builtin::find(&game.options.resources)
+    let block_ids = horizon_protocol::registry::Builtin::find(&game.options.resources)
         .ok_or_else(|| "missing built-in registry report".to_owned())
         .and_then(|path| horizon_protocol::registry::Builtin::load(&path).map_err(|error| error.to_string()))
-        .and_then(|builtin| {
-            let ids = builtin.get("minecraft:block").ok_or_else(|| "missing block registry".to_owned())?;
-            let registry = ids.names.iter().filter(|id| !id.is_empty()).cloned().collect();
-            crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)
-        });
+        .and_then(|builtin| builtin.get("minecraft:block").map(|ids| ids.ids.clone()).ok_or_else(|| "missing block registry".to_owned()));
+    let resolved_blocks = block_ids.as_ref().map_err(Clone::clone).and_then(|ids| {
+        let registry = ids.keys().filter(|id| !id.is_empty()).cloned().collect();
+        crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)
+    });
     let resolved_fluids = horizon_protocol::registry::Builtin::find(&game.options.resources)
         .ok_or_else(|| "missing built-in registry report".to_owned())
         .and_then(|path| horizon_protocol::registry::Builtin::load(&path).map_err(|error| error.to_string()))
@@ -151,6 +151,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_source_native_durability_mut() = durability;
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
+    *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_ids_mut() = Some(block_ids);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags_mut() = Some(resolved_blocks);
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags_mut() = Some(resolved_fluids);

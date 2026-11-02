@@ -17,13 +17,6 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
     else {
         return Continue(());
     };
-    let effects = &game.potions.effects;
-    let bonus = effects
-        .amplifier("strength")
-        .map_or(0.0, |a| 3.0 * (a + 1) as f32)
-        - effects
-            .amplifier("weakness")
-            .map_or(0.0, |a| 4.0 * (a + 1) as f32);
     let native = game
         .attack_item_info()
         .map_or(0.0, |item| item.attack_damage);
@@ -48,5 +41,15 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
             )
         })
         .unwrap_or(0.0);
-    Break((bonus + damage + trait_bonus - native).max(-1.0 - native))
+    // Evaluate an additive replacement on a clone of the player's attribute
+    // map. The host applies strength, weakness, and multipliers in that map;
+    // changing the returned number afterward would bypass their ordering.
+    let Some(mut projected) = game.player.clone() else { return Continue(()); };
+    if projected.set_modifier("minecraft:attack_damage", "tconstruct:material_attack_projection", f64::from(damage + trait_bonus - native), "add_value", true).is_err() {
+        return Continue(());
+    }
+    match projected.attribute("minecraft:attack_damage") {
+        Ok(value) => Break(value as f32),
+        Err(_) => Continue(()),
+    }
 }

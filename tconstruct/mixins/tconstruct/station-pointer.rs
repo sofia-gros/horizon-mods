@@ -32,9 +32,9 @@ fn tconstruct_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops
         }
     }
     if !right && crate::game::tconstruct_chest_ui::kind(game).is_some() {
-        let Some(key) = game.container else { return Break(true); };
-        let Some((count, _)) = crate::game::tconstruct_chest_ui::page(game) else { return Break(true); };
-        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Break(true); };
+        let Some(key) = (if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container }) else { return Continue(()); };
+        let Some((count, _)) = crate::game::tconstruct_chest_ui::page(game) else { return Continue(()); };
+        let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
         let batch = horizon_client::hud::HudBatch::new(size);
         let (ox, oy) = game.inventory_origin(&batch);
         let (x,y) = (game.cursor.0-ox, game.cursor.1-oy);

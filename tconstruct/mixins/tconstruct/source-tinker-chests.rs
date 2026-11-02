@@ -29,17 +29,26 @@ pub(super) fn insert_slot(
     item_limit: u32, tagged_part: bool,
 ) -> Option<horizon_items::items::ItemStack> {
     if slots.len() != kind.slots() || slot >= slots.len() || incoming.count == 0 { return Some(incoming); }
-    let first_equal = slots.iter().position(|current| current.as_ref().is_some_and(|stack| stack.same_item_same_components(&incoming)));
-    if !kind.accepts(slot, first_equal, tagged_part) { return Some(incoming); }
+    use super::tconstruct_inventory_api::{plan_move, StackSnapshot};
+    // The last entry is a borrowed, synthetic source, not a container slot.
+    let mut snapshot: Vec<_> = slots.iter().map(|cell| cell.as_ref().map(|stack| StackSnapshot { item: stack, count: stack.count })).collect();
+    let source = snapshot.len();
+    snapshot.push(Some(StackSnapshot { item: &incoming, count: incoming.count }));
+    let first_equal = slots.iter().position(|cell| cell.as_ref().is_some_and(|stack| stack.same_item_same_components(&incoming)));
     let limit = kind.slot_limit(item_limit);
-    let current = slots[slot].as_ref();
-    if current.is_some_and(|stack| !stack.same_item_same_components(&incoming)) { return Some(incoming); }
-    let room = limit.saturating_sub(current.map_or(0, |stack| stack.count));
-    let moved = incoming.count.min(room);
-    if moved == 0 { return Some(incoming); }
-    if let Some(existing) = slots[slot].as_mut() { existing.count += moved; }
-    else { let mut inserted = incoming.clone(); inserted.count = moved; slots[slot] = Some(inserted); }
-    incoming.count -= moved;
+    let Ok(Some(plan)) = plan_move(&snapshot, source, slot, incoming.count,
+        |_, _| limit, |target, _| kind.accepts(target, first_equal, tagged_part),
+        |left, right| left.same_item_same_components(right)) else { return Some(incoming); };
+    // This function has exclusive access to both inputs through planning and
+    // commit. Check the planner's original counts and use only its move count;
+    // `plan.from` identifies the synthetic source, never index it in `slots`.
+    if plan.from != source || plan.to != slot || plan.source_count_before != incoming.count
+        || plan.destination_count_before != slots[slot].as_ref().map(|stack| stack.count) {
+        return Some(incoming);
+    }
+    if let Some(existing) = slots[slot].as_mut() { existing.count += plan.count; }
+    else { let mut inserted = incoming.clone(); inserted.count = plan.count; slots[slot] = Some(inserted); }
+    incoming.count -= plan.count;
     (incoming.count > 0).then_some(incoming)
 }
 
@@ -338,6 +347,23 @@ mod tests {
         assert!(ChestKind::Tinkers.accepts(8, Some(7), false));
         assert!(!ChestKind::Tinkers.accepts(64, None, true));
     }
+    #[test]
+    fn planner_same_slot_and_invalid_insert_leave_inputs_untouched() {
+        use horizon_items::items::ItemStack;
+        use super::super::tconstruct_inventory_api::{plan_move, StackSnapshot};
+        let item = ItemStack::new("minecraft:stone", 3);
+        let snapshot = [Some(StackSnapshot { item: &item, count: item.count })];
+        assert!(plan_move(&snapshot, 0, 0, 3, |_, _| 64, |_, _| true,
+            |a, b| a.same_item_same_components(b)).unwrap().is_none());
+        assert_eq!(item.count, 3);
+        let mut slots = vec![None; 64];
+        let original = item.clone();
+        let remainder = insert_slot(ChestKind::Tinkers, &mut slots, 64, item, 64, false).unwrap();
+        assert_eq!(remainder.count, original.count);
+        assert!(remainder.same_item_same_components(&original));
+        assert!(slots.iter().all(Option::is_none));
+    }
+
     #[test]
     fn inserts_keep_components_and_reject_duplicate_variants() {
         use horizon_items::items::ItemStack;

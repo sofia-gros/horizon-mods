@@ -17,6 +17,18 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     Some((velocity, 3.0 * (1.0 / accuracy - 1.0)))
 }
 
+/// Source Dwarven applies to the shooter's actual height at firing time.
+pub(crate) fn projectile_stats_at(stack: &ItemStack, y: f32, max_height: i32) -> Option<(f32, f32)> {
+    let (velocity, spread) = projectile_stats(stack)?;
+    let custom = stack.data()?.other("minecraft:custom_data")?;
+    let level = match custom.get("tic_dwarven") { Some(Tag::Int(value)) => *value, _ => 0 };
+    let multiplier = match custom.get("tic_dwarven_velocity_multiplier") {
+        Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return Some((velocity, spread)),
+    };
+    if level <= 0 || !multiplier.is_finite() || !y.is_finite() { return Some((velocity, spread)); }
+    Some((super::tconstruct_source_dwarven::boost(y, max_height, level, velocity, 0.05 * multiplier).clamp(0.0, 1024.0), spread))
+}
+
 pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
     if let Some(value) = stat(stack, "tic_projectile_damage") {
         if value.is_finite() { return (value as f64 - 2.0).max(-2.0); }
@@ -64,6 +76,20 @@ mod tests {
             ("tic_accuracy", Tag::Float(accuracy.to_bits())),
         ])));
         stack
+    }
+    #[test]
+    fn dwarven_uses_shooter_height_for_both_bows() {
+        for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+            let mut stack = bow(id, 1.0, 1.0);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_velocity", Tag::Float(1.0f32.to_bits())),
+                ("tic_accuracy", Tag::Float(1.0f32.to_bits())),
+                ("tic_dwarven", Tag::Int(1)),
+                ("tic_dwarven_velocity_multiplier", Tag::Float(2.0f32.to_bits())),
+            ])));
+            assert!((projectile_stats_at(&stack, 0.0, 320).unwrap().0 - 1.1).abs() < 0.00001);
+            assert!((projectile_stats_at(&stack, 256.0, 320).unwrap().0 - 0.25).abs() < 0.00001);
+        }
     }
     #[test]
     fn diamond_damage_comes_from_the_firing_stack() {

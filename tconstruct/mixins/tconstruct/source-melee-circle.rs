@@ -25,7 +25,9 @@ fn tconstruct_melee_circle(game:&mut crate::game::Game<'_>, index:usize) {
         if !game.held().is_some_and(|held|held.item==stack.item && shape::intact(held).is_some()) {break;}
         let Some(next)=game.mobs.iter().position(|mob|mob.id==id && mob.alive() && !mob.removed) else {continue;};
         // Source circle applies a sweep push before its separate full hit.
-        game.mobs[next].knockback(0.4,xd,zd);
+        let from = game.player.as_ref().map(|player| [player.position.x, player.position.y, player.position.z]).unwrap_or(primary_pos);
+        let source = game.attack_source(from);
+        game.mobs[next].knockback(0.4,xd,zd,&source);
         game.attack_ticks=ticks;
         game.attack_mob(next);
     }

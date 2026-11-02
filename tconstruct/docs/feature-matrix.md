@@ -1,5 +1,7 @@
 # Tinkers' Construct feature coverage
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 [Original parity tracking and Part Builder source crosswalk](original-parity.md). This matrix is an incomplete audit, not a comprehensive list of implemented or unimplemented features.
 
 Reference: [1.20.1 source at f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2). The
@@ -22,6 +24,8 @@ not counts of fully playable features. Coverage varies by feature: the table dis
 | Crafting and progression | [recipe groups](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes), [world content](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/world) | Pattern and table recipes are available; other recipes, advancement, books, ores, slimes, world features and gadgets are missing. |
 | Save and multiplayer | [tool state](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/nbt), [station recipes](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tables/recipe) | Station inputs and representative material-based tools survive save/reload; repair retains its name and custom data. Two-player LAN contention was tested for part creation, assembly and repair. Dedicated server, arbitrary components and broader concurrency remain unverified. |
 
+A non-consuming plan for converting nine matching fake ingots and one fake storage block preserves the source Material field and has focused tests. It is not yet connected to crafting: the host recipe matcher must receive world-resolved material eligibility before the conversion can be enabled. Vanilla ingot and block recipes are unchanged.
+
 Source inventory is not exhaustive of behavior expressed in Java, recipes,
 assets, integrations or tags; the linked source trees remain the authority.
 The tested station loop is a subset, not complete station parity.
@@ -29,4 +33,4 @@ Broaden material and tool coverage while preserving item components and
 host-authoritative input/output transactions.
 
 The ordered v0.5 acceptance stages are tracked in the [roadmap](roadmap.md).
-PlutoLib work beyond the existing Creative support is deferred until v1.0 or later.
+Shared PlutoLib APIs are being adopted alongside the current Horizon update; see the [host upgrade notes](host-upgrade.md) for scope and verification.

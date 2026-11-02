@@ -1,5 +1,7 @@
 # Connected glass
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 Connected glass joins its texture to matching neighboring blocks. You can find clear, colored, seared, and scorched glass and panes in the **Tinkers' Construct Blocks** Creative tab.
 
 ![Clear glass joined next to colored and seared glass](connected-glass.png)

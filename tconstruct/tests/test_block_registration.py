@@ -57,6 +57,12 @@ class BlockRegistrationTests(unittest.TestCase):
         loot = json.loads((CONTENT / 'data/tconstruct/loot_table/blocks/glow.json').read_text())
         self.assertNotIn('pools', loot)
 
+    def test_geode_budding_blocks_receive_random_ticks(self):
+        for kind in ('sky', 'earth', 'ichor', 'ender'):
+            block = json.loads((BLOCKS / f'budding_{kind}_slime_crystal.json').read_text())
+            self.assertEqual(block['template'], 'minecraft:amethyst_block')
+            self.assertIs(block['properties']['random_ticks'], True)
+
     def test_source_wood_uses_nonfuel_templates(self):
         for wood in ('greenheart', 'skyroot', 'bloodshroom', 'enderbark'):
             for prefix in ('', 'stripped_'):

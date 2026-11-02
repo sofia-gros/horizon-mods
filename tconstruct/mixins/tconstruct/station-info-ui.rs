@@ -30,7 +30,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
     let mut bottom = Vec::new();
     if let Some(tool) = tool {
         let id = tool.item.split_once(':').map(|(namespace, path)| format!("item.{namespace}.{path}"));
-        let title = tool.custom_name().map(str::to_owned).or_else(|| id.map(|key| game.pack.names.display_get(&key).unwrap_or(key))).unwrap_or_default();
+        let title = tool.custom_name().or_else(|| id.map(|key| game.pack.names.display_get(&key).unwrap_or(key))).unwrap_or_default();
         top.push((title, None));
         bottom.push((game.pack.names.display_get("gui.tconstruct.tinker_station.modifiers").unwrap_or_else(|| "Modifiers".into()), None));
         if let Some(data) = tool.data().and_then(|data| data.other("minecraft:custom_data")) {

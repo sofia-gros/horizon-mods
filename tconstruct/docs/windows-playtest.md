@@ -12,7 +12,7 @@ Java and Forge do not need to run. The launcher uses your existing Horizon resou
 
 1. [Download main](https://github.com/sofia-gros/horizon-mods/archive/refs/heads/main.zip) and extract it, or use an existing checkout of `main`.
 2. Open the `tconstruct` folder and double-click **Play-TConstruct.cmd**.
-3. On the first run, wait while the launcher prepares and builds the game. If it cannot find your Horizon resources, select the prepared resource folder when prompted.
+3. On the first run, wait while the launcher prepares and builds the game. If prompted, select your Horizon resource folder and the extracted PlutoLib `mixins/pluto_native_creative` bundle directory. See the [development guide](development.md) for the bundle.
 
 The first build can take time. Later runs reuse the build when possible. If an error occurs, the window stays open so you can read it. The current build has no sound or controller support.
 

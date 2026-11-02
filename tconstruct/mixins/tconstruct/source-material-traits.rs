@@ -18,7 +18,7 @@ pub(super) fn levels_from_definition(
     ordered_levels_from_definition(definition, identities, read).map(|(levels, _)| levels)
 }
 
-pub(super) fn ordered_levels_from_definition(
+pub fn ordered_levels_from_definition(
     definition: &[u8], identities: &[String], read: impl Fn(&str) -> Option<Vec<Vec<u8>>>,
 ) -> Option<(BTreeMap<String, i32>, Vec<String>)> {
     let value: serde_json::Value = serde_json::from_slice(definition).ok()?;

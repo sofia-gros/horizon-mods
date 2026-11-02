@@ -25,11 +25,16 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                     .flatten().collect::<Vec<_>>()
             });
             let frame = layouts.as_ref().and_then(|layouts| crate::tconstruct_source_builder_wire::encode(layouts));
+            let wire_key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
+            let wire = frame.as_deref().unwrap_or(&[i16::MIN]);
+            let (_, wire_changed) = crate::tconstruct_source_menu_wire_cache::changed(
+                world.chunks.__horizon_mixins_tconstruct_menu_wire_sent().get(&wire_key), -1, wire);
+            if wire_changed {
+                world.chunks.__horizon_mixins_tconstruct_menu_wire_sent_mut().insert(wire_key, (-1, wire.to_vec()));
+            }
             let guest = &mut hub.guests[i];
             if let Some(menu) = guest.menu.as_mut() {
-                let wire = frame.as_deref().unwrap_or(&[i16::MIN]);
-                if menu.sent_data != wire {
-                    menu.sent_data = wire.to_vec();
+                if wire_changed {
                     let window = menu.window;
                     let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));
                     if let Some(frame) = frame {
@@ -41,7 +46,9 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let Some(entity) = world.block_entities.get(&pos) else { continue; };
             let slots = entity.slots();
-            let mut build = if worktable { None } else { crate::tconstruct_source_station_world::building_plan_with_capacity(world, slots, capacity).map(|(_, output)| output) };
+            let mut build_reason = None;
+            let mut operation_reason = None;
+            let mut build = if worktable { None } else { crate::tconstruct_source_station_world::building_plan_diagnostic(world, slots, capacity, &mut build_reason).map(|(_, output)| output) };
             if let Some(output) = build.as_mut() {
                 let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
                 crate::tconstruct_source_station_name::name_result(output, name);
@@ -49,7 +56,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             let mut operation = if worktable {
                 world.chunks.__horizon_mixins_tconstruct_part_selections().get(&pos)
                     .and_then(|selected| crate::tconstruct_source_station_world::extraction_plan(world, slots, selected)).map(|plan| plan.output)
-            } else { crate::tconstruct_source_station_world::operation_plan_with_capacity(world, slots, capacity).map(|plan| plan.output) };
+            } else { crate::tconstruct_source_station_world::operation_plan_diagnostic(world, slots, capacity, &mut operation_reason).map(|plan| plan.output) };
             if capacity == 5 {
                 if let Some(output) = operation.as_mut() {
                     let name = world.chunks.__horizon_mixins_tconstruct_station_guest_names().get(&(hub.guests[i].conn, window, pos)).map(String::as_str);
@@ -61,12 +68,12 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
             }
             let key = (hub.guests[i].conn, hub.guests[i].placed_at, window, pos);
             let changed = world.chunks.__horizon_mixins_tconstruct_station_preview_sent().get(&key)
-                .is_none_or(|(old_state, old_build, old_operation)| *old_state != old_menu_state || old_build != &build || old_operation != &operation);
+                .is_none_or(|(old_state, old_build, old_operation, old_build_reason, old_operation_reason)| *old_state != old_menu_state || old_build != &build || old_operation != &operation || old_build_reason != &build_reason || old_operation_reason != &operation_reason);
             if changed {
                 let tool = build.as_ref().or(operation.as_ref()).or_else(|| slots.first().and_then(Option::as_ref));
                 let traits = tool.and_then(|tool| crate::tconstruct_source_material_traits::levels(world, tool))
                     .and_then(|traits| serde_json::to_string(&traits.levels).ok()).unwrap_or_else(|| "{}".to_owned());
-                let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits]).filter(|frame| frame.len() < 1767);
+                let trait_frame = crate::tconstruct_source_builder_wire::encode(&[traits, build_reason.clone().unwrap_or_else(|| " ".into()), operation_reason.clone().unwrap_or_else(|| " ".into())]).filter(|frame| frame.len() < 1767);
                 let build_net = hub.stack(&build);
                 let operation_net = hub.stack(&operation);
                 let guest = &mut hub.guests[i];
@@ -84,7 +91,7 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
                 } else {
                     guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id: 31000, value: -2 }));
                 }
-                world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().insert(key, (state, build, operation));
+                world.chunks.__horizon_mixins_tconstruct_station_preview_sent_mut().insert(key, (state, build, operation, build_reason, operation_reason));
             }
             continue;
         }
@@ -123,15 +130,12 @@ fn send_part_selection_data(hub: &mut Hub, ctx: &mut TickCtx<'_>) {
         }
         let guest = &mut hub.guests[i];
         let Some(menu) = guest.menu.as_mut() else { continue; };
-        if menu.sent_data.is_empty() { menu.sent_data.push(i16::MIN); }
         let wire = encoded.as_deref().unwrap_or(&[i16::MIN]);
-        let wire_changed = menu.sent_data.get(1..) != Some(wire);
-        if wire_changed {
-            menu.sent_data.truncate(1);
-            menu.sent_data.extend_from_slice(wire);
+        let (selection_changed, wire_changed) = crate::tconstruct_source_menu_wire_cache::changed(
+            world.chunks.__horizon_mixins_tconstruct_menu_wire_sent().get(&preview_key), value, wire);
+        if selection_changed || wire_changed {
+            world.chunks.__horizon_mixins_tconstruct_menu_wire_sent_mut().insert(preview_key, (value, wire.to_vec()));
         }
-        let selection_changed = menu.sent_data[0] != value;
-        menu.sent_data[0] = value;
         let window = menu.window;
         if info_changed {
             let send = |guest: &mut crate::lan::guest::Guest, id, value| guest.send(&C::ContainerSetData(play::ContainerSetData { container: window, id, value }));

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Export pinned Horizon sources and apply a resolved Mixins revision."""
-import argparse, json, os, re, subprocess
+import argparse, json, os, re, shutil, subprocess, tempfile, tomllib
 from portable_archive import extract_git_tar
 from pathlib import Path
 
@@ -9,24 +9,76 @@ compat = json.loads((root / 'compatibility.json').read_text())
 p = argparse.ArgumentParser()
 p.add_argument('--horizon', type=Path, required=True)
 p.add_argument('--mixins', type=Path, required=True)
-p.add_argument('--mixins-revision', help='full Mixins commit SHA for a reproducible build; defaults to the latest official revision')
+p.add_argument('--mixins-revision', help='full Mixins commit SHA; defaults to the revision in compatibility.json')
 p.add_argument('--mods', type=Path, default=root / 'mixins', help='directory of Mixins bundles (defaults to this branch’s TConstruct bundle)')
+p.add_argument('--pluto-bundle', type=Path, required=True, help='installed PlutoLib unified Mixins bundle directory')
 p.add_argument('--output-dir', type=Path, default=root / 'target', help='fresh output directory')
 a = p.parse_args()
 head = subprocess.check_output(['git', '-C', str(a.horizon), 'rev-parse', 'HEAD'], text=True).strip()
 if head != compat['horizon_revision']:
     p.error(f'{a.horizon}: expected {compat["horizon_revision"]}, found {head}')
-if a.mixins_revision:
-    if not re.fullmatch(r'[0-9a-f]{40}', a.mixins_revision):
-        p.error('--mixins-revision must be a full lowercase commit SHA')
-    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', a.mixins_revision + '^{commit}'], text=True).strip()
-else:
-    subprocess.run(['git', '-C', str(a.mixins), 'fetch', '--no-tags', compat['mixins_repository'], 'HEAD'], check=True)
-    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', 'FETCH_HEAD^{commit}'], text=True).strip()
+requested_revision = a.mixins_revision or compat['mixins_revision']
+if not re.fullmatch(r'[0-9a-f]{40}', requested_revision):
+    p.error('Mixins revision must be a full lowercase commit SHA')
+try:
+    revision = subprocess.check_output(['git', '-C', str(a.mixins), 'rev-parse', '--verify', requested_revision + '^{commit}'], text=True, stderr=subprocess.DEVNULL).strip()
+except subprocess.CalledProcessError:
+    p.error(f'{a.mixins}: required Mixins revision {requested_revision} is not present; fetch it before staging')
 print(f'Horizon Mixins revision: {revision}', flush=True)
 output = a.output_dir.resolve()
 output.mkdir(parents=True, exist_ok=True)
 mods = a.mods.resolve(strict=True)
+pluto = a.pluto_bundle.resolve()
+manifest = pluto / 'horizon-mixin.toml'
+try:
+    data = tomllib.loads(manifest.read_text())
+except (OSError, tomllib.TOMLDecodeError) as error:
+    p.error(f'{manifest}: {error}')
+if data.get('mod', {}).get('id') != 'pluto_native_creative' or data.get('compatibility', {}).get('horizon_revision') != head:
+    p.error(f'{manifest}: PlutoLib bundle id or Horizon revision does not match {head}')
+legacy = ('pluto_native_creative', 'pluto_transport_3a', 'pluto_tool_rules', 'pluto_component_display_3a', 'pluto_component_bar', 'pluto_items_b2', 'pluto_creative', 'pluto_items')
+for name in legacy:
+    if (mods / name).exists():
+        p.error(f'{name}: duplicate or legacy PlutoLib bundle; supply only --pluto-bundle')
+for candidate in mods.iterdir():
+    mixin = candidate / 'horizon-mixin.toml'
+    if not mixin.is_file():
+        continue
+    try:
+        existing = tomllib.loads(mixin.read_text())
+        for crate in existing.get('crate', []):
+            crate_path = (candidate / str(crate.get('path', ''))).resolve()
+            if not crate_path.is_relative_to(candidate.resolve()):
+                p.error(f'{mixin}: crate path escapes its bundle')
+            package = tomllib.loads((crate_path / 'Cargo.toml').read_text()).get('package', {}).get('name')
+            if package in ('pluto-api', 'pluto-inventory-api', 'pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
+                p.error(f'{mixin}: duplicate PlutoLib API crate')
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        p.error(f'{mixin}: {error}')
+components = ('pluto_transport_3a-', 'pluto_tool_rules-', 'pluto_component_display_3a-', 'pluto_component_bar-', 'pluto_items_b2-')
+entries = data.get('module', []) + data.get('injection', [])
+if any(not any(str(entry.get('id', '')).startswith(prefix) for entry in entries) for prefix in components):
+    p.error('PlutoLib bundle is incomplete; use the installed unified package')
+api_count = 0
+inventory_count = 0
+for crate in data.get('crate', []):
+    crate_path = (pluto / str(crate.get('path', ''))).resolve()
+    if not crate_path.is_relative_to(pluto):
+        p.error('PlutoLib crate path escapes the bundle')
+    try:
+        package = tomllib.loads((crate_path / 'Cargo.toml').read_text()).get('package', {}).get('name')
+    except (OSError, tomllib.TOMLDecodeError) as error:
+        p.error(f'{crate_path}: {error}')
+    if package in ('pluto-creative-api', 'pluto-item-api', 'pluto-item-api-b2'):
+        p.error('legacy PlutoLib API crate conflicts with the shared facade')
+    if package == 'pluto-api':
+        api_count += 1
+    if package == 'pluto-inventory-api':
+        inventory_count += 1
+if api_count != 1:
+    p.error('PlutoLib unified bundle must provide exactly one pluto-api facade')
+if inventory_count != 1 or not any(entry.get('id') == 'pluto_native_creative-inventory-export' for entry in data.get('module', [])):
+    p.error('PlutoLib unified bundle must provide exactly one inventory API and its public export')
 original = output / 'original'
 source = output / 'mixins-source'
 if original.exists() or (output / 'modded').exists() or source.exists():
@@ -47,4 +99,8 @@ if proc.wait():
 cli_target = root.parent / 'target/mixins-cli-build'
 subprocess.run(['cargo', 'build', '--release', '--locked', '-p', 'horizon-mixins-cli', '--target-dir', str(cli_target)], cwd=source, check=True)
 cli = cli_target / 'release' / ('horizon-mixins.exe' if os.name == 'nt' else 'horizon-mixins')
-subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(mods), '--out', str(output / 'modded')], check=True)
+with tempfile.TemporaryDirectory(prefix='tconstruct-mixins-') as temp:
+    combined = Path(temp) / 'bundles'
+    shutil.copytree(mods, combined)
+    shutil.copytree(pluto, combined / "pluto_native_creative")
+    subprocess.run([str(cli), 'apply', '--workspace', str(original), '--mods', str(combined), '--out', str(output / 'modded')], check=True)

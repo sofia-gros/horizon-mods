@@ -54,6 +54,12 @@ pub(super) fn selection_index(id: &str) -> Option<usize> {
     UPGRADES.iter().position(|(candidate, _)| *candidate == id)
 }
 
+/// Upgrades whose wear hooks are unavailable in the provisional release.
+/// Keep their recipe logic and saved data so they can be restored later.
+pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
+    !matches!(id, "tconstruct:reinforced" | "tconstruct:unbreakable")
+}
+
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
@@ -352,7 +358,7 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
 }
 
 /// Rebuild additive and multiplier effects from the source baseline and saved progress.
-pub(super) fn apply_stats(
+pub fn apply_stats(
     tool: &mut ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &std::collections::BTreeMap<String, i32>,
@@ -398,6 +404,8 @@ pub(super) fn apply_stats(
             * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32)).clamp(0.0, 1024.0);
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
+        fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
+        fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
@@ -408,6 +416,12 @@ pub(super) fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn provisional_release_disables_wear_upgrades_only() {
+        assert!(!super::provisional_upgrade_enabled("tconstruct:reinforced"));
+        assert!(!super::provisional_upgrade_enabled("tconstruct:unbreakable"));
+        assert!(super::provisional_upgrade_enabled("tconstruct:diamond"));
+    }
     use super::*;
 
     #[test]
@@ -665,6 +679,22 @@ mod tests {
         assert_eq!(selection_index("tconstruct:glowing").and_then(selection_id), Some("tconstruct:glowing"));
         assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:war_pick", 1), &[Some(ItemStack::new("minecraft:magma_cream", 1))], 3).is_none());
         assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:javelin", 1), &[Some(ItemStack::new("minecraft:target", 1))], 3).is_none());
+    }
+
+    #[test]
+    fn ranged_rebuild_adds_and_removes_dwarven_level() {
+        let definition = br#"{"modules":[{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":2.0}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut bow = ItemStack::new("tconstruct:longbow", 1);
+        bow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("test:empty", Tag::Int(0))]))])));
+        let levels = BTreeMap::from([("tconstruct:dwarven".to_owned(), 1)]);
+        apply_stats(&mut bow, &stats, &levels, false, false).unwrap();
+        let custom = bow.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_dwarven"), Some(Tag::Int(1))));
+        let Some(Tag::Float(multiplier)) = custom.get("tic_dwarven_velocity_multiplier") else { panic!() };
+        assert!((f32::from_bits(*multiplier) - stats.velocity_add_multiplier).abs() < 0.00001);
+        apply_stats(&mut bow, &stats, &BTreeMap::new(), false, false).unwrap();
+        assert!(matches!(bow.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_dwarven"), Some(Tag::Int(0))));
     }
 
     #[test]

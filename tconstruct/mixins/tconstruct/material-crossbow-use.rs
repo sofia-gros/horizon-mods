@@ -12,7 +12,7 @@ fn tconstruct_crossbow_use(
     }
     if stack.data().is_some_and(|d| !d.charged.is_empty()) {
         let actor = game.lan_acting;
-        if let (Some((velocity, spread)), Some(data)) = (crate::game::tconstruct_projectile_stats::projectile_stats(stack), stack.data()) {
+        if let (Some((velocity, spread)), Some(data)) = (game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at(stack, player.position.y as f32, game.world.shape.max_y())).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)), stack.data()) {
             let count = data.charged.len();
             let power = 3.0;
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {

@@ -100,12 +100,14 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
             }
             if let Some(asset) = game.res.items().get(&stack.item).and_then(|info| info.equip_asset.as_ref()) {
                 let kind = if layer == "leggings" { "humanoid_leggings" } else { "humanoid" };
-                if let (Some((texture, color)), Some(part)) = (assets.equipment.get(asset).and_then(|entry| entry.get(kind)), assets.layers.get(&(layer, false))) {
-                    if let Some(sprite) = sprites.get(texture) {
-                        let color = color.map_or(u32::MAX, |c| 0xFF00_0000 | (c & 0xFF) << 16 | (c & 0xFF00) | (c >> 16) & 0xFF);
-                        let mut layer_poses = Poses::new(part);
-                        super::apply_pose(&mut layer_poses, &stand.pose);
-                        render::draw(part, base, &layer_poses, uv(sprite), color, light, 0, &mut verts);
+                if let (Some(layers), Some(part)) = (assets.equipment.get(asset).and_then(|entry| entry.get(kind)), assets.layers.get(&(layer, false))) {
+                    let mut layer_poses = Poses::new(part);
+                    super::apply_pose(&mut layer_poses, &stand.pose);
+                    for (texture, color) in layers {
+                        if let Some(sprite) = sprites.get(texture) {
+                            let color = color.map_or(u32::MAX, |c| 0xFF00_0000 | (c & 0xFF) << 16 | (c & 0xFF00) | (c >> 16) & 0xFF);
+                            render::draw(part, base, &layer_poses, uv(sprite), color, light, 0, &mut verts);
+                        }
                     }
                 }
             }

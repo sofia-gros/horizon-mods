@@ -17,12 +17,14 @@ Bring Tinkers’ Construct’s tool-building and material progression to Horizon
 
 </div>
 
+> **Development build:** Some individual effects and synchronization paths are temporarily unavailable or incomplete, including durability prevention and armor wear. See [provisional limitations](docs/provisional.md) before playing.
+
 ## What you can do
 
 - **Build tools from parts.** Make components at a Part Builder and assemble supported tools at a [Tinker Station or Anvil](docs/anvil-assembly.md).
 - **Repair, swap parts, and apply modifiers.** Maintain and customize supported equipment; the [play guide](docs/playing.md) describes tested examples.
 - **Melt materials, create alloys, and cast parts.** Start a workshop with [melting and casting](docs/melter-casting.md), then explore [Smeltery alloys](docs/smeltery.md).
-- **Store parts and materials beside your workstations.** Use the [Part Chest and Tinker’s Chest](docs/tinker-part-chests.md) beside a Part Builder or Crafting Station.
+- **Store parts and materials beside your workstations.** Use the [Part Chest and Tinker’s Chest](docs/tinker-part-chests.md) beside a Part Builder. Local Crafting Station transactions have representative checks; recipe-book auto-placement is temporarily unavailable.
 - **Browse recipes and materials in the in-game guide.** Open [Materials and You](docs/materials-and-you.md) for the original English first guide.
 
 <div align="center">
@@ -39,7 +41,7 @@ Follow the [Linux setup guide](docs/linux.md) or [Windows setup guide](docs/wind
 
 A manually run Mixins validation workflow can produce an Actions artifact containing `tconstruct.hnmod` and `tconstruct.hmod`. Install the native bundle through a compatible desktop Horizon Launcher, and install and enable the content mod in the instance’s `horizon-mods/` directory. See the [official native-mod guide](https://github.com/horizon-rust/horizon/blob/374b50d48f0968bd08f7026c7fabb117c8ecb8a6/docs/native-mods.md).
 
-**This two-file installation and its startup resource preparation are experimental and unverified.** The official native build documentation does not establish a smartphone build path; smartphone installation and gameplay remain unverified. The Linux and Windows guides describe the manual preparation path.
+**Native installation and startup resource preparation are experimental and unverified.** The current development branch also requires the matching unified PlutoLib native bundle; its installation alongside TConstruct has not yet been verified. See the [development guide](docs/development.md) for the bundle. See [PlutoLib native installation](../pluto-lib/docs/native-installation.md). The official native build documentation does not establish a smartphone build path; smartphone installation and gameplay remain unverified. The Linux and Windows guides describe the manual preparation path.
 
 ## Compatibility
 

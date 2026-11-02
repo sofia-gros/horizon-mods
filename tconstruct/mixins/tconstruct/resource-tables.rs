@@ -298,7 +298,9 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let base = root.canonicalize()?;
     let cache = std::env::current_dir()?.join(".horizon-cache/tconstruct-startup");
     let marker = cache.join("tconstruct-startup-owner");
-    let fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
+    let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
+    // Invalidate only our owned cache when Creative preparation semantics change.
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v2");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
@@ -488,22 +490,11 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     std::fs::write(item_path, serde_json::to_vec(&items)?)?;
     let creative_path = cache.join("creative-inventory.json");
     if creative_path.is_file() {
-        let mut inventory: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
-        let groups: Vec<serde_json::Value> = serde_json::from_slice(&std::fs::read(runtime.join("creative-tabs.json"))?)?;
-        let tabs = inventory.get_mut("tabs").and_then(serde_json::Value::as_array_mut).ok_or("missing Creative tabs")?;
-        for mut group in groups {
-            let id = group["id"].as_str().ok_or("missing Creative tab id")?;
-            let row = group["row"].as_str().ok_or("missing Creative tab row")?;
-            let column = group["column"].as_u64().ok_or("missing Creative tab column")?;
-            if tabs.iter().any(|tab| tab["id"] == id || (tab["row"] == row && tab["column"] == column && tab["type"] != "HOTBAR" && tab["visible"] != false)) {
-                return Err(format!("Creative tab {id} conflicts with installed content").into());
-            }
-            group["type"] = serde_json::json!("CATEGORY");
-            group["visible"] = serde_json::json!(true);
-            tabs.push(group);
-        }
-        std::fs::write(&creative_path, serde_json::to_vec(&inventory)?)?;
-        creative(&cache, &original_out)?;
+        let inventory: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
+        let mut groups: Vec<serde_json::Value> = serde_json::from_slice(&std::fs::read(runtime.join("creative-tabs.json"))?)?;
+        enrich_creative_groups(&cache, &original_out, &mut groups)?;
+        let updated = register_creative_groups(&inventory, &groups)?;
+        std::fs::write(&creative_path, serde_json::to_vec(&updated)?)?;
     }
     apply(&cache, &base)?;
     std::fs::write(&marker, fingerprint)?;
@@ -511,8 +502,65 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     Ok(())
 }
 
+// Registration is shared by native startup and the manual preparation path.
+fn register_creative_groups(inventory: &serde_json::Value, groups: &[serde_json::Value]) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
+        let tabs = groups.iter().map(|group| -> Result<pluto_api::creative::Tab, Box<dyn std::error::Error>> {
+            let text = |key: &str| group.get(key).and_then(serde_json::Value::as_str).map(str::to_owned).ok_or_else(|| format!("missing Creative tab {key}"));
+            let stacks = group.get("items").and_then(serde_json::Value::as_array).ok_or("missing Creative tab items")?;
+            let mut restricted = std::collections::BTreeSet::new();
+            if let Some(indices) = group.get("permissions_only") {
+                for index in indices.as_array().ok_or("invalid Creative permissions")? {
+                    let index = usize::try_from(index.as_u64().ok_or("invalid Creative permission index")?)?;
+                    if index >= stacks.len() || !restricted.insert(index) { return Err("invalid Creative permission index".into()); }
+                }
+            }
+            let items = stacks.iter().enumerate().map(|(index, item)| -> Result<pluto_api::creative::Entry, Box<dyn std::error::Error>> {
+                Ok(pluto_api::creative::Entry { snbt: item.as_str().ok_or("invalid Creative item")?.to_owned(), searchable: true,
+                    permissions_only: restricted.contains(&index), search_lines: Vec::new(), search_tags: Vec::new() })
+            }).collect::<Result<Vec<_>, _>>()?;
+            Ok(pluto_api::creative::Tab { id: text("id")?, title: text("title")?, icon: text("icon")?, items })
+        }).collect::<Result<Vec<_>, _>>()?;
+        let updated = pluto_api::creative::register_tabs(inventory, &tabs, |raw| {
+            let mut stack = horizon_items::item_data::parse_stack(raw)?.ok_or("empty Creative stack")?;
+            stack.count = 1;
+            Ok(horizon_items::item_data::canon_stack(Some(&stack)))
+        })?;
+        Ok(updated)
+}
+
+fn take_tconstruct_creative_groups(inventory: &mut serde_json::Value) -> Result<Vec<serde_json::Value>, Box<dyn std::error::Error>> {
+    let tabs = inventory.get_mut("tabs").and_then(serde_json::Value::as_array_mut).ok_or("missing Creative tabs")?;
+    let mut groups = Vec::new();
+    tabs.retain(|tab| {
+        if matches!(tab.get("id").and_then(serde_json::Value::as_str), Some("tconstruct:tools" | "tconstruct:blocks")) {
+            groups.push(tab.clone());
+            false
+        } else { true }
+    });
+    Ok(groups)
+}
+
 /// Apply source material stats to the generated Creative tool variants.
 pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    let path = out.join("creative-inventory.json");
+    if !path.is_file() { return Ok(()); }
+    let mut inventory: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+    let mut groups = take_tconstruct_creative_groups(&mut inventory)?;
+    if groups.is_empty() { return Ok(()); }
+    enrich_creative_groups(out, original_pack, &mut groups)?;
+    let inventory = register_creative_groups(&inventory, &groups)?;
+    // The prepared overlay may link to the original file; replace the link.
+    let temp = out.join("creative-inventory.json.tmp");
+    std::fs::write(&temp, serde_json::to_vec(&inventory)?)?;
+    std::fs::remove_file(&path)?;
+    std::fs::rename(temp, path)?;
+    Ok(())
+}
+
+fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path, tabs: &mut [serde_json::Value]) -> Result<(), Box<dyn std::error::Error>> {
+    let path = horizon_protocol::registry::Builtin::find(out).ok_or("missing built-in registry report")?;
+    let builtin = horizon_protocol::registry::Builtin::load(&path)?;
+    let block_ids = builtin.get("minecraft:block").ok_or("missing block registry")?;
     let items: serde_json::Value = serde_json::from_slice(&std::fs::read(out.join("items.json"))?)?;
         // Give supported Creative tool variants the same source-derived base
         // stats and mining rules as a tool assembled in the station. Other tool
@@ -539,10 +587,6 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
         let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
         let armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
         let ranged = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
-        let creative_path = out.join("creative-inventory.json");
-        if creative_path.is_file() {
-            let mut creative: serde_json::Value = serde_json::from_slice(&std::fs::read(&creative_path)?)?;
-            if let Some(tabs) = creative.get_mut("tabs").and_then(serde_json::Value::as_array_mut) {
                 for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
                     if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
                         for value in stacks {
@@ -572,18 +616,12 @@ pub fn creative(out: &std::path::Path, original_pack: &std::path::Path) -> Resul
                                     if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }
                                 }
+                                crate::tconstruct_source_tool_normalize::finalize_tool(&mut stack, |id| block_ids.id(id))?;
                                 *value = serde_json::Value::String(crate::snbt::to_snbt(&horizon_items::item_nbt::item_to_nbt(&stack)));
                             }
                         }
                     }
                 }
-            }
-            // The prepared output initially links to the input overlay. Replace
-            // the link itself so the original creative data stays untouched.
-            let temp = out.join("creative-inventory.json.tmp");
-            std::fs::write(&temp, serde_json::to_vec(&creative)?)?;
-            std::fs::remove_file(&creative_path)?;
-            std::fs::rename(temp, creative_path)?;
-        }
+
     Ok(())
 }

@@ -4,7 +4,7 @@ use horizon_items::items::ItemStack;
 /// normal material-derived name.
 pub(super) fn name_result(stack: &mut ItemStack, name: Option<&str>) {
     if let Some(name) = name.filter(|name| !name.is_empty()) {
-        stack.data_mut().custom_name = Some(name.to_owned());
+        stack.data_mut().custom_name = Some(horizon_world::nbt::Tag::String(name.into()));
     }
 }
 
@@ -19,6 +19,6 @@ mod tests {
         name_result(&mut tool, Some(""));
         assert_eq!(tool.custom_name(), None);
         name_result(&mut tool, Some("Mossy pick"));
-        assert_eq!(tool.custom_name(), Some("Mossy pick"));
+        assert_eq!(tool.custom_name(), Some("Mossy pick".to_owned()));
     }
 }

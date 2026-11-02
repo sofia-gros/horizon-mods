@@ -1,10 +1,12 @@
 # Mining, durability and repair trait follow-up
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 Material mining, durability and repair traits use original Tinkers' Construct
 revision `f4e77d43` with shared mining, wear and repair paths.
 
 This unit covers the mining modules of Lightweight, Heavy, Vintage, Entangled,
-Jagged, Stonebound and Maintained, plus Dense repair and durability prevention.
+Jagged, Stonebound, Maintained and Crumbling, plus Dense repair and durability prevention.
 Overlord requires functional Overslime and remains unimplemented. Other modules
 of these traits are not implied to be complete.
 
@@ -12,7 +14,7 @@ of these traits are not implied to be complete.
 
 Station and Creative regeneration store the original harvest-tagged tool's
 Lightweight/Heavy/Vintage/Entangled stat and Jagged/Stonebound/Maintained levels on the item. A shared item boundary recognizes effective per-stack tool
-rules for both the client and host; separate context hooks apply conditional
+rules for both the client and host using the active world item tags; separate context hooks apply conditional
 speed after mining efficiency and potion effects, before underwater/airborne
 penalties. Materials and part swaps rebuild the stored values. Previously saved
 tools need regeneration before these new fields are present.
@@ -24,11 +26,13 @@ the earlier melee calculation mistakenly included material percent and
 `multiply_base` bonuses. The implementation corrects that multiplier for the existing
 Jagged/Stonebound melee path too. Representative melee and repair regressions passed.
 
-Original modifier priority runs Maintained before the percentage-based Jagged
+Crumbling adds one mining speed per level (scaled by the tool and player mining multipliers) on blocks that do not require a tool, even when the held tool is not effective. It skips broken tools. An isolated Linux test client with eight unrelated injections excluded measured dirt at 15 versus 13 ticks and stone at 18 in both cases; a broken tool took 56 ticks on dirt. Crumbling combined with Stonebound remains unresolved: a piston comparison gave 10 versus 14 ticks despite a higher calculated conditional speed.
+
+Dwarven is connected on the development branch between Maintained and the percentage-based Jagged and Stonebound effects. An isolated Linux test client with eight injections excluded measured 13 ticks at Y=40 and 43 at Y=240 using supplied parts and a trait fixture; existing tools need regeneration to receive the trait data.
+
+Original modifier priority runs Maintained before Dwarven and the percentage-based Jagged
 and Stonebound effects; equal-priority effects retain source insertion order.
-The synchronized custom tool data includes the generated mining rules because
-the current network codec does not preserve the per-stack `minecraft:tool`
-patch. Existing saved tools need a supported regeneration or part replacement
+The development branch uses PlutoLib transport for prepared per-stack `minecraft:tool` data; the complete TConstruct LAN path remains unverified. Legacy custom tool data is retained for existing boundaries. Existing saved tools need a supported regeneration or part replacement
 before the new fields are added. See [Harvest tiers and effective blocks](harvest-rules.md)
 for representative tier, drop and LAN validation; not all tools and materials
 have been individually tested.
