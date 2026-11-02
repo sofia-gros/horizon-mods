@@ -8,6 +8,7 @@ The following differences from Mantle's original reader remain:
 
 - Illustrated material panels use the source colors, part icons, stats, traits and available material actions. Long material stat groups continue onto additional pages; exact parity with the original panel and every material is not established. Some tool properties and long image descriptions continue onto later pages, and long index entries use shortened excerpts.
 - Tool and part preview hover text uses the existing item tooltip renderer. The earlier tested tree supports source modifier showcase tooltips. Exact page-element placement and image scaling have not been verified for every source page.
+- Recipe diagram inputs and outputs now use the existing item tooltip renderer on hover, including the currently displayed tag candidate and the damage shown in the source repair example. This addition has not yet been checked in a running game.
 - Material actions requiring unregistered fluid buckets or instrument-specific item components are omitted rather than represented with an incorrect item. Their source display remains incomplete.
 - Part Chest, Tinker's Chest and later guide books are not registered here; their source recipe diagrams can show an empty output icon. This guide's source text can describe other features that this port does not yet implement.
 - Other languages and the remaining guides are future work.
