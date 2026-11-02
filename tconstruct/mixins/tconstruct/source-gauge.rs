@@ -46,7 +46,7 @@ fn ordered(yaw: f32, pitch: f32) -> [Direction;6] {
     else if ym > zm { make(y,z,x) } else if xm > ym { make(z,x,y) } else { make(z,y,x) }
 }
 pub(super) fn placement(level: &super::GameLevel<'_>, state: BlockStateId, ctx: &horizon_world::level::PlacementContext, answer: &mut Option<Option<BlockStateId>>) {
-    if &*level.facts.get(state).name != "tconstruct:copper_gauge" { return; }
+    if answer.is_some() || &*level.facts.get(state).name != "tconstruct:copper_gauge" { return; }
     let mut directions = ordered(ctx.yaw, ctx.pitch);
     if !ctx.replace_clicked {
         if let Some(index) = directions.iter().position(|d| *d == ctx.face.opposite()) {
@@ -64,7 +64,7 @@ pub(super) fn placement(level: &super::GameLevel<'_>, state: BlockStateId, ctx: 
     }
 }
 pub(super) fn update(level: &super::GameLevel<'_>, pos: BlockPos, state: BlockStateId, changed: Direction, new: &mut Option<BlockStateId>) {
-    if &*level.facts.get(state).name != "tconstruct:copper_gauge" { return; }
+    if new.is_some() || &*level.facts.get(state).name != "tconstruct:copper_gauge" { return; }
     let facing = level.registry.state(state).and_then(|s| s.properties.get("facing")).and_then(|v| direction(v));
     let Some(facing) = facing else { return; };
     if changed != facing.opposite() { return; }
@@ -73,14 +73,26 @@ pub(super) fn update(level: &super::GameLevel<'_>, pos: BlockPos, state: BlockSt
     if !supported(level, pos, facing) { *new = Some(level.facts.air); }
 }
 pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
+    use horizon_client::text::Text;
     let state = game.world.block(pos.0,pos.1,pos.2);
     let facing = game.pack.assets.registry.state(state).and_then(|s| s.properties.get("facing")).and_then(|v| direction(v));
     let Some(at) = facing.and_then(|facing| adjacent(BlockPos::new(pos.0,pos.1,pos.2), facing.opposite())) else { return true; };
     let block = &game.res.facts().get(game.world.block(at.0,at.1,at.2)).name;
     let Some(tank) = tank(&game.world, block, at) else { return true; };
-    let message = if let Some(fluid) = tank.fluid { format!("Contains: {} / {} mB {}", tank.amount, tank.capacity, fluid) }
-        else { format!("Capacity: {} mB", tank.capacity) };
-    let text = horizon_client::text::Text::literal(message);
+    let comma = |number: u32| {
+        let value = number.to_string();
+        value.chars().enumerate().fold(String::new(), |mut out, (index, ch)| {
+            if index > 0 && (value.len() - index) % 3 == 0 { out.push(','); }
+            out.push(ch); out
+        })
+    };
+    let capacity = Text::literal(comma(tank.capacity));
+    let text = if let Some(fluid) = tank.fluid {
+        let (namespace, name) = fluid.split_once(':').unwrap_or(("minecraft", fluid.as_str()));
+        let key = if namespace == "minecraft" { format!("block.minecraft.{name}") } else { format!("fluid.{namespace}.{name}") };
+        let contents = Text::translate("gui.mantle.fluid.format", &[Text::literal(comma(tank.amount)), capacity, Text::translate(&key, &[])]);
+        Text::translate("gui.mantle.fluid.contents", &[contents])
+    } else { Text::translate("gui.mantle.fluid.capacity", &[capacity]) };
     if let Some(uuid) = game.lan_acting_uuid { let _ = game.native_action_bar(uuid, text); }
     else { game.titles.set_overlay(text, false); }
     true
