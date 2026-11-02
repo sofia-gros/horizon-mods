@@ -280,8 +280,9 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let maximum = chosen.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
         if let Some(id) = id {
             let start = batch.vertices.len();
-            draw_stack(batch, id, 1, damage, maximum, x, y);
+            let stack = draw_stack(batch, id, 1, damage, maximum, x, y);
             batch.scale_since(start, x, y, 2.0, 2.0);
+            if hovered(x, y, 32.0) { item_tooltip = Some(stack); }
         }
     }
     if let Some(result) = spec.get("result") {
@@ -293,8 +294,9 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
             let x = ox + if grid == 2 { 118.0 } else { 146.0 };
             let y = oy + if grid == 2 { 23.0 } else { 41.0 };
             let start = batch.vertices.len();
-            draw_stack(batch, id, count, damage, maximum, x, y);
+            let stack = draw_stack(batch, id, count, damage, maximum, x, y);
             batch.scale_since(start, x, y, 2.0, 2.0);
+            if hovered(x, y, 32.0) { item_tooltip = Some(stack); }
         }
     }
     })();
