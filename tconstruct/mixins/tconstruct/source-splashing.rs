@@ -147,6 +147,52 @@ pub(super) fn box_offsets(game: &super::Game<'_>, stack: &ItemStack, origin: [i3
     Some(out)
 }
 
+/// Resolve source vein distance. Traversal itself is lazy because a previous
+/// placement may change a later candidate before it is visited.
+pub(super) fn vein_distance(game: &super::Game<'_>, stack: &ItemStack) -> Option<i32> {
+    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+    let expanded = super::tconstruct_source_overslime::upgrade(stack, "tconstruct:expanded") + traits.levels.get("tconstruct:expanded").copied().unwrap_or(0);
+    let (namespace, name) = stack.item.split_once(':')?;
+    let layers = game.world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+    let bytes = layers.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let aoe: Vec<_> = definition.get("modules")?.as_array()?.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str).is_some_and(|kind| kind.ends_with("_aoe"))).collect();
+    if aoe.len() != 1 || aoe[0].get("type")?.as_str()? != "tconstruct:vein_aoe" { return None; }
+    let base = i32::try_from(aoe[0].get("max_distance").map_or(Some(0), serde_json::Value::as_i64)?).ok()?;
+    let radius = base.checked_add(expanded)?;
+    (0..=4).contains(&radius).then_some(radius)
+}
+
+struct Vein {
+    name: String,
+    radius: i32,
+    visited: std::collections::HashSet<[i32; 3]>,
+    pending: std::collections::VecDeque<([i32; 3], i32)>,
+}
+impl Vein {
+    fn new(origin: [i32; 3], name: String, radius: i32) -> Self {
+        let mut result = Self { name, radius, visited: std::collections::HashSet::from([origin]), pending: std::collections::VecDeque::new() };
+        if radius > 0 { result.enqueue(origin, 1); }
+        result
+    }
+    fn enqueue(&mut self, origin: [i32; 3], distance: i32) {
+        for direction in [[0,-1,0], [0,1,0], [0,0,-1], [0,0,1], [-1,0,0], [1,0,0]] {
+            let [Some(x), Some(y), Some(z)] = [origin[0].checked_add(direction[0]), origin[1].checked_add(direction[1]), origin[2].checked_add(direction[2])] else { continue; };
+            let position = [x, y, z];
+            if self.visited.insert(position) { self.pending.push_back((position, distance)); }
+        }
+    }
+    fn next(&mut self, game: &super::Game<'_>) -> Option<[i32; 3]> {
+        while let Some((position, distance)) = self.pending.pop_front() {
+            if !game.world.loaded(position[0], position[2]) { continue; }
+            if game.res.facts().get(game.world.block(position[0], position[1], position[2])).name.as_ref() != self.name.as_str() { continue; }
+            if distance < self.radius { self.enqueue(position, distance + 1); }
+            return Some(position);
+        }
+        None
+    }
+}
+
 /// The source tests the candidate box against the target's inflated box and
 /// then compares full 3D entity positions using a strict squared radius.
 pub(super) fn in_range(target: [f64; 3], candidate: [f64; 3], target_bounds: ([f64; 3], [f64; 3]), candidate_bounds: ([f64; 3], [f64; 3]), expanded: u32) -> bool {
@@ -229,7 +275,15 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if game.remote.is_some() || !right_click(game, stack) || !game.may_build() || super::tconstruct_source_melee_shape::intact(stack).is_none() { return None; }
     if !matches!(face, [0, -1, 0] | [0, 1, 0] | [0, 0, -1] | [0, 0, 1] | [-1, 0, 0] | [1, 0, 0]) { return None; }
     if game.cooldowns.is_on_cooldown(&stack.item) { return None; }
-    let offsets = if single_block(game, stack) { Vec::new() } else { circle_offsets(game, stack, clicked, face).or_else(|| box_offsets(game, stack, clicked, face))? };
+    let mut vein = None;
+    let offsets = if single_block(game, stack) { Vec::new() }
+        else if let Some(offsets) = circle_offsets(game, stack, clicked, face).or_else(|| box_offsets(game, stack, clicked, face)) { offsets }
+        else {
+            let radius = vein_distance(game, stack)?;
+            let name = game.res.facts().get(game.world.block(clicked[0], clicked[1], clicked[2])).name.to_string();
+            vein = Some(Vein::new(clicked, name, radius));
+            Vec::new()
+        };
     let custom = stack.data()?.other("minecraft:custom_data")?;
     let Tag::Int(level) = custom.get("tic_upgrades")?.get("tconstruct:splashing")? else { return None; };
     if *level <= 0 || stack.count != 1 || stack.wire_patch().is_some() { return None; }
@@ -252,7 +306,8 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
     // Stage every possible remainder before changing the world. Failed
     // positions do not advance the stage; the source consumes once per success.
-    let count = ((fluid.amount / amount) as usize).min(offsets.len() + 1);
+    let max_positions = vein.as_ref().map_or(offsets.len() + 1, |area| ((area.radius * 2 + 1) as usize).pow(3));
+    let count = ((fluid.amount / amount) as usize).min(max_positions);
     let mut staged = Vec::with_capacity(count);
     for successes in 1..=count {
         let mut remaining = fluid.clone();
@@ -263,9 +318,14 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     let result = (|| -> horizon_client::Result<bool> {
         let mut successes = 0usize;
         let mut failure = None;
-        for (iteration, position) in std::iter::once(clicked).chain(offsets).enumerate() {
+        let mut primary = Some(clicked);
+        let mut offsets = offsets.into_iter();
+        loop {
             if successes >= staged.len() { break; }
-            if iteration > 0 && game.res.facts().is_air(game.world.block(position[0], position[1], position[2])) { continue; }
+            let (position, is_primary) = if let Some(position) = primary.take() { (position, true) }
+                else if let Some(area) = vein.as_mut() { let Some(position) = area.next(game) else { break; }; (position, false) }
+                else { let Some(position) = offsets.next() else { break; }; (position, false) };
+            if !is_primary && vein.is_none() && game.res.facts().is_air(game.world.block(position[0], position[1], position[2])) { continue; }
             let target = if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position }
                 else {
                     let Some(x) = position[0].checked_add(face[0]) else { continue; };
