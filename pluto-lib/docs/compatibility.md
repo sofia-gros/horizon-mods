@@ -15,6 +15,8 @@ The older [Creative paging adapter](creative-overflow.md) and [item behavior dem
 
 ## Development target
 
+The independent [short item-use demo](item-use-b2.md) was built and run on Linux with Horizon [`b2e71aca04c7f62f24eefd7dd0324bae9c04954f`](https://github.com/horizon-rust/horizon/commit/b2e71aca04c7f62f24eefd7dd0324bae9c04954f) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). Its local and LAN checks cover the short-use path only; Tinkers and Windows remain unverified.
+
 The independent [stack durability bar demo](component-bar.md) was built and run on Linux with Horizon [`b2e71aca04c7f62f24eefd7dd0324bae9c04954f`](https://github.com/horizon-rust/horizon/commit/b2e71aca04c7f62f24eefd7dd0324bae9c04954f) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). This check does not establish compatibility for other PlutoLib bundles or Tinkers.
 
 The native Creative and component-transport demos were checked against Horizon [`5197790e5846a82cfc84d9703e37c4c1b75be09c`](https://github.com/horizon-rust/horizon/commit/5197790e5846a82cfc84d9703e37c4c1b75be09c) and Mixins [`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`](https://github.com/horizon-rust/horizon-mixins/commit/ddd9700b21997c95d95ac6ee5ecafe3830cf622a). The Mixins plan and native Creative bundle check passed. On Linux, the independent transport demo was built and run with this pair; its [LAN and tooltip checks](component-transport.md) do not establish Tinkers integration.
