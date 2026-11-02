@@ -34,7 +34,8 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     let Some((target, mut before)) = contexts.get_mut(&actor).and_then(|entries| entries.last_mut()).and_then(Option::take) else { return; };
     let Some(mob) = game.mobs.get(index).filter(|mob| mob.id == target) else { return; };
     let kind = if mob.kind.id.contains(':') { mob.kind.id.to_string() } else { format!("minecraft:{}", mob.kind.id) };
-    if game.res.mob_data().entity_has("tconstruct:necrotic_blacklist", &kind) { return; }
+    let mob_data = game.res.mob_data();
+    if !mob_data.entity_tags.contains_key("tconstruct:necrotic_blacklist") || mob_data.entity_has("tconstruct:necrotic_blacklist", &kind) { return; }
     let Some(record) = game.player.as_ref().and_then(|player| player.attack_log.last()) else { return; };
     if record.id != target { return; }
     let (dealt, scale, crit, landed) = (record.dealt, record.scale, record.crit, record.landed);
