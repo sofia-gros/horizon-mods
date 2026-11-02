@@ -78,3 +78,9 @@ slimy chestplate definition resolution #121. The material capacity is combined
 with the later ordered Overlord copy rather than restoring the older capacity
 formula; focused tests and all target checks remain pending. Wool #120,
 Ductile #136 and Forming #142 are represented in the #309 armor calculation.
+
+The subsequent F02/F05 follow-up ports #98 and #101 together, including the
+intermediate broad-speed calculation, live Overslime reads and the area-harvest
+spend. The #82 Airborne penalty boundary and later ordered stat calculations are
+retained. These paths still need formal apply and gameplay checks; ordinary
+single-block capacity spending and other Overslime consumers remain incomplete.

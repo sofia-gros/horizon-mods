@@ -50,7 +50,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     };
     let Tag::Compound(ref mut fields) = custom else { return if tool.is_none() { Some(()) } else { None } };
     let dynamic: Vec<Tag> = order.iter().filter_map(|id| {
-        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:airborne") { return None; }
+        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:airborne" | "tconstruct:overwield") { return None; }
         Some(Tag::compound([("id", Tag::String(id.as_str().into())), ("level", Tag::Int(level(id)))]))
     }).collect();
     // Retain the existing generated-rule mirror for legacy consumers; the
