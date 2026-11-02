@@ -52,6 +52,8 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     let mut cancel = false;
     horizon_client::hunger::native_living_heal(player.entity_id as u32, &mut amount, &mut cancel);
     if !cancel && amount.is_finite() && amount > 0.0 { let _ = player.set_health(current + amount, false); }
+    let at = [player.position.x, player.position.y, player.position.z];
+    game.audio.play("tconstruct:necrotic_heal", Some(at), 1.0, 1.0);
 }
 
 #[cfg(test)]
