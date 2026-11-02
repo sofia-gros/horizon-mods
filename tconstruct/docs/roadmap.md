@@ -1,5 +1,7 @@
 # Coverage and roadmap
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 The reference is Tinkers' Construct 1.20.1, commit
 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The [feature matrix](feature-matrix.md)
 links to original sources and records the wider scope. The

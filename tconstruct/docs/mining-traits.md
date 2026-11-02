@@ -1,5 +1,7 @@
 # Mining, durability and repair trait follow-up
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 Material mining, durability and repair traits use original Tinkers' Construct
 revision `f4e77d43` with shared mining, wear and repair paths.
 

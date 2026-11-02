@@ -1,5 +1,7 @@
 # Material trait expansion (in progress)
 
+> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+
 ![Station rejecting a part swap that would leave too few upgrade slots](enhanced-swap-rejection.png)
 
 The screenshot uses supplied parts and upgrades in the Linux test world.
