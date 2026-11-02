@@ -31,6 +31,9 @@
           [
             "Original stone tooltip"
           ]
+        ],
+        "permissions_only": [
+          0
         ]
       }
     ]

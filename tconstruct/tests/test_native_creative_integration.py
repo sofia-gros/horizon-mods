@@ -31,6 +31,7 @@ class NativeCreativeIntegration(unittest.TestCase):
             self.assertIn('tic_materials', stack)
             self.assertEqual(search['lines'][0], ['Original stone tooltip'])
             self.assertEqual(search['tags'][0], ['minecraft:stone_tool_materials'])
+            self.assertEqual(search['permissions_only'], [0])
             case['inventory'] = output
             input_path.write_text(json.dumps(case))
             second = subprocess.run([runner, str(input_path), str(root / 'duplicate.json')], capture_output=True)
