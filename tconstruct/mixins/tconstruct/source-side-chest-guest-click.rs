@@ -68,6 +68,9 @@ fn tconstruct_side_chest_guest_click(hub: &mut crate::lan::hub::Hub, conn: u32, 
             (0,Some(i),_,_) => changed=chest::pickup_slot(kind,&mut side_items,i,&mut carried,packet.button==1,max,part),
             (0,_,Some(i),_) if i!=0 || carried.is_none() || pattern => changed=chest::pickup_player(&mut table_items,i,&mut carried,packet.button==1,max),
             (0,_,_,Some(i)) => changed=chest::pickup_player(&mut inventory,i,&mut carried,packet.button==1,max),
+            (0,None,None,None) if packet.slot==-999 => {
+                let mut cursor=vec![carried.take()];dropped=chest::take_for_drop(&mut cursor,0,packet.button==0);carried=cursor.pop().flatten();changed=dropped.is_some();
+            },
             (1,_,_,Some(i)) => if let Some(stack)=inventory[i].take() {
                 let old=stack.count;let rem=crate::tconstruct_tx::source_quick_move_to_builder(&mut table_items,&mut [],stack,max,max>1,pattern);
                 let rem=rem.and_then(|stack|chest::insert_across(kind,&mut side_items,stack,max,part));

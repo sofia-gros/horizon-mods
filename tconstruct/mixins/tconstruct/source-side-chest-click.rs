@@ -8,7 +8,13 @@ fn tconstruct_side_chest_click(
     if game.remote.is_some() { return Continue(()); }
     let Some(table)=game.container else { return Break(true); };
     let Some(side)=game.world.chunks.__horizon_mixins_tconstruct_builder_side().get(&table).copied() else { return Break(true); };
-    let Some(slot)=slot else { return Break(true); };
+    let Some(slot)=slot else {
+        if input==Input::Pickup && matches!(button,0|1) && game.eye_position().is_some() {
+            let mut cursor=vec![game.carried.take()];let dropped=crate::game::tconstruct_chest_rules::take_for_drop(&mut cursor,0,button==0);game.carried=cursor.pop().flatten();
+            if let (Some(stack),Some(eye))=(dropped,game.eye_position()) {game.throw_from_eyes(stack,eye,false);}
+        }
+        return Break(true);
+    };
     if slot==322 || (324..=326).contains(&slot) { return Continue(()); }
     if !matches!(input,Input::Swap|Input::Clone) && !matches!(button,0|1) { return Break(true); }
     let offset=game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll().get(&table).map_or(0,|s|s.0);
