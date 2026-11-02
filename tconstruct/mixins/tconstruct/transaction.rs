@@ -1510,13 +1510,41 @@ pub(super) fn source_quick_take_part_plan(
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
     output_max: u32, stackable: bool, random: impl FnOnce(usize) -> Option<usize>,
 ) -> Option<(Vec<ItemStack>, u32)> {
+    source_quick_take_part_plan_inner(slots,inventory,side,plan,output,leftover,alternatives,material_container,pattern_container,output_max,stackable,None,random)
+}
+
+/// The same atomic Part Builder result transaction with a source chest's
+/// per-slot limit and full-component uniqueness constraints.
+#[allow(dead_code)]
+pub(super) fn source_quick_take_part_chest_plan(
+    slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>], side: &mut [Option<ItemStack>],
+    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
+    material_container: Option<ItemStack>, pattern_container: Option<ItemStack>, output_max: u32,
+    stackable: bool, kind: super::tconstruct_chest_rules::ChestKind, tagged_part: bool,
+    random: impl FnOnce(usize) -> Option<usize>,
+) -> Option<(Vec<ItemStack>, u32)> {
+    if side.len()!=kind.slots() { return None; }
+    source_quick_take_part_plan_inner(slots,inventory,side,plan,output,leftover,alternatives,material_container,pattern_container,output_max,stackable,Some((kind,tagged_part)),random)
+}
+
+fn source_quick_take_part_plan_inner(
+    slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>], side: &mut [Option<ItemStack>],
+    plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
+    material_container: Option<ItemStack>, pattern_container: Option<ItemStack>, output_max: u32,
+    stackable: bool, chest: Option<(super::tconstruct_chest_rules::ChestKind,bool)>,
+    random: impl FnOnce(usize) -> Option<usize>,
+) -> Option<(Vec<ItemStack>, u32)> {
     let mut staged_inventory = inventory.to_vec();
     let mut staged_side = side.to_vec();
     let mut remaining = output.clone();
     if stackable {
-        for existing in staged_side.iter_mut().flatten() {
-            if existing.same_item_same_components(&remaining) && existing.count < output_max {
-                let moved = (output_max - existing.count).min(remaining.count);
+        let first_equal=staged_side.iter().position(|slot|slot.as_ref().is_some_and(|existing|existing.same_item_same_components(&remaining)));
+        for (index,slot) in staged_side.iter_mut().enumerate() {
+            let Some(existing)=slot.as_mut() else { continue; };
+            if chest.is_some_and(|(kind,tagged)| !kind.accepts(index,first_equal,tagged)) { continue; }
+            let limit=chest.map_or(output_max, |(kind,_)|kind.slot_limit(output_max));
+            if existing.same_item_same_components(&remaining) && existing.count < limit {
+                let moved = (limit - existing.count).min(remaining.count);
                 existing.count += moved;
                 remaining.count -= moved;
                 if remaining.count == 0 { break; }
@@ -1526,15 +1554,12 @@ pub(super) fn source_quick_take_part_plan(
     let mut remainder = if remaining.count == 0 { None } else {
         source_quick_move_player(&mut staged_inventory, remaining, output_max, stackable)
     };
-    if let Some(stack) = &mut remainder {
-        for slot in &mut staged_side {
-            if slot.is_none() {
-                let moved = stack.count.min(output_max);
-                *slot = Some(ItemStack { count: moved, ..stack.clone() });
-                stack.count -= moved;
-                if stack.count == 0 { break; }
-            }
-        }
+    if let Some(stack) = remainder.take() {
+        remainder = if let Some((kind,tagged_part))=chest {
+            super::tconstruct_chest_rules::insert_across(kind,&mut staged_side,stack,output_max,tagged_part)
+        } else {
+            source_give_inventory(&mut staged_side,0,stack,output_max,false)
+        };
     }
     let moved = output.count.checked_sub(remainder.as_ref().map_or(0, |s| s.count))?;
     if moved == 0 { return None; }
@@ -2698,6 +2723,14 @@ mod tests {
         let mut inventory = vec![Some(ItemStack::new("minecraft:stone", 64)); 36];
         assert!(source_quick_take_part_plan(&mut side_slots, &mut inventory, &mut side, &plan, side_output, side_leftover, side_alternatives, None, None, 64, true, |_| Some(0)).is_some());
         assert_eq!(side[1].as_ref().unwrap().count, 1);
+        let (output, leftover, alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
+        let mut chest=vec![None;256]; let mut previous=output.clone();previous.count=7;chest[0]=Some(previous);
+        let mut chest_slots=original.clone();let mut full=vec![Some(ItemStack::new("minecraft:stone",64));36];
+        assert!(source_quick_take_part_chest_plan(&mut chest_slots,&mut full,&mut chest,&plan,output.clone(),leftover.clone(),alternatives.clone(),None,None,64,true,super::super::tconstruct_chest_rules::ChestKind::Part,true,|_|Some(0)).is_some());
+        assert_eq!(chest[0].as_ref().unwrap().count,8);
+        let mut chest_slots=original.clone();
+        assert!(source_quick_take_part_chest_plan(&mut chest_slots,&mut full,&mut chest,&plan,output,leftover,alternatives,None,None,64,true,super::super::tconstruct_chest_rules::ChestKind::Part,true,|_|Some(0)).is_none());
+        assert_eq!(chest_slots,original);assert!(chest[1].is_none());
         let after = slots.clone();
         let (second, leftover, alternatives) = source_resolve_part_plan(&plan, &Default::default(), None, &registry).unwrap().unwrap();
         assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, second, leftover, alternatives, None, None, 64, |_| Some(0)).is_none());

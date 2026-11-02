@@ -3,6 +3,7 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
     let Some(g) = host.hub.guests.iter().find(|g| g.conn == conn) else { return Continue(()); };
     let Some(menu) = g.menu.as_ref().filter(|m| m.window == window) else { return Continue(()); };
     let Some(key) = menu.pos else { return Continue(()); };
+    if ((42000..=42043).contains(&id) || id==44000) && game.world.chunks.__horizon_mixins_tconstruct_chest_guest_pages().contains_key(&(conn,g.placed_at,window,key)) {return Continue(());}
     let station_capacity = crate::game::tconstruct_source_anvil_capacity::input_capacity(&game.res.facts().get(game.world.block(key.0, key.1, key.2)).name);
     if id >= 35000 && crate::game::tconstruct_source_upgrade_rules::selection_id((id - 35000) as usize).is_some() && &*game.res.facts().get(game.world.block(key.0, key.1, key.2)).name == "tconstruct:modifier_worktable" {
         if !g.spectator() && menu.slots.still_valid(&game.world, g, menu.pos) {
@@ -58,11 +59,8 @@ fn select_part_recipe(game: &mut crate::game::Game<'_>, host: &mut crate::game::
                 if *pos != key && crate::game::tconstruct_source_workstation_tabs::supported(name) {
                     let pos = *pos;
                     if crate::game::lan_actions::tconstruct_source_workstation_tabs_lan::open(game, host, conn, pos) {
-                        if let Some(guest) = host.hub.guest(conn) {
-                            if let Some(new_window) = guest.menu.as_ref().map(|menu| menu.window) {
-                                guest.send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: new_window, id: -1, value: (id - 31000) as i16 }));
-                            }
-                        }
+                        let active=host.hub.guests.iter().find(|guest|guest.conn==conn).and_then(|guest|guest.menu.as_ref().map(|menu|menu.window)).or_else(||crate::game::lan_crafting::tconstruct_crafting_lan::active_window(host,conn));
+                        if let Some(new_window)=active {host.hub.send_to(conn,&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: new_window, id: -1, value: (id - 31000) as i16 }));}
                     }
                 }
             }

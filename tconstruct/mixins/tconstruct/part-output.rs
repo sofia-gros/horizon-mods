@@ -10,6 +10,7 @@ fn tconstruct_part_output(game: &mut crate::game::Game<'_>, slot: Option<usize>,
         return Break(true);
     }
     if input == horizon_client::menu::Input::QuickMove && !station && game.remote.is_some() && slot.is_some_and(|slot| slot < 36) { return Continue(()); }
+    if !station && crate::game::tconstruct_ui::side_chest_kind(game).is_some() && slot.is_some_and(|slot|slot<36 || (300..302).contains(&slot) || (327..381).contains(&slot)) { return Continue(()); }
     if input != horizon_client::menu::Input::Pickup { return Break(true); }
     if !station && slot.is_some_and(|s| (324..=326).contains(&s)) {
         if button == 0 {

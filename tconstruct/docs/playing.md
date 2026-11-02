@@ -46,6 +46,14 @@ Place and open the Part Builder. Put a pattern and the log in the two input slot
 
 *Choose Tool Handle in the middle; the handle appears on the right.*
 
+## Store parts beside a workstation
+
+Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder or Crafting Station to access its inventory while working. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
+
+![A Part Chest beside a Part Builder in a LAN test](part-chest-builder-lan.png)
+
+This Linux test used supplied materials and a LAN guest. See [storage details and remaining checks](tinker-part-chests.md).
+
 ## Assemble a tool
 
 At a Tinker Station, select a supported tool and place its required parts in the input slots. Take the result from the output slot. A pickaxe made with a flint head and wooden parts has been tested through use, repair, head replacement, and saving on Linux.

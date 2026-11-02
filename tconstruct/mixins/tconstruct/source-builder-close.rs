@@ -1,4 +1,11 @@
 fn builder_close(game: &mut crate::game::Game<'_>) {
+    if crate::game::tconstruct_chest_ui::kind(game).is_some() {
+        if let Some(pos) = crate::game::remote::tconstruct_source_machine_remote::position(game).or(game.container) {
+            game.world.chunks.__horizon_mixins_tconstruct_chest_ui_pages_mut().remove(&pos);
+        }
+        if let Some(pos)=game.container { game.world.chunks.__horizon_mixins_tconstruct_builder_side_scroll_mut().remove(&pos); }
+        return;
+    }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         if let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) {
             if let Some((containers, _)) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().remove(&pos) {
