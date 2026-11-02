@@ -342,3 +342,5 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
 
 Casting-table `table_duplication` now matches the source cast and fluid tags, retains the original input and copies its item data into the result. The bundled smithing-template recipe uses 500 mB molten diamond; this path awaits verification. Unsupported casting forms remain separate.
+
+The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
