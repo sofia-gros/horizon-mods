@@ -90,3 +90,25 @@ inspection. This is a static estimate, not a count of confirmed broken
 signatures. The island start's `try_generate` signature and valid-biome API do
 change. The host is not upgraded on this draft; custom world-fluid identity,
 feature execution, registration, acquisition and validation remain open.
+
+## Earth and sky foliage preparation
+
+The Earth and Sky leaves, saplings, fern and tall grass, plus Sky vine, now
+have content declarations, the pinned source assets and loot tables. Leaf
+loot preserves the source sapling and slime-ball Fortune chances; vanilla
+shears and Silk Touch are supported, while Forge's extensible `shears_dig`
+tool action is not yet represented. Sky vine declares the source three-stage
+property in addition to its template's five face properties. These are
+preparation for the island marker and tree code, not proof of natural island
+generation or acquisition.
+
+Random ticks are explicitly disabled on these registrations: source slime
+sapling growth, leaf decay and vine growth still need their own behavior, and
+inheriting vanilla growth would produce the wrong result. Source foliage tint,
+soil-tag resolution, complete template block and fluid registration, island
+set activation and save/reload remain open. The target registry, model and
+loot loading, face/stage combinations, tree placement, source drop conditions
+and vanilla plant regressions all require dedicated validation.
+The two registered leaves are added to `minecraft:leaves` so the existing
+tree writer can recognize them as replaceable; other original slime leaves
+are not registered or added by this batch.
