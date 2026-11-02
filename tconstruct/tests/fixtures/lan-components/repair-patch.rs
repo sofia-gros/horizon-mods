@@ -143,3 +143,27 @@ fn real_recipe_plans_accept_known_patch_and_unknown_patch_is_retained() {
     assert_eq!(slots[0].as_ref().unwrap().damage, 10);
     assert_eq!(slots[1].as_ref().unwrap().count, 1);
 }
+
+#[test]
+fn saved_tool_decoder_preserves_unresolved_shape_and_unknown_data() {
+    use horizon_items::{item_data::canon_stack, item_nbt::{item_from_nbt, item_to_nbt}};
+    let raw = r#"{id:"tconstruct:pickaxe",count:1,components:{"minecraft:tool":{rules:[{blocks:"unresolved_block",speed:2.0f}],"future:field":7},"minecraft:custom_data":{"fixture:unknown":42}}}"#;
+    let original = parse_stack(raw).unwrap().unwrap();
+    let reloaded = item_from_nbt(&item_to_nbt(&original)).unwrap();
+    assert_eq!(canon_stack(Some(&reloaded)), canon_stack(Some(&original)));
+    let data = reloaded.data().unwrap();
+    assert!(data.other("minecraft:tool").unwrap().get("future:field").is_some());
+    assert!(data.other("minecraft:custom_data").unwrap().get("fixture:unknown").is_some());
+}
+
+#[test]
+fn decoder_does_not_normalize_single_block_to_wire_list() {
+    use horizon_items::{item_data::canon_stack, item_nbt::{item_from_nbt, item_to_nbt}};
+    let prefix = r##"{id:"tconstruct:pickaxe",count:1,components:{"minecraft:tool":{rules:[{blocks:"#mineable/pickaxe",speed:2.0f},{blocks:"stone",speed:1.0f}]}}}"##;
+    let normalized = r##"{id:"tconstruct:pickaxe",count:1,components:{"minecraft:tool":{rules:[{blocks:"#minecraft:mineable/pickaxe",speed:2.0f},{blocks:["minecraft:stone"],speed:1.0f}],default_mining_speed:1.0f,damage_per_block:1,can_destroy_blocks_in_creative:1b}}}"##;
+    let a = parse_stack(prefix).unwrap().unwrap();
+    let b = parse_stack(normalized).unwrap().unwrap();
+    let a = item_from_nbt(&item_to_nbt(&a)).unwrap();
+    let b = item_from_nbt(&item_to_nbt(&b)).unwrap();
+    assert_ne!(canon_stack(Some(&a)), canon_stack(Some(&b)));
+}
