@@ -1,26 +1,38 @@
-# pluto lib
+# PlutoLib
 
-pluto lib is a shared library for Horizon mods. Its first feature adds mod tabs to the prepared Creative inventory. Item, block, armor, effect, GUI and inventory APIs are planned for later.
+**Reusable Rust APIs for Horizon mods.**
 
-## Add a Creative tab
+Define items and blocks with a small Rust API, then make them available in the Creative inventory. PlutoLib builds on Horizon’s mod system; it is not a mod loader.
 
-Add the repository’s `pluto-lib/` directory to Python’s module path. A mod supplies an ordered list of item stacks in Horizon's SNBT format. This example adds one item to an unused tab position:
+![The PlutoLib demo Creative tab in Horizon](docs/demo-tab.png)
 
-```python
-from pluto_lib.creative import register_item_groups
+*Items and blocks registered by the PlutoLib demo, running in Horizon.*
 
-updated = register_item_groups(prepared_inventory, [{
-    'id': 'example:tools',
-    'title': 'Example Tools',
-    'icon': '{count:1,id:"example:hammer"}',
-    'row': 'TOP',
-    'column': 5,
-    'items': ['{count:1,id:"example:hammer"}'],
-}])
+## What works today
+
+PlutoLib generates template-based item and block declarations and prepares Creative inventory data. Creative tabs currently use available positions on Horizon's existing screen; switching between overflow tabs is planned.
+
+## Start with a small example
+
+```rust
+use pluto_lib::Registry;
+use std::path::Path;
+
+let mut registry = Registry::new("my_mod")?;
+registry.item("gem", "minecraft:amethyst_shard")?;
+registry.block("gem_block", "minecraft:amethyst_block")?;
+registry.write_to(Path::new("generated-content"))?;
+# Ok::<(), Box<dyn std::error::Error>>(())
 ```
 
-`register_item_groups` returns a copy; it does not edit the input. IDs, icons and stacks must refer to items registered by the mod. A stack may include components in its SNBT. The current Horizon screen provides a fixed set of tab positions; choose an unused one. The function rejects duplicate IDs or positions.
+This writes content declarations. Include them with your mod’s manifest and assets, as shown in the demo.
 
-Tinkers' Construct uses its own tab data in `tconstruct/content/creative-tabs.json`. The resource path and Creative screen were tested together on Linux; Windows remains unverified.
+[Get started](docs/getting-started.md) · [API guide](docs/api.md) · [Demo source](examples/demo.rs)
 
-For the complete tab format and integration details, see [Register a Creative tab](docs/creative-tabs.md).
+## Compatibility
+
+Verified demo: Horizon `b6c936f82b08798057161bdfa577e3aac53fb91e` on Linux.
+
+Planned native integration target: Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`; not exercised by this demo. Compatibility with other revisions is not promised; source changes may require rebuilding. PlutoLib is not a Fabric compatibility layer.
+
+The existing Python Creative helper remains available; see its [guide](docs/creative-tabs.md).
