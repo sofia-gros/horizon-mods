@@ -89,7 +89,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         game.native_mods(&mut native);
         let mut states = std::collections::HashMap::new();
         for entry in native {
-            if !entry.id.is_empty() { states.insert(entry.id.clone(), Some(game.native_on(&entry.id))); }
+            if !entry.id.is_empty() { states.insert(entry.id.clone(), game.native_on(&entry.id).then_some(true)); }
         }
         crate::game::tconstruct_source_melter_world::ModPresence { states, complete: false }
     };
