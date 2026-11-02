@@ -53,6 +53,18 @@ mod tests {
         assert!(items.iter().all(|s| s.count == 2));
     }
     #[test]
+    fn plan_keeps_input_components_untouched() {
+        let mut block = stack("tconstruct:fake_storage_block", "test:bronze", 2);
+        block.data_mut().set_other("minecraft:custom_name", Some(Tag::String("kept".into())));
+        let original = block.clone();
+        let result = plan(&[&block], 1, 1, false, |_, _| true).unwrap();
+        assert_eq!(block.count, original.count);
+        assert!(block.same_item_same_components(&original));
+        // Source MaterialsConsumer sets Material on a fresh recipe result.
+        assert_eq!(result.count, 9);
+        assert!(result.data().unwrap().other("minecraft:custom_name").is_none());
+    }
+    #[test]
     fn mixed_missing_and_ineligible_inputs_never_mutate() {
         let mut items: Vec<_> = (0..9).map(|_| stack("tconstruct:fake_ingot", "test:bronze", 1)).collect();
         assert!(plan(&items.iter().collect::<Vec<_>>()[..8], 3, 3, true, |_,_| true).is_none());
