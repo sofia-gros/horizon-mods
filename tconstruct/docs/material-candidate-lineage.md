@@ -90,3 +90,8 @@ pre-removal `native_destroy_block` hook. The host performs permission checks
 before that boundary, so it still requires source comparison for restricted,
 cancelled and creative cases. Actor-scoped area state prevents repeated spends;
 formal apply and gameplay remain pending. Other capacity consumers remain open.
+
+A later Creative resource candidate closes the source-level armor rebuild and
+slimy chestplate alias gap recorded in the open-PR inventory. It uses the same
+Station rebuild helper and source armor tags; official resource preparation,
+Creative inventory output and gameplay validation are still pending.

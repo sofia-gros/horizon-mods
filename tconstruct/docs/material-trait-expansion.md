@@ -65,3 +65,11 @@ Overlord/Overcast combinations, rounding boundaries and save/reload in the
 combined target. This candidate has not run unit, apply, type or game tests.
 
 The placement-only Snow Boots hook is omitted after an official 0c plan reported `E_UNSUPPORTED_SIGNATURE` for generic `Game::with_level`, even with an explicit selector. Walking and equipment synchronization remain connected and await official validation. The #311 skull/slime focused fixture now uses the source material map shape; only a disposable diagnostic has passed so far.
+
+The Creative resource candidate now uses the same armor rebuild as Station
+after source material traits, and resolves the slimy chestplate definition
+alias. The worn-armor decision uses the original item tag and generated item
+registry. Verify generated Creative variants against source-built Station
+items for Forming, Heavy, Wool and Ductile with non-unit stat multipliers;
+compare slimy chestplate and unrelated items, preparation, reload and tooltips.
+This is syntax-checked only and has no package or gameplay result.
