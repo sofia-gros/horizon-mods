@@ -19,6 +19,10 @@ pub(super) fn building_plan(world: &super::tconstruct_world::World, slots: &[Opt
 
 /// The authoritative caller must select the capacity from the workstation block.
 pub(super) fn building_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(BuildingMatch, ItemStack)> {
+    building_plan_diagnostic(world, slots, input_capacity, &mut None)
+}
+
+pub(super) fn building_plan_diagnostic(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<(BuildingMatch, ItemStack)> {
     if !matches!(input_capacity, 3 | 5) { return None; }
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
@@ -39,14 +43,14 @@ pub(super) fn building_plan_with_capacity(world: &super::tconstruct_world::World
             super::tconstruct_source_builder_world::supported_material(world, material)
                 .is_ok_and(|(_, supported)| supported.contains(part))
         }, |_, _| false) else { continue; };
-        let mut output = assemble(world, definition, &matched.result, &matched.materials, None)?;
+        let mut output = assemble(world, definition, &matched.result, &matched.materials, None, reason)?;
         output.count = matched.result_count;
         return Some((matched, output));
     }
     None
 }
 
-fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &str, identities: &[String], original: Option<&ItemStack>) -> Option<ItemStack> {
+fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &str, identities: &[String], original: Option<&ItemStack>, reason: &mut Option<String>) -> Option<ItemStack> {
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let mut stat_maps: Vec<serde_json::Map<String, serde_json::Value>> = Vec::new();
     for material in identities {
@@ -56,7 +60,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         let merged = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
-    if original.is_some_and(|stack| !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(stack)) { return None; }
+    if original.is_some_and(|stack| !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(stack)) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
     let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
@@ -75,7 +79,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     super::tconstruct_source_mining_stack::apply(&mut output, &stats, &levels, &order, has_tag("tconstruct:modifiable/harvest"))?;
     super::tconstruct_source_overslime::rebuild(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/ranged"), has_tag("tconstruct:modifiable/harvest"))?;
     let block_ids = world.chunks.__horizon_mixins_tconstruct_resolved_block_ids().as_ref().and_then(|ids| ids.as_ref().ok());
-    super::tconstruct_source_tool_normalize::finalize_tool(&mut output, |id| block_ids.and_then(|ids| ids.get(id).copied())).ok()?;
+    if let Err(error) = super::tconstruct_source_tool_normalize::finalize_tool(&mut output, |id| block_ids.and_then(|ids| ids.get(id).copied())) { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     Some(output)
 }
 
@@ -144,10 +148,10 @@ pub(super) fn assemble_with_stats(definition: &[u8], item: &str, identities: &[S
 
 /// Replace one part, rebuilding base stats and preserving the original stack.
 pub(super) fn swap_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
-    swap_plan_with_capacity(world, slots, 3)
+    swap_plan_with_capacity(world, slots, 3, &mut None)
 }
 
-fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<(ItemStack, Vec<(usize, u32)>)> {
     if !matches!(input_capacity, 3 | 5) { return None; }
     let tool = slots.first()?.as_ref()?;
     if !tool.item.starts_with("tconstruct:") || tool.count != 1 { return None; }
@@ -180,7 +184,7 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
         (stats.get("tconstruct:head")?.get("durability")?.as_f64()? as f32 * cost as f32 / 3.0) as u32
     } else { 0 };
     if !changed && (tool.damage == 0 || repair == 0) { return None; }
-    let mut output = assemble(world, definition, &tool.item, &identities, Some(tool))?;
+    let mut output = assemble(world, definition, &tool.item, &identities, Some(tool), reason)?;
     let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let modules = parsed.get("modules")?.as_array()?;
     let base_slots = |name: &str| -> Option<i32> {
@@ -197,14 +201,14 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
 
 /// Compute material repair from the tool definition and world recipes.
 pub(super) fn repair_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>]) -> Option<(ItemStack, Vec<(usize, u32)>)> {
-    repair_plan_with_capacity(world, slots, 3)
+    repair_plan_with_capacity(world, slots, 3, &mut None)
 }
 
-fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<(ItemStack, Vec<(usize, u32)>)> {
+fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<(ItemStack, Vec<(usize, u32)>)> {
     if !matches!(input_capacity, 3 | 5) { return None; }
     let original = slots.first()?.as_ref()?;
     if !original.item.starts_with("tconstruct:") || original.count != 1 || original.damage == 0 { return None; }
-    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(original) { return None; }
+    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(original) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
     let mut tool = original.clone();
     let custom = tool.data()?.other("minecraft:custom_data")?;
     let Tag::List(ids) = custom.get("tic_materials")? else { return None; };
@@ -279,7 +283,7 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     if consumed.len() == 1 { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut tool, remaining as u32);
     let block_ids = world.chunks.__horizon_mixins_tconstruct_resolved_block_ids().as_ref().and_then(|ids| ids.as_ref().ok());
-    super::tconstruct_source_tool_normalize::finalize_tool(&mut tool, |id| block_ids.and_then(|ids| ids.get(id).copied())).ok()?;
+    if let Err(error) = super::tconstruct_source_tool_normalize::finalize_tool(&mut tool, |id| block_ids.and_then(|ids| ids.get(id).copied())) { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     Some((tool, consumed))
 }
 
@@ -300,7 +304,7 @@ pub(super) struct StationOperation {
     pub leftovers: Vec<ItemStack>,
 }
 
-fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
+fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<StationOperation> {
     let tool = slots.first()?.as_ref()?;
     if tool.count != 1 { return None; }
     let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
@@ -322,6 +326,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
+    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(tool) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
     let mut upgraded = tool.clone();
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
@@ -330,12 +335,12 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     entries.insert(plan.id.as_str().into(), Tag::Int(plan.amount));
     fields.insert("tic_upgrades".into(), upgrades);
     upgraded.data_mut().set_other("minecraft:custom_data", Some(custom));
-    let output = assemble(world, definition, &tool.item, &identities, Some(&upgraded))?;
+    let output = assemble(world, definition, &tool.item, &identities, Some(&upgraded), reason)?;
     Some(StationOperation { output, consumed: plan.consumed, leftovers: plan.leftover.into_iter().collect() })
 }
 
 /// Apply source overslime refills using only the matching input items.
-fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
+fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<StationOperation> {
     let tool = slots.first()?.as_ref()?;
     if tool.count != 1 { return None; }
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
@@ -355,6 +360,7 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     let (namespace,name) = tool.item.split_once(':')?;
     let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|t|t.levels).unwrap_or_default();
+    if !super::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(tool) { *reason = Some("Cannot modify: unsupported saved item components".into()); return None; }
     let mut upgraded = tool.clone();
     let mut custom = upgraded.data()?.other("minecraft:custom_data")?.clone();
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str,Tag)>::new()));
@@ -365,7 +371,7 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     }
     fields.insert("tic_upgrades".into(),upgrades);
     upgraded.data_mut().set_other("minecraft:custom_data",Some(custom));
-    let mut output = assemble(world,definition,&tool.item,&identities,Some(&upgraded))?;
+    let mut output = assemble(world,definition,&tool.item,&identities,Some(&upgraded),reason)?;
     let cap = super::tconstruct_source_overslime::amount(&output,"tic_overslime_capacity") as u32;
     let before = super::tconstruct_source_overslime::amount(tool,"tic_overslime") as u32;
     let available = inputs.iter().map(|(_,s)|s.count).sum();
@@ -402,7 +408,7 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     if plan.upgrade.amount == 0 { upgrades.remove(&id.into()); }
     else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
     modified.data_mut().set_other("minecraft:custom_data", Some(custom));
-    let output = assemble(world, definition, &tool.item, &identities, Some(&modified))?;
+    let output = assemble(world, definition, &tool.item, &identities, Some(&modified), &mut None)?;
     let mut leftovers = plan.upgrade.leftover.into_iter().collect::<Vec<_>>();
     leftovers.push(plan.sponge);
     Some(StationOperation { output, consumed: plan.upgrade.consumed, leftovers })
@@ -433,11 +439,15 @@ pub(super) fn operation_plan(world: &super::tconstruct_world::World, slots: &[Op
 }
 
 pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize) -> Option<StationOperation> {
+    operation_plan_diagnostic(world, slots, input_capacity, &mut None)
+}
+
+pub(super) fn operation_plan_diagnostic(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<StationOperation> {
     if !matches!(input_capacity, 3 | 5) { return None; }
-    if let Some(plan) = overslime_plan(world, slots, input_capacity) { return Some(plan); }
-    if let Some(plan) = upgrade_plan(world, slots, input_capacity) { return Some(plan); }
-    if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity).or_else(|| repair_plan_with_capacity(world, slots, input_capacity)) {
-        return Some(StationOperation { output, consumed, leftovers: Vec::new() });
+    if let Some(plan) = overslime_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
+    if let Some(plan) = upgrade_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
+    if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity, reason).or_else(|| repair_plan_with_capacity(world, slots, input_capacity, reason)) {
+        *reason = None; return Some(StationOperation { output, consumed, leftovers: Vec::new() });
     }
     let tool = slots.first()?.as_ref()?;
     if tool.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_max_damage")).is_some() { return None; }

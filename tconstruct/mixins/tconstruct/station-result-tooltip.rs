@@ -231,19 +231,23 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             crate::game::tconstruct_source_station_name::name_result(output, name);
         }
     }
-    if station && slot == 325 && result.is_none() && game.remote.is_none() {
-        let reason = slots.first().and_then(Option::as_ref)
-            .filter(|tool| tool.item.starts_with("tconstruct:"))
-            .and_then(|tool| {
-                if !crate::game::tconstruct_source_tool_normalize::patch_safe_for_tool_mutation(tool) {
-                    return Some("Cannot modify: unsupported saved item components".to_owned());
-                }
-                let ids = game.world.chunks.__horizon_mixins_tconstruct_resolved_block_ids().as_ref()
-                    .and_then(|ids| ids.as_ref().ok());
-                let mut preview = tool.clone();
-                crate::game::tconstruct_source_tool_normalize::finalize_tool(&mut preview, |id| ids.and_then(|ids| ids.get(id).copied()))
-                    .err().map(|error| format!("Cannot modify tool: {error}"))
-            });
+    if station && result.is_none() && game.remote.is_some() {
+        let reason = game.container.and_then(|pos| game.world.chunks.__horizon_mixins_tconstruct_builder_info().get(&pos))
+            .and_then(|info| info.get(if slot == 324 { 1 } else { 2 }))
+            .filter(|reason| !reason.trim().is_empty());
+        if let Some(reason) = reason {
+            game.draw_tooltip_lines(batch, &[(reason.clone(), u32::MAX)], game.cursor.0, game.cursor.1);
+            return Break(());
+        }
+    }
+    if station && result.is_none() && game.remote.is_none() && !crate::game::tconstruct_ui::is_worktable(game) {
+        let mut reason = None;
+        let capacity = crate::game::tconstruct_ui::station_capacity(game);
+        if slot == 324 {
+            crate::game::tconstruct_source_station_world::building_plan_diagnostic(&game.world, slots, capacity, &mut reason);
+        } else {
+            crate::game::tconstruct_source_station_world::operation_plan_diagnostic(&game.world, slots, capacity, &mut reason);
+        }
         if let Some(reason) = reason {
             game.draw_tooltip_lines(batch, &[(reason, u32::MAX)], game.cursor.0, game.cursor.1);
             return Break(());
