@@ -50,11 +50,18 @@ mod airborne_tests {
                 Tag::compound([("id", Tag::String("tconstruct:airborne".into())), ("level", Tag::Int(1))]),
             ])),
         ]);
-        // Base 4 divided by host's airborne penalty must arrive before the
-        // source flat +6 and Airborne's x5: (4 / 5 + 6) * 5 = 34.
-        let after_host_penalty = 4.0 / 5.0;
-        let with_flat = conditional(&custom, 0, after_host_penalty, 1.0, None, true, false).unwrap();
-        assert!((with_flat * airborne_multiplier(&custom, 0, false) - 34.0).abs() < 0.0001);
+        // Inputs are the final host values after the applicable air/water
+        // penalties; the product hook must call this only after those steps.
+        for (host_speed, on_ground, expected) in [
+            (4.0 / 5.0, false, 34.0),
+            (4.0, true, 10.0),
+            (4.0 / 5.0, true, 6.8),
+            (4.0 / 25.0, false, 30.8),
+        ] {
+            let with_flat = conditional(&custom, 0, host_speed, 1.0, None, true, false).unwrap();
+            let actual = with_flat * airborne_multiplier(&custom, 0, on_ground);
+            assert!((actual - expected).abs() < 0.0001, "{actual} != {expected}");
+        }
     }
     #[test]
     fn only_unbroken_airborne_trait_boosts_airborne_speed() {

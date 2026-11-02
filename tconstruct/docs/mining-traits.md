@@ -75,16 +75,17 @@ Mixins CI and independent review are still pending.
 
 The Skyslime Vine Airborne trait multiplies mining speed by five while the
 holder is off the ground, including on blocks where the tool is ineffective.
-It should apply after flat conditional mining bonuses and does not apply to broken
-tools. The current injection runs before the host airborne and water penalties,
-so combinations with flat bonuses such as Maintained have incorrect ordering.
-Moving both client and host injections to the final speed read is required before
-this behavior can be considered correct. Rebuilding or swapping material updates the stored trait. This implements
+It applies after flat conditional mining bonuses and does not apply to broken
+tools. The host and client selectors target the final speed read after airborne and
+water penalties, so flat bonuses can be applied in the source order. The
+transformed combined build and runtime ordering still require verification. Rebuilding or swapping material updates the stored trait. This implements
 the mining portion of the [original Airborne definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/airborne.json);
 the conditional projectile velocity portion remains unimplemented.
 
-A focused local Rust test checked trait presence, grounded and broken cases
-using the saved older host NBT library. Current-target compilation, gameplay,
+Focused local Rust tests checked trait presence, grounded and broken cases,
+and the Maintained combination after airborne and water penalties, using the
+saved older host NBT library. An isolated official Mixins plan resolved both
+final speed reads and their local captures; the full combined plan remains pending. Current-target compilation, gameplay,
 material acquisition, save/reload and LAN remain unverified. In the combined
 client, make a supported harvest tool with Skyslime Vine, compare the same
 block on the ground and while airborne, including one ineffective block, then
