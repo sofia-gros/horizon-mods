@@ -3859,3 +3859,15 @@ kind = "HEAD"
 cancellable = true
 helper = "source-chest-drag-view.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "items-tool-api"
+file = "crates/horizon-items/src/items.rs"
+name = "tconstruct_tool_api"
+source = "items-tool-api.rs"
+
+[[module]]
+id = "game-tool-api"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_tool_api"
+source = "game-tool-api.rs"

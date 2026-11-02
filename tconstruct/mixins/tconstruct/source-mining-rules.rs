@@ -27,29 +27,35 @@ mod haste_tests {
     }
 }
 
-fn matches(rule: &Tag, block: &str, in_tag: &impl Fn(&str, &str) -> bool) -> bool {
-    let Some(Tag::String(blocks)) = rule.get("blocks") else { return false; };
-    let blocks = blocks.to_string_lossy();
-    blocks.strip_prefix('#').map_or_else(|| blocks == block, |tag| in_tag(tag, block))
+// Evaluate the actual Tool with PlutoLib. A missing or invalid component leaves
+// host fallback decisions to the caller.
+fn outcome(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<super::tconstruct_tool_api::rules::Outcome> {
+    let snbt = super::tconstruct_tool_api::canon_tag(tool);
+    let parsed = super::tconstruct_tool_api::rules::parse_tool(Some(&snbt)).ok()??;
+    Some(parsed.evaluate(|spec| spec.strip_prefix('#').map_or_else(|| spec == block, |tag| in_tag(tag, block))))
 }
 
 pub(super) fn harvestable(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<bool> {
-    let Some(Tag::List(rules)) = tool.get("rules") else { return None; };
-    for rule in rules {
-        if !matches(rule, block, &in_tag) { continue; }
-        if let Some(Tag::Byte(correct)) = rule.get("correct_for_drops") { return Some(*correct != 0); }
+    Some(outcome(tool, block, in_tag)?.correct_for_drops)
+}
+
+pub(super) fn evaluated_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<Option<f32>> {
+    let result = outcome(tool, block, &in_tag)?;
+    let Some(speed_rule) = result.speed_rule else { return Some(None); };
+    // TConstruct's tier policy rejects any matching explicit denial before
+    // the selected speed, even if an earlier rule already allowed drops.
+    let Tag::List(rules) = tool.get("rules")? else { return None; };
+    for rule in rules.iter().take(speed_rule + 1) {
+        if !matches!(rule.get("correct_for_drops"), Some(Tag::Byte(0))) { continue; }
+        let Some(Tag::String(blocks)) = rule.get("blocks") else { continue; };
+        let blocks = blocks.to_string_lossy();
+        if blocks.strip_prefix('#').map_or_else(|| blocks == block, |tag| in_tag(tag, block)) { return Some(None); }
     }
-    Some(false)
+    Some(Some(result.speed))
 }
 
 pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<f32> {
-    let Some(Tag::List(rules)) = tool.get("rules") else { return None; };
-    for rule in rules {
-        if !matches(rule, block, &in_tag) { continue; }
-        if matches!(rule.get("correct_for_drops"), Some(Tag::Byte(0))) { return None; }
-        if let Some(Tag::Float(value)) = rule.get("speed") { return Some(f32::from_bits(*value)); }
-    }
-    None
+    evaluated_speed(tool, block, in_tag).flatten()
 }
 
 pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32) -> Option<f32> {
@@ -69,4 +75,51 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
         ordered.push(effect);
     }
     Some(conditional_speed(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered))
+}
+
+#[cfg(test)]
+mod shared_rules_tests {
+    use super::*;
+
+    #[test]
+    fn actual_tool_tier_precedes_speed_and_no_match_is_distinct() {
+        let tool = Tag::compound([("rules", Tag::List(vec![
+            Tag::compound([("blocks", Tag::String("#minecraft:incorrect_for_wooden_tool".into())), ("correct_for_drops", Tag::Byte(0))]),
+            Tag::compound([("blocks", Tag::String("#minecraft:mineable/pickaxe".into())), ("speed", Tag::Float(2.0f32.to_bits())), ("correct_for_drops", Tag::Byte(1))]),
+        ]))]);
+        let matches = |tag: &str, block: &str| block == "minecraft:stone" && matches!(tag, "minecraft:incorrect_for_wooden_tool" | "minecraft:mineable/pickaxe");
+        assert_eq!(effective_speed(&tool, "minecraft:stone", matches), None);
+        assert_eq!(harvestable(&tool, "minecraft:stone", matches), Some(false));
+        assert_eq!(effective_speed(&tool, "minecraft:dirt", matches), None);
+        assert_eq!(harvestable(&tool, "minecraft:dirt", matches), Some(false));
+        assert_eq!(evaluated_speed(&Tag::String("bad".into()), "minecraft:stone", matches), None);
+        assert_eq!(evaluated_speed(&tool, "minecraft:dirt", matches), Some(None));
+    }
+
+    #[test]
+    fn absent_and_invalid_tool_are_not_no_matching_rule() {
+        assert!(super::super::tconstruct_tool_api::rules::parse_tool(None).unwrap().is_none());
+        assert_eq!(evaluated_speed(&Tag::String("bad".into()), "minecraft:stone", |_, _| false), None);
+        let empty = Tag::compound([("rules", Tag::List(Vec::new()))]);
+        assert_eq!(evaluated_speed(&empty, "minecraft:stone", |_, _| false), Some(None));
+    }
+
+    #[test]
+    fn denial_after_an_allow_still_blocks_tconstruct_speed() {
+        let rule = |correct| Tag::compound([("blocks", Tag::String("minecraft:stone".into())), ("correct_for_drops", Tag::Byte(correct))]);
+        let tool = Tag::compound([("rules", Tag::List(vec![rule(1), rule(0), Tag::compound([
+            ("blocks", Tag::String("minecraft:stone".into())), ("speed", Tag::Float(2.0f32.to_bits())),
+        ])]))]);
+        assert_eq!(harvestable(&tool, "minecraft:stone", |_, _| false), Some(true));
+        assert_eq!(evaluated_speed(&tool, "minecraft:stone", |_, _| false), Some(None));
+    }
+
+    #[test]
+    fn actual_tool_matching_speed_is_returned() {
+        let tool = Tag::compound([("rules", Tag::List(vec![Tag::compound([
+            ("blocks", Tag::String("minecraft:stone".into())), ("speed", Tag::Float(2.0f32.to_bits())), ("correct_for_drops", Tag::Byte(1)),
+        ])]))]);
+        assert_eq!(effective_speed(&tool, "minecraft:stone", |_, _| false), Some(2.0));
+        assert_eq!(harvestable(&tool, "minecraft:stone", |_, _| false), Some(true));
+    }
 }
