@@ -116,7 +116,7 @@ are not registered or added by this batch.
 The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
 Silk Touch versus underlying slime-dirt loot. Their random ticks are disabled
-until source spreading and bonemeal behavior is connected. Source-tinted rendering remains open; registration alone does not establish island generation.
+until source spreading and bonemeal behavior is connected. Position-dependent terrain tint has an experimental connection described below; registration alone does not establish island generation.
 
 The original five `slimy_soil` child tags and their aggregate are included,
 with all 25 foliage/soil grass combinations, four slimy Enderbark roots and
@@ -139,9 +139,19 @@ those positions. No water, lava or inert block is presented as slime fluid.
 Consequently pools are absent and existing water or other terrain may remain;
 this is partial generation, not source-equivalent fluid behavior.
 
-Custom slime mobs and their spawn overrides, exact block tint and the plant
-random ticks are still missing. Sky-inland/clay, End and Nether sets remain
+Custom slime mobs and their spawn overrides, item tint and the plant random ticks are still missing. Sky-inland/clay, End and Nether sets remain
 unconnected because their original feature types and resources are not yet
 implemented. The target-version injections, loading, placement and saved-start
 restoration require dedicated plan, build and in-game validation; no natural
 generation or survival acquisition is claimed until that succeeds.
+
+## Experimental foliage tint
+
+The five original color maps are loaded from the active render resource root.
+For the registered slime grasses, fern, tall grass, leaves and Sky vine, a
+terrain-face tint hook uses the original 256-block coordinate reflection,
+including the original 128-block offset for leaves and vines. The maps are
+reloaded when render assets load. Missing or invalid maps leave the host tint
+unchanged. Item tint, particle tint and resource-reload behavior still require
+implementation or validation. The target Mixins plan, shader compatibility,
+color-map indexing and actual world rendering have not been tested.
