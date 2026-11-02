@@ -2,6 +2,14 @@
 
 `Registry::new(namespace)` accepts a lowercase content namespace other than `minecraft`. `item(name, template)` and `block(name, template)` declare names under it using vanilla template IDs. Names can contain slash-separated resource path segments. A block also creates a block item, so item and block names may not collide. `write_to` requires a new output directory and creates Horizon's content declaration files. It does not write the manifest, models, textures or translations.
 
+To override an item's template stack limit, call `item_with_max_stack(name, template, limit)` with a value from 1 through 99. For example, `registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?` writes:
+
+```json
+{"template": "minecraft:amethyst_shard", "max_stack_size": 16}
+```
+
+`item(name, template)` leaves the limit unspecified, so Horizon uses the template's default. Invalid limits fail before registration and do not reserve the name. This is a preparation-time content declaration; it is separate from the native `pluto_api::item` behavior API. Horizon's official `native_items` hook accepts the same setting as `horizon_mods::content::Item { max_stack_size: Some(16), .. }`; `Registry` does not itself register native items. The separate demo-only native hook that sets a limit of 200 does not change the declaration limit.
+
 `add_creative_tabs(&inventory, &tabs)` returns a copy of the JSON document. A tab has a namespaced ID, nonempty title and icon, `TOP` or `BOTTOM` row, column 0–6, and an ordered list of SNBT stacks. Duplicate IDs and occupied visible positions are rejected; Horizon's hotbar position may be reused, matching the existing Python helper. The API does not validate SNBT syntax or whether its item IDs are registered; supply valid stacks for registered items. The original inventory is never changed.
 
 This is preparation-time registration, not Fabric's runtime registry or a runtime tab event. Template registration does not attach runtime behavior; the experimental [Tool rules adapter](tool-rules.md) is separate. Vanilla templates and available properties are determined by the target Horizon version. The demo's Creative overlay must be installed separately from its content mod.

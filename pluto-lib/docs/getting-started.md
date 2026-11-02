@@ -31,7 +31,7 @@ HORIZON_HOME="$PWD/.work/game-home" /path/to/horizon-client \
 
 Open the Creative inventory and select the gem tab near the top right. Drag the gem and block into the hotbar, then select and place the block. The paths passed to the client should be absolute.
 
-The **Pluto Demo** Creative tab contains a gem and a placeable block. On Linux, the tab was selected, both items were moved to the hotbar, and the block was placed using the target Horizon revision. The gem and block use vanilla template behavior and appearance, and are independent of Tinkers. The demo source is [examples/demo.rs](../examples/demo.rs).
+The **Pluto Demo** Creative tab contains a gem and a placeable block. Its item declaration sets the gem's stack limit to 16; Horizon's content parser accepts the generated declaration. The new limit has not yet been checked in a running game. On Linux, the tab was selected, both items were moved to the hotbar, and the block was placed using the target Horizon revision. The gem and block use vanilla template behavior and appearance, and are independent of Tinkers. The demo source is [examples/demo.rs](../examples/demo.rs).
 
 ## Use it in your mod
 

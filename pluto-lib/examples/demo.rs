@@ -41,7 +41,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?
     };
     let mut registry = Registry::new("pluto_demo")?;
-    registry.item("gem", "minecraft:amethyst_shard")?;
+    registry.item_with_max_stack("gem", "minecraft:amethyst_shard", 16)?;
     registry.block("glowing_block", "minecraft:amethyst_block")?;
     registry.write_to(root)?;
     fs::write(
