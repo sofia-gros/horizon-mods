@@ -54,8 +54,8 @@ pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
     match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
         None => Some(None),
         Some(Tag::Compound(data)) => {
-            if data.contains_key("fluid_tag") { return None; }
-            match data.get("fluid") { None => Some(None), Some(Tag::String(id)) => { let value = id.to_string_lossy(); (!value.is_empty()).then_some(Some(value)) }, _ => None }
+            if data.contains_key(&"fluid_tag".into()) { return None; }
+            match data.get(&"fluid".into()) { None => Some(None), Some(Tag::String(id)) => { let value = id.to_string_lossy(); (!value.is_empty()).then_some(Some(value)) }, _ => None }
         }
         _ => None,
     }
@@ -66,7 +66,7 @@ pub(super) fn can_set_fluid(stack: &ItemStack, fluid: Option<&str>) -> Option<It
     let mut data = match stack.data().and_then(|value| value.other("minecraft:custom_data")) {
         None => Compound::new(), Some(Tag::Compound(value)) => value.clone(), _ => return None,
     };
-    match fluid { Some(fluid) if !fluid.is_empty() => { data.insert("fluid".into(), Tag::String(fluid.into())); }, None => { data.remove("fluid"); }, _ => return None }
+    match fluid { Some(fluid) if !fluid.is_empty() => { data.insert("fluid".into(), Tag::String(fluid.into())); }, None => { data.remove(&"fluid".into()); }, _ => return None }
     let mut result = stack.clone(); result.count = 1;
     result.data_mut().set_other("minecraft:custom_data", (!data.is_empty()).then_some(Tag::Compound(data)));
     Some(result)
