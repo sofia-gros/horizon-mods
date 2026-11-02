@@ -35,6 +35,40 @@ pub struct BlockTarget {
     pub position: [i32; 3],
     pub face: [i32; 3],
 }
+/// One candidate placement, committed only with a handled block use.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PlacementRequest {
+    /// Namespaced block ID and registered state properties.
+    pub block_id: String,
+    pub properties: BTreeMap<String, String>,
+    /// Direction from the destination to the adjacent supporting block.
+    pub support_direction: [i32; 3],
+    /// Permit replacing a liquid destination when the host marks it replaceable.
+    pub replace_liquids: bool,
+}
+/// The host reports whether a requested placement took effect.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PlacementOutcome {
+    Rejected,
+    Applied {
+        item_committed: bool,
+        events_ok: bool,
+    },
+}
+/// A block-use result; requests on Pass or Cancel are discarded.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlockUse {
+    pub outcome: UseOutcome,
+    pub placement: Option<PlacementRequest>,
+}
+impl From<UseOutcome> for BlockUse {
+    fn from(outcome: UseOutcome) -> Self {
+        Self {
+            outcome,
+            placement: None,
+        }
+    }
+}
 #[derive(Clone, Debug, PartialEq)]
 pub struct Actor {
     pub id: u128,
@@ -62,6 +96,17 @@ pub trait ItemBehavior: Send + Sync + 'static {
     ) -> UseOutcome {
         UseOutcome::Pass
     }
+    /// Return at most one placement request. No world changes happen here.
+    fn on_use_on_block_request(
+        &self,
+        context: &UseContext,
+        target: BlockTarget,
+        data: &mut ItemData,
+    ) -> BlockUse {
+        self.on_use_on_block(context, target, data).into()
+    }
+    /// Called once after a requested placement; it cannot change staged data.
+    fn on_placement_result(&self, _result: PlacementOutcome) {}
     fn tooltip(&self, _data: &ItemData) -> Vec<String> {
         Vec::new()
     }
@@ -123,6 +168,31 @@ pub fn dispatch_event(
         *data = staged;
     }
     outcome
+}
+/// Stage block-use data and keep a placement only for Handled.
+pub fn dispatch_block(
+    id: &str,
+    context: &UseContext,
+    target: BlockTarget,
+    data: &mut ItemData,
+) -> BlockUse {
+    let behavior = registry().read().ok().and_then(|r| r.get(id).cloned());
+    let Some(behavior) = behavior else {
+        return UseOutcome::Pass.into();
+    };
+    let mut staged = data.clone();
+    let mut result = behavior.on_use_on_block_request(context, target, &mut staged);
+    if result.outcome == UseOutcome::Handled {
+        *data = staged;
+    } else {
+        result.placement = None;
+    }
+    result
+}
+pub fn notify_placement(id: &str, result: PlacementOutcome) {
+    if let Some(behavior) = registry().read().ok().and_then(|r| r.get(id).cloned()) {
+        behavior.on_placement_result(result);
+    }
 }
 pub fn tooltip(id: &str, data: &ItemData) -> Vec<String> {
     registry()
@@ -216,5 +286,65 @@ mod tests {
             UseOutcome::Cancel
         );
         assert_eq!(data.get("test:value"), Some(1));
+    }
+}
+
+#[cfg(test)]
+mod placement_tests {
+    use super::*;
+    struct Request(UseOutcome);
+    impl ItemBehavior for Request {
+        fn on_use(&self, _: &mut ItemData) -> UseOutcome {
+            UseOutcome::Pass
+        }
+        fn on_use_on_block_request(
+            &self,
+            _: &UseContext,
+            _: BlockTarget,
+            data: &mut ItemData,
+        ) -> BlockUse {
+            data.set("cost", 1);
+            BlockUse {
+                outcome: self.0,
+                placement: Some(PlacementRequest {
+                    block_id: "example:block".into(),
+                    properties: BTreeMap::new(),
+                    support_direction: [0, -1, 0],
+                    replace_liquids: false,
+                }),
+            }
+        }
+    }
+    #[test]
+    fn nonhandled_block_use_discards_data_and_request() {
+        let context = UseContext {
+            actor: None,
+            hand: Hand::Main,
+            item_id: "test:placement".into(),
+            count: 1,
+        };
+        let target = BlockTarget {
+            position: [0, 1, 0],
+            face: [0, 1, 0],
+        };
+        for (id, outcome) in [
+            ("placement:pass", UseOutcome::Pass),
+            ("placement:cancel", UseOutcome::Cancel),
+            ("placement:handled", UseOutcome::Handled),
+        ] {
+            register(id, Request(outcome)).unwrap();
+            let mut data = ItemData::default();
+            let result = dispatch_block(id, &context, target, &mut data);
+            assert_eq!(result.outcome, outcome);
+            assert_eq!(result.placement.is_some(), outcome == UseOutcome::Handled);
+            assert_eq!(
+                data.get("cost"),
+                if outcome == UseOutcome::Handled {
+                    Some(1)
+                } else {
+                    None
+                }
+            );
+        }
     }
 }

@@ -54,8 +54,11 @@ fn pluto_use_b2(
     } else {
         None
     };
+    let mut placement = None;
     let mut outcome = if let Some(target) = target {
-        pluto_api::item::dispatch_event(&stack.item, &context, Some(target), &mut data)
+        let result = pluto_api::item::dispatch_block(&stack.item, &context, target, &mut data);
+        placement = result.placement;
+        result.outcome
     } else {
         UseOutcome::Pass
     };
@@ -78,6 +81,49 @@ fn pluto_use_b2(
             let mut updated = current.clone();
             if crate::game::pluto_item_adapter_b2::write(&mut updated, &data).is_err() {
                 return Break(Ok(UseResult::Fail));
+            }
+            if let Some(request) = placement {
+                use pluto_api::item::{notify_placement, PlacementOutcome};
+                let Some(target) = target.filter(|_| context.actor.is_some()) else {
+                    notify_placement(&stack.item, PlacementOutcome::Rejected);
+                    return Break(Ok(UseResult::Fail));
+                };
+                let Some((at, state)) =
+                    crate::game::pluto_item_placement::prepare(game, target, &request)
+                else {
+                    notify_placement(&stack.item, PlacementOutcome::Rejected);
+                    return Break(Ok(UseResult::Fail));
+                };
+                if !crate::game::pluto_item_placement::apply(game, at, state) {
+                    notify_placement(&stack.item, PlacementOutcome::Rejected);
+                    return Break(Ok(UseResult::Fail));
+                }
+                // The block write has happened. Never return Pass or invite a retry.
+                let item_committed = if let Some(current) =
+                    game.held_mut().as_mut().filter(|current| {
+                        current.count == stack.count && current.same_item_same_components(stack)
+                    }) {
+                    *current = updated;
+                    true
+                } else {
+                    eprintln!("PlutoLib: held item changed during committed block placement");
+                    false
+                };
+                let events_ok = match game.process_level_events() {
+                    Ok(()) => true,
+                    Err(error) => {
+                        eprintln!(
+                            "PlutoLib: events failed after committed block placement: {error}"
+                        );
+                        false
+                    }
+                };
+                let result = PlacementOutcome::Applied {
+                    item_committed,
+                    events_ok,
+                };
+                notify_placement(&stack.item, result);
+                return Break(Ok(UseResult::Success { swing: true }));
             }
             *current = updated;
             Break(Ok(UseResult::Success { swing: true }))

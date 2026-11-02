@@ -9,6 +9,11 @@ id = "adapter"
 file = "crates/horizon-client/src/game.rs"
 name = "pluto_item_adapter_b2"
 source = "adapter.rs"
+[[module]]
+id = "placement"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_item_placement"
+source = "placement.rs"
 [[injection]]
 id = "use"
 target = "horizon_client::game::Game<'_>::use_tool"

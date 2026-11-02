@@ -34,3 +34,11 @@ The shared native API bundle must be enabled alongside the item adapter. Both Cr
 The consolidated `pluto_api` import was built and exercised on Linux with the [combined target](../experiments/unified-target/README.md): local Pass, Handled and Cancel, plus a LAN guest use, tooltip and reconnection after a host save. Earlier game results used the previous experimental crate name.
 
 Migration from the earlier native experiment: replace `pluto_item_api_b2::` imports with `pluto_api::item::` and enable the shared native API bundle. The root crate’s legacy `pluto_lib::item` has separate types and a separate registry; do not mix the two in one runtime.
+
+## Experimental single-block request
+
+`ItemBehavior::on_use_on_block_request` may return a `BlockUse` with one `PlacementRequest`. Its namespaced block ID, state properties, support direction and liquid policy belong to the caller. The destination is the clicked block plus the clicked face; the adapter requires a loaded, replaceable destination and a full supporting face. A Pass or Cancel discards both the request and staged item data. Existing handlers continue using `on_use_on_block` through the default implementation.
+
+A rejected request returns failure without committing data. After the host accepts a block write, the adapter commits prepared item data before processing level events and reports `PlacementOutcome::Applied { item_committed, events_ok }`; it consumes the interaction even if subsequent events fail, so it does not retry a committed placement. This is not an atomic rollback guarantee. The optional `on_placement_result` callback observes the outcome and cannot edit staged data.
+
+This is an unverified prototype. It currently rejects LAN guests and dedicated-server turns because the adjacent destination's spawn-protection decision is unavailable at this hook. It does not implement Tinkers' selection order, consumption rules, or arbitrary world access. The source adapter has not yet passed a host type-check or game test; use the existing short-use API for production behavior.
