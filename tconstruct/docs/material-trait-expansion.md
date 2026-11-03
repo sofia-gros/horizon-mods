@@ -62,4 +62,4 @@ slimy chestplate's source-definition alias are included in a follow-up candidate
 The capacity includes both material and Overlord contributions before Overcast
 and durability multipliers. Verify each material, assembly, repair, part swaps,
 Overlord/Overcast combinations, rounding boundaries and save/reload in the
-combined target. This candidate has not run unit, apply, type or game tests.
+combined target. Source-shaped skull/slime and capacity helper fixtures passed using older host libraries; apply, current-host type and game tests remain pending.
