@@ -2209,6 +2209,19 @@ selector = "Self"
 require = 1
 
 [[module]]
+id = "source-tip-clearing"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_tip_clearing"
+source = "source-tip-clearing.rs"
+
+[[module]]
+id = "source-tip-clearing-tests"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_tip_clearing"
+source = "source-tip-clearing.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-melter-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_world"

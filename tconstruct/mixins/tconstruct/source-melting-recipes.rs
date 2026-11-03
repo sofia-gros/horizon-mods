@@ -438,6 +438,25 @@ pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> boo
         consumes_cast: true, switch_slots: false, fluid: FluidSpec::parse(value.get("fluid")?)?,
         output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
 }
+/// Supported clearing form: the known tipped modifier on an item ingredient.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct TipClearingRecipe {
+    pub basin: bool, pub tools: Ingredient, pub fluid: FluidSpec, pub cooling_time: u32,
+}
+impl TipClearingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let value: Value = serde_json::from_slice(bytes).ok()?;
+        let basin = match value.get("type")?.as_str()? {
+            "tconstruct:casting_table_tipped_clearing" => false,
+            "tconstruct:casting_basin_tipped_clearing" => true,
+            _ => return None,
+        };
+        if !enabled(&value, conditions) || value.get("modifier")?.as_str()? != "tconstruct:tipped" { return None; }
+        let cooling_time = match value.get("cooling_time") { None => 5, Some(n) => u32::try_from(n.as_u64()?).ok()? };
+        if cooling_time == 0 { return None; }
+        Some(Self { basin, tools: Ingredient::parse(value.get("tools")?)?, fluid: FluidSpec::parse(value.get("fluid")?)?, cooling_time })
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize, pub allowed_materials: Option<Value> }
 impl PartSwapCastingRecipe {

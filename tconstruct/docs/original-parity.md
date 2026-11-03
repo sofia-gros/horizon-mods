@@ -691,3 +691,18 @@ ones with item components, other tool-casting forms, tagged fluid, and
 unresolved or ambiguous material data are refused. This is a narrow candidate,
 not complete tool-casting parity; game, LAN, and full integrated behavior remain
 unverified.
+
+### Clearing an existing potion tip
+
+The casting table now supports the bundled ammo and fishing-rod clearing
+recipes when an existing, supported TConstruct tool has the `tconstruct:tipped`
+modifier and a nonempty tip in its `tic_persistent` data. It consumes 50 mB of
+water for ammo or 250 mB for a fishing rod, cools for 20 ticks, and removes
+only that tip value from the copied result. Item and fluid tags and recipe
+conditions come from the current snapshot. Unknown or opaque item data,
+unsupported modifiers, missing tags and fluids carrying NBT are not guessed.
+
+This does not enable adding tips or apply potion effects on hits. Projectile and
+fishing-rod modifier effects, tipping recipes and broader tagged-fluid handling
+remain incomplete. In-game, LAN, save/reload and simultaneous-operation behavior
+have not been tested.
