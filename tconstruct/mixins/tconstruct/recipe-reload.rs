@@ -81,6 +81,18 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         .map_err(|error| error.to_string())
         .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
         .and_then(|source| crate::game::tconstruct_source_melting_lookup::tank_fluid_tags(&fluid_tags, &source));
+    // Native hooks identify code mods actually installed into this process.
+    // Content announcements alone can include a later-rejected content mod,
+    // and unnamed native hooks need not advertise an ID, so absence is unknown.
+    let mod_presence = {
+        let mut native = Vec::new();
+        game.native_mods(&mut native);
+        let mut states = std::collections::HashMap::new();
+        for entry in native {
+            if !entry.id.is_empty() { states.insert(entry.id.clone(), game.native_on(&entry.id).then_some(true)); }
+        }
+        crate::game::tconstruct_source_melter_world::ModPresence { states, complete: false }
+    };
     // All source-recipe consumers share this snapshot. Resolve Forge wrappers
     // once, after tags and config are known, rather than separately per lookup.
     // An unavailable context must never select a guessed fallback branch.
@@ -100,17 +112,34 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
             .is_some_and(|kind| kind == "forge:conditional");
         if wrapper {
             let Some((registries, config, items)) = &condition_context else { return false; };
-            let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items) else { return false; };
+            let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items, Some(&mod_presence)) else { return false; };
             *bytes = selected;
         }
         // Forge also gates ordinary recipes with a top-level conditions list.
         // Applying it here protects consumers that only parse the recipe body.
-        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { return true; };
+        let Ok(mut value) = serde_json::from_slice::<serde_json::Value>(bytes) else { return true; };
         let Some(raw_conditions) = value.get("conditions") else { return true; };
         let Some(conditions) = raw_conditions.as_array() else { return false; };
         if conditions.is_empty() { return true; }
         let Some((registries, config, items)) = &condition_context else { return false; };
-        crate::game::tconstruct_source_melter_world::conditional_conditions(conditions, registries, config, items) == Some(true)
+        if crate::game::tconstruct_source_melter_world::conditional_conditions_with_mods(conditions, registries, config, items, Some(&mod_presence)) != Some(true) { return false; }
+        // The shared snapshot has already checked these conditions. Remove
+        // only lists containing mod_loaded so older consumers do not recheck
+        // them without the runtime context and incorrectly reject the recipe.
+        fn has_mod_loaded(value: &serde_json::Value) -> bool {
+            match value {
+                serde_json::Value::Object(map) => map.get("type").and_then(serde_json::Value::as_str) == Some("forge:mod_loaded") || map.values().any(has_mod_loaded),
+                serde_json::Value::Array(values) => values.iter().any(has_mod_loaded),
+                _ => false,
+            }
+        }
+        if has_mod_loaded(raw_conditions) {
+            let Some(map) = value.as_object_mut() else { return false; };
+            map.remove("conditions");
+            let Ok(resolved) = serde_json::to_vec(&value) else { return false; };
+            *bytes = resolved;
+        }
+        true
     });
     // Preserve an explicit failure when any required input is unavailable.
     // These definitions describe the current Horizon registries, which do not
