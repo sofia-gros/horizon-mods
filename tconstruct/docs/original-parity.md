@@ -706,6 +706,20 @@ other tool-casting forms or all helmet traits and effects. Source-data, catalog
 and saved transaction tests pass; integrated host, gameplay and LAN remain
 unverified.
 
+### Narrow first-material tool casting
+
+The four fixed source recipes join a single material part with a material fluid:
+shield core to plate shield at the table, and laces, ribcage or shell to the
+corresponding slime armor in the basin. The part supplies material zero and the
+fluid supplies material one. The part must be one undamaged item with only its
+Material custom data and no opaque wire patch; extra components are refused so
+they cannot be silently lost. Both stats, registered outputs, traits and the
+encoded result must resolve before consuming anything. Unknown recipe forms,
+unsupported predicates and ambiguity among parsed candidates fail closed;
+other datapack forms and overlaps are not generally analyzed. This does not
+establish full tool casting, trait effects, host integration, gameplay or LAN
+parity.
+
 ### Clearing an existing potion tip
 
 The casting table now supports the bundled ammo and fishing-rod clearing

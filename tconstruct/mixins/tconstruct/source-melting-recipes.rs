@@ -492,6 +492,31 @@ impl SlimelytraCastingRecipe {
     }
 }
 
+/// Four fixed first-material tool casts. Unknown fields and cast predicates stay unsupported.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct FirstMaterialCastingRecipe { pub basin: bool, pub cast: Ingredient, pub item_cost: u32, pub result: String, pub first_stat: &'static str, pub fluid_stat: &'static str }
+impl FirstMaterialCastingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.as_object()?.keys().any(|key| !matches!(key.as_str(), "type" | "cast" | "cast_purpose" | "item_cost" | "result" | "conditions"))
+            || v.get("cast_purpose")?.as_str()? != "first_material" || !enabled(&v, conditions) { return None; }
+        let (basin, part, first_stat, fluid_stat) = match v.get("result")?.as_str()? {
+            "tconstruct:plate_shield" => (false, "tconstruct:shield_core", "tconstruct:shield_core", "tconstruct:plating_shield"),
+            "tconstruct:slime_boots" => (true, "tconstruct:laces", "tconstruct:laces", "tconstruct:slime"),
+            "tconstruct:slimy_chestplate" => (true, "tconstruct:ribcage", "tconstruct:ribcage", "tconstruct:slime"),
+            "tconstruct:slime_leggings" => (true, "tconstruct:shell", "tconstruct:shell", "tconstruct:slime"),
+            _ => return None,
+        };
+        let expected_type = if basin { "tconstruct:basin_tool_casting" } else { "tconstruct:table_tool_casting" };
+        if v.get("type")?.as_str()? != expected_type { return None; }
+        let cast = v.get("cast")?.as_object()?;
+        if cast.len() != 2 || cast.get("type")?.as_str()? != "tconstruct:material" || cast.get("item")?.as_str()? != part { return None; }
+        let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
+        if item_cost == 0 { return None; }
+        Some(Self { basin, cast: Ingredient::Item(part.into()), item_cost, result: v.get("result")?.as_str()?.into(), first_stat, fluid_stat })
+    }
+}
+
 /// Bounded source slimeskull form: a consumed head sets the first material.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct SlimeskullCastingRecipe { pub cast: Ingredient, pub item_cost: u32, pub material: String }

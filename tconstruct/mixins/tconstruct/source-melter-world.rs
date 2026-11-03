@@ -232,6 +232,36 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         output.count = 1;
         return Some((id, recipe, output));
     }
+    // The four source first-material recipes consume one unmodified material part.
+    if let Some(first) = super::tconstruct_source_melter_state::plain_material_part(stack) {
+        let candidate = (|| {
+            let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+            let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
+            let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+            if !super::tconstruct_source_builder_world::supported_material(world, &first).ok()?.1.contains(&*stack.item) { return None; }
+            let (id, recipe, output_item, fluid_material) = with_catalog(world, |catalog, registries, config| {
+                catalog.first_material_casting(basin, &stack.item, &first, fluid,
+                    &|id, kind| stats.get(id.split('#').next().unwrap_or(id)).is_some_and(|s| s.contains_key(kind)),
+                    &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })??;
+            if !native.contains_key(&output_item) { return None; }
+            let (namespace, name) = output_item.split_once(':')?;
+            let definition_name = super::tconstruct_source_station_stats::definition_name(namespace, name);
+            let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{definition_name}"))?.last()?;
+            let identities = vec![first, fluid_material];
+            for material in &identities {
+                let (namespace, name) = material.split_once(':')?;
+                materials.get(&format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?))?;
+            }
+            super::tconstruct_source_material_traits::levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
+            let output = super::tconstruct_source_station_world::assemble(world, definition, &output_item, &identities, None, &mut None)?;
+            super::tconstruct_source_material_traits::levels(world, &output)?;
+            let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?;
+            if decoded.count != output.count || !decoded.same_item_same_components(&output) { return None; }
+            Some((id, recipe, output))
+        })();
+        if candidate.is_some() { return candidate; }
+    }
     // Source consumed-offset slimeskulls use [head material, fluid material].
     // Refuse component-bearing heads until their deliberate consumption is
     // proven safe through the host item codec and every material trait resolves.

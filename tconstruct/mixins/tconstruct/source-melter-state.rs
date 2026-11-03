@@ -48,6 +48,16 @@ impl Tank {
     }
 }
 
+/// Accept only an unmodified material part, so consumption cannot drop unrelated data.
+pub(super) fn plain_material_part(stack: &ItemStack) -> Option<String> {
+    if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
+    let Tag::String(material) = stack.data()?.other("minecraft:custom_data")?.get("Material")? else { return None; };
+    let material = material.to_string_lossy().to_string();
+    let mut expected = ItemStack::new(&stack.item, 1);
+    expected.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String(material.as_str().into()))])));
+    stack.same_item_same_components(&expected).then_some(material)
+}
+
 /// Read only a losslessly representable portable tank before tagged casting.
 pub(super) fn portable_tank(stack: &ItemStack, capacity: u32) -> Option<Tank> {
     if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
@@ -698,5 +708,23 @@ mod tagged_portable_tests {
         assert!(portable_tank(&two, 50).is_none());
         two.count = 1;
         assert!(portable_tank(&two, 50).is_some());
+    }
+}
+
+#[cfg(test)]
+mod first_material_input_tests {
+    use super::*;
+    #[test]
+    fn only_plain_single_material_parts_are_accepted() {
+        let mut part = ItemStack::new("tconstruct:laces", 1);
+        part.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:vine".into()))])));
+        assert_eq!(plain_material_part(&part).as_deref(), Some("tconstruct:vine"));
+        let mut extra = part.clone();
+        extra.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:vine".into())), ("other", Tag::Int(1))])));
+        assert!(plain_material_part(&extra).is_none());
+        let mut named = part.clone(); named.data_mut().set_other("minecraft:custom_name", Some(Tag::String("name".into())));
+        assert!(plain_material_part(&named).is_none());
+        let mut stack = part.clone(); stack.count = 2; assert!(plain_material_part(&stack).is_none());
+        let mut damaged = part; damaged.damage = 1; assert!(plain_material_part(&damaged).is_none());
     }
 }
