@@ -71,18 +71,19 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
             super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => continue,
             super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => {
                 let Some(known) = horizon_client::brewing::effect(&id) else { return; };
-                if strength >= 1.0 && game.mobs[index].extra.effects.iter().any(|entry| entry.0 == known.id) { return; }
+                if strength >= 1.0 && game.mobs[index].extra.effects.iter().any(|entry| entry.0 == horizon_client_core::potions::namespaced(known.id)) { return; }
                 continue;
             }
         };
         let Some(known) = horizon_client::brewing::effect(&effect.id) else { return; };
-        if !ids.insert(known.id) || matches!(known.id, "minecraft:instant_health" | "minecraft:instant_damage") { return; }
+        let id = horizon_client_core::potions::namespaced(known.id);
+        if !ids.insert(id) || matches!(id, "minecraft:instant_health" | "minecraft:instant_damage") { return; }
         // Vanilla undead reject poison and regeneration before addEffect.
-        if undead && matches!(known.id, "minecraft:poison" | "minecraft:regeneration") { continue; }
-        let existing = game.mobs[index].extra.effects.iter().find(|entry| entry.0 == known.id).map(|entry| (entry.1, entry.2));
+        if undead && matches!(id, "minecraft:poison" | "minecraft:regeneration") { continue; }
+        let existing = game.mobs[index].extra.effects.iter().find(|entry| entry.0 == id).map(|entry| (entry.1, entry.2));
         let Some((duration, scale)) = super::tconstruct_source_fluid_effects::mob_duration(&effect, strength, *level as f32, existing) else { continue; };
         let used = ((recipe.amount as f32 * scale.min(strength)).ceil() as u32).min(fluid.amount);
-        if used > 0 { planned.push((known.id, duration, effect.amplifier, used)); }
+        if used > 0 { planned.push((id, duration, effect.amplifier, used)); }
     }
     if planned.is_empty() { return; }
     // Validate every possible remainder before applying any effect.
