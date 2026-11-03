@@ -12,6 +12,17 @@ pub(super) fn puny_armor_order(id: &str) -> usize {
     ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)
 }
 
+// Mighty has static advice only; omit dynamic groups and the tank page until
+// their displays and operation are supported.
+pub(super) fn mighty_advice_page(name: &str) -> bool {
+    matches!(name, "tips" | "designing")
+}
+
+// Never show source advice without the reader's partial-coverage notice.
+pub(super) fn mighty_advice_ready(labels: [Option<&str>; 3]) -> bool {
+    labels.into_iter().all(|label| label.is_some_and(|text| !text.trim().is_empty()))
+}
+
 // Source book tier and material-tag predicates. Stat support and hidden state
 // are checked separately against the current material registry.
 pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool, basic_ammo: bool) -> bool {
@@ -60,7 +71,18 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{label, layout, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    use super::{label, layout, mighty_advice_page, mighty_advice_ready, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    #[test]
+    fn mighty_advice_needs_all_notice_labels() {
+        assert!(mighty_advice_ready([Some("Partial"), Some("Notice"), Some("Details")]));
+        assert!(!mighty_advice_ready([Some("Partial"), None, Some("Details")]));
+        assert!(!mighty_advice_ready([Some("Partial"), Some(" "), Some("Details")]));
+    }
+    #[test]
+    fn mighty_advice_excludes_dynamic_groups_and_tank_page() {
+        for name in ["tips", "designing"] { assert!(mighty_advice_page(name)); }
+        for name in ["group_general", "group_ranged", "group_info", "tanks", "unknown"] { assert!(!mighty_advice_page(name)); }
+    }
     #[test]
     fn puny_melee_whitestone_exception_is_narrow_and_tier_bound() {
         assert!(puny_melee_material_tier(2, false, "tconstruct:other", false));

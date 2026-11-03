@@ -37,3 +37,7 @@ defense=Defense
 defense.subtext=Defense modifiers can only be applied to armor, using defense slots.
 defense.group_protection=Protection
 defense.group_special=Special
+
+tools.partial=Tool Advice (Partial)
+tools.partial.notice_title=About This Section
+tools.partial.notice=Only the advice pages are shown. The broad-tool list and tank page are omitted, and the material tip icon mentioned here is not available in this reader. Some tool features may be incomplete.

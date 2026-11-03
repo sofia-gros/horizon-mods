@@ -35,9 +35,31 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual((recipe['type'], recipe['cooling_time'], recipe['fluid']['tag']), ('tconstruct:casting_table', 89, 'tconstruct:seared_stone'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
-        self.assertIn('book == "tconstruct:mighty_smelting" && key != "intro"', reader)
+        self.assertIn('!matches!(key, "intro" | "tools")', reader)
+        self.assertIn('mighty_advice_page', reader)
+        self.assertIn('tools.partial.notice', reader)
         self.assertIn('source_pages(game, &path, book)', reader)
         self.assertIn('source_pages(game, &path, book)', request)
+
+    def test_mighty_tool_advice_is_source_faithful_and_explicitly_partial(self):
+        import hashlib
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        expected = {
+            'sections/tools.json': '793d15d696add96370727a247b4d52d566b0ec59',
+            'en_us/tools/tips.json': 'fc04b018d35a689015f34d045dfdfef095d45fdd',
+            'en_us/tools/designing.json': '6c0ada56181a2083df5729814193858d1a392cda',
+        }
+        for path, sha in expected.items():
+            data = (root / path).read_bytes()
+            self.assertEqual(hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest(), sha)
+        section = json.loads((root / 'sections/tools.json').read_text())
+        self.assertEqual([page['name'] for page in section], ['group_general', 'group_ranged', 'group_info', 'tanks', 'tips', 'designing'])
+        language = (root / 'en_us/language.lang').read_text()
+        self.assertIn('tools.partial=Tool Advice (Partial)', language)
+        self.assertIn('material tip icon mentioned here is not available', language)
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('mighty_advice_page', reader)
+        self.assertIn('chapter_pages.splice(0..0, notices)', reader)
 
     def test_puny_worktable_and_further_reading_pages_are_available(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
