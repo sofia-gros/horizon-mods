@@ -2928,6 +2928,12 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_projectile_stats"
 source = "source-projectile-stats.rs"
 
+[[module]]
+id = "material-projectile-airborne"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_projectile_airborne"
+source = "source-projectile-airborne.rs"
+
 [[state]]
 id = "material-projectile-context"
 target = "horizon_client_render::chunk_map::ChunkMap"
