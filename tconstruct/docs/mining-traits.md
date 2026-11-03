@@ -90,3 +90,53 @@ block on the ground and while airborne, including one ineffective block, then
 repeat after breaking the tool and after replacing that material. Capture both
 local and LAN guest behavior; use a labelled fixture if the material is not yet
 naturally obtainable.
+
+## Overwield mining
+
+For a non-broad harvest tool with Knightslime's Overwield trait, an effective
+block receives the source multiplier `1 + 0.2 * min(overslime, level)`. It uses
+the current stored Overslime amount, not capacity, and applies in the same
+ordered percentage stage as Jagged and Stonebound. The tool is checked against
+the loaded `tconstruct:modifiable/broad` item tag. Zero Overslime gives no
+bonus; broad tools and ineffective blocks do not receive this mining effect.
+This implements only the non-broad mining-speed module in the [source
+Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+Overslime consumption outside the handled broad AOE path and material
+acquisition remain separate work.
+
+Rust syntax was checked; focused tests, current-target build and gameplay are
+pending. Verify zero, one and multiple Overslime units and trait levels, a broad
+and a non-broad tool, effective and ineffective blocks, live refill and
+consumption, broken tools, and combinations with other mining modifiers. Check
+material replacement and save/reload. Use labelled fixtures where necessary.
+
+### Broad tools
+
+The broad-tool speed module instead uses `1 + 0.2 * min(overslime, 5 * level) / 5`
+on effective blocks. This reads the same live Overslime value and uses the loaded
+broad tag; it does not use AOE size as the amount. The source additionally spends up to five Overslime per level at the start of
+the harvest transaction. A subsequent candidate runs the spend through the host native destroy boundary,
+once per area operation. Other capacity consumers remain incomplete.
+
+Rust syntax was checked. Tests, current-target build and gameplay are pending.
+Check levels 1 and 2 at amounts 0, 1, 4, 5, 6 and 10, ineffective blocks,
+AOE center and extra blocks, material swaps, save/reload and multiplayer.
+
+### Pre-break harvest candidate
+
+The follow-up replaces #318's after-removal spend with a `HEAD` hook on the
+host's `native_destroy_block`, before native cancellation and actual removal.
+Small harvest tools spend up to one Overslime per level and broad tools up to
+five; actor-scoped area state prevents an additional spend for extra blocks.
+Broken tools and missing source tags do not spend. The host calls this boundary
+after its own permission and item checks, while the original `startHarvest` runs
+before its `breakBlock` path, so all failure and creative cases remain unproven.
+The original pre-break timing is the goal; this candidate is not yet source
+parity. Official plan/apply, type/build and gameplay remain pending.
+
+A focused #319 diagnostic found two negative-state errors in its pre-break
+candidate: an explicit broken flag could be ignored, and an oversized spend
+could wrap while converting to the stored signed integer. The follow-up uses
+the existing shared broken predicate and bounds the conversion in the shared
+spend function. Official apply and exact-head tests still need to verify the
+fix; the diagnostic did not show that normal gameplay can create these states.
