@@ -50,6 +50,6 @@ The current verified Linux combination uses development version `0.1.0` with pin
 
 ## Development status
 
-This port is under active development. See the [progress guide](docs/roadmap.md) for implemented features, known gaps, and verification coverage.
+This port is under active development. See the [progress guide](docs/roadmap.md) for implemented features, known gaps, and verification coverage. The [slime island draft](docs/slime-islands.md) records its unfinished generation and material paths.
 
 For building and testing, see the [development guide](docs/development.md). The port reuses original TConstruct, Mantle and Forge assets under their respective licenses: [TConstruct](third_party/tconstruct/LICENSE), [Mantle](third_party/mantle/LICENSE), and [Forge](third_party/forge/LICENSE).
