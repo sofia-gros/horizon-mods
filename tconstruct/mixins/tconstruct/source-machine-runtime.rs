@@ -348,8 +348,11 @@ pub(super) fn cannon_at(game: &super::Game<'_>, pos: Pos) -> Option<super::tcons
 }
 pub(super) fn save_cannon(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_fluid_cannon::Cannon) -> bool {
     if !state.lossless() || !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(slots)) if !slots.is_empty()) { return false; }
+    let before = store::read(&game.world,pos,"tconstruct:fluid_cannon")
+        .and_then(|tag| super::tconstruct_source_fluid_cannon::Cannon::from_nbt(&tag)).map_or(0, |state| state.comparator());
     if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",state.to_nbt()) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = state.item.clone(); }
+    notify_casting_comparator(game, pos, before, state.comparator());
     game.container_changed(pos); true
 }
 pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank: bool) -> bool {
@@ -781,9 +784,12 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
     let before = fluid.clone();
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_fluid_cannon" {
         let Some(mut state) = cannon_at(game,target) else { return; };
+        let previous_strength = state.comparator();
         faucet.tick(&mut fluid,Some(&mut state.tank));
         if !apply_smeltery_take(&mut smeltery,&before,&fluid) || !state.lossless() { return; }
-        let _ = store::write_many(&mut game.world,&[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(target,"tconstruct:fluid_cannon",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+        if store::write_many(&mut game.world,&[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(target,"tconstruct:fluid_cannon",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
+            notify_casting_comparator(game, target, previous_strength, state.comparator());
+        }
         return;
     }
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_casting_tank" {
@@ -867,11 +873,15 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let input = melter.as_mut().map_or(&mut empty, |melter| &mut melter.tank);
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_fluid_cannon" {
         let Some(mut state) = cannon_at(game,target) else { return; };
+        let previous_strength = state.comparator();
         faucet.tick(input,Some(&mut state.tank));
         if !state.lossless() { return; }
         let mut updates = vec![(target,"tconstruct:fluid_cannon",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())];
         if let Some(melter) = melter { updates.push((source,"tconstruct:melter",melter.to_nbt())); }
-        let _ = store::write_many(&mut game.world,&updates); return;
+        if store::write_many(&mut game.world,&updates) {
+            notify_casting_comparator(game, target, previous_strength, state.comparator());
+        }
+        return;
     }
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_casting_tank" {
         let Some(mut state) = casting_tank_at(game, target) else { return; };
