@@ -47,3 +47,19 @@ acquisition. Rust syntax was checked; unit, plan, build and gameplay are pending
 Verify zero/one/multiple levels, non-unit multipliers, Netherite combinations,
 clamp, equip/unequip, material swap, save/reload and LAN, using labelled
 fixtures when needed. Armor wear remains subject to its separate hold.
+
+## Slime material and Overslime capacity
+
+For the pinned source slime armor definitions, `SlimeStats.apply` adds the
+scaled slime material durability to both durability and the Overslime stat.
+The capacity calculation now includes that material contribution before the
+Overcast and global durability multipliers. The source also has an
+`overslime_capacity` field for its tooltip; its pinned `apply` method uses the
+durability field for the stat contribution, so this calculation follows that
+method rather than the tooltip value.
+
+Rust syntax was checked. Unit tests, combined build and gameplay are pending.
+Verify each slime armor scale, material replacement, Overcast/Overforced,
+global durability multiplier, capacity clamping, existing shield contents and
+save/reload. Armor wear and Overslime writeback remain subject to the separately
+documented provisional hook limitations.
