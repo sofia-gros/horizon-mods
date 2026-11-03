@@ -1,7 +1,7 @@
 fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     if crate::game::tconstruct_ui::is_melter(game) {
-        let Some(pos) = (if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container }) else { return Continue(()); };
+        let Some(pos) = (if game.remote.is_some() { *game.world.chunks.__horizon_mixins_tconstruct_remote_screen_position() } else { game.container }) else { return Continue(()); };
         let Some(size) = game.renderer.as_ref().map(|renderer| [renderer.config.width, renderer.config.height]) else { return Continue(()); };
         let batch = horizon_client::hud::HudBatch::new(size);
         let (ox, oy) = game.inventory_origin(&batch);

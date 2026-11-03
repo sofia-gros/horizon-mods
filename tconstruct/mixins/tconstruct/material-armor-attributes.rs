@@ -47,6 +47,14 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         if !broken && entwined > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:entwined_movement/{slot}"), 0.1 * f64::from(entwined), "add_multiplied_total"));
         }
+        let speedy_trait = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:speedy").copied()).unwrap_or(0).max(0);
+        let speedy_progress = match data.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:speedy")) {
+            Some(Tag::Int(progress)) => (*progress).max(0), _ => 0,
+        };
+        let speedy = f64::from(speedy_trait) + f64::from(speedy_progress) / 45.0;
+        if !broken && speedy > 0.0 {
+            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:speedy_movement/{slot}"), 0.1 * speedy, "add_multiplied_total"));
+        }
         let step_up = modifier_level("tconstruct:step_up");
         if !broken && step_up > 0 {
             values.push(("minecraft:step_height".to_owned(), format!("tconstruct:step_up/{slot}"), 0.5 * f64::from(step_up), "add_value"));
