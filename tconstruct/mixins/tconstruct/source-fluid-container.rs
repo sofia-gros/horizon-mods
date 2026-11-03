@@ -30,6 +30,7 @@ pub(super) fn is_bucket(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) 
 }
 fn bottle_fluid(item: &str) -> Option<&'static str> {
     match item {
+        "tconstruct:venom_bottle" => Some("tconstruct:venom"),
         "tconstruct:earth_slime_bottle" => Some("tconstruct:earth_slime"),
         "tconstruct:sky_slime_bottle" => Some("tconstruct:sky_slime"),
         "tconstruct:ichor_slime_bottle" => Some("tconstruct:ichor"),
@@ -46,8 +47,52 @@ fn filled_bottle(fluid: &str) -> Option<&'static str> {
         _ => None,
     }
 }
+// Copper cans carry exactly 90 mB per item; fluid tags are part of identity.
+fn can_contents(stack: &ItemStack) -> Option<(Option<String>, Option<horizon_world::nbt::Tag>)> {
+    use horizon_world::nbt::Tag;
+    if stack.item.as_ref() != "tconstruct:copper_can" || stack.damage != 0 || stack.count == 0 { return None; }
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+        None => Some((None, None)),
+        Some(Tag::Compound(data)) => {
+            let fluid = match data.get(&"fluid".into()) { None => None, Some(Tag::String(id)) => { let value = id.to_string_lossy(); if value == "minecraft:empty" { None } else { Some((!value.is_empty()).then_some(value)?) } }, _ => return None };
+            let tag = match data.get(&"fluid_tag".into()) { None => None, Some(tag @ Tag::Compound(_)) if fluid.is_some() => Some(tag.clone()), _ => return None };
+            Some((fluid, tag))
+        }
+        _ => None,
+    }
+}
+pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
+    let (fluid, tag) = can_contents(stack)?;
+    tag.is_none().then_some(fluid)
+}
+pub(super) fn can_set_fluid(stack: &ItemStack, fluid: Option<&str>) -> Option<ItemStack> {
+    can_set_tagged(stack, fluid, None)
+}
+fn can_set_tagged(stack: &ItemStack, fluid: Option<&str>, tag: Option<&horizon_world::nbt::Tag>) -> Option<ItemStack> {
+    use horizon_world::nbt::{Compound, Tag};
+    can_contents(stack)?;
+    if tag.is_some_and(|tag| !matches!(tag, Tag::Compound(_))) || (fluid.is_none() && tag.is_some()) { return None; }
+    let mut data = match stack.data().and_then(|value| value.other("minecraft:custom_data")) {
+        None => Compound::new(), Some(Tag::Compound(value)) => value.clone(), _ => return None,
+    };
+    match fluid { Some(fluid) if !fluid.is_empty() && fluid != "minecraft:empty" => { data.insert("fluid".into(), Tag::String(fluid.into())); }, None => { data.remove(&"fluid".into()); }, _ => return None }
+    match tag { Some(tag) => { data.insert("fluid_tag".into(), tag.clone()); }, None => { data.remove(&"fluid_tag".into()); } }
+    let mut result = stack.clone(); result.count = 1;
+    result.data_mut().set_other("minecraft:custom_data", (!data.is_empty()).then_some(Tag::Compound(data)));
+    Some(result)
+}
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
+    if stack.item.as_ref() == "minecraft:potion" { return simple_potion(stack).is_some(); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
+}
+// The host currently models a potion ID separately from its other components.
+// Only accept the lossless simple case until custom effects/color are modeled.
+fn simple_potion(stack: &ItemStack) -> Option<String> {
+    if !matches!(&*stack.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") || stack.count == 0 || stack.damage != 0 { return None; }
+    let potion = stack.potion()?;
+    let plain = ItemStack::new(&stack.item, 1).with_potion(potion);
+    stack.same_item_same_components(&plain).then(|| potion.to_owned())
 }
 
 /// A normal left/right click on either temporary slot. The output never
@@ -66,7 +111,7 @@ pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<Ite
         return true;
     };
     if index != 0 || !accepts(&held, known_fluid) { *carried = Some(held); return false; }
-    let max = if held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     match slots[index].as_mut() {
         None => {
             let count = if right { 1 } else { held.count.min(max) };
@@ -88,7 +133,7 @@ pub(super) fn quick_input(slots: &mut [Option<ItemStack>; 2], stack: &mut Option
     known_fluid: &impl Fn(&str) -> bool) -> bool {
     let Some(held) = stack.as_mut() else { return false; };
     if !accepts(held, known_fluid) { return false; }
-    let max = if held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     let amount = match slots[0].as_mut() {
         None => {
             let amount = held.count.min(max);
@@ -125,12 +170,99 @@ pub(super) fn transfer(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 
 
 pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    transfer_selected_with_tags(tank, slots, direction, selected, known_item, known_fluid, None)
+}
+pub(super) fn transfer_selected_with_tags(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
-    if input.count == 0 || input.damage != 0 || input.extra.is_some() || !known_item(&input.item) { return false; }
+    if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
+    if matches!(&*input.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") {
+        use horizon_world::nbt::Tag;
+        if direction == Direction::FillItem { return false; }
+        let Some(potion) = simple_potion(input) else { return false; };
+        let empty = match &*input.item {
+            "minecraft:potion" => "minecraft:glass_bottle".to_owned(),
+            item => {
+                let Some(tags) = item_tags else { return false; };
+                let key = if item == "minecraft:splash_potion" { "forge:bottles/splash" } else { "forge:bottles/lingering" };
+                let mut available = tags.get(key).into_iter().flatten().filter(|id| known_item(id));
+                match available.next() {
+                    Some(id) => { let id = id.clone(); if available.next().is_some() { return false; } id },
+                    None => "minecraft:glass_bottle".to_owned(),
+                }
+            }
+        };
+        if !known_item(&empty) { return false; }
+        let (fluid, metadata) = if potion == "minecraft:water" { ("minecraft:water", None) }
+            else { ("tconstruct:potion", Some(Tag::compound([("Potion", Tag::String(potion.as_str().into()))]))) };
+        let mut next = tank.clone();
+        if !known_fluid(fluid) || !next.insert_tagged(fluid, metadata.as_ref(), 250) { return false; }
+        let mut remaining = input.clone(); remaining.count -= 1;
+        slots[0] = (remaining.count > 0).then_some(remaining);
+        slots[1] = Some(ItemStack::new(&empty, 1)); *tank = next;
+        return true;
+    }
+    if input.item.as_ref() == "tconstruct:copper_can" {
+        let Some((existing, metadata)) = can_contents(input) else { return false; };
+        let mut next = tank.clone();
+        let output = if let Some(fluid) = existing {
+            if direction == Direction::FillItem || !known_fluid(&fluid) || !next.insert_tagged(&fluid, metadata.as_ref(), 90) { return false; }
+            let Some(output) = can_set_tagged(input, None, None) else { return false; }; output
+        } else {
+            if direction == Direction::EmptyItem { return false; }
+            let entry = if let Some(id) = selected {
+                let mut choices = next.fluids.iter().filter(|fluid| fluid.id == id);
+                let Some(entry) = choices.next() else { return false; };
+                if choices.next().is_some() { return false; }
+                entry
+            } else { let Some(entry) = next.fluids.first() else { return false; }; entry };
+            let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
+            if !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), 90) { return false; }
+            let Some(output) = can_set_tagged(input, Some(&fluid), tag.as_ref()) else { return false; }; output
+        };
+        let mut remaining = input.clone(); remaining.count -= 1;
+        slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
+        return true;
+    }
+    // Mantle's standard glass-bottle transfers fill a base potion from the
+    // potion fluid or a water potion from water. Other potion tags remain
+    // rejected until the host can represent them without dropping fields.
+    if input.item.as_ref() == "minecraft:glass_bottle" && input.extra.is_none() && direction != Direction::EmptyItem {
+        use horizon_world::nbt::Tag;
+        let entry = if let Some(id) = selected {
+            let mut choices = tank.fluids.iter().filter(|fluid| fluid.id == id);
+            let Some(entry) = choices.next() else { return false; };
+            if choices.next().is_some() { return false; }
+            entry
+        } else { let Some(entry) = tank.fluids.first() else { return false; }; entry };
+        let is_potion = entry.id == "tconstruct:potion";
+        let is_water = entry.id == "minecraft:water" && entry.tag.is_none();
+        if is_potion || is_water {
+            let potion = if is_water { "minecraft:water".to_owned() } else {
+                let Some(Tag::Compound(fields)) = entry.tag.as_ref() else { return false; };
+                if fields.len() != 1 { return false; }
+                let Some(Tag::String(potion)) = fields.get(&"Potion".into()) else { return false; };
+                let potion = potion.to_string_lossy();
+                if potion.is_empty() || potion == "minecraft:empty" { return false; }
+                potion
+            };
+            let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
+            let amount = if is_water { 500 } else { 250 };
+            let mut next = tank.clone();
+            if !known_item("minecraft:potion") || !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
+            let mut remaining = input.clone(); remaining.count -= 1;
+            slots[0] = (remaining.count > 0).then_some(remaining);
+            slots[1] = Some(ItemStack::new("minecraft:potion", 1).with_potion(&potion)); *tank = next;
+            return true;
+        }
+    }
+    if input.extra.is_some() { return false; }
     let mut next = tank.clone();
     let replacement = if input.item.as_ref() == "minecraft:glass_bottle" && direction != Direction::EmptyItem {
         let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+        if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
         let Some(bottle) = filled_bottle(&fluid) else { return false; };
         if !known_fluid(&fluid) || !known_item(bottle) || !next.take(&fluid, 250) { return false; }
         bottle.to_owned()
@@ -139,6 +271,7 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
         "minecraft:glass_bottle".to_owned()
     } else if input.item.as_ref() == "minecraft:bucket" && direction != Direction::EmptyItem {
         let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+        if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
         let Some(bucket) = filled_bucket(&fluid) else { return false; };
         if !known_fluid(&fluid) || !known_item(&bucket) || !next.take(&fluid, 1000) { return false; }
         bucket
@@ -158,16 +291,22 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
 /// Apply the same bucket rules to the Melter's single-fluid tank.
 pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    transfer_single_with_tags(tank, slots, direction, known_item, known_fluid, None)
+}
+pub(super) fn transfer_single_with_tags(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> bool {
     let mut staged = SmelteryTank::new(tank.capacity);
     if let Some(id) = tank.fluid.as_deref() {
-        if !staged.insert(id, tank.amount) { return false; }
+        if !staged.insert_tagged(id, tank.tag.as_ref(), tank.amount) { return false; }
     }
     let mut staged_slots = slots.clone();
-    if !transfer(&mut staged, &mut staged_slots, direction, known_item, known_fluid) { return false; }
+    if !transfer_selected_with_tags(&mut staged, &mut staged_slots, direction, None, known_item, known_fluid, item_tags) { return false; }
     if staged.fluids.len() > 1 { return false; }
     *slots = staged_slots;
     tank.amount = staged.total();
     tank.fluid = staged.fluids.first().map(|fluid| fluid.id.clone());
+    tank.tag = staged.fluids.first().and_then(|fluid| fluid.tag.clone());
     true
 }
 
@@ -191,6 +330,48 @@ mod tests {
         let before=(tank.clone(),slots.clone());
         assert!(!transfer(&mut tank,&mut slots,Direction::Auto,&known,&known));
         assert_eq!((tank,slots),before);
+    }
+    #[test]
+    fn copper_can_moves_one_ingot_and_retains_other_stack_items() {
+        let mut tank = SmelteryTank::new(180);
+        assert!(tank.insert("minecraft:lava", 90));
+        let mut slots = [Some(ItemStack::new("tconstruct:copper_can", 2)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!(tank.total(), 0);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        let filled = slots[1].take().unwrap();
+        assert_eq!(can_fluid(&filled), Some(Some("minecraft:lava".into())));
+        slots = [Some(filled), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 90);
+        assert_eq!(can_fluid(slots[1].as_ref().unwrap()), Some(None));
+    }
+    #[test]
+    fn venom_bottle_returns_glass_only_after_full_transfer() {
+        let mut tank = SmelteryTank::new(249);
+        let mut slots = [Some(ItemStack::new("tconstruct:venom_bottle", 2)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots.clone()), before);
+        tank = SmelteryTank::new(250);
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("tconstruct:venom"), 250);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
+    }
+    #[test]
+    fn venom_transfer_preserves_other_fluids_and_blocked_stacks() {
+        let mut tank = SmelteryTank::new(1500);
+        assert!(tank.insert("minecraft:lava", 1000));
+        let mut slots = [Some(ItemStack::new("tconstruct:venom_bottle", 2)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(tank.amount("tconstruct:venom"), 250);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots), before);
     }
     #[test]
     fn single_fluid_tank_rejects_mixing_without_losing_container() {

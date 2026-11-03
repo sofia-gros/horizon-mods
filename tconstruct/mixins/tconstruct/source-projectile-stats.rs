@@ -42,28 +42,21 @@ pub(crate) fn projectile_stats_at_airborne(stack: &ItemStack, y: f32, max_height
         }
     }
     let level = match custom.get("tic_dwarven") { Some(Tag::Int(value)) => *value, _ => 0 };
-    if let Some(multiplier) = stat(stack, "tic_dwarven_velocity_multiplier").filter(|value| value.is_finite()) {
-        if level > 0 && y.is_finite() {
-            velocity = super::tconstruct_source_dwarven::boost(y, max_height, level, velocity, 0.05 * multiplier);
-        }
-    }
-    // Overwield's source priority 75 runs after Dwarven's priority 85.
-    let level = match custom.get("tic_overwield_ranged") { Some(Tag::Int(n)) => (*n).max(0), _ => 0 };
-    let amount = match custom.get("tic_overslime") { Some(Tag::Int(n)) => (*n).max(0), _ => 0 };
-    if let Some(multiplier) = stat(stack, "tic_overwield_velocity_multiplier").filter(|value| value.is_finite()) {
-        velocity += level.min(amount) as f32 * 0.06 * multiplier;
-    }
-    Some((velocity.clamp(0.0, 1024.0), spread))
+    let multiplier = match custom.get("tic_dwarven_velocity_multiplier") {
+        Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return Some((velocity, spread)),
+    };
+    if level <= 0 || !multiplier.is_finite() || !y.is_finite() { return Some((velocity, spread)); }
+    Some((super::tconstruct_source_dwarven::boost(y, max_height, level, velocity, 0.05 * multiplier).clamp(0.0, 1024.0), spread))
 }
 
 fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable: bool) -> bool {
     !on_ground && !in_water && !riding && !climbable
 }
 
-// Use the exact host climbable check; LAN guest state needs separate verification.
+// The host swaps the acting player's motion and vehicle into Game during a turn.
 #[cfg(not(test))]
 pub(crate) fn airborne(game: &mut crate::game::Game<'_>) -> bool {
-    if game.lan_acting.is_some() || game.riding.is_some() { return false; }
+    if game.riding.is_some() { return false; }
     let Some(player) = game.player.as_mut() else { return false; };
     if player.ground.on_ground || player.fluids.was_touching_water { return false; }
     let mut motion = horizon_client::motion::MotionWorld {
