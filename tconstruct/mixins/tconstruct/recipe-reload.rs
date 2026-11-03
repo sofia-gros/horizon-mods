@@ -1,3 +1,15 @@
+pub(super) fn mod_snapshot(game: &mut crate::game::Game<'_>) -> (std::collections::HashMap<String, Option<bool>>, bool) {
+    let mut native = Vec::new();
+    game.native_mods(&mut native);
+    let mut states = std::collections::HashMap::new();
+    for entry in native {
+        if !entry.id.is_empty() { states.insert(entry.id.clone(), game.native_on(&entry.id).then_some(true)); }
+    }
+    // Unadvertised native hooks and rejected content announcements make the
+    // complete set unknowable; a missing ID must remain unknown.
+    (states, false)
+}
+
 pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     if game.remote.is_some() || game.world_root.as_os_str().is_empty() { return; }
     let mut recipes = std::collections::BTreeMap::new();
@@ -81,18 +93,10 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         .map_err(|error| error.to_string())
         .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
         .and_then(|source| crate::game::tconstruct_source_melting_lookup::tank_fluid_tags(&fluid_tags, &source));
-    // Native hooks identify code mods actually installed into this process.
-    // Content announcements alone can include a later-rejected content mod,
-    // and unnamed native hooks need not advertise an ID, so absence is unknown.
-    let mod_presence = {
-        let mut native = Vec::new();
-        game.native_mods(&mut native);
-        let mut states = std::collections::HashMap::new();
-        for entry in native {
-            if !entry.id.is_empty() { states.insert(entry.id.clone(), game.native_on(&entry.id).then_some(true)); }
-        }
-        crate::game::tconstruct_source_melter_world::ModPresence { states, complete: false }
-    };
+    // Capture actual native-hook presence; content package names are not
+    // sufficient proof that their overlay survived all validation.
+    let (states, complete) = mod_snapshot(game);
+    let mod_presence = crate::game::tconstruct_source_melter_world::ModPresence { states, complete };
     // All source-recipe consumers share this snapshot. Resolve Forge wrappers
     // once, after tags and config are known, rather than separately per lookup.
     // An unavailable context must never select a guessed fallback branch.
@@ -219,6 +223,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_source_shared_recipes_mut() = Some(std::sync::Arc::new(recipes.clone()));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
+    *game.world.chunks.__horizon_mixins_tconstruct_recipe_mod_snapshot_mut() = Some((mod_presence.states, mod_presence.complete));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);
