@@ -510,6 +510,21 @@ impl Catalog<'_> {
 mod tests {
     use super::*;
     #[test]
+    fn mighty_smelting_book_uses_the_source_table_recipe() {
+        let source = br#"{"type":"tconstruct:casting_table","cast":{"item":"minecraft:book"},"cast_consumed":true,"cooling_time":89,"fluid":{"amount":250,"tag":"tconstruct:seared_stone"},"result":"tconstruct:mighty_smelting"}"#.to_vec();
+        let recipes = BTreeMap::from([("tconstruct:common/mighty_smelting".into(), source)]);
+        let item_tags = HashMap::new();
+        let fluid_tags = HashMap::from([("tconstruct:seared_stone".into(), HashSet::from(["tconstruct:seared_stone".into()]))]);
+        let known_items = HashSet::from(["minecraft:book".into(), "tconstruct:mighty_smelting".into()]);
+        let known_fluids = HashSet::from(["tconstruct:seared_stone".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+        let (_, recipe, result) = catalog.casting(false, Some("minecraft:book"), "tconstruct:seared_stone", &|_| true).unwrap();
+        assert_eq!((result.as_str(), recipe.fluid.amount, recipe.cooling_time, recipe.consumes_cast), ("tconstruct:mighty_smelting", 250, 89, true));
+        assert!(catalog.casting(true, Some("minecraft:book"), "tconstruct:seared_stone", &|_| true).is_none());
+        assert!(catalog.casting(false, Some("minecraft:paper"), "tconstruct:seared_stone", &|_| true).is_none());
+        assert!(catalog.casting(false, Some("minecraft:book"), "minecraft:water", &|_| true).is_none());
+    }
+    #[test]
     fn all_catalyst_alloy_requires_capacity_without_consuming_input() {
         let recipe = br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100,"catalyst":true}],"result":{"fluid":"test:result","amount":100},"temperature":700}"#.to_vec();
         let recipes = std::collections::BTreeMap::from([("catalyst".into(), recipe)]);

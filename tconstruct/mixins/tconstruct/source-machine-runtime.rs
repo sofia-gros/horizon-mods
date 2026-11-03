@@ -664,7 +664,16 @@ fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Cas
 pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     if !ensure(game, pos, block) { return false; }
     let Some((kind, mut casting)) = casting_at(game, pos) else { return false; };
-    if casting.tank.amount != 0 || casting.recipe.is_some() { return true; }
+    if casting.tank.amount != 0 || casting.recipe.is_some() {
+        if let Some(excess) = casting.recover_excess_input() {
+            if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+            if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
+                slots[0] = casting.input.clone();
+            }
+            game.give_or_drop(excess);
+        }
+        return true;
+    }
     let held = game.held().cloned();
     let mut taken = None;
     let mut remaining = None;

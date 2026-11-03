@@ -32,6 +32,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
             recipe = json.loads(archive.read('data/tconstruct/recipes/common/mighty_smelting.json'))
         self.assertEqual((recipe['result'], recipe['cast']['item'], recipe['cast_consumed'], recipe['fluid']['amount']), ('tconstruct:mighty_smelting', 'minecraft:book', True, 250))
+        self.assertEqual((recipe['type'], recipe['cooling_time'], recipe['fluid']['tag']), ('tconstruct:casting_table', 89, 'tconstruct:seared_stone'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
         self.assertIn('book == "tconstruct:mighty_smelting" && key != "intro"', reader)

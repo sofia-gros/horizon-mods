@@ -313,9 +313,21 @@ impl Casting {
         Self { input: None, output: None, tank: Tank::new(0), timer: 0, recipe: None, result: None,
             cooling_time: 0, consumes_cast: false, switch_slots: false, redstone: false }
     }
+    /// Recover an oversized external insertion without cancelling a pour.
+    /// Leave one source-valid cast in place and return the excess unchanged.
+    pub(super) fn recover_excess_input(&mut self) -> Option<ItemStack> {
+        if self.recipe.is_none() { return None; }
+        let input = self.input.as_mut()?;
+        if input.count <= 1 { return None; }
+        let mut excess = input.clone();
+        excess.count -= 1;
+        input.count = 1;
+        Some(excess)
+    }
     /// Begin only after the caller has matched the cast, fluid and recipe.
     pub(super) fn prepare(&mut self, recipe: &str, amount: u32, cooling_time: u32, result: ItemStack, consumes_cast: bool, switch_slots: bool) -> bool {
         if self.recipe.is_some() || self.tank.amount != 0 || self.output.is_some() || recipe.is_empty()
+            || self.input.as_ref().is_some_and(|stack| stack.count != 1)
             || amount == 0 || cooling_time == 0 || result.count == 0 { return false; }
         self.tank = Tank::new(amount); self.timer = 0; self.recipe = Some(recipe.to_owned()); self.result = Some(result);
         self.cooling_time = cooling_time; self.consumes_cast = consumes_cast; self.switch_slots = switch_slots;
@@ -326,7 +338,7 @@ impl Casting {
     pub(super) fn tick(&mut self, valid: bool) -> bool {
         if self.recipe.is_none() || self.result.is_none() || self.tank.amount != self.tank.capacity || self.tank.amount == 0 { return false; }
         // Another inventory path may have filled the output while pouring.
-        if !valid || self.output.is_some() { self.timer = 0; return false; }
+        if !valid || self.output.is_some() || self.input.as_ref().is_some_and(|stack| stack.count != 1) { self.timer = 0; return false; }
         self.timer = self.timer.saturating_add(1);
         if self.timer < self.cooling_time { return false; }
         let Some(result) = self.result.take() else { return false; };
@@ -367,6 +379,55 @@ impl Casting {
 #[cfg(test)]
 mod casting_tests {
     use super::*;
+    #[test]
+    fn mighty_book_casting_waits_on_invalid_stacks_and_preserves_data_across_reload() {
+        let mut book = ItemStack::new("minecraft:book", 2);
+        book.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("marker", Tag::Int(7))])));
+        let mut c = Casting::new(); c.input = Some(book.clone());
+        let result = ItemStack::new("tconstruct:mighty_smelting", 1);
+        assert!(!c.prepare("tconstruct:common/mighty_smelting", 250, 89, result.clone(), true, false));
+        assert_eq!(c.tank.capacity, 0);
+        assert_eq!(c.input.as_ref().unwrap().count, 2);
+        book.count = 1; c.input = Some(book.clone());
+        assert!(c.prepare("tconstruct:common/mighty_smelting", 250, 89, result, true, false));
+        assert!(c.tank.insert("tconstruct:seared_stone", 249));
+        assert!(!c.tick(true)); assert_eq!(c.input.as_ref().unwrap().count, 1);
+        assert!(c.tank.insert("tconstruct:seared_stone", 1));
+        let mut c = Casting::from_nbt(&c.to_nbt()).unwrap();
+        assert!(c.input.as_ref().unwrap().same_item_same_components(&book));
+        assert!(!c.tick(false)); assert_eq!(c.tank.amount, 250);
+        c.input.as_mut().unwrap().count = 2;
+        assert!(!c.tick(true)); assert_eq!(c.input.as_ref().unwrap().count, 2);
+        assert_eq!(c.tank.amount, 250); assert!(c.output.is_none());
+        let mut c = Casting::from_nbt(&c.to_nbt()).unwrap();
+        assert_eq!(c.input.as_ref().unwrap().count, 2);
+        assert_eq!(c.input.as_ref().unwrap().data().unwrap().other("minecraft:custom_data").unwrap().get("marker"), Some(&Tag::Int(7)));
+        assert!(!c.tick(true)); assert_eq!(c.tank.amount, 250);
+        let excess = c.recover_excess_input().unwrap();
+        assert_eq!(excess.count, 1);
+        assert!(excess.same_item_same_components(&book));
+        assert_eq!(c.input.as_ref().unwrap().count, 1);
+        assert_eq!(c.tank.amount, 250);
+        assert!(c.recover_excess_input().is_none());
+        for _ in 0..88 { assert!(!c.tick(true)); }
+        assert!(c.tick(true)); assert!(c.input.is_none());
+        assert_eq!(c.tank.amount, 0);
+        assert_eq!((&*c.output.as_ref().unwrap().item, c.output.as_ref().unwrap().count), ("tconstruct:mighty_smelting", 1));
+    }
+    #[test]
+    fn excess_recovery_only_changes_a_pending_oversized_input() {
+        let mut c = Casting::new();
+        c.input = Some(ItemStack::new("minecraft:book", 3));
+        assert!(c.recover_excess_input().is_none());
+        assert_eq!(c.input.as_ref().unwrap().count, 3);
+        c.input.as_mut().unwrap().count = 1;
+        assert!(c.prepare("test:book", 250, 89, ItemStack::new("tconstruct:mighty_smelting", 1), true, false));
+        assert!(c.tank.insert("tconstruct:seared_stone", 100));
+        c.input.as_mut().unwrap().count = 3;
+        let excess = c.recover_excess_input().unwrap();
+        assert_eq!((excess.count, c.input.as_ref().unwrap().count, c.tank.amount, c.timer), (2, 1, 100, 0));
+        assert_eq!(c.recipe.as_deref(), Some("test:book"));
+    }
     #[test]
     fn partially_filled_cast_resumes_and_preserves_reusable_cast() {
         let mut c = Casting::new(); c.input = Some(ItemStack::new("tconstruct:ingot_cast", 1));
