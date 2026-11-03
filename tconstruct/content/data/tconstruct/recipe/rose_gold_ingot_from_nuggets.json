@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "key": {
+    "#": "#forge:nuggets/rose_gold",
+    "*": "tconstruct:rose_gold_nugget"
+  },
+  "result": {
+    "id": "tconstruct:rose_gold_ingot"
+  }
+}
