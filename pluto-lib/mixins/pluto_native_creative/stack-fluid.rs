@@ -1,5 +1,5 @@
-//! Source-compatible single-fluid storage embedded in an item component.
-//! The caller owns capacity, capability eligibility and the transaction.
+// Source-compatible single-fluid storage embedded in an item component.
+// The caller owns capacity, capability eligibility and the transaction.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::{Compound, Tag};
 
