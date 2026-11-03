@@ -347,6 +347,8 @@ The shared source recipe snapshot resolves `forge:conditional` candidates in sou
 `forge:mod_loaded` recognizes native mods advertised by Horizon native hooks when `native_on` is true. Disabled native IDs remain unknown because their content may already be registered. Missing IDs also remain unknown: the host's content announcement can include a subsequently rejected content package, and not every native hook must advertise an ID. Rebuild the recipe snapshot after mod status changes. Original Forge mod IDs must match advertised Horizon IDs; content-only mods, absence detection and separate native recipe loading remain unresolved. The target-side hook and runtime behavior are unverified.
 Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
 
+Scorched Table and gold bars now have standalone source-shaped recipes, source models and the common casting transaction. Scorched Table requires a physical input, and gold bars are matched through the source empty-table-cast tag without consumption. The empty covered-state appearance and full Forge gold-ingot tag alternatives remain incomplete; operation, save and LAN await verification.
+
 Alloy input matching now supports source `catalyst` fluids: they must be present in the required amount but are not consumed. This enables the source water/lava molten-obsidian recipe in code; integrated operation, fuel and persistence remain unverified.
 
 ### Material trait fallback by stat type
