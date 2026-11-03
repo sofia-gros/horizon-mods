@@ -7,8 +7,8 @@ fn tconstruct_anvil_material_recipe(input: &Input<'_>, recipe: &Recipe) -> std::
     // crafting station itself. The shared shaped matcher handles its tag;
     // retain the subtraction before accepting its result.
     if &*output.item == "tconstruct:crafting_station" && *width == 1 && *height == 2
-        && cells.first().and_then(Option::as_ref).is_some_and(|ingredient| ingredient.0.len() == 1 && ingredient.0.contains("tconstruct:pattern"))
-        && cells.get(1).and_then(Option::as_ref).is_some_and(|ingredient| ingredient.0.contains("tconstruct:crafting_station")) {
+        && cells.first().and_then(Option::as_ref).is_some_and(|ingredient| ingredient.items.len() == 1 && ingredient.items.contains("tconstruct:pattern"))
+        && cells.get(1).and_then(Option::as_ref).is_some_and(|ingredient| ingredient.items.contains("tconstruct:crafting_station")) {
         if input.stacks().into_iter().any(|stack| &*stack.item == "tconstruct:crafting_station") { return Break(None); }
         return Continue(());
     }

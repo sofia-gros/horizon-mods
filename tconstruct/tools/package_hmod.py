@@ -20,6 +20,7 @@ version = "0.1.0"
 api = "0.2"
 side = "both"
 capabilities = ["registries"]
+namespaces = ["mantle", "forge"]
 '''
 
 
