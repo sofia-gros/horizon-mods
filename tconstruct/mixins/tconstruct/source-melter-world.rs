@@ -198,7 +198,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
                 if !native.contains_key(&*stack.item) { return None; }
                 let pristine = super::tconstruct_source_station_world::assemble(world, definition, &stack.item, &identities, None, &mut None)?;
-                if !stack.same_item_same_components(&pristine) { return None; }
+                if !super::tconstruct_source_melter_state::same_pristine_with_presentation(stack, &pristine) { return None; }
                 let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
                 let (id, recipe, material) = with_catalog(world, |catalog, registries, config| {
                     catalog.slimeskull_part_swap(basin, &stack.item, &identities[1], fluid,
@@ -209,6 +209,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 materials.get(&format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?))?;
                 identities[1] = material;
                 let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &identities, 0, true, &mut None)?;
+                if !super::tconstruct_source_melter_state::presentation_preserved(stack, &output) { return None; }
                 let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?;
                 if decoded.count != output.count || !decoded.same_item_same_components(&output) { return None; }
                 Some((id, recipe, output))
@@ -372,8 +373,8 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             })? { return Some((id, recipe, output)); }
         }
     }
-    // Restricted source tool-casting fluid swap. Only a pristine, losslessly
-    // reproducible tool is eligible; removed-trait validation remains active.
+    // Restricted source tool-casting fluid swap. Only an otherwise pristine, losslessly
+    // reproducible tool with optional name/lore is eligible; removed-trait validation remains active.
     if stack.count == 1 && stack.damage == 0 && stack.wire_patch().is_none() {
         let candidate = (|| {
             use horizon_world::nbt::Tag;
@@ -392,7 +393,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
             if !native.contains_key(&*stack.item) { return None; }
             let pristine = super::tconstruct_source_station_world::assemble(world, definition, &stack.item, &identities, None, &mut None)?;
-            if !stack.same_item_same_components(&pristine) { return None; }
+            if !super::tconstruct_source_melter_state::same_pristine_with_presentation(stack, &pristine) { return None; }
             let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
             let (id, recipe, material) = with_catalog(world, |catalog, registries, config| {
                 catalog.tool_fluid_swap(basin, &stack.item, identities.last()?, fluid,
@@ -403,6 +404,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             materials.get(&format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?))?;
             *identities.last_mut()? = material;
             let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &identities, 0, true, &mut None)?;
+            if !super::tconstruct_source_melter_state::presentation_preserved(stack, &output) { return None; }
             let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?;
             if decoded.count != output.count || !decoded.same_item_same_components(&output) { return None; }
             Some((id, recipe, output))

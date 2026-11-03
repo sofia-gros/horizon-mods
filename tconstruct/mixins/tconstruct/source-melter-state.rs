@@ -58,6 +58,30 @@ pub(super) fn plain_material_part(stack: &ItemStack) -> Option<String> {
     stack.same_item_same_components(&expected).then_some(material)
 }
 
+/// Permit only display-name and lore changes over the freshly assembled tool.
+/// Every other component must match the pristine copy exactly.
+pub(super) fn same_pristine_with_presentation(input: &ItemStack, pristine: &ItemStack) -> bool {
+    if input.count != 1 || input.damage != 0 || input.wire_patch().is_some() { return false; }
+    let name = input.data().and_then(|data| data.other("minecraft:custom_name"));
+    if !matches!(name, None | Some(Tag::String(_)) | Some(Tag::Compound(_))) { return false; }
+    let lore = input.data().and_then(|data| data.other("minecraft:lore"));
+    if !match lore { None => true, Some(Tag::List(lines)) => lines.iter().all(|line| matches!(line, Tag::String(_) | Tag::Compound(_))), _ => false } { return false; }
+    let Some(decoded) = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(input)) else { return false; };
+    if decoded.count != input.count || !decoded.same_item_same_components(input) { return false; }
+    let mut expected = pristine.clone();
+    for key in ["minecraft:custom_name", "minecraft:lore"] {
+        if let Some(value) = input.data().and_then(|data| data.other(key)) {
+            expected.data_mut().set_other(key, Some(value.clone()));
+        }
+    }
+    input.same_item_same_components(&expected)
+}
+
+pub(super) fn presentation_preserved(input: &ItemStack, output: &ItemStack) -> bool {
+    ["minecraft:custom_name", "minecraft:lore"].into_iter().all(|key|
+        input.data().and_then(|data| data.other(key)) == output.data().and_then(|data| data.other(key)))
+}
+
 /// Read only a losslessly representable portable tank before tagged casting.
 pub(super) fn portable_tank(stack: &ItemStack, capacity: u32) -> Option<Tank> {
     if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
@@ -726,5 +750,38 @@ mod first_material_input_tests {
         assert!(plain_material_part(&named).is_none());
         let mut stack = part.clone(); stack.count = 2; assert!(plain_material_part(&stack).is_none());
         let mut damaged = part; damaged.damage = 1; assert!(plain_material_part(&damaged).is_none());
+    }
+}
+
+#[cfg(test)]
+mod swap_presentation_tests {
+    use super::*;
+    #[test]
+    fn name_and_lore_are_the_only_allowed_differences() {
+        let pristine = ItemStack::new("tconstruct:slime_helmet", 1);
+        assert!(same_pristine_with_presentation(&pristine, &pristine));
+        let mut input = pristine.clone();
+        input.data_mut().set_other("minecraft:custom_name", Some(Tag::String("My helmet".into())));
+        input.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::String("Keepsake".into())])));
+        assert!(same_pristine_with_presentation(&input, &pristine));
+        assert!(presentation_preserved(&input, &input));
+        let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&input)).unwrap();
+        assert!(presentation_preserved(&input, &decoded));
+        assert!(input.same_item_same_components(&decoded));
+        assert!(!presentation_preserved(&input, &pristine));
+        let mut changed = input.clone(); changed.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("unknown", Tag::Int(1))])));
+        assert!(!same_pristine_with_presentation(&changed, &pristine));
+        let mut wrong_item = input.clone(); wrong_item.item = "minecraft:stone".into();
+        assert!(!same_pristine_with_presentation(&wrong_item, &pristine));
+        let mut corrupt = input.clone(); corrupt.data_mut().set_other("minecraft:lore", Some(Tag::Int(3)));
+        assert!(!same_pristine_with_presentation(&corrupt, &pristine));
+        corrupt.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::Int(3)])));
+        assert!(!same_pristine_with_presentation(&corrupt, &pristine));
+        corrupt = input.clone(); corrupt.data_mut().custom_name = Some(Tag::Int(3));
+        assert!(!same_pristine_with_presentation(&corrupt, &pristine));
+        let mut damaged = input.clone(); damaged.damage = 1;
+        assert!(!same_pristine_with_presentation(&damaged, &pristine));
+        let mut stacked = input; stacked.count = 2;
+        assert!(!same_pristine_with_presentation(&stacked, &pristine));
     }
 }
