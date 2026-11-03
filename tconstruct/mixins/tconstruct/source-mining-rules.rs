@@ -221,6 +221,22 @@ mod shared_rules_tests {
         assert!((environment_multiplier(Some(0), Some(2), Some(2), true, false, false) - 1.6 * 0.0027 / 25.0).abs() < 1e-7);
     }
     #[test]
+    fn flat_bonus_follows_incoming_speed_without_scaling_by_host_attribute() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([
+                ("id", Tag::String("tconstruct:blasting".into())), ("level", Tag::Int(20))
+            ])])),
+        ]);
+        // The source hook receives an already-adjusted event speed. It does
+        // not include an unrelated host attribute in the flat multiplier.
+        for (host_speed, expected) in [(8.0, 9.0), (4.0, 5.0), (0.0, 1.0)] {
+            let result = conditional_with_resistance(&custom, 0, host_speed, 1.0, None, true, false, Some(false), Some(6.0)).unwrap();
+            assert_eq!(result, expected);
+            assert_eq!(finish_mining_speed(result, 1.1), expected * 1.1);
+        }
+    }
+    #[test]
     fn source_bonus_does_not_rewrite_host_base_speed() {
         let custom = Tag::compound([
             ("tic_max_damage", Tag::Int(100)),
