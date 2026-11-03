@@ -36,7 +36,23 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 self.assertTrue(page.get('title'))
                 self.assertTrue(page.get('text') or page.get('description') or page.get('subText'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('"casting" | "armor" | "worktable" | "further_reading"', reader)
+        self.assertIn('"casting" | "ranged_materials" | "armor" | "worktable" | "further_reading"', reader)
+
+    def test_puny_ranged_material_chapter_uses_source_tier_and_predicate(self):
+        root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        chapter = next(entry for entry in index if entry['name'] == 'ranged_materials')
+        tier = chapter['extraData']['tconstruct:material_tier']
+        self.assertEqual(tier['type'], 'tconstruct:ranged')
+        self.assertEqual(tier['tier'], 2)
+        self.assertEqual(tier['predicate'], {'type': 'mantle:inverted', 'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('show_material_chapter(puny, materials.len())', reader)
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
+            definition = json.loads(archive.read('data/tconstruct/tinkering/materials/definition/slimewood.json'))
+            stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/slimewood.json'))['stats']
+            self.assertEqual(definition['tier'], 2)
+            self.assertTrue({'tconstruct:limb', 'tconstruct:grip', 'tconstruct:bowstring'} & stats.keys())
 
     def test_puny_armor_pages_follow_source_tag_and_have_descriptions(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
