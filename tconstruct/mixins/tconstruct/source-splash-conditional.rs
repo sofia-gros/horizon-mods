@@ -1,4 +1,4 @@
-//! Ordered source conditional block effects for the bundled herbicide form.
+// Ordered source conditional block effects for the bundled herbicide form.
 use super::Game;
 use serde_json::Value;
 
