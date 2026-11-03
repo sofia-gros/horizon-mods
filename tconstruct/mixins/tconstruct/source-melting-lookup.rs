@@ -56,6 +56,35 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    /// Match only the four source first-material recipes and resolved material fluids.
+    pub(super) fn first_material_casting(&self, basin: bool, input: &str, first: &str, fluid: &str,
+        supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, CastingRecipe, String, String)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        if self.recipes.values().filter_map(|b| super::tconstruct_source_melting_recipes::SlimeskullCastingRecipe::parse(b, conditions))
+            .any(|r| basin && r.cast.matches(input, &in_tag)) || self.recipes.values().filter_map(|b| super::tconstruct_source_melting_recipes::SlimelytraCastingRecipe::parse(b, conditions))
+            .any(|r| basin && r.cast.matches(input, &in_tag)) { return None; }
+        let mut found = None;
+        for (id, bytes) in self.recipes {
+            let Some(tool) = super::tconstruct_source_melting_recipes::FirstMaterialCastingRecipe::parse(bytes, conditions) else { continue; };
+            if tool.basin != basin || !tool.cast.matches(input, &in_tag) || !self.known_items.contains(&tool.result) || !supports(first, tool.first_stat) { continue; }
+            for raw in self.recipes.values() {
+                let Some(material) = MaterialFluidRecipe::parse(raw, conditions) else { continue; };
+                if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, tool.fluid_stat) { continue; }
+                let amount = material.fluid.amount.checked_mul(tool.item_cost)?;
+                let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * ((amount as f32 / 90.0_f32).sqrt() as f64)).round();
+                if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+                let mut spec = material.fluid.clone(); spec.amount = amount;
+                let recipe = CastingRecipe { basin, retextured: false, cast: Some(tool.cast.clone()), consumes_cast: true,
+                    switch_slots: false, fluid: spec, output: Output::Item(tool.result.clone()), cooling_time: time as u32 };
+                let value = (id.clone(), recipe, tool.result.clone(), material.material);
+                if found.as_ref().is_some_and(|old| old != &value) { return None; }
+                found = Some(value);
+            }
+        }
+        found
+    }
     /// Resolve the source's consumed-offset head plus slime material form.
     pub(super) fn slimeskull_casting(&self, basin: bool, input: &str, fluid: &str,
         supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
@@ -1001,5 +1030,37 @@ mod tipped_clearing_tests {
         assert!(super::super::tconstruct_source_melting_recipes::TipClearingRecipe::parse(invalid, &|_| true).is_none());
         let gated = br#"{"type":"tconstruct:casting_table_tipped_clearing","fluid":{"amount":50,"fluid":"minecraft:water"},"modifier":"tconstruct:tipped","tools":{"item":"tconstruct:arrow"},"conditions":[{"type":"example:test"}]}"#;
         assert!(super::super::tconstruct_source_melting_recipes::TipClearingRecipe::parse(gated, &|_| false).is_none());
+    }
+}
+
+#[cfg(test)]
+mod first_material_tests {
+    use super::*;
+    #[test]
+    fn fixed_forms_preserve_part_then_fluid_and_cost() {
+        for (basin, part, result, cost, stat) in [(false,"shield_core","plate_shield",3,"plating_shield"), (true,"laces","slime_boots",4,"slime"), (true,"ribcage","slimy_chestplate",8,"slime"), (true,"shell","slime_leggings",7,"slime")] {
+            let ty = if basin { "basin_tool_casting" } else { "table_tool_casting" };
+            let raw = format!(r#"{{"type":"tconstruct:{ty}","cast":{{"type":"tconstruct:material","item":"tconstruct:{part}"}},"cast_purpose":"first_material","item_cost":{cost},"result":"tconstruct:{result}"}}"#);
+            let fluid = br#"{"type":"tconstruct:material_fluid","fluid":{"amount":250,"fluid":"test:fluid"},"output":"test:second","temperature":50}"#;
+            let recipes = BTreeMap::from([("tool".into(), raw.into_bytes()), ("fluid".into(), fluid.to_vec())]);
+            let tags = HashMap::new();
+            let items = HashSet::from([format!("tconstruct:{part}"), format!("tconstruct:{result}")]);
+            let fluids = HashSet::from(["test:fluid".into()]);
+            let c = Catalog { recipes:&recipes, item_tags:&tags, fluid_tags:&tags, known_items:&items, known_fluids:&fluids };
+            let supports = |id: &str, kind: &str| (id == "test:first" && kind == format!("tconstruct:{part}")) || (id == "test:second" && kind == format!("tconstruct:{stat}"));
+            let (_, r, out, second) = c.first_material_casting(basin, &format!("tconstruct:{part}"), "test:first", "test:fluid", &supports, &|_| true).unwrap();
+            assert_eq!((out.as_str(), second.as_str(), r.fluid.amount, r.consumes_cast), (format!("tconstruct:{result}").as_str(), "test:second", 250 * cost, true));
+            assert!(c.first_material_casting(!basin, &format!("tconstruct:{part}"), "test:first", "test:fluid", &supports, &|_| true).is_none());
+            assert!(c.first_material_casting(basin, &format!("tconstruct:{part}"), "test:first", "test:fluid", &|_,_| false, &|_| true).is_none());
+        }
+    }
+    #[test]
+    fn unsupported_fields_and_cast_predicates_are_rejected() {
+        use super::super::tconstruct_source_melting_recipes::FirstMaterialCastingRecipe as Recipe;
+        let valid = r#"{"type":"tconstruct:basin_tool_casting","cast":{"type":"tconstruct:material","item":"tconstruct:laces"},"cast_purpose":"first_material","item_cost":4,"result":"tconstruct:slime_boots"}"#;
+        assert!(Recipe::parse(valid.as_bytes(), &|_| true).is_some());
+        for invalid in [valid.replace("\"item_cost\":4", "\"item_cost\":4,\"allowed_materials\":{}"), valid.replace("\"item\":\"tconstruct:laces\"", "\"item\":\"tconstruct:laces\",\"predicate\":{}"), valid.replace("slime_boots", "unknown")] {
+            assert!(Recipe::parse(invalid.as_bytes(), &|_| true).is_none());
+        }
     }
 }
