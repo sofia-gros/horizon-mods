@@ -94,6 +94,12 @@ feature execution, registration, acquisition and validation remain open.
 
 ## Earth and sky foliage preparation
 
+Earth and Sky foliage and Sky and Ender vines use the host's
+`minecraft:short_grass` block as their sound template. The source assigns grass
+sounds to these blocks; Horizon's `sounds` property takes a registered block ID
+rather than a sound-event ID. Formal resource preparation and gameplay with
+these declarations remain to be verified.
+
 The Earth and Sky leaves, saplings, fern and tall grass, plus Sky vine, now
 have content declarations, the pinned source assets and loot tables. Leaf
 loot preserves the source sapling and slime-ball Fortune chances; vanilla
@@ -103,8 +109,8 @@ property in addition to its template's five face properties. These are
 preparation for the island marker and tree code, not proof of natural island
 generation or acquisition.
 
-Source-specific sapling, leaf, grass and vine updates and foliage terrain tint
-are experimental and unverified. Other island sets, source fluids and
+Source-specific sapling, leaf, grass and vine updates are experimental and
+unverified; position-dependent foliage terrain tint is disconnected. Other island sets, source fluids and
 save/reload remain open. The target registry, model and
 loot loading, face/stage combinations, tree placement, source drop conditions
 and vanilla plant regressions all require dedicated validation.
@@ -115,8 +121,8 @@ are not registered or added by this batch.
 The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
 Silk Touch versus underlying slime-dirt loot. Source grass/nylium random ticks
-and position-dependent terrain tint have experimental connections described
-below; bonemeal and validation remain open.
+have experimental connections described below; position-dependent terrain tint
+is disconnected, and bonemeal and validation remain open.
 
 The original five `slimy_soil` child tags and their aggregate are included,
 with all 25 foliage/soil grass combinations, four slimy Enderbark roots and
@@ -148,14 +154,11 @@ generation or survival acquisition is claimed until that succeeds.
 
 ## Experimental foliage tint
 
-The five original color maps are loaded from the active render resource root.
-For the registered slime grasses, fern, tall grass, leaves and Sky vine, a
-terrain-face tint hook uses the original 256-block coordinate reflection,
-including the original 128-block offset for leaves and vines. The maps are
-reloaded when render assets load. Missing or invalid maps leave the host tint
-unchanged. Item tint, particle tint and resource-reload behavior still require
-implementation or validation. The target Mixins plan, shader compatibility,
-color-map indexing and actual world rendering have not been tested.
+The five original color maps and lookup code remain available, but the
+terrain-face hook is disconnected following the b53 `E_INVALID_BINDING`
+diagnostic for the destructured `Mesher::face` argument. Position-dependent
+terrain, item and particle tint are not established by this candidate. Color-map
+indexing, resource reload and shader behavior still need validation.
 
 ## Experimental slime leaf lifecycle
 
@@ -281,9 +284,11 @@ loot and slimy-leaf tag membership. Leaf distance/decay uses the candidate's
 slime-leaf rules. A leaf can grow a hanging propagule with bone meal; hanging
 propagules age from 0 to 4 and require slimy-leaf support. Planted propagules
 use slime soil, the source one-in-seven random advancement, and the source
-bone-meal success chance. Their stage-1 Ender tree feature is still deferred;
-no vanilla mangrove is substituted, and successful bone meal at that stage
-is consumed without creating the missing tree. Exact waterlogging, placement,
+bone-meal success chance. This candidate connects stage-1 growth to the Ender
+tree placement code; it retains the water at the sapling position and restores
+the sapling if placement fails. Growth is deferred when the surrounding
+chunks are not loaded, which is a conservative difference from the source.
+Exact waterlogging, placement,
 leaf drop predicates, hook ordering, game behavior, persistence and LAN require
 validation. Dedicated-server coverage and normal Ender tree acquisition are
 not established.
@@ -306,3 +311,66 @@ and RNG against TConstruct before claiming parity. Tag loading, all feature
 variants, bone-meal consumption, obstruction, chunk boundaries, source loot,
 save/reload, vanilla-fungus regression and local/LAN need dedicated testing.
 Dedicated-server support and normal acquisition are not established.
+
+## Experimental Blood island fungus markers
+
+The Blood island's selected fungus marker now attempts the original unplanted
+fungus algorithm rather than always skipping it. It uses the source slimy
+nylium and grow-through tags, source height, large-fungus and cap RNG order,
+and the host's per-state replaceability facts. Successful placements count
+against the original three-tree budget. The generation depth is persisted with
+the piece; older saved pieces use the current generator depth. If host tree
+facts are unavailable, the marker remains deferred. The original Ender and
+vanilla tree markers remain deferred, and source fluids are still omitted.
+
+Only syntax checks have been performed. Official target plan/type checking,
+structure start and saved-start bindings, tag and state-fact resolution,
+block-write boundaries, RNG/placement comparison with the original, tree
+budget, save/reload, local/LAN and normal-world tests remain necessary. Use a
+disposable world until these checks pass; earlier chunks without fungi are not
+retrogened.
+
+The official b53 apply for candidate `f0b9ee660e22fb35517e798d053d0f3672d6136b`
+reported `E_SELECTOR` for the foliage face hook because its site ordinal was
+missing. The follow-up specifies ordinal zero and retains `require = 1` for
+Mesher::face's single `tint` initialization. This source-level correction has
+not yet passed the official plan/apply, type check or game validation.
+
+The b53 follow-up apply after the tint selector fix reached support-module
+loading but reported `E_MODULE`: four module source files used inner-doc
+comments, which are parsed as file attributes. The follow-up changes those
+comments to ordinary comments. Its official apply, type check, build and game
+behavior remain unverified.
+
+The later Ender-propagule and planted/island-fungus support modules also use
+ordinary comments so that the Mixins module loader does not interpret their
+headers as file attributes. Their combined official apply remains unverified.
+
+## Ender tree components
+
+The original Enderbark root block, item, loot and axe tag are registered. Its
+source-specific vertical adjacent-root face culling is not implemented. A
+shared Ender-tree component provides the four source congealed-slime/root
+replacement mappings and the original leaf-vine decorator's ordered 0.125
+random draws and maximum four-block hanging extensions. The component is
+used by the candidate live-world tree implementation. Its soil provider keeps
+source dirt except grass blocks and mycelium, and replaces other blocks with
+dirt; the source Forge `onTreeGrow` extension for third-party blocks is not
+implemented. Roots use the host water-state query. The island marker remains
+deferred: the host's `PieceWorld` interface does not expose the shape-edge
+updates or block-tag queries needed by tree placement. On the b53 host,
+`structure::legacy::PieceWorld` would need object-safe forwarding methods for
+`PlacementContext::update_shape_at_face(position, direction, flags)` and
+`PlacementContext::block_matches_tag(position, tag)`, with the existing blanket
+`PieceWorld for W` implementation delegating to `W: PlacementContext`. The
+underlying world implements these operations, but `PieceContext.world` erases
+that interface. The pinned Mixins `WRAP_OPERATION` also requires a target
+parameter as a method receiver, while this call uses the local piece `p`.
+The live connection, root placement,
+waterlogging, leaf ordering and random draws require official apply, type,
+package and in-game verification. No Ender tree growth is claimed as tested.
+
+The b53 selector and module-header follow-ups reached `E_INVALID_BINDING`
+for the destructured `Mesher::face` arguments. The integration omits that
+terrain-tint injection only; vegetation, island generation and source lookup
+remain available. Do not infer a tint implementation from map loading.

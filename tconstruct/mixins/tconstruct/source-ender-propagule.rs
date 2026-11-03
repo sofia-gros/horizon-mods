@@ -1,4 +1,4 @@
-//! Original Ender slime propagule and leaf interactions, excluding tree feature placement.
+// Original Ender slime propagule and leaf interactions.
 use super::*;
 use horizon_core::random::RandomSource;
 fn block<'a>(level: &'a GameLevel<'_>, state: BlockStateId) -> Option<&'a horizon_world::chunk::BlockState> { level.registry.state(state) }
@@ -14,8 +14,22 @@ fn set_property(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state:
     let Ok(next)=level.registry.resolve(&next) else {return;};let b=level.behaviours;b.set_block(level,ticks,pos,next,flags);
 }
 fn advance(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state: BlockStateId) {
-    if block(level,state).and_then(|b|b.properties.get("stage")).is_some_and(|s|s=="0") {set_property(level,ticks,pos,state,"stage","1",4);}
-    // Stage 1 is retained until the original Ender tree feature is connected.
+    let stage=block(level,state).and_then(|b|b.properties.get("stage")).map(String::as_str);
+    if stage==Some("0") {set_property(level,ticks,pos,state,"stage","1",4);return;}
+    if stage!=Some("1") {return;}
+    // Keep live feature writes inside already loaded chunks. This is a
+    // conservative boundary and can defer growth near unloaded chunks.
+    for dx in [-24,-8,8,24] {for dz in [-24,-8,8,24] {
+        let (Some(x),Some(z))=(pos.x.checked_add(dx),pos.z.checked_add(dz)) else {return;};
+        if !level.world.loaded(x,z) {return;}
+    }}
+    let tall=level.world.random.next_float()<0.85;
+    let b=level.behaviours;
+    let replacement=b.legacy_block(b.fluid(state));
+    b.set_block(level,ticks,pos,replacement,4);
+    if !horizon_world::level::tconstruct_ender_live_place::place(b,level,ticks,pos,tall) {
+        b.set_block(level,ticks,pos,state,4);
+    }
 }
 pub(super) fn random(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state: BlockStateId,handled: &mut bool) {
     if !sapling(level,state) {return;}*handled=true;

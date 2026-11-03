@@ -5,8 +5,14 @@ use super::{Game, tconstruct_source_smeltery_structure::{self as structure, Part
 type Pos = (i32, i32, i32);
 
 pub(super) fn detect(game: &Game<'_>, controller: Pos) -> Option<([i32; 3], [i32; 3], u32)> {
-    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags().as_ref()?.as_ref().ok()?;
-    let block = game.res.facts().get(game.world.block(controller.0, controller.1, controller.2)).name.clone();
+    detect_world(&game.world, game.res.facts(), game.pack.assets.registry, controller)
+}
+
+/// The same detector is used where placement has a level but no Game.
+pub(super) fn detect_world(world: &super::tconstruct_world::World, facts: &horizon_items::blocks::BlockFacts,
+    registry: &horizon_world::registry::BlockRegistry, controller: Pos) -> Option<([i32; 3], [i32; 3], u32)> {
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_block_tags().as_ref()?.as_ref().ok()?;
+    let block = facts.get(world.block(controller.0, controller.1, controller.2)).name.clone();
     let foundry = &*block == "tconstruct:foundry_controller";
     let (floor_tag, wall_tag, tank_tag) = if foundry {
         ("tconstruct:foundry/floor", "tconstruct:foundry/wall", "tconstruct:foundry/tanks")
@@ -17,16 +23,16 @@ pub(super) fn detect(game: &Game<'_>, controller: Pos) -> Option<([i32; 3], [i32
     let walls = tags.get(wall_tag)?;
     let tanks = tags.get(tank_tag)?;
     let extra_air = tags.get("tconstruct:structure_air");
-    let state = game.world.block(controller.0, controller.1, controller.2);
-    let facing = match game.pack.assets.registry.state(state)?.properties.get("facing")?.as_str() {
+    let state = world.block(controller.0, controller.1, controller.2);
+    let facing = match registry.state(state)?.properties.get("facing")?.as_str() {
         "north" => [0,-1], "south" => [0,1], "west" => [-1,0], "east" => [1,0], _ => return None,
     };
-    let owners = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners();
+    let owners = world.chunks.__horizon_mixins_tconstruct_smeltery_owners();
     let accepts = |p: [i32; 3], part| {
         let pos = (p[0], p[1], p[2]);
-        if !game.world.chunks.contains_key(&(p[0] >> 4, p[2] >> 4)) { return false; }
+        if !world.chunks.contains_key(&(p[0] >> 4, p[2] >> 4)) { return false; }
         if part == Part::Wall && pos == controller { return true; }
-        let name = game.res.facts().get(game.world.block(p[0], p[1], p[2])).name.clone();
+        let name = facts.get(world.block(p[0], p[1], p[2])).name.clone();
         match part {
             Part::Interior => matches!(&*name, "minecraft:air" | "minecraft:cave_air" | "minecraft:void_air") || extra_air.is_some_and(|set| set.contains(&*name)),
             Part::Floor | Part::Wall => {

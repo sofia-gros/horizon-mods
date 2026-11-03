@@ -1,4 +1,4 @@
-//! Source slime-fungus soil and bonemeal rules, using the host huge-fungus writer.
+// Source slime-fungus soil and bonemeal rules, using the host huge-fungus writer.
 use super::*;
 use horizon_core::random::RandomSource;
 fn kind(level: &GameLevel<'_>, state: BlockStateId) -> Option<&'static str> {

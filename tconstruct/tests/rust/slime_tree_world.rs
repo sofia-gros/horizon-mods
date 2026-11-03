@@ -5,6 +5,9 @@ pub use horizon_world::{nbt, registry, worldgen};
 #[path = "../../mixins/tconstruct/source-slime-island-markers.rs"] mod tconstruct_slime_island_markers;
 #[path = "../../mixins/tconstruct/source-slime-island-marker-world.rs"] mod tconstruct_slime_island_marker_world;
 #[path = "../../mixins/tconstruct/source-slime-tree-config.rs"] mod tconstruct_slime_tree_config;
+mod tconstruct_island_slime_fungus {
+    pub(crate) fn place(_: &mut horizon_world::worldgen::structure::legacy::PieceContext<'_>, _: &[bool], _: i32, _: [i32;3]) -> horizon_world::worldgen::structure::legacy::Result<bool> { Ok(false) }
+}
 #[path = "../../mixins/tconstruct/source-slime-island-piece.rs"] mod tconstruct_slime_island_piece;
 
 #[cfg(test)]
@@ -223,18 +226,18 @@ mod tests {
         let markers = tconstruct_slime_island_piece::MarkerConfig { structure: "tconstruct:earth_slime_island".into(),
             tree: Some(tree), deferred_tree: None, grasses: vec![("tconstruct:earth_slime_tall_grass".into(), 7), ("tconstruct:earth_slime_fern".into(), 1)], vine: None };
         let piece = tconstruct_slime_island_piece::IslandPiece::new(&resources, "tconstruct:test/island", [8, 80, 24],
-            Rotation::Clockwise90, Mirror::FrontBack, markers, 2).unwrap();
+            Rotation::Clockwise90, Mirror::FrontBack, markers, 2, None, 384).unwrap();
         let saved = piece.save().unwrap();
         let read_str = |key: &str| match saved.get(&key.into()).unwrap() { Tag::String(s) => s.to_string_lossy(), _ => panic!("expected string") };
         let read_int = |key: &str| match saved.get(&key.into()).unwrap() { Tag::Int(v) => *v, _ => panic!("expected int") };
         let value = serde_json::json!({"Rot":read_str("Rot"), "Mi":read_str("Mi"), "Template":read_str("Template"),
             "TCMarkers":read_str("TCMarkers"), "NumberOfTreesPlaced":read_int("NumberOfTreesPlaced"),
             "TPX":read_int("TPX"), "TPY":read_int("TPY"), "TPZ":read_int("TPZ")});
-        let restored = tconstruct_slime_island_piece::IslandPiece::from_saved(&resources, &value).unwrap();
+        let restored = tconstruct_slime_island_piece::IslandPiece::from_saved(&resources, &value, None, 384).unwrap();
         assert_eq!(restored.save().unwrap(), saved);
         let mut invalid = value;
         invalid["NumberOfTreesPlaced"] = serde_json::json!(4);
-        assert!(tconstruct_slime_island_piece::IslandPiece::from_saved(&resources, &invalid).is_none());
+        assert!(tconstruct_slime_island_piece::IslandPiece::from_saved(&resources, &invalid, None, 384).is_none());
         std::fs::remove_dir_all(dir).unwrap();
     }
 }
