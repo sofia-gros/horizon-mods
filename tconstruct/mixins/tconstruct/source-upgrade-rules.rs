@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 13] = [
+const UPGRADES: [(&str, i32); 15] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1), ("tconstruct:tank", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -99,7 +99,7 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum() }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -124,7 +124,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:tank" && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
+        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -143,7 +143,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !supported(id, &tool.item) || id == "tconstruct:tank" { return None; }
+    if !supported(id, &tool.item) { return None; }
     let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -195,12 +195,15 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
+) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
-            if amount(tool, id) != 0 { continue; }
+            if !matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") && amount(tool, id) != 0 { continue; }
+            if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") && amount(tool, id) >= i16::MAX as i32 { continue; }
             if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
                 && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
@@ -231,7 +234,8 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            return Some(UpgradePlan { id: id.to_owned(), amount: 1, consumed, leftover });
+            let next_level = if matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling") { amount(tool, id).checked_add(1)? } else { 1 };
+            return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
         let Some(input) = value.get("input") else {
@@ -453,6 +457,22 @@ mod tests {
         assert!(valid_slots(&tool,&BTreeMap::from([("tconstruct:enhanced".into(),1)]),3,1));
         assert!(!valid_slots(&tool,&BTreeMap::new(),3,1));
         assert!(valid_slots(&tool,&BTreeMap::new(),4,1));
+    }
+
+    #[test]
+    fn tank_recipe_adds_one_level_and_requires_an_upgrade_slot() {
+        let recipe = br#"{"type":"tconstruct:modifier","inputs":[{"type":"tconstruct:no_container","tag":"tconstruct:tanks"}],"result":"tconstruct:tank","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/held"}}"#.to_vec();
+        let recipes = BTreeMap::from([("tank".into(), recipe)]);
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/held".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+            ("tconstruct:tanks".into(), HashSet::from(["tconstruct:seared_fuel_gauge".into()])),
+        ]);
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        let inputs = [Some(ItemStack::new("tconstruct:seared_fuel_gauge", 1))];
+        assert_eq!(plan(&recipes, &tags, &tool, &inputs, 3).unwrap().amount, 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:tank", Tag::Int(1))]))])));
+        assert_eq!(plan(&recipes, &tags, &tool, &inputs, 3).unwrap().amount, 2);
+        assert!(plan(&recipes, &tags, &tool, &inputs, 1).is_none());
     }
 
     #[test]

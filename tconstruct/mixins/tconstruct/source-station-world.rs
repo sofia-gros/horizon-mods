@@ -134,31 +134,60 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
     fields.insert("tic_armor".into(), Tag::Float(stats.armor.to_bits()));
     fields.insert("tic_armor_toughness".into(), Tag::Float(stats.armor_toughness.to_bits()));
     fields.insert("tic_knockback_resistance".into(), Tag::Float(stats.knockback_resistance.to_bits()));
-    // Narrow source-equivalent tank support: the pinned pickaxe has a fixed
-    // pierce definition trait. Only material traits known not to affect tank
-    // capacity are accepted, and unknown upgrades do not create a tank.
+    // The six fluid modifiers and the original tool traits contribute to a
+    // shared capacity. Only tools already using this adapter's tank enter this
+    // path; unrelated tools retain their pre-existing rebuild behaviour.
     let tank_level = match fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:tank")) {
         None => 0,
-        Some(Tag::Int(level)) if *level == 1 => 1,
+        Some(Tag::Int(level)) if (1..=i16::MAX as i32).contains(level) => *level,
         _ => return None,
     };
-    if tank_level > 0 {
-        if item != "tconstruct:pickaxe" { return None; }
+    let has_slurping = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:slurping")), Some(Tag::Int(level)) if *level > 0);
+    let has_spilling = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:spilling")), Some(Tag::Int(level)) if *level > 0);
+    if tank_level > 0 || has_slurping || has_spilling || fields.get(&"tic_tank_capacity".into()).is_some() {
         let mut probe = output.clone();
         probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
-        let stored = super::pluto_stack_fluid::read(&probe, "tic_persistent", "tconstruct:tank_fluid")?;
-        if stored.as_ref().is_some_and(|fluid| fluid.amount > 1000) { return None; }
+        // Fail before any transaction is committed if stored fluid is malformed.
+        super::pluto_stack_fluid::read(&probe, "tic_persistent", "tconstruct:tank_fluid")?;
         let traits = super::tconstruct_source_material_traits::levels(world, &probe)?;
-        if traits.levels.keys().any(|id| !matches!(id.as_str(), "tconstruct:cultivated" | "tconstruct:jagged")) { return None; }
-        let upgrades = fields.get(&"tic_upgrades".into())?;
-        let Tag::Compound(upgrades) = upgrades else { return None; };
-        if upgrades.keys().any(|id| !matches!(id.to_string_lossy().as_str(), "tconstruct:tank" | "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:haste" | "tconstruct:sharpness" | "tconstruct:reinforced" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")) { return None; }
-        fields.insert("tic_tank_capacity".into(), Tag::Int(1000));
-    } else {
-        // Never discard fluid when a tank-bearing tool is rebuilt without it.
-        if fields.get(&"tic_tank_capacity".into()).is_some()
-            && fields.get(&"tic_persistent".into()).and_then(|v| v.get("tconstruct:tank_fluid")).is_some() { return None; }
-        fields.remove(&"tic_tank_capacity".into());
+        let mut levels = traits.levels;
+        let mut add = |id: &str, level: i32| -> Option<()> {
+            if level < 0 { return None; }
+            let value = levels.entry(id.to_owned()).or_insert(0);
+            *value = value.checked_add(level)?; Some(())
+        };
+        if let Some(upgrades) = fields.get(&"tic_upgrades".into()) {
+            let Tag::Compound(upgrades) = upgrades else { return None; };
+            for (id, value) in upgrades {
+                let Tag::Int(level) = value else { return None; };
+                let id = id.to_string_lossy();
+                if !id.starts_with("tconstruct:") { return None; }
+                add(&id, *level)?;
+            }
+        }
+        for module in definition_json.get("modules")?.as_array()? {
+            if module.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:traits") { continue; }
+            for entry in module.get("traits")?.as_array()? {
+                let id = entry.get("name")?.as_str()?;
+                if !id.starts_with("tconstruct:") { return None; }
+                let level = i32::try_from(entry.get("level").and_then(serde_json::Value::as_i64).unwrap_or(1)).ok()?;
+                add(id, level)?;
+            }
+        }
+        // Conditional trait redirects require their full source predicates.
+        if levels.contains_key("tconstruct:spilling_rod") { return None; }
+        let per_level = ["tank", "slurping", "spilling", "splashing", "bursting", "wetting", "melting", "spitting"];
+        let mut units = 0i32;
+        for id in per_level { units = units.checked_add(levels.get(&format!("tconstruct:{id}")).copied().unwrap_or(0))?; }
+        for id in ["bucketing", "overburn"] { if levels.get(&format!("tconstruct:{id}")).copied().unwrap_or(0) > 0 { units = units.checked_add(1)?; } }
+        let capacity = units.checked_mul(1000)?;
+        // Source TankModule.validate clamps to the new capacity; removing the
+        // final handler clears the fluid. Work on a copy before consuming slots.
+        let resized = super::pluto_stack_fluid::resize(&probe, "tic_persistent", "tconstruct:tank_fluid", capacity as u32)?;
+        let Tag::Compound(resized_custom) = resized.data()?.other("minecraft:custom_data")?.clone() else { return None; };
+        *fields = resized_custom;
+        if capacity == 0 { fields.remove(&"tic_tank_capacity".into()); }
+        else { fields.insert("tic_tank_capacity".into(), Tag::Int(capacity)); }
     }
     output.data_mut().set_other("minecraft:custom_data", Some(custom));
     output.data_mut().set_other("minecraft:max_damage", Some(Tag::Int(durability)));
