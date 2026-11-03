@@ -94,12 +94,10 @@ pub fn apply_stat_traits(
     let preserved = levels.get("tconstruct:preserved").copied().unwrap_or(0);
     let ductile = levels.get("tconstruct:ductile").copied().unwrap_or(0);
     let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0);
-    let penalty = if overlord >= 7 { -0.99999 } else { -0.15 * overlord as f32 };
-    let boost = durability_boost(preserved, ductile) + penalty;
-    if boost == 0.0 && ductile <= 0 {
+    if preserved <= 0 && ductile <= 0 && overlord <= 0 {
         return Some(());
     }
-    let durability = (stats.durability_base_raw * (1.0 + ordered_durability_percent(stack, stats, levels, true)) * stats.durability_multiplier_unit) as i32;
+    let durability = (stats.durability_base_raw * (1.0 + stats.durability_percent_raw) * ordered_durability_multiplier(stack, stats, levels, true)) as i32;
     let durability = if overlord > 0 { durability.max(1) } else { durability };
     if durability < 1 {
         return None;
@@ -138,7 +136,7 @@ pub fn apply_stat_traits(
 mod tests {
     use super::*;
     #[test]
-    fn ductile_effects_remain_when_overlord_cancels_durability_boost() {
+    fn ductile_and_overlord_multiply_without_erasing_other_stats() {
         use horizon_items::items::ItemStack;
         use horizon_world::nbt::Tag;
         let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100,"tconstruct:attack_damage":10,"tconstruct:armor_toughness":2}}]}"#;
@@ -148,7 +146,8 @@ mod tests {
         let levels = [("tconstruct:ductile".to_owned(), 3), ("tconstruct:overlord".to_owned(), 2)].into_iter().collect();
         apply_stat_traits(&mut stack, &stats, &levels).unwrap();
         let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
-        assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(100))));
+        // Source: 100 * (1 + 0.1 * 3) * (1 - 0.15 * 2).
+        assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(91))));
         assert!(matches!(custom.get("tic_attack_damage"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 11.5).abs() < 0.001));
         assert!(matches!(custom.get("tic_armor_toughness"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 5.0).abs() < 0.001));
     }
@@ -322,12 +321,12 @@ pub(super) fn ordered_modifier_ids(stack: &horizon_items::items::ItemStack,
     ids
 }
 
-pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack,
+pub(super) fn ordered_durability_multiplier(stack: &horizon_items::items::ItemStack,
     stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &std::collections::BTreeMap<String,i32>, include_overlord: bool) -> f32 {
     use horizon_world::nbt::Tag;
     let upgrades = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
-    let mut percent = stats.durability_percent_raw;
+    let mut percent = stats.durability_multiplier_unit;
     for id in ordered_modifier_ids(stack, levels) {
         let trait_level = levels.get(&id).copied().unwrap_or(0).max(0);
         let upgrade = match upgrades.and_then(|u|u.get(id.as_str())) {Some(Tag::Int(n)) => (*n).max(0), _=>0};
@@ -338,11 +337,11 @@ pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack
             "tconstruct:netherite" if upgrade > 0 || trait_level > 0 => 0.2,
             _ => 0.0,
         };
-        percent += delta;
+        percent *= 1.0 + delta;
     }
     if include_overlord {
         let level = levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0);
-        percent += if level >= 7 { -0.99999 } else { -0.15 * level as f32 };
+        if level > 0 { percent *= 1.0 + if level >= 7 { -0.99999 } else { -0.15 * level as f32 }; }
     }
     percent
 }
@@ -364,7 +363,7 @@ mod source_order_tests {
     use std::collections::BTreeMap;
 
     #[test]
-    fn trait_addition_order_preserves_float_boundary() {
+    fn trait_multiplier_order_preserves_float_boundary() {
         let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
         let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
         let levels = BTreeMap::from([("tconstruct:ductile".into(),1), ("tconstruct:preserved".into(),4)]);
@@ -376,11 +375,28 @@ mod source_order_tests {
                 ("tic_trait_order", Tag::List(vec![Tag::String(first.into()), Tag::String(second.into())])),
             ]))); stack
         };
-        let first = ordered_durability_percent(&make("tconstruct:ductile", "tconstruct:preserved"), &stats, &levels, false);
-        let second = ordered_durability_percent(&make("tconstruct:preserved", "tconstruct:ductile"), &stats, &levels, false);
-        assert_eq!(first.to_bits(), (((0.0f32 + 0.2) + 0.5 + 0.1) + (0.15f32 * 4.0)).to_bits());
-        assert_eq!(second.to_bits(), (((0.0f32 + 0.2) + 0.5 + (0.15f32 * 4.0)) + 0.1).to_bits());
-        assert_ne!(first.to_bits(), second.to_bits());
+        let first = ordered_durability_multiplier(&make("tconstruct:ductile", "tconstruct:preserved"), &stats, &levels, false);
+        let second = ordered_durability_multiplier(&make("tconstruct:preserved", "tconstruct:ductile"), &stats, &levels, false);
+        assert_eq!(first.to_bits(), (((1.0f32 * 1.2) * 1.5 * 1.1) * (1.0 + 0.15f32 * 4.0)).to_bits());
+        assert_eq!(second.to_bits(), (((1.0f32 * 1.2) * 1.5 * (1.0 + 0.15f32 * 4.0)) * 1.1).to_bits());
+        // Java rounds each multiplication in modifier order; equal results are valid.
+    }
+
+    #[test]
+    fn overlord_copies_before_its_priority_50_reduction() {
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))])),
+            ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:emerald".into()),Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order", Tag::List(vec![Tag::String("tconstruct:ductile".into()),Tag::String("tconstruct:overlord".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:ductile".into(),1),("tconstruct:overlord".into(),2)]);
+        let before_copy = ordered_durability_multiplier(&stack, &stats, &levels, false);
+        let after = ordered_durability_multiplier(&stack, &stats, &levels, true);
+        assert!((before_copy - 1.5 * 1.2 * 1.1).abs() < 0.00001);
+        assert!((after - 1.5 * 1.2 * 1.1 * 0.7).abs() < 0.00001);
     }
 
     #[test]
