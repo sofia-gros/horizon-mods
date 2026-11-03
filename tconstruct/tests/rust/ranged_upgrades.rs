@@ -214,3 +214,64 @@ fn blindshot_stays_unsalvageable_when_gilded_is_present() {
  assert!(ids.contains(&"tconstruct:gilded"));
  assert!(!ids.contains(&"tconstruct:blindshot"));
 }
+
+#[path = "../../mixins/tconstruct/source-mining-stack.rs"] mod tconstruct_source_mining_stack;
+
+#[test]
+fn incremental_upgrades_merge_with_material_trait_levels() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":3.0,"tconstruct:attack_damage":2.0,"tconstruct:attack_speed":1.0,"tconstruct:draw_speed":1.0,"tconstruct:accuracy":0.5}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ let traits=BTreeMap::from([("tconstruct:haste".into(),2),("tconstruct:sharpness".into(),2),("tconstruct:swiftstrike".into(),2),("tconstruct:quick_charge".into(),2),("tconstruct:trueshot".into(),2)]);
+ let mut pick=ItemStack::new("tconstruct:pickaxe",1);
+ pick.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(18)),("tconstruct:sharpness",Tag::Int(18)),("tconstruct:swiftstrike",Tag::Int(36))]))])));
+ pick.data_mut().set_other("minecraft:tool",Some(Tag::compound([("rules",Tag::List(vec![Tag::compound([("speed",Tag::Float(3.0f32.to_bits()))])]))])));
+ for _ in 0..2 {
+  tconstruct_source_mining_stack::apply(&mut pick,&stats,&traits,&[],true).unwrap();
+  tconstruct_source_upgrade_rules::apply_stats(&mut pick,&stats,&traits,true,true).unwrap();
+  let data=pick.data().unwrap(); let n=|key| match data.other("minecraft:custom_data").unwrap().get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("{key}")};
+  let Tag::List(rules)=data.other("minecraft:tool").unwrap().get("rules").unwrap() else { panic!("rules") };
+  let speed=rules[0].get("speed").unwrap();
+  assert!(matches!(speed,Tag::Float(v) if (f32::from_bits(*v)-12.6).abs()<1e-5));
+  assert!((n("tic_attack_damage")-3.875).abs()<1e-5);
+  assert!((n("tic_attack_speed")-1.125).abs()<1e-5);
+ }
+ // A changed material recipe removes the trait contribution rather than
+ // stacking it with the previous rebuild's output.
+ tconstruct_source_mining_stack::apply(&mut pick,&stats,&BTreeMap::new(),&[],true).unwrap();
+ tconstruct_source_upgrade_rules::apply_stats(&mut pick,&stats,&BTreeMap::new(),true,true).unwrap();
+ let data=pick.data().unwrap();
+ let Tag::List(rules)=data.other("minecraft:tool").unwrap().get("rules").unwrap() else { panic!("rules") };
+ assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-4.6).abs()<1e-5));
+ let custom=data.other("minecraft:custom_data").unwrap();
+ assert!(matches!(custom.get("tic_attack_damage"),Some(Tag::Float(v)) if (f32::from_bits(*v)-2.375).abs()<1e-5));
+ assert!(matches!(custom.get("tic_attack_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.025).abs()<1e-5));
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:quick_charge",Tag::Int(2)),("tconstruct:trueshot",Tag::Int(5))]))])));
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&traits,false,false).unwrap();
+  let data=bow.data().unwrap().other("minecraft:custom_data").unwrap();let n=|key| match data.get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("{key}")};
+  assert!((n("tic_draw_speed")-1.6).abs()<1e-5);
+  assert!((n("tic_accuracy")-0.75).abs()<1e-5);
+ }
+}
+
+#[test]
+fn incremental_trait_only_upgrade_only_and_removal_rebuild() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":2,"tconstruct:attack_speed":1,"tconstruct:draw_speed":1,"tconstruct:accuracy":0.5}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ let mut bow=ItemStack::new("tconstruct:crossbow",1);
+ bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:quick_charge",Tag::Int(2)),("tconstruct:trueshot",Tag::Int(5))]))])));
+ let levels=BTreeMap::from([("tconstruct:quick_charge".into(),2),("tconstruct:trueshot".into(),2)]);
+ for (traits,draw,accuracy) in [(&levels,1.6,0.75),(&BTreeMap::new(),1.1,0.55)] {
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,traits,false,false).unwrap();
+  let data=bow.data().unwrap().other("minecraft:custom_data").unwrap();let n=|key| match data.get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("{key}")};
+  assert!((n("tic_draw_speed")-draw).abs()<1e-5);assert!((n("tic_accuracy")-accuracy).abs()<1e-5);
+ }
+ bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+ let data=bow.data().unwrap().other("minecraft:custom_data").unwrap();
+ assert!(matches!(data.get("tic_draw_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.5).abs()<1e-5));
+ assert!(matches!(data.get("tic_accuracy"),Some(Tag::Float(v)) if (f32::from_bits(*v)-0.7).abs()<1e-5));
+}

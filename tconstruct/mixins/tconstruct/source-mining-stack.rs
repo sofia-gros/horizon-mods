@@ -24,7 +24,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     for id in super::tconstruct_source_material_effects::ordered_modifier_ids(stack, levels) {
         match id.as_str() {
             "tconstruct:diamond" if diamond => add += 2.0,
-            "tconstruct:haste" => add += 4.0 * haste,
+            "tconstruct:haste" => add += 4.0 * (haste + level(&id).max(0) as f32),
             "tconstruct:entangled" if level(&id) > 0 => add += 6.0,
             "tconstruct:lightweight" => multiplier *= 1.0 + 0.08 * level(&id).max(0) as f32,
             "tconstruct:heavy" => multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,
@@ -137,4 +137,23 @@ mod tests {
             assert!((f32::from_bits(*speed) - 5.6).abs() < 0.0001);
         }
     }
+    #[test]
+    fn haste_trait_and_incremental_upgrade_rebuild_together() {
+        let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":3}}]}"#;
+        let stats=super::super::tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+        let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(18))]))])));
+        tool.data_mut().set_other("minecraft:tool",Some(Tag::compound([("rules",Tag::List(vec![Tag::compound([("speed",Tag::Float(3.0f32.to_bits()))])]))])));
+        let traits=BTreeMap::from([("tconstruct:haste".into(),2)]);
+        for (levels, expected) in [(&traits,12.6),(&BTreeMap::new(),4.6),(&traits,12.6)] {
+            apply(&mut tool,&stats,levels,&[],true).unwrap();
+            let Tag::List(rules)=tool.data().unwrap().other("minecraft:tool").unwrap().get("rules").unwrap() else { panic!("rules") };
+            assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-expected).abs()<1e-5));
+        }
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+        apply(&mut tool,&stats,&traits,&[],true).unwrap();
+        let Tag::List(rules)=tool.data().unwrap().other("minecraft:tool").unwrap().get("rules").unwrap() else { panic!("rules") };
+        assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-11.0).abs()<1e-5));
+    }
+
 }
