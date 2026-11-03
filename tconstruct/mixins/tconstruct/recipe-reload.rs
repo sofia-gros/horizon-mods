@@ -18,6 +18,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let mut block_tags = std::collections::BTreeMap::new();
     let mut materials = std::collections::BTreeMap::new();
     let mut material_tags = std::collections::BTreeMap::new();
+    let mut modifiers: Result<crate::game::tconstruct_modifier_snapshot::Raw, String> = Ok(Default::default());
     fn merge(
         pack: &horizon_client::datapack::DataPack,
         recipes: &mut std::collections::BTreeMap<String, Vec<u8>>,
@@ -26,19 +27,25 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         block_tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         materials: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
         material_tags: &mut std::collections::BTreeMap<String, Vec<Vec<u8>>>,
+        modifiers: &mut Result<crate::game::tconstruct_modifier_snapshot::Raw, String>,
     ) {
         let files = pack.__horizon_mixins_tconstruct_recipe_files(&["recipes", "tags", "tinkering"]);
         crate::game::tconstruct_recipes::merge_pack(recipes, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_tags(tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_fluid_tags(fluid_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
         crate::game::tconstruct_source_tags::merge_pack_block_tags(block_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
-        crate::game::tconstruct_materials::merge_pack(materials, material_tags, files, |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
+        crate::game::tconstruct_materials::merge_pack(materials, material_tags, files.iter().cloned(), |name| pack.__horizon_mixins_tconstruct_recipe_read(name));
+        if let Ok(snapshot) = modifiers {
+            if let Err(error) = crate::game::tconstruct_modifier_snapshot::merge_pack(snapshot, files, |name| pack.__horizon_mixins_tconstruct_recipe_read(name)) {
+                *modifiers = Err(error);
+            }
+        }
     }
     if !game.cmds.vanilla_disabled {
         let builtin = horizon_client::datapack::DataPack::builtin(&game.options.resources);
-        merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+        merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
-        merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+        merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
         crate::game::tconstruct_source_tags::bridge_vanilla_mud_tag(&mut block_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
@@ -51,12 +58,12 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }
     };
     let forge = horizon_client::datapack::DataPack::builtin(&source_pack("forge-original-pack"));
-    merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+    merge(&forge, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
     let original = horizon_client::datapack::DataPack::builtin(&source_pack("tconstruct-original-pack"));
-    merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+    merge(&original, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
     for id in &game.fns.enabled {
         if let Some(pack) = game.fns.packs.iter().find(|pack| &pack.id == id) {
-            merge(pack, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+            merge(pack, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags, &mut modifiers);
         }
     }
     let resolved_tags = game.res.rest.get().map(|rest| {
@@ -261,6 +268,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);
+    *game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot_mut() = Some(modifiers);
     let generation = game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation().wrapping_add(1);
     *game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = generation;
 }
@@ -271,6 +279,7 @@ pub(super) fn invalidate_parked_item_tags(game: &mut crate::game::Game<'_>) {
     for dim in [crate::game::Dim::Overworld, crate::game::Dim::Nether, crate::game::Dim::End] {
         if let Some(world) = game.levels.parked_world_mut(dim) {
             *world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = None;
+            *world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot_mut() = None;
         }
     }
 }

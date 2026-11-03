@@ -13,3 +13,10 @@ mod tconstruct_tx {
 #[allow(dead_code)]
 #[path = "../../../mixins/tconstruct/source-conditions.rs"]
 mod tconstruct_source_conditions;
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-tags.rs"]
+mod tconstruct_source_tags;
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/modifier-snapshot.rs"]
+mod tconstruct_modifier_snapshot;
