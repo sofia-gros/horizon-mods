@@ -1,0 +1,3 @@
+# Copper Gauge partial UI fixture
+
+Combined cc868cdb/b53/ddd Linux client `7b911c13d230d3b4c7f444c5f155ad6073853164d08d8748d8510888ac7d569b`, #263/#265/#269 isolated feature/resource setup. A command-set seared fuel tank and north-facing Gauge were supplied; a creative Lava Bucket filled the tank. The actual client displays 1,000 / 4,000 mB Lava. Switching to survival, using an empty bucket on the tank, then activating the Gauge displays Capacity: 4,000 mB. A fresh setblock-only tank had no block entity; that fixture was excluded. Actual natural acquisition, initial item placement, native tank/drain, all directions, save/reload and LAN are not established. This is not an exact-head official result.
