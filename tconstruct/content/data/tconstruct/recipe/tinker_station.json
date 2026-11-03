@@ -8,7 +8,7 @@
   ],
   "key": {
     "p": "tconstruct:pattern",
-    "w": "#minecraft:planks"
+    "w": "#tconstruct:planklike"
   },
   "result": {
     "id": "tconstruct:tinker_station"
