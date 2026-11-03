@@ -15,7 +15,7 @@ fn tconstruct_bottle_cauldron(game: &mut crate::game::Game<'_>, pos: [i32; 3]) -
     };
     if game.res.items().get(output).is_none() { return Continue(()); }
     let mut next_state = state.clone();
-    if next == 0 { next_state.name = "minecraft:cauldron".into(); next_state.properties.clear(); }
+    if next == 0 { next_state.name = "minecraft:cauldron".into(); next_state.properties = Default::default(); }
     else { next_state.name = "minecraft:water_cauldron".into(); next_state.properties.insert("level".into(), next.to_string().into()); }
     let Ok(new_state) = game.pack.assets.registry.resolve(&next_state) else { return Continue(()); };
     let filled = if filling { ItemStack::new(output, 1).with_potion("minecraft:water") } else { ItemStack::new(output, 1) };
