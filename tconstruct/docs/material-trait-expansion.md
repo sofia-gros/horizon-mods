@@ -36,3 +36,5 @@ indicator; confirm both local and guest actors. Spiny's distinct self-damage
 remains deferred. Test original tool tags, broken/equipped state, powder-snow
 walking and placement, Piglin checks, conditional projectile scales and
 cooldown/critical/secondary melee handling on the exact combined build.
+
+The unsupported generic Snow Boots placement injection is disabled; the walking and equipment paths remain separate. The supported splash guest selector and corrected compound stat multipliers are retained. Focused older-host helper tests do not establish current-host gameplay.
