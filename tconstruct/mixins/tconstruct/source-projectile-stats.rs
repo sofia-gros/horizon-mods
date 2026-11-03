@@ -1,4 +1,4 @@
-// Original material projectile multipliers. Injection at firing remains pending.
+// Original material projectile stats, read by both existing bow firing hooks.
 use horizon_client::items::ItemStack;
 use horizon_world::nbt::Tag;
 
@@ -14,19 +14,56 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     let velocity = stat(stack, "tic_velocity")?;
     let accuracy = stat(stack, "tic_accuracy")?;
     if !velocity.is_finite() || velocity < 0.0 || !accuracy.is_finite() || accuracy <= 0.0 { return None; }
+    // Maintained (priority 100) precedes Dwarven (85), including its altitude
+    // penalty. Evaluate current wear at release, never bake it into base stats.
+    let custom = stack.data()?.other("minecraft:custom_data")?;
+    let level = match custom.get("tic_maintained") { Some(Tag::Int(value)) => (*value).max(0), _ => 0 };
+    let maximum = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => 0 };
+    let multiplier = stat(stack, "tic_maintained_velocity_multiplier").unwrap_or(0.0);
+    let velocity = if level > 0 && maximum > 0 && multiplier.is_finite() {
+        let half = maximum as f32 * 0.5;
+        let remaining = maximum.saturating_sub(stack.damage) as f32;
+        velocity + ((remaining - half).max(0.0) / half) * level as f32 * 0.08 * multiplier
+    } else { velocity };
     Some((velocity, 3.0 * (1.0 / accuracy - 1.0)))
 }
 
 /// Source Dwarven applies to the shooter's actual height at firing time.
 pub(crate) fn projectile_stats_at(stack: &ItemStack, y: f32, max_height: i32) -> Option<(f32, f32)> {
-    let (velocity, spread) = projectile_stats(stack)?;
+    projectile_stats_at_airborne(stack, y, max_height, false)
+}
+
+pub(crate) fn projectile_stats_at_airborne(stack: &ItemStack, y: f32, max_height: i32, airborne: bool) -> Option<(f32, f32)> {
+    let (mut velocity, spread) = projectile_stats(stack)?;
     let custom = stack.data()?.other("minecraft:custom_data")?;
+    if airborne && matches!(custom.get("tic_airborne"), Some(Tag::Int(level)) if *level > 0) {
+        if let Some(multiplier) = stat(stack, "tic_airborne_velocity_multiplier").filter(|value| value.is_finite()) {
+            velocity += 0.1 * multiplier;
+        }
+    }
     let level = match custom.get("tic_dwarven") { Some(Tag::Int(value)) => *value, _ => 0 };
     let multiplier = match custom.get("tic_dwarven_velocity_multiplier") {
         Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return Some((velocity, spread)),
     };
     if level <= 0 || !multiplier.is_finite() || !y.is_finite() { return Some((velocity, spread)); }
     Some((super::tconstruct_source_dwarven::boost(y, max_height, level, velocity, 0.05 * multiplier).clamp(0.0, 1024.0), spread))
+}
+
+fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable: bool) -> bool {
+    !on_ground && !in_water && !riding && !climbable
+}
+
+// The host swaps the acting player's motion and vehicle into Game during a turn.
+#[cfg(not(test))]
+pub(crate) fn airborne(game: &mut crate::game::Game<'_>) -> bool {
+    if game.riding.is_some() { return false; }
+    let Some(player) = game.player.as_mut() else { return false; };
+    if player.ground.on_ground || player.fluids.was_touching_water { return false; }
+    let mut motion = horizon_client::motion::MotionWorld {
+        entities: &[], player, scene: &mut game.world, assets: &game.pack.assets,
+        collision_binding: game.collision, resources: game.motion,
+    };
+    airborne_conditions(false, false, false, motion.climbable().unwrap_or(true))
 }
 
 pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
@@ -37,6 +74,17 @@ pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
         Some(Tag::Int(value)) if *value > 0 => 0.5,
         _ => 0.0,
     }
+}
+
+/// Original Raging conditional projectile damage, evaluated at firing time.
+pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>) -> f64 {
+    let base = projectile_bonus(stack);
+    let Some(health) = health.filter(|value| value.is_finite()) else { return base; };
+    let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return base; };
+    let level = match custom.get("tic_raging") { Some(Tag::Int(level)) => (*level).max(0), _ => 0 };
+    let Some(multiplier) = stat(stack, "tic_raging_projectile_multiplier").filter(|value| value.is_finite()) else { return base; };
+    let bonus = ((11.0 - health) / 10.0).clamp(0.0, 1.0) * level as f32 * multiplier;
+    ((base as f32 + 2.0 + bonus).clamp(0.0, 1024.0) - 2.0) as f64
 }
 
 /// Pinned RestrictAngleModule rounds the horizontal direction after launch.
@@ -90,6 +138,50 @@ mod tests {
             assert!((projectile_stats_at(&stack, 0.0, 320).unwrap().0 - 1.1).abs() < 0.00001);
             assert!((projectile_stats_at(&stack, 256.0, 320).unwrap().0 - 0.25).abs() < 0.00001);
         }
+    }
+    #[test]
+    fn maintained_tracks_wear_and_precedes_dwarven_penalty() {
+        for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+            let mut stack = bow(id, 1.0, 1.0);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_velocity", Tag::Float(1.0f32.to_bits())),
+                ("tic_accuracy", Tag::Float(1.0f32.to_bits())),
+                ("tic_max_damage", Tag::Int(100)),
+                ("tic_maintained", Tag::Int(2)),
+                ("tic_maintained_velocity_multiplier", Tag::Float(1.5f32.to_bits())),
+                ("tic_dwarven", Tag::Int(1)),
+                ("tic_dwarven_velocity_multiplier", Tag::Float(1.5f32.to_bits())),
+            ])));
+            for (damage, expected) in [(0, 1.24), (25, 1.12), (50, 1.0), (99, 1.0), (100, 1.0), (101, 1.0)] {
+                stack.damage = damage;
+                assert!((projectile_stats(&stack).unwrap().0 - expected).abs() < 0.00001);
+                assert!((projectile_stats_at(&stack, 256.0, 320).unwrap().0 - expected * 0.25).abs() < 0.00001);
+            }
+            stack.damage = 0; // A repaired tool regains the effect without rebuilding.
+            assert!((projectile_stats_at(&stack, 0.0, 320).unwrap().0 - 1.315).abs() < 0.00001);
+        }
+    }
+    #[test]
+    fn airborne_predicate_excludes_ground_water_riding_and_climbing() {
+        assert!(airborne_conditions(false, false, false, false));
+        assert!(!airborne_conditions(true, false, false, false));
+        assert!(!airborne_conditions(false, true, false, false));
+        assert!(!airborne_conditions(false, false, true, false));
+        assert!(!airborne_conditions(false, false, false, true));
+    }
+    #[test]
+    fn airborne_bonus_precedes_dwarven_penalty() {
+        let mut stack = bow("tconstruct:longbow", 1.0, 1.0);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_velocity", Tag::Float(1.0f32.to_bits())),
+            ("tic_accuracy", Tag::Float(1.0f32.to_bits())),
+            ("tic_airborne", Tag::Int(2)),
+            ("tic_airborne_velocity_multiplier", Tag::Float(2.0f32.to_bits())),
+            ("tic_dwarven", Tag::Int(1)),
+            ("tic_dwarven_velocity_multiplier", Tag::Float(2.0f32.to_bits())),
+        ])));
+        assert!((projectile_stats_at_airborne(&stack, 256.0, 320, true).unwrap().0 - 0.3).abs() < 1e-6);
+        assert!((projectile_stats_at_airborne(&stack, 256.0, 320, false).unwrap().0 - 0.25).abs() < 1e-6);
     }
     #[test]
     fn diamond_damage_comes_from_the_firing_stack() {
