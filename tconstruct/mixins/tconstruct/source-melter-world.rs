@@ -91,6 +91,18 @@ pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, Foun
     })?
 }
 
+pub(super) fn material_melting(world: &World, stack: &horizon_items::items::ItemStack)
+    -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    if !tags.get("tconstruct:parts")?.contains(stack.item.as_ref()) { return None; }
+    let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
+    let cost = u32::try_from(material.value).ok()?;
+    super::tconstruct_source_builder_world::supported_material(world, &material.material).ok()?;
+    with_catalog(world, |catalog, registries, config| {
+        catalog.material_melting(&stack.item, &material.material, cost, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
 pub(super) fn damaged_melting(world: &World, item: &str, damage: u32, maximum: u32)
     -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
     with_catalog(world, |catalog, registries, config| {

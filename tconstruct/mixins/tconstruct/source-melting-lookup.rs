@@ -127,6 +127,21 @@ impl Catalog<'_> {
         }
         found
     }
+    pub(super) fn material_melting(&self, item: &str, material: &str, cost: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+        if !self.known_items.contains(item) { return None; }
+        let mut found: Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = super::tconstruct_source_melting_recipes::material_melting(bytes, item, material, cost, conditions) else { continue; };
+            let Some(primary) = self.resolved_fluid(&recipe.melting.output) else { continue; };
+            let Some(byproducts) = recipe.byproducts.iter().map(|fluid| self.resolved_fluid(fluid).map(|id| (id, fluid.amount))).collect::<Option<Vec<_>>>() else { continue; };
+            if let Some((_, old, old_primary, old_byproducts)) = &found {
+                if old.melting.temperature != recipe.melting.temperature || old.melting.time != recipe.melting.time
+                    || old.melting.output.amount != recipe.melting.output.amount || old_primary != &primary || old_byproducts != &byproducts { return None; }
+            } else { found = Some((id.clone(), recipe, primary, byproducts)); }
+        }
+        found
+    }
     pub(super) fn damaged_melting(&self, item: &str, damage: u32, maximum: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
         if !self.known_items.contains(item) { return None; }
