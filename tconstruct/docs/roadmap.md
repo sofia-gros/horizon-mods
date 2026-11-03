@@ -1,6 +1,6 @@
 # Coverage and roadmap
 
-> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+> **v0.5 release target:** Some effects and operations remain unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
 
 The reference is Tinkers' Construct 1.20.1, commit
 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The [feature matrix](feature-matrix.md)
@@ -8,8 +8,7 @@ links to original sources and records the wider scope. The
 [source-to-port record](original-parity.md) describes the evidence and known
 mismatches. Archived Wasm work is not evidence of coverage in this port.
 
-The intended v0.5 milestone is a playable prerelease that reproduces almost all
-of the original mod's content and behavior on its own. The scope of full parity and balance will be decided after v0.5. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. v0.5 has not been reached.
+The v0.5 target is a formal release after the final main build and distribution pass integration, installation, launch, persistence and applicable feature checks. Individual operations may remain unavailable when evidence establishes that Horizon or Mixins must first provide a safe supported boundary; document the affected operation and evidence. Incomplete or untested mod behavior is not an upstream limitation and remains open. Full parity and balance remain future work. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. Release acceptance has not yet been established.
 Broad compatibility testing with other mods, including hypothetical ID changes,
 is not a prerequisite for v0.5. The mod's own saving, synchronization and
 transaction integrity remain part of the work.
@@ -86,3 +85,19 @@ The Station supports partial Sharpness and Swiftstrike recipes, upgrade slots, a
 Sky Geodes generated in a new Linux world and supplied crystals for a Worktable extraction; the cluster persisted after reload and was visible to a LAN guest. An isolated Linux test client with eight injections excluded observed all four budding crystal growth sequences, LAN guest display and cluster save/reload; full production validation remains open. Earthslime, Ichor and Enderslime geodes have representative Linux natural generation, mining, crystal-use and reload checks; LAN guest visibility was checked for Earthslime. Crystal regrowth still needs full production validation; many material traits and world progression remain unfinished.
 
 The initial Grout, Seared Brick and Scorched Brick crafting route and ordinary brick controller casting are connected in development. A representative Linux run on the generated binary reached a crafted, placed Tinkers' Anvil from Grout, including filled-gauge rejection, empty-gauge consumption, LAN Melter input and Anvil save/reload. The run used vanilla raw material and fuel fixtures, accelerated processing, and recovered an accidentally cast Copper Block with the vanilla recipe before continuing. The Scorched route and wider vanilla regression were not checked in this run. Other retextured controller casts remain unfinished. Nether cobalt ore generation, iron-tier mining and raw-ore blasting have representative Linux game checks with supplied tools and fuel; a combined run also cast Cobalt parts and assembled a tool. Composite material casting has representative Linux checks for copper oxidation and Nahuatl, including save/reload, a LAN guest, and use in tools. Tests used supplied raw materials and equipment; broader recipes and survival acquisition remain open.
+
+A Slime Boots landing candidate is being connected through PlutoLib's per-player
+landing state, scoped by world and player entity ID. Equipment can mark the state from the intrinsic Bouncy trait or a
+Bouncy modifier on unbroken armor. The candidate connects local landing damage
+and post-collision velocity. A dependent candidate also supplies the acting guest’s
+equipment and crouch state and applies its pending rebound after server travel.
+Both candidates require official apply, type and game validation; guest movement
+ordering, velocity synchronization and isolation from other players are unverified.
+
+The combined Bouncy integration candidate uses the shared PlutoLib landing state
+and targets Horizon `7084e67744cbb4fe25961f24126e15b6b36f0523` with Mixins
+`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its pinned revisions match, but the
+combined apply, type check and local/LAN game behavior remain unverified.
+
+For the current material, equipment and world candidates and their remaining
+validation, see [material and world status](material-world-status.md).
