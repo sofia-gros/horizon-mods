@@ -68,3 +68,38 @@ type and game checks. Confirm the same guest motion is the server movement
 input on all supported paths; no complete LAN claim follows from this code.
 Test replay with repeated ticks, use transitions, equipment changes, broken
 armor, passenger state, two guests, and no Featherweight.
+
+## Formal host call boundaries
+
+For signed protection, `horizon_world::damage_reduction::after_magic<W>`
+queries `world.damage_protection(level)` after armor and resistance and only
+calls `combat_rules::after_magic` if the result is positive. The latter clamps
+its input to [0, 20]. The concrete player's `HealthWorld::damage_protection`
+can supply a number but cannot make the generic caller execute its positive
+branch for a negative one. Replacing only that number would therefore lose
+source negative protection; changing the non-generic `combat_rules` helper
+alone cannot affect the skipped call. At pinned Mixins source
+`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`, `validate_target` in
+`horizon-mixins-core/src/plan.rs` rejects every generic target with
+`E_UNSUPPORTED_SIGNATURE`; `after_magic<W: DamageReductionWorld>` is generic.
+This is a static conclusion from the source validator, not an executed plan
+or a claim that an upstream change or a different future boundary is
+impossible. A shared signed-protection dispatch at this stage must retain
+source damage tags, armor wear, modifier order and per-actor context.
+
+For server movement, `Game::guest_server_tick` calls `guest_replay` and then
+processes the guest's received move deltas for fall, collision and hazard
+accounting. `guest_replay` returns immediately when `host.hub.recording()` is
+false. When recording is enabled it sets the guest motion use speed once and
+replays client inputs against it. Thus #348 is a candidate for that recorded
+prediction path, not evidence of an independently simulated server slowdown
+or of behavior with recording disabled. Confirm the target load/capture and
+that guest armor attributes are updated before it, and compare accepted client
+moves, replay decisions and server movement events in both recording modes.
+The local client's #346 effect is what changes its sent movement. The source
+coefficients do not by themselves establish full source composition with other
+use-speed modifiers.
+
+On fixed heads #346 and #348, dedicated stub tests reported 0.2 → 0.25/0.30,
+clamping, absent use and passenger exclusions. Those tests supplied fake motion
+and attributes and do not prove real sync, plan/apply, type, server or LAN.
