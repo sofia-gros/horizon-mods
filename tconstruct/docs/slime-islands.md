@@ -94,6 +94,12 @@ feature execution, registration, acquisition and validation remain open.
 
 ## Earth and sky foliage preparation
 
+Earth and Sky foliage and Sky and Ender vines use the host's
+`minecraft:short_grass` block as their sound template. The source assigns grass
+sounds to these blocks; Horizon's `sounds` property takes a registered block ID
+rather than a sound-event ID. Formal resource preparation and gameplay with
+these declarations remain to be verified.
+
 The Earth and Sky leaves, saplings, fern and tall grass, plus Sky vine, now
 have content declarations, the pinned source assets and loot tables. Leaf
 loot preserves the source sapling and slime-ball Fortune chances; vanilla
@@ -103,8 +109,8 @@ property in addition to its template's five face properties. These are
 preparation for the island marker and tree code, not proof of natural island
 generation or acquisition.
 
-Source-specific sapling, leaf, grass and vine updates and foliage terrain tint
-are experimental and unverified. Other island sets, source fluids and
+Source-specific sapling, leaf, grass and vine updates are experimental and
+unverified; position-dependent foliage terrain tint is disconnected. Other island sets, source fluids and
 save/reload remain open. The target registry, model and
 loot loading, face/stage combinations, tree placement, source drop conditions
 and vanilla plant regressions all require dedicated validation.
@@ -115,8 +121,8 @@ are not registered or added by this batch.
 The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
 Silk Touch versus underlying slime-dirt loot. Source grass/nylium random ticks
-and position-dependent terrain tint have experimental connections described
-below; bonemeal and validation remain open.
+have experimental connections described below; position-dependent terrain tint
+is disconnected, and bonemeal and validation remain open.
 
 The original five `slimy_soil` child tags and their aggregate are included,
 with all 25 foliage/soil grass combinations, four slimy Enderbark roots and
@@ -148,14 +154,11 @@ generation or survival acquisition is claimed until that succeeds.
 
 ## Experimental foliage tint
 
-The five original color maps are loaded from the active render resource root.
-For the registered slime grasses, fern, tall grass, leaves and Sky vine, a
-terrain-face tint hook uses the original 256-block coordinate reflection,
-including the original 128-block offset for leaves and vines. The maps are
-reloaded when render assets load. Missing or invalid maps leave the host tint
-unchanged. Item tint, particle tint and resource-reload behavior still require
-implementation or validation. The target Mixins plan, shader compatibility,
-color-map indexing and actual world rendering have not been tested.
+The five original color maps and lookup code remain available, but the
+terrain-face hook is disconnected following the b53 `E_INVALID_BINDING`
+diagnostic for the destructured `Mesher::face` argument. Position-dependent
+terrain, item and particle tint are not established by this candidate. Color-map
+indexing, resource reload and shader behavior still need validation.
 
 ## Experimental slime leaf lifecycle
 
@@ -366,3 +369,8 @@ parameter as a method receiver, while this call uses the local piece `p`.
 The live connection, root placement,
 waterlogging, leaf ordering and random draws require official apply, type,
 package and in-game verification. No Ender tree growth is claimed as tested.
+
+The b53 selector and module-header follow-ups reached `E_INVALID_BINDING`
+for the destructured `Mesher::face` arguments. The integration omits that
+terrain-tint injection only; vegetation, island generation and source lookup
+remain available. Do not infer a tint implementation from map loading.
