@@ -734,6 +734,18 @@ and explicit part-swap overlap is rejected before either path dispatches;
 overlaps outside the parsed recipe families are not generally analyzed. Host integration, real
 gameplay and LAN behavior remain unverified.
 
+### Narrow slimeskull material replacement
+
+The separate source basin part-swap recipe changes material index 1 of a
+slimeskull helmet, preserving its skull material and charging five units of
+the selected ordinary material fluid. This path accepts only an undamaged,
+unmodified helmet identical to a freshly assembled copy. It uses the Station
+rebuild's slot and trait-removal checks and requires an item-codec round trip.
+When the fixed recipe is present, a failed or competing parsed swap does not
+fall through to another casting path. Damaged or modified helmets, composite
+fluids, unrecognized recipe forms and arbitrary datapack overlaps remain
+unsupported or unverified. Integrated host, gameplay and LAN are untested.
+
 ### Clearing an existing potion tip
 
 The casting table now supports the bundled ammo and fishing-rod clearing
