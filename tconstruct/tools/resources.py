@@ -92,9 +92,13 @@ with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tc
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as source_melter:
     (gui / 'tconstruct_melter.png').write_bytes(source_melter.read('assets/tconstruct/textures/gui/melter.png'))
     (block_textures / 'tconstruct_fluid_fallback.png').write_bytes(source_melter.read('assets/tconstruct/textures/fluid/molten/still.png'))
+    animations = json.loads((repository / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
+    (block_textures / 'tconstruct_fluid_fallback.png.mcmeta').write_bytes(source_melter.read('assets/tconstruct/textures/fluid/molten/still.png.mcmeta'))
     source_fluids = json.loads(source_melter.read('assets/tconstruct/melter-fluid-textures.json'))
     for fluid, texture in source_fluids.items():
         (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).write_bytes(source_melter.read('assets/tconstruct/' + texture))
+        if fluid in animations:
+            (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta')).write_text(json.dumps(animations[fluid]))
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.
 pattern_source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
 pattern_dest = gui / 'tconstruct_patterns'
