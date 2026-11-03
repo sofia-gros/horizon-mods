@@ -31,6 +31,7 @@ pub(super) fn is_bucket(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) 
 fn bottle_fluid(item: &str) -> Option<&'static str> {
     match item {
         "tconstruct:venom_bottle" => Some("tconstruct:venom"),
+        "tconstruct:magma_bottle" => Some("tconstruct:magma"),
         "tconstruct:earth_slime_bottle" => Some("tconstruct:earth_slime"),
         "tconstruct:sky_slime_bottle" => Some("tconstruct:sky_slime"),
         "tconstruct:ichor_slime_bottle" => Some("tconstruct:ichor"),
@@ -40,6 +41,7 @@ fn bottle_fluid(item: &str) -> Option<&'static str> {
 }
 fn filled_bottle(fluid: &str) -> Option<&'static str> {
     match fluid {
+        "tconstruct:magma" => Some("tconstruct:magma_bottle"),
         "tconstruct:earth_slime" => Some("tconstruct:earth_slime_bottle"),
         "tconstruct:sky_slime" => Some("tconstruct:sky_slime_bottle"),
         "tconstruct:ichor" => Some("tconstruct:ichor_slime_bottle"),
@@ -650,6 +652,44 @@ mod tests {
         let before=(tank.clone(),slots.clone());
         assert!(!transfer(&mut tank,&mut slots,Direction::Auto,&known,&known));
         assert_eq!((tank,slots),before);
+    }
+    #[test]
+    fn magma_bottle_round_trip_conserves_fluid_and_containers() {
+        let mut tank = SmelteryTank::new(250);
+        let mut slots = [Some(ItemStack::new("tconstruct:magma_bottle", 2)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!(tank.amount("tconstruct:magma"), 250);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
+        slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!(tank.total(), 0);
+        assert!(slots[0].is_none());
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "tconstruct:magma_bottle");
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!((tank, slots), before);
+    }
+    #[test]
+    fn magma_bottle_failed_transfers_leave_fluid_and_slots_unchanged() {
+        let mut full = SmelteryTank::new(250);
+        assert!(full.insert("tconstruct:magma", 250));
+        let mut slots = [Some(ItemStack::new("tconstruct:magma_bottle", 2)), None];
+        let before = (full.clone(), slots.clone());
+        assert!(!transfer(&mut full, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!((full, slots), before);
+
+        let mut empty = SmelteryTank::new(250);
+        let mut occupied = [Some(ItemStack::new("tconstruct:magma_bottle", 1)), Some(ItemStack::new("minecraft:stone", 1))];
+        let before = (empty.clone(), occupied.clone());
+        assert!(!transfer(&mut empty, &mut occupied, Direction::Auto, &known, &known));
+        assert_eq!((empty, occupied), before);
+
+        let mut unknown = SmelteryTank::new(250);
+        let mut input = [Some(ItemStack::new("tconstruct:magma_bottle", 1)), None];
+        let before = (unknown.clone(), input.clone());
+        assert!(!transfer(&mut unknown, &mut input, Direction::Auto, &known, &|_| false));
+        assert_eq!((unknown, input), before);
     }
     #[test]
     fn copper_can_moves_one_ingot_and_retains_other_stack_items() {

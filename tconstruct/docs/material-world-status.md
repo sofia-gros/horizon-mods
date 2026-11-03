@@ -13,7 +13,7 @@ the scope of the audit.
 | Fixed tool traits | [#152](https://github.com/sofia-gros/horizon-mods/pull/152) resolves fixed tool-definition traits. | Verify source levels and slot conditions through assembly, modification and save/reload on the combined target. |
 | Raging shots | [#91](https://github.com/sofia-gros/horizon-mods/pull/91) adds projectile damage; [#140](https://github.com/sofia-gros/horizon-mods/pull/140) corrects acting-player state. | On the same shot, compare local health 20 and 6 and confirm the correct guest's health is used; check resulting arrow damage and vanilla regression. |
 | Spiny ranged speed | [#150](https://github.com/sofia-gros/horizon-mods/pull/150) supplies the velocity component. | Check levels, draw/release and broken tools on the integrated target; the separate source self-damage is not included. |
-| Snow Boots | [#156](https://github.com/sofia-gros/horizon-mods/pull/156) and [#158](https://github.com/sofia-gros/horizon-mods/pull/158) proposed walking and placement collision; the placement hook was isolated in #316 after an unsupported generic-signature diagnostic. | Check walking, equip, unequip, broken state and vanilla boots locally and for a guest; placement remains deferred. |
+| Snow Boots | [#156](https://github.com/sofia-gros/horizon-mods/pull/156) and [#158](https://github.com/sofia-gros/horizon-mods/pull/158) address walking and placement collision. | Check equip, unequip, broken state and vanilla boots locally and for a guest. |
 | Bouncy | [#243](https://github.com/sofia-gros/horizon-mods/pull/243), [#245](https://github.com/sofia-gros/horizon-mods/pull/245), and the aligned [#247](https://github.com/sofia-gros/horizon-mods/pull/247) are unverified local/guest candidates. Package-only checks for #243 and the aligned #247 head cover archive structure, including state-present and state-absent fixtures, not host compatibility. | Run official combined package, apply and type checks; compare crouched and ordinary fall damage, rebound and sent guest velocity, repeated landings, broken armor and player isolation. |
 | Earth/Sky islands | The b53/ddd integration plus [#244](https://github.com/sofia-gros/horizon-mods/pull/244) passed official resource preparation. Natural dirt, leaves and logs were observed; representative Earth leaf, dirt and log collection and persistence were checked using supplied tools and teleportation. | Validate all foliage placements, actual sounds, other island types, LAN and source placement conditions. Source fluids and foliage terrain tint remain excluded. |
 | Ender tree | [#240](https://github.com/sofia-gros/horizon-mods/pull/240) supplies root and vine components; [#242](https://github.com/sofia-gros/horizon-mods/pull/242) is an unverified planted-propagule candidate. | Apply and type check; compare both tree variants, root replacement, waterlogging, obstruction, soil, decorators, RNG order, chunk boundaries and save/reload. Island tree markers remain separate. |
@@ -212,4 +212,23 @@ projectile damage still require dedicated verification on this candidate.
 ### Stat builder multiplier correction
 
 Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, mining speed, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
-For the fixed #325 test inputs, concrete source gaps and scoped deferrals, see [material and world validation](material-world-validation-handoff.md).
+
+Earlier integration evidence applies only to the recorded candidate revision.
+Keep the later stat-order corrections and the documented Bouncy deferral;
+validate the current integrated build and gameplay separately.
+
+Bouncy landing hooks remain deferred. The current landing-state package uses
+ChunkMap and its Default constructor, not the older PlayerMotion design. Check
+package tests, plan and build on the same integrated revision; a pass from an
+older candidate does not establish success for current main.
+
+Earlier material fixtures passed against older host libraries for skull/slime
+recipes, capacity, mining arithmetic and regeneration. The cancellation-safe
+mining helper also passed a targeted #101 apply on Horizon 0c7b/Mixins ddd and
+an older stub-Game check. These are revision-scoped checks, not proof of the
+current integrated build or gameplay.
+
+The Overlord ordering regression combines stat rebuild and Overslime capacity
+rebuild: the focused host-crate test covers durability, copied capacity and
+shield clamping together. It does not enable the deferred Bouncy hooks or
+establish integrated gameplay behavior.

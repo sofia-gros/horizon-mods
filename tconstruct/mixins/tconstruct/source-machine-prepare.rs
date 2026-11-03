@@ -16,6 +16,11 @@ pub(super) fn apply(facts: &serde_json::Value, gameplay: &mut serde_json::Value,
                 row["outline"] = serde_json::to_value(&shape.boxes)?;
                 row["outline_edges"] = serde_json::to_value(&shape.edges)?;
                 row["full_collision"] = serde_json::Value::Bool(false);
+                // These source blocks use noOcclusion and have a non-full
+                // shape. Do not inherit the full-cube template's light block.
+                if matches!(name, "tconstruct:tinker_station" | "tconstruct:part_builder" | "tconstruct:seared_basin") {
+                    row["dampening"] = serde_json::json!(0);
+                }
             }
         }
         for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {

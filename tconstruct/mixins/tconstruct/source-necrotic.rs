@@ -43,9 +43,20 @@ pub(super) fn hit(game: &mut super::Game<'_>, index: usize) {
     before.damage = stack.damage;
     if before.count != stack.count || stack.count != 1 || !before.same_item_same_components(&stack) || stack.wire_patch().is_some() || super::tconstruct_source_melee_shape::intact(&stack).is_none() { return; }
     let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, &stack) else { return; };
-    let level = traits.levels.get("tconstruct:necrotic").copied().unwrap_or(0);
+    let Some(level) = super::tconstruct_source_material_traits::level_with_upgrade(&stack, &traits, "tconstruct:necrotic") else { return; };
     let Some(amount) = heal_amount(level, dealt, scale, crit, landed) else { return; };
     heal_player(game, amount);
+    if !game.creative {
+        // The source LifestealModule spends one durability per effective
+        // level after a qualifying melee heal, in addition to normal hit wear.
+        let (loss, overslime) = super::tconstruct_source_overslime_host::damage_with_cause(
+            game, &stack, level as u32, Some("tconstruct:necrotic"),
+        );
+        if let Some(held) = game.held_mut().as_mut().filter(|held| held.same_item_same_components(&stack) && held.damage == stack.damage) {
+            super::tconstruct_source_overslime::spend(held, overslime);
+            super::tconstruct_tx::fixed_damage(held, loss);
+        }
+    }
 }
 
 pub(super) fn heal_player(game: &mut super::Game<'_>, mut amount: f32) {
@@ -117,11 +128,7 @@ pub(super) fn projectile_begin(
     let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, weapon) else {
         return;
     };
-    let level = traits
-        .levels
-        .get("tconstruct:necrotic")
-        .copied()
-        .unwrap_or(0);
+    let Some(level) = super::tconstruct_source_material_traits::level_with_upgrade(weapon, &traits, "tconstruct:necrotic") else { return; };
     let speed =
         (p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y + p.velocity.z * p.velocity.z)
             .sqrt();
@@ -184,7 +191,7 @@ fn host_victim_capture(game: &mut super::Game<'_>, p: &horizon_client::projectil
     let Some(health) = game.player.as_ref().map(|player| player.health.health()) else { return; };
     let Some(weapon) = p.arrow.as_ref().and_then(|arrow| arrow.fired_from_weapon.as_ref()) else { return; };
     let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, weapon) else { return; };
-    let level = traits.levels.get("tconstruct:necrotic").copied().unwrap_or(0);
+    let Some(level) = super::tconstruct_source_material_traits::level_with_upgrade(weapon, &traits, "tconstruct:necrotic") else { return; };
     let speed = (p.velocity.x*p.velocity.x + p.velocity.y*p.velocity.y + p.velocity.z*p.velocity.z).sqrt();
     let Some(amount) = projectile_amount(level, health, *base_damage, speed) else { return; };
     game.world.chunks.__horizon_mixins_tconstruct_necrotic_host_victim_mut().insert(p.id, (conn, uuid, amount));
@@ -231,7 +238,7 @@ fn pvp_capture(game: &mut super::Game<'_>, p: &horizon_client::projectiles::Proj
     let Some(health) = game.player.as_ref().map(|player| player.health.health()) else { return; };
     let Some(weapon) = p.arrow.as_ref().and_then(|a| a.fired_from_weapon.as_ref()) else { return; };
     let Some(traits) = super::tconstruct_source_material_traits::levels(&game.world, weapon) else { return; };
-    let level = traits.levels.get("tconstruct:necrotic").copied().unwrap_or(0);
+    let Some(level) = super::tconstruct_source_material_traits::level_with_upgrade(weapon, &traits, "tconstruct:necrotic") else { return; };
     let speed = (p.velocity.x*p.velocity.x + p.velocity.y*p.velocity.y + p.velocity.z*p.velocity.z).sqrt();
     let Some(amount) = projectile_amount(level, health, *base_damage, speed) else { return; };
     if let Some(Some(entry)) = game.world.chunks.__horizon_mixins_tconstruct_necrotic_pvp_mut().last_mut() {

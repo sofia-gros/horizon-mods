@@ -68,17 +68,8 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
                             if facing == "down" {
                                 tconstruct_fluid_geometry(game, camera, out, *pos, &stream, [6.0, 0.0, 6.0, 10.0, 16.0, 10.0], true);
                             } else {
-                                let rotate = |bounds: [f32; 6]| -> [f32; 6] {
-                                    let [x0,y0,z0,x1,y1,z1] = bounds;
-                                    match facing {
-                                        "south" => [16.0-x1,y0,16.0-z1,16.0-x0,y1,16.0-z0],
-                                        "east" => [16.0-z1,y0,x0,16.0-z0,y1,x1],
-                                        "west" => [z0,y0,16.0-x1,z1,y1,16.0-x0],
-                                        _ => bounds,
-                                    }
-                                };
-                                for bounds in [[6.0,6.0,0.0,10.0,9.0,6.0], [6.0,0.0,6.0,10.0,9.0,8.0]] {
-                                    tconstruct_fluid_geometry(game, camera, out, *pos, &stream, rotate(bounds), true);
+                                for bounds in crate::game::tconstruct_source_melter_render::faucet_stream_bounds(facing) {
+                                    tconstruct_fluid_geometry(game, camera, out, *pos, &stream, bounds, true);
                                 }
                             }
                         }
@@ -103,7 +94,8 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
             let at = glam::DVec3::new(f64::from(pos.0), f64::from(pos.1), f64::from(pos.2));
             if at.distance_squared(camera) >= 64.0 * 64.0 { continue; }
             let seed = horizon_core::position::BlockPos::new(pos.0, pos.1, pos.2).pack() as i32;
-            let item = game.resolve_item(stack, DisplayContext::Fixed, None, seed);
+            let context = if flat { DisplayContext::Fixed } else { DisplayContext::None };
+            let item = game.resolve_item(stack, context, None, seed);
             if item.is_empty() { continue; }
             let light = horizon_client::block_entity_render::vertex_light(game.world.light(pos.0, pos.1, pos.2));
             let rotation = if flat { glam::Mat4::from_rotation_y(180f32.to_radians()) * glam::Mat4::from_rotation_x(270f32.to_radians()) } else { glam::Mat4::IDENTITY };
@@ -124,7 +116,7 @@ fn tconstruct_fluid_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3, 
     let [x0, y0, z0, x1, y1, z1] = bounds.map(|n| n / 16.0);
     let bottom = y0;
     let top = bottom + (y1 - bottom) * (tank.amount as f32 / tank.capacity as f32).clamp(0.0, 1.0);
-    let light = horizon_client::block_entity_render::vertex_light(game.world.light(pos.0, pos.1, pos.2));
+    let light = crate::game::tconstruct_source_melter_render::fluid_light(game.world.light(pos.0, pos.1, pos.2), fluid);
     let u0 = sprite.u0; let u1 = sprite.u0 + (sprite.u1 - sprite.u0) * (16.0 / sprite.w as f32);
     let v0 = sprite.v0; let v1 = sprite.v0 + (sprite.v1 - sprite.v0) * (16.0 / sprite.h as f32);
     let uv = [[u0,v0], [u1,v0], [u1,v1], [u0,v1]];

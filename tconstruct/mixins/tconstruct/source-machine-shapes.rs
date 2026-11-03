@@ -1,4 +1,4 @@
-// Shapes from the pinned TConstruct FaucetBlock and casting blocks.
+// Shapes from the pinned TConstruct FaucetBlock, casting blocks and TableBlock.
 #[derive(Clone)]
 pub(super) struct Shape { pub grid: Vec<u8>, pub boxes: Vec<[f64; 6]>, pub edges: Vec<[f64; 6]> }
 
@@ -6,6 +6,10 @@ fn inside(p: [usize; 3], b: [usize; 6]) -> bool {
     (0..3).all(|i| p[i] >= b[i] && p[i] < b[i+3])
 }
 fn filled(kind: &str, facing: &str, p: [usize; 3]) -> bool {
+    if matches!(kind, "tconstruct:tinker_station" | "tconstruct:part_builder") {
+        return [[0,12,0,16,16,16], [0,0,0,4,15,4], [12,0,0,16,15,4],
+            [12,0,12,16,15,16], [0,0,12,4,15,16]].into_iter().any(|b| inside(p, b));
+    }
     let (outer, holes): ([usize; 6], Vec<[usize; 6]>) = match kind {
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => {
             let (a,b) = match facing {
@@ -25,7 +29,7 @@ fn filled(kind: &str, facing: &str, p: [usize; 3]) -> bool {
 }
 
 pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
-    if !matches!(kind, "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_basin" | "tconstruct:seared_table" | "tconstruct:scorched_table") { return None; }
+    if !matches!(kind, "tconstruct:tinker_station" | "tconstruct:part_builder" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_basin" | "tconstruct:seared_table" | "tconstruct:scorched_table") { return None; }
     if kind.ends_with("faucet") && !matches!(facing, "down"|"north"|"south"|"west"|"east") { return None; }
     let mut grid = vec![0u8; 4096];
     let mut boxes = Vec::new();
@@ -90,6 +94,12 @@ pub(super) fn shape(kind: &str, facing: &str) -> Option<Shape> {
   assert!(!filled("tconstruct:seared_faucet","north",[8,8,2]));
  }
  #[test] fn basin_hollow_table_legs() {
+  for name in ["tconstruct:tinker_station", "tconstruct:part_builder"] {
+   assert!(!filled(name, "north", [8,4,8]));
+   assert!(filled(name, "north", [1,4,1]));
+   assert!(filled(name, "north", [8,14,8]));
+   assert!(!shape(name, "north").unwrap().edges.is_empty());
+  }
   assert!(!filled("tconstruct:seared_basin","north",[8,8,8]));
   assert!(filled("tconstruct:seared_basin","north",[1,8,8]));
   assert!(!filled("tconstruct:seared_table","north",[8,4,8]));

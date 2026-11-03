@@ -56,21 +56,8 @@ pub(crate) fn projectile_stats_at_airborne(stack: &ItemStack, y: f32, max_height
     Some((velocity.clamp(0.0, 1024.0), spread))
 }
 
-fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable: bool) -> bool {
+pub(super) fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable: bool) -> bool {
     !on_ground && !in_water && !riding && !climbable
-}
-
-// The host swaps the acting player's motion and vehicle into Game during a turn.
-#[cfg(not(test))]
-pub(crate) fn airborne(game: &mut crate::game::Game<'_>) -> bool {
-    if game.riding.is_some() { return false; }
-    let Some(player) = game.player.as_mut() else { return false; };
-    if player.ground.on_ground || player.fluids.was_touching_water { return false; }
-    let mut motion = horizon_client::motion::MotionWorld {
-        entities: &[], player, scene: &mut game.world, assets: &game.pack.assets,
-        collision_binding: game.collision, resources: game.motion,
-    };
-    airborne_conditions(false, false, false, motion.climbable().unwrap_or(true))
 }
 
 pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {

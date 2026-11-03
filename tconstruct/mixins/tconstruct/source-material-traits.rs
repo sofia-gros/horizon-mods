@@ -10,6 +10,28 @@ pub(super) struct Traits {
     pub durability_multiplier: f32,
 }
 
+/// Combine independently stored recipe upgrades with resolved traits once.
+/// Refuse malformed values rather than treating them as an absent upgrade.
+pub(super) fn level_with_upgrade(stack: &ItemStack, traits: &Traits, id: &str) -> Option<i32> {
+    let saved = stack.data().and_then(|data| data.other("minecraft:custom_data"))
+        .and_then(|tag| tag.get("tic_upgrades"));
+    let upgrade = match saved {
+        None => 0,
+        Some(tag @ Tag::Compound(_)) => match tag.get(id) {
+            None => 0,
+            Some(Tag::Int(level)) if *level >= 0 => *level,
+            _ => return None,
+        },
+        _ => return None,
+    };
+    merge_modifier_levels(traits.levels.get(id).copied().unwrap_or(0), upgrade)
+}
+
+fn merge_modifier_levels(trait_level: i32, upgrade: i32) -> Option<i32> {
+    if trait_level < 0 || upgrade < 0 { return None; }
+    trait_level.checked_add(upgrade)
+}
+
 pub(super) fn levels_from_definition(
     definition: &[u8],
     identities: &[String],
@@ -137,4 +159,19 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         order,
         durability_multiplier: stats.durability_multiplier_unit,
     })
+}
+
+#[cfg(test)]
+mod merged_level_tests {
+    use super::merge_modifier_levels;
+    #[test]
+    fn traits_and_saved_upgrades_are_counted_once() {
+        assert_eq!(merge_modifier_levels(0, 0), Some(0));
+        assert_eq!(merge_modifier_levels(2, 0), Some(2));
+        assert_eq!(merge_modifier_levels(0, 3), Some(3));
+        assert_eq!(merge_modifier_levels(2, 3), Some(5));
+        assert_eq!(merge_modifier_levels(-1, 1), None);
+        assert_eq!(merge_modifier_levels(1, -1), None);
+        assert_eq!(merge_modifier_levels(i32::MAX, 1), None);
+    }
 }

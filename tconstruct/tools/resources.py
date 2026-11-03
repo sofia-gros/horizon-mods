@@ -92,9 +92,13 @@ with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tc
 with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as source_melter:
     (gui / 'tconstruct_melter.png').write_bytes(source_melter.read('assets/tconstruct/textures/gui/melter.png'))
     (block_textures / 'tconstruct_fluid_fallback.png').write_bytes(source_melter.read('assets/tconstruct/textures/fluid/molten/still.png'))
+    animations = json.loads((repository / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
+    (block_textures / 'tconstruct_fluid_fallback.png.mcmeta').write_bytes(source_melter.read('assets/tconstruct/textures/fluid/molten/still.png.mcmeta'))
     source_fluids = json.loads(source_melter.read('assets/tconstruct/melter-fluid-textures.json'))
     for fluid, texture in source_fluids.items():
         (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).write_bytes(source_melter.read('assets/tconstruct/' + texture))
+        if fluid in animations:
+            (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta')).write_text(json.dumps(animations[fluid]))
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.
 pattern_source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
 pattern_dest = gui / 'tconstruct_patterns'
@@ -104,7 +108,7 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
-for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime'):
+for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime', 'magma'):
     relative = Path('item/bottle') / (contents + '_contents.png')
     destination = mod_assets / 'textures' / relative
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -213,6 +217,7 @@ entries = [
     ('tconstruct:sky_slime_ball', 'minecraft:flint', 'Sky Slime Ball'),
     ('tconstruct:ichor_slime_ball', 'minecraft:flint', 'Ichor Slime Ball'),
     ('tconstruct:ender_slime_ball', 'minecraft:flint', 'Ender Slime Ball'),
+    ('tconstruct:magma_bottle', 'minecraft:flint', 'Magma Bottle'),
     ('tconstruct:earth_slime_bottle', 'minecraft:flint', 'Earth Slime Bottle'),
     ('tconstruct:sky_slime_bottle', 'minecraft:flint', 'Sky Slime Bottle'),
     ('tconstruct:ichor_slime_bottle', 'minecraft:flint', 'Ichor Slime Bottle'),
@@ -294,6 +299,8 @@ for name, template, title in entries:
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
     if short in bucket_names:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
+    elif short == 'magma_bottle':
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/magma_contents', 'layer1': 'minecraft:item/potion'}}
     elif short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
@@ -353,6 +360,10 @@ for name, template, title in entries:
                     {'id': 'minecraft:levitation', 'duration': 200},
                     {'id': 'minecraft:slowness', 'duration': 200, 'amplifier': 1},
                 ]}]}
+    if short == 'magma_bottle':
+        item['minecraft:max_stack_size'] = 16
+        item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
+        item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
     if short == 'venom_bottle':
         # TinkerFood.VENOM_BOTTLE and ContainerFoodItem (1.20.1): no
         # nutrition, always drinkable, 32 ticks, strength and poison.

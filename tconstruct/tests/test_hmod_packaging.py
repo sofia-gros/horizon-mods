@@ -1,5 +1,6 @@
 """Keep the content package within Horizon's loader limit and retain renderer aliases."""
 import sys
+import json
 import tempfile
 import unittest
 import zipfile
@@ -17,6 +18,17 @@ class ContentPackageTest(unittest.TestCase):
             package(output)
             with zipfile.ZipFile(output) as packed:
                 names = set(packed.namelist())
+                for path in ('assets/tconstruct/items/magma_bottle.json',
+                             'assets/tconstruct/models/item/magma_bottle.json',
+                             'assets/tconstruct/textures/item/bottle/magma_contents.png',
+                             'data/tconstruct/horizon/item/magma_bottle.json'):
+                    self.assertIn(path, names)
+                animations = json.loads((MOD / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
+                for fluid, animation in animations.items():
+                    path = 'assets/tconstruct/runtime/block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta'
+                    self.assertEqual(json.loads(packed.read(path)), animation)
+                self.assertNotIn('assets/tconstruct/runtime/block/tconstruct_fluid_powdered_snow.png.mcmeta', names)
+                self.assertIn('assets/tconstruct/runtime/block/tconstruct_fluid_fallback.png.mcmeta', names)
             self.assertLessEqual(len(names - {'horizon-mod.toml'}), 65_536)
             for kind in ('part', 'tool'):
                 with zipfile.ZipFile(MOD / 'content/reference' / f'tconstruct-{kind}-visuals.zip') as source:

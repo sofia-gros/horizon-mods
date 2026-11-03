@@ -98,9 +98,14 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
             let registry = ids.names.iter().filter(|id| !id.is_empty()).cloned().collect();
             crate::game::tconstruct_source_tags::resolve_registry(&fluid_tags, &registry)
         });
-    let config = game.world_root.parent().and_then(std::path::Path::parent)
-        .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
-        .and_then(crate::game::tconstruct_source_config::load);
+    let dedicated = game.standalone_server();
+    let working_dir = if dedicated {
+        std::env::current_dir().map_err(|error| format!("cannot locate server working directory: {error}"))
+    } else { Ok(std::path::PathBuf::new()) };
+    let config = working_dir.and_then(|working_dir| {
+        tconstruct_source_config::root_for_world(&game.world_root, dedicated, &working_dir)
+            .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
+    }).and_then(|root| crate::game::tconstruct_source_config::load(&root));
     let tank_fluids = std::fs::read(game.options.resources.join("tconstruct-melter-fluids.json"))
         .map_err(|error| error.to_string())
         .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
@@ -258,6 +263,8 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = Some(definitions);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_source_shared_recipes_mut() = Some(std::sync::Arc::new(recipes.clone()));
+    *game.world.chunks.__horizon_mixins_tconstruct_station_building_recipes_mut() = Some(
+        crate::game::tconstruct_source_station_recipes::building_recipe_index(&recipes));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_mod_snapshot_mut() = Some((mod_presence.states, mod_presence.complete));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
@@ -265,4 +272,14 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);
     let generation = game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation().wrapping_add(1);
     *game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = generation;
+}
+
+// The active level is captured below the reload hook. Parked levels retain
+// their own ChunkMap and must not continue serving pre-reload tag membership.
+pub(super) fn invalidate_parked_item_tags(game: &mut crate::game::Game<'_>) {
+    for dim in [crate::game::Dim::Overworld, crate::game::Dim::Nether, crate::game::Dim::End] {
+        if let Some(world) = game.levels.parked_world_mut(dim) {
+            *world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = None;
+        }
+    }
 }

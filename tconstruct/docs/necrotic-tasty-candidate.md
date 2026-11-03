@@ -1,11 +1,16 @@
 # Necrotic and Tasty candidate
 
+> Current integration: projectile Necrotic hooks are disabled pending a safe
+> primary-launch durability boundary. Projectile descriptions below document
+> historical candidate work, not active behavior. Mob melee and Tasty remain
+> connected; melee PvP remains deferred.
+
 This candidate follows TinkersConstruct source
 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` and remains subject to official
 package, apply, type and game checks. These are bounded paths, not complete
 modifier parity.
 
-## Current integration check
+## Historical integration check at 232cfe0b
 
 Reconciled with main `232cfe0b` on 2026-11-03. The existing host pins and
 main stat, durability and cancellation fixes are preserved. Rust syntax checks
@@ -13,11 +18,11 @@ passed for 482 source files; three tests extracted unchanged from the source
 arithmetic helpers passed. These checks do not establish host type compatibility,
 hook application or gameplay. Build and actual-game confirmation remain open in
 [Issue #365, group 10](https://github.com/sofia-gros/horizon-mods/issues/365).
-The first official apply rejected the projectile PvP RETURN binding because
+For that historical candidate, the first official apply rejected the projectile PvP RETURN binding because
 its fully qualified result type did not match the host's `Result<()>` spelling.
-The binding and helper now use the host alias. The official combined apply
-passed with 275 injections, 219 modules, 99 states and 3 bridges. Type, build
-and game checks remain open.
+The binding and helper now use the host alias. That historical combined apply
+passed with 275 injections, 219 modules, 99 states and 3 bridges. It does not
+validate the later candidate; type, build and game checks remain open.
 The candidate remains Draft until the integration requirements are met.
 
 ## Necrotic
@@ -159,9 +164,62 @@ the earlier candidates as if they included later changes.
 | Scope | Candidate condition or deferral | Required verification |
 | --- | --- | --- |
 | Necrotic mob melee | Landed, critical, cooldown above 0.9; blacklist and actual damage | Armor, canceled hits, nested attacks, tool identity and guests |
-| Necrotic arrows vs mobs | Tracked matching arrow and actor; host Hurt only | Pre-hit health cap, shield/refusal, reload, disconnected shooter |
-| Necrotic arrows vs players | Guest victim or host victim; UUID and projectile match; host Hurt only | Host/guest pairs, two guests, PvP/team denial, nested hits, reload and reconnect |
+| Necrotic arrows vs mobs | Deferred; no safe primary-launch wear boundary | Pre-hit health cap, shield/refusal, reload, disconnected shooter |
+| Necrotic arrows vs players | Deferred along with projectile launch wear | Host/guest pairs, two guests, PvP/team denial, nested hits, reload and reconnect |
 | Necrotic melee PvP | Deferred; health-delta hooks differ | Source hook ordering, healing/absorption, totem and nested damage before enabling |
 | Tasty standalone/mixed | Tasty and supported Scrumptious values and wear | Hunger, saturation, poison, creative, near-break and offhand |
 | Tasty concurrent | Longbow, Crossbow, supported shields and Slurping; shield/Slurping breaking bite deferred | Tick 15/16/17, release, charging, near-break, Slurping completion and guest audio |
 | Entangled removal | Deferred; exact damage type and prior equipment boundary absent | Exact source damage type and slot/previous-stack integration |
+
+## Reconciliation with main 90446cc
+
+The bounded candidate was applied over main `90446cc3`, retaining the main
+implementation and the #344 Necrotic/Tasty changes. The source melee PvP
+lifesteal hooks from #341/#343 and projectile Necrotic hooks are disabled.
+The standalone Tasty and Necrotic paths and unrelated main hooks are not
+intentionally disabled. Root Python suite: 7 passed; TConstruct Python suite:
+102 run, 1 skipped. Three pure arithmetic tests extracted from the two
+source modules passed with rustc; these do not exercise host integration.
+Official apply, type check and game behavior on this combined tree remain
+separate acceptance gates. No game test was run for this reconciliation.
+
+### Necrotic extra durability
+
+The original `LifestealModule` spends `durability_usage` on qualifying melee
+healing and primary projectile launch. The pinned Necrotic definition uses
+one point per effective level. Mob melee applies that cost after healing via
+the existing cause-aware Overslime, Tanned and durability path. Projectile
+lifesteal and launch wear are deferred together: an actor/weapon-value scope
+cannot distinguish a callback's separate arrow from the actual primary shot.
+Official isolated `BEFORE_CALL self.add_projectile` plans for both `release_bow`
+and `shoot_crossbow` were rejected with `E_UNSUPPORTED_CONTROL_FLOW` on the
+pinned host and Mixins. This is evidence for those specific sites only, not a
+claim that no safe boundary exists. Fishing rod impact wear also remains open.
+The melee timing, modifier order, Creative, near-break and LAN cases still need
+verification. An earlier official combined apply was terminated by SIGKILL;
+its cause is not established and it is not a successful apply.
+
+### Saved upgrades and Station recipe
+
+The candidate combines the resolved material/tool traits and the separately
+saved `tic_upgrades` level once for Necrotic and Tasty. Invalid saved values
+or overflow fail closed. Necrotic's ordinary source recipe and modifier
+crystals use the existing Station planner, with one upgrade slot per level and
+source recipe maximum of five; extraction uses the existing crystal path. A
+focused planner case covers levels, ingredient/slot/maximum checks, crystals
+and extraction, and the complete 109-case ranged-upgrade fixture passed.
+Actual Station transactions, reload, multiplayer, modifier ordering, and the
+combined host apply/type check remain unverified. Tasty's source bacon recipe
+is repair, not an upgrade application recipe; no new Tasty Station application
+is claimed. Unsupported mixed food and fishing-rod actions remain deferred.
+
+### Player-facing limitations
+
+The Station rejects new Necrotic applications to items outside the resolved
+modifiable-melee/weapon tag with an explanatory reason. The source weapon tag
+includes Longbow, Crossbow and Fishing Rod, so those items may still receive the
+modifier for their bounded held mob-melee use; the tooltip warns that shooting,
+worn-armor effects and PvP do not work. Existing data is retained.
+A tooltip on supported resolved traits or saved upgrades says that only held mob
+melee is available and that projectile and PvP effects are unavailable.
+These guards and their UI rendering require combined host and game validation.

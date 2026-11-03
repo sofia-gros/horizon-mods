@@ -17,7 +17,7 @@ pub(super) fn levels(game: &super::Game<'_>, stack: &ItemStack) -> Option<(i32, 
     if traits.levels.get("tconstruct:savory").copied().unwrap_or(0) > 0 { return None; }
     let upgrades = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_upgrades"));
     if ["tconstruct:scrumptious", "tconstruct:savory"].iter().any(|id| matches!(upgrades.and_then(|data| data.get(id)), Some(horizon_world::nbt::Tag::Int(level)) if *level > 0)) { return None; }
-    let tasty = traits.levels.get("tconstruct:tasty").copied().unwrap_or(0);
+    let tasty = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tasty")?;
     let scrumptious = traits.levels.get("tconstruct:scrumptious").copied().unwrap_or(0);
     profile(tasty, scrumptious)?;
     Some((tasty, scrumptious))

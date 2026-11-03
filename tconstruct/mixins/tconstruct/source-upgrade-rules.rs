@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 20] = [
+const UPGRADES: [(&str, i32); 21] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -211,16 +211,16 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && !fluid && old != 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up") {
+            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -260,7 +260,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up") { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
@@ -502,6 +502,33 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn necrotic_recipe_obeys_levels_slots_and_crystal() {
+        use super::*;
+        let recipe = br#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"item":"minecraft:wither_skeleton_skull"}],"level":{"max":5},"result":"tconstruct:necrotic","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/melee"}}"#.to_vec();
+        let recipes = BTreeMap::from([("necrotic".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/melee".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let mk = |level| {
+            let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+            tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:necrotic", Tag::Int(level))])),
+            ])));
+            tool
+        };
+        let input = [Some(ItemStack::new("minecraft:wither_skeleton_skull", 1))];
+        assert_eq!(plan(&recipes, &tags, &mk(0), &input, 5).unwrap().amount, 1);
+        assert_eq!(plan(&recipes, &tags, &mk(4), &input, 5).unwrap().amount, 5);
+        assert!(plan(&recipes, &tags, &mk(5), &input, 6).is_none());
+        assert!(plan(&recipes, &tags, &mk(1), &input, 1).is_none());
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
+        crystal.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("modifier", Tag::String("tconstruct:necrotic".into()))])));
+        assert_eq!(plan(&recipes, &tags, &mk(2), &[Some(crystal)], 5).unwrap().amount, 3);
+        let extraction_tags = HashMap::from([("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let inputs = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+        let result = extract_upgrade(&extraction_tags, &mk(2), &inputs, "tconstruct:necrotic").unwrap();
+        assert_eq!(result.upgrade.amount, 1);
+    }
+
     #[test]
     fn forming_and_step_up_use_source_values_and_scope() {
         use super::*;

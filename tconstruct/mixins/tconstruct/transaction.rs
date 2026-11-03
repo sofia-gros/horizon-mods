@@ -2234,8 +2234,8 @@ mod tests {
         let mut count = 0;
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).unwrap();
-            if !file.name().contains("/materials/definition/") { continue; }
-            let name = file.name().to_owned();
+            if !file.name().expect("valid zip entry name").contains("/materials/definition/") { continue; }
+            let name = file.name().expect("valid zip entry name").into_owned();
             let value: serde_json::Value = serde_json::from_reader(&mut file).unwrap();
             source_material_definition(&value, &registries, &config, true).unwrap_or_else(|e| panic!("{name}: {e:?}"));
             count += 1;
@@ -2291,7 +2291,7 @@ mod tests {
         let mut files = std::collections::BTreeMap::new();
         for i in 0..archive.len() {
             let mut file = archive.by_index(i).unwrap();
-            let name = file.name().to_owned();
+            let name = file.name().expect("valid zip entry name").into_owned();
             if let Some(path) = name.strip_prefix("data/tconstruct/tinkering/materials/definition/").and_then(|s| s.strip_suffix(".json")) {
                 let mut data = Vec::new(); file.read_to_end(&mut data).unwrap();
                 files.insert(format!("tconstruct:tinkering/materials/definition/{path}"), vec![data]);
@@ -2395,7 +2395,7 @@ mod tests {
         let mut parts = std::collections::HashSet::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).unwrap();
-            let name = file.name().to_owned(); let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
+            let name = file.name().expect("valid zip entry name").into_owned(); let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
             let value: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
             for module in value["modules"].as_array().unwrap() {
                 let typ = module["type"].as_str().unwrap();
@@ -2435,7 +2435,7 @@ mod tests {
         let mut raw_recipes = std::collections::BTreeMap::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).unwrap();
-            let name = file.name().to_owned();
+            let name = file.name().expect("valid zip entry name").into_owned();
             let Some(path) = name.strip_prefix("data/tconstruct/recipes/").and_then(|p| p.strip_suffix(".json")) else { continue; };
             let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(&bytes) else { continue; };
@@ -2590,7 +2590,7 @@ mod tests {
         let mut recipes = std::collections::BTreeMap::new();
         for index in 0..archive.len() {
             let mut file = archive.by_index(index).unwrap();
-            let name = file.name().to_owned();
+            let name = file.name().expect("valid zip entry name").into_owned();
             if let Some(path) = name.strip_prefix("data/tconstruct/recipes/").and_then(|p| p.strip_suffix(".json")) {
                 let mut bytes = Vec::new(); file.read_to_end(&mut bytes).unwrap();
                 recipes.insert(format!("tconstruct:{path}"), bytes);

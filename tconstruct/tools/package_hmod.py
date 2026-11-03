@@ -64,9 +64,13 @@ def package(output):
     with zipfile.ZipFile(MOD / 'content/reference/tconstruct-melter-assets.zip') as archive:
         add(runtime + 'gui/tconstruct_melter.png', archive.read('assets/tconstruct/textures/gui/melter.png'))
         add(runtime + 'block/tconstruct_fluid_fallback.png', archive.read('assets/tconstruct/textures/fluid/molten/still.png'))
+        add(runtime + 'block/tconstruct_fluid_fallback.png.mcmeta', archive.read('assets/tconstruct/textures/fluid/molten/still.png.mcmeta'))
+        animations = json.loads((MOD / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
         fluids = json.loads(archive.read('assets/tconstruct/melter-fluid-textures.json'))
         for fluid, texture in fluids.items():
             add(runtime + 'block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png', archive.read('assets/tconstruct/' + texture))
+            if fluid in animations:
+                add(runtime + 'block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta', json.dumps(animations[fluid]).encode())
 
     # The source visual archives are owned by the mod and do not contain the
     # player's Minecraft textures. Retain Forge models in the paths read by
