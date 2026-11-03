@@ -1885,6 +1885,14 @@ helper = "golden-armor.rs"
 bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
 [[module]]
+id = "host-source-snow-boots"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_snow_boots"
+source = "source-snow-boots.rs"
+
+# Powder-snow walking and placement hooks are deferred after official plan rejection.
+
+[[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_material_traits"
