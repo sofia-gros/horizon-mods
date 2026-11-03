@@ -328,15 +328,9 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
         tool.data_mut().set_other("minecraft:custom_data", Some(custom));
         return Some(());
     }
-    let trait_boost = 0.15 * *levels.get("tconstruct:preserved").unwrap_or(&0) as f32
-        + 0.1 * *levels.get("tconstruct:ductile").unwrap_or(&0) as f32
-        + match levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0) {
-            level if level >= 7 => -0.99999,
-            level => -0.15 * level as f32,
-        };
     let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0) > 0;
     let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
-    let percent = stats.durability_percent_raw + trait_boost + if emerald { 0.5 } else { 0.0 } + if netherite { 0.2 } else { 0.0 };
+    let percent = super::tconstruct_source_material_effects::ordered_durability_percent(tool, stats, levels, true);
     let durability = ((stats.durability_base_raw + diamond_add) * (1.0 + percent) * stats.durability_multiplier_unit) as i32;
     let durability = if overlord { durability.max(1) } else { durability };
     if durability < 1 { return None; }
@@ -372,24 +366,31 @@ pub fn apply_stats(
     melee_weapon: bool,
 ) -> Option<()> {
     let level = |id: &str| levels.get(id).copied().unwrap_or(0);
-    let (damage, speed) = super::tconstruct_source_melee_stat_ops::melee_stats(
-        super::tconstruct_source_melee_stat_ops::MeleeInputs {
-            damage: stats.attack_damage + 0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) * stats.attack_damage_multiplier,
-            damage_add_multiplier: stats.attack_damage_multiplier,
-            speed: stats.attack_speed,
-            ductile: level("tconstruct:ductile"), solid: level("tconstruct:solid"),
-            pierce: level("tconstruct:pierce"), lightweight: level("tconstruct:lightweight"),
-            vintage: level("tconstruct:vintage"),
-            sharpness: effective(tool, "tconstruct:sharpness", 36),
-            swiftstrike: effective(tool, "tconstruct:swiftstrike", 72),
-            melee, melee_weapon,
-        },
-    );
+    let mut damage_add = stats.attack_damage_add_raw;
+    let mut damage_percent = stats.attack_damage_percent_raw;
+    let mut speed_percent = stats.attack_speed_percent_raw;
+    let mut speed_multiplier = stats.attack_speed_multiplier_unit;
+    for id in super::tconstruct_source_material_effects::ordered_modifier_ids(tool, levels) {
+        match id.as_str() {
+            "tconstruct:diamond" if amount(tool, &id) > 0 && melee => damage_add += 0.5,
+            "tconstruct:sharpness" if melee => damage_add += 0.75 * effective(tool, &id, 36),
+            "tconstruct:pierce" if melee => damage_add += 0.5 * level(&id).max(0) as f32,
+            "tconstruct:ductile" if melee => damage_percent += 0.05 * level(&id).max(0) as f32,
+            "tconstruct:solid" if melee => damage_percent += 0.15 * level(&id).max(0) as f32,
+            "tconstruct:netherite" if melee && (amount(tool, &id) > 0 || level(&id) > 0) => damage_percent += 0.2,
+            "tconstruct:lightweight" if melee_weapon => speed_percent += 0.08 * level(&id).max(0) as f32,
+            "tconstruct:swiftstrike" if melee_weapon => speed_percent += 0.05 * effective(tool, &id, 72),
+            "tconstruct:vintage" if melee_weapon => speed_multiplier *= 1.0 - 0.1 * level(&id).max(0) as f32,
+            _ => {},
+        }
+    }
+    let damage = (stats.attack_damage_base_raw + damage_add) * (1.0 + damage_percent) * stats.attack_damage_multiplier_unit;
+    let speed = (stats.attack_speed_base_raw + stats.attack_speed_add_raw) * (1.0 + speed_percent) * speed_multiplier;
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let netherite = amount(tool, "tconstruct:netherite") > 0 || level("tconstruct:netherite") > 0;
-    if melee { fields.insert("tic_attack_damage".into(), Tag::Float((damage * if netherite { 1.2 } else { 1.0 }).clamp(0.0, 2048.0).to_bits())); }
-    if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
+    if melee { fields.insert("tic_attack_damage".into(), Tag::Float(damage.clamp(0.0, 2048.0).to_bits())); }
+    if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.clamp(0.0, 1024.0).to_bits())); }
     let quick = effective(tool, "tconstruct:quick_charge", 5);
     let true_level = effective(tool, "tconstruct:trueshot", 10);
     let emerald = effective(tool, "tconstruct:emerald", 1).min(1.0);
@@ -424,6 +425,24 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn same_stat_base_multipliers_add_before_application() {
+        use super::*;
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":10,"tconstruct:attack_speed":1}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:swiftstrike", Tag::Int(72))])),
+            ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:swiftstrike".into())])),
+            ("tic_trait_order", Tag::List(vec![Tag::String("tconstruct:ductile".into()), Tag::String("tconstruct:solid".into()), Tag::String("tconstruct:lightweight".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:ductile".into(), 1), ("tconstruct:solid".into(), 1), ("tconstruct:lightweight".into(), 1)]);
+        apply_stats(&mut tool, &stats, &levels, true, true).unwrap();
+        let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_attack_damage"), Some(Tag::Float(v)) if (f32::from_bits(*v)-12.0).abs()<0.0001));
+        assert!(matches!(custom.get("tic_attack_speed"), Some(Tag::Float(v)) if (f32::from_bits(*v)-1.13).abs()<0.0001));
+    }
+
     #[test]
     fn provisional_release_disables_wear_upgrades_only() {
         assert!(!super::provisional_upgrade_enabled("tconstruct:reinforced"));
