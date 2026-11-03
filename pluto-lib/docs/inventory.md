@@ -38,6 +38,7 @@ let plan = plan_insert(&slots, &incoming, destination, effective_limit,
 
 - `StackSnapshot { item: &T, count: u32 }` borrows a complete stack identity and records its count.
 - `plan_move(slots, from, to, requested, limit, accepts, same)` returns `Result<Option<MovePlan>, MoveError>`. The callbacks receive the destination and source identity for limit and acceptance, and both identities for equality.
+- `plan_between(source, destination, requested, limit, accepts, same)` uses two snapshots from separate containers. Its logical indexes are 0 for the source and 1 for the destination; it does not itself commit or roll back either container.
 - `MovePlan` contains `from`, `to`, `count`, `source_count_before`, and `destination_count_before` (`None` for an empty destination).
 - `MoveError::SlotOutOfBounds` indicates an invalid index. `Ok(None)` means no move under the supplied conditions.
 
