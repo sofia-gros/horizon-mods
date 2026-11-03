@@ -27,6 +27,8 @@ class HydraulicWater(unittest.TestCase):
         station = (ROOT / 'mixins/tconstruct/station-info-ui.rs').read_text()
         for text in (tooltip, station):
             self.assertIn('Hydraulic: underwater only; rain bonus unavailable', text)
+        # The upgrade ID is a String; as_ref() is ambiguous in this equality.
+        self.assertIn('if id.as_str() == "tconstruct:hydraulic"', station)
         self.assertIn('Hydraulic: water only', station)
         self.assertIn('Rain bonus unavailable', station)
         self.assertIn('("hydraulic", 36)', tooltip)
