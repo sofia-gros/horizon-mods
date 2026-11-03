@@ -1,16 +1,20 @@
-// This native boundary runs after host break permissions but before mod
-// cancellation and actual removal. Area recursion spends only on its first call.
-fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>) {
+// Run after native cancellation handlers and before actual block removal.
+// Area recursion spends only on its first allowed call.
+fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>, canceled: bool) {
+    if canceled { return; }
     use horizon_world::nbt::Tag;
     let actor = game.lan_acting;
     let active = game.world.chunks.__horizon_mixins_tconstruct_area_active().contains(&actor);
     if active && game.world.chunks.__horizon_mixins_tconstruct_area_overwield_spent().contains(&actor) { return; }
     let Some(stack) = game.inventory[game.selected].as_ref() else { return; };
+    if crate::game::tconstruct_source_ranged_wear::is_broken(stack) { return; }
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return; };
     if !matches!(custom.get("tic_max_damage"), Some(Tag::Int(max)) if *max > 0 && stack.damage < *max as u32) { return; }
-    let tags = &game.items().item_tags;
-    let broad = tags.get("tconstruct:modifiable/broad").is_some_and(|items| items.contains(stack.item.as_ref()));
-    let harvest = tags.get("tconstruct:modifiable/harvest").is_some_and(|items| items.contains(stack.item.as_ref()));
+    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|result| result.as_ref().ok()) else { return; };
+    let Some(broad_tag) = tags.get("tconstruct:modifiable/broad") else { return; };
+    let Some(harvest_tag) = tags.get("tconstruct:modifiable/harvest") else { return; };
+    let broad = broad_tag.contains(stack.item.as_ref());
+    let harvest = harvest_tag.contains(stack.item.as_ref());
     if !broad && !harvest { return; }
     let Some(Tag::List(traits)) = custom.get("tic_mining_traits") else { return; };
     let level = traits.iter().find_map(|entry| match (entry.get("id"), entry.get("level")) {

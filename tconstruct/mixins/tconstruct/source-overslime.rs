@@ -42,6 +42,40 @@ pub(super) fn friendly(levels: &std::collections::BTreeMap<String, i32>, overfor
 mod tests {
     use super::*;
     #[test]
+    fn rebuild_copies_gem_and_ductile_before_overlord_reduction() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        use std::collections::BTreeMap;
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))])),
+            ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:emerald".into()),Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:ductile".into()),Tag::String("tconstruct:overlord".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:ductile".into(),3),("tconstruct:overlord".into(),2),("tconstruct:overslime".into(),1)]);
+        // Priority 50 copy: 100 * 1.5 * 1.2 * 1.3 * 0.2 = 46.8; base shield 50.
+        rebuild(&mut stack,&stats,&levels,false,false,false,false).unwrap();
+        let data=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(data.get("tic_overslime_capacity"),Some(Tag::Int(96))));
+        super::super::tconstruct_source_material_effects::apply_stat_traits(&mut stack,&stats,&levels).unwrap();
+        let data=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        // Overlord then multiplies durability by 0.7: floor(234 * 0.7) = 163.
+        assert!(matches!(data.get("tic_max_damage"),Some(Tag::Int(163))));
+    }
+
+    #[test]
+    fn oversized_spend_cannot_increase_shield() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_overslime", Tag::Int(5))])));
+        spend(&mut stack, u32::MAX);
+        assert!(matches!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_overslime"), Some(Tag::Int(0))));
+    }
+
+    #[test]
     fn material_and_overlord_stack_before_source_multipliers() {
         assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 1, 2.0, 1, 100.0, 1.0, 30.0), 345);
         assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 0, 1.0, 0, 0.0, 1.0, 30.0), 80);
@@ -126,9 +160,9 @@ pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     // not the final integer durability after Overlord's own reduction.
     let diamond = upgrade(stack, "tconstruct:diamond") > 0;
     let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
-    let percent = super::tconstruct_source_material_effects::ordered_durability_percent(stack, stats, levels, false);
+    let percent = super::tconstruct_source_material_effects::ordered_durability_multiplier(stack, stats, levels, false);
     let source_multiplier = stats.durability_multiplier_unit;
-    let durability = (stats.durability_base_raw + diamond_add) * (1.0 + percent) * source_multiplier;
+    let durability = (stats.durability_base_raw + diamond_add) * (1.0 + stats.durability_percent_raw) * percent;
     let cap = capacity_with_material_and_overlord(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, levels.get("tconstruct:overlord").copied().unwrap_or(0), durability, source_multiplier, stats.overslime_material);
     let unfriendly = has && !friendly(levels, overforced);
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
@@ -160,7 +194,7 @@ pub(super) fn spend(stack: &mut horizon_items::items::ItemStack, used: u32) {
     if used == 0 { return; }
     let Some(mut custom) = stack.data().and_then(|d| d.other("minecraft:custom_data")).cloned() else { return; };
     if let Tag::Compound(ref mut fields) = custom {
-        if let Some(Tag::Int(value)) = fields.get_mut(&"tic_overslime".into()) { *value = value.saturating_sub(used as i32).max(0); }
+        if let Some(Tag::Int(value)) = fields.get_mut(&"tic_overslime".into()) { *value = value.saturating_sub(i32::try_from(used).unwrap_or(i32::MAX)).max(0); }
     }
     stack.data_mut().set_other("minecraft:custom_data",Some(custom));
 }
