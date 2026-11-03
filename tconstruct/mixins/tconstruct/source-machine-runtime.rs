@@ -688,15 +688,13 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             // A mold-less recipe also applies when the player is holding an
             // unrelated item; leave that item untouched and give the result.
             if held.is_some() {
-                if let Some((recipe_id, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
+                if let Some((_, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
                     casting.input = None;
                     if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
                     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
                     let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
-                    game.give_or_drop(result.clone());
-                    let player = game.native_acting_id();
-                    game.native_item_crafted(player, &recipe_id, &result);
-                    game.stats.add("crafted", &result.item, 1);
+                    // The source fallback gives the assembled item without onCraftedBy.
+                    game.give_or_drop(result);
                     return true;
                 }
             }
