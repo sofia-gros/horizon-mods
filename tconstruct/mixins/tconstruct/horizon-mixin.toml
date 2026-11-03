@@ -4843,3 +4843,16 @@ id = "native-hook-bodies"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_native_hook_bodies"
 source = "source-native-hook-bodies.rs"
+
+[[module]]
+id = "source-slime-plant-support"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_slime_plant_support"
+source = "source-slime-plant-support.rs"
+
+[[injection]]
+id = "source-slime-plant-survive"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
+kind = "HEAD"
+helper = "source-slime-plant-survive.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
