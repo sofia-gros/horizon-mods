@@ -73,9 +73,20 @@ class MaterialsBookSourceTest(unittest.TestCase):
         section = json.loads((root / 'sections/smeltery.json').read_text())
         self.assertEqual([(page['name'], page['data']) for page in section if page['name'] in ('controller', 'alloying')],
                          [('controller', 'smeltery/controller.json'), ('alloying', 'smeltery/alloying.json')])
+        for name, path, item in [
+            ('seared_ladder', 'smeltery/searedladder.json', 'tconstruct:seared_ladder'),
+            ('seared_glass', 'smeltery/searedglass.json', 'tconstruct:seared_glass'),
+            ('seared_chute', 'smeltery/seared_chute.json', 'tconstruct:seared_chute'),
+        ]:
+            entry = next(page for page in section if page['name'] == name)
+            self.assertEqual((entry['type'], entry['data']), ('mantle:showcase', path))
+            data = json.loads((root / 'en_us' / path).read_text())
+            self.assertEqual(data['item'], item)
+            self.assertTrue(data['title'])
+            self.assertTrue(data['text'])
         language = (root / 'en_us/language.lang').read_text()
         self.assertIn('smeltery.partial=Smeltery Basics (Partial)', language)
-        self.assertIn('Entity melting and other machine behavior are incomplete.', language)
+        self.assertIn('Entity melting is incomplete, and connected glass faces are unavailable.', language)
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         self.assertIn('mighty_smeltery_page', reader)
         self.assertIn('smeltery.partial.notice', reader)
