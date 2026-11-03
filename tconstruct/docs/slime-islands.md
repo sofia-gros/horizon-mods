@@ -272,8 +272,13 @@ client build on 0c7b/ddd; this candidate requires its own verification.
 ## Ender tree components
 
 The original Enderbark root block, item, loot and axe tag are registered. Its
-source-specific vertical adjacent-root face culling is not implemented. A
-shared Ender-tree component provides the four source congealed-slime/root
+`minecraft:mangrove_roots` template inherits the host's same-block vertical
+face-culling rule, matching the pinned source rule. A prepared-resource probe
+checked both root states, all six directions and different-root controls with
+the host `FaceVisibility` implementation. This establishes that the candidate
+resource data follows that visibility path, not that a final build's pixels
+have been checked; model, mesh and in-game validation remain open. A shared
+Ender-tree component provides the four source congealed-slime/root
 replacement mappings and the original leaf-vine decorator's ordered 0.125
 random draws and maximum four-block hanging extensions. The component is
 used by the candidate live-world tree implementation. Its soil provider keeps
