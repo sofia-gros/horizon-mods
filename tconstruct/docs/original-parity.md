@@ -469,4 +469,6 @@ The original Ender tree root variant and vine-decorator calculations are retaine
 
 The source Bacon item is registered with its original model and texture and food values. The existing Tasty repair recipe can resolve its ingredient once its Station implementation is integrated. Representative supplied-item food and repair results were recorded on a separate b53 candidate; normal acquisition and this exact integrated target remain unverified.
 
+The Melter and Seared Fluid Cannon crafting guard follows source `TankItem.isFilled`: any saved tank compound causes the gauge to have a crafting remainder, even if that compound reports zero fluid. A gauge without a tank compound remains eligible; malformed component forms remain conservatively refused. The source-level guard was tested; integrated crafting, save/reload and LAN remain unverified.
+
 The Station recognizes supported `tconstruct:modifier_repair` recipes, including Tasty with Bacon, when the ingredient, resolved traits and repair factors are known. It rejects unsupported definition traits, conditional recipes, unknown inputs and mixed materials rather than guessing. Representative supplied-item repair and rejection were tested on a separate b53 diagnostic client; the reconciled main candidate and normal acquisition still need integration verification.
