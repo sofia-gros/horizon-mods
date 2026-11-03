@@ -175,7 +175,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         let machines = [("tconstruct:crafting_station", "tconstruct:crafting_station"), ("tconstruct:part_chest", "tconstruct:part_chest"), ("tconstruct:tinkers_chest", "tconstruct:modifier_chest"),
             ("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
             ("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
-            ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
+            ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:scorched_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
             ("tconstruct:seared_basin", "tconstruct:basin"), ("tconstruct:smeltery_controller", "tconstruct:smeltery"),
             ("tconstruct:foundry_controller", "tconstruct:smeltery"),
             ("tconstruct:seared_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:seared_fuel_gauge", "tconstruct:fuel_tank"),
@@ -278,7 +278,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
                 let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
-                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge") { continue; }
+                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge") { continue; }
                 let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
                 row["block_entity"] = serde_json::Value::Bool(true);
                 if !matches!(name, "tconstruct:seared_heater" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
@@ -344,7 +344,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }
         }
-        for name in ["tconstruct:seared_melter", "tconstruct:seared_faucet", "tconstruct:seared_table", "tconstruct:seared_basin"] {
+        for name in ["tconstruct:seared_melter", "tconstruct:seared_faucet", "tconstruct:scorched_faucet", "tconstruct:seared_table", "tconstruct:seared_basin"] {
             if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }

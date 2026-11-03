@@ -345,6 +345,10 @@ PartCastItem cost tooltips are being connected to the source material-casting re
 The shared source recipe snapshot resolves `forge:conditional` candidates in source order and filters top-level recipe conditions at datapack reload against the current item/tag/config snapshots. Unknown earlier conditions or an unavailable context reject the affected recipe rather than select a later branch; unsupported conditions remain inactive. Consumers still need their own serializer support. This change awaits integrated verification.
 
 `forge:mod_loaded` recognizes native mods advertised by Horizon native hooks when `native_on` is true. Disabled native IDs remain unknown because their content may already be registered. Missing IDs also remain unknown: the host's content announcement can include a subsequently rejected content package, and not every native hook must advertise an ID. Rebuild the recipe snapshot after mod status changes. Original Forge mod IDs must match advertised Horizon IDs; content-only mods, absence detection and separate native recipe loading remain unresolved. The target-side hook and runtime behavior are unverified.
+Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
+
+Alloy input matching now supports source `catalyst` fluids: they must be present in the required amount but are not consumed. This enables the source water/lava molten-obsidian recipe in code; integrated operation, fuel and persistence remain unverified.
+
 ### Material trait fallback by stat type
 
 The pinned material registry resolves a trait's exact stat type first, then its
@@ -379,6 +383,20 @@ empty traits, Slime Chestplate's explicit tool-traits module, trim-only hooks,
 missing/invalid indices, material swap, reload and LAN. Compare the pinned
 [MaterialStatsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialStatsModule.java)
 and [MaterialTraitsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialTraitsModule.java).
+
+### Slime chestplate definition lookup
+
+The registered item ID is `tconstruct:slimy_chestplate`, while its pinned
+original tool definition is `tconstruct:slime_chestplate`. Station and material
+trait lookups now resolve that exact pair to the original definition; other
+namespaces and item IDs are unchanged. This fixes definition lookup only and
+does not by itself establish crafting, all armor behavior, guide display or
+Creative initialization.
+
+Rust syntax was checked. Unit, plan, build and gameplay remain pending. Verify
+Station operations and trait resolution for the registered chestplate, an
+unrelated TConstruct item, and the same name in another namespace; include
+material swap, reload and LAN. Guide and Creative lookup paths remain separate.
 
 The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
 

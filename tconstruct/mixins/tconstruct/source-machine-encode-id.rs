@@ -7,7 +7,7 @@ fn tconstruct_machine_encode_id(entity: &crate::containers::BlockEntity, block: 
         "tconstruct:tinkers_chest" => "tconstruct:modifier_chest",
         "tconstruct:seared_melter" => "tconstruct:melter",
         "tconstruct:seared_heater" => "tconstruct:heater",
-        "tconstruct:seared_faucet" => "tconstruct:faucet",
+        "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => "tconstruct:faucet",
         "tconstruct:seared_table" => "tconstruct:table",
         "tconstruct:seared_basin" => "tconstruct:basin",
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => "tconstruct:smeltery",
