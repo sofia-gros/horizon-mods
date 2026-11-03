@@ -30,7 +30,7 @@ fn smeltery_tank_drop(pending: &mut crate::game::spill::Pending, pos: [i32; 3], 
     }
     let marker = "tconstruct:internal_tank_copy";
     let Some((item, patch)) = pending.copied.get_mut(&pos) else { return; };
-    if item != &*stack.item || crate::game::tconstruct_source_smeltery_fuel::item_capacity(&stack.item).is_none() { return; }
+    if item != &*stack.item || crate::game::tconstruct_source_smeltery_fuel::capacity(&stack.item).is_none() { return; }
     let Some(tank) = patch.remove(&marker.into()) else { return; };
     let mut data = match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
         Some(Tag::Compound(data)) => data.clone(), _ => Compound::new(),

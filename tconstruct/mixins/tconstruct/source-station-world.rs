@@ -31,7 +31,7 @@ pub(super) fn building_plan_diagnostic(world: &super::tconstruct_world::World, s
         let Some(recipe) = BuildingRecipe::parse(bytes) else { continue; };
         if !registered.contains_key(&recipe.result) { continue; }
         let Some((namespace, name)) = recipe.result.split_once(':') else { continue; };
-        let Some(definition) = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()) else { continue; };
+        let Some(definition) = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name))).and_then(|layers| layers.last()) else { continue; };
         let Some(parts) = recipe.parts(definition) else { continue; };
         let Some(inputs) = slots.get(..input_capacity) else { return None; };
         let Some(matched) = recipe.match_inputs(&parts, parts.len(), inputs, |stack| {
@@ -160,7 +160,7 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     if inputs.next().is_some() { return None; }
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item)?;
     let parts = recipe.parts(definition)?;
@@ -239,7 +239,7 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     };
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item);
     let mut repair_parts: Vec<(String, String)> = Vec::new();
@@ -287,7 +287,12 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
         }
     }
     let traits = super::tconstruct_source_material_traits::levels(world, &tool);
-    let repair_factor = station_repair_factor(&tool, traits.as_ref().map(|traits| &traits.levels));
+    let cultivated = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:cultivated").copied()).unwrap_or(0);
+    let preserved = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:preserved").copied()).unwrap_or(0);
+    let dense = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:dense").copied()).unwrap_or(0);
+    let repair_factor = super::tconstruct_source_material_effects::repair_factor(cultivated, preserved)
+        * super::tconstruct_source_material_effects::dense_repair_factor(dense)
+        * if matches!(tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:emerald")), Some(Tag::Int(v)) if *v > 0) { 1.5 } else { 1.0 };
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
     for index in 1..=input_capacity {
@@ -316,119 +321,6 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     Some((tool, consumed))
 }
 
-fn station_repair_factor(tool: &ItemStack, traits: Option<&std::collections::BTreeMap<String, i32>>) -> f32 {
-    let level = |id: &str| traits.and_then(|levels| levels.get(id).copied()).unwrap_or(0);
-    super::tconstruct_source_material_effects::repair_factor(level("tconstruct:cultivated"), level("tconstruct:preserved"))
-        * super::tconstruct_source_material_effects::dense_repair_factor(level("tconstruct:dense"))
-        * if matches!(tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:emerald")), Some(Tag::Int(v)) if *v > 0) { 1.5 } else { 1.0 }
-}
-
-/// Source modifier_repair recipes require only matching inputs and consume
-/// enough items to cover the actual repaired damage, in input-slot order.
-fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<StationOperation> {
-    let original = slots.first()?.as_ref()?;
-    if original.count != 1 || original.damage == 0 { return None; }
-    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    if !tags.get("tconstruct:modifiable/durability")?.contains(original.item.as_ref()) { return None; }
-    let traits = super::tconstruct_source_material_traits::levels(world, original)?;
-    if traits.levels.get("tconstruct:emerald").copied().unwrap_or(0) > 0 { return None; }
-    let custom = original.data()?.other("minecraft:custom_data")?;
-    let upgrades = custom.get("tic_upgrades");
-    if upgrades.is_some_and(|value| !matches!(value, Tag::Compound(_))) { return None; }
-    let mut repair_traits = traits.levels.clone();
-    for id in ["tconstruct:cultivated", "tconstruct:preserved", "tconstruct:dense"] {
-        let level = match upgrades.and_then(|value| value.get(id)) { Some(Tag::Int(value)) if *value >= 0 => *value, None => 0, _ => return None };
-        let entry = repair_traits.entry(id.to_owned()).or_default();
-        *entry = entry.checked_add(level)?;
-    }
-    let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
-    let (namespace, name) = original.item.split_once(':')?;
-    let definition: serde_json::Value = serde_json::from_slice(definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?).ok()?;
-    let modules = definition.get("modules")?.as_array()?;
-    let inputs = slots.get(1..=input_capacity)?;
-    let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
-    let mut found: Option<StationOperation> = None;
-    for bytes in recipes.values() {
-        let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
-        if value.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:modifier_repair") { continue; }
-        let mut conditions_ok = true;
-        for key in ["conditions", "forge:conditions"] {
-            let Some(raw) = value.get(key) else { continue; };
-            let Some(conditions) = raw.as_array() else { conditions_ok = false; break; };
-            if conditions.is_empty() { continue; }
-            let Some((_, fluid_tags)) = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok()) else { conditions_ok = false; break; };
-            let Some(config) = world.chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { conditions_ok = false; break; };
-            let Some(items) = world.chunks.__horizon_mixins_tconstruct_melter_known_items().as_ref() else { conditions_ok = false; break; };
-            let registries = [("minecraft:item".to_owned(), tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
-            if super::tconstruct_source_conditions::conditional_conditions(conditions, &registries, config, items) != Some(true) { conditions_ok = false; break; }
-        }
-        if !conditions_ok { continue; }
-        let Some(modifier) = value.get("modifier").and_then(serde_json::Value::as_str) else { continue; };
-        // Default trait modules contribute to TOOL_TRAITS. Explicit hook
-        // overrides contribute only when they include that hook.
-        let mut definition_modifier = 0i32;
-        let mut definition_repair_traits = repair_traits.clone();
-        let mut known = true;
-        for module in modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits")) {
-            if let Some(hooks) = module.get("hooks") {
-                let Some(hooks) = hooks.as_array() else { known = false; break; };
-                if hooks.iter().any(|hook| hook.as_str().is_none()) { known = false; break; }
-                if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { continue; }
-            }
-            let Some(entries) = module.get("traits").and_then(serde_json::Value::as_array) else { known = false; break; };
-            for entry in entries {
-                let Some(id) = entry.get("name").and_then(serde_json::Value::as_str) else { known = false; break; };
-                if id != modifier && !matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense" | "tconstruct:emerald") { continue; }
-                if id == "tconstruct:emerald" || !matches!(entry.get("optional"), None | Some(serde_json::Value::Bool(false))) { known = false; break; }
-                let value = match entry.get("level") { None => Some(1), Some(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()).filter(|value| *value > 0) };
-                let Some(value) = value else { known = false; break; };
-                if id == modifier { definition_modifier = definition_modifier.checked_add(value)?; }
-                if matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense") {
-                    let level = definition_repair_traits.entry(id.to_owned()).or_default();
-                    *level = level.checked_add(value)?;
-                }
-            }
-            if !known { break; }
-        }
-        if !known { continue; }
-        let Some(per_level) = value.get("repair_amount").and_then(serde_json::Value::as_i64).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0) else { continue; };
-        let Some(ingredient) = value.get("ingredient") else { continue; };
-        let mut count = 0u32;
-        let mut eligible = true;
-        for stack in inputs.iter().flatten() {
-            if super::tconstruct_source_station_recipes::repair_ingredient_matches(ingredient, &stack.item, tags) != Some(true) { eligible = false; break; }
-            count = count.checked_add(stack.count)?;
-        }
-        if !eligible || count == 0 { continue; }
-        let upgrade = match upgrades.and_then(|upgrades| upgrades.get(modifier)) { Some(Tag::Int(level)) if *level >= 0 => *level, None => 0, _ => return None };
-        let level = traits.levels.get(modifier).copied().unwrap_or(0).checked_add(upgrade)?.checked_add(definition_modifier)?;
-        let raw = level.checked_mul(per_level)?;
-        let factor = station_repair_factor(original, Some(&definition_repair_traits));
-        if raw <= 0 || !factor.is_finite() || factor <= 0.0 { continue; }
-        let per_item = ((raw as f32 * factor) as i32).max(0) as u32;
-        if per_item == 0 { continue; }
-        let repaired = original.damage.min(count.saturating_mul(per_item));
-        let mut needed = repaired.div_ceil(per_item);
-        let mut consumed = vec![(0, 1)];
-        for (index, stack) in inputs.iter().enumerate() {
-            if let Some(stack) = stack {
-                let take = needed.min(stack.count);
-                if take > 0 { consumed.push((index + 1, take)); needed -= take; }
-            }
-        }
-        if needed != 0 { return None; }
-        let mut output = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(original) {
-            Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
-        };
-        super::tconstruct_tx::fixed_set_damage(&mut output, original.damage - repaired);
-        let block_ids = world.chunks.__horizon_mixins_tconstruct_resolved_block_ids().as_ref().and_then(|ids| ids.as_ref().ok());
-        if super::tconstruct_source_tool_normalize::finalize_tool(&mut output, |id| block_ids.and_then(|ids| ids.get(id).copied())).is_err() { return None; }
-        if found.is_some() { return None; }
-        found = Some(StationOperation { output, consumed, leftovers: Vec::new() });
-    }
-    found
-}
-
 pub(super) fn take_repair(slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>, output: ItemStack, consumed: &[(usize, u32)]) -> bool {
     if carried.is_some() || consumed.iter().any(|&(index, count)| slots.get(index).and_then(Option::as_ref).is_none_or(|stack| stack.count < count)) { return false; }
     for &(index, count) in consumed {
@@ -455,7 +347,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     }).collect::<Option<Vec<_>>>()?;
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let slots_available = parsed.get("modules")?.as_array()?.iter()
         .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
@@ -505,7 +397,7 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     let identities = materials.iter().map(|v| if let Tag::String(id)=v {Some(id.to_string_lossy().to_string())} else {None}).collect::<Option<Vec<_>>>()?;
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace,name) = tool.item.split_once(':')?;
-    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|t|t.levels).unwrap_or_default();
     let mut upgraded = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
@@ -545,7 +437,7 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     }).collect::<Option<Vec<_>>>()?;
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::extract_upgrade_with_traits(tags, tool, slots.get(1..=2)?, id, &traits)?;
@@ -557,6 +449,17 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
     modified.data_mut().set_other("minecraft:custom_data", Some(custom));
     let output = assemble(world, definition, &tool.item, &identities, Some(&modified), &mut None)?;
+    if id == "tconstruct:gilded" {
+        let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+        let modules = parsed.get("modules")?.as_array()?;
+        let base_slots = |name: &str| -> Option<i32> {
+            let total = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+                .filter_map(|module| module.get("slots")?.get(name)?.as_i64()).sum::<i64>();
+            i32::try_from(total).ok()
+        };
+        let rebuilt_traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+        if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &rebuilt_traits, base_slots("upgrades")?, base_slots("abilities")?) { return None; }
+    }
     let mut leftovers = plan.upgrade.leftover.into_iter().collect::<Vec<_>>();
     leftovers.push(plan.sponge);
     Some(StationOperation { output, consumed: plan.upgrade.consumed, leftovers })
@@ -593,7 +496,6 @@ pub(super) fn operation_plan_with_capacity(world: &super::tconstruct_world::Worl
 pub(super) fn operation_plan_diagnostic(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<StationOperation> {
     if !matches!(input_capacity, 3 | 5) { return None; }
     if let Some(plan) = overslime_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
-    if let Some(plan) = modifier_repair_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
     if let Some(plan) = upgrade_plan(world, slots, input_capacity, reason) { *reason = None; return Some(plan); }
     if reason.as_deref().is_some_and(|message| message.starts_with("Unavailable upgrade in this development build:")) { return None; }
     if let Some((output, consumed)) = swap_plan_with_capacity(world, slots, input_capacity, reason).or_else(|| repair_plan_with_capacity(world, slots, input_capacity, reason)) {

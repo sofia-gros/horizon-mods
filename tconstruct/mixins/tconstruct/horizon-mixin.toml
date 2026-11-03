@@ -1752,19 +1752,6 @@ name = "tconstruct_source_station_world"
 source = "source-station-world.rs"
 
 [[module]]
-id = "host-source-conditions"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_conditions"
-source = "source-conditions.rs"
-
-[[module]]
-id = "server-source-conditions"
-file = "crates/horizon-client/src/client_lib.rs"
-name = "tconstruct_source_conditions"
-source = "source-conditions.rs"
-visibility = "pub"
-
-[[module]]
 id = "server-source-station-world"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_world"
@@ -1899,6 +1886,21 @@ id = "host-source-material-traits"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_material_traits"
 source = "source-material-traits.rs"
+
+[[injection]]
+id = "source-golden-armor"
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+kind = "RETURN"
+helper = "golden-armor.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "host-source-snow-boots"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_snow_boots"
+source = "source-snow-boots.rs"
+
+# Powder-snow walking and placement hooks are deferred after official plan rejection.
 
 [[module]]
 id = "server-source-material-traits"
@@ -2202,84 +2204,6 @@ id = "source-machine-runtime"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_machine_runtime"
 source = "source-machine-runtime.rs"
-
-[[module]]
-id = "source-casting-tank"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_casting_tank"
-source = "source-casting-tank.rs"
-
-[[module]]
-id = "source-fluid-cannon"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_fluid_cannon"
-source = "source-fluid-cannon.rs"
-
-[[injection]]
-id = "source-fluid-cannon-placement"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
-kind = "HEAD"
-helper = "source-cannon-placement.rs"
-bindings = [
-  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
-  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
-  { name = "context", ty = "&horizon_world::level::PlacementContext", value = "context" },
-  { name = "answer", ty = "&mut Option<Option<horizon_world::registry::BlockStateId>>", value = "answer" },
-]
-
-[[injection]]
-id = "source-casting-tank-has-comparator"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_has_analog_output"
-kind = "HEAD"
-helper = "source-casting-comparator-present.rs"
-bindings = [
-  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
-  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
-  { name = "output", ty = "&mut bool", value = "&mut *output" },
-]
-
-[[injection]]
-id = "source-casting-tank-comparator"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_analog_output"
-kind = "HEAD"
-helper = "source-casting-comparator.rs"
-bindings = [
-  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
-  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
-  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
-  { name = "output", ty = "&mut i32", value = "&mut *output" },
-]
-
-[[module]]
-id = "source-copper-gauge"
-file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_source_gauge"
-source = "source-gauge.rs"
-
-[[injection]]
-id = "source-copper-gauge-placement"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
-kind = "HEAD"
-helper = "source-gauge-placement.rs"
-bindings = [
-  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
-  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
-  { name = "context", ty = "&horizon_world::level::PlacementContext", value = "context" },
-  { name = "answer", ty = "&mut Option<Option<horizon_world::registry::BlockStateId>>", value = "answer" },
-]
-
-[[injection]]
-id = "source-copper-gauge-update"
-target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
-kind = "HEAD"
-helper = "source-gauge-update.rs"
-bindings = [
-  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
-  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
-  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
-  { name = "direction", ty = "horizon_core::geometry::Direction", value = "direction" },
-  { name = "new", ty = "&mut Option<horizon_world::registry::BlockStateId>", value = "new" },
-]
 
 [[injection]]
 id = "source-faucet-placement-facing"
@@ -2656,6 +2580,27 @@ kind = "HEAD"
 helper = "source-area-guest-hit.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
 
+[[state]]
+id = "area-overwield-spent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-overwield-harvest-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
+kind = "AFTER_CALL"
+selector = "mod_api::dispatch_destroy_block"
+require = 1
+ordinal = 0
+result = "()"
+helper = "source-overwield-harvest-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
+
 [[injection]]
 id = "source-area-break"
 target = "horizon_client::game::Game<'_>::break_block_as_player"
@@ -2820,7 +2765,7 @@ id = "source-melee-damage-return"
 target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "source-melee-damage-return.rs"
-bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "living", ty = "bool", value = "living" }]
 
 [[injection]]
 id = "source-melee-sweep-position"

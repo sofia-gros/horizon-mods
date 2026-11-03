@@ -328,10 +328,9 @@ impl BucketFillingRecipe {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct BasinFillingRecipe { pub container: String, pub fluid_amount: u32 }
 impl BasinFillingRecipe {
-    pub(super) fn parse(bytes: &[u8], basin: bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let value: Value = serde_json::from_slice(bytes).ok()?;
-        let expected = if basin { "tconstruct:basin_filling" } else { "tconstruct:table_filling" };
-        if value.get("type")?.as_str()? != expected || !enabled(&value, conditions) { return None; }
+        if value.get("type")?.as_str()? != "tconstruct:basin_filling" || !enabled(&value, conditions) { return None; }
         let fluid_amount = u32::try_from(value.get("fluid_amount")?.as_u64()?).ok()?;
         if fluid_amount == 0 { return None; }
         Some(Self { container: value.get("container")?.as_str()?.to_owned(), fluid_amount })
@@ -369,6 +368,8 @@ pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> boo
         consumes_cast: true, switch_slots: false, fluid: FluidSpec::parse(value.get("fluid")?)?,
         output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
 }
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize }
 impl PartSwapCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
@@ -520,6 +521,18 @@ mod tests {
 }
 
 #[cfg(test)]
+mod basin_molding_tests {
+    use super::*;
+    #[test]
+    fn source_molding_type_keeps_table_and_basin_distinct() {
+        let raw = br#"{"type":"tconstruct:molding_basin","material":{"item":"minecraft:sand"},"pattern":{"item":"minecraft:stone"},"result":"minecraft:gravel"}"#;
+        let recipe = MoldingRecipe::parse(raw, &|_| true).unwrap();
+        assert!(recipe.basin);
+        assert!(!recipe.pattern_consumed);
+    }
+}
+
+#[cfg(test)]
 mod damaged_tests {
     use super::*;
     #[test]
@@ -546,17 +559,5 @@ mod material_melting_tests {
         assert!(found.melting.time > 0);
         assert!(material_melting(raw, "tconstruct:pick_head", "tconstruct:iron", 2, &|_| true).is_none());
         assert!(material_melting(raw, "tconstruct:pick_head", "tconstruct:copper", 0, &|_| true).is_none());
-    }
-}
-
-#[cfg(test)]
-mod basin_molding_tests {
-    use super::*;
-    #[test]
-    fn source_molding_type_keeps_table_and_basin_distinct() {
-        let raw = br#"{"type":"tconstruct:molding_basin","material":{"item":"minecraft:sand"},"pattern":{"item":"minecraft:stone"},"result":"minecraft:gravel"}"#;
-        let recipe = MoldingRecipe::parse(raw, &|_| true).unwrap();
-        assert!(recipe.basin);
-        assert!(!recipe.pattern_consumed);
     }
 }

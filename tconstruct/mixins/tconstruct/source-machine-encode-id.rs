@@ -13,9 +13,6 @@ fn tconstruct_machine_encode_id(entity: &crate::containers::BlockEntity, block: 
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => "tconstruct:smeltery",
         "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" => "tconstruct:fuel_tank",
         "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => "tconstruct:ingot_tank",
-        "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => "tconstruct:lantern",
-        "tconstruct:seared_casting_tank" => "tconstruct:casting_tank",
-        "tconstruct:seared_fluid_cannon" => "tconstruct:fluid_cannon",
         _ => return std::ops::ControlFlow::Continue(()),
     };
     std::ops::ControlFlow::Break(id.to_owned())

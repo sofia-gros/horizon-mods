@@ -90,7 +90,7 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
                 while yy<height { let h=(height-yy).min(16.0); let mut x=0.0;
                     while x<106.0 { let w=(106.0f32-x).min(16.0); let mut part=sprite;
                         part.u1=part.u0+w*du; part.v1=part.v0+h*dv;
-                        batch.rect_uv(ox+8.0+x,oy+122.0-y-yy-h,w,h,part,super::tconstruct_source_melter_render::color_tagged(&fluid.id, fluid.tag.as_ref())); x+=w;
+                        batch.rect_uv(ox+8.0+x,oy+122.0-y-yy-h,w,h,part,super::tconstruct_source_melter_render::color(&fluid.id)); x+=w;
                     } yy+=h;
                 }
             }
