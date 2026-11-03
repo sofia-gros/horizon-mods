@@ -342,6 +342,8 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
 
+The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
+
 ### Skull material armor stat
 
 The original `SkullStats.apply` updates the armor stat using the skull
