@@ -127,8 +127,8 @@ living target.
 
 The shared Mixins manifest passes the target method’s `living: bool` to the
 helper. The combined plan, build and runtime ordering still require verification
-before this behavior is considered complete. The current implementation deliberately omits LAN guest
-Raging until acting-player health is verified. Pewter remains a compatibility
+before this behavior is considered complete. The acting-player health path is
+used for local and guest turns; melee gameplay and LAN remain unverified. Pewter remains a compatibility
 material; the source alloy requires Tin or Lead, neither supplied by the base
 TConstruct content.
 
