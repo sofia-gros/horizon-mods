@@ -2,6 +2,23 @@
 use horizon_items::items::ItemStack;
 use serde_json::Value;
 
+/// Match the vanilla item/tag ingredient forms used by modifier repair.
+/// Unrecognized forms remain unknown instead of becoming a false match.
+pub(super) fn repair_ingredient_matches(value: &Value, item: &str,
+    tags: &std::collections::HashMap<String, std::collections::HashSet<String>>) -> Option<bool> {
+    if let Some(entries) = value.as_array() {
+        if entries.is_empty() { return None; }
+        let mut matches = false;
+        for entry in entries { matches |= repair_ingredient_matches(entry, item, tags)?; }
+        return Some(matches);
+    }
+    let object = value.as_object()?;
+    if object.len() != 1 { return None; }
+    if let Some(id) = object.get("item") { return Some(id.as_str()? == item); }
+    if let Some(tag) = object.get("tag") { return Some(tags.get(tag.as_str()?)?.contains(item)); }
+    None
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct BuildingRecipe {
     pub result: String,
