@@ -58,7 +58,7 @@ mod airborne_tests {
             (4.0 / 5.0, true, 6.8),
             (4.0 / 25.0, false, 30.8),
         ] {
-            let with_flat = conditional(&custom, 0, host_speed, 1.0, None, true, false, false).unwrap();
+            let with_flat = conditional(&custom, 0, host_speed, 1.0, None, true, false, Some(false)).unwrap();
             let actual = with_flat * airborne_multiplier(&custom, 0, on_ground);
             assert!((actual - expected).abs() < 0.0001, "{actual} != {expected}");
         }
@@ -107,7 +107,25 @@ pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &st
     evaluated_speed(tool, block, in_tag).flatten()
 }
 
-pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: bool) -> Option<f32> {
+/// A missing broad tag is unknown, so do not apply any Overwield bonus.
+pub(super) fn broad_or_unknown(tag: Option<&std::collections::HashSet<String>>, item: &str) -> Option<bool> {
+    tag.map(|items| items.contains(item))
+}
+
+#[cfg(test)]
+mod broad_tag_tests {
+    use super::broad_or_unknown;
+    use std::collections::HashSet;
+    #[test]
+    fn missing_broad_tag_fails_closed() {
+        let tag = HashSet::from(["tconstruct:sledge_hammer".to_owned()]);
+        assert_eq!(broad_or_unknown(None, "tconstruct:pickaxe"), None);
+        assert_eq!(broad_or_unknown(Some(&tag), "tconstruct:sledge_hammer"), Some(true));
+        assert_eq!(broad_or_unknown(Some(&tag), "tconstruct:pickaxe"), Some(false));
+    }
+}
+
+pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
@@ -121,7 +139,7 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
             "tconstruct:maintained" => Conditional::Maintained(*level),
             "tconstruct:dwarven" => Conditional::Dwarven(*level),
             "tconstruct:crumbling" => Conditional::Crumbling(*level),
-            "tconstruct:overwield" => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }, broad),
+            "tconstruct:overwield" if broad.is_some() => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }, broad.unwrap()),
             _ => continue,
         };
         ordered.push(effect);
@@ -141,13 +159,13 @@ mod shared_rules_tests {
             ("tic_mining_all", Tag::Float(1.5f32.to_bits())),
             ("tic_mining_traits", Tag::List(vec![Tag::compound([("id", Tag::String("tconstruct:crumbling".into())), ("level", Tag::Int(2))])])),
         ]);
-        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, true, false), Some(4.0));
-        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, false, false), None);
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, true, Some(false)), Some(4.0));
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, false, Some(false)), None);
         let tool = Tag::compound([("rules", Tag::List(vec![Tag::compound([("blocks", Tag::String("minecraft:stone".into())), ("speed", Tag::Float(4.0f32.to_bits()))])]))]);
         let effective = evaluated_speed(&tool, "minecraft:dirt", |_, _| false).unwrap().is_some();
         assert!(!effective);
-        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, effective, true, false), Some(4.0));
-        assert_eq!(conditional(&custom, 100, 1.0, 1.0, None, false, true, false), None);
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, effective, true, Some(false)), Some(4.0));
+        assert_eq!(conditional(&custom, 100, 1.0, 1.0, None, false, true, Some(false)), None);
     }
 
     #[test]
