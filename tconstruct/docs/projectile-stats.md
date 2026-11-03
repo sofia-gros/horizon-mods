@@ -115,3 +115,24 @@ pending. Verification should compare both bows at health 20, 11, 6, and 1,
 including multiple levels, definition stat multipliers, other damage modifiers,
 rebuild and material replacement, save/reload, and LAN guest behavior. Label any
 command-supplied material as a fixture.
+
+## Raging melee integration pending
+
+The same material's Raging melee module adds up to `2.5 * level *
+attackDamageMultiplier` based on the attacker's current health, using the
+same health factor as its projectile effect. The added damage precedes the
+Jagged and Stonebound percentage traits, receives attack-cooldown scaling, and
+is not itself multiplied by the critical bonus. The source module requires a
+living target.
+
+The shared Mixins manifest passes the target method’s `living: bool` to the
+helper. The combined plan, build and runtime ordering still require verification
+before this behavior is considered complete. The integrated candidate reads the active player state
+for local and guest turns; actor identity and health need runtime verification. Pewter remains a compatibility
+material; the source alloy requires Tin or Lead, neither supplied by the base
+TConstruct content.
+
+Test both living and nonliving targets, health 20/11/6/1, broken tools,
+multiple levels and non-unit tool multipliers, partial/full cooldown, critical
+and secondary hits, Jagged/Stonebound combinations, material replacement and
+LAN. Unit, current-target build and gameplay verification remain pending.
