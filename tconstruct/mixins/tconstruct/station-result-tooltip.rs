@@ -2,7 +2,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
     use std::ops::ControlFlow::{Break, Continue};
     if crate::game::tconstruct_ui::is_melter(game) {
         let (ox, oy) = game.inventory_origin(batch);
-        let position = if game.remote.is_some() { *game.world.chunks.__horizon_mixins_tconstruct_remote_screen_position() } else { game.container };
+        let position = if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container };
         let state = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
             .and_then(|tag| crate::game::tconstruct_source_melter_state::Melter::from_nbt(&tag));
         if let Some(state) = state {
