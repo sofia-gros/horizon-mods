@@ -17,6 +17,9 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
         return Continue(());
     }
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
+        .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+        .map(|(id, items)| (id.clone(), items.clone())).collect());
     let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) else { return Continue(()); };
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
     let batch = horizon_client::hud::HudBatch::new(size);
@@ -37,7 +40,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
             let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
                 .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
             crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut slots, direction, None,
-                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), None, game.lan.is_none());
+                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), bottle_tags.as_ref(), game.lan.is_none());
             if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (slots.clone(), direction.index()));
                 let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
@@ -85,7 +88,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
                 .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
             crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut slots,
                 crate::game::tconstruct_source_fluid_container::Direction::from_index(mode), None,
-                &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), None, game.lan.is_none());
+                &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref(), game.lan.is_none());
             if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (slots.clone(), mode));
                 let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);

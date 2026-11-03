@@ -662,3 +662,20 @@ and normal inventory tooltips as regressions. The final-main game check remains 
 Part-swap casting now evaluates a recipe's `allowed_materials` against the resulting material, for both ordinary and composite fluids. A rejected ordinary material does not prevent an eligible composite material from being considered. The same supported material predicates as part casting are used; unknown predicates fail closed. Existing restrictions on tool data, traits, upgrades, repair and modifier hooks still apply. Catalog tests cover accepted, rejected, missing and unknown predicates and composite fallback; game, LAN and datapack reload behavior have not yet been verified.
 
 For composite-fluid part swaps, the resulting material may equal the current material when the composite recipe permits it. Ordinary casting still rejects replacing a part with the same material, matching the source distinction. This case has catalog tests but awaits game verification.
+
+### Splash and lingering potion container input
+
+The fluid-container input now accepts supported splash and lingering potions
+through both ordinary clicks and quick-move, matching the already implemented
+250 mB emptying path. A present unambiguous `forge:bottles/splash` or
+`forge:bottles/lingering` item is returned; the existing fallback and
+conservative rejection of unsupported potion data remain in place. The pinned
+source's potion casting recipes likewise use these bottle tags and 250 mB.
+This does not implement every modded fluid container or special potion effect.
+In-game and LAN interaction and reload remain unverified.
+
+Like Mantle 1.11.115, emptying a water-base potion produces ordinary water.
+Any custom color or custom effects on that potion are lost during this transfer.
+This applies to normal, splash and lingering potions when their extra data is
+accepted. Other potion bases retain the supported potion data. The current LAN
+path rejects custom potion data rather than transferring it.

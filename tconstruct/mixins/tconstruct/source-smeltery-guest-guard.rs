@@ -6,6 +6,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
     let Some(pos) = menu.pos else { return Continue(()); };
     let Some(tag) = crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery") else { return Continue(()); };
     let Some(mut state) = crate::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag) else { return Break(Vec::new()); };
+    let bottle_tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
+        .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+        .map(|(id, items)| (id.clone(), items.clone())).collect());
     let key = (conn, hub.guests[gi].placed_at, pos);
     let (offset, visible_count) = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).copied().unwrap_or((0, state.slots.len()));
     let (containers, direction) = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
@@ -37,9 +40,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                     next[packet.slot as usize] = remaining;
                     let fluids = world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
                         .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
-                    crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,
-                        crate::tconstruct_source_fluid_container::Direction::from_index(direction),
-                        &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+                    crate::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut next,
+                        crate::tconstruct_source_fluid_container::Direction::from_index(direction), None,
+                        &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref());
                     if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
                         hub.guests[gi].inventory = inventory;
                         world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
@@ -54,9 +57,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
         if packet.input == 0 && matches!(packet.button, 0 | 1)
             && crate::tconstruct_source_fluid_container::click(&mut next, &mut carried, packet.slot as usize, packet.button == 1, &|id| known_fluids.contains(id)) {
-            crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,
-                crate::tconstruct_source_fluid_container::Direction::from_index(direction),
-                &|id| rules.items().get(id).is_some(), &|id| known_fluids.contains(id));
+            crate::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut next,
+                crate::tconstruct_source_fluid_container::Direction::from_index(direction), None,
+                &|id| rules.items().get(id).is_some(), &|id| known_fluids.contains(id), bottle_tags.as_ref());
             if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
                 hub.guests[gi].carried = carried;
                 world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, next.clone(), direction));
@@ -82,9 +85,9 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
             if stack.as_ref().is_some_and(|stack| crate::tconstruct_source_fluid_container::accepts(stack, &|fluid| fluids.contains(fluid))) {
                 let mut next = containers.clone();
                 if crate::tconstruct_source_fluid_container::quick_input(&mut next, &mut stack, &|fluid| fluids.contains(fluid)) {
-                    crate::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut next,
-                        crate::tconstruct_source_fluid_container::Direction::from_index(direction),
-                        &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+                    crate::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut next,
+                        crate::tconstruct_source_fluid_container::Direction::from_index(direction), None,
+                        &|item| rules.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref());
                     if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) {
                         inventory[index] = stack;
                         hub.guests[gi].inventory = inventory;
