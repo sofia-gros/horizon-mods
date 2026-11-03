@@ -623,3 +623,7 @@ valid workbench input, reject the Station itself as the workbench, and confirm
 unrelated shaped recipes remain unaffected. Check nested ingredient matching
 and the integrated build and game behavior on the actual host revision; the
 named-field compatibility change alone is not runtime evidence.
+
+Composite material lookup uses explicit types and borrows to resolve Rust type
+inference. This correction does not change recipe selection. Verify the final
+integrated build and game behavior separately; syntax alone is not a pass.
