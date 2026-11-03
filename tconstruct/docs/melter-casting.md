@@ -21,3 +21,20 @@ Fluid-container interactions, redstone control and specialized recipe types rema
 ![Casting Basin selection in the Linux test world](casting-basin-selection.png)
 
 For acquisition from gathered resources and a fixture-free acceptance route, see [Survival progression](survival-progression.md).
+
+## Filling a lantern
+
+Seared and Scorched Lanterns hold 50 mB. Their source filling recipes transfer
+10 mB on a Casting Table and up to 50 mB on a Casting Basin, limited by the
+space remaining in the lantern. A different fluid must not replace fluid
+already stored inside it.
+
+A representative Linux Table test transferred 10 mB, left 990 mB in the source
+tank, and retained the lantern's contents after restart. The Basin test did not
+transfer fluid. One identified cause is an unresolved empty-cast tag referring
+to an unregistered gold platform. The corrected entry checks the original tag
+graph and accepts only an input proven not to belong to that empty-cast tag;
+unknown membership and cycles still refuse the operation. Focused recipe and
+tag tests pass, but a game rerun of the corrected Basin path is still pending.
+
+![Lantern filled on the Casting Table](test-lantern-table.png)
