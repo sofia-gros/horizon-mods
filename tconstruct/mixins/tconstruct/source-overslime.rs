@@ -1,10 +1,14 @@
 // Source Overslime capacity, refill and damage-shield arithmetic.
 // The armor/durability multiplier is the source global durability multiplier.
 pub(super) fn capacity(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32) -> u32 {
+    capacity_with_material(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0.0)
+}
+
+pub(super) fn capacity_with_material(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, material: f32) -> u32 {
     let base = if has_overslime { 50.0 } else { 0.0 };
     let effective = overforced_amount.max(0) as f32 / 4.0 + overforced_trait.max(0) as f32;
     let overcast = overcast.max(0) as f32;
-    ((base + 75.0 * effective + 25.0 * overcast) * (1.0 + 0.5 * overcast) * durability_multiplier.max(0.0)).clamp(0.0, 32767.0) as u32
+    ((base + material + 75.0 * effective + 25.0 * overcast) * (1.0 + 0.5 * overcast) * durability_multiplier.max(0.0)).clamp(0.0, 32767.0) as u32
 }
 
 /// Returns (shield remaining, damage passed to later modifiers).
@@ -99,7 +103,7 @@ pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     use horizon_world::nbt::Tag;
     let has = upgrade(stack,"tconstruct:overslime") > 0 || levels.get("tconstruct:overslime").copied().unwrap_or(0) > 0;
     let overforced = upgrade(stack,"tconstruct:overforced");
-    let cap = capacity(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit);
+    let cap = capacity_with_material(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, stats.overslime_material);
     let unfriendly = has && !friendly(levels, overforced);
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
