@@ -169,6 +169,7 @@ items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
     ('tconstruct:puny_smelting', 'minecraft:book', 'Puny Smelting'),
+    ('tconstruct:mighty_smelting', 'minecraft:book', 'Mighty Smelting'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
     ('tconstruct:wood_binding', 'minecraft:flint', 'Wooden Tool Binding'),

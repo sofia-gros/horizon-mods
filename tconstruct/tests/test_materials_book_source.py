@@ -16,6 +16,28 @@ class DirectoryArchive:
 PREFIX = 'assets/tconstruct/book/materials_and_you/'
 
 class MaterialsBookSourceTest(unittest.TestCase):
+    def test_mighty_smelting_introduction_is_available_for_both_readers(self):
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        intro = next(entry for entry in index if entry['name'] == 'intro')
+        pages = json.loads((root / intro['data']).read_text())
+        self.assertEqual([page['data'] for page in pages], ['intro/thruul.json', 'intro/tinkers_anvil.json', 'intro/tinkersanvil_craft.json'])
+        for page in pages:
+            data = json.loads((root / 'en_us' / page['data']).read_text())
+            self.assertTrue(data.get('title'))
+        self.assertTrue((root / 'en_us/language.lang').is_file())
+        self.assertTrue((ARCHIVE / 'assets/tconstruct/book/images/covers/mighty_smelting_cover.png').is_file())
+        self.assertTrue((ARCHIVE / 'assets/tconstruct/book/images/covers/mighty_smelting_pages.png').is_file())
+        self.assertEqual(json.loads((ARCHIVE / 'data/tconstruct/horizon/item/mighty_smelting.json').read_text()), {'template': 'minecraft:book', 'max_stack_size': 1})
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
+            recipe = json.loads(archive.read('data/tconstruct/recipes/common/mighty_smelting.json'))
+        self.assertEqual((recipe['result'], recipe['cast']['item'], recipe['cast_consumed'], recipe['fluid']['amount']), ('tconstruct:mighty_smelting', 'minecraft:book', True, 250))
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
+        self.assertIn('book == "tconstruct:mighty_smelting" && key != "intro"', reader)
+        self.assertIn('source_pages(game, &path, book)', reader)
+        self.assertIn('source_pages(game, &path, book)', request)
+
     def test_puny_worktable_and_further_reading_pages_are_available(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
         index = json.loads((root / 'index.json').read_text())

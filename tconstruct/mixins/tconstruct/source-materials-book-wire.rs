@@ -8,6 +8,32 @@ fn root(pages: &[Text]) -> bool {
     pages.first().and_then(|p| p.spans.first()).and_then(|s| s.style.insertion.as_deref()) == Some(ROOT)
 }
 
+fn book_id(pages: &[Text]) -> Option<&'static str> {
+    if !root(pages) { return None; }
+    let title = pages.first()?.spans.first()?.text.as_str();
+    if title.starts_with("Materials & You\n") { Some("materials") }
+    else if title.starts_with("Puny Smelting\n") { Some("puny") }
+    else if title.starts_with("Mighty Smelting\n") { Some("mighty") }
+    else { None }
+}
+
+pub(crate) fn encode_reply(sequence: u64, pages: &[Text]) -> Option<Vec<u8>> {
+    book_id(pages)?;
+    let body = encode(pages)?;
+    let mut result = Vec::with_capacity(8 + body.len());
+    result.extend_from_slice(&sequence.to_be_bytes());
+    result.extend_from_slice(&body);
+    Some(result)
+}
+
+pub(crate) fn decode_reply(sequence: u64, current: &[Text], bytes: &[u8]) -> Option<Vec<Text>> {
+    let id = book_id(current)?;
+    let (header, body) = bytes.split_at_checked(8)?;
+    if u64::from_be_bytes(header.try_into().ok()?) != sequence { return None; }
+    let pages = decode(body)?;
+    (book_id(&pages) == Some(id)).then_some(pages)
+}
+
 pub(crate) fn encode(pages: &[Text]) -> Option<Vec<u8>> {
     if pages.is_empty() || pages.len() > 512 || !root(pages) { return None; }
     let data: Vec<Vec<serde_json::Value>> = pages.iter().map(|page| page.spans.iter().map(|span| {
@@ -51,6 +77,17 @@ pub(crate) fn decode(data: &[u8]) -> Option<Vec<Text>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn replies_match_both_open_request_and_book() {
+        let root = |title: &str| Text::styled(format!("{title}\n\n"), Style { insertion: Some(ROOT.into()), ..Default::default() });
+        let puny = vec![root("Puny Smelting")];
+        let mighty = vec![root("Mighty Smelting")];
+        let reply = encode_reply(42, &puny).unwrap();
+        assert!(decode_reply(42, &puny, &reply).is_some());
+        assert!(decode_reply(43, &puny, &reply).is_none());
+        assert!(decode_reply(42, &mighty, &reply).is_none());
+        assert!(decode_reply(42, &puny, &[0; 7]).is_none());
+    }
     #[test]
     fn page_links_and_graphics_round_trip_and_other_actions_are_omitted() {
         let mut first = Text::styled("contents", Style { insertion: Some(ROOT.into()), ..Default::default() });
