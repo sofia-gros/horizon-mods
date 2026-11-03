@@ -7,7 +7,7 @@ use serde_json::Value;
 pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
 
 impl Ingredient {
-    fn parse(value: &Value) -> Option<Self> {
+    pub(super) fn parse(value: &Value) -> Option<Self> {
         if let Some(values) = value.as_array() {
             let choices: Vec<_> = values.iter().map(Self::parse).collect::<Option<_>>()?;
             return (!choices.is_empty()).then_some(Self::Any(choices));
@@ -289,6 +289,23 @@ mod foundry_tests {
         let source = br#"{"type":"tconstruct:melting","conditions":[{}],"ingredient":{"item":"minecraft:amethyst_shard"},"result":{"amount":100,"fluid":"tconstruct:molten_amethyst"},"temperature":950,"time":65,"byproducts":[{"fluid":"tconstruct:molten_quartz","amount":20}]}"#;
         assert_eq!(FoundryRecipe::parse(source, &|_| true).unwrap().byproducts[0].amount, 20);
         assert!(FoundryRecipe::parse(source, &|_| false).is_none());
+    }
+}
+
+/// Source table molding with an optional hand-held pattern.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct MoldingRecipe {
+    pub material: Ingredient, pub pattern: Option<Ingredient>,
+    pub pattern_consumed: bool, pub result: String,
+}
+impl MoldingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.get("type")?.as_str()? != "tconstruct:molding_table" || !enabled(&v, conditions) { return None; }
+        let pattern = match v.get("pattern") { Some(value) => Some(Ingredient::parse(value)?), None => None };
+        let pattern_consumed = match v.get("pattern_consumed") { None => false, Some(value) => value.as_bool()? };
+        Some(Self { material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
+            result: v.get("result")?.as_str()?.to_owned() })
     }
 }
 
