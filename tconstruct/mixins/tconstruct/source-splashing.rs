@@ -1,6 +1,6 @@
-//! Source right-click selection and nearby entity geometry for splashing.
-//! Runtime effect handling and the Station recipe remain disabled until the
-//! authoritative target enumeration includes guest players and other entities.
+// Source right-click selection and nearby entity geometry for splashing.
+// Runtime effect handling and the Station recipe remain disabled until the
+// authoritative target enumeration includes guest players and other entities.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 
@@ -221,7 +221,7 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
     if *capacity <= 0 { return false; }
     let Some(Some(fluid)) = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid") else { return false; };
     if fluid.tag.is_some() || fluid.amount == 0 || fluid.amount > *capacity as u32 { return false; }
-    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return false; };
+    let Some(recipe) = super::tconstruct_source_slurping::tagged_recipe(game, &fluid.id, fluid.tag.as_ref()) else { return false; };
     let mut ids = std::collections::HashSet::new();
     let mut hunger_seen = false;
     if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
@@ -229,6 +229,8 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
         super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::brewing::effect(id).is_none_or(|known| known.id != "poison" || !ids.insert(known.id)),
         super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => { let duplicate = hunger_seen; hunger_seen = true; duplicate },
         super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => true,
+        super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => false,
+        super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage | super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => false,
     }) { return false; }
     if order_known { return true; }
     u32::try_from(count).ok().and_then(|count| recipe.amount.checked_mul(level as u32).and_then(|amount| amount.checked_mul(count))).is_some_and(|required| fluid.amount >= required)
@@ -360,14 +362,58 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
     let effects = recipe.get("block_effects")?.as_array()?;
-    if effects.len() != 1 { return None; }
-    let effect = effects[0].as_object()?;
+    let conditional = super::tconstruct_source_splash_conditional::supported(game, effects);
+    // Create's three potion-cloud effects are mutually exclusive Bottle
+    // predicates. Select the matching one without dropping unknown actions.
+    let potion_bottle = fluid.tag.as_ref().and_then(|tag| tag.get("Bottle")).and_then(|tag| match tag {
+        Tag::String(value) => Some(value.to_string_lossy().to_string()), _ => None,
+    });
+    let potion_choice = if effects.len() == 3 {
+        let mut selected = None;
+        let mut seen = std::collections::HashSet::new();
+        for entry in effects {
+            let obj = entry.as_object()?;
+            if obj.get("type")?.as_str()? != "tconstruct:potion_cloud" || obj.keys().any(|k| !matches!(k.as_str(), "type" | "nbt" | "scale")) { return None; }
+            let predicate = obj.get("nbt")?.as_object()?;
+            if predicate.len() != 1 { return None; }
+            let bottle = predicate.get("Bottle")?.as_str()?;
+            if !matches!(bottle, "REGULAR" | "SPLASH" | "LINGERING") || !seen.insert(bottle) { return None; }
+            if potion_bottle.as_deref() == Some(bottle) { selected = Some(obj); }
+        }
+        Some(selected?)
+    } else { None };
+    // The bundled glowstone recipe applies its cloud first, then glow
+    // placement; other mixed recipes still require their own effect handlers.
+    let mixed_glow = effects.len() == 2 && effects[1].as_object().is_some_and(|value|
+        value.get("type").and_then(|v| v.as_str()) == Some("tconstruct:place_block")
+        && value.get("block").and_then(|v| v.as_str()) == Some("tconstruct:glow")
+        && value.keys().all(|key| matches!(key.as_str(), "type" | "block")));
+    if effects.len() != 1 && !mixed_glow && potion_choice.is_none() && !conditional { return None; }
+    let effect = if let Some(selected) = potion_choice { selected } else { effects[0].as_object()? };
     let kind = effect.get("type")?.as_str()?;
-    let is_cloud = kind == "tconstruct:mob_effect_cloud";
+    let is_potion_cloud = kind == "tconstruct:potion_cloud";
+    let is_cloud = kind == "tconstruct:mob_effect_cloud" || is_potion_cloud;
+    if mixed_glow && !is_cloud { return None; }
     let mut cloud = Vec::new();
-    let (block, sound) = if is_cloud {
-        if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
-        for entry in effect.get("effects")?.as_array()? {
+    let mut cloud_scale = 1.0f32;
+    let (block, sound) = if conditional { ("", None) } else if is_cloud {
+        if is_potion_cloud {
+            if effect.keys().any(|key| !matches!(key.as_str(), "type" | "nbt" | "scale")) { return None; }
+            if effects.len() == 1 && effect.contains_key("nbt") { return None; }
+            cloud_scale = effect.get("scale")?.as_f64()? as f32;
+            if !cloud_scale.is_finite() || cloud_scale < 0.0 { return None; }
+            let Tag::String(potion) = fluid.tag.as_ref()?.get("Potion")? else { return None; };
+            let id = potion.to_string_lossy();
+            if !id.starts_with("minecraft:") { return None; }
+            let def = horizon_client::brewing::potion(&id)?;
+            for &(id, duration, amplifier) in def.effects {
+                let effect = horizon_client::brewing::effect(id)?;
+                if effect.instant || horizon_client::brewing::is_mod_effect(effect.id) { return None; }
+                if duration > 0 { cloud.push((effect.id, duration, amplifier)); }
+            }
+        } else {
+          if effect.keys().any(|key| !matches!(key.as_str(), "type" | "effects")) { return None; }
+          for entry in effect.get("effects")?.as_array()? {
             let entry = entry.as_object()?;
             if entry.keys().any(|key| !matches!(key.as_str(), "effect" | "time" | "level")) { return None; }
             let def = horizon_client::brewing::effect(entry.get("effect")?.as_str()?)?;
@@ -376,6 +422,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             let level = i32::try_from(entry.get("level").map_or(Some(1), serde_json::Value::as_i64)?).ok()?;
             if !(1..=256).contains(&level) { return None; }
             if duration > 0 { cloud.push((def.id, duration, level - 1)); }
+          }
         }
         if cloud.is_empty() { return None; }
         ("", None)
@@ -397,41 +444,40 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     } else { None };
     let held = game.held()?;
     if held.damage != stack.damage || !held.same_item_same_components(stack) { return None; }
-    // Stage every possible remainder before changing the world. Failed
-    // positions do not advance the stage; the source consumes once per success.
-    let max_positions = vein.as_ref().map_or(offsets.len() + 1, |area| ((area.radius * 2 + 1) as usize).pow(3));
-    let mut staged = Vec::new();
-    let mut remaining = fluid.clone();
-    while staged.len() < max_positions && remaining.amount > 0 {
-        let (used, scaled_cloud) = if is_cloud {
-            let scale = (*level as f32).min(remaining.amount as f32 / amount as f32);
-            let mut scaled = Vec::new();
-            for &(id, duration, amplifier) in &cloud {
-                let value = duration as f32 * scale;
-                if !value.is_finite() || value > (i32::MAX / 4) as f32 { return None; }
-                let duration = value as i32;
-                if duration > 10 { duration.checked_mul(4)?; scaled.push((id, duration, amplifier)); }
-            }
-            if scaled.is_empty() { break; }
-            let used = ((amount as f32 * scale).ceil() as u32).min(remaining.amount);
-            (used, scaled)
-        } else {
-            if remaining.amount < amount { break; }
-            (amount, Vec::new())
-        };
-        if used == 0 { break; }
-        remaining.amount -= used;
-        let updated = super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (remaining.amount > 0).then_some(&remaining), *capacity as u32)?;
-        staged.push((updated, scaled_cloud));
-    }
     game.add_cooldown(stack.item.clone(), (20.0 / speed) as i32);
     let result = (|| -> horizon_client::Result<bool> {
         let mut successes = 0usize;
+        let mut remaining = fluid.clone();
+        let mut last_updated = None;
         let mut failure = None;
         let mut primary = Some(clicked);
         let mut offsets = offsets.into_iter();
-        loop {
-            if successes >= staged.len() { break; }
+        'targets: loop {
+            if remaining.amount == 0 { break; }
+            let scale = (*level as f32).min(remaining.amount as f32 / amount as f32);
+            let mut scaled_cloud = Vec::new();
+            if is_cloud {
+                for &(id, duration, amplifier) in &cloud {
+                    let value = duration as f32 * (cloud_scale * scale);
+                    if !value.is_finite() || value > (i32::MAX / 4) as f32 { break 'targets; }
+                    let duration = value as i32;
+                    if duration > 10 {
+                        if duration.checked_mul(4).is_none() { break 'targets; }
+                        scaled_cloud.push((id, duration, amplifier));
+                    }
+                }
+            }
+            let cloud_used = if scaled_cloud.is_empty() { 0 } else { ((amount as f32 * scale).ceil() as u32).min(remaining.amount) };
+            let place_used = if scale >= 1.0 { amount } else { 0 };
+            if cloud_used == 0 && (!mixed_glow || place_used == 0) && (is_cloud || place_used == 0) { break; }
+            // Prepare each possible committed remainder before world effects.
+            let stage = |used: u32| {
+                let mut after = remaining.clone();
+                after.amount = after.amount.checked_sub(used)?;
+                super::pluto_stack_fluid::write(stack, "tic_persistent", "tconstruct:tank_fluid", (after.amount > 0).then_some(&after), *capacity as u32)
+            };
+            let cloud_stage = if cloud_used > 0 { let Some(value) = stage(cloud_used) else { break; }; Some(value) } else { None };
+            let place_stage = if place_used > 0 { let Some(value) = stage(place_used) else { break; }; Some(value) } else { None };
             let (position, is_primary) = if let Some(position) = primary.take() { (position, true) }
                 else if let Some(area) = vein.as_mut() { let Some(position) = area.next(game) else { break; }; (position, false) }
                 else { let Some(position) = offsets.next() else { break; }; (position, false) };
@@ -448,7 +494,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     item: "minecraft:snow".to_owned(), can_use_game_master_blocks: game.can_use_game_master_blocks(),
                 })
             } else { None };
-            let target = if is_cloud {
+            let target = if conditional { position } else if is_cloud {
                 let Some(x) = position[0].checked_add(face[0]) else { continue; };
                 let Some(y) = position[1].checked_add(face[1]) else { continue; };
                 let Some(z) = position[2].checked_add(face[2]) else { continue; };
@@ -465,13 +511,34 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                 [x, y, z]
             };
             let before = game.world.block(target[0], target[1], target[2]);
+            let glow_target = if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position } else { target };
+            let glow_before = game.world.block(glow_target[0], glow_target[1], glow_target[2]);
+            let mut cloud_spawned = false;
+            let mut conditional_applied = false;
             let attempt = (|| -> horizon_client::Result<bool> {
+                if conditional {
+                    if place_used == 0 { return Ok(false); }
+                    super::tconstruct_source_splash_conditional::apply(game, effects, position, face, &mut conditional_applied)?;
+                    return Ok(conditional_applied);
+                }
                 if is_cloud {
-                    if !game.world.loaded(target[0], target[2]) || !game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable { return Ok(false); }
-                    let hit = hit_point.unwrap();
-                    let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
-                    super::potions::tconstruct_source_fluid_cloud::spawn(game, at, staged[successes].1.clone());
-                    return Ok(true);
+                    if cloud_used > 0 && game.world.loaded(target[0], target[2]) && game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable {
+                        let hit = hit_point.unwrap();
+                        let at = [hit[0] + f64::from(position[0] - clicked[0]), hit[1] + f64::from(position[1] - clicked[1]), hit[2] + f64::from(position[2] - clicked[2])];
+                        super::potions::tconstruct_source_fluid_cloud::spawn(game, at, scaled_cloud.clone());
+                        cloud_spawned = true;
+                    }
+                    // FluidEffects uses the maximum successful effect amount.
+                    if mixed_glow && place_used > 0 && game.may_build() {
+                        let placed = super::tconstruct_glowing_world::place(game, glow_target, [-face[0], -face[1], -face[2]])?;
+                        if placed {
+                            let sound = game.res.facts().get(game.world.block(glow_target[0], glow_target[1], glow_target[2])).sounds.place.clone();
+                            game.audio.play(&sound, Some([glow_target[0] as f64 + 0.5, glow_target[1] as f64 + 0.5, glow_target[2] as f64 + 0.5]), 1.0, 1.0);
+                            game.post_block_game_event("minecraft:block_place", glow_target, game.sculk_actor(), None);
+                        }
+                        return Ok(cloud_spawned || placed);
+                    }
+                    return Ok(cloud_spawned);
                 }
                 if block == "tconstruct:glow" {
                     return super::tconstruct_glowing_world::place(game, target, [-face[0], -face[1], -face[2]]);
@@ -499,7 +566,10 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             match attempt {
                 Ok(true) => {
                     successes += 1;
-                    if !is_cloud {
+                    let (used, updated) = if cloud_spawned { (cloud_used, cloud_stage) } else { (place_used, place_stage) };
+                    remaining.amount -= used;
+                    last_updated = updated;
+                    if !is_cloud && !conditional {
                         let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
                         game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
                         game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
@@ -510,14 +580,19 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     // level_set may report an event-processing error after the
                     // block write; account for a completed write before exiting.
                     let after = game.world.block(target[0], target[1], target[2]);
-                    if before != after && game.res.facts().get(after).name.as_ref() == block { successes += 1; }
+                    let glow_after = game.world.block(glow_target[0], glow_target[1], glow_target[2]);
+                    let glow_written = mixed_glow && glow_before != glow_after && game.res.facts().get(glow_after).name.as_ref() == "tconstruct:glow";
+                    if cloud_spawned || conditional_applied || glow_written || (before != after && game.res.facts().get(after).name.as_ref() == block) {
+                        successes += 1;
+                        last_updated = if cloud_spawned { cloud_stage } else { place_stage };
+                    }
                     failure = Some(error);
                     break;
                 }
             }
         }
         if successes > 0 && !game.creative {
-            *game.held_mut() = Some(staged[successes - 1].0.clone());
+            *game.held_mut() = last_updated;
             if let Some(current) = game.held().cloned() {
                 let wear = (*level as u32).saturating_mul(successes as u32);
                 let (loss, shield) = super::tconstruct_source_overslime_host::damage_with_cause(game, &current, wear, Some("tconstruct:splashing"));

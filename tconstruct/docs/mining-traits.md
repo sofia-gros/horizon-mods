@@ -90,3 +90,31 @@ block on the ground and while airborne, including one ineffective block, then
 repeat after breaking the tool and after replacing that material. Capture both
 local and LAN guest behavior; use a labelled fixture if the material is not yet
 naturally obtainable.
+
+## Overwield mining
+
+For a non-broad harvest tool with Knightslime's Overwield trait, an effective
+block receives the source multiplier `1 + 0.2 * min(overslime, level)`. It uses
+the current stored Overslime amount, not capacity, and applies in the same
+ordered percentage stage as Jagged and Stonebound. The tool is checked against
+the resolved source `tconstruct:modifiable/broad` item tag. If the tag is
+unavailable, both Overwield speed variants are skipped until it resolves. Zero
+Overslime or an ineffective block gives no bonus. The formulas correspond to
+the [source Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+Material acquisition remains separate work.
+
+Focused helper tests passed against Horizon 9a6 item/world libraries; host build and gameplay remain unverified. Verify zero, one and multiple Overslime units and trait levels, a broad
+and a non-broad tool, effective and ineffective blocks, live refill and
+consumption, broken tools, and combinations with other mining modifiers. Check
+material replacement and save/reload. Use labelled fixtures where necessary.
+
+### Broad tools
+
+The broad-tool speed module instead uses `1 + 0.2 * min(overslime, 5 * level) / 5`
+on effective blocks. This reads the same live Overslime value and uses the loaded
+broad tag; it does not use AOE size as the amount. A pre-destroy hook spends
+up to five Overslime per level for broad tools or one for other harvest tools.
+A scoped actor flag prevents repeated spends for the center and additional AOE
+blocks; broken tools and unknown item-tag snapshots do not spend. This host
+boundary runs after permission checks and mod cancellation handlers, but before
+block removal. Creative, guest behavior and full source parity remain unverified.
