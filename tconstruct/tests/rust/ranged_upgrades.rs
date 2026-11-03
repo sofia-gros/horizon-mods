@@ -140,3 +140,23 @@ fn blindshot_accepts_supported_launchers_and_rejects_other_items() {
  let sling=ItemStack::new("tconstruct:slime_sling",1);
  assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&sling,&[Some(ItemStack::new("minecraft:dirt",1))],0).is_none());
 }
+
+
+#[test]
+fn blindshot_partial_levels_rebuild_and_clamp_without_slots() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:accuracy":0.8}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for (points,expected) in [(0,0.8_f32),(1,0.79),(10,0.7),(100,0.1)] {
+  let mut tool=ItemStack::new("tconstruct:longbow",1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:blindshot",Tag::Int(points))]))])));
+  assert!(tconstruct_source_upgrade_rules::valid_slots(&tool,&BTreeMap::new(),0,0));
+  assert!(!tconstruct_source_upgrade_rules::extractable(&tool).contains(&"tconstruct:blindshot"));
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::new(),false,false).unwrap();
+   let d=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+   let v=match d.get("tic_accuracy"){Some(Tag::Float(bits))=>f32::from_bits(*bits),_=>panic!("missing accuracy")};
+   assert!((v-expected).abs()<0.0001,"{points}: {v} != {expected}");
+  }
+ }
+}
