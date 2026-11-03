@@ -19,7 +19,8 @@ pub(super) fn merge_pack(
         let is_tag = path.starts_with("tinkering/tags/materials/");
         let is_material = ["definition", "stats", "traits"].iter().any(|kind| path.starts_with(&format!("tinkering/materials/{kind}/")))
             || path.starts_with("tinkering/tool_definitions/")
-            || path.starts_with("tinkering/station_layouts/");
+            || path.starts_with("tinkering/station_layouts/")
+            || path.starts_with("tinkering/fluid_effects/");
         if !is_tag && !is_material { continue; }
         if let Some(bytes) = read(&file) {
             let id = format!("{namespace}:{path}");
