@@ -13,7 +13,7 @@ fn recipes() -> BTreeMap<String,Vec<u8>> {
  [("test:step".to_string(),recipe.to_vec())].into_iter().collect()
 }
 fn tags() -> HashMap<String,HashSet<String>> {
- [("tconstruct:modifiable/armor/leggings".to_string(),["tconstruct:travelers_leggings".to_string()].into_iter().collect())].into_iter().collect()
+ [("tconstruct:modifiable/armor/leggings".to_string(),["tconstruct:travelers_leggings".to_string()].into_iter().collect()),("tconstruct:modifiable".to_string(),["tconstruct:travelers_leggings".to_string()].into_iter().collect())].into_iter().collect()
 }
 fn tool(old:i32) -> ItemStack {
  let mut t=ItemStack::new("tconstruct:travelers_leggings",1);
@@ -29,4 +29,12 @@ fn tool(old:i32) -> ItemStack {
  assert!(tconstruct_source_upgrade_rules::plan_with_traits(&recipes(),&tags(),&tool(0),&bad,2,0,&BTreeMap::new()).is_none());
  assert!(tconstruct_source_upgrade_rules::plan_with_traits(&recipes(),&tags(),&tool(0),&ingredients(),0,0,&BTreeMap::new()).is_none());
  assert!(tconstruct_source_upgrade_rules::plan_with_traits(&recipes(),&HashMap::new(),&tool(0),&ingredients(),2,0,&BTreeMap::new()).is_none());
+}
+#[test] fn extraction_and_material_trait_are_independent() {
+ let traits=BTreeMap::from([("tconstruct:step_up".to_string(),1)]);
+ let result=tconstruct_source_upgrade_rules::plan_with_traits(&recipes(),&tags(),&tool(0),&ingredients(),2,0,&traits).unwrap();
+ assert_eq!(result.amount,1);
+ let inputs=vec![Some(ItemStack::new("tconstruct:sky_slime_crystal",1)),Some(ItemStack::new("minecraft:wet_sponge",1))];
+ let result=tconstruct_source_upgrade_rules::extract_upgrade_with_traits(&tags(),&tool(2),&inputs,"tconstruct:step_up",&BTreeMap::new()).unwrap();
+ assert_eq!(result.upgrade.amount,1);
 }
