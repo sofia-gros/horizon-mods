@@ -1,4 +1,4 @@
-//! Source SlimeLeavesBlock distance rules for the installed overworld leaves.
+// Source SlimeLeavesBlock distance rules for the installed overworld leaves.
 use super::*;
 
 fn is_slime_leaf(name: &str) -> bool {

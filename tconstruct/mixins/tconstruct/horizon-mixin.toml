@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9"
+horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
 
 [[injection]]
 id = "command"
@@ -749,6 +749,16 @@ source = "source-config.rs"
 id = "source-config-snapshot"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,bool>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "recipe-mod-snapshot"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(std::collections::HashMap<String,Option<bool>>,bool)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
@@ -1742,6 +1752,19 @@ name = "tconstruct_source_station_world"
 source = "source-station-world.rs"
 
 [[module]]
+id = "host-source-conditions"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_conditions"
+source = "source-conditions.rs"
+
+[[module]]
+id = "server-source-conditions"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_conditions"
+source = "source-conditions.rs"
+visibility = "pub"
+
+[[module]]
 id = "server-source-station-world"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_station_world"
@@ -1876,6 +1899,22 @@ id = "host-source-material-traits"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_material_traits"
 source = "source-material-traits.rs"
+
+[[injection]]
+id = "source-golden-armor"
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+kind = "RETURN"
+helper = "golden-armor.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "host-source-snow-boots"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_snow_boots"
+source = "source-snow-boots.rs"
+
+# The Snow Boots powder-snow walking hook is deferred: both RETURN and the
+# leather_boots STORE candidate in sync_player_body were rejected by plan.
 
 [[module]]
 id = "server-source-material-traits"
@@ -2180,6 +2219,84 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_machine_runtime"
 source = "source-machine-runtime.rs"
 
+[[module]]
+id = "source-casting-tank"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_casting_tank"
+source = "source-casting-tank.rs"
+
+[[module]]
+id = "source-fluid-cannon"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fluid_cannon"
+source = "source-fluid-cannon.rs"
+
+[[injection]]
+id = "source-fluid-cannon-placement"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
+kind = "HEAD"
+helper = "source-cannon-placement.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "context", ty = "&horizon_world::level::PlacementContext", value = "context" },
+  { name = "answer", ty = "&mut Option<Option<horizon_world::registry::BlockStateId>>", value = "answer" },
+]
+
+[[injection]]
+id = "source-casting-tank-has-comparator"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_has_analog_output"
+kind = "HEAD"
+helper = "source-casting-comparator-present.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "output", ty = "&mut bool", value = "&mut *output" },
+]
+
+[[injection]]
+id = "source-casting-tank-comparator"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_analog_output"
+kind = "HEAD"
+helper = "source-casting-comparator.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "output", ty = "&mut i32", value = "&mut *output" },
+]
+
+[[module]]
+id = "source-copper-gauge"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_gauge"
+source = "source-gauge.rs"
+
+[[injection]]
+id = "source-copper-gauge-placement"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_state_for_placement"
+kind = "HEAD"
+helper = "source-gauge-placement.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "context", ty = "&horizon_world::level::PlacementContext", value = "context" },
+  { name = "answer", ty = "&mut Option<Option<horizon_world::registry::BlockStateId>>", value = "answer" },
+]
+
+[[injection]]
+id = "source-copper-gauge-update"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_update_shape"
+kind = "HEAD"
+helper = "source-gauge-update.rs"
+bindings = [
+  { name = "level", ty = "&crate::game::GameLevel<'_>", value = "&*self" },
+  { name = "pos", ty = "horizon_core::position::BlockPos", value = "pos" },
+  { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" },
+  { name = "direction", ty = "horizon_core::geometry::Direction", value = "direction" },
+  { name = "new", ty = "&mut Option<horizon_world::registry::BlockStateId>", value = "new" },
+]
+
 [[injection]]
 id = "source-faucet-placement-facing"
 target = "horizon_client::game::block_items::Game<'_>::apply_item_block_state"
@@ -2308,6 +2425,27 @@ id = "source-machine-remote"
 file = "crates/horizon-client/src/game/remote.rs"
 name = "tconstruct_source_machine_remote"
 source = "source-machine-remote.rs"
+
+[[state]]
+id = "remote-screen-position"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(i32,i32,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-machine-remote-screen"
+target = "horizon_client::game::native_hooks::Game<'_>::open_native_screen"
+kind = "HEAD"
+cancellable = true
+helper = "source-machine-remote-screen.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "target", ty = "Option<(i32,i32,i32)>", value = "target" },
+]
 
 [[injection]]
 id = "source-machine-reacts"
@@ -2548,6 +2686,27 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[state]]
+id = "area-overwield-spent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-overwield-harvest-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
+kind = "AFTER_CALL"
+selector = "mod_api::dispatch_destroy_block"
+require = 1
+ordinal = 0
+result = "()"
+helper = "source-overwield-harvest-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
+
 [[injection]]
 id = "source-area-guest-hit"
 target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
@@ -2719,7 +2878,7 @@ id = "source-melee-damage-return"
 target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "source-melee-damage-return.rs"
-bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "living", ty = "bool", value = "living" }]
 
 [[injection]]
 id = "source-melee-sweep-position"
@@ -3102,7 +3261,7 @@ target = "horizon_world::worldgen::structure::start::try_generate"
 kind = "HEAD"
 cancellable = true
 helper = "source-slime-island-start-hook.rs"
-bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "any_biome", ty = "bool", value = "any_biome" }]
+bindings = [{ name = "registry", ty = "&StructureRegistry", value = "registry" }, { name = "resources", ty = "&StructureResources", value = "resources" }, { name = "bindings", ty = "&FeatureBlockBindings<'_>", value = "bindings" }, { name = "context", ty = "&mut impl StartContext", value = "context" }, { name = "structure", ty = "usize", value = "structure" }, { name = "chunk", ty = "ChunkPos", value = "chunk" }, { name = "any_biome", ty = "bool", value = "any_biome" }]
 
 [[module]]
 id = "materials-book"
@@ -3481,6 +3640,20 @@ id = "source-crafting-lan"
 file = "crates/horizon-client/src/game/lan_crafting.rs"
 name = "tconstruct_crafting_lan"
 source = "source-crafting-lan.rs"
+
+# LAN recipe placement is a separate server entry point from menu clicks.
+[[injection]]
+id = "crafting-station-lan-recipe-guard"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_place_recipe"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-lan-recipe-guard.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&horizon_protocol::packets::recipes::PlaceRecipe", value = "p" },
+]
 
 [[injection]]
 id = "crafting-station-lan-click"
@@ -3936,15 +4109,261 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_inventory_api"
 source = "chest-inventory-api-lib.rs"
 
-# The host recipe-book placement mutates the temporary grid without a safe
-# post-mutation sync hook. Keep the book visible, but block only this action.
+# Stage local recipe placement and persist its validated menu grid.
 [[injection]]
 id = "crafting-station-recipe-placement-guard"
 target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
 kind = "HEAD"
 cancellable = true
 helper = "source-crafting-recipe-guard.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "book_type", ty = "horizon_client::recipe_book::BookType", value = "book_type" },
+    { name = "entry_index", ty = "usize", value = "entry_index" },
+    { name = "use_max", ty = "bool", value = "use_max" },
+]
+
+[[module]]
+id = "source-chute-hopper"
+file = "crates/horizon-client/src/game/machines.rs"
+name = "tconstruct_chute_hopper"
+source = "source-chute-hopper.rs"
+
+[[injection]]
+id = "source-chute-hopper-eject"
+target = "horizon_client::game::machines::Game<'_>::hopper_eject"
+kind = "HEAD"
+cancellable = true
+helper = "source-chute-hopper-eject.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
+
+[[injection]]
+id = "source-chute-hopper-suck"
+target = "horizon_client::game::machines::Game<'_>::hopper_suck"
+kind = "HEAD"
+cancellable = true
+helper = "source-chute-hopper-suck.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
+
+[[module]]
+id = "source-fluid-effects"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fluid_effects"
+source = "source-fluid-effects.rs"
+
+[[module]]
+id = "source-slurping"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_slurping"
+source = "source-slurping.rs"
+
+[[injection]]
+id = "source-slurping-duration"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_duration"
+kind = "HEAD"
+helper = "source-slurping-duration.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }]
+
+[[injection]]
+id = "source-slurping-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "source-slurping-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "source-slurping-finish"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "source-slurping-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+[[injection]]
+id = "source-slurping-bow-tick"
+target = "horizon_client::game::advancements::Game<'_>::trigger_using_item"
+kind = "HEAD"
+helper = "source-slurping-bow-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-spilling"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_spilling"
+source = "source-spilling.rs"
+
+[[state]]
+id = "spilling-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, Vec<Option<(u32, horizon_items::items::ItemStack)>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-spilling-head"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "source-spilling-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-spilling-return"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "source-spilling-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-spilling-hit"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+helper = "source-spilling-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[module]]
+id = "source-splashing"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_splashing"
+source = "source-splashing.rs"
+
+[[injection]]
+id = "source-splashing-interact"
+target = "horizon_client::game::native_hooks::Game<'_>::native_interact_entity"
+kind = "HEAD"
+helper = "source-splashing-interact.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "entity", ty = "i32", value = "entity" }, { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" }, { name = "claimed", ty = "&mut bool", value = "&mut *claimed" }]
+
+[[injection]]
+id = "source-splash-bottle-brewing"
+target = "horizon_client_lib::stations::StationData::load"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "crate::brewing::Brewing::load(root, items, overlay)"
+require = 1
+ordinal = 0
+helper = "source-splash-bottle-brewing.rs"
+bindings = [{ name = "value", ty = "crate::brewing::Brewing", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
+
+[[injection]]
+id = "source-empty-bottle-use"
+target = "horizon_client::game::potions::Game<'_>::use_potion_item"
+kind = "HEAD"
+cancellable = true
+helper = "source-empty-bottle-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-bottle-fill"
+file = "crates/horizon-client/src/game/potions.rs"
+name = "tconstruct_source_bottle_fill"
+source = "source-bottle-fill.rs"
+
+[[injection]]
+id = "source-bottle-cauldron"
+target = "horizon_client::game::Game<'_>::use_on_cauldron"
+kind = "HEAD"
+cancellable = true
+helper = "source-bottle-cauldron.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+
+[[injection]]
+id = "source-bottle-cauldron-remote"
+target = "horizon_client::game::remote::Game<'_>::remote_block_reacts"
+kind = "HEAD"
+cancellable = true
+helper = "source-bottle-cauldron-remote.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "hit", ty = "&super::Hit", value = "hit" }, { name = "held", ty = "Option<&horizon_items::items::ItemStack>", value = "held" }]
+
+[[injection]]
+id = "source-splashing-block"
+target = "horizon_client::game::Game<'_>::use_block_transformer"
+kind = "HEAD"
+cancellable = true
+helper = "source-splashing-block.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }, { name = "pos", ty = "[i32;3]", value = "pos" }, { name = "face", ty = "[i32;3]", value = "face" }]
+
+[[state]]
+id = "splashing-guest-scope"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, Vec<(Option<u32>, i32, [f64; 3], [f64; 3], [f64; 3], bool)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-splashing-guest-head"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+helper = "source-splashing-guest-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[injection]]
+id = "source-splashing-guest-return"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_swing_back"
+kind = "HEAD"
+helper = "source-splashing-guest-return.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "swung", ty = "Option<bool>", value = "swung" }]
+
+[[state]]
+id = "splashing-guest-pending"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, (horizon_items::items::ItemStack, usize, Vec<u32>, Vec<u32>, bool, i32, bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-splashing-player"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_splashing_player"
+source = "source-splashing-player.rs"
+
+[[injection]]
+id = "source-splashing-player-use"
+target = "horizon_client::game::Game<'_>::interact_entity"
+kind = "HEAD"
+cancellable = true
+helper = "source-splashing-player-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "target", ty = "Option<crate::game::InteractTarget>", value = "target" }]
+
+[[state]]
+id = "splashing-guest-packet"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, (i32, bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-splashing-guest-aim"
+target = "horizon_client::game::lan_actions::Game<'_>::look_at_entity"
+kind = "HEAD"
+cancellable = true
+helper = "source-splashing-guest-aim.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "gi", ty = "usize", value = "gi" }, { name = "id", ty = "i32", value = "id" }, { name = "location", ty = "Option<[f64; 3]>", value = "location" }]
+
+[[module]]
+id = "source-fluid-cloud"
+file = "crates/horizon-client/src/game/potions.rs"
+name = "tconstruct_source_fluid_cloud"
+source = "source-fluid-cloud.rs"
+visibility = "pub"
 
 [[module]]
 id = "source-slime-colormap"
@@ -3959,15 +4378,6 @@ target = "horizon_client_render::assets::RenderAssets::load_with"
 kind = "HEAD"
 helper = "source-slime-colormap-load.rs"
 bindings = [{ name = "root", ty = "&std::path::Path", value = "root" }]
-
-[[injection]]
-id = "source-slime-colormap-face"
-target = "horizon_client_render::mesher::Mesher<'_>::face"
-kind = "MODIFY_VARIABLE"
-variable = { name = "tint", ordinal = 0, at = "STORE" }
-require = 1
-helper = "source-slime-colormap-face.rs"
-bindings = [{ name = "value", ty = "Option<u32>", value = "$value" }, { name = "mesher", ty = "&Mesher<'_>", value = "self" }, { name = "tints", ty = "&Tints<'_>", value = "&*tints" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "id", ty = "&u32", value = "$local_ref:id:0" }, { name = "face", ty = "&BakedFace", value = "face" }]
 
 [[module]]
 id = "source-slime-leaves"
@@ -4129,3 +4539,95 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bone
 kind = "HEAD"
 helper = "source-ender-propagule-perform.rs"
 bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
+
+[[module]]
+id = "source-slime-fungus"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_slime_fungus"
+source = "source-slime-fungus.rs"
+
+[[injection]]
+id = "source-slime-fungus-survive"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
+kind = "HEAD"
+helper = "source-slime-fungus-survive.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
+
+[[injection]]
+id = "source-slime-fungus-valid"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
+kind = "HEAD"
+helper = "source-slime-fungus-valid.rs"
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+
+[[injection]]
+id = "source-slime-fungus-success"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_bonemeal_success"
+kind = "HEAD"
+helper = "source-slime-fungus-success.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "success", ty = "&mut bool", value = "&mut *success" }]
+
+[[injection]]
+id = "source-slime-fungus-perform"
+target = "horizon_client::game::native_hooks::GameLevel<'_>::native_perform_bonemeal"
+kind = "HEAD"
+helper = "source-slime-fungus-perform.rs"
+bindings = [{ name = "level", ty = "&mut GameLevel<'_>", value = "&mut *self" }, { name = "ticks", ty = "&mut Ticks", value = "ticks" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }]
+
+[[module]]
+id = "island-slime-fungus"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_island_slime_fungus"
+source = "source-island-slime-fungus.rs"
+
+[[module]]
+id = "ender-tree-components-worldgen"
+file = "crates/horizon-world/src/worldgen/structure/start.rs"
+name = "tconstruct_ender_tree_components"
+source = "source-ender-tree-components.rs"
+
+[[module]]
+id = "ender-tree-components-live"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_ender_tree_components"
+source = "source-ender-tree-components.rs"
+
+[[module]]
+id = "ender-tree-components-native"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "tconstruct_ender_tree_components"
+source = "source-ender-tree-components.rs"
+
+[[module]]
+id = "ender-tree-native"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "tconstruct_ender_tree_native"
+source = "source-ender-tree-native.rs"
+visibility = "pub"
+
+[[module]]
+id = "ender-tree-config-native"
+file = "crates/horizon-world/src/worldgen/tree.rs"
+name = "tconstruct_ender_tree_config"
+source = "source-ender-tree-config.rs"
+visibility = "pub"
+
+[[module]]
+id = "ender-tree-live-decode"
+file = "crates/horizon-world/src/worldgen/live.rs"
+name = "tconstruct_ender_live_decode"
+source = "source-ender-tree-live-decode.rs"
+visibility = "pub"
+
+[[module]]
+id = "ender-tree-live-place"
+file = "crates/horizon-world/src/level/mod.rs"
+name = "tconstruct_ender_live_place"
+source = "source-ender-tree-live-place.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-splash-conditional"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_splash_conditional"
+source = "source-splash-conditional.rs"
