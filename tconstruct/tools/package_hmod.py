@@ -194,6 +194,7 @@ def package(output):
     archives = {
         'tconstruct-recipes.zip': 'tconstruct-original-pack',
         'tconstruct-materials.zip': 'tconstruct-original-pack',
+        'tconstruct-modifiers.zip': 'tconstruct-original-pack',
         'tconstruct-tool-definitions.zip': 'tconstruct-original-pack',
         'tconstruct-station-layouts.zip': 'tconstruct-original-pack',
         'tconstruct-fluid-tags.zip': 'tconstruct-original-pack',

@@ -42,3 +42,19 @@ The following figures are from the earlier two-page runtime `87d61cb`, not the n
 The crafting-grid texture is from Mantle 1.20 revision `17c287ad52f7b10154e07fa7570dc7bccd74ca2b`, under the MIT license in `third_party/mantle/LICENSE`.
 
 The pinned guide JSON and images are ordinary files under `content/assets/tconstruct/book/`. The content overlay supplies the same paths to the reader and LAN host; resource preparation copies the original guide images into the GUI atlas. There is no separate guide ZIP to install. The `.hmod` content package and `.hnmod` native package remain separate, and this directory change has not yet been checked in a packaged game.
+
+## Modifier book data groundwork
+
+The package includes 59 pinned source modifier-tag files and 308 dynamic
+modifier JSON definitions. On authoritative recipe reload, their raw resource
+layers are captured in pack order; an enumerated file that cannot be read
+makes that snapshot unavailable rather than silently incomplete. The snapshot
+is cleared with the world and invalidated in parked dimensions on reload.
+A tag resolver requires a complete, authoritative modifier registry and keeps
+missing required entries and cycles as errors. A filename is not proof that a
+modifier is registered: source static registrations, conditional definitions
+and redirects still need a faithful registry implementation. No complete
+registry or modifier pages are exposed by this groundwork. Manual original
+pack directories retain their existing precedence and may lack these files.
+Datapack reload, multiplayer synchronization, full Mixins integration and
+actual book display remain unverified.

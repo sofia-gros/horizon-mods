@@ -17,6 +17,21 @@ class SourceTags(unittest.TestCase):
             floor = json.loads(archive.read('data/tconstruct/tags/blocks/smeltery/floor.json'))
             self.assertIn('#tconstruct:seared_blocks', wall['values'])
             self.assertIn('#tconstruct:seared_blocks', floor['values'])
+    def test_modifier_resource_archives_are_complete_and_packaged(self):
+        expected = dict(row.split('  ', 1)[::-1] for row in (ROOT / 'docs/upstream-modifiers.sha256').read_text().splitlines())
+        self.assertEqual(len(expected), 366)  # 308 definitions and 58 additional tags
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
+            names = archive.namelist()
+            self.assertEqual(len(names), len(set(names)))
+            actual = {name: hashlib.sha256(archive.read(name)).hexdigest() for name in names}
+            abilities = json.loads(archive.read('data/tconstruct/tinkering/tags/modifiers/abilities.json'))
+            general = json.loads(archive.read('data/tconstruct/tinkering/tags/modifiers/upgrades/general.json'))
+        self.assertEqual(actual, expected)
+        self.assertIn('#tconstruct:abilities/general', abilities['values'])
+        self.assertIn({'id': 'tconstruct:the_one_probe', 'required': False}, general['values'])
+        retained = ROOT / 'content/reference/tconstruct-tags/data/tconstruct/tinkering/tags/modifiers/durability/bypass_reinforced.json'
+        self.assertTrue(retained.is_file())
+
     def test_fluid_tags_match_pinned_manifest(self):
         rows = (ROOT / 'docs/upstream-fluid-tags.sha256').read_text().splitlines()
         expected = dict(row.split('  ', 1)[::-1] for row in rows)

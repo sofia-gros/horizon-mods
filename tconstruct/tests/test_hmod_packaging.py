@@ -27,6 +27,9 @@ class ContentPackageTest(unittest.TestCase):
                 for fluid, animation in animations.items():
                     path = 'assets/tconstruct/runtime/block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta'
                     self.assertEqual(json.loads(packed.read(path)), animation)
+                for path in ('assets/tconstruct/source-packs/tconstruct-original-pack/data/tconstruct/tinkering/tags/modifiers/abilities/general.json',
+                             'assets/tconstruct/source-packs/tconstruct-original-pack/data/tconstruct/tinkering/modifiers/expanded.json'):
+                    self.assertIn(path, names)
                 self.assertNotIn('assets/tconstruct/runtime/block/tconstruct_fluid_powdered_snow.png.mcmeta', names)
                 self.assertIn('assets/tconstruct/runtime/block/tconstruct_fluid_fallback.png.mcmeta', names)
             self.assertLessEqual(len(names - {'horizon-mod.toml'}), 65_536)
