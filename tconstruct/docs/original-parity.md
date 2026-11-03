@@ -342,6 +342,8 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
 
+Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
+
 Alloy input matching now supports source `catalyst` fluids: they must be present in the required amount but are not consumed. This enables the source water/lava molten-obsidian recipe in code; integrated operation, fuel and persistence remain unverified.
 
 ### Material trait fallback by stat type
