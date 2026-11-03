@@ -364,7 +364,7 @@ PartCastItem cost tooltips are being connected to the source material-casting re
 
 The source `molding_basin` serializer now uses the same material/pattern transaction as `molding_table`, with the two recipe types kept separate. No basin molding recipe is added; datapack-supplied cases and integrated operation await verification. As in the source, a direct matched molding calls the crafted hook, while a held-item-miss / mold-less fallback returns the result without that callback.
 
-Part-swapping table and basin serializers now have a narrow ordinary casting candidate for undamaged tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged ordinary swaps, modifier or trait changes and explicit material predicates remain unsupported; no game or LAN behavior has been verified for this candidate.
+Part-swapping table and basin serializers now have a narrow ordinary casting candidate for undamaged tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged ordinary swaps and modifier or trait changes were unsupported in that initial candidate; no game or LAN behavior has been verified for this candidate.
 
 The same candidate also resolves composite-fluid part swaps after checking ordinary casting precedence. For this composite path, undamaged or damaged unbroken tools are accepted only if the damage fits both old and new durability; the original composite operation does not repair. Changed traits and unsupported upgrades or modifier hooks remain unsupported. This addition awaits runtime verification.
 
@@ -659,3 +659,6 @@ For issue #365 group 06, use multiple Melters with distinct fluids and amounts;
 check local and LAN guest name, amount, gauge, and interaction target when opening
 and switching machines, then verify saved state after reload. Include empty tanks
 and normal inventory tooltips as regressions. The final-main game check remains open.
+Part-swap casting now evaluates a recipe's `allowed_materials` against the resulting material, for both ordinary and composite fluids. A rejected ordinary material does not prevent an eligible composite material from being considered. The same supported material predicates as part casting are used; unknown predicates fail closed. Existing restrictions on tool data, traits, upgrades, repair and modifier hooks still apply. Catalog tests cover accepted, rejected, missing and unknown predicates and composite fallback; game, LAN and datapack reload behavior have not yet been verified.
+
+For composite-fluid part swaps, the resulting material may equal the current material when the composite recipe permits it. Ordinary casting still rejects replacing a part with the same material, matching the source distinction. This case has catalog tests but awaits game verification.
