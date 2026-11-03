@@ -30,7 +30,7 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
                 continue;
             }
             if id == "tconstruct:faucet" {
-                if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name == "tconstruct:seared_faucet" {
+                if matches!(&*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name, "tconstruct:seared_faucet" | "tconstruct:scorched_faucet") {
                     if let Some(faucet) = raw.get("tconstruct:faucet").and_then(crate::game::tconstruct_source_melter_state::Faucet::from_nbt) {
                         if faucet.pending.fluid.is_some() && faucet.pending.amount > 0 {
                             let mut stream = faucet.pending.clone(); stream.amount = stream.capacity;
@@ -62,7 +62,8 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
                 "tconstruct:basin" => ("tconstruct:seared_basin", 10.0 / 16.0, 12.0 / 16.0, false),
                 _ => continue,
             };
-            if &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name != block { continue; }
+            let actual = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
+            if actual != block && !(id == "tconstruct:table" && actual == "tconstruct:scorched_table") { continue; }
             let Some(casting) = raw.get(id.as_str()).and_then(crate::game::tconstruct_source_melter_state::Casting::from_nbt) else { continue; };
             if id == "tconstruct:table" {
                 tconstruct_fluid_geometry(game, camera, out, *pos, &casting.tank, [1.0, 15.0, 1.0, 15.0, 15.9, 15.0], false);
