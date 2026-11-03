@@ -261,6 +261,45 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
     true
 }
 
+/// A formed drain exposes its controller's tank on every side in TConstruct.
+pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
+    game.ensure_datapacks();
+    let Some(controller) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&pos).copied() else { return false; };
+    let block = game.res.facts().get(game.world.block(controller.0, controller.1, controller.2)).name.clone();
+    if !matches!(&*block, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") { return false; }
+    let Some((min, max, _)) = super::tconstruct_source_smeltery_world::detect(game, controller) else { return false; };
+    let (x, y, z) = pos;
+    let wall = y > min[1] && y <= max[1] && ((x == min[0] || x == max[0]) && z > min[2] && z < max[2]
+        || (z == min[2] || z == max[2]) && x > min[0] && x < max[0]);
+    let floor = y == min[1] && x > min[0] && x < max[0] && z > min[2] && z < max[2];
+    let foundry_shell = &*block == "tconstruct:foundry_controller" && x >= min[0] && x <= max[0]
+        && z >= min[2] && z <= max[2] && y >= min[1] && y <= max[1]
+        && (y == min[1] || x == min[0] || x == max[0] || z == min[2] || z == max[2]);
+    if !wall && !floor && !foundry_shell { return false; }
+    let Some(mut state) = store::read(&game.world, controller, "tconstruct:smeltery").and_then(|tag| Smeltery::from_nbt(&tag)) else { return false; };
+    let Some(held) = game.held().cloned() else { return false; };
+    let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+        .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
+        .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+            .map(|(id, items)| (id.clone(), items.clone())).collect());
+    let before = state.tank.total();
+    let mut slots = [Some(held), None];
+    if !super::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut slots,
+        super::tconstruct_source_fluid_container::Direction::Auto, None,
+        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref()) { return false; }
+    if !store::write(&mut game.world, controller, "tconstruct:smeltery", state.to_nbt()) { return false; }
+    if game.creative {
+        if state.tank.total() < before {
+            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+        }
+    } else if let Some(rest) = slots[0].take() {
+        *game.held_mut() = Some(rest);
+        if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+    } else { *game.held_mut() = slots[1].take(); }
+    true
+}
+
 pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     let Some(kind) = kind(block) else { return false; };
     if !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4)) { return false; }
