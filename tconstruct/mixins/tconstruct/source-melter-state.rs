@@ -449,6 +449,24 @@ impl Casting {
 mod casting_tests {
     use super::*;
     #[test]
+    fn slimeskull_result_survives_partial_fill_reload_and_revalidation() {
+        let mut c = Casting::new(); c.input = Some(ItemStack::new("minecraft:skeleton_skull", 1));
+        let mut result = ItemStack::new("tconstruct:slime_helmet", 1);
+        result.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_materials", Tag::List(vec![
+            Tag::String("tconstruct:bone".into()), Tag::String("tconstruct:earthslime".into())
+        ]))])));
+        assert!(c.prepare("test:skull", 1250, 2, result, true, false));
+        assert!(c.tank.insert("tconstruct:earth_slime", 1249));
+        assert!(!c.tick(true)); assert!(c.input.is_some());
+        assert!(c.tank.insert("tconstruct:earth_slime", 1));
+        let mut c = Casting::from_nbt(&c.to_nbt()).unwrap();
+        assert!(!c.tick(false)); assert_eq!(c.tank.amount, 1250); assert!(c.input.is_some());
+        assert!(!c.tick(true)); assert!(c.tick(true));
+        assert!(c.input.is_none()); assert_eq!(c.tank.amount, 0);
+        let materials = c.output.as_ref().unwrap().data().unwrap().other("minecraft:custom_data").unwrap().get("tic_materials").unwrap();
+        assert_eq!(materials, &Tag::List(vec![Tag::String("tconstruct:bone".into()), Tag::String("tconstruct:earthslime".into())]));
+    }
+    #[test]
     fn canceled_hopper_candidate_tries_next_but_snapshot_change_aborts() {
         let mut visited = Vec::new();
         let choice = select_casting_candidate(vec![(0, "first"), (1, "second")], |index, _| {

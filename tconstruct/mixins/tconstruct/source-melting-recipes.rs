@@ -492,6 +492,26 @@ impl SlimelytraCastingRecipe {
     }
 }
 
+/// Bounded source slimeskull form: a consumed head sets the first material.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct SlimeskullCastingRecipe { pub cast: Ingredient, pub item_cost: u32, pub material: String }
+impl SlimeskullCastingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.as_object()?.keys().any(|key| !matches!(key.as_str(), "type" | "cast" | "cast_purpose" | "item_cost" | "result" | "extra_materials" | "fluid_swapping" | "conditions"))
+            || v.get("type")?.as_str()? != "tconstruct:basin_tool_casting"
+            || v.get("cast_purpose")?.as_str()? != "consumed_offset"
+            || v.get("result")?.as_str()? != "tconstruct:slime_helmet"
+            || v.get("fluid_swapping")?.as_bool()? || !enabled(&v, conditions) { return None; }
+        let cast = Ingredient::parse(v.get("cast")?)?;
+        if !matches!(cast, Ingredient::Item(_)) { return None; }
+        let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
+        let materials = v.get("extra_materials")?.as_array()?;
+        if item_cost == 0 || materials.len() != 1 { return None; }
+        Some(Self { cast, item_cost, material: materials[0].as_str()?.to_owned() })
+    }
+}
+
 /// The source material casting recipe and the independent fluid-to-material
 /// recipe are joined only after the current world's tags are resolved.
 #[derive(Clone, Debug, PartialEq, Eq)]
