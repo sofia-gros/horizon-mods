@@ -184,10 +184,20 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
         (stats.get("tconstruct:head")?.get("durability")?.as_f64()? as f32 * cost as f32 / 3.0) as u32
     } else { 0 };
     if !changed && (tool.damage == 0 || repair == 0) { return None; }
+    let output = rebuild_material_swap(world, definition, tool, &identities, repair, false, reason)?;
+    Some((output, vec![(0, 1), (slot, 1)]))
+}
+
+/// Rebuild using the station's existing normalization, stats and slot checks.
+/// Callers lacking original modifier hooks request unchanged traits so no
+/// trait removal or changed-level validation is silently skipped.
+pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
+    identities: &[String], repair: u32, reject_removed_traits: bool, reason: &mut Option<String>) -> Option<ItemStack> {
+    let old_traits = if reject_removed_traits { Some(super::tconstruct_source_material_traits::levels(world, tool)?.levels) } else { None };
     let verified = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     };
-    let mut output = assemble(world, definition, &tool.item, &identities, Some(&verified), reason)?;
+    let mut output = assemble(world, definition, &tool.item, identities, Some(&verified), reason)?;
     let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let modules = parsed.get("modules")?.as_array()?;
     let base_slots = |name: &str| -> Option<i32> {
@@ -196,10 +206,11 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
         i32::try_from(total).ok()
     };
     let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+    if old_traits.as_ref().is_some_and(|old| old != &traits) { return None; }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
-    Some((output, vec![(0, 1), (slot, 1)]))
+    Some(output)
 }
 
 /// Compute material repair from the tool definition and world recipes.
