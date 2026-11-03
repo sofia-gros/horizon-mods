@@ -388,7 +388,7 @@ pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> boo
         output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize }
+pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize, pub allowed_materials: Option<Value> }
 impl PartSwapCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let value: Value = serde_json::from_slice(bytes).ok()?;
@@ -397,11 +397,11 @@ impl PartSwapCastingRecipe {
             "tconstruct:basin_casting_part_swapping" => true,
             _ => return None,
         };
-        if !enabled(&value, conditions) || value.get("allowed_materials").is_some() { return None; }
+        if !enabled(&value, conditions) { return None; }
         let item_cost = u32::try_from(value.get("item_cost")?.as_u64()?).ok()?;
         if item_cost == 0 { return None; }
         Some(Self { basin, tools: Ingredient::parse(value.get("tools")?)?, item_cost,
-            index: usize::try_from(value.get("index")?.as_u64()?).ok()? })
+            index: usize::try_from(value.get("index")?.as_u64()?).ok()?, allowed_materials: value.get("allowed_materials").cloned() })
     }
 }
 

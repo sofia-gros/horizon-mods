@@ -20,6 +20,54 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
     Some(f(&catalog, &registries, config))
 }
 
+// Resolve the same material predicate for part casting and tool part swaps.
+fn material_allowed(world: &World, catalog: &Catalog<'_>, conditions: &impl Fn(&[serde_json::Value]) -> bool,
+    value: Option<&serde_json::Value>, material: &str) -> bool {
+    if value.is_none_or(serde_json::Value::is_null) { return true; }
+    let Some(material_tags) = world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).map(|v| &v.2) else { return false; };
+    let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
+        .ok().map(|(_, parts)| parts.contains(output));
+
+    let extra = |kind: &str, value: &serde_json::Value, material: &str| -> Option<bool> {
+        let base = material.split_once('#').map_or(material, |(base, _)| base);
+        let defs = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.0;
+        let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+        match kind {
+            "tconstruct:registered" => Some(defs.contains_key(base)),
+            "tconstruct:craftable" => Some(defs.get(base)?.0),
+            "tconstruct:not_hidden" => Some(!defs.get(base)?.1),
+            "tconstruct:stat_type" => Some(stats.get(base)?.contains_key(value.get("stat_type")?.as_str()?)),
+            "tconstruct:tier" => {
+                let tier = defs.get(base)?.2 as i64; let range = value.get("tier")?;
+                let (min,max) = if let Some(n) = range.as_i64() { (n,n) } else {
+                    let map = range.as_object()?;
+                    (match map.get("min") { Some(v) => v.as_i64()?, None => 0 },
+                     match map.get("max") { Some(v) => v.as_i64()?, None => i32::MAX as i64 })
+                };
+                if min < 0 || max > i32::MAX as i64 || min > max { return None; }
+                Some((min..=max).contains(&tier))
+            },
+            "tconstruct:castable" | "tconstruct:composite" => {
+                let matches = |output: &str| {
+                    let (wanted_base, wanted_variant) = material.split_once('#').unwrap_or((material, ""));
+                    let (output_base, output_variant) = output.split_once('#').unwrap_or((output, ""));
+                    wanted_base == output_base && (wanted_variant.is_empty() || wanted_variant == output_variant || wanted_variant == "default" && output_variant.is_empty())
+                };
+                Some(catalog.recipes.values().any(|bytes| {
+                    if kind == "tconstruct:castable" {
+                        super::tconstruct_source_melting_recipes::MaterialFluidRecipe::parse(bytes, &conditions).is_some_and(|r| matches(&r.material))
+                    } else {
+                        super::tconstruct_source_melting_recipes::CompositeFluidRecipe::parse(bytes, &conditions).is_some_and(|r| matches(&r.material))
+                    }
+                }))
+            },
+            _ => None,
+        }
+    };
+    super::tconstruct_source_melting_lookup::material_predicate(value, material,
+        &|tag, id| material_tags.get(tag).is_some_and(|values| values.contains(id)), &supports_checked, &extra).unwrap_or(false)
+}
+
 pub(super) fn molding(world: &World, basin: bool, material: &str, pattern: Option<&str>) -> Option<(String, super::tconstruct_source_melting_recipes::MoldingRecipe)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.molding(basin, material, pattern, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
@@ -190,14 +238,19 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             let ((id, recipe, material, index), composite) = with_catalog(world, |catalog, registries, config| {
                 let supports = |index: usize, material: &str| {
                     let Some(part) = parts.get(index) else { return false; };
-                    let Some(old) = identities.get(index) else { return false; };
-                    let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
-                    canonical(old.as_str()) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
+                    super::tconstruct_source_builder_world::supported_material(world, material)
                         .is_ok_and(|(_, supported)| supported.contains(part))
                 };
+                // The source rejects unchanged materials for ordinary casting only.
+                let supports_ordinary = |index: usize, material: &str| {
+                    let Some(old) = identities.get(index) else { return false; };
+                    let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
+                    canonical(old.as_str()) != canonical(material) && supports(index, material)
+                };
                 let conditions = |values: &[serde_json::Value]| conditional_conditions(values, registries, config, catalog.known_items).unwrap_or(false);
-                catalog.part_swap_casting(basin, &stack.item, fluid, &supports, &conditions).map(|value| (value, false))
-                    .or_else(|| catalog.composite_part_swap(basin, &stack.item, fluid, &identities, &supports, &conditions).map(|value| (value, true)))
+                let allowed = |value: Option<&serde_json::Value>, material: &str| material_allowed(world, catalog, &conditions, value, material);
+                catalog.part_swap_casting(basin, &stack.item, fluid, &supports_ordinary, &allowed, &conditions).map(|value| (value, false))
+                    .or_else(|| catalog.composite_part_swap(basin, &stack.item, fluid, &identities, &supports, &supports_ordinary, &allowed, &conditions).map(|value| (value, true)))
             })??;
             let mut next = identities; *next.get_mut(index)? = material;
             let mut output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
@@ -239,7 +292,6 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         if candidate.is_some() { return candidate; }
     }
     }
-    let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
     let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
         .ok().map(|(_, parts)| parts.contains(output));
     let supports = |material: &str, output: &str| supports_checked(material, output).unwrap_or(false);
@@ -248,46 +300,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         .and_then(|tag| match tag { horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None });
     let resolved = with_catalog(world, |catalog, registries, config| {
         let conditions = |values: &[serde_json::Value]| conditional_conditions(values, registries, config, catalog.known_items).unwrap_or(false);
-        let allowed = |value: Option<&serde_json::Value>, material: &str| {
-            let extra = |kind: &str, value: &serde_json::Value, material: &str| -> Option<bool> {
-                let base = material.split_once('#').map_or(material, |(base, _)| base);
-                let defs = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.0;
-                let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
-                match kind {
-                    "tconstruct:registered" => Some(defs.contains_key(base)),
-                    "tconstruct:craftable" => Some(defs.get(base)?.0),
-                    "tconstruct:not_hidden" => Some(!defs.get(base)?.1),
-                    "tconstruct:stat_type" => Some(stats.get(base)?.contains_key(value.get("stat_type")?.as_str()?)),
-                    "tconstruct:tier" => {
-                        let tier = defs.get(base)?.2 as i64; let range = value.get("tier")?;
-                        let (min,max) = if let Some(n) = range.as_i64() { (n,n) } else {
-                            let map = range.as_object()?;
-                            (match map.get("min") { Some(v) => v.as_i64()?, None => 0 },
-                             match map.get("max") { Some(v) => v.as_i64()?, None => i32::MAX as i64 })
-                        };
-                        if min < 0 || max > i32::MAX as i64 || min > max { return None; }
-                        Some((min..=max).contains(&tier))
-                    },
-                    "tconstruct:castable" | "tconstruct:composite" => {
-                        let matches = |output: &str| {
-                            let (wanted_base, wanted_variant) = material.split_once('#').unwrap_or((material, ""));
-                            let (output_base, output_variant) = output.split_once('#').unwrap_or((output, ""));
-                            wanted_base == output_base && (wanted_variant.is_empty() || wanted_variant == output_variant || wanted_variant == "default" && output_variant.is_empty())
-                        };
-                        Some(catalog.recipes.values().any(|bytes| {
-                            if kind == "tconstruct:castable" {
-                                super::tconstruct_source_melting_recipes::MaterialFluidRecipe::parse(bytes, &conditions).is_some_and(|r| matches(&r.material))
-                            } else {
-                                super::tconstruct_source_melting_recipes::CompositeFluidRecipe::parse(bytes, &conditions).is_some_and(|r| matches(&r.material))
-                            }
-                        }))
-                    },
-                    _ => None,
-                }
-            };
-            super::tconstruct_source_melting_lookup::material_predicate(value, material,
-                &|tag, id| material_tags.get(tag).is_some_and(|values| values.contains(id)), &supports_checked, &extra).unwrap_or(false)
-        };
+        let allowed = |value: Option<&serde_json::Value>, material: &str| material_allowed(world, catalog, &conditions, value, material);
         let composite = input.zip(material.as_deref()).and_then(|(stack, material)| catalog.composite_casting(basin, &stack.item, material, fluid,
             &supports, &allowed,
             &|material, stat| {

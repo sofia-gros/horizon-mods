@@ -72,7 +72,8 @@ impl Catalog<'_> {
         found
     }
     pub(super) fn composite_part_swap(&self, basin: bool, input: &str, fluid: &str, identities: &[String],
-        supports: &impl Fn(usize, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        supports: &impl Fn(usize, &str) -> bool, supports_ordinary: &impl Fn(usize, &str) -> bool,
+        allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, CastingRecipe, String, usize)> {
         if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
@@ -81,7 +82,7 @@ impl Catalog<'_> {
         if self.recipes.values().filter_map(|bytes| super::tconstruct_source_melting_recipes::PartSwapCastingRecipe::parse(bytes, conditions))
             .filter(|swap| swap.basin == basin && swap.tools.matches(input, &in_tag))
             .any(|swap| self.recipes.values().filter_map(|bytes| MaterialFluidRecipe::parse(bytes, conditions))
-                .any(|material| self.matches_fluid(&material.fluid, fluid) && supports(swap.index, &material.material))) { return None; }
+                .any(|material| self.matches_fluid(&material.fluid, fluid) && allowed(swap.allowed_materials.as_ref(), &material.material) && supports_ordinary(swap.index, &material.material))) { return None; }
         let split = |id: &str| { let (base, variant) = id.split_once('#').unwrap_or((id, "")); (base.to_owned(), variant.to_owned()) };
         let mut found = None;
         for (id, bytes) in self.recipes {
@@ -93,7 +94,7 @@ impl Catalog<'_> {
                 let Some(material) = CompositeFluidRecipe::parse(fluid_bytes, conditions) else { continue; };
                 let (wanted_base, wanted_variant) = split(&material.input);
                 if wanted_base != current_base || !(wanted_variant.is_empty() || wanted_variant == current_variant || wanted_variant == "default" && current_variant.is_empty())
-                    || !self.matches_fluid(&material.fluid, fluid) || !supports(swap.index, &material.material) { continue; }
+                    || !self.matches_fluid(&material.fluid, fluid) || !allowed(swap.allowed_materials.as_ref(), &material.material) || !supports(swap.index, &material.material) { continue; }
                 let Some(amount) = material.fluid.amount.checked_mul(swap.item_cost) else { continue; };
                 let factor = ((amount as f32) / 90.0_f32).sqrt();
                 let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
@@ -110,7 +111,7 @@ impl Catalog<'_> {
         found
     }
     pub(super) fn part_swap_casting(&self, basin: bool, input: &str, fluid: &str,
-        supports: &impl Fn(usize, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        supports: &impl Fn(usize, &str) -> bool, allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, CastingRecipe, String, usize)> {
         if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
@@ -120,7 +121,7 @@ impl Catalog<'_> {
             if swap.basin != basin || !swap.tools.matches(input, &in_tag) { continue; }
             for fluid_bytes in self.recipes.values() {
                 let Some(material) = MaterialFluidRecipe::parse(fluid_bytes, conditions) else { continue; };
-                if !self.matches_fluid(&material.fluid, fluid) || !supports(swap.index, &material.material) { continue; }
+                if !self.matches_fluid(&material.fluid, fluid) || !allowed(swap.allowed_materials.as_ref(), &material.material) || !supports(swap.index, &material.material) { continue; }
                 let Some(amount) = material.fluid.amount.checked_mul(swap.item_cost) else { continue; };
                 let factor = ((amount as f32) / 90.0_f32).sqrt();
                 let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
@@ -657,4 +658,61 @@ mod fluid_tag_tests {
         assert!(tags["forge:molten_copper"].contains("tconstruct:molten_copper"));
         assert!(!tags.contains_key("forge:external"));
     }
+}
+
+#[cfg(test)]
+mod part_swap_predicate_tests {
+    use super::*;
+#[test]
+fn swap_filters_output_material_and_preserves_composite_fallback() {
+    let swap = br#"{"type":"tconstruct:table_casting_part_swapping","tools":{"item":"tconstruct:tool"},"item_cost":2,"index":0,"allowed_materials":{"type":"tconstruct:id","id":"tconstruct:bronze"}}"#;
+    let normal = br#"{"type":"tconstruct:material_fluid","output":"tconstruct:iron","temperature":1000,"fluid":{"fluid":"test:metal","amount":90}}"#;
+    let composite = br#"{"type":"tconstruct:material_fluid","input":"tconstruct:copper","output":"tconstruct:bronze","temperature":1000,"fluid":{"fluid":"test:metal","amount":90}}"#;
+    let recipes: BTreeMap<String, Vec<u8>> = [("swap", swap.as_slice()), ("normal", normal.as_slice()), ("composite", composite.as_slice())].into_iter().map(|(k,v)| (k.into(), v.into())).collect();
+    let tags = HashMap::new();
+    let items = HashSet::from(["tconstruct:tool".into()]);
+    let fluids = HashSet::from(["test:metal".into()]);
+    let c = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+    let allowed = |v: Option<&Value>, m: &str| material_predicate(v,m,&|_,_| false,&|_,_| None,&|_,_,_| None).unwrap_or(false);
+    let conditions = |_: &[Value]| true;
+    assert!(c.part_swap_casting(false,"tconstruct:tool","test:metal", &|_,_| true,&allowed,&conditions).is_none());
+    let identities = vec!["tconstruct:copper".into()];
+    let (_, recipe, material, index) = c.composite_part_swap(false,"tconstruct:tool","test:metal",&identities,&|_,_| true,&|_,_| true,&allowed,&conditions).unwrap();
+    assert_eq!((material.as_str(),index,recipe.fluid.amount), ("tconstruct:bronze",0,180));
+    assert!(c.composite_part_swap(false,"tconstruct:tool","test:metal",&identities,&|_,_| true,&|_,_| true,&|_,_| false,&conditions).is_none());
+}
+
+#[test]
+fn same_material_composite_is_allowed_when_ordinary_is_not() {
+    let swap = br#"{"type":"tconstruct:table_casting_part_swapping","tools":{"item":"tconstruct:tool"},"item_cost":2,"index":0}"#;
+    let normal = br#"{"type":"tconstruct:material_fluid","output":"tconstruct:copper","temperature":1000,"fluid":{"fluid":"test:metal","amount":90}}"#;
+    let composite = br#"{"type":"tconstruct:material_fluid","input":"tconstruct:copper","output":"tconstruct:copper","temperature":1000,"fluid":{"fluid":"test:metal","amount":90}}"#;
+    let recipes: BTreeMap<String, Vec<u8>> = [("swap", swap.as_slice()), ("normal", normal.as_slice()), ("composite", composite.as_slice())].into_iter().map(|(k,v)| (k.into(),v.into())).collect();
+    let tags = HashMap::new(); let items = HashSet::from(["tconstruct:tool".into()]); let fluids = HashSet::from(["test:metal".into()]);
+    let c = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+    let identities = vec!["tconstruct:copper".into()];
+    let ordinary = |_: usize, material: &str| material != "tconstruct:copper";
+    assert!(c.part_swap_casting(false,"tconstruct:tool","test:metal",&ordinary,&|_,_| true,&|_| true).is_none());
+    let (_, recipe, material, _) = c.composite_part_swap(false,"tconstruct:tool","test:metal",&identities,&|_,_| true,&ordinary,&|_,_| true,&|_| true).unwrap();
+    assert_eq!((material.as_str(),recipe.fluid.amount),("tconstruct:copper",180));
+    assert!(c.composite_part_swap(false,"tconstruct:tool","test:metal",&identities,&|_,_| false,&ordinary,&|_,_| true,&|_| true).is_none());
+}
+
+#[test]
+fn normal_swap_respects_optional_and_unknown_predicates() {
+    let normal = br#"{"type":"tconstruct:material_fluid","output":"tconstruct:iron","temperature":1000,"fluid":{"fluid":"test:metal","amount":90}}"#;
+    let tags = HashMap::new(); let items = HashSet::from(["tconstruct:tool".into()]); let fluids = HashSet::from(["test:metal".into()]);
+    for (predicate, expected) in [("", true), (r#", "allowed_materials":{"type":"tconstruct:id","id":"tconstruct:iron"}"#, true),
+        (r#", "allowed_materials":{"type":"tconstruct:id","id":"tconstruct:copper"}"#, false),
+        (r#", "allowed_materials":{"type":"unknown:predicate"}"#, false)] {
+        let swap = format!(r#"{{"type":"tconstruct:basin_casting_part_swapping","tools":{{"item":"tconstruct:tool"}},"item_cost":2,"index":0{predicate}}}"#);
+        let recipes = BTreeMap::from([("swap".into(),swap.into_bytes()), ("normal".into(),normal.to_vec())]);
+        let c = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let allowed = |v: Option<&Value>, m: &str| material_predicate(v,m,&|_,_| false,&|_,_| None,&|_,_,_| None).unwrap_or(false);
+        let got = c.part_swap_casting(true,"tconstruct:tool","test:metal",&|_,_| true,&allowed,&|_| true);
+        assert_eq!(got.is_some(), expected, "{predicate}");
+        if let Some((_, recipe, material, _)) = got { assert_eq!((material.as_str(), recipe.fluid.amount), ("tconstruct:iron", 180)); }
+    }
+}
+
 }
