@@ -164,6 +164,7 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
         } else {
             if direction == Direction::EmptyItem { return false; }
             let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+            if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
             if !known_fluid(&fluid) || !next.take(&fluid, 90) { return false; }
             let Some(output) = can_set_fluid(input, Some(&fluid)) else { return false; }; output
         };
@@ -175,6 +176,7 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
     let mut next = tank.clone();
     let replacement = if input.item.as_ref() == "minecraft:glass_bottle" && direction != Direction::EmptyItem {
         let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+        if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
         let Some(bottle) = filled_bottle(&fluid) else { return false; };
         if !known_fluid(&fluid) || !known_item(bottle) || !next.take(&fluid, 250) { return false; }
         bottle.to_owned()
@@ -183,6 +185,7 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
         "minecraft:glass_bottle".to_owned()
     } else if input.item.as_ref() == "minecraft:bucket" && direction != Direction::EmptyItem {
         let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+        if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some()) { return false; }
         let Some(bucket) = filled_bucket(&fluid) else { return false; };
         if !known_fluid(&fluid) || !known_item(&bucket) || !next.take(&fluid, 1000) { return false; }
         bucket
@@ -204,7 +207,7 @@ pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
     let mut staged = SmelteryTank::new(tank.capacity);
     if let Some(id) = tank.fluid.as_deref() {
-        if !staged.insert(id, tank.amount) { return false; }
+        if !staged.insert_tagged(id, tank.tag.as_ref(), tank.amount) { return false; }
     }
     let mut staged_slots = slots.clone();
     if !transfer(&mut staged, &mut staged_slots, direction, known_item, known_fluid) { return false; }
@@ -212,6 +215,7 @@ pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::
     *slots = staged_slots;
     tank.amount = staged.total();
     tank.fluid = staged.fluids.first().map(|fluid| fluid.id.clone());
+    tank.tag = staged.fluids.first().and_then(|fluid| fluid.tag.clone());
     true
 }
 

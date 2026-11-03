@@ -368,6 +368,8 @@ The source `table_filling` recipe supports a plain empty bucket for registered b
 
 Copper Can has a source-shaped standalone copper-ingot recipe and stores 90 mB per item using custom data. Casting-table filling and supported controller container transfers are connected; tagged fluids, filled-can rendering and the broader Forge copper-ingot tag recipe remain incomplete. Runtime and LAN behavior await verification.
 
+The single- and multi-fluid tank NBT formats retain optional compound fluid tags and distinguish otherwise identical fluids by tag. Ordinary alloys can proceed alongside unrelated tagged entries while ambiguous ingredient matches fail closed; other untagged transfer paths reject tagged entries until their routing supports metadata; no potion container or potion casting is enabled by this storage step. Save, wire synchronization and behavior with older worlds remain unverified.
+
 The source `basin_filling` recipes for seared and scorched fuel and ingot tanks use the existing tank-item data representation. Filling consumes at most the recipe amount and available capacity, retains other item components, and rejects mixed fluids. A combined Linux build verified representative 250 mB and 90 mB fills, capacity and rejection cases, saved NBT and representative LAN guest operation; Windows and all timing/component combinations remain unverified. Other basin containers remain unsupported.
 
 The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.

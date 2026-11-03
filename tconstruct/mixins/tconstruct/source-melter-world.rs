@@ -123,10 +123,10 @@ pub(super) fn damaged_melting(world: &World, item: &str, damage: u32, maximum: u
     })?
 }
 
-pub(super) fn alloy(world: &World, fluids: &[(String, u32)], capacity: u32, temperature: u32)
+pub(super) fn alloy(world: &World, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32)
     -> Option<(String, Vec<(String, u32)>, String, u32)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.alloy(fluids, capacity, temperature, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+        catalog.alloy_except(fluids, tagged, capacity, temperature, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 

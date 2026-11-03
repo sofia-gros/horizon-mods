@@ -8,24 +8,32 @@ use horizon_world::nbt::{Compound, Tag};
 pub(super) const MELTER_CAPACITY: u32 = 24 * 90;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct Tank { pub fluid: Option<String>, pub amount: u32, pub capacity: u32 }
+pub(super) struct Tank { pub fluid: Option<String>, pub tag: Option<Tag>, pub amount: u32, pub capacity: u32 }
 impl Tank {
-    pub(super) fn new(capacity: u32) -> Self { Self { fluid: None, amount: 0, capacity } }
+    pub(super) fn new(capacity: u32) -> Self { Self { fluid: None, tag: None, amount: 0, capacity } }
     pub(super) fn insert(&mut self, fluid: &str, amount: u32) -> bool {
-        if amount == 0 || fluid.is_empty() || self.fluid.as_deref().is_some_and(|id| id != fluid)
+        self.insert_tagged(fluid, None, amount)
+    }
+    pub(super) fn insert_tagged(&mut self, fluid: &str, tag: Option<&Tag>, amount: u32) -> bool {
+        if tag.is_some_and(|tag| !matches!(tag, Tag::Compound(_))) || amount == 0 || fluid.is_empty()
+            || self.fluid.as_deref().is_some_and(|id| id != fluid || self.tag.as_ref() != tag)
             || amount > self.capacity.saturating_sub(self.amount) { return false; }
-        self.fluid = Some(fluid.to_owned()); self.amount += amount; true
+        self.fluid = Some(fluid.to_owned()); self.tag = tag.cloned(); self.amount += amount; true
     }
     pub(super) fn take(&mut self, amount: u32) -> Option<String> {
-        if amount == 0 || amount > self.amount { return None; }
+        self.take_tagged(None, amount)
+    }
+    pub(super) fn take_tagged(&mut self, tag: Option<&Tag>, amount: u32) -> Option<String> {
+        if self.tag.as_ref() != tag || amount == 0 || amount > self.amount { return None; }
         let fluid = self.fluid.clone()?;
         self.amount -= amount;
-        if self.amount == 0 { self.fluid = None; }
+        if self.amount == 0 { self.fluid = None; self.tag = None; }
         Some(fluid)
     }
     pub(super) fn to_nbt(&self) -> Tag {
         let mut value = Compound::new();
         if let Some(id) = &self.fluid { value.insert("fluid".into(), Tag::String(id.as_str().into())); }
+        if let Some(tag) = &self.tag { value.insert("fluid_tag".into(), tag.clone()); }
         value.insert("amount".into(), Tag::Int(self.amount as i32));
         Tag::Compound(value)
     }
@@ -33,8 +41,10 @@ impl Tank {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };
         if amount > capacity { return None; }
         let fluid = match tag.get("fluid") { Some(Tag::String(id)) => Some(id.to_string_lossy()), None => None, _ => return None };
+        let metadata = match tag.get("fluid_tag") { None => None, Some(value @ Tag::Compound(_)) => Some(value.clone()), _ => return None };
         if (amount == 0) != fluid.is_none() || fluid.as_ref().is_some_and(String::is_empty) { return None; }
-        Some(Self { fluid, amount, capacity })
+        if amount == 0 && metadata.is_some() { return None; }
+        Some(Self { fluid, tag: metadata, amount, capacity })
     }
 }
 
@@ -168,7 +178,7 @@ impl Faucet {
     fn begin_packet(&mut self, input: &mut Tank, output: &Tank) -> bool {
         if self.pending.amount != 0 { return false; }
         let Some(fluid) = input.fluid.as_deref() else { return false; };
-        if output.fluid.as_deref().is_some_and(|other| other != fluid) { return false; }
+        if output.fluid.as_deref().is_some_and(|other| other != fluid || output.tag != input.tag) { return false; }
         let amount = input.amount.min(90).min(output.capacity.saturating_sub(output.amount));
         if amount == 0 { return false; }
         let Some(fluid) = input.take(amount) else { return false; };
@@ -182,7 +192,7 @@ impl Faucet {
         let Some(output) = output else { self.pending = Tank::new(90); self.active = false; self.stop_after_packet = false; return; };
         if self.pending.amount > 0 {
             let Some(fluid) = self.pending.fluid.as_deref() else { self.active = false; return; };
-            if output.fluid.as_deref().is_some_and(|other| other != fluid) { return; }
+            if output.fluid.as_deref().is_some_and(|other| other != fluid || output.tag != self.pending.tag) { return; }
             let amount = self.pending.amount.min(10).min(output.capacity.saturating_sub(output.amount));
             if amount == 0 { return; }
             let Some(fluid) = self.pending.take(amount) else { return; };

@@ -7,8 +7,17 @@ use super::tconstruct_source_smeltery_state::Smeltery;
 
 type Pos = (i32, i32, i32);
 
-fn smeltery_fluids(tank: &super::tconstruct_source_smeltery_tank::SmelteryTank) -> Vec<(String, u32)> {
-    tank.fluids.iter().map(|fluid| (fluid.id.clone(), fluid.amount)).collect()
+fn alloy_snapshot(tank: &super::tconstruct_source_smeltery_tank::SmelteryTank) -> (Vec<(String, u32)>, Vec<String>, u32) {
+    let mut fluids = Vec::new();
+    let mut tagged = Vec::new();
+    let mut capacity = tank.capacity;
+    for fluid in &tank.fluids {
+        if fluid.tag.is_some() {
+            tagged.push(fluid.id.clone());
+            capacity = capacity.saturating_sub(fluid.amount);
+        } else { fluids.push((fluid.id.clone(), fluid.amount)); }
+    }
+    (fluids, tagged, capacity)
 }
 
 pub(super) fn kind(block: &str) -> Option<&'static str> {
@@ -126,11 +135,12 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
                 state.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
-            let can_alloy = !foundry && super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, fuel.temperature)
+            let (fluids, tagged, capacity) = alloy_snapshot(&state.tank);
+            let can_alloy = !foundry && super::tconstruct_source_melter_world::alloy(&game.world, &fluids, &tagged, capacity, fuel.temperature)
                 .is_some_and(|(_, inputs, output, amount)| {
                     let mut candidate = state.tank.clone();
-                    let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
-                    candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount })
+                    let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
+                    candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount })
                 });
             if !can_heat && !can_alloy { continue; }
             if tank.take(fuel.fluid.amount).is_none() { continue; }
@@ -145,8 +155,8 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                 if state.fuel > 0 || state.progress[index] == -1 {
                     if let Some(time) = recipe.time.checked_mul(10) {
                         if foundry {
-                            let primary = super::tconstruct_source_smeltery_tank::FluidAmount { id: fluid.clone(), amount: recipe.output.amount };
-                            let extras = byproducts.iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id: id.clone(), amount: *amount }).collect::<Vec<_>>();
+                            let primary = super::tconstruct_source_smeltery_tank::FluidAmount { id: fluid.clone(), tag: None, amount: recipe.output.amount };
+                            let extras = byproducts.iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id: id.clone(), tag: None, amount: *amount }).collect::<Vec<_>>();
                             state.heat_foundry_slot(index, recipe.temperature, time, &primary, &extras);
                         } else { state.heat_slot(index, recipe.temperature, time, fluid, recipe.output.amount); }
                     }
@@ -155,9 +165,10 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         }
     }
     if !foundry && state.phase == 2 && state.fuel > 0 {
-        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, state.temperature) {
-            let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
-            state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount });
+        let (fluids, tagged, capacity) = alloy_snapshot(&state.tank);
+        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &fluids, &tagged, capacity, state.temperature) {
+            let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
+            state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount });
         }
     }
     if state.phase == 3 && state.fuel > 0 {
@@ -527,13 +538,13 @@ fn smeltery_source(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery)> {
 
 fn selected_smeltery_fluid(state: &Smeltery) -> Option<Tank> {
     let fluid = state.tank.fluids.first()?;
-    Some(Tank { fluid: Some(fluid.id.clone()), amount: fluid.amount, capacity: state.tank.capacity.max(fluid.amount) })
+    Some(Tank { fluid: Some(fluid.id.clone()), tag: fluid.tag.clone(), amount: fluid.amount, capacity: state.tank.capacity.max(fluid.amount) })
 }
 
 fn apply_smeltery_take(state: &mut Smeltery, before: &Tank, after: &Tank) -> bool {
     let Some(amount) = before.amount.checked_sub(after.amount) else { return false; };
     if amount == 0 { return true; }
-    before.fluid.as_deref().is_some_and(|id| state.tank.take(id, amount))
+    before.fluid.as_deref().is_some_and(|id| state.tank.take_tagged(id, before.tag.as_ref(), amount))
 }
 
 fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) -> bool {
