@@ -63,7 +63,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
-        "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
@@ -393,11 +393,12 @@ pub fn apply_stats(
         let heavy = level("tconstruct:heavy").max(0) as f32;
         let vintage = level("tconstruct:vintage").max(0) as f32;
         let crystal = level("tconstruct:crystalbound").max(0) as f32;
+        let spiny = level("tconstruct:spiny").max(0) as f32;
         let entangled = if level("tconstruct:entangled") > 0 { 0.15 } else { 0.0 };
         let draw = ((stats.draw_speed + stats.draw_speed_add_multiplier * (0.03 * light + 0.05 * feather + entangled))
             * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
             * (1.0 - 0.1 * vintage)).clamp(0.0, 1024.0);
-        let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal))
+        let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal + 0.1 * spiny))
             * if netherite { 1.1 } else { 1.0 }).clamp(0.0, 1024.0);
         let blindshot = effective(tool, "tconstruct:blindshot", 10);
         let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy - blindshot) + 0.05 * feather)).clamp(0.1, 1.0);

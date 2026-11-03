@@ -104,3 +104,39 @@ fn airborne_trait_rebuild_and_removal_changes_firing_velocity() {
   assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-1.0).abs()<1e-6);
  }
 }
+
+
+#[test]
+fn spiny_velocity_and_removal_on_both_launchers() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":2.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut tool=ItemStack::new(id,1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:netherite",Tag::Int(1))]))])));
+  for (level,expected) in [(0,2.2_f32),(1,2.42),(2,2.64),(0,2.2)] {
+   let traits=BTreeMap::from([("tconstruct:spiny".to_string(),level)]);
+   tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,false,false).unwrap();
+   let v=projectile::projectile_stats(&tool).unwrap().0;
+   assert!((v-expected).abs()<0.0001,"{id} level {level}: {v} != {expected}");
+  }
+ }
+}
+
+
+#[test]
+fn blindshot_accepts_supported_launchers_and_rejects_other_items() {
+ use horizon_items::items::ItemStack; use std::collections::{BTreeMap,HashMap,HashSet};
+ let recipe=br#"{"type":"tconstruct:incremental_modifier","amount_per_item":1,"needed_per_level":10,"input":{"item":"minecraft:dirt"},"result":"tconstruct:blindshot","tools":{"tag":"tconstruct:modifiable/ranged"}}"#.to_vec();
+ let recipes=BTreeMap::from([("blindshot".to_string(),recipe)]);
+ let tags=HashMap::from([("tconstruct:modifiable/ranged".to_string(),HashSet::from(["tconstruct:longbow".to_string(),"tconstruct:crossbow".to_string(),"tconstruct:slime_sling".to_string()]))]);
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let tool=ItemStack::new(id,1);
+  let input=[Some(ItemStack::new("minecraft:dirt",1))];
+  let plan=tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&input,0).unwrap();
+  assert_eq!(plan.id,"tconstruct:blindshot"); assert_eq!(plan.amount,1);
+  assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(ItemStack::new("minecraft:stone",1))],0).is_none());
+ }
+ let sling=ItemStack::new("tconstruct:slime_sling",1);
+ assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&sling,&[Some(ItemStack::new("minecraft:dirt",1))],0).is_none());
+}
