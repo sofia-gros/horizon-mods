@@ -7,7 +7,7 @@
   ],
   "key": {
     "p": "tconstruct:pattern",
-    "w": "#minecraft:planks"
+    "w": "#tconstruct:planklike"
   },
   "result": {
     "id": "tconstruct:part_builder"
