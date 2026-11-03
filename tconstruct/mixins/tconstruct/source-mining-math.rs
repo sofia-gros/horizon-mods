@@ -8,8 +8,7 @@ pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32
 
 pub(super) fn base_speed_unclamped(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     (base + if entangled { 6.0 * add_scale } else { 0.0 })
-        * (1.0 + 0.08 * lightweight.max(0) as f32)
-        * (1.0 + 0.15 * heavy.max(0) as f32)
+        * (1.0 + 0.08 * lightweight.max(0) as f32 + 0.15 * heavy.max(0) as f32)
         * (1.0 - 0.1 * vintage.max(0) as f32)
 }
 
@@ -79,7 +78,7 @@ mod tests {
     }
     #[test]
     fn source_static_operations_and_clamp() {
-        assert!((base_speed(3.5, 1.0, 1, 1, 1, false) - 3.9123).abs() < 0.0001);
+        assert!((base_speed(3.5, 1.0, 1, 1, 1, false) - 3.8745).abs() < 0.0001);
         assert!((base_speed(3.5, 1.2, 0, 0, 0, true) - 10.7).abs() < 0.0001);
         assert_eq!(base_speed(1.0, 1.0, 0, 0, 20, false), 0.1);
     }

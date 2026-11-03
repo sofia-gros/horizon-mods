@@ -93,16 +93,14 @@ pub fn apply_stat_traits(
 ) -> Option<()> {
     let preserved = levels.get("tconstruct:preserved").copied().unwrap_or(0);
     let ductile = levels.get("tconstruct:ductile").copied().unwrap_or(0);
-    let boost = durability_boost(preserved, ductile);
-    if boost == 0.0 {
+    let overlord = levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0);
+    let penalty = if overlord >= 7 { -0.99999 } else { -0.15 * overlord as f32 };
+    let boost = durability_boost(preserved, ductile) + penalty;
+    if boost == 0.0 && ductile <= 0 {
         return Some(());
     }
-    let durability = boosted_durability(
-        stats.durability,
-        stats.durability_boost_unit,
-        preserved,
-        ductile,
-    );
+    let durability = (stats.durability_base_raw * (1.0 + ordered_durability_percent(stack, stats, levels, true)) * stats.durability_multiplier_unit) as i32;
+    let durability = if overlord > 0 { durability.max(1) } else { durability };
     if durability < 1 {
         return None;
     }
@@ -139,6 +137,21 @@ pub fn apply_stat_traits(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ductile_effects_remain_when_overlord_cancels_durability_boost() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100,"tconstruct:attack_damage":10,"tconstruct:armor_toughness":2}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_max_damage", Tag::Int(100))])));
+        let levels = [("tconstruct:ductile".to_owned(), 3), ("tconstruct:overlord".to_owned(), 2)].into_iter().collect();
+        apply_stat_traits(&mut stack, &stats, &levels).unwrap();
+        let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(100))));
+        assert!(matches!(custom.get("tic_attack_damage"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 11.5).abs() < 0.001));
+        assert!(matches!(custom.get("tic_armor_toughness"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 5.0).abs() < 0.001));
+    }
     #[test]
     fn tanned_primary_and_secondary_cause_ranges_precede_shield() {
         assert_eq!(tanned_wear(7, 0, None), 7);
@@ -263,5 +276,124 @@ mod tests {
         assert!((wear_damage_bonus(3.0, 100, 1.0, 1, 0) - 0.15).abs() < 0.00001);
         assert!((wear_damage_bonus(3.0, 100, 1.0, 0, 1) + 0.15).abs() < 0.00001);
         assert!((wear_damage_bonus(3.0, 100, 1.0, 1, 1) + 0.0075).abs() < 0.00001);
+    }
+}
+
+// Existing upgrade compounds are key-sorted. Preserve new insertion history in
+// a separate list; old items have no recoverable history and use sorted keys.
+pub(super) fn reconcile_upgrade_order(custom: &mut horizon_world::nbt::Tag, added: Option<&str>) -> Option<()> {
+    use horizon_world::nbt::Tag;
+    let Tag::Compound(fields) = custom else { return None; };
+    let Tag::Compound(upgrades) = fields.get(&"tic_upgrades".into())? else { return None; };
+    let mut ids: Vec<String> = match fields.get(&"tic_upgrade_order".into()) {
+        Some(Tag::List(list)) => list.iter().filter_map(|v| if let Tag::String(s) = v { Some(s.to_string_lossy().to_string()) } else { None }).collect(),
+        _ => Vec::new(),
+    };
+    ids.retain(|id| upgrades.contains_key(&id.as_str().into()));
+    let mut seen = std::collections::BTreeSet::new();
+    ids.retain(|id| seen.insert(id.clone()));
+    for id in upgrades.keys().map(|id| id.to_string_lossy().to_string()) {
+        if Some(id.as_str()) != added && !ids.contains(&id) { ids.push(id); }
+    }
+    if let Some(id) = added {
+        if upgrades.contains_key(&id.into()) && !ids.iter().any(|v| v == id) { ids.push(id.to_owned()); }
+    }
+    fields.insert("tic_upgrade_order".into(), Tag::List(ids.iter().map(|id| Tag::String(id.as_str().into())).collect()));
+    Some(())
+}
+
+pub(super) fn ordered_modifier_ids(stack: &horizon_items::items::ItemStack,
+    levels: &std::collections::BTreeMap<String,i32>) -> Vec<String> {
+    use horizon_world::nbt::Tag;
+    let custom = stack.data().and_then(|d| d.other("minecraft:custom_data"));
+    let upgrades = custom.and_then(|d| d.get("tic_upgrades"));
+    let list = |key| -> Vec<String> { match custom.and_then(|c| c.get(key)) {
+        Some(Tag::List(values)) => values.iter().filter_map(|v| if let Tag::String(s)=v {Some(s.to_string_lossy().to_string())} else {None}).collect(),
+        _ => Vec::new(),
+    }};
+    let mut ids = list("tic_upgrade_order");
+    if let Some(Tag::Compound(entries)) = upgrades {
+        for id in entries.keys().map(|v|v.to_string_lossy().to_string()) { if !ids.contains(&id) { ids.push(id); } }
+    }
+    for id in list("tic_trait_order") { if !ids.contains(&id) { ids.push(id); } }
+    for id in levels.keys() { if !ids.contains(id) { ids.push(id.clone()); } }
+    let mut seen = std::collections::BTreeSet::new();
+    ids.retain(|id| seen.insert(id.clone()));
+    ids
+}
+
+pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack,
+    stats: &super::tconstruct_source_station_stats::BaseStats,
+    levels: &std::collections::BTreeMap<String,i32>, include_overlord: bool) -> f32 {
+    use horizon_world::nbt::Tag;
+    let upgrades = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
+    let mut percent = stats.durability_percent_raw;
+    for id in ordered_modifier_ids(stack, levels) {
+        let trait_level = levels.get(&id).copied().unwrap_or(0).max(0);
+        let upgrade = match upgrades.and_then(|u|u.get(id.as_str())) {Some(Tag::Int(n)) => (*n).max(0), _=>0};
+        let delta = match id.as_str() {
+            "tconstruct:preserved" => 0.15 * (trait_level + upgrade) as f32,
+            "tconstruct:ductile" => 0.1 * (trait_level + upgrade) as f32,
+            "tconstruct:emerald" if upgrade > 0 || trait_level > 0 => 0.5,
+            "tconstruct:netherite" if upgrade > 0 || trait_level > 0 => 0.2,
+            _ => 0.0,
+        };
+        percent += delta;
+    }
+    if include_overlord {
+        let level = levels.get("tconstruct:overlord").copied().unwrap_or(0).max(0);
+        percent += if level >= 7 { -0.99999 } else { -0.15 * level as f32 };
+    }
+    percent
+}
+
+pub(super) fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
+    use horizon_world::nbt::Tag;
+    let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
+    let Tag::Compound(fields) = &mut custom else { return None; };
+    fields.insert("tic_trait_order".into(), Tag::List(order.iter().map(|id| Tag::String(id.as_str().into())).collect()));
+    stack.data_mut().set_other("minecraft:custom_data", Some(custom));
+    Some(())
+}
+
+#[cfg(test)]
+mod source_order_tests {
+    use super::*;
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn trait_addition_order_preserves_float_boundary() {
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        let levels = BTreeMap::from([("tconstruct:ductile".into(),1), ("tconstruct:preserved".into(),4)]);
+        let make = |first: &str, second: &str| {
+            let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:netherite",Tag::Int(1)),("tconstruct:emerald",Tag::Int(1))])),
+                ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:netherite".into()), Tag::String("tconstruct:emerald".into())])),
+                ("tic_trait_order", Tag::List(vec![Tag::String(first.into()), Tag::String(second.into())])),
+            ]))); stack
+        };
+        let first = ordered_durability_percent(&make("tconstruct:ductile", "tconstruct:preserved"), &stats, &levels, false);
+        let second = ordered_durability_percent(&make("tconstruct:preserved", "tconstruct:ductile"), &stats, &levels, false);
+        assert_eq!(first.to_bits(), (((0.0f32 + 0.2) + 0.5 + 0.1) + (0.15f32 * 4.0)).to_bits());
+        assert_eq!(second.to_bits(), (((0.0f32 + 0.2) + 0.5 + (0.15f32 * 4.0)) + 0.1).to_bits());
+        assert_ne!(first.to_bits(), second.to_bits());
+    }
+
+    #[test]
+    fn new_upgrade_follows_existing_and_removal_discards_its_order() {
+        let mut custom = Tag::compound([("tic_upgrades", Tag::compound([("z",Tag::Int(1)),("a",Tag::Int(1))]))]);
+        reconcile_upgrade_order(&mut custom, Some("a")).unwrap();
+        let Some(Tag::List(order)) = custom.get("tic_upgrade_order") else { panic!() };
+        assert_eq!(order, &vec![Tag::String("z".into()), Tag::String("a".into())]);
+        let Tag::Compound(fields) = &mut custom else { panic!() };
+        let Some(Tag::Compound(upgrades)) = fields.get_mut(&"tic_upgrades".into()) else { panic!() };
+        upgrades.remove(&"z".into());
+        reconcile_upgrade_order(&mut custom, None).unwrap();
+        let Some(Tag::List(order)) = custom.get("tic_upgrade_order") else { panic!() };
+        assert_eq!(order, &vec![Tag::String("a".into())]);
     }
 }

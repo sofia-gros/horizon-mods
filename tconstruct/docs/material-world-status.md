@@ -44,3 +44,56 @@ F02 material conditions and statistics, F05 equipment actions, F06 armor
 behavior, F12 modifier modules, and F14/F15 generation and loot still contain
 additional source entries requiring individual audit. Do not mark a whole area
 complete from the selected rows above or from registration alone.
+
+## Overlord durability and Overslime candidate
+
+The Queen's Slime source trait includes Overlord and Overslime. The Overlord
+candidate applies the source durability `multiply_base` reduction (15% per
+level through six, then 99.999%) and copies 10% of durability per level into Overslime before its own
+durability reduction, using the source float stat and global multiplier order. These
+changes are not yet applied, type-checked or verified in game. Acceptance must
+cover levels 0, 1, 6 and 7, material multipliers, Diamond, Emerald, Netherite,
+Overcast, replacement/removal, and shield-capacity clamping without duplicated
+bonuses. Compare against the original stat builder before claiming parity.
+
+The Overlord follow-up keeps Ductile attack and toughness updates when Ductile
+and Overlord durability changes cancel. The added combined-trait regression
+still needs the dedicated test run.
+
+The durability follow-up also applies the source base-stat order without
+Overlord: Diamond adds to the base, Emerald and Netherite add 0.5 and 0.2 to
+its percentage, and the global multiplier applies last. For an unmodified
+100-durability baseline with Emerald and Netherite, the source reference is
+170, rather than the previous multiplicative result of 180. Validation must
+include both source float rounding and material replacement.
+
+## Durability modifier order candidate
+
+The candidate records new upgrade insertion order separately from the existing
+`tic_upgrades` compound, retains it on part replacement, and removes an entry
+when its upgrade is removed. It rebuilds material-trait order from the selected
+parts. Durability calculation visits upgrades before material traits at the
+same source priority and applies Overlord's lower-priority reduction afterward.
+Creative generation uses the same recorded trait order. For older stacks without
+an order list, existing upgrade keys are read in deterministic key order; their
+original historical order cannot be recovered. The source also has tool traits
+and modifier-provided traits, whose complete ordering coverage is not claimed.
+
+Reference case: with Netherite then Emerald upgrades and Ductile 1 / Preserved 4
+material traits, adding Ductile before Preserved produces the float32 percentage
+`1.4000000953674316`; the reverse order produces `1.399999976158142`. The added
+focused checks, Station/Creative/part-swap and extraction paths, legacy saves,
+priority coverage, official apply/type and local/LAN behavior are unverified.
+
+## Non-durability base multiplier candidate
+
+The supported melee and mining stat rebuild uses the saved modifier order and
+source add / multiply-base / multiply-all phases. Ductile and Solid add to the
+same attack-damage percentage; Lightweight and Swiftstrike add to the same
+attack-speed percentage; Lightweight, Heavy and Netherite add to the same
+mining-speed percentage. Vintage remains a multiply-all operation. The source
+reference for base attack 10 with Ductile 1 and Solid 1 is 12; base attack
+speed 1 with Lightweight 1 and Swiftstrike 1 is 1.13; mining speed 4 with
+Lightweight 1 and Heavy 1 is 4.92. These candidate paths and focused tests are
+not yet applied, type-checked or verified in game. Other modifier modules and
+unsupported stat operations are not claimed complete.

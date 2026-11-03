@@ -65,9 +65,11 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
     let mut order = Vec::new();
+    super::tconstruct_source_material_effects::store_trait_order(&mut output, &order)?;
     if let Some(traits) = super::tconstruct_source_material_traits::levels(world, &output) {
         levels = traits.levels;
         order = traits.order;
+        super::tconstruct_source_material_effects::store_trait_order(&mut output, &order)?;
         super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &levels)?;
     }
     if !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &levels) { return None; }
@@ -341,8 +343,10 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let Tag::Compound(ref mut entries) = upgrades else { return None; };
+    let is_new = !entries.contains_key(&plan.id.as_str().into());
     entries.insert(plan.id.as_str().into(), Tag::Int(plan.amount));
     fields.insert("tic_upgrades".into(), upgrades);
+    super::tconstruct_source_material_effects::reconcile_upgrade_order(&mut custom, is_new.then_some(plan.id.as_str()))?;
     upgraded.data_mut().set_other("minecraft:custom_data", Some(custom));
     let output = assemble(world, definition, &tool.item, &identities, Some(&upgraded), reason)?;
     Some(StationOperation { output, consumed: plan.consumed, leftovers: plan.leftover.into_iter().collect() })
@@ -376,10 +380,10 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     let mut upgrades = custom.get("tic_upgrades").cloned().unwrap_or_else(|| Tag::compound(Vec::<(&str,Tag)>::new()));
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let Tag::Compound(ref mut entries) = upgrades else { return None; };
-    if traits.get("tconstruct:overslime").copied().unwrap_or(0) <= 0 && !matches!(entries.get(&"tconstruct:overslime".into()), Some(Tag::Int(level)) if *level > 0) {
-        entries.insert("tconstruct:overslime".into(), Tag::Int(1));
-    }
+    let add_overslime = traits.get("tconstruct:overslime").copied().unwrap_or(0) <= 0 && !matches!(entries.get(&"tconstruct:overslime".into()), Some(Tag::Int(level)) if *level > 0);
+    if add_overslime { entries.insert("tconstruct:overslime".into(), Tag::Int(1)); }
     fields.insert("tic_upgrades".into(),upgrades);
+    super::tconstruct_source_material_effects::reconcile_upgrade_order(&mut custom, add_overslime.then_some("tconstruct:overslime"))?;
     upgraded.data_mut().set_other("minecraft:custom_data",Some(custom));
     let mut output = assemble(world,definition,&tool.item,&identities,Some(&upgraded),reason)?;
     let cap = super::tconstruct_source_overslime::amount(&output,"tic_overslime_capacity") as u32;
@@ -417,6 +421,7 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     let Tag::Compound(upgrades) = fields.get_mut(&"tic_upgrades".into())? else { return None; };
     if plan.upgrade.amount == 0 { upgrades.remove(&id.into()); }
     else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
+    super::tconstruct_source_material_effects::reconcile_upgrade_order(&mut custom, None)?;
     modified.data_mut().set_other("minecraft:custom_data", Some(custom));
     let output = assemble(world, definition, &tool.item, &identities, Some(&modified), &mut None)?;
     let mut leftovers = plan.upgrade.leftover.into_iter().collect::<Vec<_>>();
