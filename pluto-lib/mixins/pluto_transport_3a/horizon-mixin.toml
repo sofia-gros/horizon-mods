@@ -3,7 +3,7 @@ id = "pluto_transport_3a"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "fd6cfda6bdef59a53aee830009f78c14832b0308"
+horizon_revision = "9a6f7dd5a193d709f389adeb1f51858465b8f747"
 [[injection]]
 id = "max-damage"
 target = "horizon_client_lib::lan::guest::stack_to_network"
