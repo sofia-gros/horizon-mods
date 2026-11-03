@@ -345,7 +345,7 @@ Casting-table `table_duplication` now matches the source cast and fluid tags, re
 
 The source `table_filling` recipe supports a plain empty bucket for registered bucket fluids through the existing casting transaction. It consumes the empty bucket and 1,000 mB and cools for five ticks; this path awaits game verification. As in the source Forge bucket wrapper, filling replaces the input with a new bucket rather than retaining input components. Other fluid-capability containers remain unsupported.
 
-The source `basin_filling` recipes for seared and scorched fuel and ingot tanks now use the existing tank-item data representation. Filling consumes at most the recipe amount and available capacity, retains other item components, and rejects mixed fluids. This path awaits game verification; other basin containers remain unsupported.
+The source `basin_filling` recipes for seared and scorched fuel and ingot tanks use the existing tank-item data representation. Filling consumes at most the recipe amount and available capacity, retains other item components, and rejects mixed fluids. A combined Linux build verified representative 250 mB and 90 mB fills, capacity and rejection cases, saved NBT and representative LAN guest operation; Windows and all timing/component combinations remain unverified. Other basin containers remain unsupported.
 
 Seared and Scorched Lanterns now have source-shaped standalone recipes, item/block declarations and 50 mB saved tank data. Their source table and basin filling recipes use 10 mB and up to 50 mB respectively. The original dynamic liquid surface, fluid tint and fluid-dependent light are not yet implemented; the default light is zero. All paths await runtime verification.
 
