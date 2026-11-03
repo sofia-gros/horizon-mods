@@ -1,0 +1,20 @@
+name: Client config Windows
+on:
+  pull_request:
+    paths:
+      - 'tconstruct/mixins/tconstruct/source-config-parser/**'
+      - '.github/workflows/client-config-windows.yml'
+permissions:
+  contents: read
+jobs:
+  client-config:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Install pinned Rust
+        run: rustup toolchain install 1.95.0 --profile minimal
+      - name: Test client config parser
+        run: cargo +1.95.0 test --manifest-path tconstruct/mixins/tconstruct/source-config-parser/Cargo.toml
