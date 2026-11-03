@@ -146,13 +146,13 @@ pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &s
 /// potion metadata is rejected before reserving the fluid.
 pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag, allow_color: bool)
     -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
-    let (potion, color) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
+    let (potion, color, effects) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
     let input = input?;
     let (id, recipe, output) = with_catalog(world, |catalog, registries, config| {
         catalog.potion_casting(basin, &input.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })??;
     if !matches!(output.as_str(), "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion" | "minecraft:tipped_arrow") { return None; }
-    Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color)))
+    Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color, effects)))
 }
 
 /// Resolve the completed stack before reserving fluid. Both normal item
