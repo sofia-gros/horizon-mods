@@ -1,5 +1,7 @@
 # Workstation and smeltery integration ledger
 
+> Historical snapshot from 2026-11-02: PR status, integration candidates and target pins below may have changed. Consult the current [functional plan](v0.5-functional-plan.md), compatibility manifest and linked PRs for current status.
+
 This is a development handoff, not a claim that any full feature is complete. Drafts below may be stacked and their fixed heads must be integrated and tested before their behavior is treated as released. The formal game target for the next gate is Horizon `02c8607ee8ebd216f2f535c1eb7b62b572830df2` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Local helper results reported on another host do not substitute for that gate.
 
 | Task | Implemented or submitted subset | Remaining work and external gate |
@@ -10,7 +12,7 @@ This is a development handoff, not a claim that any full feature is complete. Dr
 | F08 | Smeltery/Foundry fuel and alloy paths; #114 handles catalysts; #169 permits unrelated tagged fluid; #170 reconciles those changes. #184 stages Melter fuel and remainder handling. | Verify fuel, byproducts, catalyst, capacity, invalid structures and save/reload in game. #170 depends on #169 and its stack; #184 is independently based on main. `codex/f08-f10-machine-integrated` head `c8a48ade64bb6f54b3613b7290386c3134bf6589` combines #184 with #176 for review; it is not a tested build. |
 | F09 | Table/basin molding, duplication and material casting drafts; #149 and #162 add restricted part swaps. #190 permits the supported level-one diamond and emerald upgrade combinations when traits stay unchanged. | Other modifier-bearing swaps, trait changes, damaged ordinary casts, other source forms and world transactions remain open. #190 is stacked on #162 and requires game and integration validation. |
 | F10 | Tagged tank, can, faucet, basic potion and direct container drafts #144/#146/#147/#148/#151/#160; #171/#175/#176 add the supported local custom-color path. | Custom effects and other tagged forms, full container rendering and game/LAN/save behavior remain open. Target host LAN item serialization omits custom color, so affected colored operations are gated while LAN is open; opening LAN later can still expose the host-wide limitation. |
-| F11 | Scorched Faucet/Table drafts #122/#125; #182 stages Chute transfers through the Pluto inventory planner. | Channel, Platform, Copper Gauge, Seared Fluid Cannon and Seared Casting Tank are not implemented or registered. #182 requires its matching PlutoLib bundle, official selector application, build and item-conservation/game/LAN checks. See `f11-state-boundaries.md`, #172 and the device notes below; none are completed support. |
+| F11 | Scorched Faucet/Table drafts #122/#125; #182 stages Chute transfers through the Pluto inventory planner. | Channel and Platform are not implemented. #182 requires its matching PlutoLib bundle, official selector application, build and item-conservation/game/LAN checks. See `f11-state-boundaries.md` and #172 for Platform state candidates, not completed support. |
 | F13 | #88 prevents unsafe recipe-book placement; #113 supplies staged placement. `codex/f13-candidate-reconciled` head `47c1eeef01b75c8950976c92c81b78f6bcb889cd` reconciles its base while retaining the previously tested candidate tree. | Review/merge and tests against the exact final integration remain external. Do not change the fixed #88/#113 heads merely to resolve the candidate. |
 | F18 | #137 source conditional recipe resolution; #143/#154 use native mod information advertised by the host and refresh the snapshot when that information changes. | The host's content-only announcements do not prove successful loading, and unadvertised native IDs are not proof of absence. Those conditions remain unknown; validate runtime and condition order against the formal host. |
 
@@ -25,6 +27,8 @@ At the formal Horizon `02c8607ee8ebd216f2f535c1eb7b62b572830df2` target, `crates
 When that integration exists, the test owner should cover a normal mob, a fire-immune mob, fire resistance, blacklist and invulnerability, an unmatched living entity, recipe-specific damage/fluid, an unsuccessful hit, a nearly full tank, and save/LAN behavior. In each case verify health, fluid quantity, and fuel against upstream, as well as unchanged item-entity intake.
 
 ## F11 guide-referenced devices
+
+> This section records the 2026-11-02 source audit. Later registrations and candidate implementations must be checked against current main and their own verification records.
 
 The guide-device handoff identifies three missing block/item registrations, not just missing icons. Do not ship an icon-only registration as a completed machine.
 
