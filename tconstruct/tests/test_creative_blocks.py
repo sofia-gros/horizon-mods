@@ -23,7 +23,8 @@ class CreativeBlocksTests(unittest.TestCase):
         tabs = json.loads((ROOT / 'content/creative-tabs.json').read_text())
         root = ROOT / 'content/data/tconstruct/horizon/block'
         group = next(t for t in add_block_items(tabs, root) if t['id'] == 'tconstruct:blocks')
-        self.assertEqual(len(group['items']), sum(json.loads(p.read_text()).get('item', True) for p in root.glob('*.json')))
+        self.assertEqual(len(group['items']), 5 + sum(json.loads(p.read_text()).get('item', True) for p in root.glob('*.json')))
+        self.assertIn('{count:1,id:"tconstruct:sky_slime_grass_seeds"}', group['items'])
         self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', group['items'])
 
 if __name__ == '__main__':
