@@ -53,3 +53,14 @@ The v0.5.0 packages target the Horizon and Mixins revisions in [compatibility.js
 This port is under active development. See the [progress guide](docs/roadmap.md) for implemented features, known gaps, and verification coverage. The [slime island draft](docs/slime-islands.md) records its unfinished generation and material paths.
 
 For building and testing, see the [development guide](docs/development.md). The port reuses original TConstruct, Mantle and Forge assets under their respective licenses: [TConstruct](third_party/tconstruct/LICENSE), [Mantle](third_party/mantle/LICENSE), and [Forge](third_party/forge/LICENSE).
+
+### Advanced modifier IDs
+
+The client reads `config/tconstruct-client.toml` from the game directory. For modifier upgrade lines currently supported by the port, F3+H shows the modifier ID next to its name by default. Set the following option to `false` to hide those IDs while retaining the rest of the advanced tooltip:
+
+```toml
+[client]
+modifiersIDsInAdvancedTooltips = false
+```
+
+Restart the client after changing this file. Missing settings use the source default (`true`); an unreadable, invalid, symbolic-link, reparse-point, non-regular, or larger than 1 MiB config file hides the IDs. Symbolic links and reparse points in parent directories are not blocked. On Windows the file is opened synchronously, so a slow or unavailable filesystem can delay the first advanced tooltip. Windows handling has not yet been tested in game. This setting currently covers the upgrade lines already shown by the port, not material-trait or tool-part modifier lines. It is a client setting and does not depend on the server's config.
