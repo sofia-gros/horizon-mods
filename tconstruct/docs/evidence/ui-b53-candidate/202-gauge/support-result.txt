@@ -1,0 +1,1 @@
+On the same b53/ddd combined fixture, after filling and draining a command-set Seared Fuel Tank, the north-facing Copper Gauge occupied (0,71,2). Setting its adjacent tank at (0,71,3) to air removed the Gauge; the control API returned minecraft:air at (0,71,2). The image is the actual local client. This does not verify player placement, all directions, item drop, save or LAN.
