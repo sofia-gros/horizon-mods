@@ -3420,6 +3420,17 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+# Distinguish delayed LAN replies even when the same guide is reopened.
+[[state]]
+id = "materials-book-request-sequence"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "u64"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[module]]
 id = "materials-book-layout"
 file = "crates/horizon-client/src/game/books.rs"

@@ -324,9 +324,14 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
     super::tconstruct_materials_book_recipe::resolve(&recipe, tags, grid_size)
 }
 
-pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) -> Option<Vec<Text>> {
-    let root = if puny { "assets/tconstruct/book/puny_smelting/" } else { "assets/tconstruct/book/materials_and_you/" };
-    let book_title = if puny { "Puny Smelting" } else { "Materials & You" };
+pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) -> Option<Vec<Text>> {
+    let (root, book_title) = match book {
+        "tconstruct:puny_smelting" => ("assets/tconstruct/book/puny_smelting/", "Puny Smelting"),
+        "tconstruct:mighty_smelting" => ("assets/tconstruct/book/mighty_smelting/", "Mighty Smelting"),
+        "tconstruct:materials_and_you" => ("assets/tconstruct/book/materials_and_you/", "Materials & You"),
+        _ => return None,
+    };
+    let puny = book == "tconstruct:puny_smelting";
     let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
     let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
@@ -335,6 +340,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
+        // Only the source introduction is implemented for Mighty Smelting.
+        if book == "tconstruct:mighty_smelting" && key != "intro" { continue; }
         // Modifier chapters currently expose static overview pages only;
         // dynamic modifier-tag pages and recipe layouts need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
@@ -670,17 +677,21 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
 }
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
-    let puny = &*stack.item == "tconstruct:puny_smelting";
-    if !puny && &*stack.item != "tconstruct:materials_and_you" { return false; }
+    let book = &*stack.item;
+    if !matches!(book, "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:materials_and_you") { return false; }
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.clone();
-        let Some(pages) = source_pages(game, &path, puny) else { return false; };
+        let Some(pages) = source_pages(game, &path, book) else { return false; };
+        let sequence = game.world.chunks.__horizon_mixins_tconstruct_materials_book_request_sequence().wrapping_add(1);
+        *game.world.chunks.__horizon_mixins_tconstruct_materials_book_request_sequence_mut() = sequence;
         *game.world.chunks.__horizon_mixins_tconstruct_materials_book_history_mut() = None;
         game.open_book(BookScreen::View { pages, page: usize::MAX, lectern: None });
         if remote {
             let hand = u8::from(game.hand == Hand::Off);
+            let mut data = vec![hand];
+            data.extend_from_slice(&sequence.to_be_bytes());
             game.send(S::CustomPayload(horizon_protocol::packets::configuration::CustomPayload {
-                channel: "tconstruct:materials_book".into(), data: vec![hand],
+                channel: "tconstruct:materials_book".into(), data,
             }));
         }
     }
