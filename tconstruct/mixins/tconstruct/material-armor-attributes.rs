@@ -36,6 +36,15 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         if armor && featherweight > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:featherweight_movement/{slot}"), 0.05 * f64::from(featherweight), "add_multiplied_base"));
         }
+        let solid = modifier_level("tconstruct:solid");
+        if solid > 0 {
+            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:solid_movement/{slot}"), -0.1 * f64::from(solid), "add_multiplied_base"));
+            values.push(("minecraft:gravity".to_owned(), format!("tconstruct:solid_gravity/{slot}"), 0.05 * f64::from(solid), "add_multiplied_total"));
+        }
+        let entwined = modifier_level("tconstruct:entwined");
+        if entwined > 0 {
+            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:entwined_movement/{slot}"), 0.1 * f64::from(entwined), "add_multiplied_total"));
+        }
     }
     let Some(player) = game.player.as_mut() else { return; };
     for (attribute, id, amount, op) in values {
