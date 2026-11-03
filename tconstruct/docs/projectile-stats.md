@@ -112,3 +112,24 @@ health 20 and 6; guest shots followed guest health rather than host health. A
 supplied Crossbow material swap removed the trait and persisted after reload.
 Pewter's natural acquisition, all levels and Windows remain unverified; melee
 is separate work. See [the test evidence](https://github.com/sofia-gros/horizon-mods/pull/140#issuecomment-6585341785).
+
+## Raging melee integration pending
+
+The same material's Raging melee module adds up to `2.5 * level *
+attackDamageMultiplier` based on the attacker's current health, using the
+same health factor as its projectile effect. The added damage precedes the
+Jagged and Stonebound percentage traits, receives attack-cooldown scaling, and
+is not itself multiplied by the critical bonus. The source module requires a
+living target.
+
+The shared Mixins manifest passes the target method’s `living: bool` to the
+helper. The combined plan, build and runtime ordering still require verification
+before this behavior is considered complete. The acting-player health path is
+used for local and guest turns; melee gameplay and LAN remain unverified. Pewter remains a compatibility
+material; the source alloy requires Tin or Lead, neither supplied by the base
+TConstruct content.
+
+Test both living and nonliving targets, health 20/11/6/1, broken tools,
+multiple levels and non-unit tool multipliers, partial/full cooldown, critical
+and secondary hits, Jagged/Stonebound combinations, material replacement and
+LAN. Unit, current-target build and gameplay verification remain pending.

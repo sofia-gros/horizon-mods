@@ -2734,7 +2734,7 @@ id = "source-melee-damage-return"
 target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "source-melee-damage-return.rs"
-bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "living", ty = "bool", value = "living" }]
 
 [[injection]]
 id = "source-melee-sweep-position"
