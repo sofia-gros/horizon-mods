@@ -497,6 +497,19 @@ mod tests {
         assert!(catalog.duplication(true, "minecraft:coast_armor_trim_smithing_template", "tconstruct:molten_diamond", &|_| true).is_none());
     }
     #[test]
+    fn all_catalyst_alloy_requires_capacity_without_consuming_input() {
+        let recipe = br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100,"catalyst":true}],"result":{"fluid":"test:result","amount":100},"temperature":700}"#.to_vec();
+        let recipes = std::collections::BTreeMap::from([("catalyst".into(), recipe)]);
+        let tags = HashMap::new(); let items = HashSet::new();
+        let fluids = HashSet::from(["minecraft:water".into(), "minecraft:lava".into(), "test:result".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let available = [("minecraft:water".into(), 250), ("minecraft:lava".into(), 100)];
+        assert!(catalog.alloy(&available, 449, 700, &|_| true).is_none());
+        let (_, consumed, _, amount) = catalog.alloy(&available, 450, 700, &|_| true).unwrap();
+        assert!(consumed.is_empty()); assert_eq!(amount, 100);
+        assert!(catalog.alloy(&[("minecraft:water".into(), 249), ("minecraft:lava".into(), 100)], 450, 700, &|_| true).is_none());
+    }
+    #[test]
     fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
         let recipes = [("obsidian".into(), br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100}],"result":{"fluid":"tconstruct:molten_obsidian","amount":100},"temperature":1000}"#.to_vec())].into_iter().collect();
         let item_tags = HashMap::new(); let items = HashSet::new(); let tags = HashMap::new();
