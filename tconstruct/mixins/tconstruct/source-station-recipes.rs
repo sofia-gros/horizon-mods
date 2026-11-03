@@ -13,6 +13,23 @@ pub(super) fn repair_ingredient_matches(value: &Value, item: &str,
         return Some(matches);
     }
     let object = value.as_object()?;
+    if let Some(kind) = object.get("type") {
+        return match kind.as_str()? {
+            "forge:difference" if object.len() == 3 => {
+                let base = repair_ingredient_matches(object.get("base")?, item, tags)?;
+                let removed = repair_ingredient_matches(object.get("subtracted")?, item, tags)?;
+                Some(base && !removed)
+            }
+            "forge:intersection" if object.len() == 2 => {
+                let children = object.get("children")?.as_array()?;
+                if children.is_empty() { return None; }
+                let mut matches = true;
+                for child in children { matches &= repair_ingredient_matches(child, item, tags)?; }
+                Some(matches)
+            }
+            _ => None,
+        };
+    }
     if object.len() != 1 { return None; }
     if let Some(id) = object.get("item") { return Some(id.as_str()? == item); }
     if let Some(tag) = object.get("tag") { return Some(tags.get(tag.as_str()?)?.contains(item)); }
@@ -76,6 +93,19 @@ impl BuildingRecipe {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn modifier_repair_ingredients_resolve_set_forms_without_negating_unknowns() {
+        let tags = std::collections::HashMap::from([("forge:foods".to_owned(),
+            std::collections::HashSet::from(["tconstruct:bacon".to_owned(), "minecraft:apple".to_owned()]))]);
+        let difference = serde_json::json!({"type":"forge:difference", "base":{"tag":"forge:foods"}, "subtracted":{"item":"minecraft:apple"}});
+        assert_eq!(repair_ingredient_matches(&difference, "tconstruct:bacon", &tags), Some(true));
+        assert_eq!(repair_ingredient_matches(&difference, "minecraft:apple", &tags), Some(false));
+        let intersection = serde_json::json!({"type":"forge:intersection", "children":[{"tag":"forge:foods"}, {"item":"tconstruct:bacon"}]});
+        assert_eq!(repair_ingredient_matches(&intersection, "tconstruct:bacon", &tags), Some(true));
+        assert_eq!(repair_ingredient_matches(&intersection, "minecraft:apple", &tags), Some(false));
+        let unknown = serde_json::json!({"type":"forge:difference", "base":{"tag":"forge:foods"}, "subtracted":{"type":"example:unknown"}});
+        assert_eq!(repair_ingredient_matches(&unknown, "tconstruct:bacon", &tags), None);
+    }
     #[test]
     fn ordered_parts_follow_recipe_and_reject_extra_inputs() {
         let recipe = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:pickaxe"}"#).unwrap();

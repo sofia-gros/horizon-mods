@@ -14,7 +14,11 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
         },
         None => false,
     };
-    let speed = crate::game::tconstruct_source_mining_rules::conditional(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool).unwrap_or(speed);
+    let broad_tag = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
+        .and_then(|result| result.as_ref().ok())
+        .and_then(|tags| tags.get("tconstruct:modifiable/broad"));
+    let broad = crate::game::tconstruct_source_mining_rules::broad_or_unknown(broad_tag, &stack.item);
+    let speed = crate::game::tconstruct_source_mining_rules::conditional(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool, broad).unwrap_or(speed);
     let on_ground = game.player.as_ref().map_or(true, |player| player.ground.on_ground);
     speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground)
 }

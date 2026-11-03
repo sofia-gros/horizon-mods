@@ -28,5 +28,17 @@ fn tconstruct_machine_place(game: &mut crate::game::Game<'_>, pos: [i32; 3], sta
     let Some(saved) = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tconstruct:tank")) else { return; };
     let Some(tank) = crate::game::tconstruct_source_melter_state::Tank::from_nbt(saved, capacity) else { return; };
     let Some(kind) = crate::game::tconstruct_source_machine_runtime::kind(&name) else { return; };
+    if kind == "tconstruct:casting_tank" {
+        let mut state = crate::game::tconstruct_source_casting_tank::CastingTank::new();
+        state.tank = tank;
+        let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, state.to_nbt());
+        return;
+    }
+    if kind == "tconstruct:fluid_cannon" {
+        let mut state = crate::game::tconstruct_source_fluid_cannon::Cannon::new();
+        state.tank = tank;
+        let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, state.to_nbt());
+        return;
+    }
     let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, tank.to_nbt());
 }
