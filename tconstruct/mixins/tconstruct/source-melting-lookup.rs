@@ -218,19 +218,28 @@ impl Catalog<'_> {
         self.melting_with_container(item, None, conditions)
     }
     pub(super) fn melting_with_container(&self, item: &str, no_container: Option<bool>, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MeltingRecipe, String)> {
-        if !self.known_items.contains(item) { return None; }
+        self.melting_with_rates(item, no_container, conditions, (Some(12), Some(8))).ok().flatten()
+    }
+    pub(super) fn melting_with_rates(&self, item: &str, no_container: Option<bool>, conditions: &impl Fn(&[Value]) -> bool, rates: (Option<u32>, Option<u32>)) -> Result<Option<(String, MeltingRecipe, String)>, ()> {
+        if !self.known_items.contains(item) { return Ok(None); }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, MeltingRecipe, String)> = None;
         for (id, bytes) in self.recipes {
-            let Some(recipe) = MeltingRecipe::parse(bytes, conditions) else { continue; };
-            if !recipe.input.matches_with_container(item, &in_tag, no_container)? { continue; }
+            let Some(input) = MeltingRecipe::candidate_input(bytes, conditions) else { continue; };
+            if !input.matches_with_container(item, &in_tag, no_container).ok_or(())? { continue; }
+            // Ignore malformed recipes as before. Neutral rates validate the
+            // structure without rejecting representable configured outputs.
+            if MeltingRecipe::parse_with_rates(bytes, conditions, (Some(9), Some(4))).is_none() { continue; }
+            // A matched recipe with an unavailable rate must not fall through
+            // to a different recipe or silently use a default.
+            let recipe = MeltingRecipe::parse_with_rates(bytes, conditions, rates).ok_or(())?;
             let Some(fluid) = self.resolved_fluid(&recipe.output) else { continue; };
             if let Some((_, previous, previous_fluid)) = &found {
                 if previous.temperature != recipe.temperature || previous.time != recipe.time
-                    || previous.output.amount != recipe.output.amount || previous_fluid != &fluid { return None; }
+                    || previous.output.amount != recipe.output.amount || previous_fluid != &fluid { return Err(()); }
             } else { found = Some((id.clone(), recipe, fluid)); }
         }
-        found
+        Ok(found)
     }
     pub(super) fn material_melting(&self, item: &str, material: &str, cost: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
@@ -270,22 +279,29 @@ impl Catalog<'_> {
     }
     pub(super) fn foundry_melting_with_container(&self, item: &str, no_container: Option<bool>, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
-        if !self.known_items.contains(item) { return None; }
+        self.foundry_melting_with_rates(item, no_container, conditions, (Some(9), Some(4)), (Some(3), Some(4))).ok().flatten()
+    }
+    pub(super) fn foundry_melting_with_rates(&self, item: &str, no_container: Option<bool>, conditions: &impl Fn(&[Value]) -> bool,
+        primary: (Option<u32>, Option<u32>), byproduct: (Option<u32>, Option<u32>))
+        -> Result<Option<(String, FoundryRecipe, String, Vec<(String, u32)>)>, ()> {
+        if !self.known_items.contains(item) { return Ok(None); }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> = None;
         for (id, bytes) in self.recipes {
-            let Some(recipe) = FoundryRecipe::parse(bytes, conditions) else { continue; };
-            if !recipe.melting.input.matches_with_container(item, &in_tag, no_container)? { continue; }
+            let Some(input) = MeltingRecipe::candidate_input(bytes, conditions) else { continue; };
+            if !input.matches_with_container(item, &in_tag, no_container).ok_or(())? { continue; }
+            if FoundryRecipe::parse_with_rates(bytes, conditions, (Some(9), Some(4)), (Some(9), Some(4))).is_none() { continue; }
+            let recipe = FoundryRecipe::parse_with_rates(bytes, conditions, primary, byproduct).ok_or(())?;
             let Some(primary) = self.resolved_fluid(&recipe.melting.output) else { continue; };
             let Some(byproducts) = recipe.byproducts.iter().map(|fluid|
                 self.resolved_fluid(fluid).map(|id| (id, fluid.amount))).collect::<Option<Vec<_>>>() else { continue; };
             if let Some((_, previous, old_primary, old_byproducts)) = &found {
                 if previous.melting.temperature != recipe.melting.temperature || previous.melting.time != recipe.melting.time
                     || previous.melting.output.amount != recipe.melting.output.amount || old_primary != &primary
-                    || old_byproducts != &byproducts { return None; }
+                    || old_byproducts != &byproducts { return Err(()); }
             } else { found = Some((id.clone(), recipe, primary, byproducts)); }
         }
-        found
+        Ok(found)
     }
     pub(super) fn can_filling(&self, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
         if !self.known_items.contains("tconstruct:copper_can") || !self.known_fluids.contains(fluid) { return None; }
@@ -472,6 +488,66 @@ mod tests {
         let available = [("test:copper".into(), 90), ("test:tin".into(), 90)];
         assert!(catalog.alloy_except(&available, &["test:potion".into()], 180, 700, &|_| true).is_some());
         assert!(catalog.alloy_except(&available, &["test:copper".into()], 180, 700, &|_| true).is_none());
+    }
+
+    #[test]
+    fn configured_rates_use_matched_recipe_and_unknown_does_not_fall_through() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":180,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"amount":90,"fluid":"tconstruct:molten_gold"}]}"#.to_vec();
+        let ordinary = br#"{"type":"tconstruct:melting","ingredient":{"item":"minecraft:iron_ingot"},"result":{"amount":90,"fluid":"tconstruct:molten_iron"},"temperature":500,"time":125}"#.to_vec();
+        let recipes = BTreeMap::from([("a".into(), ore), ("b".into(), ordinary)]);
+        let tags = HashMap::new();
+        let items = HashSet::from(["minecraft:copper_ore".into(), "minecraft:iron_ingot".into()]);
+        let fluids = HashSet::from(["tconstruct:molten_copper".into(), "tconstruct:molten_gold".into(), "tconstruct:molten_iron".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let result = catalog.melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(18), Some(8))).unwrap().unwrap();
+        assert_eq!(result.1.output.amount, 360);
+        assert!(catalog.melting_with_rates("minecraft:copper_ore", None, &|_| true, (None, Some(8))).is_err());
+        assert_eq!(catalog.melting_with_rates("minecraft:iron_ingot", None, &|_| true, (None, None)).unwrap().unwrap().1.output.amount, 90);
+        let result = catalog.foundry_melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(12), Some(4)), (Some(6), Some(4))).unwrap().unwrap();
+        assert_eq!((result.1.melting.output.amount, result.3[0].1), (240, 60));
+        assert!(catalog.foundry_melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(9), Some(4)), (None, Some(4))).is_err());
+    }
+
+    #[test]
+    fn malformed_matching_recipe_does_not_shadow_valid_recipe() {
+        let bad = br#"{"type":"tconstruct:melting","ingredient":{"item":"minecraft:iron_ingot"},"result":{"amount":90,"fluid":"tconstruct:molten_iron"}}"#.to_vec();
+        let good = br#"{"type":"tconstruct:melting","ingredient":{"item":"minecraft:iron_ingot"},"result":{"amount":90,"fluid":"tconstruct:molten_iron"},"temperature":500,"time":125}"#.to_vec();
+        let recipes = BTreeMap::from([("a".into(), bad), ("b".into(), good)]);
+        let tags = HashMap::new();
+        let items = HashSet::from(["minecraft:iron_ingot".into()]);
+        let fluids = HashSet::from(["tconstruct:molten_iron".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        assert_eq!(catalog.melting_with_rates("minecraft:iron_ingot", None, &|_| true, (None, None)).unwrap().unwrap().0, "b");
+        assert_eq!(catalog.foundry_melting_with_rates("minecraft:iron_ingot", None, &|_| true, (None, None), (None, None)).unwrap().unwrap().0, "b");
+    }
+
+    #[test]
+    fn foundry_tiny_byproduct_does_not_preparse_at_default_rate() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":90,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"amount":1,"fluid":"tconstruct:molten_gold"}]}"#.to_vec();
+        let recipes = BTreeMap::from([("ore".into(), ore)]);
+        let tags = HashMap::new();
+        let items = HashSet::from(["minecraft:copper_ore".into()]);
+        let fluids = HashSet::from(["tconstruct:molten_copper".into(), "tconstruct:molten_gold".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let full = catalog.foundry_melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(9), Some(4)), (Some(9), Some(4))).unwrap().unwrap();
+        assert_eq!((full.1.melting.output.amount, full.3[0].1), (90, 1));
+        let zero = catalog.foundry_melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(9), Some(4)), (Some(1), Some(4))).unwrap().unwrap();
+        assert_eq!(zero.1.melting.output.amount, 90);
+        assert!(zero.3.is_empty());
+    }
+
+    #[test]
+    fn configured_low_rate_is_not_prechecked_with_overflowing_default() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":400000000,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal"}"#.to_vec();
+        let recipes = BTreeMap::from([("ore".into(), ore)]);
+        let tags = HashMap::new();
+        let items = HashSet::from(["minecraft:copper_ore".into()]);
+        let fluids = HashSet::from(["tconstruct:molten_copper".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let result = catalog.melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(1), Some(8))).unwrap().unwrap();
+        assert_eq!(result.1.output.amount, 400000000 / 9);
+        let foundry = catalog.foundry_melting_with_rates("minecraft:copper_ore", None, &|_| true, (Some(1), Some(4)), (Some(3), Some(4))).unwrap().unwrap();
+        assert_eq!(foundry.1.melting.output.amount, 400000000 / 9);
     }
 
     #[test]

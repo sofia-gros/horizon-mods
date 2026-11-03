@@ -761,6 +761,16 @@ selector = "Self"
 require = 1
 
 [[state]]
+id = "source-ore-rates"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<Result<std::collections::HashMap<String,u32>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
 id = "recipe-mod-snapshot"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<(std::collections::HashMap<String,Option<bool>>,bool)>"

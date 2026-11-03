@@ -96,3 +96,30 @@ that context. False, malformed or unresolved conditions are not loaded. This
 includes `forge:item_exists` on upstream compatibility melting recipes; it
 does not add the external mod or guarantee other unsupported recipe features.
 In-game and LAN reload behavior remain unverified.
+
+### Ore-rate settings
+
+The Melter, Smeltery and Foundry use their own `recipes.ore_rates` settings
+from the same world configuration snapshot. The Foundry has separate primary
+and byproduct rates. Metal uses `nuggetsPerMetal` (1–45) divided by 9; gem
+uses `shardsPerGem` (1–20) divided by 4, with integer truncation. Missing
+settings use the pinned source defaults. An invalid or unavailable relevant
+rate prevents that ore match rather than silently falling through to another
+recipe; unrelated non-ore melting stays available. The snapshot is refreshed
+with datapack capture/reload; automatic Forge file watching is not implemented.
+The Forge setting `slimeRecipeFix` and other unsupported settings remain outside
+this reader. Custom ore recipes whose primary amount truncates to zero still consume input after heating and may produce Foundry byproducts. Game, reload-during-heating and LAN behavior need verification.
+
+Foundry output follows upstream TConstruct f4e77d43: only the primary output
+must fit. Byproducts are filled in order up to the remaining capacity, and any
+unaccepted remainder is discarded while the input is consumed. A zero primary
+output passes the capacity check even when the tank is full, so all byproducts
+can be lost. A blocked nonzero primary preserves the input and retries later.
+
+The focused state, tank, fuel and melter harness passed 32 tests, including
+blocked-primary reload/retry and partial/full capacity cases, linked against
+Horizon item and world libraries. The generated-host `horizon-client --lib`
+test binary was not built: both parallel and single-job attempts ended with
+rustc killed by SIGKILL. Therefore the host integration tests remain unverified;
+this harness does not replace them. Gameplay, LAN and reload while heating also
+remain unverified.

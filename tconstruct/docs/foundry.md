@@ -12,6 +12,8 @@ Use a lava bucket on the fuel tank. Open the controller and put a copper ore blo
 
 *The input is on the left. Copper and its gold byproduct appear as separate layers at the bottom of the fluid display.*
 
+**Keep space free for byproducts.** The Foundry only waits for the primary output to fit. It adds byproducts in recipe order until the tank is full, and any remainder is lost. This matches the original Foundry, even if a configured primary output is zero.
+
 Click a fluid layer to move it to the bottom of the tank. Place an ingot cast on the casting table, select copper, use the faucet and collect the cooled copper ingot. The other fluid remains in the Foundry.
 
 The ore, fluid selection, casting, wall repair and save/reload sequence was tested on Linux. A LAN test also checked shared input and guest casting. The screenshot below shows the LAN guest's view.

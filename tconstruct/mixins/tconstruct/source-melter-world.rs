@@ -74,22 +74,32 @@ pub(super) fn molding(world: &World, basin: bool, material: &str, pattern: Optio
     })?
 }
 
+fn ore_rates(world: &World, machine: &str) -> (Option<u32>, Option<u32>) {
+    let rates = world.chunks.__horizon_mixins_tconstruct_source_ore_rates().as_ref().and_then(|value| value.as_ref().ok());
+    (rates.and_then(|rates| rates.get(&format!("{machine}.nuggetsPerMetal")).copied()),
+     rates.and_then(|rates| rates.get(&format!("{machine}.shardsPerGem")).copied()))
+}
+
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
-pub(super) fn melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Option<(String, MeltingRecipe, String)> {
+pub(super) fn melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Result<Option<(String, MeltingRecipe, String)>, ()> {
+    melting_stack_for(world, stack, no_container, "melter")
+}
+pub(super) fn melting_stack_for(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>, machine: &str) -> Result<Option<(String, MeltingRecipe, String)>, ()> {
+    let rates = ore_rates(world, machine);
     with_catalog(world, |catalog, registries, config| {
-        catalog.melting_with_container(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
-    })?
+        catalog.melting_with_rates(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false), rates)
+    }).ok_or(())?
 }
 
-pub(super) fn foundry_melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+pub(super) fn foundry_melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Result<Option<(String, FoundryRecipe, String, Vec<(String, u32)>)>, ()> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.foundry_melting_with_container(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
-    })?
+        catalog.foundry_melting_with_rates(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false), ore_rates(world, "foundry"), ore_rates(world, "foundry_byproduct"))
+    }).ok_or(())?
 }
 
 pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
