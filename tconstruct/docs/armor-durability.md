@@ -28,3 +28,19 @@ armor-specific abilities are not implemented by this change.
 Official Mixins `a2af5c0dd4117d51ecd70066ba7a00b4a2c10dab` transformed runtime `7fb00d0fb7f9ccda0d13df3971d03fcc1aa05d14` in 197.39 seconds; the Linux client/ctl build succeeded in 20.32 seconds. Two Rust slot-mapping tests and the 44 TConstruct plus 7 root Python tests passed.
 
 Representative Linux game tests confirmed the first hit uses the equipped armor and toughness before a last-durability helmet breaks; the next hit uses only the remaining chestplate. Both items consumed one point, the helmet stayed equipped, and an iron Station repair restored its armor and toughness. Save/reload, a steel-plating replacement with Ductile toughness, Traveler's Helmet statless leather repair, Slime Wings fixed phantom repair, a fire-resistant slot, magic armor bypass, hosted LAN guest break/sync, and vanilla iron armor break were also checked. Some items used synthetic material data to isolate the behavior. These are representative cases, not all armor families, modifiers, damage types or platforms; Windows remains unverified.
+
+## Slime material and Overslime capacity
+
+For the pinned source slime armor definitions, `SlimeStats.apply` adds the
+scaled slime material durability to both durability and the Overslime stat.
+The capacity calculation now includes that material contribution before the
+Overcast and global durability multipliers. The source also has an
+`overslime_capacity` field for its tooltip; its pinned `apply` method uses the
+durability field for the stat contribution, so this calculation follows that
+method rather than the tooltip value.
+
+Rust syntax was checked. Unit tests, combined build and gameplay are pending.
+Verify each slime armor scale, material replacement, Overcast/Overforced,
+global durability multiplier, capacity clamping, existing shield contents and
+save/reload. Armor wear and Overslime writeback remain subject to the separately
+documented provisional hook limitations.
