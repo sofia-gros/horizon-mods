@@ -104,3 +104,21 @@ fn airborne_trait_rebuild_and_removal_changes_firing_velocity() {
   assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-1.0).abs()<1e-6);
  }
 }
+
+
+#[test]
+fn spiny_velocity_and_removal_on_both_launchers() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":2.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut tool=ItemStack::new(id,1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:netherite",Tag::Int(1))]))])));
+  for (level,expected) in [(0,2.2_f32),(1,2.42),(2,2.64),(0,2.2)] {
+   let traits=BTreeMap::from([("tconstruct:spiny".to_string(),level)]);
+   tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,false,false).unwrap();
+   let v=projectile::projectile_stats(&tool).unwrap().0;
+   assert!((v-expected).abs()<0.0001,"{id} level {level}: {v} != {expected}");
+  }
+ }
+}
