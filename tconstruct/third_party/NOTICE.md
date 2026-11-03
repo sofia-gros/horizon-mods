@@ -77,3 +77,8 @@ Its eye-water and rain predicates were checked against MIT-licensed Mantle
 and [HasEnchantmentEntityPredicate.java](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/data/predicate/entity/HasEnchantmentEntityPredicate.java).
 Copyright (c) SlimeKnights; MIT licenses, see the respective files in
 `tconstruct/third_party/`.
+
+Copper Gauge's capability, support and display behavior was checked against
+MIT-licensed [Mantle GaugeBlock.java](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/block/GaugeBlock.java)
+and the pinned Tinkers' Construct CastingTankBlockEntity and FluidCannonBlockEntity.
+Copyright (c) SlimeKnights; see the corresponding licenses in this directory.
