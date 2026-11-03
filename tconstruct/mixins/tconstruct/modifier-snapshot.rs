@@ -63,6 +63,47 @@ pub(super) enum ClassifiedDefinition {
     Redirect(String),
 }
 
+/// Classify one highest-priority definition without inferring serializer or
+/// condition results. The evaluator and deserializer must be authoritative for
+/// the current datapack context. Unsupported conditional redirects remain
+/// unknown: upstream parses their condition from the enclosing redirect object.
+#[allow(dead_code)]
+pub(super) fn classify_definition(
+    bytes: &[u8],
+    condition: impl Fn(&serde_json::Value) -> Option<bool>,
+    deserialize: impl Fn(&serde_json::Value) -> Option<bool>,
+) -> Result<ClassifiedDefinition, String> {
+    let json: serde_json::Value = serde_json::from_slice(bytes).map_err(|_| "invalid modifier JSON")?;
+    let object = json.as_object().ok_or("modifier must be an object")?;
+    if let Some(redirects) = object.get("redirects") {
+        let redirects = redirects.as_array().ok_or("invalid modifier redirects")?;
+        // Upstream parses the full list before testing the first condition.
+        let mut ids = Vec::new();
+        for redirect in redirects {
+            let entry = redirect.as_object().ok_or("invalid modifier redirect")?;
+            let id = entry.get("id").and_then(serde_json::Value::as_str).ok_or("missing redirect id")?;
+            let (namespace, path) = id.split_once(':').unwrap_or(("minecraft", id));
+            if namespace.is_empty() || path.is_empty()
+                || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
+                || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) {
+                return Err("invalid redirect id".into());
+            }
+            if entry.contains_key("condition") { return Err("conditional redirects unsupported".into()); }
+            ids.push(format!("{namespace}:{path}"));
+        }
+        if let Some(id) = ids.into_iter().next() { return Ok(ClassifiedDefinition::Redirect(id)); }
+    }
+    if let Some(value) = object.get("condition") {
+        if !value.is_object() { return Err("invalid modifier condition".into()); }
+        if !condition(value).ok_or("modifier condition unavailable")? { return Ok(ClassifiedDefinition::Skipped); }
+    }
+    match deserialize(&json) {
+        Some(true) => Ok(ClassifiedDefinition::Loaded),
+        Some(false) => Ok(ClassifiedDefinition::Skipped),
+        None => Err("modifier deserializer unavailable".into()),
+    }
+}
+
 /// Compose already-classified definitions with the complete static registry.
 /// The returned map resolves an ID to the actual modifier's ID. Source checks
 /// static entries first, then ordinary dynamics; redirects are resolved in a
@@ -196,6 +237,26 @@ mod tests {
         assert!(!registry.contains_key("x:chain"));
         assert!(!registry.contains_key("x:missing"));
         assert!(!registry.contains_key("x:skip"));
+    }
+
+    #[test]
+    fn classification_obeys_redirect_then_condition_then_deserializer() {
+        let never = |_: &serde_json::Value| -> Option<bool> { panic!("unreachable callback") };
+        assert_eq!(classify_definition(br#"{"redirects":[{"id":"x:target"}],"condition":{"type":"unknown"}}"#, never, never).unwrap(), ClassifiedDefinition::Redirect("x:target".into()));
+        assert_eq!(classify_definition(br#"{"condition":{"type":"x:false"}}"#, |_| Some(false), never).unwrap(), ClassifiedDefinition::Skipped);
+        assert_eq!(classify_definition(br#"{"condition":{"type":"x:true"}}"#, |_| Some(true), |_| Some(true)).unwrap(), ClassifiedDefinition::Loaded);
+        assert_eq!(classify_definition(br#"{}"#, never, |_| Some(false)).unwrap(), ClassifiedDefinition::Skipped);
+        assert!(classify_definition(br#"{"condition":{"type":"x:unknown"}}"#, |_| None, never).is_err());
+        assert!(classify_definition(br#"{}"#, never, |_| None).is_err());
+    }
+    #[test]
+    fn classification_rejects_unsupported_or_malformed_redirects() {
+        let none = |_: &serde_json::Value| None;
+        assert!(classify_definition(br#"{"redirects":[{"id":"x:a","condition":{"type":"forge:true"}}]}"#, none, none).is_err());
+        assert!(classify_definition(br#"{"redirects":[{"id":"x:a"},{"id":"UPPER:bad"}]}"#, none, none).is_err());
+        assert!(classify_definition(br#"{"redirects":[{"id":"x:a"},{}]}"#, none, none).is_err());
+        assert_eq!(classify_definition(br#"{"redirects":[{"id":"stone"}]}"#, none, none).unwrap(), ClassifiedDefinition::Redirect("minecraft:stone".into()));
+        assert!(classify_definition(br#"[]"#, none, none).is_err());
     }
 
 }
