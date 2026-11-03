@@ -3,18 +3,21 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let Some(BookScreen::View { pages, page, lectern: None }) = game.book.as_ref() else { return Continue(()); };
     if pages.first().and_then(|p| p.spans.first()).and_then(|s| s.style.insertion.as_deref()) != Some("tconstruct:materials-book-root") { return Continue(()); }
     let atlas = &game.gui.atlas;
+    let puny = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Puny Smelting\n"));
+    let cover_sprite = if puny { "gui/tconstruct_book_covers_puny_smelting_cover" } else { "gui/tconstruct_book_covers_materials_and_you_cover" };
+    let pages_sprite = if puny { "gui/tconstruct_book_covers_puny_smelting_pages" } else { "gui/tconstruct_book_covers_materials_and_you_pages" };
     let center = batch.width / 2.0;
     let top = (batch.height / 2.0 - 100.0).floor();
     let cover = *page == usize::MAX;
     let base = if cover { 0 } else { (*page / 2) * 2 };
     batch.fill(atlas, 0.0, 0.0, batch.width, batch.height, rgba(16, 16, 16, 160));
     if cover {
-        if let Some(mut rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_cover").copied() {
+        if let Some(mut rect) = atlas.sprites.get(cover_sprite).copied() {
             let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
             rect.u1 = rect.u0 + 206.0 * du; rect.v1 = rect.v0 + 200.0 * dv;
             batch.rect_uv(center - 103.0, top, 206.0, 200.0, rect, u32::MAX);
         }
-    } else if let Some(rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_pages").copied() {
+    } else if let Some(rect) = atlas.sprites.get(pages_sprite).copied() {
         let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
         let mut under = rect;
         under.u1 = under.u0 + 412.0 * du; under.v1 = under.v0 + 200.0 * dv;
@@ -23,7 +26,7 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         paper.u1 = paper.u0 + 412.0 * du; paper.v0 += 200.0 * dv; paper.v1 = paper.v0 + 200.0 * dv;
         batch.rect_uv(center - 206.0, top, 412.0, 200.0, paper, u32::MAX);
     }
-    if let Some(rect) = atlas.sprites.get("gui/tconstruct_book_covers_materials_and_you_pages").copied() {
+    if let Some(rect) = atlas.sprites.get(pages_sprite).copied() {
         let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
         for (show, x, sy, w, h) in [
             (cover || base + 2 < pages.len(), center + if cover { 80.0 } else { 165.0 }, 0.0, 18.0, 10.0),
@@ -155,16 +158,29 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let Some(name) = id.strip_prefix("tconstruct:book/images/").and_then(|s| s.strip_suffix(".png")) else { return; };
         if !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_/-".contains(&c)) { return; }
         let sprite = format!("gui/tconstruct_book_{}", name.replace(['/', '-'], "_"));
+        let mut drawn_height = 0.0;
         if let Some(rect) = atlas.sprites.get(&sprite) {
             let width = spec.get("width").and_then(|v| v.as_u64()).unwrap_or(rect.w as u64).clamp(1, 4096) as f32;
             let height = spec.get("height").and_then(|v| v.as_u64()).unwrap_or(rect.h as u64).clamp(1, 4096) as f32;
             let scale = (182.0 / width).min(100.0 / height).min(1.0);
             let (w, h) = (width * scale, height * scale);
             batch.sprite_scaled(atlas, &sprite, left + 36.0 + (182.0 - w) / 2.0, top + 31.0, w, h, u32::MAX);
-            if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
-                for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
-                    batch.text_styled(atlas, line, left + 36.0, top + 36.0 + h + i as f32 * 9.0, BLACK, false);
-                }
+            drawn_height = h;
+        }
+        if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
+            for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
+                batch.text_styled(atlas, line, left + 36.0, top + 36.0 + drawn_height + i as f32 * 9.0, BLACK, false);
+            }
+        }
+        return;
+    }
+    if let Some(id) = spec.get("showcase_item").and_then(|v| v.as_str()) {
+        let (x, y) = (left + 36.0 + 83.0, top + 43.0);
+        let stack = draw_stack(batch, id, 1, 0, None, x, y);
+        if hovered(x, y, 16.0) { item_tooltip = Some(stack); }
+        if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
+            for (i, line) in atlas.font.split(&content, 182.0).iter().enumerate() {
+                batch.text_styled(atlas, line, left + 36.0, top + 76.0 + i as f32 * 9.0, BLACK, false);
             }
         }
         return;
@@ -281,9 +297,10 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
     }
     if let Some(result) = spec.get("result") {
+        let result = result.as_array().and_then(|items| (!items.is_empty()).then(|| &items[cycle % items.len()])).unwrap_or(result);
         let id = result.as_str().or_else(|| result.get("id").and_then(|v| v.as_str()));
         if let Some(id) = id {
-            let count = spec.get("count").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
+            let count = result.get("count").or_else(|| spec.get("count")).and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).filter(|n| *n > 0).unwrap_or(1);
             let damage = result.get("damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok()).unwrap_or(0);
             let maximum = result.get("max_damage").and_then(|v| v.as_u64()).and_then(|n| u32::try_from(n).ok());
             let x = ox + if grid == 2 { 118.0 } else { 146.0 };
