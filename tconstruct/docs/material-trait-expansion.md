@@ -10,7 +10,7 @@ This unit follows the original Tinkers' Construct revision `f4e77d43f39ba1047bf9
 
 Tool definitions with supported material stats now also contribute their fixed `tconstruct:traits` entries in module order. This resolves, for example, the Pickaxe's Pierce and the boots' Snow Boots or Bouncy traits; resolving a trait does not itself implement every effect. Check the combined fixed and material levels, part replacement and save/reload in the target build. Optional external traits and definitions without a supported material-stat module are not established by this change.
 
-Traveler's Boots' Snow Boots flag now updates the existing player powder-snow walking state after local body synchronization and equipment changes, including while the boots are broken. The separate block-placement collision context receives the same predicate. The original vanilla leather-boots check remains included. These changes are not yet verified in a target build; check movement onto and through powder snow, block placement, crouching, equipping, removing, breaking and repairing the boots, and vanilla boots in local and guest play. Slime Boots bounce remains unimplemented.
+Custom Snow Boots powder-snow walking and block-placement collision are disabled because their attempted injections were rejected by the official planner; the item and other equipment behavior remain available. The original vanilla leather-boots check remains included. These changes are not yet verified in a target build; check movement onto and through powder snow, block placement, crouching, equipping, removing, breaking and repairing the boots, and vanilla boots in local and guest play. Slime Boots bounce remains unimplemented.
 
 Gold's Golden armor trait is included in the host Piglin-safe-armor check for worn TConstruct armor, while retaining the vanilla result. The original volatile flag is not removed merely because a tool breaks. This path needs target-build verification with gold and non-gold materials, removal, breakage, vanilla gold armor and separate local/guest players.
 
@@ -47,3 +47,5 @@ state need target verification. Test Gilded levels, slot exhaustion, rejected
 salvage without consumption, rebuilding, fluid abilities and partial Speedy
 progress together, including save/reload and LAN. These are unverified source
 candidates, not game results.
+
+The rejected Snow Boots walking and placement injections remain disabled. Supported splash guest handling and compounded stat multipliers are retained; focused older-host tests do not establish current-host gameplay.

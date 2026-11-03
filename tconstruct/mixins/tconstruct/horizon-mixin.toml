@@ -1913,28 +1913,6 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_snow_boots"
 source = "source-snow-boots.rs"
 
-[[injection]]
-id = "source-snow-boots-sync"
-target = "horizon_client::game::Game<'_>::sync_player_body"
-kind = "RETURN"
-helper = "snow-boots-sync.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
-[[injection]]
-id = "source-snow-boots-equipment"
-target = "horizon_client::game::Game<'_>::apply_equipment"
-kind = "RETURN"
-helper = "snow-boots-equipment.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
-[[injection]]
-id = "source-snow-boots-placement"
-target = "horizon_client::game::Game<'_>::with_level"
-kind = "MODIFY_VARIABLE"
-variable = { name = "player_collision", ordinal = 0, at = "STORE" }
-helper = "snow-boots-collision.rs"
-bindings = [{ name = "value", ty = "Option<crate::game::PlayerCollision>", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
-
 [[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"
@@ -4269,10 +4247,10 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "source-splashing-guest-return"
-target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
-kind = "RETURN"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_swing_back"
+kind = "HEAD"
 helper = "source-splashing-guest-return.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "swung", ty = "Option<bool>", value = "swung" }]
 
 [[state]]
 id = "splashing-guest-pending"
