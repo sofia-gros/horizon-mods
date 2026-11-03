@@ -4328,7 +4328,7 @@ id = "source-necrotic-pvp-end"
 target = "horizon_client::game::lan_pvp::Game<'_>::projectile_hits_player"
 kind = "RETURN"
 helper = "necrotic-pvp-end.rs"
-bindings = [{ name = "value", ty = "horizon_client::Result<()>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" }]
+bindings = [{ name = "value", ty = "Result<()>", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" }]
 
 [[state]]
 id = "necrotic-host-victim"

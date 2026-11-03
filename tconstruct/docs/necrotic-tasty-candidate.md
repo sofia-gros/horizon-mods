@@ -13,6 +13,11 @@ passed for 482 source files; three tests extracted unchanged from the source
 arithmetic helpers passed. These checks do not establish host type compatibility,
 hook application or gameplay. Build and actual-game confirmation remain open in
 [Issue #365, group 10](https://github.com/sofia-gros/horizon-mods/issues/365).
+The first official apply rejected the projectile PvP RETURN binding because
+its fully qualified result type did not match the host's `Result<()>` spelling.
+The binding and helper now use the host alias. The official combined apply
+passed with 275 injections, 219 modules, 99 states and 3 bridges. Type, build
+and game checks remain open.
 The candidate remains Draft until the integration requirements are met.
 
 ## Necrotic
