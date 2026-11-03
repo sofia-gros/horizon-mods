@@ -50,3 +50,14 @@ recipes rebuilds it, and clearing world state discards it. Input matching,
 material validation, and the authoritative take still run against current
 state. This reduces repeated parsing during station rendering; the reported
 Windows FPS drop still needs an in-game before/after measurement.
+
+### Block item assets
+
+Each registered block that has an item needs an `assets/tconstruct/items/`
+item definition as well as its item model. The block registration test follows
+those references through local model parents and textures. The covered
+Scorched Table item model is taken from the pinned Tinkers' Construct revision
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2` at
+`src/main/resources/assets/tconstruct/models/block/foundry/table_covered.json`.
+The resource-overlay test uses a minimal vanilla item fixture, including the
+book template required for the Puny Smelting item.
