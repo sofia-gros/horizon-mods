@@ -56,17 +56,19 @@ def _bundle(manifest: dict) -> tuple[bytes, dict[str, bytes]]:
     for name in COMPONENTS:
         root = ROOT / "mixins" / name
         mixin = tomllib.loads(_regular(root / "horizon-mixin.toml").decode("utf-8"))
-        if (set(mixin) - {"mod", "compatibility", "crate", "module", "injection"}
+        if (set(mixin) - {"mod", "compatibility", "crate", "module", "injection", "state"}
                 or set(mixin["mod"]) - {"id", "version", "priority"}
                 or set(mixin["compatibility"]) != {"horizon_revision"}):
             raise ValueError(f"{name}: unsupported manifest section or field")
         if (mixin["mod"]["id"] != name or mixin["mod"]["version"] != manifest["version"]
                 or mixin["compatibility"]["horizon_revision"] != manifest["horizon"]):
             raise ValueError(f"{name}: identity, version or Horizon revision differs")
-        for section in ("crate", "module", "injection"):
+        for section in ("crate", "module", "injection", "state"):
             for original in mixin.get(section, []):
                 entry = dict(original)
-                entry["id"] = f'{name}-{entry["id"]}'
+                constructors = entry.pop("constructor", []) if section == "state" else []
+                if section != "state" or name != manifest["id"]:
+                    entry["id"] = f'{name}-{entry["id"]}'
                 if section == "injection":
                     entry.setdefault("priority", mixin["mod"].get("priority", 100))
                 for key in ("source", "helper", "path"):
@@ -84,6 +86,10 @@ def _bundle(manifest: dict) -> tuple[bytes, dict[str, bytes]]:
                 lines.append(f"[[{section}]]")
                 lines.extend(f"{key} = {_value(value)}" for key, value in entry.items())
                 lines.append("")
+                for constructor in constructors:
+                    lines.append("[[state.constructor]]")
+                    lines.extend(f"{key} = {_value(value)}" for key, value in constructor.items())
+                    lines.append("")
     lines.append("")
     result = "\n".join(lines).encode("utf-8")
     tomllib.loads(result.decode("utf-8"))

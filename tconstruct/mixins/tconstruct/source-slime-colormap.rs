@@ -1,4 +1,4 @@
-//! Original position-dependent slime foliage colors, reloaded with render assets.
+// Original position-dependent slime foliage colors, reloaded with render assets.
 use std::{path::Path, sync::{OnceLock, RwLock}};
 
 static MAPS: OnceLock<RwLock<[Option<Vec<u32>>; 5]>> = OnceLock::new();
@@ -25,7 +25,7 @@ pub(crate) fn color(name: &str, x: i32, z: i32) -> Option<u32> {
     let short = name.strip_prefix("tconstruct:")?;
     let (kind, rest) = short.split_once('_')?;
     let index = match kind { "earth" => 0, "sky" => 1, "ichor" => 2, "ender" => 3, "blood" => 4, _ => return None };
-    let shifted = rest == "slime_leaves" || (kind == "sky" && rest == "slime_vine");
+    let shifted = rest == "slime_leaves" || (matches!(kind, "sky" | "ender") && rest == "slime_vine");
     let grass = ["earth_slime_grass", "sky_slime_grass", "ichor_slime_grass", "ender_slime_grass", "vanilla_slime_grass", "slime_fern", "slime_tall_grass"].contains(&rest);
     if !shifted && !grass { return None; }
     let coord = |v: i32| -> f32 {

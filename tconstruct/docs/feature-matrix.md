@@ -1,6 +1,6 @@
 # Tinkers' Construct feature coverage
 
-> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+> **v0.5 release target:** Some effects and operations remain unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
 
 [Original parity tracking and Part Builder source crosswalk](original-parity.md). This matrix is an incomplete audit, not a comprehensive list of implemented or unimplemented features.
 
