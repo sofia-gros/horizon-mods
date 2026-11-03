@@ -1,3 +1,67 @@
+// Keep source artwork untouched while fitting the host GUI atlas' 1024x512 limit.
+fn copy_guide_image(source: &std::path::Path, target: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::Read;
+    let mut file = std::fs::File::open(source)?;
+    let mut header = [0u8; 24];
+    file.read_exact(&mut header)?;
+    if &header[..8] != b"\x89PNG\r\n\x1a\n" || &header[12..16] != b"IHDR" { return Err("invalid guide PNG header".into()); }
+    let width = u32::from_be_bytes(header[16..20].try_into()?);
+    let height = u32::from_be_bytes(header[20..24].try_into()?);
+    if width == 0 || height == 0 { return Err("empty guide PNG".into()); }
+    if width <= 1024 && height <= 512 { std::fs::copy(source, target)?; return Ok(()); }
+    let scale = (1024.0 / f64::from(width)).min(512.0 / f64::from(height)).min(1.0);
+    let new_width = (f64::from(width) * scale).floor().max(1.0) as u32;
+    let new_height = (f64::from(height) * scale).floor().max(1.0) as u32;
+    let mut decoder = png::Decoder::new(std::io::BufReader::new(std::fs::File::open(source)?));
+    decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
+    let mut reader = decoder.read_info()?;
+    let mut input = vec![0; reader.output_buffer_size().ok_or("guide PNG too large")?];
+    let info = reader.next_frame(&mut input)?;
+    let channels = info.color_type.samples();
+    let mut output = vec![0; new_width as usize * new_height as usize * channels];
+    for y in 0..new_height as usize {
+        for x in 0..new_width as usize {
+            let source_x = x * width as usize / new_width as usize;
+            let source_y = y * height as usize / new_height as usize;
+            let from = (source_y * width as usize + source_x) * channels;
+            let to = (y * new_width as usize + x) * channels;
+            output[to..to + channels].copy_from_slice(&input[from..from + channels]);
+        }
+    }
+    let mut encoder = png::Encoder::new(std::io::BufWriter::new(std::fs::File::create(target)?), new_width, new_height);
+    encoder.set_color(info.color_type);
+    encoder.set_depth(info.bit_depth);
+    encoder.write_header()?.write_image_data(&output)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod guide_image_tests {
+    use super::copy_guide_image;
+    #[test]
+    fn oversized_guide_art_fits_the_atlas_and_small_art_is_unchanged() {
+        let root = std::env::temp_dir().join(format!("tconstruct-guide-image-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let large = root.join("large.png"); let scaled = root.join("scaled.png");
+        let small = root.join("small.png"); let copied = root.join("copied.png");
+        for (path, width, height) in [(&large, 1184, 747), (&small, 16, 16)] {
+            let mut encoder = png::Encoder::new(std::fs::File::create(path).unwrap(), width, height);
+            encoder.set_color(png::ColorType::Rgb); encoder.set_depth(png::BitDepth::Eight);
+            encoder.write_header().unwrap().write_image_data(&vec![90; width as usize * height as usize * 3]).unwrap();
+        }
+        let original = std::fs::read(&large).unwrap();
+        copy_guide_image(&large, &scaled).unwrap(); copy_guide_image(&small, &copied).unwrap();
+        assert_eq!(std::fs::read(&large).unwrap(), original);
+        assert_eq!(std::fs::read(&small).unwrap(), std::fs::read(&copied).unwrap());
+        let mut reader = png::Decoder::new(std::io::BufReader::new(std::fs::File::open(&scaled).unwrap())).read_info().unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut pixels).unwrap();
+        assert!(info.width <= 1024 && info.height <= 512);
+        assert_eq!(info.height, 512); assert!(pixels.iter().all(|v| *v == 90));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
 // Shared post-processing for manually prepared and startup content roots.
 pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         // The guide's pinned source images join the same GUI atlas in both
@@ -14,7 +78,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                     let name = path.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
                     if !name.ends_with(".png") || !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) || name.contains("..") { continue; }
                     let sprite = format!("tconstruct_book_{}", name.trim_end_matches(".png").replace(['/', '-'], "_"));
-                    std::fs::copy(path, target.join(format!("{sprite}.png")))?;
+                    copy_guide_image(&path, &target.join(format!("{sprite}.png")))?;
                 }
                 Ok(())
             }
@@ -118,7 +182,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             ("tconstruct:seared_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:seared_ingot_gauge", "tconstruct:ingot_tank"),
             ("tconstruct:scorched_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:scorched_fuel_gauge", "tconstruct:fuel_tank"),
             ("tconstruct:scorched_ingot_tank", "tconstruct:ingot_tank"), ("tconstruct:scorched_ingot_gauge", "tconstruct:ingot_tank"),
-            ("tconstruct:seared_lantern", "tconstruct:lantern"), ("tconstruct:scorched_lantern", "tconstruct:lantern")];
+            ("tconstruct:seared_lantern", "tconstruct:lantern"), ("tconstruct:scorched_lantern", "tconstruct:lantern"), ("tconstruct:seared_casting_tank", "tconstruct:casting_tank"), ("tconstruct:seared_fluid_cannon", "tconstruct:fluid_cannon")];
         let path = out.join("registries.json");
         let mut registries: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
         let entries = registries["minecraft:block_entity_type"]["entries"].as_object_mut().ok_or("missing block entity registry")?;
@@ -155,6 +219,19 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 let path = out.join(name);
                 let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
                 super::tconstruct_block_shapes::apply_empty_shape(&mut named.tag, air, &glow_ids)?;
+                std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+            }
+        }
+        // The cannon uses the six-facing End Rod state template but its source
+        // collision is a full cube. Copy only the solid collision geometry.
+        let cannon_ids: Vec<usize> = facts["states"].as_array().ok_or("missing state list")?.iter().enumerate()
+            .filter_map(|(id, row)| (row.get(0).and_then(serde_json::Value::as_str) == Some("tconstruct:seared_fluid_cannon")).then_some(id)).collect();
+        if !cannon_ids.is_empty() {
+            let solid = facts["defaults"]["minecraft:stone"].as_u64().ok_or("missing stone state")? as usize;
+            for name in ["cached-collision.nbt", "worldgen/blocks/cached-collision.nbt"] {
+                let path = out.join(name);
+                let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+                super::tconstruct_block_shapes::apply_full_shape(&mut named.tag, solid, &cannon_ids)?;
                 std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
             }
         }
@@ -215,7 +292,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
                 let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
-                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { continue; }
+                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" | "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "tconstruct:seared_casting_tank" | "tconstruct:seared_fluid_cannon") { continue; }
                 let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
                 row["block_entity"] = serde_json::Value::Bool(true);
                 if !matches!(name, "tconstruct:seared_heater" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
@@ -225,6 +302,17 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             }
         }
         super::tconstruct_machine_prepare::apply(&facts, &mut gameplay, out)?;
+        if let Some(stone) = facts["defaults"]["minecraft:stone"].as_u64().map(|id| id as usize) {
+            let outline = gameplay["states"][stone]["outline"].clone();
+            let edges = gameplay["states"][stone]["outline_edges"].clone();
+            if outline.is_null() || edges.is_null() { return Err("missing full-cube outline".into()); }
+            let rows = gameplay["states"].as_array_mut().ok_or("missing gameplay rows")?;
+            for id in &cannon_ids {
+                let row = rows.get_mut(*id).ok_or("missing cannon gameplay row")?;
+                row["outline"] = outline.clone(); row["outline_edges"] = edges.clone();
+                row["full_collision"] = serde_json::json!(true);
+            }
+        }
         // Glow selection is a 1/16-thick sheet on its supporting face; its
         // collision stays empty in both collision tables above.
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
@@ -593,6 +681,7 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
         let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
         let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
         let armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
+        let worn_armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor/worn", &raw_tags, &registry)?;
         let ranged = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
                 for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
                     if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
@@ -603,7 +692,8 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                             let Some(short) = item.strip_prefix("tconstruct:") else { continue; };
                             let Some(ids) = raw.pointer("/components/minecraft:custom_data/tic_materials").and_then(serde_json::Value::as_array) else { continue; };
                             let Some(ids) = ids.iter().map(|id| id.as_str().map(str::to_owned)).collect::<Option<Vec<_>>>() else { continue; };
-                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{short}.json"))) else { continue; };
+                            let source_name = crate::tconstruct_source_station_stats::definition_name("tconstruct", short);
+                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{source_name}.json"))) else { continue; };
                             let mut maps = Vec::new();
                             for id in &ids {
                                 let Some(name) = id.strip_prefix("tconstruct:") else { maps.clear(); break; };
@@ -612,13 +702,15 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                                 maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
                             }
                             if maps.len() != ids.len() { continue; }
-                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
-                                let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
-                                    let (namespace, path) = id.split_once(':')?;
-                                    std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
-                                });
+                            let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
+                                let (namespace, path) = id.split_once(':')?;
+                                std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
+                            });
+                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None, traits.as_ref().map(|(levels, _)| levels)) {
                                 if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
+                                    if crate::tconstruct_source_material_effects::store_trait_order(&mut stack, &order).is_none() { continue; }
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
+                                    if crate::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut stack, &stats, &traits, armor.iter().any(|id| id == item), worn_armor.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }

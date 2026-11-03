@@ -39,6 +39,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
         merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+        crate::game::tconstruct_source_tags::bridge_vanilla_mud_tag(&mut block_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
     // A content mod can provide the unflattened source layers as ordinary
@@ -76,7 +77,18 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         .and_then(|builtin| builtin.get("minecraft:block").map(|ids| ids.ids.clone()).ok_or_else(|| "missing block registry".to_owned()));
     let resolved_blocks = block_ids.as_ref().map_err(Clone::clone).and_then(|ids| {
         let registry = ids.keys().filter(|id| !id.is_empty()).cloned().collect();
-        crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)
+        let mut resolved = crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)?;
+        // Herbicide's original tags include source blocks not yet registered
+        // in this port. Project only these explicit source tags onto the
+        // actual registry; unresolved required nested tags remain errors.
+        for id in ["minecraft:replaceable_by_trees", "minecraft:leaves", "tconstruct:slimy_soil/vanilla"] {
+            if !resolved.contains_key(id) {
+                if let Ok(values) = crate::game::tconstruct_source_tags::resolve_available_blocks(id, &block_tags, &registry) {
+                    resolved.insert(id.to_owned(), values.into_iter().collect());
+                }
+            }
+        }
+        Ok(resolved)
     });
     let resolved_fluids = horizon_protocol::registry::Builtin::find(&game.options.resources)
         .ok_or_else(|| "missing built-in registry report".to_owned())
@@ -145,6 +157,30 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         }
         true
     });
+    // The source basin mud recipe uses BlockTagIngredient. Resolve its block
+    // tag through Block::asItem's exported state fact, not a guessed matching
+    // item identifier. Keep it unsupported when either registry is missing.
+    if let (Ok(block_tags), Some(rest)) = (&resolved_blocks, game.res.rest.get()) {
+        for bytes in recipes.values_mut() {
+            let Ok(mut recipe) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+            if recipe.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:casting_basin") { continue; }
+            let Some(cast) = recipe.get_mut("cast") else { continue; };
+            let Some(object) = cast.as_object() else { continue; };
+            if object.len() != 2 || object.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:block_tag") { continue; }
+            let Some(tag) = object.get("tag").and_then(serde_json::Value::as_str) else { continue; };
+            let Some(blocks) = block_tags.get(tag) else { continue; };
+            let mut items = std::collections::BTreeSet::new();
+            for facts in &game.res.facts().states {
+                if blocks.contains(facts.name.as_ref()) && facts.item.as_ref() != "minecraft:air"
+                    && rest.items.items.contains_key(&facts.item) {
+                    items.insert(facts.item.to_string());
+                }
+            }
+            if items.is_empty() { continue; }
+            *cast = serde_json::Value::Array(items.into_iter().map(|item| serde_json::json!({"item": item})).collect());
+            if let Ok(rewritten) = serde_json::to_vec(&recipe) { *bytes = rewritten; }
+        }
+    }
     // Preserve an explicit failure when any required input is unavailable.
     // These definitions describe the current Horizon registries, which do not
     // yet contain every original TConstruct item or fluid.
