@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "7084e67744cbb4fe25961f24126e15b6b36f0523"
+horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
 
 [[crate]]
 id = "creative-api"
@@ -41,9 +41,37 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+[[module]]
+id = "fluid-read"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_fluid"
+source = "fluid-read.rs"
+visibility = "pub"
+
+[[module]]
+id = "crafting-remainder"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_crafting_remainder"
+source = "crafting-remainder.rs"
+visibility = "pub"
+
+[[module]]
+id = "stack-fluid"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "pluto_stack_fluid"
+source = "stack-fluid.rs"
+visibility = "pub"
+
+[[module]]
+id = "host-stack-fluid"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_stack_fluid"
+source = "stack-fluid.rs"
+
 [[injection]]
 id = "landing-state-clear"
 target = "horizon_client_render::chunk_map::ChunkMap::clear"
 kind = "HEAD"
 helper = "landing-clear.rs"
 bindings = [{ name = "map", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
+
