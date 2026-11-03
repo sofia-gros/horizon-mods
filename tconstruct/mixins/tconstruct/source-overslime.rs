@@ -66,6 +66,18 @@ mod tests {
     }
 
     #[test]
+    fn spend_preserves_zero_cost_and_clamps_partial_balance() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_overslime", Tag::Int(5))])));
+        for (cost, expected) in [(0, 5), (3, 2), (3, 0)] {
+            spend(&mut stack, cost);
+            assert!(matches!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_overslime"), Some(Tag::Int(value)) if *value == expected));
+        }
+    }
+
+    #[test]
     fn oversized_spend_cannot_increase_shield() {
         use horizon_items::items::ItemStack;
         use horizon_world::nbt::Tag;
