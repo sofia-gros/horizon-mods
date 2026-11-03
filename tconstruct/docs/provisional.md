@@ -1,6 +1,6 @@
-# Provisional development build
+# Current limitations
 
-This build temporarily disables specific hooks whose Horizon Mixins targets cannot currently be transformed. It is not a complete port. Their definitions are retained in `disabled-injections.toml`; restoring them requires a compatible official Mixins implementation and renewed testing. Registered items and blocks remain available for existing worlds.
+This page records known unavailable and unverified operations. Specific hooks that the tested Horizon Mixins version cannot transform are retained in `disabled-injections.toml`; restoring those hooks requires a compatible boundary and renewed testing. Other incomplete or unverified mod behavior remains open work and is not automatically an upstream limitation. Registered items and blocks remain available for existing worlds.
 
 | Feature | Status and limitation |
 | --- | --- |
@@ -12,6 +12,6 @@ This build temporarily disables specific hooks whose Horizon Mixins targets cann
 | Excavator and Battlesign built-in knockback | Their extra built-in melee knockback is unavailable; their other behavior is separate. |
 | Crumbling with Stonebound | An isolated mining test did not match the expected ordering; the combination has not been validated. |
 
-Previously captured game tests describe the revisions stated alongside them. They do not verify the full provisional build. The provisional product client passed representative local and LAN Part Chest / Tinker's Chest transactions; the affected world appearance and Crafting Station integration were not covered. See [chest details](tinker-part-chests.md) and [host update evidence](host-upgrade.md).
+Previously captured game tests describe the revisions stated alongside them. They do not verify every feature in the current integrated build. An earlier client passed representative local and LAN Part Chest / Tinker's Chest transactions; the affected world appearance and Crafting Station integration were not covered. See [chest details](tinker-part-chests.md) and [host update evidence](host-upgrade.md).
 
-The current development target is Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The combined Linux build passed representative game checks, but advanced durability text for some component-bearing tools remains incomplete. See [compatibility](compatibility.md) for the tested scope and the earlier combination.
+An earlier combined Linux build on Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a` passed representative game checks. That evidence does not establish the current target; advanced durability text for some component-bearing tools remains incomplete. See [compatibility](compatibility.md) for the tested scope and the earlier combination.
