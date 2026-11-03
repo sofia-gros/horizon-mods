@@ -6,7 +6,7 @@ use crate::game::dragon::Breath;
 use super::PotionCloud;
 
 pub(in crate::game) fn spawn(game: &mut Game<'_>, at: [f64; 3], effects: Vec<(&'static str, i32, i32)>) {
-    let color = horizon_client::brewing::effects_color(effects.iter().map(|(id, _, amplifier)| (*id, *amplifier)));
+    let color = horizon_client_core::potions::effects_color(effects.iter().map(|(id, _, amplifier)| (*id, *amplifier)));
     // Horizon's lingering cloud path applies a quarter-duration scale. Source
     // custom cloud effects are already scaled, so store 4x durations to retain
     // the intended result, rejecting overflow at the caller.

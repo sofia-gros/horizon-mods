@@ -42,7 +42,7 @@ fn per_stack_rules_respect_effective_blocks_broken_and_material_swap() {
     assert!((base - 3.78).abs() < 0.0001);
     let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
     // Efficiency is added before the source percentage modifier; Haste scales both.
-    assert!((tconstruct_source_mining_rules::conditional(custom, 25, (base + 1.0) * 1.2, 1.2, None, true, false).unwrap() - 5.4492).abs() < 0.0001);
+    assert!((tconstruct_source_mining_rules::conditional(custom, 25, (base + 1.0) * 1.2, 1.2, None, true, false, Some(false)).unwrap() - 5.4492).abs() < 0.0001);
     stack.damage = 100;
     assert_eq!(tconstruct_material_mining_speed(0.3, Some(&stack), "minecraft:stone", &items), 1.0);
     stack.damage = 25;
@@ -115,7 +115,7 @@ fn gem_mining_applies_additive_speed_and_conditional_multiplier_separately() {
     let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
     let Some(Tag::List(rules))=custom.get("tic_mining_tool").and_then(|t|t.get("rules")) else {panic!()};
     assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-6.0).abs()<0.0001));
-    assert!((tconstruct_source_mining_rules::conditional(custom,25,6.0,1.0,None,true,false).unwrap()-9.75).abs()<0.0001);
+    assert!((tconstruct_source_mining_rules::conditional(custom,25,6.0,1.0,None,true,false,Some(false)).unwrap()-9.75).abs()<0.0001);
 }
 
 #[test]
