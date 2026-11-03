@@ -165,3 +165,54 @@ candidate. All support-module source files referenced by its checked-in
 TConstruct and Pluto manifests were statically scanned for inner documentation
 attributes and shebangs. No such source lines remained at that scan. The merged
 candidate has not passed formal package, apply, type or runtime checks.
+
+### Longbow Power candidate
+
+The original Power upgrade accepts Ichor slime crystals on the longbow: 72
+items per level, at most five levels, with one upgrade slot per level. Its
+projectile-damage addition is `0.5 + 0.5 * effective_level` while present,
+including partial levels. This candidate connects that recipe to the existing
+upgrade and ordered ranged-stat paths. The two supported bows have different
+source tags: the crossbow does not accept Power. These changes are source-level
+only and still need official apply, type and game verification. A full natural
+crystal-to-upgrade survival route has not been demonstrated.
+
+For a base projectile stat of 2, check zero, one, 72 and 360 crystal points:
+expected values are 2, approximately 2.506944, 3 and 5 respectively. Also check
+slot limits, extraction and reapplication, save/reload, and rejection on a
+crossbow. Values before downstream arrow effects are the comparison point.
+
+### Ranged upgrade integration candidate
+
+The newer ranged-stat candidate also carries the earlier Power (#109) and
+Blindshot (#133/#134) transactions and progress labels. Blindshot uses one Dirt
+per point, ten points per level, and does not occupy upgrade slots or have a
+source salvage recipe. Its accuracy decrease is 0.1 per effective level; the
+current connected launcher scope is longbow and crossbow. The original default
+maximum applies when its recipe omits a level range. This integration is a
+source-level candidate, not an apply, type or gameplay result. Check partial
+and full levels, zero free slots, unsupported tools, accuracy minimum, crystal
+and salvage behavior, saved data and progress labels in the integrated build.
+
+The source-backed crossbow test binds both input part arrays before borrowing
+them. An earlier exact-head test compile failed with E0716; a disposable
+old-host diagnostic passed after the same lifetime correction. This new
+candidate has not yet passed the dedicated exact-head test or official build.
+
+### Raging and Airborne projectile integration candidate
+
+The #140 actor-state candidate is integrated with the ordered bow stat builder:
+conditional velocity and projectile damage use the builder's current
+multiply-base and multiply-all scales rather than an earlier precomputed stat.
+The included photographs document the earlier #140 session, not this integrated
+head. Syntax only; official apply and type checks and same-shot health 20/6,
+local/guest actor identity, ground/water/climb/vehicle, save/reload and actual
+projectile damage still require dedicated verification on this candidate.
+
+### Stat builder multiplier correction
+
+Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, mining speed, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
+
+Earlier integration evidence applies only to the recorded candidate revision.
+Keep the later stat-order corrections and the documented Bouncy deferral;
+validate the current integrated build and gameplay separately.
