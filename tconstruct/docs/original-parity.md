@@ -706,3 +706,5 @@ This does not enable adding tips or apply potion effects on hits. Projectile and
 fishing-rod modifier effects, tipping recipes and broader tagged-fluid handling
 remain incomplete. In-game, LAN, save/reload and simultaneous-operation behavior
 have not been tested.
+
+Tagged portable tank casting supports a bounded local-world path: a seared or scorched lantern on a table or basin, and source-recognized portable tank recipes in a basin, can receive a fluid carrying NBT. The existing recipe determines the amount and five-tick cooling; a partly filled item accepts only exactly matching fluid ID and metadata. The transaction preserves unrelated item custom data and rejects opaque wire patches, malformed or unknown tank fields, stacks larger than one, and insufficient capacity. LAN worlds and guests keep the existing rejection for this path because arbitrary fluid metadata synchronization has not been verified. Unit tests cover partial fill, mismatched metadata, conservation and casting save/reload; integrated host application and in-game behavior remain unverified.

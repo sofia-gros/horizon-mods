@@ -756,7 +756,15 @@ fn matched_casting(world: &super::tconstruct_world::World, basin: bool, input: O
     -> Option<(String, super::tconstruct_source_melting_recipes::CastingRecipe, horizon_items::items::ItemStack)> {
     let fluid = tank.fluid.as_deref()?;
     match tank.tag.as_ref() {
-        Some(tag) => super::tconstruct_source_melter_world::potion_casting_stack(world, basin, input, fluid, tag, allow_color),
+        Some(tag) => {
+            let portable = allow_color.then(|| super::tconstruct_source_melter_world::tagged_portable_casting_stack(world, basin, input, fluid, tag)).flatten();
+            let potion = super::tconstruct_source_melter_world::potion_casting_stack(world, basin, input, fluid, tag, allow_color);
+            match (portable, potion) {
+                (Some(_), Some(_)) => None, // Do not choose arbitrarily between datapack recipes.
+                (Some(value), None) | (None, Some(value)) => Some(value),
+                (None, None) => None,
+            }
+        },
         None => super::tconstruct_source_melter_world::casting_stack(world, basin, input, fluid),
     }
 }

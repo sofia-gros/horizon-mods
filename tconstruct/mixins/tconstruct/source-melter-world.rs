@@ -159,6 +159,23 @@ pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&ho
     Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color, effects)))
 }
 
+/// Tagged portable-tank casting is limited to a local world: network item
+/// synchronization has not yet been proven lossless for arbitrary fluid tags.
+pub(super) fn tagged_portable_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag)
+    -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
+    let stack = input?;
+    let lantern = matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");
+    if !basin && !lantern { return None; }
+    let capacity = super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item)?;
+    let tank = super::tconstruct_source_melter_state::portable_tank(stack, capacity)?;
+    let free = capacity.checked_sub(tank.amount)?;
+    let (id, recipe) = with_catalog(world, |catalog, registries, config| {
+        catalog.portable_tank_filling(basin, &stack.item, fluid, free, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })??;
+    let output = super::tconstruct_source_melter_state::fill_portable_tagged(stack, tank, fluid, tag, recipe.fluid.amount)?;
+    Some((id, recipe, output))
+}
+
 /// Resolve the completed stack before reserving fluid. Both normal item
 /// casting and material casting then use the same persistent transaction.
 pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str) -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
