@@ -1,4 +1,5 @@
 extern crate horizon_items as horizon_client;
+#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
 #[path = "../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
 #[path = "../../mixins/tconstruct/source-melee-stat-ops.rs"] mod tconstruct_source_melee_stat_ops;
 #[path = "../../mixins/tconstruct/source-upgrade-rules.rs"] mod tconstruct_source_upgrade_rules;
@@ -58,4 +59,48 @@ fn source_additive_traits_respect_definition_stat_multipliers() {
  assert!((n("tic_velocity")-3.09).abs()<0.0001);
  assert!((n("tic_accuracy")-0.3).abs()<0.0001);
  assert_eq!(projectile::projectile_bonus(&bow),7.0);
+}
+
+#[test]
+fn maintained_rebuild_without_stacking_and_clear_after_part_swap() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0,"tconstruct:projectile_damage":2.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":2.0,"tconstruct:projectile_damage":3.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+   ("tic_max_damage",Tag::Int(100)),
+   ("tic_upgrades",Tag::compound([("tconstruct:diamond",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))])),
+  ])));
+  let levels=BTreeMap::from([("tconstruct:ductile".into(),1),("tconstruct:maintained".into(),2)]);
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+   // Existing projectile damage remains base 6 + (diamond .5 + ductile .25) * 3.
+   assert!((projectile::projectile_bonus(&bow)-6.25).abs()<0.00001);
+   // Base 2 * netherite 1.1 + maintained .16 * (2 * 1.1).
+   assert!((projectile::projectile_stats(&bow).unwrap().0-2.552).abs()<0.00001);
+  }
+  bow.damage=50;
+  assert!((projectile::projectile_stats(&bow).unwrap().0-2.2).abs()<0.00001);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::new(),false,false).unwrap();
+  bow.damage=0;
+  assert!((projectile::projectile_bonus(&bow)-5.5).abs()<0.00001);
+  assert!((projectile::projectile_stats(&bow).unwrap().0-2.2).abs()<0.00001);
+ }
+}
+
+#[test]
+fn airborne_trait_rebuild_and_removal_changes_firing_velocity() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  let levels=BTreeMap::from([("tconstruct:airborne".into(),1)]);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+  assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-1.1).abs()<1e-6);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::new(),false,false).unwrap();
+  assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-1.0).abs()<1e-6);
+ }
 }

@@ -40,6 +40,13 @@ item matches.
 | `tools/TinkerToolParts.java` and the 28 source material-item models | `tools/resources.py`, `source-render-info.rs` | All 28 source tool-part/repair-kit IDs are registered with source GUI sprites; command-supplied wood Material data survived save/reload in both modes. This diagnostic does not validate which materials can be crafted for each item. The real-world `tconstruct:parts/bartered` tag resolves to its 21 registered items in both modes; the fake storage block is now registered, and the parent tag is used by the representative gameplay reuse described below; its full membership has not been exhaustively checked. The common reuse path uses world casting costs; a Linux test build converted a wood pick head into two handles in both modes, with input and Pattern consumption checked in the normal mode. The official Mixins build passed the same normal-mode operation. A test datapack making bronze craftable also exercised bronze reuse through the common compatibility-material calculation in the official Linux build; other reuse combinations and normal bronze acquisition remain unverified. Source material rarity and shiny glint, stat/trait tooltips, complete 3D rendering, and fake ingot/storage block behavior remain open. |
 | `fluids/TinkerFluids.java`, `shared/TinkerFood.java`, `fluids/item/ContainerFoodItem.java` | `tools/resources.py`, original bottle model and texture | A command-supplied venom bottle was drunk in both modes; poison damage, Strength presence and the returned glass bottle were observed. The source durations and 32-tick use time are configured, but exact runtime durations, tooltip, fluid capability and acquisition are not yet validated or implemented. |
 | `world/TinkerWorld.java` `createSlimewood` and Mantle `BlockDeferredRegister.registerWood` | `content/data/tconstruct/horizon/block/*_planks.json`, pinned source assets and loot | Four source slimewood planks use their original textures, map colors, hardness 2, resistance 3, slime sound metadata and non-fuel item behavior. A command-supplied greenheart plank was placed, saved, mined and rejected as furnace fuel in both modes. Normal acquisition and exact explosion-drop random sequence are not established. The registrations resolve the source tags needed by the tested oak-planks Part Builder path. |
+| `data/minecraft/tags/items/cluster_max_harvestables.json` | `content/data/minecraft/tags/item/cluster_max_harvestables.json` | The original four TConstruct tools are added to the native high-yield cluster harvest tag used by the source-derived loot tables. This tag addition awaits target-build verification for TConstruct and vanilla tools, Fortune and Silk Touch; source-reference tags remain separate. |
+| `shared/TinkerMaterials.java` metal registrations and `data/forge/tags/items/ingots/*` | `tools/resources.py`, source item sprites and original tag layers | Eleven previously absent original TConstruct ingot item IDs are registered with their source sprites. These items are registered unconditionally upstream; material conditions and acquisition recipes are unchanged. This addresses required entries missing from the aggregate `forge:ingots` tag, but target package/tag resolution and ordinary iron-based molding still need verification. |
+| `shared/TinkerMaterials.java` Pig Iron block and its source model/loot | `content/data/tconstruct/horizon/block/pig_iron_block.json` and related assets | The original oriented block, item, source textures and block loot are registered, with source pickaxe and iron-tier harvest tags. It uses a vanilla oriented template; piston behavior and map color still require source alignment. Placement, mining, loot, save/reload, source tag resolution and normal acquisition have not been verified in the target build. |
+| `shared/block/KnightMetalBlock.java` and source block model/loot | `content/data/tconstruct/horizon/block/knightmetal_block.json` and related assets | The block and item use source model, 1–15 pixel outline/collision and waterlogged states through the target's vanilla iron-chain template, plus source pickaxe tag and loot. The template also exposes an unused axis state absent from the original. Contact damage and source-specific pathfinding are not implemented; other inherited behavior requires comparison. Package, waterlogging, fire behavior, loot, source storage-tag resolution and normal acquisition remain unverified. |
+| `shared/TinkerMaterials.java` metal and nugget registrations and `data/forge/tags/items/nuggets/*` | `tools/resources.py`, source item sprites and original tag layers | The missing original nugget item IDs referenced by the source tag tree are registered without changing recipe or material conditions. The existing native copper-nugget adaptation is retained. Target package, aggregate tag resolution and natural acquisition remain unverified. |
+| `data/tconstruct/loot_tables/blocks/*_congealed_slime.json` | `content/data/tconstruct/loot_table/blocks/*_congealed_slime.json` | The four congealed slime variants use source loot: Silk Touch returns the block; otherwise four corresponding slime balls drop, subject to explosion decay. Earth uses vanilla slime balls. Target-build drops and normal world acquisition are unverified. |
+| `data/tconstruct/loot_tables/blocks/cobalt_ore.json` | `content/data/tconstruct/loot_table/blocks/cobalt_ore.json` | Cobalt ore uses the original `tconstruct:blocks/cobalt_ore` random sequence rather than sharing vanilla iron ore's sequence. The updated sequence has not yet been verified in a target-build Fortune or explosion test; other loot table sequence differences remain open. |
 | `tools/TinkerToolParts.java` / `ToolPartItem.java` default item properties; vanilla `FurnaceFuelSlot.mayPlace` | `tools/resources.py`, `nonfuel-inframe.rs` | Part items do not inherit the stick fuel component. A source Mixins hook applies the fuel-slot check to TConstruct items in in-frame play. In both modes, wood handle/binding remained on the cursor when placed at the fuel slot, while a vanilla stick was consumed. Other fuel items and furnace behaviors are not comprehensively tested. |
 | `library/tools/nbt/ToolStack.java` and `MaterialNBT.java`: `tic_materials` contains ordered material variants | `transaction.rs` | The fixed prototype pickaxe carries `[flint, wood, wood]` through assembly and save/reload. It uses the original pickaxe item ID; derived stats, traits and other original tool data are not yet fully ported. |
 | `tables/block/entity/table/PartBuilderBlockEntity.java`: recipe list from the pattern and inputs, selected pattern, `calcResult`, `onCraft`, remaining items and screen synchronization | `transaction.rs` | World recipe candidates, ordinary part plans and pickup are connected. Both game modes passed oak log → wood handle plus three planks and save/reload. After a cost reload, an existing table retained its old recipe until its input changed; two-player selection synchronization and competing pickup also passed. A per-table material-recipe cache was tested in both modes with a flint value change and an oak-log tag change: changing only the Pattern retains the old material, while removing and reinserting the material uses the new data. The previously unresolved oak-planks path now works in both modes after registering the four original slimewood plank block items required by the planks tags. Other material and tag reload interactions remain incomplete. The 1.20.1 crafting-container registry, remaining recycling, callbacks, all conditions and full transaction ordering remain incomplete. |
@@ -130,7 +137,7 @@ iteration and other original users of the RNG are not yet reproduced, so a
 particular seeded sequence is not claimed to match the original.
 The source recycling recipes use `TinkerFluids.venomBottle`: it has a
 16-item stack limit, glass-bottle crafting remainder, venom fluid content and
-food effects. It is registered and command-supplied tests verify its glass-bottle remainder; normal acquisition and fluid capability remain incomplete.
+food effects. It is registered and command-supplied tests verify its glass-bottle remainder; normal acquisition and general fluid capability remain incomplete. The smeltery container-transfer path now supports emptying a Venom Bottle into 250 mB of venom and returning a glass bottle; a supplied bottle returned a glass bottle in a Linux game, and blocked output preserved both inputs across reload. Saved block-entity data confirmed 250 mB transferred and no transfer on insufficient capacity. LAN and Windows remain unverified.
 `PartBuilderBlockEntity.onCraft` gives the recipe leftover before shrinking
 inputs; its `shrinkSlot` also returns each input item's crafting remainder
 (multiplied by consumed count). Reproducing both paths is required for venom
@@ -259,7 +266,7 @@ completeness or a substitute for original reference tests.
 | Original definition | Original values | Current state and required test |
 | --- | --- | --- |
 | `data/tconstruct/recipes/tables/pattern.json` | A shaped recipe uses planks and `forge:rods/wooden`, yielding six Patterns. | `content/data/tconstruct/recipe/pattern.json` accepts the vanilla stick only; test every applicable rod tag member and datapack change. |
-| `data/tconstruct/recipes/tables/{part_builder,tinker_station}.json` | Mantle retextured shaped recipes use `tconstruct:planklike`, `match_all: true` and the `w` input to determine the table texture. | Current vanilla-shaped recipes accept Minecraft planks and do not preserve a texture. Mantle `ShapedRetexturedRecipe.java` at `82bfe9c2b7762839f285f4d6727f038b4186506b` falls back to the default texture when matching texture inputs differ; the exact file also matches the declared Mantle 1.11.115 source artifact (SHA-256 `109c36576a55291bc4a6c707bda8708e1b4255a4cf5e75b5caf08e30ce224eee`). Port and test mixed inputs, planklike variants, placement, rendering, save/reload and drops. |
+| `data/tconstruct/recipes/tables/{part_builder,tinker_station}.json` | Mantle retextured shaped recipes use `tconstruct:planklike`, `match_all: true` and the `w` input to determine the table texture. | A candidate packages the source `planklike` item tag and connects both vanilla-shaped recipes to it, including Blazewood and Nahuatl. Supplied-material Linux fixtures verified both recipes with ordinary planks, Blazewood, Nahuatl and mixed inputs, plus missing Pattern, nonmember rejection, leftovers and local reload; a LAN guest crafted with Nahuatl. Final-main packaging, Windows and LAN restart remain unverified. The recipes still do not preserve texture. Mantle `ShapedRetexturedRecipe.java` at `82bfe9c2b7762839f285f4d6727f038b4186506b` falls back to the default texture when matching texture inputs differ; the exact file also matches the declared Mantle 1.11.115 source artifact (SHA-256 `109c36576a55291bc4a6c707bda8708e1b4255a4cf5e75b5caf08e30ce224eee`). Port and test mixed inputs, planklike variants, placement, rendering, save/reload and drops. |
 | `data/tconstruct/recipes/tools/parts/builder/{pick_head,tool_handle,tool_binding}.json` | Costs 2, 1 and 1 material units; each accepts the default-pattern tag or its specific cast and creates a material-bearing part. | Source recipes drive the tested GUI selection, material units and outputs, including oak-log leftovers and oak-plank consumption. Casts, full tags and other inputs remain incomplete. |
 | `library/recipe/ingredient/InstrumentIngredient.java` and generated material recipes | Ingredients include items, tags, alternatives, Forge differences and instrument-specific or tag-excluding conditions; instrument-free fallback is allowed for the ignore form. | `SourceMaterialRecipe` parses all 217 pinned material-input definitions, using `SourceIngredient` and `SourceCondition` for their 44 top-level conditions. Representative inputs, tags, differences, OR and configuration are tested. All 47 present leftover outputs parse as item or tag plus count, and the remainder count arithmetic is tested. Tag preference is implemented against a supplied tag and namespace-preference snapshot and tests explicit, missing and empty cases; NBT handling and live-world resolution remain unresolved. World recipe loading, live tags and default configuration are connected for supported cases; instrument and item-component handling, custom configuration and complete registry coverage remain incomplete. |
 | `tables/block/entity/inventory/PartBuilderContainerWrapper.java`: material lookup | Tool-part inputs use their `Material` and casting item cost; other inputs use the world recipe manager. | Ordinary material lookup and its table-scoped cache are connected to player crafting. The tool-part reuse branch remains a pure calculation; complete registries, tags and reload behavior remain open. `MaterialRecipeCache.findRecipe` is not a substitute for this station lookup. |
@@ -329,7 +336,7 @@ than assuming a world configuration.
 
 The official Horizon network serializer does not transmit generic item `custom_data`. The two network hooks add that component for vanilla and other mod items as well as TConstruct items; separate two-player tests checked a vanilla diamond through a shared chest, retrieval and save/reload in both execution modes. This does not establish complete preservation of arbitrary item components.
 
-Original cast-pattern evidence: `data/tconstruct/recipes/tools/parts/builder/tool_handle.json` accepts the default pattern tag or `tconstruct:tool_handle_cast`; `data/tconstruct/tags/items/patterns/reusable.json` includes the original gold-cast tag and elytra. The original sand/red-sand `builder_cast` recipes accept their respective cast tags and produce shaped casts; those inputs are outside the reusable tag and are consumed. A command-supplied gold handle cast and a blank sand cast were each exercised through the existing Linux test-generated GUI path. Casting-table molding now reads supported source recipes, consuming the placed blank and preserving reusable hand patterns in the output slot; this path and its crafted notification and statistic remain unverified; source item-specific onCraftedBy effects are not established. Remote cast-cost tooltips outside Part Builder, other cases and Windows remain incomplete or unverified.
+Original cast-pattern evidence: `data/tconstruct/recipes/tools/parts/builder/tool_handle.json` accepts the default pattern tag or `tconstruct:tool_handle_cast`; `data/tconstruct/tags/items/patterns/reusable.json` includes the original gold-cast tag and elytra. The original sand/red-sand `builder_cast` recipes accept their respective cast tags and produce shaped casts; those inputs are outside the reusable tag and are consumed. A command-supplied gold handle cast and a blank sand cast were each exercised through the existing Linux test-generated GUI path. Casting-table molding now reads supported source recipes, consuming the placed blank and preserving reusable hand patterns in the output slot; representative Linux local and guest transactions and crafted statistics were checked, while source item-specific onCraftedBy effects remain unverified. As in the source, an unrelated-held-item mold-less fallback returns its result without a crafted notification; the corrected fallback still needs a runtime retest. Remote cast-cost tooltips outside Part Builder, other cases and Windows remain incomplete or unverified.
 
 The Windows playtest bundles the Forge 47.4.0 item/fluid tags and recipes extracted from the pinned universal jar. `tools/prepare_bundled_forge.py` checks each file against its SHA-256 manifest before writing a separate pack; the Forge license is included under `third_party/forge/`. The separate Mojang client data is found locally or downloaded from Mojang and checked by SHA-1, not redistributed here. The launcher does not invoke Java, but has not been tested on Windows.
 
@@ -341,6 +348,89 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
 
+Part-swapping table and basin serializers now have a narrow casting candidate for undamaged, unupgraded tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged tools, modifier or trait changes, explicit material predicates and composite-fluid swaps remain unsupported; no game or LAN behavior has been verified for this candidate.
+
 Casting-table `table_duplication` now matches the source cast and fluid tags, retains the original input and copies its item data into the result. The bundled smithing-template recipe uses 500 mB molten diamond; this path awaits verification. Unsupported casting forms remain separate.
 
 The source `table_filling` recipe supports a plain empty bucket for registered bucket fluids through the existing casting transaction. It consumes the empty bucket and 1,000 mB and cools for five ticks; this path awaits game verification. As in the source Forge bucket wrapper, filling replaces the input with a new bucket rather than retaining input components. Other fluid-capability containers remain unsupported.
+
+The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
+The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
+The shared source recipe snapshot resolves `forge:conditional` candidates in source order and filters top-level recipe conditions at datapack reload against the current item/tag/config snapshots. Unknown earlier conditions or an unavailable context reject the affected recipe rather than select a later branch; unsupported conditions remain inactive. Consumers still need their own serializer support. This change awaits integrated verification.
+
+`forge:mod_loaded` recognizes native mods advertised by Horizon native hooks when `native_on` is true. Disabled native IDs remain unknown because their content may already be registered. Missing IDs also remain unknown: the host's content announcement can include a subsequently rejected content package, and not every native hook must advertise an ID. When the existing datapack ensure path next runs after an advertised native mod changes state, it refreshes the source snapshot. Original Forge mod IDs must match advertised Horizon IDs; content-only mods, absence detection, refresh timing and separate native recipe loading remain unresolved or unverified.
+Scorched Faucet now uses the existing faucet transaction, ticking, collision, source model and LAN state wiring, with the original three-brick crafting pattern. Runtime, rendering and LAN behavior await verification; Scorched Table and Basin remain separate work.
+
+Scorched Table and gold bars now have standalone source-shaped recipes, source models and the common casting transaction. Scorched Table requires a physical input, and gold bars are matched through the source empty-table-cast tag without consumption. The empty covered-state appearance and full Forge gold-ingot tag alternatives remain incomplete; operation, save and LAN await verification.
+
+Alloy input matching now supports source `catalyst` fluids: they must be present in the required amount but are not consumed. This enables the source water/lava molten-obsidian recipe in code; integrated operation, fuel and persistence remain unverified.
+
+### Material trait fallback by stat type
+
+The pinned material registry resolves a trait's exact stat type first, then its
+registered category fallback, then the material default. The trait selector now
+preserves that order for armor plating and maille and recognizes the source
+armor, ammo and ribcage stat types. Ribcage deliberately has no armor fallback.
+This fixes selection logic only; definitions that use `material_stats` still
+need their material entries connected to this selector separately.
+
+Rust syntax was checked. Unit, plan, build and gameplay are pending. Verify an
+exact plating override against armor fallback and default, empty explicit lists,
+maille, shield core, slime, skull, shell and laces, ribcage without armor
+fallback, and arrow head/shaft/fletching with ammo fallback. Check material
+swaps and saved/LAN stacks. Source:
+[MaterialRegistry](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/materials/MaterialRegistry.java).
+
+### Traits on material-stat equipment
+
+The trait resolver now accepts a tool definition's `material_stats.stat_types`
+as well as `part_stats.parts`, preserving material order and using the original
+stat-type fallback rules. Explicit `material_traits` modules contribute to the
+normal tool trait list only when their hooks include `tconstruct:tool_traits`
+or use the source default hooks; trim-only and rebalanced-only modules are not
+mistaken for normal tool traits. Material-stat tools no longer require an
+unrelated `tool_building` recipe merely to read their traits.
+
+This connects trait selection for these definitions; it does not implement
+every selected modifier, material acquisition, trim rendering or equipment
+behavior. Rust syntax was checked; unit, combined build and gameplay remain
+pending. Verify Plate Shield and Slime armor material order, exact/fallback and
+empty traits, Slime Chestplate's explicit tool-traits module, trim-only hooks,
+missing/invalid indices, material swap, reload and LAN. Compare the pinned
+[MaterialStatsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialStatsModule.java)
+and [MaterialTraitsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialTraitsModule.java).
+
+### Slime chestplate definition lookup
+
+The registered item ID is `tconstruct:slimy_chestplate`, while its pinned
+original tool definition is `tconstruct:slime_chestplate`. Station and material
+trait lookups now resolve that exact pair to the original definition; other
+namespaces and item IDs are unchanged. This fixes definition lookup only and
+does not by itself establish crafting, all armor behavior, guide display or
+Creative initialization.
+
+Rust syntax was checked. Unit, plan, build and gameplay remain pending. Verify
+Station operations and trait resolution for the registered chestplate, an
+unrelated TConstruct item, and the same name in another namespace; include
+material swap, reload and LAN. Guide and Creative lookup paths remain separate.
+
+The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
+
+The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack damage, known maximum durability and source unit rounding, including Foundry byproducts. Unknown or malformed maximum-damage components fail closed; exact runtime, reload and LAN behavior await verification.
+
+Material-part melting now uses the existing source casting-cost and material lookup to resolve `material_melting`, scale primary and Foundry byproducts by part cost, and compute source melting time. Missing tags, material definitions, costs or fluid outputs fail closed. Runtime and LAN behavior await verification.
+
+### Skull material armor stat
+
+The original `SkullStats.apply` updates the armor stat using the skull
+material's `armor` field and the tool definition's scale. The shared material
+stat calculation now handles this field instead of ignoring skull stats. The
+bundled source skull examples have zero armor; a nonzero datapack value is a
+useful verification fixture, not evidence of a naturally obtainable source
+material with that value. Skull durability remains a repair value, while the
+Slime Helmet's durability comes from its slime material.
+
+Rust syntax was checked. Unit tests, official build and gameplay verification
+are pending. Check missing/zero/nonzero armor, non-unit scale, the Slime Helmet's
+slime durability, material replacement, reload, and a malformed value. See the
+original [SkullStats](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/stats/SkullStats.java).
