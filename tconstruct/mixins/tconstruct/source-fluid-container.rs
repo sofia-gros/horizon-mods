@@ -61,6 +61,25 @@ fn can_contents(stack: &ItemStack) -> Option<(Option<String>, Option<horizon_wor
         _ => None,
     }
 }
+/// Source NoContainerIngredient for the explicitly supported TConstruct
+/// portable containers. Opaque or malformed data remains unknown.
+pub(super) fn no_crafting_remainder(stack: &ItemStack) -> Option<bool> {
+    use horizon_world::nbt::Tag;
+    if stack.count == 0 || stack.wire_patch().is_some() { return None; }
+    if stack.item.as_ref() == "tconstruct:copper_can" {
+        return can_contents(stack).map(|(fluid, _)| fluid.is_none());
+    }
+    super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item)?;
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+        None => Some(true),
+        Some(Tag::Compound(data)) => match data.get(&"tconstruct:tank".into()) {
+            None => Some(true),
+            Some(Tag::Compound(_)) => Some(false),
+            Some(_) => None,
+        },
+        Some(_) => None,
+    }
+}
 pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
     let (fluid, tag) = can_contents(stack)?;
     tag.is_none().then_some(fluid)
@@ -81,10 +100,60 @@ fn can_set_tagged(stack: &ItemStack, fluid: Option<&str>, tag: Option<&horizon_w
     result.data_mut().set_other("minecraft:custom_data", (!data.is_empty()).then_some(Tag::Compound(data)));
     Some(result)
 }
+// Capacity is written during the narrow source-validated Station rebuild.
+fn tool_capacity(stack: &ItemStack) -> Option<u32> {
+    use horizon_world::nbt::Tag;
+    if stack.count != 1 || !stack.item.starts_with("tconstruct:") || stack.wire_patch().is_some() { return None; }
+    let data = stack.data()?.other("minecraft:custom_data")?;
+    match data.get("tic_tank_capacity")? { Tag::Int(n) if *n > 0 => u32::try_from(*n).ok(), _ => None }
+}
+
+fn transfer_tool(tank: &mut SmelteryTank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
+    selected: Option<&str>, known_fluid: &impl Fn(&str) -> bool, allow_tags: bool) -> bool {
+    let Some(input) = slots[0].as_ref() else { return false; };
+    let Some(capacity) = tool_capacity(input) else { return false; };
+    let Some(current) = super::pluto_stack_fluid::read(input, "tic_persistent", "tconstruct:tank_fluid") else { return false; };
+    if current.as_ref().is_some_and(|f| f.amount > capacity || (!allow_tags && f.tag.is_some())) { return false; }
+    let mut next = tank.clone();
+    let mut after = current;
+    let mut moved = false;
+    if direction != Direction::FillItem {
+        if let Some(fluid) = &mut after {
+            let amount = fluid.amount.min(next.capacity.saturating_sub(next.total()));
+            if amount > 0 && known_fluid(&fluid.id) && next.insert_tagged(&fluid.id, fluid.tag.as_ref(), amount) {
+                fluid.amount -= amount; moved = true;
+            }
+        }
+        if after.as_ref().is_some_and(|fluid| fluid.amount == 0) { after = None; }
+    }
+    if !moved && direction != Direction::EmptyItem {
+        let entry = if let Some(id) = selected {
+            let mut choices = next.fluids.iter().filter(|fluid| fluid.id == id);
+            let Some(entry) = choices.next() else { return false; };
+            if choices.next().is_some() { return false; } entry
+        } else { let Some(entry) = next.fluids.first() else { return false; }; entry };
+        if !known_fluid(&entry.id) || (!allow_tags && entry.tag.is_some()) { return false; }
+        if after.as_ref().is_some_and(|fluid| fluid.id != entry.id || fluid.tag != entry.tag) { return false; }
+        let (id, tag) = (entry.id.clone(), entry.tag.clone());
+        let amount = entry.amount.min(capacity.saturating_sub(after.as_ref().map_or(0, |fluid| fluid.amount)));
+        if amount == 0 || !next.take_tagged(&id, tag.as_ref(), amount) { return false; }
+        if let Some(fluid) = &mut after { fluid.amount += amount; }
+        else { after = Some(super::pluto_stack_fluid::StackFluid { id, amount, tag }); }
+        moved = true;
+    }
+    if !moved { return false; }
+    let Some(output) = super::pluto_stack_fluid::write(input, "tic_persistent", "tconstruct:tank_fluid", after.as_ref(), capacity) else { return false; };
+    slots[0] = None; slots[1] = Some(output); *tank = next; true
+}
+
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
     accepts_with_color(stack, known_fluid, false)
 }
 pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
+    if tool_capacity(stack).is_some() {
+        return super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid")
+            .is_some_and(|fluid| fluid.as_ref().is_none_or(|f| known_fluid(&f.id) && (allow_color || f.tag.is_none())));
+    }
     if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
     if stack.item.as_ref() == "minecraft:potion" { return potion_data(stack, allow_color).is_some(); }
     if matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
@@ -303,7 +372,9 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
     item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
-    if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
+    if input.count == 0 || !known_item(&input.item) { return false; }
+    if tool_capacity(input).is_some() { return transfer_tool(tank, slots, direction, selected, known_fluid, allow_color); }
+    if input.damage != 0 { return false; }
     if matches!(&*input.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") {
         use horizon_world::nbt::Tag;
         if direction == Direction::FillItem { return false; }
@@ -485,6 +556,46 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn tool_tank_transfer_preserves_item_and_rejects_mixing() {
+        use super::*;
+        use horizon_world::nbt::Tag;
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        tool.damage = 10;
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:tank", Tag::Int(1))])),
+            ("tic_tank_capacity", Tag::Int(1000)), ("unrelated", Tag::Int(7)),
+        ])));
+        let mut machine = SmelteryTank::new(2000);
+        assert!(machine.insert("minecraft:water", 1000));
+        let mut slots = [Some(tool), None];
+        assert!(transfer_selected_with_color(&mut machine, &mut slots, Direction::FillItem, None, &|_| true, &|_| true, None, true));
+        assert_eq!(machine.total(), 0);
+        let filled = slots[1].take().unwrap();
+        assert_eq!(filled.damage, 10);
+        assert_eq!(filled.data().unwrap().other("minecraft:custom_data").unwrap().get("unrelated"), Some(&Tag::Int(7)));
+        slots[0] = Some(filled);
+        assert!(machine.insert("minecraft:lava", 1000));
+        let before = machine.clone();
+        let saved = slots[0].clone();
+        assert!(!transfer_selected_with_color(&mut machine, &mut slots, Direction::FillItem, None, &|_| true, &|_| true, None, true));
+        assert_eq!(machine, before);
+        assert!(slots[0].as_ref().unwrap().same_item_same_components(saved.as_ref().unwrap()));
+    }
+    #[test]
+    fn source_remainder_requires_no_tank_compound_or_can_fluid() {
+        use super::*;
+        use horizon_world::nbt::Tag;
+        let mut tank = ItemStack::new("tconstruct:seared_fuel_gauge", 1);
+        assert_eq!(no_crafting_remainder(&tank), Some(true));
+        tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("amount", Tag::Int(0))]))])));
+        assert_eq!(no_crafting_remainder(&tank), Some(false));
+        let mut can = ItemStack::new("tconstruct:copper_can", 1);
+        assert_eq!(no_crafting_remainder(&can), Some(true));
+        can = can_set_fluid(&can, Some("minecraft:water")).unwrap();
+        assert_eq!(no_crafting_remainder(&can), Some(false));
+        assert_eq!(no_crafting_remainder(&ItemStack::new("minecraft:stone", 1)), None);
+    }
     #[test]
     fn lantern_transfer_keeps_tag_and_refuses_ambiguous_variants() {
         use horizon_world::nbt::Tag;
