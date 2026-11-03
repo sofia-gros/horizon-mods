@@ -370,6 +370,8 @@ Copper Can has a source-shaped standalone copper-ingot recipe and stores 90 mB p
 
 The single- and multi-fluid tank NBT formats retain optional compound fluid tags and distinguish otherwise identical fluids by tag. Copper Can container-slot transfers preserve tagged fluid data and move one 90 mB can at a time; selecting by ID refuses ambiguous variants. Ordinary alloys can proceed alongside unrelated tagged entries while ambiguous ingredient matches fail closed; other untagged transfer paths reject tagged entries until their routing supports metadata; potion bottle conversion and potion casting remain unconnected. Save, wire synchronization and behavior with older worlds remain unverified.
 
+The faucet packet buffer now retains the fluid tag across reservation, pouring and its saved NBT. Machine casting continues to reject tagged fluid until an appropriate metadata-aware recipe is selected. This path awaits integration and runtime verification.
+
 The source `basin_filling` recipes for seared and scorched fuel and ingot tanks use the existing tank-item data representation. Filling consumes at most the recipe amount and available capacity, retains other item components, and rejects mixed fluids. A combined Linux build verified representative 250 mB and 90 mB fills, capacity and rejection cases, saved NBT and representative LAN guest operation; Windows and all timing/component combinations remain unverified. Other basin containers remain unsupported.
 
 The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
