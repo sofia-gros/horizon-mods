@@ -347,7 +347,7 @@ pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack
     percent
 }
 
-pub(super) fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
+pub fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
     use horizon_world::nbt::Tag;
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(fields) = &mut custom else { return None; };

@@ -359,7 +359,7 @@ pub(super) fn plan_with_traits(
 }
 
 /// Regenerate gem durability and armor from baseline, never from a previous upgrade result.
-pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
+pub fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &BTreeMap<String, i32>, armor: bool, worn_armor: bool) -> Option<()> {
     let diamond = amount(tool, "tconstruct:diamond") > 0;
     let emerald = amount(tool, "tconstruct:emerald") > 0;
