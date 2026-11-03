@@ -724,26 +724,30 @@ parity.
 
 The default fluid-swapping form of the supported slimelytra and four
 first-material recipes can replace their last material with a different
-ordinary casting fluid. It requires an undamaged, unmodified item matching a
-freshly assembled copy exactly. The Station rebuild validates slots and
+ordinary casting fluid. It requires an undamaged item matching a freshly
+assembled copy except for an optional custom name and lore, which are
+preserved when the name and each lore line are string or compound text values.
+Other text forms are refused. The Station rebuild validates slots and
 rejects unsupported material-trait removal, and the result must round-trip
 through the item codec. Slimeskull explicitly disables fluid swapping in the
-source and is not admitted. Damaged or modified tools, composite fluids,
+source and is not admitted. Damaged tools, gameplay modifiers, composite fluids,
 unknown forms and unrecognized data remain unsupported. A parsed tool-cast
 and explicit part-swap overlap is rejected before either path dispatches;
-overlaps outside the parsed recipe families are not generally analyzed. Host integration, real
-gameplay and LAN behavior remain unverified.
+overlaps outside the parsed recipe families are not generally analyzed. Host
+integration, real gameplay and LAN behavior remain unverified.
 
 ### Narrow slimeskull material replacement
 
 The separate source basin part-swap recipe changes material index 1 of a
 slimeskull helmet, preserving its skull material and charging five units of
-the selected ordinary material fluid. This path accepts only an undamaged,
-unmodified helmet identical to a freshly assembled copy. It uses the Station
+the selected ordinary material fluid. This path accepts only an undamaged
+helmet matching a freshly assembled copy apart from an optional custom name
+and lore, which are preserved for string or compound text values. Other text
+forms are refused. It uses the Station
 rebuild's slot and trait-removal checks and requires an item-codec round trip.
 When the fixed recipe is present, a failed or competing parsed swap does not
-fall through to another casting path. Damaged or modified helmets, composite
-fluids, unrecognized recipe forms and arbitrary datapack overlaps remain
+fall through to another casting path. Damaged helmets, gameplay modifiers,
+composite fluids, unrecognized recipe forms and arbitrary datapack overlaps remain
 unsupported or unverified. Integrated host, gameplay and LAN are untested.
 
 ### Clearing an existing potion tip

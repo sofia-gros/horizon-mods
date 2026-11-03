@@ -18,7 +18,8 @@ class SlimeskullPartSwapTest(unittest.TestCase):
     def test_exclusive_guard_and_safe_rebuild_wiring(self):
         world = (ROOT / 'mixins/tconstruct/source-melter-world.rs').read_text()
         self.assertLess(world.index('catalog.has_slimeskull_swap'), world.index('if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid)'))
-        self.assertIn('stack.same_item_same_components(&pristine)', world)
+        self.assertIn('same_pristine_with_presentation(stack, &pristine)', world)
+        self.assertIn('presentation_preserved(stack, &output)', world)
         self.assertIn('identities[1] = material;', world)
         self.assertIn('rebuild_material_swap(world, definition, stack, &identities, 0, true', world)
         self.assertIn('item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?', world)
