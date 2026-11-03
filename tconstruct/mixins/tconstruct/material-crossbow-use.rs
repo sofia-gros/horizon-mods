@@ -21,7 +21,7 @@ fn tconstruct_crossbow_use(
                 (angle, power, i == 0)
             }).collect();
             let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, if game.lan_acting.is_none() { game.player.as_ref().map(|player| player.health.health()) } else { None }), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, game.player.as_ref().map(|player| player.health.health())), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);
