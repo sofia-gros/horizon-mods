@@ -86,6 +86,12 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
     Some(f(&catalog, &registries, config))
 }
 
+pub(super) fn molding(world: &World, material: &str, pattern: Option<&str>) -> Option<(String, super::tconstruct_source_melting_recipes::MoldingRecipe)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.molding(material, pattern, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
@@ -95,6 +101,25 @@ pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecip
 pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.foundry_melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn material_melting(world: &World, stack: &horizon_items::items::ItemStack)
+    -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    if !tags.get("tconstruct:parts")?.contains(stack.item.as_ref()) { return None; }
+    let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
+    let cost = u32::try_from(material.value).ok()?;
+    super::tconstruct_source_builder_world::supported_material(world, &material.material).ok()?;
+    with_catalog(world, |catalog, registries, config| {
+        catalog.material_melting(&stack.item, &material.material, cost, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn damaged_melting(world: &World, item: &str, damage: u32, maximum: u32)
+    -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.damaged_melting(item, damage, maximum, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
@@ -124,12 +149,20 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
     if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid) {
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
-    let stack = input?;
+    if let Some(stack) = input {
+        if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+            catalog.duplication(basin, &stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        })? {
+            let mut output = stack.clone();
+            output.count = 1;
+            return Some((id, recipe, output));
+        }
+    }
     let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
     let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
         .ok().map(|(_, parts)| parts.contains(output));
     let supports = |material: &str, output: &str| supports_checked(material, output).unwrap_or(false);
-    let material = stack.data().and_then(|data| data.other("minecraft:custom_data"))
+    let material = input.and_then(|stack| stack.data()).and_then(|data| data.other("minecraft:custom_data"))
         .and_then(|tag| tag.get("Material"))
         .and_then(|tag| match tag { horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None });
     let resolved = with_catalog(world, |catalog, registries, config| {
@@ -174,14 +207,14 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             super::tconstruct_source_melting_lookup::material_predicate(value, material,
                 &|tag, id| material_tags.get(tag).is_some_and(|values| values.contains(id)), &supports_checked, &extra).unwrap_or(false)
         };
-        let composite = material.as_deref().and_then(|material| catalog.composite_casting(basin, &stack.item, material, fluid,
+        let composite = input.zip(material.as_deref()).and_then(|(stack, material)| catalog.composite_casting(basin, &stack.item, material, fluid,
             &supports, &allowed,
             &|material, stat| {
                 let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
                 let base = material.split_once('#').map_or(material, |(base, _)| base);
                 Some(stats.get(base)?.contains_key(stat))
             }, &conditions));
-        composite.or_else(|| if basin { None } else { catalog.material_casting(&stack.item, fluid, &supports, &allowed, &conditions) })
+        composite.or_else(|| catalog.material_casting(basin, input_id, fluid, &supports, &allowed, &conditions))
     })??;
     let (id, recipe, output, material) = resolved;
     let mut output_stack = horizon_items::items::ItemStack::new(&output, 1);
