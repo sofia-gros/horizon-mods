@@ -49,7 +49,7 @@ The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
 Silk Touch versus underlying slime-dirt loot. Source grass/nylium random ticks
 have experimental connections described below; position-dependent terrain tint
-is disconnected, and bonemeal and validation remain open.
+is disconnected, and dedicated validation remains open.
 
 The original five `slimy_soil` child tags and their aggregate are included,
 with all 25 foliage/soil grass combinations, four slimy Enderbark roots and
@@ -130,7 +130,7 @@ The registered slime grasses request random ticks. The local authoritative
 server hook applies the source grass validity, light and four spread attempts
 to vanilla and slime dirt, including the source loaded-area and water checks.
 The source Nylium variant reverts to its underlying dirt when blocked; it
-does not use the overworld grass-spreading branch. Source grass bonemeal and
+does not use the overworld grass-spreading branch. Grass bonemeal has an experimental hook described below. Nylium bonemeal and
 dedicated-server coverage remain open; sapling and vine growth are separate
 experimental candidates. The target injection plan, exact light/occlusion and random-draw order,
 chunk edges, snow, fluids, save/reload and vanilla grass regressions require
@@ -345,6 +345,17 @@ older targets, not the current feature status:
 The authoritative level's survival hook recognizes all five slime fern and
 short-grass variants. These plants can remain on any of the four slime dirts
 or 25 slime-grass combinations, and reject ordinary dirt and unrelated
-blocks. This connects support checks; it does not implement slime-grass
-bonemeal or establish placement, neighbor updates, drops, dedicated-server,
-save/reload, or LAN parity. Those remain to be validated.
+blocks. This connects support checks; placement, neighbor updates, drops,
+dedicated-server, save/reload, and LAN parity remain to be validated.
+
+## Experimental slime-grass bonemeal
+
+The authoritative hook accepts bone meal on Earth, Sky, and Ender slime grass
+when the block above is air, then uses the pinned grass algorithm to attempt
+up to 128 fern or tall-grass placements on `tconstruct:slimy_grass`. The
+original tag and its three foliage variants are supplied. Attempts that cross
+unloaded chunks are skipped conservatively, so chunk-edge results can differ.
+This does not implement Blood or Ichor nylium bonemeal, which also spreads to
+soil and may grow saplings. Datapack tag reload, obstruction, consumption,
+placement and survival, save/reload, local/LAN and dedicated-server behavior
+remain unverified in the running game.
