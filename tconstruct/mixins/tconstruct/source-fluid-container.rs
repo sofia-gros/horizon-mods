@@ -86,6 +86,17 @@ pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
     let (fluid, tag) = can_contents(stack)?;
     tag.is_none().then_some(fluid)
 }
+/// Conservative display view only; transfer validation remains unchanged.
+/// Tagged fluids need their own variant-aware names and colors before display.
+pub(super) fn can_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<String> {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return None; }
+    let (fluid, tag) = can_contents(stack)?;
+    let fluid = fluid?;
+    if tag.is_some() || fluid == "tconstruct:potion" || !known(&fluid)
+        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:lava") || fluid.starts_with("tconstruct:")) { return None; }
+    Some(fluid)
+}
+
 pub(super) fn can_set_fluid(stack: &ItemStack, fluid: Option<&str>) -> Option<ItemStack> {
     can_set_tagged(stack, fluid, None)
 }
@@ -560,6 +571,39 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn can_display_is_read_only_and_conservative() {
+        use horizon_world::nbt::Tag;
+        let empty = ItemStack::new("tconstruct:copper_can", 8);
+        assert_eq!(can_display_fluid(&empty, &known), None);
+        let mut filled = can_set_fluid(&empty, Some("minecraft:water")).unwrap();
+        filled.count = 8;
+        let before = filled.clone();
+        assert_eq!(can_display_fluid(&filled, &known).as_deref(), Some("minecraft:water"));
+        assert_eq!(filled, before);
+        assert_eq!(can_display_fluid(&filled, &|_| false), None);
+        filled.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:can".into())));
+        assert_eq!(can_display_fluid(&filled, &known), None);
+        filled = before.clone(); filled.damage = 1;
+        assert_eq!(can_display_fluid(&filled, &known), None);
+        filled = before.clone(); filled.count = 0;
+        assert_eq!(can_display_fluid(&filled, &known), None);
+        filled = before.clone();
+        for data in [Tag::Int(90), Tag::compound([("fluid", Tag::Int(1))]),
+            Tag::compound([("fluid", Tag::String("example:water".into()))]),
+            Tag::compound([("fluid", Tag::String("tconstruct:potion".into()))])] {
+            filled.data_mut().set_other("minecraft:custom_data", Some(data));
+            assert_eq!(can_display_fluid(&filled, &known), None);
+        }
+        for color in [Tag::String("red".into()), Tag::Int(-1), Tag::Int(0x1000000), Tag::Int(0x123456)] {
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", color)]);
+            let potion = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
+            assert_eq!(can_display_fluid(&potion, &known), None);
+        }
+        let tag = Tag::compound([("variant", Tag::String("unknown".into()))]);
+        assert_eq!(can_display_fluid(&can_set_tagged(&empty, Some("minecraft:water"), Some(&tag)).unwrap(), &known), None);
+        assert_eq!(can_display_fluid(&ItemStack::new("minecraft:water_bucket", 1), &known), None);
+    }
     #[test]
     fn tool_tank_transfer_preserves_item_and_rejects_mixing() {
         use super::*;

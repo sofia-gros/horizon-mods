@@ -4856,3 +4856,17 @@ target = "horizon_client::game::native_hooks::GameLevel<'_>::native_can_survive"
 kind = "HEAD"
 helper = "source-slime-plant-survive.rs"
 bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "survives", ty = "&mut Option<bool>", value = "&mut *survives" }]
+
+[[injection]]
+id = "copper-can-contents-gui"
+target = "horizon_client::game::item_draw::Game<'_>::draw_item_model"
+kind = "RETURN"
+helper = "render-copper-can.rs"
+bindings = [
+  { name = "_value", ty = "()", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "batch", ty = "&mut horizon_client::hud::HudBatch", value = "&mut *batch" },
+  { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" },
+  { name = "x", ty = "f32", value = "x" },
+  { name = "y", ty = "f32", value = "y" },
+]
