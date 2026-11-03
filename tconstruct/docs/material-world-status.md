@@ -97,3 +97,5 @@ speed 1 with Lightweight 1 and Swiftstrike 1 is 1.13; mining speed 4 with
 Lightweight 1 and Heavy 1 is 4.92. These candidate paths and focused tests are
 not yet applied, type-checked or verified in game. Other modifier modules and
 unsupported stat operations are not claimed complete.
+
+Source stat builder `MULTIPLY_BASE` factors compound in modifier order for durability, mining and the supported melee/ranged stats. The focused older-host helper fixtures cover these phases; the current-host build and game behavior remain unverified for this candidate.
