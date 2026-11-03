@@ -52,6 +52,58 @@ pub(super) fn resolve_tag(snapshot: &Raw, tag: &str, complete_registry: Option<&
     super::tconstruct_source_tags::resolve_tag(tag, &tags, registry)
 }
 
+/// Authoritative results of evaluating the highest-priority JSON resource.
+/// Producing these results requires the source condition context and modifier
+/// deserializer; this module intentionally does not guess them from file names.
+#[allow(dead_code)]
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) enum ClassifiedDefinition {
+    Loaded,
+    Skipped,
+    Redirect(String),
+}
+
+/// Compose already-classified definitions with the complete static registry.
+/// The returned map resolves an ID to the actual modifier's ID. Source checks
+/// static entries first, then ordinary dynamics; redirects are resolved in a
+/// separate pass against those entries, so redirect chains do not resolve.
+/// Missing any authoritative classification makes the whole result unknown.
+#[allow(dead_code)]
+pub(super) fn compose_registry(
+    snapshot: &Raw,
+    static_ids: Option<&HashSet<String>>,
+    classifications: &BTreeMap<String, ClassifiedDefinition>,
+) -> Result<BTreeMap<String, String>, String> {
+    let static_ids = static_ids.ok_or("static modifier registry unavailable")?;
+    let mut definition_ids = HashSet::new();
+    for key in snapshot.0.keys() {
+        let (namespace, path) = key.split_once(':').ok_or("invalid modifier resource key")?;
+        let path = path.strip_prefix("tinkering/modifiers/").ok_or("invalid modifier resource path")?;
+        definition_ids.insert(format!("{namespace}:{path}"));
+    }
+    if definition_ids.len() != classifications.len() || !definition_ids.iter().all(|id| classifications.contains_key(id)) {
+        return Err("modifier classification incomplete".into());
+    }
+    let mut resolved = BTreeMap::new();
+    for id in static_ids { resolved.insert(id.clone(), id.clone()); }
+    for (id, decision) in classifications {
+        if *decision == ClassifiedDefinition::Loaded {
+            resolved.entry(id.clone()).or_insert_with(|| id.clone());
+        }
+    }
+    // Do not let redirects see each other, including when their lexical order
+    // would otherwise accidentally permit chains.
+    let targets = resolved.clone();
+    for (id, decision) in classifications {
+        if let ClassifiedDefinition::Redirect(target) = decision {
+            if let Some(canonical) = targets.get(target) {
+                resolved.entry(id.clone()).or_insert_with(|| canonical.clone());
+            }
+        }
+    }
+    Ok(resolved)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -108,6 +160,42 @@ mod tests {
         merge_pack(&mut after, Vec::<String>::new(), |_| None).unwrap();
         assert!(highest_definition(&before, "x:tinkering/modifiers/one").is_some());
         assert!(highest_definition(&after, "x:tinkering/modifiers/one").is_none());
+    }
+
+    #[test]
+    fn registry_requires_complete_inputs_and_classifications() {
+        let mut raw = Raw::default();
+        raw.0.insert("x:tinkering/modifiers/a".into(), vec![b"{}".to_vec()]);
+        let static_ids = HashSet::new();
+        let mut decisions = BTreeMap::new();
+        assert!(compose_registry(&raw, None, &decisions).is_err());
+        assert!(compose_registry(&raw, Some(&static_ids), &decisions).is_err());
+        decisions.insert("x:a".into(), ClassifiedDefinition::Skipped);
+        assert!(compose_registry(&raw, Some(&static_ids), &decisions).unwrap().is_empty());
+        decisions.insert("x:unlisted".into(), ClassifiedDefinition::Loaded);
+        assert!(compose_registry(&raw, Some(&static_ids), &decisions).is_err());
+    }
+    #[test]
+    fn registry_static_priority_and_single_pass_redirects() {
+        let mut raw = Raw::default();
+        for id in ["static", "dyn", "alias", "chain", "missing", "skip"] {
+            raw.0.insert(format!("x:tinkering/modifiers/{id}"), vec![b"{}".to_vec()]);
+        }
+        let static_ids = ["x:static".to_owned()].into_iter().collect();
+        let decisions = [
+            ("static", ClassifiedDefinition::Redirect("x:dyn".into())),
+            ("dyn", ClassifiedDefinition::Loaded),
+            ("alias", ClassifiedDefinition::Redirect("x:dyn".into())),
+            ("chain", ClassifiedDefinition::Redirect("x:alias".into())),
+            ("missing", ClassifiedDefinition::Redirect("x:unknown".into())),
+            ("skip", ClassifiedDefinition::Skipped),
+        ].into_iter().map(|(id, value)| (format!("x:{id}"), value)).collect();
+        let registry = compose_registry(&raw, Some(&static_ids), &decisions).unwrap();
+        assert_eq!(registry.get("x:static").map(String::as_str), Some("x:static"));
+        assert_eq!(registry.get("x:alias").map(String::as_str), Some("x:dyn"));
+        assert!(!registry.contains_key("x:chain"));
+        assert!(!registry.contains_key("x:missing"));
+        assert!(!registry.contains_key("x:skip"));
     }
 
 }

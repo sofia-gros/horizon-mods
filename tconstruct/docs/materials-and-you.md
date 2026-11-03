@@ -58,3 +58,13 @@ registry or modifier pages are exposed by this groundwork. Manual original
 pack directories retain their existing precedence and may lack these files.
 Datapack reload, multiplayer synchronization, full Mixins integration and
 actual book display remain unverified.
+
+An isolated registry-composition helper now models the source's static-first
+lookup and its single redirect pass over static and ordinary dynamic entries.
+It requires an authoritative complete static ID set and an authoritative
+classification of every highest-priority dynamic definition. The current host
+provides neither: conditions, modifier deserialization and registration events
+are not yet faithfully reproduced. The helper therefore has no production
+consumer, and it must not be mistaken for a complete registry. Modifier tag
+entries can resolve redirects to the target modifier object, so the existing
+string-only tag resolver is not sufficient for displaying those entries.
