@@ -71,8 +71,8 @@ when its holder is off the ground, out of water, not riding and not climbing.
 The source gives the flat bonus once regardless of trait level. It runs before
 Dwarven's altitude adjustment. The single-player path uses the existing host
 climbable query, including its ladder and trapdoor rules; if the query fails,
-the bonus is not applied. The LAN guest projectile effect is temporarily
-unavailable until the guest's water, climbing and riding state is verified.
+the bonus is not applied. The acting player's motion is used during a LAN turn;
+guest water, climbing and riding state still require runtime verification.
 The mining portion is tracked separately in [mining traits](mining-traits.md).
 
 Focused Rust checks use the saved older host's item and NBT libraries; they do
@@ -96,3 +96,22 @@ cover both bows, zero/one/multiple Solid levels, definition multipliers,
 Diamond and Ductile combinations, repeated rebuilding, material replacement,
 and save/reload. The trait's protection, movement and gravity portions remain
 separate work.
+
+## Raging projectile damage
+
+Pewter's Raging trait adds conditional projectile damage at firing time:
+`clamp((11 - health) / 10, 0, 1) * level * projectileDamageMultiplier`.
+At 11 health or higher there is no bonus; at 1 health or lower it reaches its
+maximum. The tool's material traits are rebuilt on a part swap. This implements
+the projectile portion of [the original Raging definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/raging.json).
+
+The firing path uses the current acting player's health, including during a LAN
+turn when the host has swapped that player's body into the game. This correction
+needs runtime verification for local and guest shots. Pewter is a compatibility material, and this change does not supply a
+natural acquisition path. The melee portion remains separate work.
+
+Rust syntax was checked; unit tests, the current-target build, and gameplay are
+pending. Verification should compare both bows at health 20, 11, 6, and 1,
+including multiple levels, definition stat multipliers, other damage modifiers,
+rebuild and material replacement, save/reload, and LAN guest behavior. Label any
+command-supplied material as a fixture.
