@@ -115,8 +115,100 @@ A follow-up corrects two direct NBT compound lookups to use the host's
 with this correction; the exact follow-up head still needs the dedicated tests
 and official target type check.
 
+## Ranged stat-order candidate
+
+A source candidate rebuilds bow draw speed, velocity, accuracy and projectile
+damage through the same ordered add, multiply-base and multiply-all phases.
+It also connects the Solid trait's source `+0.75` projectile damage per level
+for the supported launchers. The nonzero pre-existing draw/velocity percentage
+in the focused check is a synthetic builder input; natural material coverage is
+not established by it. The candidate has not been applied, type-checked or
+checked in game. Compare source float ordering, material/part swaps, Quick
+Charge, Netherite, Vintage, Solid and conditional arrow velocity on the exact
+integrated target before claiming parity.
+
+### Source-backed crossbow reference cases
+
+The original `crossbow` definition uses a limb, grip and bowstring, with a
+2x durability multiplier. The following are source-data calculation inputs,
+not completed natural-survival playthroughs:
+
+| Limb / grip / bowstring | Source traits | Quick Charge 1 expected draw / velocity / accuracy |
+| --- | --- | --- |
+| Cobalt / Cobalt / String | Lightweight 2, Stringy 1 | 1.3875 / 1.11 / 0.85 |
+| Amethyst Bronze / Wood / String | Crystalbound 1, Cultivated 1, Stringy 1 | 1.0625 / 1.25 / 0.70 |
+
+The values use the original generated material stats and traits at
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Cobalt ore generation and ore-to-part
+steps have representative tests with supplied tools; the Amethyst Bronze
+smeltery route has a representative test. Neither proves fixture-free acquisition
+of these complete crossbows. The added product-helper cases require a dedicated
+run and original builder comparison.
+
+The Solid projectile-damage candidate in #86 and the #279 stat rebuild edit the
+same calculation. #86 is not an ancestor of #279: on #279 the source module
+adds Solid once when rebuilding `tic_projectile_damage`, and the projectile
+path reads that stored result. Preserve that single addition when integrating
+#86; do not apply its old formula a second time. Invar's Solid source material
+is compatibility-conditional, so its ordinary acquisition is not asserted.
+
 The combined stat/splash candidate's formal apply stopped at `E_MODULE` for
 support sources with inner documentation headers. A follow-up replaces those
 headers with ordinary comments; a manifest-source scan found no remaining
 leading inner-doc headers. The follow-up's formal apply and subsequent type or
 game checks remain pending.
+
+
+The ranged/fluids integration candidate combines the source-backed crossbow
+references, the fluid support-module header correction and the potion-cloud
+candidate. All support-module source files referenced by its checked-in
+TConstruct and Pluto manifests were statically scanned for inner documentation
+attributes and shebangs. No such source lines remained at that scan. The merged
+candidate has not passed formal package, apply, type or runtime checks.
+
+### Longbow Power candidate
+
+The original Power upgrade accepts Ichor slime crystals on the longbow: 72
+items per level, at most five levels, with one upgrade slot per level. Its
+projectile-damage addition is `0.5 + 0.5 * effective_level` while present,
+including partial levels. This candidate connects that recipe to the existing
+upgrade and ordered ranged-stat paths. The two supported bows have different
+source tags: the crossbow does not accept Power. These changes are source-level
+only and still need official apply, type and game verification. A full natural
+crystal-to-upgrade survival route has not been demonstrated.
+
+For a base projectile stat of 2, check zero, one, 72 and 360 crystal points:
+expected values are 2, approximately 2.506944, 3 and 5 respectively. Also check
+slot limits, extraction and reapplication, save/reload, and rejection on a
+crossbow. Values before downstream arrow effects are the comparison point.
+
+### Ranged upgrade integration candidate
+
+The newer ranged-stat candidate also carries the earlier Power (#109) and
+Blindshot (#133/#134) transactions and progress labels. Blindshot uses one Dirt
+per point, ten points per level, and does not occupy upgrade slots or have a
+source salvage recipe. Its accuracy decrease is 0.1 per effective level; the
+current connected launcher scope is longbow and crossbow. The original default
+maximum applies when its recipe omits a level range. This integration is a
+source-level candidate, not an apply, type or gameplay result. Check partial
+and full levels, zero free slots, unsupported tools, accuracy minimum, crystal
+and salvage behavior, saved data and progress labels in the integrated build.
+
+The source-backed crossbow test binds both input part arrays before borrowing
+them. An earlier exact-head test compile failed with E0716; a disposable
+old-host diagnostic passed after the same lifetime correction. This new
+candidate has not yet passed the dedicated exact-head test or official build.
+
+### Raging and Airborne projectile integration candidate
+
+The #140 actor-state candidate is integrated with the ordered bow stat builder:
+conditional velocity and projectile damage use the builder's current
+multiply-base and multiply-all scales rather than an earlier precomputed stat.
+The included photographs document the earlier #140 session, not this integrated
+head. Syntax only; official apply and type checks and same-shot health 20/6,
+local/guest actor identity, ground/water/climb/vehicle, save/reload and actual
+projectile damage still require dedicated verification on this candidate.
+
+### Stat builder multiplier correction
+
+Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, mining speed, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
