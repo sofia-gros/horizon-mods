@@ -90,3 +90,22 @@ block on the ground and while airborne, including one ineffective block, then
 repeat after breaking the tool and after replacing that material. Capture both
 local and LAN guest behavior; use a labelled fixture if the material is not yet
 naturally obtainable.
+
+## Overwield mining
+
+For a non-broad harvest tool with Knightslime's Overwield trait, an effective
+block receives the source multiplier `1 + 0.2 * min(overslime, level)`. It uses
+the current stored Overslime amount, not capacity, and applies in the same
+ordered percentage stage as Jagged and Stonebound. The tool is checked against
+the resolved source `tconstruct:modifiable/broad` item tag. If that tag is
+unavailable, the non-broad bonus is skipped until it resolves. Zero Overslime gives no
+bonus; broad tools and ineffective blocks do not receive this mining effect.
+This implements only the non-broad mining-speed module in the [source
+Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+Overslime consumption, broad-tool mining-capacity behavior and material
+acquisition remain separate work.
+
+Focused helper tests passed against Horizon 9a6 item/world libraries; host build and gameplay remain unverified. Verify zero, one and multiple Overslime units and trait levels, a broad
+and a non-broad tool, effective and ineffective blocks, live refill and
+consumption, broken tools, and combinations with other mining modifiers. Check
+material replacement and save/reload. Use labelled fixtures where necessary.

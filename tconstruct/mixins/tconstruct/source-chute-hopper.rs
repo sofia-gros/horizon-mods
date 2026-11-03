@@ -22,6 +22,16 @@ fn tconstruct_chute_controller(game: &crate::game::Game<'_>, chute: (i32, i32, i
     Some((controller, dx.checked_mul(dy)?.checked_mul(dz)?))
 }
 
+// Callbacks may mutate either inventory; never commit a stale plan.
+fn chute_snapshots_match(
+    before: &[Option<horizon_items::items::ItemStack>],
+    current: &[Option<horizon_items::items::ItemStack>],
+    saved: &horizon_world::nbt::Tag,
+    current_saved: Option<&horizon_world::nbt::Tag>,
+) -> bool {
+    before == current && current_saved == Some(saved)
+}
+
 fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, chute: (i32, i32, i32), push: bool) -> bool {
     use horizon_client::containers::BlockEntity;
     use horizon_world::nbt::Tag;
@@ -73,6 +83,11 @@ fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, ch
     let mut cancel = false;
     game.native_inventory_move_item([from.0, from.1, from.2], [to.0, to.1, to.2], &item.item, &mut cancel);
     if cancel { return false; }
+    // The native callback can change either inventory or the structure.
+    if tconstruct_chute_controller(game, chute) != Some((controller, volume)) { return false; }
+    let Some(BlockEntity::Chest(current_hopper)) = game.world.block_entities.get(&hopper_pos) else { return false; };
+    let current_saved = crate::game::tconstruct_source_melter_store::read(&game.world, controller, "tconstruct:smeltery");
+    if !chute_snapshots_match(&before_hopper, current_hopper, &saved, current_saved.as_ref()) { return false; }
     let mut next_hopper = before_hopper.clone();
     item.count = 1;
     let moving = item.clone();

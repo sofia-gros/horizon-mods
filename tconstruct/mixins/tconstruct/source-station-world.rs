@@ -31,7 +31,7 @@ pub(super) fn building_plan_diagnostic(world: &super::tconstruct_world::World, s
         let Some(recipe) = BuildingRecipe::parse(bytes) else { continue; };
         if !registered.contains_key(&recipe.result) { continue; }
         let Some((namespace, name)) = recipe.result.split_once(':') else { continue; };
-        let Some(definition) = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()) else { continue; };
+        let Some(definition) = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name))).and_then(|layers| layers.last()) else { continue; };
         let Some(parts) = recipe.parts(definition) else { continue; };
         let Some(inputs) = slots.get(..input_capacity) else { return None; };
         let Some(matched) = recipe.match_inputs(&parts, parts.len(), inputs, |stack| {
@@ -160,7 +160,7 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     if inputs.next().is_some() { return None; }
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item)?;
     let parts = recipe.parts(definition)?;
@@ -184,10 +184,20 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
         (stats.get("tconstruct:head")?.get("durability")?.as_f64()? as f32 * cost as f32 / 3.0) as u32
     } else { 0 };
     if !changed && (tool.damage == 0 || repair == 0) { return None; }
+    let output = rebuild_material_swap(world, definition, tool, &identities, repair, false, reason)?;
+    Some((output, vec![(0, 1), (slot, 1)]))
+}
+
+/// Rebuild using the station's existing normalization, stats and slot checks.
+/// Callers lacking original modifier hooks request unchanged traits so no
+/// trait removal or changed-level validation is silently skipped.
+pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
+    identities: &[String], repair: u32, reject_removed_traits: bool, reason: &mut Option<String>) -> Option<ItemStack> {
+    let old_traits = if reject_removed_traits { Some(super::tconstruct_source_material_traits::levels(world, tool)?.levels) } else { None };
     let verified = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     };
-    let mut output = assemble(world, definition, &tool.item, &identities, Some(&verified), reason)?;
+    let mut output = assemble(world, definition, &tool.item, identities, Some(&verified), reason)?;
     let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let modules = parsed.get("modules")?.as_array()?;
     let base_slots = |name: &str| -> Option<i32> {
@@ -196,10 +206,11 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
         i32::try_from(total).ok()
     };
     let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+    if old_traits.as_ref().is_some_and(|old| old != &traits) { return None; }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
-    Some((output, vec![(0, 1), (slot, 1)]))
+    Some(output)
 }
 
 /// Compute material repair from the tool definition and world recipes.
@@ -218,7 +229,7 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     let Tag::List(ids) = custom.get("tic_materials")? else { return None; };
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item);
     let mut repair_parts: Vec<(String, String)> = Vec::new();
@@ -317,7 +328,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     }).collect::<Option<Vec<_>>>()?;
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let slots_available = parsed.get("modules")?.as_array()?.iter()
         .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
@@ -367,7 +378,7 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
     let identities = materials.iter().map(|v| if let Tag::String(id)=v {Some(id.to_string_lossy().to_string())} else {None}).collect::<Option<Vec<_>>>()?;
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace,name) = tool.item.split_once(':')?;
-    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|t|t.levels).unwrap_or_default();
     let mut upgraded = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
@@ -407,7 +418,7 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     }).collect::<Option<Vec<_>>>()?;
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
-    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
+    let definition = definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::extract_upgrade_with_traits(tags, tool, slots.get(1..=2)?, id, &traits)?;
@@ -419,6 +430,17 @@ pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[O
     else { upgrades.insert(id.into(), Tag::Int(plan.upgrade.amount)); }
     modified.data_mut().set_other("minecraft:custom_data", Some(custom));
     let output = assemble(world, definition, &tool.item, &identities, Some(&modified), &mut None)?;
+    if id == "tconstruct:gilded" {
+        let parsed: serde_json::Value = serde_json::from_slice(definition).ok()?;
+        let modules = parsed.get("modules")?.as_array()?;
+        let base_slots = |name: &str| -> Option<i32> {
+            let total = modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+                .filter_map(|module| module.get("slots")?.get(name)?.as_i64()).sum::<i64>();
+            i32::try_from(total).ok()
+        };
+        let rebuilt_traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+        if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &rebuilt_traits, base_slots("upgrades")?, base_slots("abilities")?) { return None; }
+    }
     let mut leftovers = plan.upgrade.leftover.into_iter().collect::<Vec<_>>();
     leftovers.push(plan.sponge);
     Some(StationOperation { output, consumed: plan.upgrade.consumed, leftovers })

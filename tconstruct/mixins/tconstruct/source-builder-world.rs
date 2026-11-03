@@ -187,7 +187,10 @@ pub(super) fn plan(
         let recipe = tx::SourceRecyclingRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
         let Some(stack) = material else { return Ok(None); };
         let durability = chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
-        let override_damage = stack.data().and_then(|data| data.other("minecraft:max_damage")).is_some();
+        let override_damage = stack.data().and_then(|data| data.other("minecraft:max_damage"));
+        // A cached wire patch may contain removals or additions not reflected
+        // by the local component snapshot. Do not guess its effective value.
+        if override_damage.is_some() && stack.wire_patch().is_some() { return Err(SourceLookupError::IncompleteContext); }
         let max_damage = super::tconstruct_source_native_durability::max_damage(&stack.item, durability, override_damage).ok_or(SourceLookupError::IncompleteContext)?;
         let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
         // The original applies different checks to modifiable items. Do not
