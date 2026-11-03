@@ -30,13 +30,18 @@ pub struct BaseStats {
     pub attack_speed_multiplier_unit: f32,
     pub attack_speed_boost_unit: f32,
     pub draw_speed: f32,
+    pub draw_speed_raw: [f32; 4],
     pub draw_speed_add_multiplier: f32,
     pub velocity: f32,
+    pub velocity_raw: [f32; 4],
     pub velocity_add_multiplier: f32,
     pub accuracy: f32,
+    pub accuracy_raw: [f32; 4],
     pub accuracy_add_multiplier: f32,
     pub projectile_damage: f32,
+    pub projectile_damage_raw: [f32; 4],
     pub projectile_damage_add_multiplier: f32,
+    pub overslime_material: f32,
     pub armor: f32,
     pub armor_add_multiplier: f32,
     pub armor_toughness: f32,
@@ -52,6 +57,12 @@ struct Accumulator {
     percent: f32,
     multiply: f32,
 }
+/// The registered chestplate item and its original data definition have
+/// different IDs; other namespaces and equipment names are not rewritten.
+pub fn definition_name<'a>(namespace: &str, item_name: &'a str) -> &'a str {
+    if namespace == "tconstruct" && item_name == "slimy_chestplate" { "slime_chestplate" } else { item_name }
+}
+
 pub(super) fn part_kind(id: &str) -> Option<&'static str> {
     Some(match id.strip_prefix("tconstruct:")? {
         "pick_head" | "hammer_head" | "small_axe_head" | "broad_axe_head" | "small_blade"
@@ -91,7 +102,7 @@ impl Accumulator {
 }
 
 fn apply_material(
-    stats: &mut [Accumulator; 11],
+    stats: &mut [Accumulator; 12],
     kind: &str,
     material: &Map<String, Value>,
     scale: f32,
@@ -109,7 +120,6 @@ fn apply_material(
             | "ribcage"
             | "shell"
             | "laces"
-            | "skull"
     ) {
         return Some(());
     }
@@ -136,8 +146,15 @@ fn apply_material(
                 stats[index].percent += number(key, 0.0)? * scale;
             }
         }
+        "skull" => {
+            stats[7].update(number("armor", 0.0)? * scale);
+        }
         "slime" => {
-            stats[0].update(number("durability", 1.0)? * scale);
+            let durability = number("durability", 1.0)? * scale;
+            stats[0].update(durability);
+            // SlimeStats.apply in the pinned source adds scaled durability
+            // to the Overslime stat; the separate tooltip field is not used.
+            stats[11].add += durability;
         }
         "limb" => {
             stats[0].update(number("durability", 1.0)? * scale);
@@ -219,6 +236,7 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         Accumulator::new(0.0),
         Accumulator::new(0.0),
         Accumulator::new(2.0),
+        Accumulator::new(0.0),
     ];
     let keys = [
         "tconstruct:durability",
@@ -232,6 +250,7 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         "tconstruct:armor_toughness",
         "tconstruct:knockback_resistance",
         "tconstruct:projectile_damage",
+        "tconstruct:overslime",
     ];
     for module in definition.get("modules")?.as_array()? {
         match module.get("type")?.as_str()? {
@@ -315,13 +334,18 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         attack_speed_multiplier_unit: stats[3].multiply,
         attack_speed_boost_unit: (stats[3].base + stats[3].add) * stats[3].multiply,
         draw_speed: stats[4].result(),
+        draw_speed_raw: [stats[4].base, stats[4].add, stats[4].percent, stats[4].multiply],
         draw_speed_add_multiplier: (1.0 + stats[4].percent) * stats[4].multiply,
         velocity: stats[5].result(),
+        velocity_raw: [stats[5].base, stats[5].add, stats[5].percent, stats[5].multiply],
         velocity_add_multiplier: (1.0 + stats[5].percent) * stats[5].multiply,
         accuracy: stats[6].result(),
+        accuracy_raw: [stats[6].base, stats[6].add, stats[6].percent, stats[6].multiply],
         accuracy_add_multiplier: (1.0 + stats[6].percent) * stats[6].multiply,
         projectile_damage: stats[10].result(),
+        projectile_damage_raw: [stats[10].base, stats[10].add, stats[10].percent, stats[10].multiply],
         projectile_damage_add_multiplier: (1.0 + stats[10].percent) * stats[10].multiply,
+        overslime_material: stats[11].result(),
         armor: stats[7].result(),
         armor_add_multiplier: (1.0 + stats[7].percent) * stats[7].multiply,
         armor_toughness: stats[8].result(),
@@ -334,6 +358,19 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn skull_slime_and_chest_definition_keep_source_values() {
+        let mut stats: [Accumulator; 12] = std::array::from_fn(|_| Accumulator::new(0.0));
+        let skull = serde_json::json!({"tconstruct:skull":{"armor": 3}}).as_object().unwrap().clone();
+        let slime = serde_json::json!({"tconstruct:slime":{"durability": 40}}).as_object().unwrap().clone();
+        apply_material(&mut stats, "skull", &skull, 1.0).unwrap();
+        apply_material(&mut stats, "slime", &slime, 0.5).unwrap();
+        assert_eq!(stats[7].result(), 3.0);
+        assert_eq!(stats[11].result(), 20.0);
+        assert_eq!(definition_name("tconstruct", "slimy_chestplate"), "slime_chestplate");
+        assert_eq!(definition_name("example", "slimy_chestplate"), "slimy_chestplate");
+    }
+
     #[test]
     fn applies_limb_and_grip_source_stats() {
         let definition = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:bow_limb","tconstruct:bow_grip"]}]}"#;
@@ -406,13 +443,18 @@ mod tests {
                 attack_speed_multiplier_unit: 1.0,
                 attack_speed_boost_unit: 1.2,
                 draw_speed: 1.0,
+                draw_speed_raw: [1.0, 0.0, 0.0, 1.0],
                 draw_speed_add_multiplier: 1.0,
                 velocity: 1.0,
+                velocity_raw: [1.0, 0.0, 0.0, 1.0],
                 velocity_add_multiplier: 1.0,
                 accuracy: 0.75,
+                accuracy_raw: [0.75, 0.0, 0.0, 1.0],
                 accuracy_add_multiplier: 1.0,
                 projectile_damage: 2.0,
+                projectile_damage_raw: [2.0, 0.0, 0.0, 1.0],
                 projectile_damage_add_multiplier: 1.0,
+                overslime_material: 0.0,
                 armor: 0.0,
                 armor_add_multiplier: 1.0,
                 armor_toughness: 0.0,
