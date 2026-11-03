@@ -17,7 +17,7 @@ Bring Tinkers’ Construct’s tool-building and material progression to Horizon
 
 </div>
 
-> **Development build:** Some individual effects and synchronization paths are temporarily unavailable or incomplete, including durability prevention and armor wear. See [provisional limitations](docs/provisional.md) before playing.
+> **v0.5 release target:** The formal release requires verification of the final main build and distribution. Some effects and synchronization paths remain unavailable or unverified, including durability prevention and armor wear; see [current limitations](docs/provisional.md) before playing.
 
 ## What you can do
 

@@ -1,6 +1,6 @@
 # Coverage and roadmap
 
-> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+> **v0.5 release target:** Some effects and operations remain unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
 
 The reference is Tinkers' Construct 1.20.1, commit
 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The [feature matrix](feature-matrix.md)
@@ -8,8 +8,7 @@ links to original sources and records the wider scope. The
 [source-to-port record](original-parity.md) describes the evidence and known
 mismatches. Archived Wasm work is not evidence of coverage in this port.
 
-The intended v0.5 milestone is a playable prerelease that reproduces almost all
-of the original mod's content and behavior on its own. The scope of full parity and balance will be decided after v0.5. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. v0.5 has not been reached.
+The v0.5 target is a formal release after the final main build and distribution pass integration, installation, launch, persistence and applicable feature checks. Individual operations may remain unavailable when evidence establishes that Horizon or Mixins must first provide a safe supported boundary; document the affected operation and evidence. Incomplete or untested mod behavior is not an upstream limitation and remains open. Full parity and balance remain future work. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. Release acceptance has not yet been established.
 Broad compatibility testing with other mods, including hypothetical ID changes,
 is not a prerequisite for v0.5. The mod's own saving, synchronization and
 transaction integrity remain part of the work.
