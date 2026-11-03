@@ -191,14 +191,14 @@ impl Catalog<'_> {
         }
         found
     }
-    pub(super) fn duplication(&self, input: &str, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+    pub(super) fn duplication(&self, basin: bool, input: &str, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
         if !self.known_items.contains(input) { return None; }
         let in_tag = |tag: &str, item: &str| self.item_tags.get(tag).is_some_and(|items| items.contains(item));
         let mut found: Option<(String, CastingRecipe)> = None;
         for (id, bytes) in self.recipes {
             let Some(duplicate) = DuplicationRecipe::parse(bytes, conditions) else { continue; };
-            if !duplicate.cast.matches(input, &in_tag) || !self.matches_fluid(&duplicate.fluid, fluid) { continue; }
-            let recipe = CastingRecipe { basin: false, retextured: false, cast: Some(duplicate.cast), consumes_cast: false,
+            if duplicate.basin != basin || !duplicate.cast.matches(input, &in_tag) || !self.matches_fluid(&duplicate.fluid, fluid) { continue; }
+            let recipe = CastingRecipe { basin, retextured: false, cast: Some(duplicate.cast), consumes_cast: false,
                 switch_slots: false, fluid: duplicate.fluid, output: Output::Item(input.to_owned()), cooling_time: duplicate.cooling_time };
             if found.as_ref().is_some_and(|(_, old)| old != &recipe) { return None; }
             if found.is_none() { found = Some((id.clone(), recipe)); }
@@ -350,11 +350,12 @@ mod tests {
         let items = ["minecraft:coast_armor_trim_smithing_template".into(), "minecraft:stone".into()].into_iter().collect();
         let fluids = ["tconstruct:molten_diamond".into(), "minecraft:water".into()].into_iter().collect();
         let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
-        let (_, recipe) = catalog.duplication("minecraft:coast_armor_trim_smithing_template", "tconstruct:molten_diamond", &|_| true).unwrap();
+        let (_, recipe) = catalog.duplication(false, "minecraft:coast_armor_trim_smithing_template", "tconstruct:molten_diamond", &|_| true).unwrap();
         assert!(!recipe.consumes_cast);
         assert_eq!((recipe.fluid.amount, recipe.cooling_time), (500, 186));
-        assert!(catalog.duplication("minecraft:stone", "tconstruct:molten_diamond", &|_| true).is_none());
-        assert!(catalog.duplication("minecraft:coast_armor_trim_smithing_template", "minecraft:water", &|_| true).is_none());
+        assert!(catalog.duplication(false, "minecraft:stone", "tconstruct:molten_diamond", &|_| true).is_none());
+        assert!(catalog.duplication(false, "minecraft:coast_armor_trim_smithing_template", "minecraft:water", &|_| true).is_none());
+        assert!(catalog.duplication(true, "minecraft:coast_armor_trim_smithing_template", "tconstruct:molten_diamond", &|_| true).is_none());
     }
     #[test]
     fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
