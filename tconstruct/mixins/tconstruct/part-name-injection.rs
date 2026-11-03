@@ -105,10 +105,23 @@ fn tconstruct_part_name(
         if necrotic_upgrade || necrotic_trait {
             value.push((horizon_client::text::Text::literal("Necrotic: held mob melee only; worn, PvP and projectiles unavailable"), horizon_client::hud::rgba(255, 170, 0, 255)));
         }
-        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
+        let hydraulic_upgrade = upgrades.and_then(|data| data.get("tconstruct:hydraulic"))
+            .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Int(amount) if *amount > 0));
+        let hydraulic_trait = stack.data().and_then(|d| d.other("minecraft:custom_data"))
+            .and_then(|d| d.get("tic_mining_traits")).is_some_and(|tag| match tag {
+                horizon_world::nbt::Tag::List(entries) => entries.iter().any(|entry|
+                    matches!((entry.get("id"), entry.get("level")),
+                        (Some(horizon_world::nbt::Tag::String(id)), Some(horizon_world::nbt::Tag::Int(level)))
+                        if id.to_string_lossy() == "tconstruct:hydraulic" && *level > 0)),
+                _ => false,
+            });
+        if hydraulic_upgrade || hydraulic_trait {
+            value.push((horizon_client::text::Text::literal("Hydraulic: underwater only; rain bonus unavailable"), horizon_client::hud::rgba(255, 170, 0, 255)));
+        }
+        for (id, needed) in [("hydraulic", 36), ("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
-            let level = (amount + needed - 1) / needed;
+            let level = amount.saturating_add(needed - 1) / needed;
             let base_key = format!("modifier.tconstruct.{id}");
             let level_key = format!("{base_key}.{level}");
             let name = game.pack.names.display_get(&level_key).or_else(|| game.pack.names.display_get(&base_key)).unwrap_or(base_key);

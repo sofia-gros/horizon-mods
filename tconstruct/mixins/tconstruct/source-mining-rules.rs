@@ -1,6 +1,6 @@
 // Shared per-stack effective-block recognition and conditional calculations.
 use horizon_world::nbt::Tag;
-use super::tconstruct_source_mining_math::{Conditional, conditional_speed_for_resistance};
+use super::tconstruct_source_mining_math::{Conditional, conditional_speed_with_water};
 
 /// Source BreakSpeedContext multiplier for additive tool bonuses. The host's
 /// base speed may use different fatigue or submerged-attribute rules.
@@ -163,6 +163,10 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
 }
 
 pub(super) fn conditional_with_resistance(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>, resistance: Option<f32>) -> Option<f32> {
+    conditional_with_water(custom, damage, speed, potion_multiplier, position, effective, tool_not_required, broad, resistance, None)
+}
+
+pub(super) fn conditional_with_water(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>, resistance: Option<f32>, water: Option<bool>) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
@@ -177,19 +181,38 @@ pub(super) fn conditional_with_resistance(custom: &Tag, damage: u32, speed: f32,
             "tconstruct:dwarven" => Conditional::Dwarven(*level),
             "tconstruct:crumbling" => Conditional::Crumbling(*level),
             "tconstruct:blasting" => Conditional::Blasting(*level),
+            "tconstruct:hydraulic" => Conditional::Hydraulic(*level),
             "tconstruct:overwield" if broad.is_some() => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }, broad.unwrap()),
             _ => continue,
         };
         ordered.push(effect);
     }
     if !effective && !(tool_not_required && ordered.iter().any(|effect| matches!(effect, Conditional::Crumbling(level) if *level > 0))) { return None; }
-    Some(conditional_speed_for_resistance(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position, effective, tool_not_required, resistance))
+    Some(conditional_speed_with_water(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position, effective, tool_not_required, resistance, water))
 }
 
 #[cfg(test)]
 mod shared_rules_tests {
     use super::*;
 
+    #[test]
+    fn hydraulic_water_bonus_respects_affinity_partial_levels_and_breakage() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([
+                ("id", Tag::String("tconstruct:hydraulic".into())), ("level", Tag::Int(18))
+            ])])),
+        ]);
+        let run = |damage, speed, multiplier, effective, water| conditional_with_water(
+            &custom, damage, speed, multiplier, None, effective, false, Some(false), None, water);
+        // Half a level contributes 4 in water whether Aqua Affinity is present.
+        assert!((run(0, 0.8, 0.2, true, Some(false)).unwrap() - 4.8).abs() < 1e-5);
+        assert!((run(0, 4.0, 1.0, true, Some(true)).unwrap() - 8.0).abs() < 1e-5);
+        assert!((finish_mining_speed(run(0, 0.16, 0.04, true, Some(false)).unwrap(), 1.1) - 1.056).abs() < 1e-5);
+        assert_eq!(run(0, 4.0, 1.0, true, None), Some(4.0));
+        assert_eq!(run(0, 4.0, 1.0, false, Some(false)), None);
+        assert_eq!(run(100, 4.0, 1.0, true, Some(false)), None);
+    }
     #[test]
     fn flat_bonuses_follow_potions_water_air_and_armor_order() {
         let entry = |id| Tag::compound([("id", Tag::String(id)), ("level", Tag::Int(1))]);

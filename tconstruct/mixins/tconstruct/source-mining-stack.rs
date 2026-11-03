@@ -51,16 +51,26 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     let blasting_amount = match custom.get("tic_upgrades").and_then(|u| u.get("tconstruct:blasting")) {
         Some(Tag::Int(n)) => (*n).max(0), _ => 0,
     };
+    let hydraulic_amount = match custom.get("tic_upgrades").and_then(|u| u.get("tconstruct:hydraulic")) {
+        None => 0,
+        Some(Tag::Int(n)) if (0..=180).contains(n) => *n,
+        _ => return None,
+    };
     let Tag::Compound(ref mut fields) = custom else { return if tool.is_none() { Some(()) } else { None } };
     let mut dynamic_order = order.to_vec();
     if !dynamic_order.iter().any(|id| id == "tconstruct:blasting") &&
         blasting_amount > 0 {
         dynamic_order.push("tconstruct:blasting".to_owned());
     }
+    if !dynamic_order.iter().any(|id| id == "tconstruct:hydraulic") && hydraulic_amount > 0 {
+        dynamic_order.push("tconstruct:hydraulic".to_owned());
+    }
     let dynamic: Vec<Tag> = dynamic_order.iter().filter_map(|id| {
-        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:blasting" | "tconstruct:airborne" | "tconstruct:overwield") { return None; }
+        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:blasting" | "tconstruct:hydraulic" | "tconstruct:airborne" | "tconstruct:overwield") { return None; }
         let effective = if id == "tconstruct:blasting" {
             level(id).max(0).saturating_mul(20).saturating_add(blasting_amount)
+        } else if id == "tconstruct:hydraulic" {
+            level(id).max(0).saturating_mul(36).saturating_add(hydraulic_amount)
         } else { level(id) };
         Some(Tag::compound([("id", Tag::String(id.as_str().into())), ("level", Tag::Int(effective))]))
     }).collect();
@@ -79,6 +89,40 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn hydraulic_partial_upgrade_combines_trait_and_preserves_components() {
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:hydraulic", Tag::Int(18))])),
+            ("fixture:foreign", Tag::String("preserve".into())),
+        ])));
+        let id = "tconstruct:hydraulic".to_owned();
+        for bad in [-1, 181, i32::MAX] {
+            let mut invalid = stack.clone();
+            invalid.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:hydraulic", Tag::Int(bad))])),
+                ("fixture:foreign", Tag::String("preserve".into())),
+            ])));
+            let before = invalid.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+            assert!(apply(&mut invalid, &stats, &BTreeMap::new(), &[], true).is_none());
+            assert_eq!(invalid.data().unwrap().other("minecraft:custom_data"), Some(&before));
+        }
+        for (levels, order, expected) in [
+            (BTreeMap::from([(id.clone(), 2)]), vec![id.clone()], 90),
+            (BTreeMap::new(), vec![], 18),
+            (BTreeMap::from([(id.clone(), 2)]), vec![id.clone()], 90),
+        ] {
+            apply(&mut stack, &stats, &levels, &order, true).unwrap();
+            let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
+            assert_eq!(custom.get("fixture:foreign"), Some(&Tag::String("preserve".into())));
+            assert!(matches!(custom.get("tic_upgrades").and_then(|u|u.get("tconstruct:hydraulic")), Some(Tag::Int(18))));
+            let Some(Tag::List(traits)) = custom.get("tic_mining_traits") else { panic!() };
+            assert_eq!(traits.len(), 1);
+            assert!(matches!(traits[0].get("level"), Some(Tag::Int(value)) if *value == expected));
+        }
+    }
     #[test]
     fn blasting_partial_upgrade_combines_trait_and_rebuilds() {
         let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;

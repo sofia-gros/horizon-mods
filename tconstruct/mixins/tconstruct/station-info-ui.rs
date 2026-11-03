@@ -34,6 +34,14 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
         top.push((title, None));
         bottom.push((game.pack.names.display_get("gui.tconstruct.tinker_station.modifiers").unwrap_or_else(|| "Modifiers".into()), None));
         if let Some(data) = tool.data().and_then(|data| data.other("minecraft:custom_data")) {
+            let hydraulic_upgrade = matches!(data.get("tic_upgrades").and_then(|u| u.get("tconstruct:hydraulic")), Some(Tag::Int(value)) if *value > 0);
+            let hydraulic_trait = matches!(data.get("tic_mining_traits"), Some(Tag::List(entries)) if entries.iter().any(|entry|
+                matches!((entry.get("id"), entry.get("level")), (Some(Tag::String(id)), Some(Tag::Int(level)))
+                    if id.to_string_lossy() == "tconstruct:hydraulic" && *level > 0)));
+            if hydraulic_upgrade || hydraulic_trait {
+                top.push(("Hydraulic: water only".into(), None));
+                top.push(("Rain bonus unavailable".into(), None));
+            }
             for (field, key) in [("tic_max_damage", "tool_stat.tconstruct.durability"), ("tic_attack_damage", "tool_stat.tconstruct.attack_damage"), ("tic_attack_speed", "tool_stat.tconstruct.attack_speed"), ("tic_draw_speed", "tool_stat.tconstruct.draw_speed"), ("tic_velocity", "tool_stat.tconstruct.velocity"), ("tic_accuracy", "tool_stat.tconstruct.accuracy"), ("tic_armor", "tool_stat.tconstruct.armor"), ("tic_armor_toughness", "tool_stat.tconstruct.armor_toughness"), ("tic_knockback_resistance", "tool_stat.tconstruct.knockback_resistance")] {
                 if matches!(field, "tic_draw_speed" | "tic_velocity" | "tic_accuracy")
                     && !matches!(tool.item.as_ref(), "tconstruct:longbow" | "tconstruct:crossbow") { continue; }
@@ -60,7 +68,9 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                     if let Some((namespace, name)) = id.split_once(':') {
                         let key = format!("modifier.{namespace}.{name}");
                         let label = game.pack.names.display_get(&key).unwrap_or_else(|| key.clone());
-                        let tip = game.pack.names.display_get(&format!("{key}.description"));
+                        let tip = if id == "tconstruct:hydraulic" {
+                            Some("Hydraulic: underwater only; rain bonus unavailable".to_owned())
+                        } else { game.pack.names.display_get(&format!("{key}.description")) };
                         bottom.push((format!("{label} {level}"), tip));
                     }
                 }
@@ -71,8 +81,10 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         let id = id.to_string_lossy();
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
                         let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
-                        let tip = key.and_then(|key| game.pack.names.display_get(&format!("{key}.description")));
-                        let needed = match id.as_ref() { "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
+                        let tip = if id.as_ref() == "tconstruct:hydraulic" {
+                            Some("Hydraulic: underwater only; rain bonus unavailable".to_owned())
+                        } else { key.and_then(|key| game.pack.names.display_get(&format!("{key}.description"))) };
+                        let needed = match id.as_ref() { "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
                         let shown = if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic") { label } else { format!("{label}: {amount}/{needed}") };
                         bottom.push((shown, tip));
                     }

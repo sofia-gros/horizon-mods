@@ -178,3 +178,20 @@ The already-adjusted host speed cannot safely be inverted here: a zero factor
 loses the original value, and contributions from other mods cannot be isolated
 at this hook. The high-Fatigue and custom-water base-speed differences therefore
 remain open pending a safe earlier boundary.
+
+## Hydraulic: underwater portion
+
+Hydraulic's harvest-tool upgrade accepts the source prismarine inputs and
+combines partial progress with supported material trait levels. When the
+acting player's last eye-water sample is set, it adds the source underwater
+bonus, including Aqua Affinity, effective-tool and broken-tool conditions.
+This is deliberately partial: the source also grants a bonus when rain reaches
+the player, but that branch is not connected. Tool and Station information warn
+that the rain bonus is unavailable. Existing items need a supported regeneration
+to receive the new conditional snapshot. Recipes changing its 36-item level or
+five-level maximum and malformed stored amounts are rejected rather than
+consuming ingredients or rewriting the data. Text warnings are currently English.
+
+Focused tests cover the formula, partial progress, actor data wiring, salvage,
+and ingredient/remainder planning. They do not verify an actual Station
+transaction, local/LAN mining, weather, save/reload or the full host build.

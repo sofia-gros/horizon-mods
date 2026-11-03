@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 22] = [
+const UPGRADES: [(&str, i32); 23] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -105,6 +105,16 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
     }
 }
 
+/// A malformed or out-of-range Hydraulic amount must not be overwritten.
+fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
+    let Some(upgrades) = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) else { return true; };
+    match upgrades.get("tconstruct:hydraulic") {
+        None => true,
+        Some(Tag::Int(amount)) => (0..=180).contains(amount),
+        _ => false,
+    }
+}
+
 /// Recompute free upgrade and ability slots after material traits change.
 fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
@@ -131,7 +141,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -152,12 +162,13 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
+    if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
     // Validation applies to the rebuilt tool, including material traits.
@@ -193,6 +204,7 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
+    if !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -297,10 +309,9 @@ pub(super) fn plan_with_traits(
         else {
             continue;
         };
-        // The Blasting snapshot encodes twentieths of a level. Reject a
-        // datapack that changes the denominator rather than consuming items
-        // while silently applying the wrong effect.
-        if id == "tconstruct:blasting" && needed != 20 { continue; }
+        // The dynamic snapshots encode fixed source increments. Reject a
+        // changed denominator instead of consuming inputs for a wrong effect.
+        if (id == "tconstruct:blasting" && needed != 20) || (id == "tconstruct:hydraulic" && needed != 36) { continue; }
         let Some(per_item) = value
             .get("amount_per_item")
             .and_then(Value::as_i64)
@@ -314,6 +325,7 @@ pub(super) fn plan_with_traits(
             None if id == "tconstruct:blindshot" && value.get("level").is_none() => i16::MAX as i32,
             None => continue,
         };
+        if id == "tconstruct:hydraulic" && max != 5 { continue; }
         let cost = value
             .pointer("/slots/upgrades")
             .and_then(Value::as_i64)
@@ -1138,6 +1150,50 @@ mod tests {
         assert_eq!(output.consumed, [(0, 1), (3, 8)]);
     }
 
+    #[test]
+    fn hydraulic_plan_is_bounded_and_preserves_extra_inputs() {
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":false,"amount_per_item":4,"needed_per_level":36,"input":{"item":"minecraft:prismarine"},"leftover":"minecraft:prismarine_shard","result":"tconstruct:hydraulic","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/harvest"}}"#.to_vec();
+        let recipes = BTreeMap::from([("hydraulic".into(), recipe)]);
+        let tags = HashMap::from([("tconstruct:modifiable/harvest".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        let make_tool = |amount| {
+            let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+            tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:hydraulic", Tag::Int(amount))]))
+            ])));
+            tool
+        };
+        let input = [Some(ItemStack::new("minecraft:prismarine", 3))];
+        let plan = plan(&recipes, &tags, &make_tool(35), &input, 1).unwrap();
+        assert_eq!(plan.amount, 36);
+        assert_eq!(plan.consumed, [(0, 1), (1, 1)]);
+        let leftover = plan.leftover.unwrap();
+        assert_eq!(&*leftover.item, "minecraft:prismarine_shard");
+        assert_eq!(leftover.count, 3);
+        assert_eq!(input[0].as_ref().unwrap().count, 3);
+        assert!(super::plan(&recipes, &tags, &make_tool(0), &input, 0).is_none());
+        assert!(super::plan(&recipes, &tags, &make_tool(180), &input, 8).is_none());
+        for bad in [-1, 181, i32::MAX] {
+            let invalid = make_tool(bad);
+            assert!(super::plan(&recipes, &tags, &invalid, &input, 8).is_none());
+            assert!(!extractable(&invalid).contains(&"tconstruct:hydraulic"));
+            assert!(matches!(invalid.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_upgrades").unwrap().get("tconstruct:hydraulic"), Some(Tag::Int(n)) if *n == bad));
+        }
+
+        assert!(super::plan(&recipes, &tags, &ItemStack::new("tconstruct:longbow", 1), &input, 8).is_none());
+        let salvage_tags = HashMap::from([
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+            ("tconstruct:modifiable/harvest".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+        ]);
+        let materials = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+        let extracted = extract_upgrade(&salvage_tags, &make_tool(47), &materials, "tconstruct:hydraulic").unwrap();
+        assert_eq!(extracted.upgrade.amount, 11);
+        assert_eq!(&*extracted.upgrade.leftover.unwrap().item, "tconstruct:modifier_crystal");
+        let missing_harvest = HashMap::from([("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        assert!(extract_upgrade(&missing_harvest, &make_tool(47), &materials, "tconstruct:hydraulic").is_none());
+
+        let altered = String::from_utf8(recipes["hydraulic"].clone()).unwrap().replace("\"needed_per_level\":36", "\"needed_per_level\":18");
+        assert!(super::plan(&BTreeMap::from([("hydraulic".into(), altered.into_bytes())]), &tags, &make_tool(0), &input, 8).is_none());
+    }
     #[test]
     fn blasting_plan_consumes_only_needed_and_rejects_wrong_tool_or_full_slots() {
         let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"needed_per_level":20,"input":{"tag":"forge:gunpowder"},"result":"tconstruct:blasting","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/harvest/stone"}}"#.to_vec();
