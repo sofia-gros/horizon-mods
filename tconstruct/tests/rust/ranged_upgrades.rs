@@ -160,3 +160,20 @@ fn blindshot_partial_levels_rebuild_and_clamp_without_slots() {
   }
  }
 }
+
+
+#[test]
+fn power_incremental_damage_rebuild_is_stable() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:projectile_damage":2.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:projectile_damage":2.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for (points,expected) in [(0,4.0_f32),(36,5.5),(72,6.0)] {
+  let mut tool=ItemStack::new("tconstruct:longbow",1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:power",Tag::Int(points))]))])));
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::new(),false,false).unwrap();
+   let v=projectile::projectile_bonus(&tool) as f32 + 2.0;
+   assert!((v-expected).abs()<0.0001,"{points}: {v} != {expected}");
+  }
+ }
+}
