@@ -208,3 +208,7 @@ The included photographs document the earlier #140 session, not this integrated
 head. Syntax only; official apply and type checks and same-shot health 20/6,
 local/guest actor identity, ground/water/climb/vehicle, save/reload and actual
 projectile damage still require dedicated verification on this candidate.
+
+### Stat builder multiplier correction
+
+Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
