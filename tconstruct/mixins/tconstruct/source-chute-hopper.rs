@@ -1,6 +1,6 @@
 use super::{View, Kind, dir_from_name, offset};
 // Hopper entry points live in game::machines, where View and the host's
-// container rules are available. Only Chute targets are intercepted.
+// container rules are available. Intercept only the explicitly supported machines.
 fn tconstruct_chute_controller(game: &crate::game::Game<'_>, chute: (i32, i32, i32)) -> Option<((i32, i32, i32), usize)> {
     let name = game.res.facts().get(game.world.block(chute.0, chute.1, chute.2)).name.clone();
     if !matches!(&*name, "tconstruct:seared_chute" | "tconstruct:scorched_chute") { return None; }
@@ -156,6 +156,10 @@ pub(super) fn eject(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hopp
     let Some(facing) = game.containers().prop(state, "facing").and_then(dir_from_name) else { return Continue(()); };
     let target = offset(pos, facing);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
+    if matches!(&*name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") {
+        game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
+        return Break(casting_transfer(game, hopper, target, true));
+    }
     if &*name == "tconstruct:seared_fluid_cannon" {
         game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
         return Break(cannon_transfer(game, hopper, target, true));
@@ -174,6 +178,10 @@ pub(super) fn suck(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hoppe
     let Some(y) = pos.1.checked_add(1) else { return Continue(()); };
     let target = (pos.0, y, pos.2);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
+    if matches!(&*name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") {
+        game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
+        return Break(casting_transfer(game, hopper, target, false));
+    }
     if &*name == "tconstruct:seared_fluid_cannon" {
         game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
         return Break(cannon_transfer(game, hopper, target, false));
@@ -185,6 +193,90 @@ pub(super) fn suck(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hoppe
     if !matches!(&*name, "tconstruct:seared_chute" | "tconstruct:scorched_chute") { return Continue(()); }
     game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
     Break(tconstruct_chute_transfer(game, hopper, target, false))
+}
+
+// Match the source casting block's sided input/output and one-item limit.
+// Work from both complete live inventories and raw metadata, and recheck all
+// three after callbacks so no unrelated stack or saved field is overwritten.
+fn casting_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32,i32,i32), push: bool) -> bool {
+    use horizon_client::{containers::BlockEntity, pluto_inventory::{plan_between, StackSnapshot}};
+    use horizon_items::{item_nbt::{item_from_nbt, item_to_nbt}, items::ItemStack};
+    if hopper.kind != Kind::Hopper || hopper.parts.len() != 1 || hopper.len() != 5 { return false; }
+    let hopper_pos = hopper.parts[0].0;
+    let hopper_block = game.world.block(hopper_pos.0, hopper_pos.1, hopper_pos.2);
+    let target_block = game.world.block(target.0, target.1, target.2);
+    let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get(&hopper_pos) else { return false; };
+    if slots.len() != 5 { return false; }
+    let before_hopper = slots.clone();
+    let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get(&target) else { return false; };
+    if slots.len() < 2 { return false; }
+    let before_target = slots.clone();
+    let Some((kind, state)) = crate::game::tconstruct_source_machine_runtime::casting_at(game, target) else { return false; };
+    let Some(saved) = crate::game::tconstruct_source_melter_store::read(&game.world, target, kind) else { return false; };
+    // A mismatch may mean a prior external edit or an unrepresentable saved
+    // component. Do not overwrite or resurrect either slot in that case.
+    for (key, live) in [("input", &state.input), ("output", &state.output)] {
+        match live {
+            None if saved.get(key).is_none() => {},
+            Some(item) if item.wire_patch().is_none() && saved.get(key) == Some(&item_to_nbt(item)) => {},
+            _ => return false,
+        }
+    }
+    if if push { !state.hopper_push_allowed() } else { !state.hopper_pull_allowed() } { return false; }
+    fn snapshot(value: &Option<ItemStack>) -> Option<StackSnapshot<'_, ItemStack>> {
+        value.as_ref().filter(|s| s.count > 0).map(|item| StackSnapshot { item, count: item.count })
+    }
+    let (from, to) = if push { (hopper_pos, target) } else { (target, hopper_pos) };
+    let candidates: Vec<(usize, ItemStack)> = if push {
+        before_hopper.iter().enumerate().filter_map(|(index, source)| {
+            let item = source.as_ref().filter(|s| s.count > 0 && s.wire_patch().is_none())?;
+            plan_between(snapshot(source), None, 1, |_,_| 1, |_,_| true, |a,b| a.same_item_same_components(b)).ok().flatten()?;
+            Some((index, item.clone()))
+        }).collect()
+    } else {
+        let Some(item) = state.output.as_ref().filter(|s| s.count > 0 && s.wire_patch().is_none()) else { return false; };
+        let containers = game.containers();
+        before_hopper.iter().enumerate().filter_map(|(index, dest)| {
+            if dest.as_ref().is_some_and(|s| s.wire_patch().is_some()) || !containers.can_place(hopper, index, item) { return None; }
+            let max = containers.max_stack(item);
+            plan_between(snapshot(&state.output), snapshot(dest), 1, |_,_| max, |_,_| true, |a,b| a.same_item_same_components(b)).ok().flatten()?;
+            Some((index, item.clone()))
+        }).collect()
+    };
+    // Insertion offers each source slot to the callback separately, as the
+    // host does. Extraction has one source slot, so cancellation ends it.
+    let candidates = if push { candidates } else { candidates.into_iter().take(1).collect() };
+    let choice = crate::game::tconstruct_source_melter_state::select_casting_candidate(candidates, |_, item| {
+        let mut cancel = false;
+        game.native_inventory_move_item([from.0,from.1,from.2], [to.0,to.1,to.2], &item.item, &mut cancel);
+        if game.world.block(hopper_pos.0,hopper_pos.1,hopper_pos.2) != hopper_block
+            || game.world.block(target.0,target.1,target.2) != target_block
+            || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before_hopper)
+            || !matches!(game.world.block_entities.get(&target), Some(BlockEntity::Chest(slots)) if *slots == before_target)
+            || crate::game::tconstruct_source_melter_store::read(&game.world, target, kind).as_ref() != Some(&saved) { return None; }
+        Some(!cancel)
+    });
+    let Some((index, mut item)) = choice else { return false; };
+    if !push {
+        let containers = game.containers();
+        if !containers.can_place(hopper, index, &item) { return false; }
+        let max = containers.max_stack(&item);
+        if plan_between(snapshot(&state.output), snapshot(&before_hopper[index]), 1, |_,_| max, |_,_| true, |a,b| a.same_item_same_components(b)).ok().flatten().is_none() { return false; }
+    }
+    item.count = 1;
+    let encoded = item_to_nbt(&item);
+    if item_from_nbt(&encoded).is_none_or(|decoded| decoded.count != 1 || !decoded.same_item_same_components(&item)) { return false; }
+    let Some((after_hopper, next_state)) = state.hopper_transfer(&before_hopper, index, push) else { return false; };
+    let mut after_target = before_target.clone();
+    let (key, before_slot, after_slot) = if push { ("input", &state.input, &next_state.input) } else { ("output", &state.output, &next_state.output) };
+    let Some(patched) = crate::game::tconstruct_source_melter_state::patch_casting_slot(&saved, key, before_slot, after_slot) else { return false; };
+    after_target[0] = next_state.input;
+    after_target[1] = next_state.output;
+    if !crate::game::tconstruct_source_melter_store::write(&mut game.world, target, kind, patched) { return false; }
+    if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&hopper_pos) { *slots = after_hopper; } else { return false; }
+    if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { *slots = after_target; } else { return false; }
+    game.container_changed(target);
+    true
 }
 
 fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32,i32,i32), push: bool) -> bool {
