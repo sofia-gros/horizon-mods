@@ -99,6 +99,23 @@ impl Catalog<'_> {
         }
         found
     }
+    pub(super) fn tip_clearing(&self, basin: bool, input: &str, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found: Option<(String, CastingRecipe)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(source) = super::tconstruct_source_melting_recipes::TipClearingRecipe::parse(bytes, conditions) else { continue; };
+            // Only the source's simple item/tag forms are understood here.
+            // A missing tag inside a difference cannot safely mean false.
+            if !matches!(&source.tools, Ingredient::Item(_) | Ingredient::Tag(_)) { continue; }
+            if source.basin != basin || !source.tools.matches(input, &in_tag) || !self.matches_fluid(&source.fluid, fluid) { continue; }
+            let recipe = CastingRecipe { basin, retextured: false, cast: Some(source.tools), consumes_cast: true,
+                switch_slots: false, fluid: source.fluid, output: Output::Item(input.to_owned()), cooling_time: source.cooling_time };
+            if found.as_ref().is_some_and(|(_, old)| old != &recipe) { return None; }
+            if found.is_none() { found = Some((id.clone(), recipe)); }
+        }
+        found
+    }
     pub(super) fn composite_part_swap(&self, basin: bool, input: &str, fluid: &str, identities: &[String],
         supports: &impl Fn(usize, &str) -> bool, supports_ordinary: &impl Fn(usize, &str) -> bool,
         allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
@@ -850,5 +867,47 @@ mod slimelytra_tests {
         ambiguous_recipes.insert("test:other".into(), br#"{"type":"tconstruct:material_fluid","fluid":{"amount":250,"tag":"forge:slime"},"output":"tconstruct:skyslime","temperature":50}"#.to_vec());
         let ambiguous = Catalog { recipes: &ambiguous_recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
         assert!(ambiguous.slimelytra_casting(true, "minecraft:elytra", "tconstruct:molten_slime", &|_| true, &|_| true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod tipped_clearing_tests {
+    use super::*;
+    #[test]
+    fn source_table_recipes_select_tool_tag_water_and_quantity() {
+        let mut recipes = BTreeMap::new();
+        recipes.insert("ammo".to_owned(), br#"{"type":"tconstruct:casting_table_tipped_clearing","cooling_time":20,"fluid":{"amount":50,"tag":"mantle:water"},"modifier":"tconstruct:tipped","tools":{"tag":"tconstruct:modifiable/ammo"}}"#.to_vec());
+        recipes.insert("rod".to_owned(), br#"{"type":"tconstruct:casting_table_tipped_clearing","cooling_time":20,"fluid":{"amount":250,"tag":"mantle:water"},"modifier":"tconstruct:tipped","tools":{"tag":"tconstruct:modifiable/fishing_rods"}}"#.to_vec());
+        let tags = HashMap::from([
+            ("tconstruct:modifiable/ammo".into(), HashSet::from(["tconstruct:arrow".into()])),
+            ("tconstruct:modifiable/fishing_rods".into(), HashSet::from(["tconstruct:fishing_rod".into()])),
+        ]);
+        let fluids = HashMap::from([("mantle:water".into(), HashSet::from(["minecraft:water".into()]))]);
+        let items = HashSet::from(["tconstruct:arrow".into(), "tconstruct:fishing_rod".into()]);
+        let known = HashSet::from(["minecraft:water".into(), "minecraft:lava".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &fluids, known_items: &items, known_fluids: &known };
+        for (item, expected) in [("tconstruct:arrow", 50), ("tconstruct:fishing_rod", 250)] {
+            let (_, recipe) = catalog.tip_clearing(false, item, "minecraft:water", &|_| true).unwrap();
+            assert_eq!(recipe.fluid.amount, expected); assert_eq!(recipe.cooling_time, 20);
+            assert!(recipe.consumes_cast); assert!(!recipe.switch_slots);
+            assert!(catalog.tip_clearing(true, item, "minecraft:water", &|_| true).is_none());
+            assert!(catalog.tip_clearing(false, item, "minecraft:lava", &|_| true).is_none());
+        }
+        assert!(catalog.tip_clearing(false, "minecraft:stone", "minecraft:water", &|_| true).is_none());
+    }
+    #[test]
+    fn unsupported_difference_with_missing_tag_never_matches() {
+        let recipes = BTreeMap::from([("unsafe".to_owned(), br#"{"type":"tconstruct:casting_table_tipped_clearing","fluid":{"amount":50,"fluid":"minecraft:water"},"modifier":"tconstruct:tipped","tools":{"type":"forge:difference","base":{"item":"tconstruct:arrow"},"subtracted":{"tag":"example:missing"}}}"#.to_vec())]);
+        let tags = HashMap::new(); let items = HashSet::from(["tconstruct:arrow".to_owned()]);
+        let fluids = HashSet::from(["minecraft:water".to_owned()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        assert!(catalog.tip_clearing(false, "tconstruct:arrow", "minecraft:water", &|_| true).is_none());
+    }
+    #[test]
+    fn unknown_modifier_and_false_conditions_fail_closed() {
+        let invalid = br#"{"type":"tconstruct:casting_table_tipped_clearing","fluid":{"amount":50,"fluid":"minecraft:water"},"modifier":"example:unknown","tools":{"item":"tconstruct:arrow"}}"#;
+        assert!(super::super::tconstruct_source_melting_recipes::TipClearingRecipe::parse(invalid, &|_| true).is_none());
+        let gated = br#"{"type":"tconstruct:casting_table_tipped_clearing","fluid":{"amount":50,"fluid":"minecraft:water"},"modifier":"tconstruct:tipped","tools":{"item":"tconstruct:arrow"},"conditions":[{"type":"example:test"}]}"#;
+        assert!(super::super::tconstruct_source_melting_recipes::TipClearingRecipe::parse(gated, &|_| false).is_none());
     }
 }

@@ -242,6 +242,17 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         })();
         if candidate.is_some() { return candidate; }
     }
+    // Clearing an already-tipped item is supported without enabling tipping:
+    // the latter must wait for actual projectile/fishing effect support.
+    if stack.count == 1 && stack.wire_patch().is_none() {
+        let level = super::tconstruct_source_material_traits::levels(world, stack)
+            .and_then(|traits| super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tipped"));
+        if let Some(output) = super::tconstruct_source_tip_clearing::clear(stack, level) {
+            if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+                catalog.tip_clearing(basin, &stack.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })? { return Some((id, recipe, output)); }
+        }
+    }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Ordinary casts may repair; composite casts do not. Supported
     // upgrades and material traits are rebuilt through the Station path.
