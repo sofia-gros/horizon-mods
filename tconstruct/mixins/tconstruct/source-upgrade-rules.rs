@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 13] = [
+const UPGRADES: [(&str, i32); 14] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1), ("tconstruct:power", 72),
+    ("tconstruct:glowing", 1), ("tconstruct:power", 72), ("tconstruct:blindshot", 10),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -63,7 +63,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
-        "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
+        "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
@@ -88,7 +88,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>();
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>();
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id))
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot")
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
@@ -106,7 +106,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
+        (id != "tconstruct:blindshot" && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -125,6 +125,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
+    if id == "tconstruct:blindshot" { return None; }
     if !supported(id, &tool.item) { return None; }
     let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
@@ -257,13 +258,11 @@ pub(super) fn plan_with_traits(
         else {
             continue;
         };
-        let Some(max) = value
+        let max = value
             .pointer("/level/max")
             .and_then(Value::as_i64)
             .and_then(|v| i32::try_from(v).ok())
-        else {
-            continue;
-        };
+            .unwrap_or(32767);
         let cost = value
             .pointer("/slots/upgrades")
             .and_then(Value::as_i64)
@@ -394,13 +393,15 @@ pub fn apply_stats(
         let heavy = level("tconstruct:heavy").max(0) as f32;
         let vintage = level("tconstruct:vintage").max(0) as f32;
         let crystal = level("tconstruct:crystalbound").max(0) as f32;
+        let spiny = level("tconstruct:spiny").max(0) as f32;
         let entangled = if level("tconstruct:entangled") > 0 { 0.15 } else { 0.0 };
         let draw = ((stats.draw_speed + stats.draw_speed_add_multiplier * (0.03 * light + 0.05 * feather + entangled))
             * (1.0 + if &*tool.item == "tconstruct:crossbow" { 0.25 * quick } else { 0.0 })
             * (1.0 - 0.1 * vintage)).clamp(0.0, 1024.0);
-        let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal))
+        let velocity = ((stats.velocity + stats.velocity_add_multiplier * (0.03 * light + 0.1 * crystal + 0.1 * spiny))
             * if netherite { 1.1 } else { 1.0 }).clamp(0.0, 1024.0);
-        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy) + 0.05 * feather)).clamp(0.1, 1.0);
+        let blindshot = effective(tool, "tconstruct:blindshot", 10);
+        let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy - blindshot) + 0.05 * feather)).clamp(0.1, 1.0);
         let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
             * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32
                 + 0.75 * level("tconstruct:solid").max(0) as f32

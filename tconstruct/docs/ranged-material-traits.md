@@ -11,7 +11,12 @@ This unit connects source effects to the existing Longbow and Crossbow paths. Th
 | Vintage | multiply total draw speed by `1 - 0.1 × level` |
 | Crystalbound | +0.10 velocity for ranged tools and quantized horizontal arrow launch angle |
 | Ductile | +0.25 projectile damage |
+| Spiny | +0.10 projectile velocity; the source shooting self-damage effect remains unimplemented |
 | Dwarven | Height-dependent velocity; isolated Linux fixture shots confirmed low/high differences, LAN pending |
+
+The source Blindshot modifier accepts Dirt without consuming an upgrade slot: ten items add one level, and accuracy decreases by 0.1 per effective level before the existing clamp. This implementation accepts Longbow and Crossbow; other source ranged items await their own connected accuracy paths. The source recipe has no salvage entry. This path has not yet been tested in game; verify partial and complete progress, no slot consumption, accuracy changes, and save/reload with both supported launchers.
+
+Spiny's velocity contribution is applied when rebuilding supported launchers, before the existing Netherite velocity multiplier. Verify Cactus material resolution, one and multiple levels, material removal, Netherite interaction and reload in the target build. The source's shooter-damage effect is separate and is not implemented by this change.
 
 An isolated Linux test client with eight injections excluded fired supplied Longbow and Crossbow fixtures at Y=40 and Y=240 and observed a velocity difference. This is not a full production or LAN test. Existing tools need regeneration to acquire Dwarven ranged data. The source material data assigns these traits to Cobalt, Lead, Aluminum, Twisting Vine, Ancient, Amethyst Bronze (ranged parts) and Steel respectively. Some are compatibility or later-game materials; their natural acquisition is not established by this change.
 
