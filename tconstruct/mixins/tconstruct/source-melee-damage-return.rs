@@ -8,9 +8,8 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
         amount -= 0.5 * base * (0.2 + scale * scale * 0.8);
         crit = false;
     }
-    // Raging's source melee module requires a living target. Do not infer LAN
-    // guest health from the local player until the acting state is verified.
-    if living && spin <= 0.0 && game.lan_acting.is_none() {
+    // The host swaps the acting player into game.player for local and guest turns.
+    if living && spin <= 0.0 {
         if let (Some(stack), Some(player)) = (game.held(), game.player.as_ref()) {
             if stack.item.starts_with("tconstruct:") {
                 if let (Some(custom), Some(traits)) = (
