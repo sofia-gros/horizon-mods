@@ -52,9 +52,7 @@ fn tank(world: &super::tconstruct_world::World, facts: &horizon_items::blocks::B
         return Some(Melter::from_nbt(&store::read(world, pos, "tconstruct:melter")?)?.tank);
     }
     let kind = super::tconstruct_source_machine_runtime::kind(block)?;
-    let capacity = super::tconstruct_source_smeltery_fuel::capacity(block)
-        .or_else(|| super::tconstruct_source_smeltery_fuel::item_capacity(block))?;
-    Tank::from_nbt(&store::read(world, pos, kind)?, capacity)
+    super::tconstruct_source_smeltery_fuel::gauge_tank(block, &store::read(world, pos, kind)?)
 }
 fn supported(level: &super::GameLevel<'_>, pos: BlockPos, facing: Direction) -> bool {
     let Some(at) = adjacent(pos, facing.opposite()) else { return false; };

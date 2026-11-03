@@ -127,6 +127,7 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::casting_tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tagged_portable_tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_state::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_fuel::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_fluid_container::tests

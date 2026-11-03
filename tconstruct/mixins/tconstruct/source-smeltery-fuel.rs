@@ -20,6 +20,18 @@ pub(super) fn item_capacity(name: &str) -> Option<u32> {
     })
 }
 
+/// Read the first fluid tank from the machine's saved representation.
+/// The casting tank and cannon nest their Tank beneath their inventory state;
+/// ordinary portable tanks store their Tank directly.
+pub(super) fn gauge_tank(block: &str, saved: &horizon_world::nbt::Tag) -> Option<Tank> {
+    let capacity = item_capacity(block)?;
+    let tank = match block {
+        "tconstruct:seared_casting_tank" | "tconstruct:seared_fluid_cannon" => saved.get("tank")?,
+        _ => saved,
+    };
+    Tank::from_nbt(tank, capacity)
+}
+
 /// Return the replacement container after a complete bucket transfer. The
 /// caller must perform this on a copy until both inventory and NBT can commit.
 pub(super) fn exchange(tank: &mut Tank, held: &str) -> Option<&'static str> {
@@ -35,6 +47,33 @@ pub(super) fn exchange(tank: &mut Tank, held: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn gauge_reads_nested_machine_tanks_without_mutation() {
+        use horizon_world::nbt::Tag;
+        for (block, capacity) in [("tconstruct:seared_casting_tank", 4000), ("tconstruct:seared_fluid_cannon", 2000)] {
+            let mut tank = Tank::new(capacity);
+            let empty = Tag::compound([("tank", tank.to_nbt()), ("unrelated", Tag::Int(7))]);
+            assert_eq!(gauge_tank(block, &empty), Some(tank.clone()));
+            assert!(tank.insert("minecraft:lava", 1000));
+            let saved = Tag::compound([("tank", tank.to_nbt()), ("unrelated", Tag::Int(7))]);
+            let before = saved.clone();
+            assert_eq!(gauge_tank(block, &saved), Some(tank));
+            assert_eq!(saved, before);
+            assert!(gauge_tank(block, &Tag::compound([("tank", Tag::Int(1))])).is_none());
+            assert!(gauge_tank(block, &Tag::compound(Vec::<(&str, Tag)>::new())).is_none());
+            let too_full = Tag::compound([("tank", Tag::compound([("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int((capacity + 1) as i32))]))]);
+            assert!(gauge_tank(block, &too_full).is_none());
+            let metadata = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+            let mut tagged = Tank::new(capacity);
+            assert!(tagged.insert_tagged("tconstruct:potion", Some(&metadata), 250));
+            let saved = Tag::compound([("tank", tagged.to_nbt())]);
+            assert_eq!(gauge_tank(block, &saved), Some(tagged));
+        }
+        let mut lantern = Tank::new(50);
+        assert!(lantern.insert("minecraft:water", 50));
+        assert_eq!(gauge_tank("tconstruct:seared_lantern", &lantern.to_nbt()), Some(lantern));
+        assert!(gauge_tank("minecraft:stone", &Tag::Int(1)).is_none());
+    }
     #[test]
     fn bucket_exchange_is_all_or_nothing() {
         let mut tank = Tank::new(capacity("tconstruct:seared_fuel_tank").unwrap());
