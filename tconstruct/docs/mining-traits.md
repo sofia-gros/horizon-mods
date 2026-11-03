@@ -97,15 +97,13 @@ For a non-broad harvest tool with Knightslime's Overwield trait, an effective
 block receives the source multiplier `1 + 0.2 * min(overslime, level)`. It uses
 the current stored Overslime amount, not capacity, and applies in the same
 ordered percentage stage as Jagged and Stonebound. The tool is checked against
-the loaded `tconstruct:modifiable/broad` item tag. Zero Overslime gives no
-bonus; broad tools and ineffective blocks do not receive this mining effect.
-This implements only the non-broad mining-speed module in the [source
-Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
-Overslime consumption outside the handled broad AOE path and material
-acquisition remain separate work.
+the resolved source `tconstruct:modifiable/broad` item tag. If the tag is
+unavailable, both Overwield speed variants are skipped until it resolves. Zero
+Overslime or an ineffective block gives no bonus. The formulas correspond to
+the [source Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+Material acquisition remains separate work.
 
-Rust syntax was checked; focused tests, current-target build and gameplay are
-pending. Verify zero, one and multiple Overslime units and trait levels, a broad
+Focused helper tests passed against Horizon 9a6 item/world libraries; host build and gameplay remain unverified. Verify zero, one and multiple Overslime units and trait levels, a broad
 and a non-broad tool, effective and ineffective blocks, live refill and
 consumption, broken tools, and combinations with other mining modifiers. Check
 material replacement and save/reload. Use labelled fixtures where necessary.
@@ -114,11 +112,9 @@ material replacement and save/reload. Use labelled fixtures where necessary.
 
 The broad-tool speed module instead uses `1 + 0.2 * min(overslime, 5 * level) / 5`
 on effective blocks. This reads the same live Overslime value and uses the loaded
-broad tag; it does not use AOE size as the amount. The source additionally spends up to five Overslime per level at the start of
-the harvest transaction. The existing AOE break path now performs that spend
-once before the center and extra blocks. Ordinary single-block paths and other
-capacity consumers still need separate integration; this is not complete coverage.
-
-Rust syntax was checked. Tests, current-target build and gameplay are pending.
-Check levels 1 and 2 at amounts 0, 1, 4, 5, 6 and 10, ineffective blocks,
-AOE center and extra blocks, material swaps, save/reload and multiplayer.
+broad tag; it does not use AOE size as the amount. A pre-destroy hook spends
+up to five Overslime per level for broad tools or one for other harvest tools.
+A scoped actor flag prevents repeated spends for the center and additional AOE
+blocks; broken tools and unknown item-tag snapshots do not spend. This host
+boundary runs after permission checks and mod cancellation handlers, but before
+block removal. Creative, guest behavior and full source parity remain unverified.

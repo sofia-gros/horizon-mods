@@ -84,3 +84,10 @@ intermediate broad-speed calculation, live Overslime reads and the area-harvest
 spend. The #82 Airborne penalty boundary and later ordered stat calculations are
 retained. These paths still need formal apply and gameplay checks; ordinary
 single-block capacity spending and other Overslime consumers remain incomplete.
+
+The subsequent Overwield follow-up connects successful single-block spending
+and moves broad spending to the first successful block before wear, with
+per-actor area state. Earlier #101 pre-break spending is replaced, not added.
+The host success boundary differs from the original pre-break start hook; its
+failure, creative, broken tool, actor isolation and AOE semantics need explicit
+verification on the combined head. Other capacity consumers remain incomplete.
