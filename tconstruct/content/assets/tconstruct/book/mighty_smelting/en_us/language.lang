@@ -41,3 +41,7 @@ defense.group_special=Special
 tools.partial=Tool Advice (Partial)
 tools.partial.notice_title=About This Section
 tools.partial.notice=Only the advice pages are shown. The broad-tool list and tank page are omitted, and the material tip icon mentioned here is not available in this reader. Some tool features may be incomplete.
+
+smeltery.partial=Smeltery Basics (Partial)
+smeltery.partial.notice_title=About This Section
+smeltery.partial.notice=Only the controller and alloying pages are shown. They describe the original; this port supports a limited set of structures, fuels, alloys and controller casts. Entity melting and other machine behavior are incomplete.
