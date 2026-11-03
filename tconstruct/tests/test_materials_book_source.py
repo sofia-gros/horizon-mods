@@ -16,6 +16,28 @@ class DirectoryArchive:
 PREFIX = 'assets/tconstruct/book/materials_and_you/'
 
 class MaterialsBookSourceTest(unittest.TestCase):
+    def test_puny_worktable_and_further_reading_pages_are_available(self):
+        root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        by_name = {chapter['name']: chapter['data'] for chapter in index}
+        expected = {
+            'worktable': ['index', 'modifier_worktable', 'invisible_ink', 'visible_ink',
+                          'sort_modifiers', 'remove_modifiers', 'extract_modifier',
+                          'extract_enchantment', 'extract_upgrade', 'extract_defense',
+                          'extract_ability', 'toggle_interaction'],
+            'further_reading': ['mighty_smelting', 'encyclopedia'],
+        }
+        for chapter, names in expected.items():
+            entries = json.loads((root / by_name[chapter]).read_text())
+            pages = [entry for entry in entries if entry.get('data') != 'no-load']
+            self.assertEqual([entry['name'] for entry in pages], names)
+            for entry in pages:
+                page = json.loads((root / 'en_us' / entry['data']).read_text())
+                self.assertTrue(page.get('title'))
+                self.assertTrue(page.get('text') or page.get('description') or page.get('subText'))
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('"casting" | "worktable" | "further_reading"', reader)
+
     def test_source_static_chapters_and_referenced_pages(self):
         with DirectoryArchive(ARCHIVE) as archive:
             index = json.loads(archive.read(PREFIX + 'index.json'))

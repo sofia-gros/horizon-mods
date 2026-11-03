@@ -314,9 +314,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
-        // Only the source's introductory machine chapters are supported here;
-        // the other book's material tiers and modifier layouts differ.
-        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting") { continue; }
+        // Material tiers, armor and modifier layouts still need Puny-specific handling.
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "worktable" | "further_reading") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
