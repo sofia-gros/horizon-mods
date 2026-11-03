@@ -31,3 +31,7 @@ Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconst
 The bounded modifier classification order also references MIT-licensed
 [JsonRedirect.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/json/JsonRedirect.java)
 at the same revision.
+Pig Iron piston behavior was checked against MIT-licensed
+[TinkerMaterials.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/shared/TinkerMaterials.java),
+[OrientableBlock.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/shared/block/OrientableBlock.java), and
+[TinkerModule.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/common/TinkerModule.java).

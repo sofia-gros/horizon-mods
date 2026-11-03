@@ -361,6 +361,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id as usize)).ok_or("missing material block gameplay row")?;
             row["block_entity"] = serde_json::Value::Bool(true);
         }
+        super::tconstruct_pig_iron_piston::apply(&facts, &mut gameplay)?;
         let temp = out.join("gameplay-facts.json.tmp");
         std::fs::write(&temp, serde_json::to_vec(&gameplay)?)?;
         std::fs::rename(temp, path)?;
@@ -395,7 +396,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let marker = cache.join("tconstruct-startup-owner");
     let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
     // Invalidate only our owned cache when Creative preparation semantics change.
-    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v4");
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v5");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
