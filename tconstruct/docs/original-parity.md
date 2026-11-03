@@ -627,3 +627,9 @@ named-field compatibility change alone is not runtime evidence.
 Composite material lookup uses explicit types and borrows to resolve Rust type
 inference. This correction does not change recipe selection. Verify the final
 integrated build and game behavior separately; syntax alone is not a pass.
+
+Fluid Cannon stores up to 2,000 mB and one item stack. Direct and Faucet
+transfers, persistence and drops are implemented; hopper and comparator
+support were added later. Projectile or fluid-effect firing, dynamic light,
+item rendering and helmet use remain unimplemented or unverified. Validate the
+integrated behavior separately; storage support does not imply a working gun.
