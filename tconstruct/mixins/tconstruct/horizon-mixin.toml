@@ -4036,3 +4036,81 @@ bindings = [
   { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
   { name = "hopper", ty = "&View", value = "hopper" },
 ]
+
+[[module]]
+id = "source-fluid-effects"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fluid_effects"
+source = "source-fluid-effects.rs"
+
+[[module]]
+id = "source-slurping"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_slurping"
+source = "source-slurping.rs"
+
+[[injection]]
+id = "source-slurping-duration"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_duration"
+kind = "HEAD"
+helper = "source-slurping-duration.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }]
+
+[[injection]]
+id = "source-slurping-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "source-slurping-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "source-slurping-finish"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "source-slurping-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+[[injection]]
+id = "source-slurping-bow-tick"
+target = "horizon_client::game::advancements::Game<'_>::trigger_using_item"
+kind = "HEAD"
+helper = "source-slurping-bow-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-spilling"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_spilling"
+source = "source-spilling.rs"
+
+[[state]]
+id = "spilling-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, Vec<Option<(u32, horizon_items::items::ItemStack)>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-spilling-head"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "source-spilling-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-spilling-return"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "source-spilling-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-spilling-hit"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+helper = "source-spilling-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
