@@ -48,4 +48,20 @@ salvage without consumption, rebuilding, fluid abilities and partial Speedy
 progress together, including save/reload and LAN. These are unverified source
 candidates, not game results.
 
-The rejected Snow Boots walking and placement injections remain disabled. Supported splash guest handling and compounded stat multipliers are retained; focused older-host tests do not establish current-host gameplay.
+The next integration ports #142 Forming armor and #164 Step Up recipe handling.
+Forming adds one armor and 0.05 knockback resistance per level in the source
+stat builder, including when no gem is installed; the calculation also carries
+the earlier Heavy, Wool and Ductile contributions. Step Up consumes the source
+recipe's upgrade slot and respects its leggings tag and level range. Verify
+material replacement and removal, gem/no-gem combinations, modifier ordering,
+partial or full inventories, salvage, two levels, broken equipment, save/reload
+and LAN on the integrated target. These paths are syntax-checked only.
+
+Skull material armor, slime material Overslime capacity and the registered
+slimy chestplate's source-definition alias are included in a follow-up candidate.
+The capacity includes both material and Overlord contributions before Overcast
+and durability multipliers. Verify each material, assembly, repair, part swaps,
+Overlord/Overcast combinations, rounding boundaries and save/reload in the
+combined target. Source-shaped skull/slime and capacity helper fixtures passed using older host libraries; apply, current-host type and game tests remain pending.
+
+Rejected Snow Boots walking and placement injections remain disabled. The cancellation-safe Overwield hook, supported splash guest selector and compounded stat multipliers are retained. Focused older-host tests do not establish current-host gameplay.

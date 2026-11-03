@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 18] = [
+const UPGRADES: [(&str, i32); 19] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -86,7 +86,7 @@ fn supported(id: &str, item: &str) -> bool {
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         "tconstruct:power" => item == "tconstruct:longbow",
-        "tconstruct:speedy" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
+        "tconstruct:speedy" | "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
 }
@@ -155,6 +155,7 @@ pub(super) fn extract_upgrade_with_traits(
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
+    if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
     // Validation applies to the rebuilt tool, including material traits.
@@ -208,16 +209,16 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:step_up")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling");
-            if id != "tconstruct:gilded" && !fluid && old != 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
-            if id != "tconstruct:gilded" && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if id == "tconstruct:gilded" {
+            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -257,7 +258,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || id == "tconstruct:gilded" { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up") { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
@@ -362,9 +363,21 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     let diamond = amount(tool, "tconstruct:diamond") > 0;
     let emerald = amount(tool, "tconstruct:emerald") > 0;
     let netherite = amount(tool, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
+    let forming = levels.get("tconstruct:forming").copied().unwrap_or(0).max(0) as f32;
+    let heavy = levels.get("tconstruct:heavy").copied().unwrap_or(0).max(0) as f32;
+    let wool = levels.get("tconstruct:knockback_resistance").copied().unwrap_or(0).max(0) as f32;
+    let ductile = levels.get("tconstruct:ductile").copied().unwrap_or(0).max(0) as f32;
+    let armor_value = (stats.armor + (forming + if diamond { 1.0 } else { 0.0 }) * stats.armor_add_multiplier).clamp(0.0, 30.0);
+    let resistance = (stats.knockback_resistance + (0.15 * heavy + 0.1 * wool + 0.05 * forming + if netherite { 0.05 } else { 0.0 }) * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0);
+    let toughness = (stats.armor_toughness + (ductile + i32::from(emerald) as f32 + i32::from(netherite) as f32) * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0);
     if !diamond && !emerald && !netherite {
         let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
         let Tag::Compound(ref mut fields) = custom else { return None; };
+        if armor {
+            fields.insert("tic_armor".into(), Tag::Float(armor_value.to_bits()));
+            fields.insert("tic_knockback_resistance".into(), Tag::Float(resistance.to_bits()));
+            fields.insert("tic_armor_toughness".into(), Tag::Float(toughness.to_bits()));
+        }
         fields.remove(&"tconstruct:diamond_armor".into());
         fields.remove(&"tconstruct:netherite".into());
         fields.remove(&"tic_attack_conditional_multiplier".into());
@@ -384,13 +397,9 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     if emerald { fields.insert("tic_attack_conditional_multiplier".into(), Tag::Float(1.25f32.to_bits())); }
     else { fields.remove(&"tic_attack_conditional_multiplier".into()); }
     if armor {
-        if diamond { fields.insert("tic_armor".into(), Tag::Float((stats.armor + stats.armor_add_multiplier).clamp(0.0, 30.0).to_bits())); }
-        if emerald || netherite {
-            let ductile = *levels.get("tconstruct:ductile").unwrap_or(&0) as f32;
-            let bonus = i32::from(emerald) + i32::from(netherite);
-            fields.insert("tic_armor_toughness".into(), Tag::Float((stats.armor_toughness + (ductile + bonus as f32) * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0).to_bits()));
-        }
-        if netherite { fields.insert("tic_knockback_resistance".into(), Tag::Float((stats.knockback_resistance + 0.05 * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0).to_bits())); }
+        fields.insert("tic_armor".into(), Tag::Float(armor_value.to_bits()));
+        fields.insert("tic_armor_toughness".into(), Tag::Float(toughness.to_bits()));
+        fields.insert("tic_knockback_resistance".into(), Tag::Float(resistance.to_bits()));
     }
     if netherite { fields.insert("tconstruct:netherite".into(), Tag::Byte(1)); } else { fields.remove(&"tconstruct:netherite".into()); }
     if diamond && worn_armor { fields.insert("tconstruct:diamond_armor".into(), Tag::Byte(1)); }
@@ -491,6 +500,25 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn forming_and_step_up_use_source_values_and_scope() {
+        use super::*;
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:armor":4,"tconstruct:armor_toughness":1,"tconstruct:knockback_resistance":0.1}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        let mut tool = ItemStack::new("tconstruct:travelers_leggings", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([] as [(&str, Tag); 0])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:forming".into(), 2), ("tconstruct:ductile".into(), 1)]);
+        apply_gem_durability_and_armor(&mut tool, &stats, &levels, true, true).unwrap();
+        let data = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(data.get("tic_armor"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 6.0).abs() < 0.00001));
+        assert!(matches!(data.get("tic_knockback_resistance"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 0.2).abs() < 0.00001));
+        assert!(matches!(data.get("tic_armor_toughness"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 2.0).abs() < 0.00001));
+        assert!(supported("tconstruct:step_up", "tconstruct:travelers_leggings"));
+        assert!(!supported("tconstruct:step_up", "tconstruct:pickaxe"));
+    }
+
     #[test]
     fn gilded_and_speedy_preserve_slot_and_scope_rules() {
         use super::*;

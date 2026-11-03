@@ -60,3 +60,27 @@ candidate and was not replayed. Existing fluid ability and Blindshot guards are
 preserved during the Gilded merge. #142 Forming and #164 Step Up recipe remain
 separate pending comparison. Package, target apply, type and game behavior of
 this combined source remain unverified.
+
+The subsequent target-integration candidate ports #268's named Ingredient
+field for the declared 0c host and #305's narrower guest splash completion
+hook. The other #305 dependencies are not implied to be included. Both fixes
+are source-level; the 0c apply/type/game results must be checked on this exact
+head. The previous #298 official apply stopped at guest packet RETURN.
+
+The subsequent follow-up ports Forming #142 together with the previously
+separate Heavy/Wool knockback and Ductile toughness contributions, and ports
+Step Up recipe #164 without replacing the existing #163 equipment behavior.
+The source stat and recipe effects must be checked on the exact integration
+head; this inclusion does not imply formal apply or gameplay success.
+
+The next follow-up ports skull armor #107, slime-material Overslime #111 and
+slimy chestplate definition resolution #121. The material capacity is combined
+with the later ordered Overlord copy rather than restoring the older capacity
+formula; source-shaped skull/slime and capacity helper fixtures passed with older host libraries. Current-target checks remain pending. Wool #120,
+Ductile #136 and Forming #142 are represented in the #309 armor calculation.
+
+The subsequent F02/F05 follow-up ports #98 and #101 together, including the
+intermediate broad-speed calculation, live Overslime reads and the area-harvest
+spend. The #82 Airborne penalty boundary and later ordered stat calculations are
+retained. These paths still need formal apply and gameplay checks; ordinary
+single-block capacity spending and other Overslime consumers remain incomplete.
