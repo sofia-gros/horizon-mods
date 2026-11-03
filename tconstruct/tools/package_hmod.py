@@ -16,7 +16,7 @@ from creative_blocks import add_block_items
 
 MANIFEST = b'''id = "tconstruct"
 name = "Tinkers' Construct content"
-version = "0.1.0"
+version = "0.5.0"
 api = "0.2"
 side = "both"
 capabilities = ["registries"]

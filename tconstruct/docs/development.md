@@ -9,6 +9,7 @@ From the repository root:
 ```sh
 python3 -m unittest discover -s tests -v
 python3 -m unittest discover -s tconstruct/tests -v
+cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
 ```
 
 ## Prepare a modded source tree
@@ -84,6 +85,17 @@ condition `slime_recipe_fix` intentionally follows `glassRecipeFix` in the
 pinned upstream implementation; deprecated `wither_bone_conversion` is false.
 This is a subset, not full Forge config compatibility. Config capture runs on
 world setup and datapack reload. Game and LAN behavior still need verification.
+
+### Forge recipe conditions
+
+At recipe capture and datapack reload, Forge conditions are checked against the
+current item, tag, config and available mod-presence snapshots before the
+recipe enters the shared catalog. Accepted conditions are removed from the
+captured recipe so older consumers do not reject them a second time without
+that context. False, malformed or unresolved conditions are not loaded. This
+includes `forge:item_exists` on upstream compatibility melting recipes; it
+does not add the external mod or guarantee other unsupported recipe features.
+In-game and LAN reload behavior remain unverified.
 
 ### Ore-rate settings
 

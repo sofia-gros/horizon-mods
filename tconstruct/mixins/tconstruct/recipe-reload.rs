@@ -140,30 +140,16 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
             let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items, Some(&mod_presence)) else { return false; };
             *bytes = selected;
         }
-        // Forge also gates ordinary recipes with a top-level conditions list.
-        // Applying it here protects consumers that only parse the recipe body.
-        let Ok(mut value) = serde_json::from_slice::<serde_json::Value>(bytes) else { return true; };
-        let Some(raw_conditions) = value.get("conditions") else { return true; };
-        let Some(conditions) = raw_conditions.as_array() else { return false; };
-        if conditions.is_empty() { return true; }
-        let Some((registries, config, items)) = &condition_context else { return false; };
-        if crate::game::tconstruct_source_melter_world::conditional_conditions_with_mods(conditions, registries, config, items, Some(&mod_presence)) != Some(true) { return false; }
-        // The shared snapshot has already checked these conditions. Remove
-        // only lists containing mod_loaded so older consumers do not recheck
-        // them without the runtime context and incorrectly reject the recipe.
-        fn has_mod_loaded(value: &serde_json::Value) -> bool {
-            match value {
-                serde_json::Value::Object(map) => map.get("type").and_then(serde_json::Value::as_str) == Some("forge:mod_loaded") || map.values().any(has_mod_loaded),
-                serde_json::Value::Array(values) => values.iter().any(has_mod_loaded),
-                _ => false,
-            }
-        }
-        if has_mod_loaded(raw_conditions) {
-            let Some(map) = value.as_object_mut() else { return false; };
-            map.remove("conditions");
-            let Ok(resolved) = serde_json::to_vec(&value) else { return false; };
+        // Gate ordinary recipe conditions once using the authoritative snapshot.
+        // Downstream parsers do not all have item/mod registry context.
+        if serde_json::from_slice::<serde_json::Value>(bytes).is_err() { return true; }
+        if let Some(resolved) = crate::game::tconstruct_source_melter_world::unconditional_recipe(bytes) {
             *bytes = resolved;
+            return true;
         }
+        let Some((registries, config, items)) = &condition_context else { return false; };
+        let Some(resolved) = crate::game::tconstruct_source_melter_world::resolved_recipe_conditions(bytes, registries, config, items, Some(&mod_presence)) else { return false; };
+        *bytes = resolved;
         true
     });
     // The source basin mud recipe uses BlockTagIngredient. Resolve its block

@@ -15,8 +15,6 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[2]
 MOD = ROOT / 'tconstruct'
 MIXINS = MOD / 'mixins' / 'tconstruct'
-# The exact Mixins revision used for the last integrated Linux validation.
-MIXINS_REVISION = 'ddd9700b21997c95d95ac6ee5ecafe3830cf622a'
 MAX_ENTRIES = 512
 MAX_UNPACKED = 64 * 1024 * 1024
 
@@ -51,7 +49,7 @@ def package(output):
     # launcher does not suppress the content mod when native code is installed.
     native_id = 'tconstruct_native'
     manifest = {'schema': 1, 'id': native_id, 'version': mod['version'], 'game': '26.3',
-                'horizon': horizon, 'mixins': MIXINS_REVISION}
+                'horizon': horizon, 'mixins': compatibility['mixins_revision']}
 
     # Keep the thousands of original asset files inside one permitted data
     # entry; retain the paths expected by the existing preparation scripts.

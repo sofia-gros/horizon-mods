@@ -69,7 +69,14 @@ fn tconstruct_part_name(
             let active = matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_overslime_active")), Some(horizon_world::nbt::Tag::Byte(v)) if *v != 0);
             if active && *capacity > 0 { value.push((horizon_client::text::Text::literal(format!("Overslime {amount}/{capacity}")), horizon_client::hud::rgba(85, 255, 255, 255))); }
         }
-        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
+        let necrotic_upgrade = upgrades.and_then(|data| data.get("tconstruct:necrotic"))
+            .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Int(level) if *level > 0));
+        let necrotic_trait = crate::game::tconstruct_source_material_traits::levels(&game.world, stack)
+            .is_some_and(|traits| traits.levels.get("tconstruct:necrotic").copied().unwrap_or(0) > 0);
+        if necrotic_upgrade || necrotic_trait {
+            value.push((horizon_client::text::Text::literal("Necrotic: held mob melee only; worn, PvP and projectiles unavailable"), horizon_client::hud::rgba(255, 170, 0, 255)));
+        }
+        for (id, needed) in [("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
             let level = (amount + needed - 1) / needed;

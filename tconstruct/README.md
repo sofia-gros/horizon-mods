@@ -46,7 +46,7 @@ A manually run Mixins validation workflow can produce an Actions artifact contai
 
 ## Compatibility
 
-The current verified Linux combination uses development version `0.1.0` with pinned Horizon and Mixins commits. See [compatibility](docs/compatibility.md) for the exact revisions, test scope, and update target.
+The v0.5.0 packages target the Horizon and Mixins revisions in [compatibility.json](compatibility.json). Gameplay testing of v0.5.0 is incomplete. Earlier provisional Linux gameplay checks used development version `0.1.0` and a different Horizon revision; they do not verify v0.5.0. See [compatibility](docs/compatibility.md) for the exact scope and history.
 
 ## Development status
 

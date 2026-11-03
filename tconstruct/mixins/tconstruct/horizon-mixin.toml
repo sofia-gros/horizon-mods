@@ -1,6 +1,6 @@
 [mod]
 id = "tconstruct"
-version = "0.1.0"
+version = "0.5.0"
 priority = 100
 
 [compatibility]
@@ -2930,6 +2930,9 @@ cancellable = true
 helper = "source-melee-extra-hit.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "_index", ty = "usize", value = "index" }]
 
+# Necrotic melee PvP is deferred until the source health-delta boundaries
+# and intervening modifier hooks can be matched safely.
+
 [[injection]]
 id = "source-melee-pvp-wear"
 target = "horizon_client::game::lan_pvp::Game<'_>::pvp_land"
@@ -4231,6 +4234,123 @@ id = "source-spilling"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_spilling"
 source = "source-spilling.rs"
+
+[[module]]
+id = "source-tasty"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_tasty"
+source = "source-tasty.rs"
+
+[[injection]]
+id = "source-tasty-use"
+target = "horizon_client::game::Game<'_>::use_tool"
+kind = "HEAD"
+cancellable = true
+helper = "tasty-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[injection]]
+id = "source-tasty-duration"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_duration"
+kind = "HEAD"
+helper = "tasty-duration.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }]
+
+[[injection]]
+id = "source-tasty-animation"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_animation"
+kind = "HEAD"
+helper = "tasty-animation.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "animation", ty = "&mut horizon_world::consumable::UseAnimation", value = "&mut *animation" }]
+
+[[injection]]
+id = "source-tasty-finish"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "tasty-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+[[injection]]
+id = "source-tasty-concurrent-tick"
+target = "horizon_client::game::advancements::Game<'_>::trigger_using_item"
+kind = "HEAD"
+helper = "tasty-concurrent-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-necrotic"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_necrotic"
+source = "source-necrotic.rs"
+
+[[state]]
+id = "necrotic-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, Vec<Option<(u32, horizon_items::items::ItemStack)>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-necrotic-head"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "necrotic-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-necrotic-return"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "necrotic-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-necrotic-hit"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+helper = "necrotic-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[state]]
+id = "necrotic-projectile"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, (u32, f32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+# Deferred: source-necrotic-projectile-begin requires source-correct projectile launch wear.
+
+# Deferred: source-necrotic-projectile-finish requires source-correct projectile launch wear.
+
+[[state]]
+id = "necrotic-pvp"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Vec<Option<(u32, Option<u32>, [i32; 4], Option<f32>, bool)>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+# Deferred: source-necrotic-pvp-begin requires source-correct projectile launch wear.
+
+# Deferred: source-necrotic-pvp-end requires source-correct projectile launch wear.
+
+[[state]]
+id = "necrotic-host-victim"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, (u32, [i32; 4], f32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
 
 [[state]]
 id = "spilling-context"
