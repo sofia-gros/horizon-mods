@@ -35,6 +35,17 @@ pub(super) fn color(fluid: &str) -> u32 {
     }
 }
 
+/// Potion NBT uses RGB; the renderer stores packed colors in ABGR order.
+pub(super) fn color_tagged(fluid: &str, tag: Option<&horizon_world::nbt::Tag>) -> u32 {
+    if fluid == "tconstruct:potion" {
+        if let Some(horizon_world::nbt::Tag::Int(color)) = tag.and_then(|tag| tag.get("CustomPotionColor")) {
+            let rgb = *color as u32;
+            return 0xff00_0000 | (rgb & 0xff) << 16 | (rgb & 0xff00) | (rgb >> 16 & 0xff);
+        }
+    }
+    color(fluid)
+}
+
 /// Source GuiMeltingModule progress strip: sprite x and visible height.
 pub(super) fn heat_bar(world: &super::World, stack: &horizon_items::items::ItemStack,
     temperature: u32, progress: i32, foundry: bool) -> (f32, f32, Option<&'static str>) {

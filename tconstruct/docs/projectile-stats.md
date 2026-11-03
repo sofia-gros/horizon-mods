@@ -113,6 +113,20 @@ supplied Crossbow material swap removed the trait and persisted after reload.
 Pewter's natural acquisition, all levels and Windows remain unverified; melee
 is separate work. See [the test evidence](https://github.com/sofia-gros/horizon-mods/pull/140#issuecomment-6585341785).
 
+## Spiny and Blindshot
+
+Spiny adds `0.1 * level` to projectile velocity before the tool's velocity
+multipliers, including Netherite. Rebuilding after a material swap removes the
+trait's contribution. This covers the velocity stat only; Spiny's source
+shooting wear is not implemented here.
+
+Blindshot uses dirt in ten increments per level, reducing accuracy by 0.1 per
+effective level before the tool's accuracy multipliers and the 0.1 lower clamp.
+The implementation supports Longbows and Crossbows, consumes no upgrade slot,
+and excludes Blindshot from modifier extraction, including when Gilded is
+present. Focused tests cover partial progress, repeated rebuild and removal;
+current-host build and gameplay checks remain pending.
+
 ## Overwield ranged stats
 
 Overwield adds `0.06 * min(currentOverslime, level) * statMultiplier` to both
@@ -124,8 +138,11 @@ multiplier; Netherite contributes to the velocity multiplier.
 
 This implements the two ranged-stat modules in the [original Overwield
 definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
-The source launch-capacity spend is not connected here, so the full ranged
-behavior is incomplete. Focused helper tests on an older host covered draw and velocity for zero, partial and capped Overslime. Current-host build and gameplay checks are pending. Verify zero/partial/full Overslime at multiple levels,
+The source Overwield firing-time shield consumption is not connected, so the
+full ranged behavior is incomplete. The projectile hook can spend shield for
+Glowing wear, which is separate from the Overwield firing cost. Focused helper
+tests cover draw and velocity for zero, partial and capped Overslime; current-host
+build and gameplay checks remain pending. Verify zero/partial/full Overslime at multiple levels,
 charge times for both bows, velocity at low and high altitude with Dwarven,
 Quick Charge, Netherite, material replacement, reload and LAN. Record a fixture
 when the material is not naturally available.
@@ -136,12 +153,12 @@ The original Power recipe consumes Ichor Slime Crystals incrementally: 72 per
 level, up to five levels, on tools in `tconstruct:modifiable/ranged/power`.
 Once Power is present, its source stat module adds `0.5 + 0.5 * effectiveLevel`
 to projectile damage, scaled by the tool definition's additive multiplier.
-The Station selector, tooltip progress and modifier extraction now include
-Power; the existing recipe and tag determine eligible tools and consumption.
+The Station selector, tooltip progress and modifier extraction include Power.
+The implementation currently supports the Longbow, not the Crossbow; the
+existing recipe and tag also govern eligibility and consumption.
 
-Rust syntax was checked. Unit, plan, current-target build and gameplay remain
-pending. Verify zero, 1/72, 72/72 and max progress; upgrade slots, wrong inputs,
-crystal extraction/reapplication, tag rejection, both eligible bows, projectile
+Current-target build and gameplay verification remain pending. Verify zero, 1/72, 72/72 and max progress; upgrade slots, wrong inputs,
+crystal extraction/reapplication, tag rejection, the eligible Longbow, projectile
 damage, material replacement, save/reload and LAN. Refer to the pinned original
 [recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/upgrade/power.json)
 and [modifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/power.json).
