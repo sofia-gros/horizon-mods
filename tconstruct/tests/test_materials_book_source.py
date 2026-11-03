@@ -36,7 +36,22 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 self.assertTrue(page.get('title'))
                 self.assertTrue(page.get('text') or page.get('description') or page.get('subText'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('"casting" | "ranged_materials" | "armor_materials" | "armor" | "worktable" | "further_reading"', reader)
+        self.assertIn('"casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "worktable" | "further_reading"', reader)
+
+    def test_puny_melee_material_predicate_matches_source_index(self):
+        root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        chapter = next(entry for entry in index if entry['name'] == 'melee_harvest_materials')
+        tier = chapter['extraData']['tconstruct:material_tier']
+        self.assertEqual((tier['type'], tier['tier']), ('tconstruct:melee_harvest', 2))
+        predicate = tier['predicate']
+        self.assertEqual(predicate['type'], 'mantle:or')
+        self.assertEqual(predicate['predicates'][0], {'type': 'mantle:inverted', 'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
+        whitestone = predicate['predicates'][1]
+        self.assertEqual(whitestone['conditions'], [{'type': 'mantle:tag_filled', 'tag': 'tconstruct:whitestone_ingots'}])
+        self.assertEqual(whitestone['if_true'], {'type': 'tconstruct:id', 'id': 'tconstruct:whitestone'})
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('puny_melee_material_tier(*tier, distant, id, whitestone_ingots)', reader)
 
     def test_puny_ranged_material_chapter_uses_source_tier_and_predicate(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'

@@ -26,6 +26,12 @@ pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool
     }
 }
 
+// The melee chapter also admits Whitestone when its special item tag is
+// populated, even when that material is tagged as distant.
+pub(super) fn puny_melee_material_tier(tier: i32, distant: bool, id: &str, whitestone_ingots: bool) -> bool {
+    tier == 2 && (!distant || (id.split('#').next() == Some("tconstruct:whitestone") && whitestone_ingots))
+}
+
 pub(super) fn show_material_chapter(puny: bool, count: usize) -> bool {
     !puny || count > 0
 }
@@ -54,7 +60,17 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{label, layout, material_book_tier, puny_armor_order, show_material_chapter};
+    use super::{label, layout, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    #[test]
+    fn puny_melee_whitestone_exception_is_narrow_and_tier_bound() {
+        assert!(puny_melee_material_tier(2, false, "tconstruct:other", false));
+        assert!(!puny_melee_material_tier(2, true, "tconstruct:other", true));
+        assert!(!puny_melee_material_tier(2, true, "tconstruct:whitestone", false));
+        assert!(puny_melee_material_tier(2, true, "tconstruct:whitestone", true));
+        assert!(puny_melee_material_tier(2, true, "tconstruct:whitestone#variant", true));
+        assert!(!puny_melee_material_tier(1, true, "tconstruct:whitestone", true));
+        assert!(!puny_melee_material_tier(3, true, "tconstruct:whitestone", true));
+    }
     #[test]
     fn empty_puny_material_chapter_is_omitted_without_changing_basic_book() {
         assert!(!show_material_chapter(true, 0));
