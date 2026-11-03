@@ -7,7 +7,7 @@ fn tconstruct_spill(name: &str) -> std::ops::ControlFlow<PreRemove> {
     }
     if matches!(name, "tconstruct:part_builder" | "tconstruct:tinker_station" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" |
         "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" |
-        "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
+        "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_casting_tank") {
         return std::ops::ControlFlow::Break(PreRemove::Contents { slots: 27, furnace: false });
     }
     std::ops::ControlFlow::Continue(())
