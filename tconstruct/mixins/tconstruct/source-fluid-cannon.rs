@@ -7,6 +7,9 @@ use super::tconstruct_source_melter_state::Tank;
 pub(super) struct Cannon { pub tank: Tank, pub item: Option<ItemStack> }
 impl Cannon {
     pub(super) fn new() -> Self { Self { tank: Tank::new(2000), item: None } }
+    pub(super) fn comparator(&self) -> i32 {
+        if self.tank.amount == 0 { 0 } else { 1 + (14 * self.tank.amount / self.tank.capacity) as i32 }
+    }
     pub(super) fn lossless(&self) -> bool {
         self.item.as_ref().is_none_or(|item| {
             if item.wire_patch().is_some() { return false; }

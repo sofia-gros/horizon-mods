@@ -32,6 +32,7 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
             }
             crate::game::tconstruct_source_machine_runtime::interact_cannon(game,pos,tank)
         },
+        "tconstruct:copper_gauge" => crate::game::tconstruct_source_gauge::interact(game, pos),
         "tconstruct:crafting_station" => crate::game::tconstruct_crafting_station::open(game, hit.pos),
         "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
