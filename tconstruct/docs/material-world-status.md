@@ -193,3 +193,8 @@ maximum applies when its recipe omits a level range. This integration is a
 source-level candidate, not an apply, type or gameplay result. Check partial
 and full levels, zero free slots, unsupported tools, accuracy minimum, crystal
 and salvage behavior, saved data and progress labels in the integrated build.
+
+The source-backed crossbow test binds both input part arrays before borrowing
+them. An earlier exact-head test compile failed with E0716; a disposable
+old-host diagnostic passed after the same lifetime correction. This new
+candidate has not yet passed the dedicated exact-head test or official build.
