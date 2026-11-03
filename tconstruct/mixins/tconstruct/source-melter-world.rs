@@ -31,12 +31,12 @@ fn conditional_test(value: &serde_json::Value, registries: &HashMap<String, Tags
     }
 }
 
-fn conditional_conditions(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<bool> {
+pub(super) fn conditional_conditions(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<bool> {
     for value in values { if !conditional_test(value, registries, config, items)? { return Some(false); } }
     Some(true)
 }
 
-fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<Vec<u8>> {
+pub(super) fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<Vec<u8>> {
     // Most entries are ordinary recipes; keep their exact bytes untouched.
     if !bytes.windows(b"forge:conditional".len()).any(|part| part == b"forge:conditional") { return Some(bytes.to_vec()); }
     let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
@@ -66,16 +66,13 @@ fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags>, config: 
 
 fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, Tags>, &HashMap<String, bool>) -> R) -> Option<R> {
     let chunks = &world.chunks;
-    let raw_recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
+    let recipes = chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
     let item_tags = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let (known_fluids, fluid_tags) = chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()?.as_ref().ok()?;
     let known_items = chunks.__horizon_mixins_tconstruct_melter_known_items().as_ref()?;
     let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref()?.as_ref().ok()?;
     let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
-    let recipes = raw_recipes.iter().filter_map(|(id, bytes)| {
-        conditional_recipe(bytes, &registries, config, known_items).map(|selected| (id.clone(), selected))
-    }).collect();
-    let catalog = Catalog { recipes: &recipes, item_tags, fluid_tags, known_items, known_fluids };
+    let catalog = Catalog { recipes, item_tags, fluid_tags, known_items, known_fluids };
     Some(f(&catalog, &registries, config))
 }
 
