@@ -88,3 +88,19 @@ fn maintained_rebuild_without_stacking_and_clear_after_part_swap() {
   assert!((projectile::projectile_stats(&bow).unwrap().0-2.2).abs()<0.00001);
  }
 }
+
+#[test]
+fn airborne_trait_rebuild_and_removal_changes_firing_velocity() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  let levels=BTreeMap::from([("tconstruct:airborne".into(),1)]);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+  assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-1.1).abs()<1e-6);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::new(),false,false).unwrap();
+  assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-1.0).abs()<1e-6);
+ }
+}
