@@ -64,3 +64,8 @@ and `ModifierFormula.java` and `PostFixFormula.java` for effective levels.
 The order of armor Haste and tool speed hooks was checked against
 [`ToolEvents.java`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/ToolEvents.java). Copyright (c) 2022 SlimeKnights; MIT license,
 see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The potion, water and airborne mining multiplier order was checked against
+[BreakSpeedContext.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/mining/BreakSpeedContext.java)
+at Tinkers' Construct f4e77d43. Copyright (c) 2022 SlimeKnights; MIT license,
+see `tconstruct/third_party/tconstruct/LICENSE`.

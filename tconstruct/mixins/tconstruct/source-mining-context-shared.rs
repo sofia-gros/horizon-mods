@@ -37,7 +37,18 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
             .and_then(|tags| tags.get("tconstruct:modifiable/broad"))
     };
     let broad = crate::game::tconstruct_source_mining_rules::broad_or_unknown(broad_tag, &stack.item);
-    let speed = crate::game::tconstruct_source_mining_rules::conditional_with_resistance(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance)).unwrap_or(speed);
+    // Source BreakSpeedContext supplies potion and environmental factors to
+    // flat bonuses. Host base speed may use different fatigue/water rules.
+    let in_water = game.eye_position().is_some_and(|eye| {
+        let state = game.world.block(eye[0].floor() as i32, eye[1].floor() as i32, eye[2].floor() as i32);
+        game.res.facts().get(state).fluid == horizon_client::blocks::Fluid::Water
+    });
+    let aqua_affinity = game.armor[0].as_ref().is_some_and(|stack| stack.enchantment_level("minecraft:aqua_affinity") > 0);
     let on_ground = game.player.as_ref().map_or(true, |player| player.ground.on_ground);
+    let effects = &game.potions.effects;
+    let multiplier = crate::game::tconstruct_source_mining_rules::environment_multiplier(
+        effects.amplifier("haste"), effects.amplifier("conduit_power"),
+        effects.amplifier("mining_fatigue"), in_water, aqua_affinity, on_ground);
+    let speed = crate::game::tconstruct_source_mining_rules::conditional_with_resistance(custom, stack.damage, speed, multiplier, position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance)).unwrap_or(speed);
     crate::game::tconstruct_source_mining_rules::finish_mining_speed(speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground), armor_multiplier)
 }
