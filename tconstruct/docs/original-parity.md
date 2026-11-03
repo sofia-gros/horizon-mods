@@ -468,3 +468,5 @@ The shared source condition resolver also recognizes the three deprecated but st
 The original Ender tree root variant and vine-decorator calculations are retained as unconnected components with a focused mock-world test. They do not register root blocks, place trees or establish world generation; host world writes, waterlogging, random state, save/reload and gameplay remain unverified.
 
 The source Bacon item is registered with its original model and texture and food values. The existing Tasty repair recipe can resolve its ingredient once its Station implementation is integrated. Representative supplied-item food and repair results were recorded on a separate b53 candidate; normal acquisition and this exact integrated target remain unverified.
+
+The Melter and Seared Fluid Cannon crafting guard follows source `TankItem.isFilled`: any saved tank compound causes the gauge to have a crafting remainder, even if that compound reports zero fluid. A gauge without a tank compound remains eligible; malformed component forms remain conservatively refused. The source-level guard was tested; integrated crafting, save/reload and LAN remain unverified.
