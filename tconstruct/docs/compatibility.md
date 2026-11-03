@@ -1,6 +1,10 @@
 # Compatibility
 
-## Verified combination
+## v0.5.0 target
+
+The v0.5.0 packages target Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The matching PlutoLib native bundle is built from the same tagged source. Gameplay testing of v0.5.0 remains incomplete; the earlier checks below do not establish gameplay compatibility for this release.
+
+## Earlier provisional combination
 
 - **Tinkers’ Construct for Horizon:** development version `0.1.0`; representative provisional tests used code [`ed70aa9`](https://github.com/sofia-gros/horizon-mods/commit/ed70aa9baedc33c6613733c4f5e560420aede457). This is not a release claim.
 - **Horizon:** [`cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7`](https://github.com/horizon-rust/horizon/commit/cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7).
@@ -16,6 +20,6 @@ The source TConstruct data is pinned to [`f4e77d43f39ba1047bf93ae816b7e1beaab514
 
 An earlier branch targeted Horizon [`fd6cfda6bdef59a53aee830009f78c14832b0308`](https://github.com/horizon-rust/horizon/commit/fd6cfda6bdef59a53aee830009f78c14832b0308) with Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. A Linux client built with PlutoLib code `add61038f819910542d4c05d660f7c857c62fa07` passed the representative checks in the [host update evidence](host-upgrade.md), but the branch is not yet fully verified or merged. Advanced durability text is missing for a damaged Longbow with a per-stack maximum when its item template has no durability line. The durability bar itself appeared. Windows, smartphones and dedicated servers remain unverified. Check upstream again before merging. Slime-island generation and source world fluids remain incomplete.
 
-The integration target is Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` with the same Mixins revision. This target has not yet been transformed, built or game-tested. An earlier combined candidate on Horizon `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` passed Linux apply/build and representative fixture checks; [its evidence](https://github.com/sofia-gros/horizon-mods/pull/103#issuecomment-6586384737) does not validate the new target. The earlier `9a6f7dd5a193d709f389adeb1f51858465b8f747` pair passed a representative joint Linux build and game checks with the tooltip, Maintained and armor preview changes; see the [test evidence](https://github.com/sofia-gros/horizon-mods/pull/84#issuecomment-6581934176).
+The integration target is Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` with the same Mixins revision. Gameplay testing of this target is incomplete. An earlier combined candidate on Horizon `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` passed Linux apply/build and representative fixture checks; [its evidence](https://github.com/sofia-gros/horizon-mods/pull/103#issuecomment-6586384737) does not validate the new target. The earlier `9a6f7dd5a193d709f389adeb1f51858465b8f747` pair passed a representative joint Linux build and game checks with the tooltip, Maintained and armor preview changes; see the [test evidence](https://github.com/sofia-gros/horizon-mods/pull/84#issuecomment-6581934176).
 
 The island and ranged integration candidate uses the target above and the matching PlutoLib bundle from this candidate. Its combined apply, build and gameplay are not yet verified. Earlier b53 island checks do not validate this target. Position-dependent foliage tint remains deferred; island and vegetation hooks remain enabled.

@@ -12,7 +12,7 @@ fn prepare_tconstruct_resources() {
         if std::fs::symlink_metadata(&out).is_ok() || out.starts_with(&base) || base.starts_with(&out) || out.starts_with(&content_path) || content_path.starts_with(&out) {
             return Err("output must not exist and must be separate from both inputs".into());
         }
-        let manifest = horizon_mods::manifest::Manifest::parse("id = 'tconstruct'\nname = 'TConstruct assets'\nversion = '0.1.0'\napi = '0.2'\ncapabilities = ['registries']\nnamespaces = ['mantle', 'forge']\n")?;
+        let manifest = horizon_mods::manifest::Manifest::parse("id = 'tconstruct'\nname = 'TConstruct assets'\nversion = '0.5.0'\napi = '0.2'\ncapabilities = ['registries']\nnamespaces = ['mantle', 'forge']\n")?;
         let content = horizon_mods::content::Content::read(&content_path, &manifest)?;
         let content_mod = crate::mod_content::ContentMod { id: "tconstruct".into(), content };
         let warnings = crate::mod_content::build(&base, &[content_mod], &out)?;
