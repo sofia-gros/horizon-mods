@@ -342,6 +342,22 @@ Minecraft-side recycling durability now comes from the per-world snapshot of the
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
 
+### Material trait fallback by stat type
+
+The pinned material registry resolves a trait's exact stat type first, then its
+registered category fallback, then the material default. The trait selector now
+preserves that order for armor plating and maille and recognizes the source
+armor, ammo and ribcage stat types. Ribcage deliberately has no armor fallback.
+This fixes selection logic only; definitions that use `material_stats` still
+need their material entries connected to this selector separately.
+
+Rust syntax was checked. Unit, plan, build and gameplay are pending. Verify an
+exact plating override against armor fallback and default, empty explicit lists,
+maille, shield core, slime, skull, shell and laces, ribcage without armor
+fallback, and arrow head/shaft/fletching with ammo fallback. Check material
+swaps and saved/LAN stacks. Source:
+[MaterialRegistry](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/materials/MaterialRegistry.java).
+
 The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
 
 ### Skull material armor stat
