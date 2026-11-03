@@ -126,7 +126,18 @@ Trueshot as material traits, the existing stat rebuild now combines those
 integer trait levels with the saved fractional incremental upgrade progress.
 The implemented scope is harvest-tool mining speed, melee attack damage and
 speed, and longbow/crossbow draw speed and accuracy. Rebuilding after a material
-change recalculates from the baseline. Haste supplied as a trait on worn armor
-is not covered by this change. The source-data and host-type fixtures cover
+change recalculates from the baseline. Chest-slot Haste traits are resolved on
+the authoritative server from the current material snapshot, the non-harvest
+tag and the byte-exact pinned Haste definition. Each client receives only its
+own chest item and trait level and uses the result only while the item's decoded
+components, count and damage match. The host comparison ignores opaque wire
+patches; those components are not used by this trait lookup. A client can
+briefly predict an old level after a world-only change until invalidation or a
+fresh frame arrives; the server remains authoritative. Unknown snapshots and mismatched equipment omit the trait contribution; source
+overrides, other armor slots and held non-harvest tools remain unsupported. The
+existing chest upgrade contribution remains available. This does not provide a
+complete modifier registry or prove behavior when an external native mod
+overrides the same modifier.
+The source-data and host-type fixtures cover
 trait-only, partial-upgrade and combined inputs; actual Station, Creative,
 reload and LAN behavior on the integrated host remains unverified.

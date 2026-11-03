@@ -275,3 +275,38 @@ fn incremental_trait_only_upgrade_only_and_removal_rebuild() {
  assert!(matches!(data.get("tic_draw_speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-1.5).abs()<1e-5));
  assert!(matches!(data.get("tic_accuracy"),Some(Tag::Float(v)) if (f32::from_bits(*v)-0.7).abs()<1e-5));
 }
+
+#[path = "../../mixins/tconstruct/source-mining-math.rs"] mod tconstruct_source_mining_math;
+#[path = "../../mixins/tconstruct/source-mining-rules.rs"] mod tconstruct_source_mining_rules;
+#[path = "../../../pluto-lib/mixins/pluto_tool_rules/rules.rs"] pub mod rules;
+mod tconstruct_tool_api {
+    pub use horizon_items::item_data::canon_tag;
+    pub use crate::rules;
+}
+
+use horizon_items::items::ItemStack;
+
+#[test]
+fn local_armor_haste_survives_item_codec_and_unequip_has_no_effect() {
+ use horizon_world::nbt::Tag;
+ let mut chest=ItemStack::new("tconstruct:plate_chestplate",1);
+ chest.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_max_damage",Tag::Int(100)),
+  ("tic_materials",Tag::List(vec![Tag::String("test:haste_material".into())])),
+  ("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(18))])),
+ ])));
+ let encoded=horizon_items::item_nbt::item_to_nbt(&chest);
+ let restored=horizon_items::item_nbt::item_from_nbt(&encoded).unwrap();
+ assert!(chest.same_item_same_components(&restored));
+ let worn=|chest: Option<&ItemStack>, trait_level| chest.and_then(|item| {
+  let custom=item.data()?.other("minecraft:custom_data")?;
+  Some(tconstruct_source_mining_rules::haste_armor_multiplier_with_trait(custom,item.damage,trait_level))
+ }).unwrap_or(1.0);
+ assert!((worn(Some(&restored),2)-1.24).abs()<1e-6);
+ assert_eq!(worn(None,2),1.0);
+ assert!((worn(Some(&restored),0)-1.04).abs()<1e-6);
+}
+
+#[path = "../../mixins/tconstruct/source-haste-wire.rs"] mod tconstruct_source_haste_wire;
+
+#[path = "../../mixins/tconstruct/source-haste-source.rs"] mod tconstruct_source_haste_source;

@@ -4816,6 +4816,66 @@ name = "tconstruct_source_splash_conditional"
 source = "source-splash-conditional.rs"
 
 [[state]]
+id = "haste-wire-client"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(horizon_items::items::ItemStack,i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "haste-wire-sent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64),(u64,bool,Option<horizon_items::items::ItemStack>,(Vec<u8>,u8))>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "host-haste-wire"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_haste_wire"
+source = "source-haste-wire.rs"
+
+[[module]]
+id = "server-haste-wire"
+file = "crates/horizon-client/src/lan/hub.rs"
+name = "tconstruct_source_haste_wire"
+source = "source-haste-wire.rs"
+
+[[module]]
+id = "host-haste-source"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_haste_source"
+source = "source-haste-source.rs"
+
+[[module]]
+id = "lib-haste-source"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_haste_source"
+source = "source-haste-source.rs"
+visibility = "pub"
+
+[[injection]]
+id = "haste-wire-send"
+target = "horizon_client_lib::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "source-haste-wire-send.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[injection]]
+id = "haste-wire-receive"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-haste-wire-receive.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
+
+[[state]]
 id = "broad-wire-client"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<std::collections::HashSet<String>>"

@@ -4,12 +4,16 @@ use super::tconstruct_source_mining_math::{Conditional, conditional_speed_for};
 
 /// Haste on a non-harvest chestplate applies the source player mining-speed multiplier.
 pub(super) fn haste_armor_multiplier(custom: &Tag, damage: u32) -> f32 {
+    haste_armor_multiplier_with_trait(custom, damage, 0)
+}
+
+pub(super) fn haste_armor_multiplier_with_trait(custom: &Tag, damage: u32, trait_level: i32) -> f32 {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return 1.0; };
     if *max <= 0 || damage >= *max as u32 { return 1.0; }
     let amount = match custom.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:haste")) {
         Some(Tag::Int(amount)) => (*amount).max(0), _ => 0,
     };
-    1.0 + 0.1 * amount as f32 / 45.0
+    1.0 + 0.1 * (amount as f32 / 45.0 + trait_level.max(0) as f32)
 }
 
 #[cfg(test)]
@@ -25,6 +29,17 @@ mod haste_tests {
         assert!((haste_armor_multiplier(&custom, 99) - 1.04).abs() < 0.00001);
         assert_eq!(haste_armor_multiplier(&custom, 100), 1.0);
     }
+    #[test]
+    fn chest_trait_and_partial_upgrade_share_one_multiplier() {
+        let custom = Tag::compound([("tic_max_damage",Tag::Int(100)),
+            ("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(18))]))]);
+        assert!((haste_armor_multiplier_with_trait(&custom,0,2)-1.24).abs()<1e-6);
+        assert!((haste_armor_multiplier_with_trait(&custom,0,0)-1.04).abs()<1e-6);
+        assert_eq!(haste_armor_multiplier_with_trait(&custom,100,2),1.0);
+        assert_eq!(haste_armor_multiplier_with_trait(&Tag::compound(Vec::<(&str,Tag)>::new()),0,2),1.0);
+        assert!((haste_armor_multiplier_with_trait(&custom,0,-1)-1.04).abs()<1e-6);
+    }
+
 }
 
 // Airborne's percent module runs after flat mining bonuses and does not

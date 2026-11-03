@@ -2,7 +2,22 @@
 pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_items::blocks::StateFacts, held: &Option<&horizon_client::items::ItemStack>, position: Option<(i32, i32)>) -> f32 {
     let speed = game.armor[1].as_ref().and_then(|stack| {
         let custom = stack.data()?.other("minecraft:custom_data")?;
-        Some(speed * crate::game::tconstruct_source_mining_rules::haste_armor_multiplier(custom, stack.damage))
+        // A client uses only the matching actor-specific authoritative frame.
+        // A server uses the acting player's swapped equipment and live world.
+        let traits = if game.remote.is_some() {
+            crate::game::tconstruct_source_haste_wire::matching_level(
+                game.world.chunks.__horizon_mixins_tconstruct_haste_wire_client().as_ref(), Some(stack)).unwrap_or(0)
+        } else {
+            (|| {
+                let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+                let harvest = tags.get("tconstruct:modifiable/harvest")?;
+                let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
+                let source = crate::game::tconstruct_modifier_snapshot::highest_definition(raw, "tconstruct:tinkering/modifiers/haste");
+                if !crate::game::tconstruct_source_haste_source::source_haste_trait_allowed(Some(harvest.contains(&*stack.item)), source) { return None; }
+                Some(crate::game::tconstruct_source_material_traits::levels(&game.world, stack)?.levels.get("tconstruct:haste").copied().unwrap_or(0))
+            })().unwrap_or(0)
+        };
+        Some(speed * crate::game::tconstruct_source_mining_rules::haste_armor_multiplier_with_trait(custom, stack.damage, traits))
     }).unwrap_or(speed);
     let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return speed; };
     let Some(data) = stack.data() else { return speed; };
