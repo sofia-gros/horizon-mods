@@ -617,3 +617,9 @@ A dependent bottle candidate rejects any existing brewing recipe with an overlap
 The empty-bottle source-ray follow-up checks a nearer waterlogged source using the same outline/distance method as the host's own remote bottle prediction, in addition to `pick_fluid`. This does not establish actual client/server, protection or cauldron behavior; verify nearer waterlogged versus ordinary source, intervening solids, flowing water, both hands and exact bottle counts on the integrated build.
 
 The subsequent modifier-repair candidate recognizes nested Forge difference and intersection ingredients and selected fixed definition traits. It uses trait levels already included by the current resolver exactly once; optional relevant traits and definition-provided Emerald remain conservative exclusions. Extracted-code fixtures for the paired resolver and repair calculation passed, but the reconciled candidate requires game, save and LAN verification.
+
+For the Crafting Station workbench-difference recipe, verify the pattern and
+valid workbench input, reject the Station itself as the workbench, and confirm
+unrelated shaped recipes remain unaffected. Check nested ingredient matching
+and the integrated build and game behavior on the actual host revision; the
+named-field compatibility change alone is not runtime evidence.
