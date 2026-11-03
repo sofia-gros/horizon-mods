@@ -42,3 +42,18 @@ use/stop/release, both hands, vehicle, local/guest actor separation and replay.
 Plan, type and gameplay remain unverified. A common signed-protection boundary
 and actor-specific post-sync movement speed are candidate integration needs,
 not claims that the formal host cannot be extended.
+
+A subsequent local-only candidate reads the already applied, source-tagged
+`featherweight_movement/{slot}` amounts from the player's movement attribute
+and adds them once to the active item speed at
+`MotionWorld::controlled_simulation_tick_with_sprint_window`. The formal host
+`tick_remote_level` first calls `sync_player_body`, which refreshes the base
+item speed for that local tick; passenger, server-copy and replay paths are
+excluded. This preserves the item speed supplied by the host, but does not
+assert that all original held-tool or armor-stat speed contributions are
+implemented. Guest replay and the server-authoritative guest movement remain
+open. The HEAD injection and source attribute sync have not passed official
+plan, type or gameplay tests. Verify repeated ticks do not compound, 0.2 →
+0.25 and 0.30, clamp at 1, broken/remove/equip, use/stop, vehicles, local
+world and a guest client, original held-tool speed modifiers and unrelated
+movement attributes; verify guest replay separately before claiming LAN parity.

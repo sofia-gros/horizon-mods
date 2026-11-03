@@ -1809,6 +1809,14 @@ cancellable = true
 helper = "material-attack-speed.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
 
+# The host synchronizes the active item speed before this local motion tick.
+[[injection]]
+id = "featherweight-local-use-speed"
+target = "horizon_client::motion::MotionWorld<'_, '_, '_>::controlled_simulation_tick_with_sprint_window"
+kind = "HEAD"
+helper = "featherweight-local-use-speed.rs"
+bindings = [{ name = "motion", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
+
 [[injection]]
 id = "material-armor-attributes"
 target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
