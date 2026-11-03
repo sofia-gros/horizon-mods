@@ -32,6 +32,30 @@ pub(super) fn gauge_tank(block: &str, saved: &horizon_world::nbt::Tag) -> Option
     Tank::from_nbt(tank, capacity)
 }
 
+/// PotionFluidType names its fluid from the potion, not from the generic fluid.
+/// Resolve only known source-era vanilla potion IDs. Unknown/modded IDs retain
+/// the existing generic display until their potion registries are available.
+pub(super) fn potion_fluid_name(tag: Option<&horizon_world::nbt::Tag>) -> Option<String> {
+    use horizon_world::nbt::Tag;
+    let id = match tag {
+        None => return Some("item.minecraft.potion.effect.empty".into()),
+        Some(Tag::Compound(fields)) => match fields.get(&"Potion".into()) {
+            None => return Some("item.minecraft.potion.effect.empty".into()),
+            Some(Tag::String(id)) => id.to_string_lossy(),
+            _ => return None,
+        },
+        _ => return None,
+    };
+    if id == "minecraft:empty" || id == "empty" { return Some("item.minecraft.potion.effect.empty".into()); }
+    let bare = id.strip_prefix("minecraft:").unwrap_or(&id);
+    let base = bare.strip_prefix("long_").or_else(|| bare.strip_prefix("strong_")).unwrap_or(bare);
+    if !matches!(base, "water" | "mundane" | "thick" | "awkward" | "night_vision" | "invisibility" |
+        "leaping" | "fire_resistance" | "swiftness" | "slowness" | "turtle_master" | "water_breathing" |
+        "healing" | "harming" | "poison" | "regeneration" | "strength" | "weakness" | "luck" | "slow_falling") { return None; }
+    let potion = horizon_client_core::potions::potion(&id)?;
+    Some(format!("item.minecraft.potion.effect.{}", potion.name))
+}
+
 /// Return the replacement container after a complete bucket transfer. The
 /// caller must perform this on a copy until both inventory and NBT can commit.
 pub(super) fn exchange(tank: &mut Tank, held: &str) -> Option<&'static str> {
@@ -47,6 +71,24 @@ pub(super) fn exchange(tank: &mut Tank, held: &str) -> Option<&'static str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn potion_fluid_names_use_base_potion_translation() {
+        use horizon_world::nbt::Tag;
+        let tag = |id: &str| Tag::compound([("Potion", Tag::String(id.into()))]);
+        assert_eq!(potion_fluid_name(None).as_deref(), Some("item.minecraft.potion.effect.empty"));
+        assert_eq!(potion_fluid_name(Some(&tag("minecraft:swiftness"))).as_deref(), Some("item.minecraft.potion.effect.swiftness"));
+        assert_eq!(potion_fluid_name(Some(&tag("swiftness"))).as_deref(), Some("item.minecraft.potion.effect.swiftness"));
+        assert_eq!(potion_fluid_name(Some(&tag("minecraft:long_swiftness"))).as_deref(), Some("item.minecraft.potion.effect.swiftness"));
+        assert_eq!(potion_fluid_name(Some(&tag("minecraft:strong_healing"))).as_deref(), Some("item.minecraft.potion.effect.healing"));
+        assert_eq!(potion_fluid_name(Some(&tag("minecraft:empty"))).as_deref(), Some("item.minecraft.potion.effect.empty"));
+        assert_eq!(potion_fluid_name(Some(&tag("minecraft:strong_night_vision"))), None);
+        assert_eq!(potion_fluid_name(Some(&tag("minecraft:wind_charged"))), None);
+        assert_eq!(potion_fluid_name(Some(&tag("example:swiftness"))), None);
+        assert_eq!(potion_fluid_name(Some(&Tag::Int(1))), None);
+        assert_eq!(potion_fluid_name(Some(&Tag::compound([("Potion", Tag::Int(1))]))), None);
+        let extra = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(99))]);
+        assert_eq!(potion_fluid_name(Some(&extra)).as_deref(), Some("item.minecraft.potion.effect.swiftness"));
+    }
     #[test]
     fn gauge_reads_nested_machine_tanks_without_mutation() {
         use horizon_world::nbt::Tag;

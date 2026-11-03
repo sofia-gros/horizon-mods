@@ -119,7 +119,14 @@ pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
     let capacity = Text::literal(comma(tank.capacity));
     let text = if let Some(fluid) = tank.fluid {
         let (namespace, name) = fluid.split_once(':').unwrap_or(("minecraft", fluid.as_str()));
-        let key = if namespace == "minecraft" { format!("block.minecraft.{name}") } else { format!("fluid.{namespace}.{name}") };
+        let key = if fluid == "tconstruct:potion" {
+            // Native fluid snapshots omit metadata; an absent tag there does
+            // not mean the potion itself has no tag.
+            let native = !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:scorched_drain")
+                && horizon_client::pluto_fluid::first(&game.world, at, facing).is_some();
+            (!native).then(|| super::tconstruct_source_smeltery_fuel::potion_fluid_name(tank.tag.as_ref())).flatten()
+                .unwrap_or_else(|| "fluid.tconstruct.potion".into())
+        } else if namespace == "minecraft" { format!("block.minecraft.{name}") } else { format!("fluid.{namespace}.{name}") };
         let contents = Text::translate("gui.mantle.fluid.format", &[Text::literal(comma(tank.amount)), capacity, Text::translate(&key, &[])]);
         Text::translate("gui.mantle.fluid.contents", &[contents])
     } else { Text::translate("gui.mantle.fluid.capacity", &[capacity]) };
