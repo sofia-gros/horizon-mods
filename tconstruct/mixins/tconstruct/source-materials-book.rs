@@ -340,12 +340,16 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
-        // Only the source introduction is implemented for Mighty Smelting.
-        if book == "tconstruct:mighty_smelting" && key != "intro" { continue; }
+        // Only the introduction and the explicitly partial advice section are available.
+        let mighty_advice = book == "tconstruct:mighty_smelting" && key == "tools";
+        if book == "tconstruct:mighty_smelting" && !matches!(key, "intro" | "tools") { continue; }
+        if mighty_advice && !super::tconstruct_materials_book_index::mighty_advice_ready([
+            labels.get("tools.partial").copied(), labels.get("tools.partial.notice_title").copied(), labels.get("tools.partial.notice").copied()
+        ]) { continue; }
         // Modifier chapters currently expose static overview pages only;
         // dynamic modifier-tag pages and recipe layouts need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = labels.get(key).copied().unwrap_or(key);
+        let heading = if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -487,6 +491,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
+            if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
             if relative == "no-load" {
                 // Source tool sections supply navigation labels in language.lang;
@@ -609,7 +614,20 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                 }
             }
         }
-        if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
+        if !chapter_pages.is_empty() {
+            if mighty_advice {
+                if let (Some(title), Some(note)) = (labels.get("tools.partial.notice_title"), labels.get("tools.partial.notice")) {
+                    let notices = split_styled(game, &Text::literal(*note), 182.0, 15).into_iter().map(|part| {
+                        let mut notice = Text::styled(*title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
+                        notice.push("\n\n");
+                        notice.push(part);
+                        notice
+                    });
+                    chapter_pages.splice(0..0, notices);
+                }
+            }
+            chapters.push((heading.to_owned(), chapter_pages));
+        }
     }
     if chapters.is_empty() { return None; }
     // The host's existing book click handler understands ChangePage links.
