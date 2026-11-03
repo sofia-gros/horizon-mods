@@ -20,11 +20,15 @@ fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizo
         }
         crate::game::tconstruct_source_melter_store::clear(level.world, at);
     }
-    if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::capacity(&name) {
+    if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::item_capacity(&name) {
         let kind = crate::game::tconstruct_source_machine_runtime::kind(&name);
         if side_effects {
             if let Some((_, tank)) = kind.and_then(|kind| crate::game::tconstruct_source_melter_store::read(level.world, (pos.x, pos.y, pos.z), kind)
-                .and_then(|tag| crate::game::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity).map(|tank| (kind, tank)))) {
+                .and_then(|tag| if kind == "tconstruct:casting_tank" {
+                    crate::game::tconstruct_source_casting_tank::CastingTank::from_nbt(&tag).map(|state| (kind, state.tank))
+                } else if kind == "tconstruct:fluid_cannon" {
+                    crate::game::tconstruct_source_fluid_cannon::Cannon::from_nbt(&tag).map(|state| (kind, state.tank))
+                } else { crate::game::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity).map(|tank| (kind, tank)) })) {
                 if tank.amount > 0 {
                     let entry = level.pending.copied.entry([pos.x, pos.y, pos.z]).or_insert_with(|| (name.to_string(), horizon_world::nbt::Compound::new()));
                     entry.1.insert("tconstruct:internal_tank_copy".into(), tank.to_nbt());
@@ -46,7 +50,7 @@ fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizo
         }
         level.world.chunks.__horizon_mixins_tconstruct_smeltery_owners_mut().retain(|_, owner| *owner != controller);
     }
-    if matches!(&*name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin") {
+    if matches!(&*name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") {
         crate::game::tconstruct_source_melter_store::clear(level.world, (pos.x, pos.y, pos.z));
     }
 }

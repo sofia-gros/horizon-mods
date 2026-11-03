@@ -34,3 +34,6 @@ This writes content declarations for a gem that stacks to 16 and a block. Includ
 The unreleased `0.1.0` development version has been tested on Linux with pinned Horizon and Mixins commits. See [compatibility](docs/compatibility.md) for the verified combination, the initial demo's Mixins limitation, and development targets.
 
 The existing Python Creative helper remains available; see its [guide](docs/creative-tabs.md).
+# Native fluid reads
+
+The native creative bundle includes a read-only `pluto_fluid::first` helper for a block entity's first host-registered fluid tank on a given face. It reads the same `fluids` state and face mapping as the native host; it does not mutate fluid and does not resolve external capability systems or fluid tags. This candidate requires integration and host validation.
