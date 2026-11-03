@@ -319,9 +319,13 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     let diamond = amount(tool, "tconstruct:diamond") > 0;
     let emerald = amount(tool, "tconstruct:emerald") > 0;
     let netherite = amount(tool, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
+    let heavy = levels.get("tconstruct:heavy").copied().unwrap_or(0).max(0) as f32;
+    let knockback_resistance = (stats.knockback_resistance
+        + (0.15 * heavy + if netherite { 0.05 } else { 0.0 }) * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0);
     if !diamond && !emerald && !netherite {
         let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
         let Tag::Compound(ref mut fields) = custom else { return None; };
+        if armor { fields.insert("tic_knockback_resistance".into(), Tag::Float(knockback_resistance.to_bits())); }
         fields.remove(&"tconstruct:diamond_armor".into());
         fields.remove(&"tconstruct:netherite".into());
         fields.remove(&"tic_attack_conditional_multiplier".into());
@@ -347,7 +351,7 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
             let bonus = i32::from(emerald) + i32::from(netherite);
             fields.insert("tic_armor_toughness".into(), Tag::Float((stats.armor_toughness + (ductile + bonus as f32) * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0).to_bits()));
         }
-        if netherite { fields.insert("tic_knockback_resistance".into(), Tag::Float((stats.knockback_resistance + 0.05 * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0).to_bits())); }
+        fields.insert("tic_knockback_resistance".into(), Tag::Float(knockback_resistance.to_bits()));
     }
     if netherite { fields.insert("tconstruct:netherite".into(), Tag::Byte(1)); } else { fields.remove(&"tconstruct:netherite".into()); }
     if diamond && worn_armor { fields.insert("tconstruct:diamond_armor".into(), Tag::Byte(1)); }

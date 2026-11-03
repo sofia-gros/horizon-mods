@@ -25,6 +25,7 @@ pub struct BaseStats {
     pub accuracy_add_multiplier: f32,
     pub projectile_damage: f32,
     pub projectile_damage_add_multiplier: f32,
+    pub overslime_material: f32,
     pub armor: f32,
     pub armor_add_multiplier: f32,
     pub armor_toughness: f32,
@@ -79,7 +80,7 @@ impl Accumulator {
 }
 
 fn apply_material(
-    stats: &mut [Accumulator; 11],
+    stats: &mut [Accumulator; 12],
     kind: &str,
     material: &Map<String, Value>,
     scale: f32,
@@ -97,7 +98,6 @@ fn apply_material(
             | "ribcage"
             | "shell"
             | "laces"
-            | "skull"
     ) {
         return Some(());
     }
@@ -124,8 +124,15 @@ fn apply_material(
                 stats[index].percent += number(key, 0.0)? * scale;
             }
         }
+        "skull" => {
+            stats[7].update(number("armor", 0.0)? * scale);
+        }
         "slime" => {
-            stats[0].update(number("durability", 1.0)? * scale);
+            let durability = number("durability", 1.0)? * scale;
+            stats[0].update(durability);
+            // SlimeStats.apply in the pinned source adds scaled durability
+            // to the Overslime stat; the separate tooltip field is not used.
+            stats[11].add += durability;
         }
         "limb" => {
             stats[0].update(number("durability", 1.0)? * scale);
@@ -207,6 +214,7 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         Accumulator::new(0.0),
         Accumulator::new(0.0),
         Accumulator::new(2.0),
+        Accumulator::new(0.0),
     ];
     let keys = [
         "tconstruct:durability",
@@ -220,6 +228,7 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         "tconstruct:armor_toughness",
         "tconstruct:knockback_resistance",
         "tconstruct:projectile_damage",
+        "tconstruct:overslime",
     ];
     for module in definition.get("modules")?.as_array()? {
         match module.get("type")?.as_str()? {
@@ -298,6 +307,7 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         accuracy_add_multiplier: (1.0 + stats[6].percent) * stats[6].multiply,
         projectile_damage: stats[10].result(),
         projectile_damage_add_multiplier: (1.0 + stats[10].percent) * stats[10].multiply,
+        overslime_material: stats[11].result(),
         armor: stats[7].result(),
         armor_add_multiplier: (1.0 + stats[7].percent) * stats[7].multiply,
         armor_toughness: stats[8].result(),
@@ -377,6 +387,7 @@ mod tests {
                 accuracy_add_multiplier: 1.0,
                 projectile_damage: 2.0,
                 projectile_damage_add_multiplier: 1.0,
+                overslime_material: 0.0,
                 armor: 0.0,
                 armor_add_multiplier: 1.0,
                 armor_toughness: 0.0,
