@@ -26,12 +26,13 @@ const UPGRADES: [(&str, i32); 12] = [
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
-const BONUS_SLOTS: [(&str, i32, i32); 7] = [
+const BONUS_SLOTS: [(&str, i32, i32); 8] = [
     ("tconstruct:writable", 1, 0), ("tconstruct:harmonious", 1, 0),
     ("tconstruct:recapitated", 1, 0), ("tconstruct:forecast", 1, 0),
     ("tconstruct:draconic", 0, 1),
     ("tconstruct:enhanced", 1, 0),
     ("tconstruct:vintage", 0, 1),
+    ("tconstruct:gilded", 2, 0),
 ];
 
 fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
@@ -83,7 +84,7 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 
 /// Recompute free upgrade and ability slots after material traits change.
 fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing") }
-fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum() }
+fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
     let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
@@ -183,12 +184,25 @@ pub(super) fn plan_with_traits(
         if recipe_type == Some("tconstruct:modifier") {
             if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
-            if amount(tool, id) != 0 { continue; }
-            if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false)
-                && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
+            let old = amount(tool, id);
+            if id != "tconstruct:gilded" && old != 0 { continue; }
+            let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
+            let new_level = i64::from(old) + 1 + i64::from(trait_level);
+            let valid_level = if id == "tconstruct:gilded" {
+                match value.get("level") {
+                    None => (1..=32767).contains(&new_level),
+                    Some(level) if level.is_number() => level.as_i64() == Some(new_level),
+                    Some(level) if level.is_object() => {
+                        let min = level.get("min").map_or(Some(1), Value::as_i64);
+                        let max = level.get("max").map_or(Some(32767), Value::as_i64);
+                        matches!((min, max), (Some(min), Some(max)) if min >= 1 && max <= 32767 && (min..=max).contains(&new_level))
+                    }
+                    _ => false,
+                }
+            } else { new_level == 1 && value.get("level").and_then(Value::as_i64) == Some(1) };
             let cost = value.pointer("/slots/upgrades").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
             let ability_cost = value.pointer("/slots/abilities").and_then(Value::as_i64).and_then(|v| i32::try_from(v).ok()).unwrap_or(0);
-            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || value.get("level").and_then(Value::as_i64) != Some(1) { continue; }
+            if occupied + cost > upgrade_slots || used_abilities(tool) + ability_cost > ability_slots || !valid_level { continue; }
             if id == "tconstruct:unbreakable" {
                 let level = |name: &str, needed: i32| amount(tool, name) / needed + traits.get(name).copied().unwrap_or(0);
                 if level("tconstruct:netherite", 1) < 1 || level("tconstruct:reinforced", 4) < 5 { continue; }
@@ -214,7 +228,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            return Some(UpgradePlan { id: id.to_owned(), amount: 1, consumed, leftover });
+            return Some(UpgradePlan { id: id.to_owned(), amount: old + 1, consumed, leftover });
         }
 
         let Some(input) = value.get("input") else {
