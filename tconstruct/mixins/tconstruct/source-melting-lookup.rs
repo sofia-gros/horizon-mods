@@ -4,7 +4,7 @@
 // missing mod's fluid or a namespace preference.
 use std::collections::{BTreeMap, HashMap, HashSet};
 use serde_json::Value;
-use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, MoldingRecipe, Output};
+use super::tconstruct_source_melting_recipes::{AlloyRecipe, CastingRecipe, CompositeCastingRecipe, CompositeFluidRecipe, DuplicationRecipe, Ingredient, FluidFuel, FluidSpec, FoundryRecipe, MaterialCastingRecipe, MaterialFluidRecipe, MeltingRecipe, MoldingRecipe, Output};
 
 /// Supported source material predicates. Unknown forms fail closed, including
 /// inside negation, rather than becoming unrestricted.
@@ -191,6 +191,21 @@ impl Catalog<'_> {
         }
         found
     }
+    pub(super) fn duplication(&self, input: &str, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+        if !self.known_items.contains(input) { return None; }
+        let in_tag = |tag: &str, item: &str| self.item_tags.get(tag).is_some_and(|items| items.contains(item));
+        let mut found: Option<(String, CastingRecipe)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(duplicate) = DuplicationRecipe::parse(bytes, conditions) else { continue; };
+            if !duplicate.cast.matches(input, &in_tag) || !self.matches_fluid(&duplicate.fluid, fluid) { continue; }
+            let recipe = CastingRecipe { basin: false, retextured: false, cast: Some(duplicate.cast), consumes_cast: false,
+                switch_slots: false, fluid: duplicate.fluid, output: Output::Item(input.to_owned()), cooling_time: duplicate.cooling_time };
+            if found.as_ref().is_some_and(|(_, old)| old != &recipe) { return None; }
+            if found.is_none() { found = Some((id.clone(), recipe)); }
+        }
+        found
+    }
+
     pub(super) fn casting(&self, basin: bool, input: Option<&str>, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String)> {
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, CastingRecipe, String)> = None;
@@ -326,6 +341,20 @@ mod tests {
         assert_eq!(id, "bronze");
         assert_eq!((inputs.len(), output.as_str(), amount), (2, "tconstruct:bronze", 360));
         assert!(catalog.alloy(&stored[..1], 360, 700, &|_| true).is_none());
+    }
+    #[test]
+    fn duplication_matches_template_and_fluid_without_consuming_cast() {
+        let recipes = [("template".into(), br#"{"type":"tconstruct:table_duplication","cast":{"tag":"minecraft:trim_templates"},"fluid":{"tag":"tconstruct:molten_diamond","amount":500},"cooling_time":186}"#.to_vec())].into_iter().collect();
+        let item_tags = [("minecraft:trim_templates".into(), ["minecraft:coast_armor_trim_smithing_template".into()].into_iter().collect())].into_iter().collect();
+        let fluid_tags = [("tconstruct:molten_diamond".into(), ["tconstruct:molten_diamond".into()].into_iter().collect())].into_iter().collect();
+        let items = ["minecraft:coast_armor_trim_smithing_template".into(), "minecraft:stone".into()].into_iter().collect();
+        let fluids = ["tconstruct:molten_diamond".into(), "minecraft:water".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        let (_, recipe) = catalog.duplication("minecraft:coast_armor_trim_smithing_template", "tconstruct:molten_diamond", &|_| true).unwrap();
+        assert!(!recipe.consumes_cast);
+        assert_eq!((recipe.fluid.amount, recipe.cooling_time), (500, 186));
+        assert!(catalog.duplication("minecraft:stone", "tconstruct:molten_diamond", &|_| true).is_none());
+        assert!(catalog.duplication("minecraft:coast_armor_trim_smithing_template", "minecraft:water", &|_| true).is_none());
     }
     #[test]
     fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
