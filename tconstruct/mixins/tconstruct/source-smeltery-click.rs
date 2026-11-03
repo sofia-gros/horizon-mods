@@ -1,6 +1,9 @@
 fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button: i32, input: horizon_client::menu::Input) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
+        .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+        .map(|(id, items)| (id.clone(), items.clone())).collect());
     let (count, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
     // Reject outside clicks and every synthetic container slot before the
     // generic menu can alter the carried stack or player inventory.
@@ -25,7 +28,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                         .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
                     crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut containers,
                         crate::game::tconstruct_source_fluid_container::Direction::from_index(direction), None,
-                        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), None, game.lan.is_none());
+                        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref(), game.lan.is_none());
                     if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                         game.inventory = inventory;
                         game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
@@ -44,7 +47,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             && crate::game::tconstruct_source_fluid_container::click_with_color(&mut containers, &mut carried, slot - 300, button == 1, &|id| known_fluids.contains(id), game.lan.is_none()) {
             crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut containers,
                 crate::game::tconstruct_source_fluid_container::Direction::from_index(direction), None,
-                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), None, game.lan.is_none());
+                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), bottle_tags.as_ref(), game.lan.is_none());
             if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                 game.carried = carried;
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
@@ -71,7 +74,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             if crate::game::tconstruct_source_fluid_container::quick_input_with_color(&mut containers, &mut stack, &|fluid| fluids.contains(fluid), game.lan.is_none()) {
                 crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut containers,
                     crate::game::tconstruct_source_fluid_container::Direction::from_index(mode), None,
-                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), None, game.lan.is_none());
+                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref(), game.lan.is_none());
                 if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                     game.inventory[slot] = stack;
                     game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), mode));

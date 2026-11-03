@@ -157,7 +157,9 @@ pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) 
             .is_some_and(|fluid| fluid.as_ref().is_none_or(|f| known_fluid(&f.id) && (allow_color || f.tag.is_none())));
     }
     if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
-    if stack.item.as_ref() == "minecraft:potion" { return potion_data(stack, allow_color).is_some(); }
+    if matches!(&*stack.item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion") {
+        return potion_data(stack, allow_color).is_some();
+    }
     if matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
         return lantern_tank(stack).is_some();
     }
@@ -760,6 +762,91 @@ mod tests {
         assert!(carried.is_none());
         assert!(click(&mut slots, &mut carried, 0, true, &known));
         assert_eq!((slots[0].as_ref().unwrap().count, carried.as_ref().unwrap().count), (1, 2));
+    }
+    #[test]
+    fn special_potions_enter_via_click_and_quick_move_then_transfer() {
+        use std::collections::{HashMap, HashSet};
+        use horizon_world::nbt::Tag;
+        for (item, tag, bottle) in [
+            ("minecraft:splash_potion", "forge:bottles/splash", "test:splash_bottle"),
+            ("minecraft:lingering_potion", "forge:bottles/lingering", "test:lingering_bottle"),
+        ] {
+            let potion = ItemStack::new(item, 1).with_potion("minecraft:healing");
+            assert!(accepts(&potion, &known));
+            let mut slots = [None, None]; let mut carried = Some(potion.clone());
+            assert!(click(&mut slots, &mut carried, 0, false, &known));
+            assert!(carried.is_none());
+            let tags: HashMap<String, HashSet<String>> = [(tag.to_owned(), [bottle.to_owned()].into_iter().collect())].into_iter().collect();
+            let mut tank = SmelteryTank::new(250);
+            assert!(transfer_selected_with_tags(&mut tank, &mut slots, Direction::Auto, None, &known, &known, Some(&tags)));
+            assert_eq!(tank.total(), 250);
+            assert_eq!(tank.fluids[0].tag.as_ref().unwrap().get("Potion"), Some(&Tag::String("minecraft:healing".into())));
+            assert!(slots[0].is_none());
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), bottle);
+            let mut slots = [None, None]; let mut held = Some(potion);
+            assert!(quick_input(&mut slots, &mut held, &known));
+            assert!(held.is_none());
+            assert_eq!(slots[0].as_ref().unwrap().item.as_ref(), item);
+            let mut tank = SmelteryTank::new(250);
+            assert!(transfer_selected_with_tags(&mut tank, &mut slots, Direction::Auto, None, &known, &known, Some(&tags)));
+            assert_eq!(tank.total(), 250);
+            assert!(slots[0].is_none());
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), bottle);
+        }
+    }
+    #[test]
+    fn special_potion_transfer_fails_closed_without_tags_or_space() {
+        use std::collections::{HashMap, HashSet};
+        for (item, tag) in [("minecraft:splash_potion", "forge:bottles/splash"), ("minecraft:lingering_potion", "forge:bottles/lingering")] {
+            let potion = ItemStack::new(item, 1).with_potion("minecraft:water");
+            let tags: HashMap<String, HashSet<String>> = [(tag.to_owned(), ["test:bottle".to_owned()].into_iter().collect())].into_iter().collect();
+            let mut slots = [Some(potion.clone()), None]; let mut tank = SmelteryTank::new(250);
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::Auto, None, &known, &known, None));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            slots[1] = Some(ItemStack::new("minecraft:stone", 1));
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::Auto, None, &known, &known, Some(&tags)));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            slots[1] = None;
+            assert!(transfer_selected_with_tags(&mut tank, &mut slots, Direction::Auto, None, &known, &known, Some(&tags)));
+            assert_eq!(tank.amount("minecraft:water"), 250);
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "test:bottle");
+        }
+    }
+    #[test]
+    fn water_base_special_potion_discards_custom_data_like_mantle_1_11_115() {
+        use std::collections::{HashMap, HashSet};
+        use horizon_world::nbt::Tag;
+        for (item, tag) in [("minecraft:splash_potion", "forge:bottles/splash"), ("minecraft:lingering_potion", "forge:bottles/lingering")] {
+            let mut potion = ItemStack::new(item, 1).with_potion("minecraft:water");
+            potion.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(0x123456)));
+            potion.data_mut().potion_extra.push(("custom_effects".into(), Tag::List(vec![Tag::compound([
+                ("id", Tag::String("minecraft:speed".into())), ("duration", Tag::Int(100))
+            ])])));
+            let tags: HashMap<String, HashSet<String>> = [(tag.to_owned(), ["test:bottle".to_owned()].into_iter().collect())].into_iter().collect();
+            let mut slots = [None, None]; let mut held = Some(potion);
+            assert!(click_with_color(&mut slots, &mut held, 0, false, &known, true));
+            let mut tank = SmelteryTank::new(250);
+            assert!(transfer_selected_with_color(&mut tank, &mut slots, Direction::Auto, None, &known, &known, Some(&tags), true));
+            assert_eq!(tank.amount("minecraft:water"), 250);
+            assert_eq!(tank.fluids[0].tag, None);
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "test:bottle");
+        }
+    }
+    #[test]
+    fn special_potion_input_rejects_unsupported_data_without_mutation() {
+        use horizon_world::nbt::Tag;
+        for item in ["minecraft:splash_potion", "minecraft:lingering_potion"] {
+            let mut potion = ItemStack::new(item, 1).with_potion("minecraft:healing");
+            potion.data_mut().potion_extra.push(("custom_color".into(), Tag::Int(0x123456)));
+            assert!(!accepts(&potion, &known));
+            assert!(accepts_with_color(&potion, &known, true));
+            let mut slots = [None, None]; let mut held = Some(potion.clone());
+            assert!(!quick_input(&mut slots, &mut held, &known));
+            assert_eq!(held, Some(potion));
+            assert_eq!(slots, [None, None]);
+        }
     }
     #[test]
     fn quick_input_conserves_buckets_and_rejects_invalid_stacks() {
