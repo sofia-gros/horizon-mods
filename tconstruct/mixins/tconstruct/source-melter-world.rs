@@ -149,7 +149,7 @@ pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&ho
     let (potion, color) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
     let input = input?;
     let (id, recipe, output) = with_catalog(world, |catalog, registries, config| {
-        catalog.potion_casting(basin, &input.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.potion_casting(basin, &input.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })??;
     if !matches!(output.as_str(), "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion" | "minecraft:tipped_arrow") { return None; }
     Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color)))
