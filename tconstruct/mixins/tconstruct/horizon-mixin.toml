@@ -4077,3 +4077,40 @@ target = "horizon_client::game::advancements::Game<'_>::trigger_using_item"
 kind = "HEAD"
 helper = "source-slurping-bow-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-spilling"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_spilling"
+source = "source-spilling.rs"
+
+[[state]]
+id = "spilling-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, Vec<Option<(u32, horizon_items::items::ItemStack)>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-spilling-head"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "source-spilling-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-spilling-return"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "source-spilling-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-spilling-hit"
+target = "horizon_client::game::mace::Game<'_>::weapon_hit"
+kind = "HEAD"
+helper = "source-spilling-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
