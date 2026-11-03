@@ -4642,3 +4642,57 @@ id = "source-splash-conditional"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_splash_conditional"
 source = "source-splash-conditional.rs"
+
+[[state]]
+id = "broad-wire-client"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<std::collections::HashSet<String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "broad-wire-sent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32,u64),(Vec<u8>,u8)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "host-broad-wire"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_broad_wire"
+source = "source-broad-wire.rs"
+
+[[module]]
+id = "server-broad-wire"
+file = "crates/horizon-client/src/lan/hub.rs"
+name = "tconstruct_source_broad_wire"
+source = "source-broad-wire.rs"
+
+[[injection]]
+id = "broad-wire-send"
+target = "horizon_client_lib::lan::hub::Hub::track_entities"
+kind = "HEAD"
+helper = "source-broad-wire-send.rs"
+bindings = [{ name = "hub", ty = "&mut crate::lan::hub::Hub", value = "&mut *self" }, { name = "ctx", ty = "&mut crate::lan::hub::TickCtx<'_>", value = "ctx" }]
+
+[[injection]]
+id = "broad-wire-receive"
+target = "horizon_client::game::remote::Game<'_>::handle_packet"
+kind = "HEAD"
+cancellable = true
+helper = "source-broad-wire-receive.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "packet", ty = "&C", value = "&packet" }]
+
+[[injection]]
+id = "recipe-level-enter-refresh"
+target = "horizon_client::game::Game<'_>::update_world"
+kind = "HEAD"
+helper = "recipe-level-enter.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

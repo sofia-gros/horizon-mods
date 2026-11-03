@@ -47,6 +47,8 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           python3 -m unittest discover -s tconstruct/tests -v
+          rustc --edition=2021 --test tconstruct/tests/rust/broad_wire.rs -o /tmp/tconstruct-broad-wire-test
+          /tmp/tconstruct-broad-wire-test
           rustc --test tconstruct/tests/rust/command.rs -o /tmp/tconstruct-command-test
           /tmp/tconstruct-command-test
           rustc --test tconstruct/tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
