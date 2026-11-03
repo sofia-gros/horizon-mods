@@ -38,3 +38,9 @@ Pig Iron piston behavior was checked against MIT-licensed
 Canonical modifier tag lookup was checked against MIT-licensed
 [ModifierManager.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/ModifierManager.java) and
 [ModifierId.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/ModifierId.java).
+The bounded module-free modifier validation references MIT-licensed
+[ComposableModifier.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/impl/ComposableModifier.java),
+[ModifierLevelDisplay.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/util/ModifierLevelDisplay.java), and
+[ModifierTooltipsField.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/util/ModifierTooltipsField.java).
+The condition-field handling also references MIT-licensed Mantle
+[RecordLoadable6.java](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/data/loadable/record/RecordLoadable6.java).

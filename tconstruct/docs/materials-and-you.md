@@ -85,3 +85,14 @@ it currently rejects the snapshot if any modifier tag contains a remove
 operation. It does not construct the registry or enable modifier pages. The
 pinned TConstruct registration class alone cannot prove a complete registry:
 other mods may register static modifiers through the registration event.
+
+The bounded classifier now recognizes exactly two source-supported,
+module-free shapes (the pinned Lustrous and Overslime Friend definitions),
+unconditional redirects, and literal Forge true/false conditions. Any other
+serializer or condition remains unknown, and one unknown prevents a complete
+classification map. The two exact module-free shapes may also carry the literal
+true condition, which the source loader ignores after evaluating. The full
+pinned dataset contains many module-bearing
+modifiers, so this is not a complete registry and is not connected to display.
+Before production use, duplicate JSON object keys need rejection or verified
+compatibility with the source parser; serde_json currently uses the last key.

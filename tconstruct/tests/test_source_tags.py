@@ -48,6 +48,17 @@ class SourceTags(unittest.TestCase):
         })
         self.assertEqual(sum('condition' in value for value in definitions.values()), 3)
 
+    def test_pinned_moduleless_modifier_shapes(self):
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
+            definitions = {name.rsplit('/', 1)[-1]: json.loads(archive.read(name))
+                           for name in archive.namelist() if '/tinkering/modifiers/' in name}
+        moduleless = {name: value for name, value in definitions.items()
+                      if 'modules' not in value and 'redirects' not in value}
+        self.assertEqual(moduleless, {
+            'lustrous.json': {'level_display': 'tconstruct:default'},
+            'overslime_friend.json': {'level_display': 'tconstruct:no_levels', 'show_in_tooltips': 'advanced'},
+        })
+
     def test_fluid_tags_match_pinned_manifest(self):
         rows = (ROOT / 'docs/upstream-fluid-tags.sha256').read_text().splitlines()
         expected = dict(row.split('  ', 1)[::-1] for row in rows)
