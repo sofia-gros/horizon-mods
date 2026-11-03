@@ -47,6 +47,21 @@ pub(super) fn apply_empty_shape(table: &mut Tag, air: usize, targets: &[usize]) 
     Ok(())
 }
 
+/// Copy the full-cube collision used by a vanilla solid block.
+pub(super) fn apply_full_shape(table: &mut Tag, solid: usize, targets: &[usize]) -> Result<(), &'static str> {
+    let Tag::IntArray(indices) = table.get("cached_shapes").ok_or("missing cached shapes")? else { return Err("invalid cached shapes"); };
+    let index = *indices.get(solid).ok_or("missing solid state")?;
+    let Tag::List(shapes) = table.get("shapes").ok_or("missing collision shapes")? else { return Err("invalid collision shapes"); };
+    let shape = shapes.get(usize::try_from(index).map_err(|_| "invalid solid shape")?).ok_or("missing solid shape")?;
+    let unit = Tag::LongArray(vec![0.0f64.to_bits() as i64, 1.0f64.to_bits() as i64]);
+    if ["x","y","z"].iter().any(|axis| shape.get(axis) != Some(&unit)) { return Err("solid block shape is not a unit cube"); }
+    if !matches!(shape.get("occupied"), Some(Tag::ByteArray(value)) if !value.is_empty()) { return Err("solid block shape is empty"); }
+    if targets.iter().any(|target| *target >= indices.len()) { return Err("missing cannon state"); }
+    let Some(Tag::IntArray(indices)) = table.get_mut("cached_shapes") else { return Err("invalid cached shapes"); };
+    for target in targets { indices[*target] = index; }
+    Ok(())
+}
+
 pub(super) fn apply_soul_speed(table: &mut Tag, targets: &[(&str, f32)]) -> Result<(), &'static str> {
     let blocks = table.get_mut("blocks").ok_or("missing movement definitions")?;
     for (name, factor) in targets {

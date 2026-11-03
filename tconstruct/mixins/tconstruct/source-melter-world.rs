@@ -32,6 +32,18 @@ pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecip
     })?
 }
 
+pub(super) fn melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Option<(String, MeltingRecipe, String)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.melting_with_container(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn foundry_melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.foundry_melting_with_container(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
 pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.foundry_melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
@@ -80,13 +92,13 @@ pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &s
 /// potion metadata is rejected before reserving the fluid.
 pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag, allow_color: bool)
     -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
-    let (potion, color) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
+    let (potion, color, effects) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
     let input = input?;
     let (id, recipe, output) = with_catalog(world, |catalog, registries, config| {
         catalog.potion_casting(basin, &input.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })??;
     if !matches!(output.as_str(), "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion" | "minecraft:tipped_arrow") { return None; }
-    Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color)))
+    Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color, effects)))
 }
 
 /// Resolve the completed stack before reserving fluid. Both normal item
@@ -146,13 +158,22 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         return Some((id, recipe, output));
     }
     // The source rebuilds and validates a tool when metal replaces one of its
-    // materials. Regular casts are limited to undamaged tools; composite
-    // casts do not repair. Both require unupgraded tools and unchanged traits.
+    // materials. Ordinary casts may repair; composite casts do not. Supported
+    // upgrades and material traits are rebuilt through the Station path.
     if stack.count == 1 && stack.item.starts_with("tconstruct:") {
         let candidate = (|| {
             use horizon_world::nbt::Tag;
             let custom = stack.data()?.other("minecraft:custom_data")?;
-            match custom.get("tic_upgrades") { None => {}, Some(Tag::Compound(values)) if values.is_empty() => {}, _ => return None }
+            match custom.get("tic_upgrades") {
+                None => {},
+                Some(Tag::Compound(values)) if values.iter().all(|(id, value)| match id.to_string_lossy().as_str() {
+                    "tconstruct:diamond" | "tconstruct:emerald" => matches!(value, Tag::Int(1)),
+                    "tconstruct:haste" | "tconstruct:sharpness" | "tconstruct:swiftstrike"
+                        | "tconstruct:quick_charge" | "tconstruct:trueshot" => matches!(value, Tag::Int(v) if *v > 0),
+                    _ => false,
+                }) => {},
+                _ => return None,
+            }
             match custom.get("tic_broken") { None | Some(Tag::Byte(0)) => {}, _ => return None }
             let old_max = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => return None };
             if stack.damage >= old_max { return None; }
@@ -164,27 +185,55 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 .find(|recipe| recipe.result == &*stack.item)?;
             let parts = building.parts(definition)?;
             let Tag::List(values) = custom.get("tic_materials")? else { return None; };
-            let identities = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<_>>>()?;
+            let identities: Vec<String> = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<String>>>()?;
             if identities.len() != parts.len() { return None; }
             let ((id, recipe, material, index), composite) = with_catalog(world, |catalog, registries, config| {
-                let supports = |index, material: &str| {
+                let supports = |index: usize, material: &str| {
                     let Some(part) = parts.get(index) else { return false; };
                     let Some(old) = identities.get(index) else { return false; };
                     let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
-                    canonical(old) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
+                    canonical(old.as_str()) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
                         .is_ok_and(|(_, supported)| supported.contains(part))
                 };
                 let conditions = |values: &[serde_json::Value]| conditional_conditions(values, registries, config, catalog.known_items).unwrap_or(false);
                 catalog.part_swap_casting(basin, &stack.item, fluid, &supports, &conditions).map(|value| (value, false))
                     .or_else(|| catalog.composite_part_swap(basin, &stack.item, fluid, &identities, &supports, &conditions).map(|value| (value, true)))
             })??;
-            if !composite && stack.damage != 0 { return None; }
             let mut next = identities; *next.get_mut(index)? = material;
-            let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
+            let mut output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
+            if !composite && stack.damage != 0 {
+                // Only use hooks whose complete repair semantics are known.
+                // Do not infer effects for unknown traits or definition traits.
+                let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
+                if definition_json.get("modules")?.as_array()?.iter().any(|module|
+                    module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits")) { return None; }
+                let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+                if traits.keys().any(|id| !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense")) { return None; }
+                let level = |id: &str| traits.get(id).copied().unwrap_or(0);
+                let emerald = matches!(custom.get("tic_upgrades").and_then(|v| v.get("tconstruct:emerald")), Some(Tag::Int(1)));
+                // One active factor avoids changing the upstream hook order.
+                if [level("tconstruct:preserved") > 0, level("tconstruct:cultivated") > 0,
+                    level("tconstruct:dense") > 0, emerald].into_iter().filter(|v| *v).count() > 1 { return None; }
+                let kind = super::tconstruct_source_station_stats::part_kind(parts.get(index)?)?;
+                let durability = if matches!(kind, "head" | "limb" | "slime" | "skull") || kind.starts_with("plating_") {
+                    let id = next.get(index)?;
+                    let (namespace, name) = id.split_once(':')?;
+                    let layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", name.split('#').next()?))?;
+                    let stats = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
+                    stats.get(&format!("tconstruct:{kind}"))?.get("durability")?.as_i64()?.try_into().ok()?
+                } else { 0i32 };
+                let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
+                let swap = super::tconstruct_source_melting_recipes::PartSwapCastingRecipe::parse(recipes.get(&id)?, &|_| true)?;
+                let factor = super::tconstruct_source_material_effects::repair_factor(level("tconstruct:cultivated"), level("tconstruct:preserved"))
+                    * super::tconstruct_source_material_effects::dense_repair_factor(level("tconstruct:dense"))
+                    * if emerald { 1.5 } else { 1.0 };
+                let repair = (durability as f32 * (swap.item_cost as f32 / 3.0) * factor).max(0.0) as u32;
+                super::tconstruct_tx::fixed_set_damage(&mut output, stack.damage.saturating_sub(repair));
+            }
             let max_damage = match output.data()?.other("minecraft:custom_data")?.get("tic_max_damage")? {
                 Tag::Int(value) if *value > 0 => *value as u32, _ => return None,
             };
-            if stack.damage >= max_damage { return None; }
+            if output.damage >= max_damage { return None; }
             Some((id, recipe, output))
         })();
         if candidate.is_some() { return candidate; }

@@ -68,4 +68,3 @@ pub(super) fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags
     }
     None
 }
-

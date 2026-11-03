@@ -34,5 +34,11 @@ fn tconstruct_machine_place(game: &mut crate::game::Game<'_>, pos: [i32; 3], sta
         let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, state.to_nbt());
         return;
     }
+    if kind == "tconstruct:fluid_cannon" {
+        let mut state = crate::game::tconstruct_source_fluid_cannon::Cannon::new();
+        state.tank = tank;
+        let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, state.to_nbt());
+        return;
+    }
     let _ = crate::game::tconstruct_source_melter_store::write(&mut game.world, key, kind, tank.to_nbt());
 }
