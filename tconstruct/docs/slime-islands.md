@@ -94,6 +94,12 @@ feature execution, registration, acquisition and validation remain open.
 
 ## Earth and sky foliage preparation
 
+Earth and Sky foliage and Sky and Ender vines use the host's
+`minecraft:short_grass` block as their sound template. The source assigns grass
+sounds to these blocks; Horizon's `sounds` property takes a registered block ID
+rather than a sound-event ID. Formal resource preparation and gameplay with
+these declarations remain to be verified.
+
 The Earth and Sky leaves, saplings, fern and tall grass, plus Sky vine, now
 have content declarations, the pinned source assets and loot tables. Leaf
 loot preserves the source sapling and slime-ball Fortune chances; vanilla
