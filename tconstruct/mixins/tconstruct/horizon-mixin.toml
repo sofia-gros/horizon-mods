@@ -4702,3 +4702,9 @@ target = "horizon_client::game::Game<'_>::update_world"
 kind = "HEAD"
 helper = "recipe-level-enter.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "native-hook-bodies"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_native_hook_bodies"
+source = "source-native-hook-bodies.rs"

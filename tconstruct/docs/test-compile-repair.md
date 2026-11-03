@@ -28,3 +28,20 @@ failed and five were ignored by the existing host test suite. The failure,
 file contain `matches!` and `format!`. This is a separate unresolved
 integration-test failure, not a passing full suite. No game or LAN test was
 performed.
+
+## Native hook test follow-up
+
+The seven injected helpers whose macros appeared in the generated hook-point
+file now delegate to a separate Game module. Their function bodies were
+compared with the previous versions and are unchanged apart from visibility;
+the hook positions, call order, arguments, and existing hook test remain in
+place. This includes the comparator, geode growth, sapling, slime leaf and
+grass behavior, and Overwield harvest handling. A small adapter test also
+checks the seven wrappers for the expected delegation and absence of macros.
+
+On the same pinned host and Mixins revisions, official combined apply
+succeeded (266 injections, 221 modules, 98 states). With the pinned source
+fixtures available in the generated stage, the complete locked/offline
+`horizon-client --lib --no-default-features --profile fast` test run passed:
+1,082 passed, zero failed, five ignored by the existing suite. This establishes
+neither in-game behavior nor LAN behavior for the moved helpers.
