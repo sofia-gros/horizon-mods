@@ -28,6 +28,14 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:heavy_movement/{slot}"), -0.1 * f64::from(heavy), "add_multiplied_base"));
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:heavy_gravity/{slot}"), 0.05 * f64::from(heavy), "add_multiplied_total"));
         }
+        let featherweight = modifier_level("tconstruct:featherweight");
+        let armor = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
+            .and_then(|tags| tags.as_ref().ok())
+            .and_then(|tags| tags.get("tconstruct:modifiable/armor"))
+            .is_some_and(|items| items.contains(stack.item.as_ref()));
+        if armor && featherweight > 0 {
+            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:featherweight_movement/{slot}"), 0.05 * f64::from(featherweight), "add_multiplied_base"));
+        }
     }
     let Some(player) = game.player.as_mut() else { return; };
     for (attribute, id, amount, op) in values {
