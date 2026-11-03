@@ -180,6 +180,41 @@ pub(super) fn tagged_portable_casting_stack(world: &World, basin: bool, input: O
 /// casting and material casting then use the same persistent transaction.
 pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str) -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
     let input_id = input.map(|stack| &*stack.item);
+    // Once the fixed slimeskull recipe is present, do not fall through to a
+    // different casting path if the bounded swap cannot be safely validated.
+    if let Some(stack) = input.filter(|s| s.item.as_ref() == "tconstruct:slime_helmet" && basin) {
+        let route = with_catalog(world, |catalog, registries, config| {
+            catalog.has_slimeskull_swap(basin, &stack.item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+        })?;
+        if route {
+            return (|| {
+                use horizon_world::nbt::Tag;
+                if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
+                let Tag::List(values) = stack.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
+                let mut identities = values.iter().map(|v| match v { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<_>>>()?;
+                if identities.len() != 2 { return None; }
+                let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+                let definition = materials.get("tconstruct:tinkering/tool_definitions/slime_helmet")?.last()?;
+                let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
+                if !native.contains_key(&*stack.item) { return None; }
+                let pristine = super::tconstruct_source_station_world::assemble(world, definition, &stack.item, &identities, None, &mut None)?;
+                if !stack.same_item_same_components(&pristine) { return None; }
+                let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+                let (id, recipe, material) = with_catalog(world, |catalog, registries, config| {
+                    catalog.slimeskull_part_swap(basin, &stack.item, &identities[1], fluid,
+                        &|id| stats.get(id.split('#').next().unwrap_or(id)).is_some_and(|s| s.contains_key("tconstruct:slime")),
+                        &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+                })??;
+                let (namespace, name) = material.split_once(':')?;
+                materials.get(&format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?))?;
+                identities[1] = material;
+                let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &identities, 0, true, &mut None)?;
+                let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?;
+                if decoded.count != output.count || !decoded.same_item_same_components(&output) { return None; }
+                Some((id, recipe, output))
+            })();
+        }
+    }
     // Resolve ambiguity before *either* tool-cast or part-swap dispatch can
     // consume an input. Missing snapshot context must also fail closed.
     if let Some(item) = input_id {

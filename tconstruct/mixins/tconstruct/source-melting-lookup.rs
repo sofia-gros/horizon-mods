@@ -56,6 +56,40 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    /// Route a matching fixed source recipe exclusively through its guarded path.
+    pub(super) fn has_slimeskull_swap(&self, basin: bool, input: &str, conditions: &impl Fn(&[Value]) -> bool) -> bool {
+        basin && input == "tconstruct:slime_helmet" && self.recipes.values().any(|b|
+            super::tconstruct_source_melting_recipes::slimeskull_part_swap(b, conditions))
+    }
+    pub(super) fn slimeskull_part_swap(&self, basin: bool, input: &str, old: &str, fluid: &str,
+        supports: &impl Fn(&str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, CastingRecipe, String)> {
+        if !self.has_slimeskull_swap(basin, input, conditions) || !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|v| v.contains(id));
+        let mut matching = self.recipes.iter().filter_map(|(id, b)| {
+            let r = super::tconstruct_source_melting_recipes::PartSwapCastingRecipe::parse(b, conditions)?;
+            (r.basin && r.tools.matches(input, &in_tag)).then_some((id, b))
+        });
+        let (id, bytes) = matching.next()?;
+        if matching.next().is_some() || !super::tconstruct_source_melting_recipes::slimeskull_part_swap(bytes, conditions) { return None; }
+        let mut found = None;
+        for raw in self.recipes.values() {
+            let Some(material) = MaterialFluidRecipe::parse(raw, conditions) else { continue; };
+            let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
+            if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material)
+                || canonical(old) == canonical(&material.material) { continue; }
+            let amount = material.fluid.amount.checked_mul(5)?;
+            let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * ((amount as f32 / 90.0_f32).sqrt() as f64)).round();
+            if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+            let mut spec = material.fluid.clone(); spec.amount = amount;
+            let recipe = CastingRecipe { basin: true, retextured: false, cast: Some(Ingredient::Item(input.into())), consumes_cast: true,
+                switch_slots: false, fluid: spec, output: Output::Item(input.into()), cooling_time: time as u32 };
+            let value = (id.clone(), recipe, material.material);
+            if found.as_ref().is_some_and(|prior| prior != &value) { return None; }
+            found = Some(value);
+        }
+        found
+    }
     /// A supported tool-cast and explicit part-swap on the same workstation
     /// must not be resolved by dispatch order, even if one later fails validation.
     pub(super) fn tool_swap_overlap(&self, basin: bool, input: &str, conditions: &impl Fn(&[Value]) -> bool) -> bool {
@@ -1161,5 +1195,40 @@ mod tool_fluid_swap_tests {
         let c = Catalog { recipes:&reversed, item_tags:&tags, fluid_tags:&tags, known_items:&items, known_fluids:&fluids };
         assert!(c.tool_swap_overlap(true, "tconstruct:slime_boots", &|_|true));
         assert!(c.tool_fluid_swap(true,"tconstruct:slime_boots","test:old","test:fluid",&|_,_|true,&|_|true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod slimeskull_part_swap_tests {
+    use super::*;
+    const SWAP: &[u8] = br#"{"type":"tconstruct:basin_casting_part_swapping","index":1,"item_cost":5,"tools":{"item":"tconstruct:slime_helmet"}}"#;
+    const FLUID: &[u8] = br#"{"type":"tconstruct:material_fluid","fluid":{"amount":250,"fluid":"test:fluid"},"output":"test:new","temperature":50}"#;
+    #[test]
+    fn fixed_swap_uses_slime_stat_and_source_cost() {
+        let recipes = BTreeMap::from([("swap".into(),SWAP.to_vec()),("fluid".into(),FLUID.to_vec())]);
+        let tags=HashMap::new(); let items=HashSet::from(["tconstruct:slime_helmet".into()]); let fluids=HashSet::from(["test:fluid".into()]);
+        let c=Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&tags,known_items:&items,known_fluids:&fluids};
+        let support=|id: &str| id == "test:new";
+        assert!(c.has_slimeskull_swap(true,"tconstruct:slime_helmet",&|_|true));
+        let (_, recipe, result)=c.slimeskull_part_swap(true,"tconstruct:slime_helmet","test:old","test:fluid",&support,&|_|true).unwrap();
+        assert_eq!((result.as_str(),recipe.fluid.amount,recipe.consumes_cast), ("test:new",1250,true));
+        assert!(c.slimeskull_part_swap(true,"tconstruct:slime_helmet","test:new#default","test:fluid",&support,&|_|true).is_none());
+        assert!(c.slimeskull_part_swap(false,"tconstruct:slime_helmet","test:old","test:fluid",&support,&|_|true).is_none());
+        assert!(c.slimeskull_part_swap(true,"tconstruct:slime_helmet","test:old","test:fluid",&|_|false,&|_|true).is_none());
+    }
+    #[test]
+    fn changed_semantics_and_competing_part_swap_fail_closed() {
+        use super::super::tconstruct_source_melting_recipes::slimeskull_part_swap as parse;
+        assert!(parse(SWAP,&|_|true));
+        for change in [String::from_utf8(SWAP.to_vec()).unwrap().replace("\"index\":1","\"index\":0"), String::from_utf8(SWAP.to_vec()).unwrap().replace("\"item_cost\":5","\"item_cost\":5,\"allowed_materials\":{}"), String::from_utf8(SWAP.to_vec()).unwrap().replace("\"item_cost\":5","\"item_cost\":4")] {
+            assert!(!parse(change.as_bytes(),&|_|true));
+        }
+        let other=br#"{"type":"tconstruct:basin_casting_part_swapping","index":0,"item_cost":5,"tools":{"item":"tconstruct:slime_helmet"}}"#;
+        for recipes in [BTreeMap::from([("a".into(),SWAP.to_vec()),("z".into(),other.to_vec()),("fluid".into(),FLUID.to_vec())]),BTreeMap::from([("z".into(),SWAP.to_vec()),("a".into(),other.to_vec()),("fluid".into(),FLUID.to_vec())])] {
+            let tags=HashMap::new(); let items=HashSet::from(["tconstruct:slime_helmet".into()]); let fluids=HashSet::from(["test:fluid".into()]);
+            let c=Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&tags,known_items:&items,known_fluids:&fluids};
+            assert!(c.has_slimeskull_swap(true,"tconstruct:slime_helmet",&|_|true));
+            assert!(c.slimeskull_part_swap(true,"tconstruct:slime_helmet","test:old","test:fluid",&|_|true,&|_|true).is_none());
+        }
     }
 }

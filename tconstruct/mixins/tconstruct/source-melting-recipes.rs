@@ -475,6 +475,19 @@ impl PartSwapCastingRecipe {
     }
 }
 
+/// The fixed source slimeskull slime swap, without custom predicates or fields.
+pub(super) fn slimeskull_part_swap(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> bool {
+    let Ok(v) = serde_json::from_slice::<Value>(bytes) else { return false; };
+    let Some(obj) = v.as_object() else { return false; };
+    if obj.keys().any(|k| !matches!(k.as_str(), "type" | "index" | "item_cost" | "tools" | "conditions"))
+        || v.get("type").and_then(Value::as_str) != Some("tconstruct:basin_casting_part_swapping")
+        || v.get("index").and_then(Value::as_u64) != Some(1)
+        || v.get("item_cost").and_then(Value::as_u64) != Some(5)
+        || !enabled(&v, conditions) { return false; }
+    v.get("tools").and_then(Value::as_object).is_some_and(|tools|
+        tools.len() == 1 && tools.get("item").and_then(Value::as_str) == Some("tconstruct:slime_helmet"))
+}
+
 /// Narrow consumed-cast form for the supplied slimelytra recipe.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct SlimelytraCastingRecipe { pub cast: Ingredient, pub item_cost: u32, pub result: String }
