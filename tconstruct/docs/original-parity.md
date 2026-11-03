@@ -648,3 +648,14 @@ Spilling normalizes known effect IDs before comparing them with saved effects,
 so `poison` and `minecraft:poison` refer to the same status when accounting
 for fluid use. Verify new, extended and stronger existing effects, undead
 immunity and fluid balance on the integrated build; this is not a gameplay pass.
+
+The remote Melter tooltip reads the menu position captured when the screen opens,
+matching the renderer. On base `90446cc`, this change passed the official 0c7b/ddd
+Mixins stage, offline locked client check and dev build, and two source guards.
+The subsequent `da3bd019` base changes only an inventory document; those results
+are not a build of that exact revision. An earlier selective b53/ddd test observed
+local and guest tooltip/gauge behavior; neither test proves the final build in game.
+For issue #365 group 06, use multiple Melters with distinct fluids and amounts;
+check local and LAN guest name, amount, gauge, and interaction target when opening
+and switching machines, then verify saved state after reload. Include empty tanks
+and normal inventory tooltips as regressions. The final-main game check remains open.
