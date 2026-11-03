@@ -61,7 +61,10 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
         stat_maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
     }
     // Existing inputs are checked before mutation by the operation planner.
-    let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original)?;
+    let tank_traits = super::tconstruct_source_material_traits::levels_from_definition(
+        definition, identities, |id| materials.get(id).cloned(),
+    );
+    let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original, tank_traits.as_ref())?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
     let mut order = Vec::new();
@@ -86,7 +89,7 @@ fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &st
 }
 
 /// Build supported tools from resolved source stats, shared by the station and Creative.
-pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>) -> Option<ItemStack> {
+pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>, tank_traits: Option<&std::collections::BTreeMap<String, i32>>) -> Option<ItemStack> {
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }
@@ -152,8 +155,8 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
         probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
         // Fail before any transaction is committed if stored fluid is malformed.
         super::pluto_stack_fluid::read(&probe, "tic_persistent", "tconstruct:tank_fluid")?;
-        let traits = super::tconstruct_source_material_traits::levels(world, &probe)?;
-        let mut levels = traits.levels;
+        // Caller resolves material and fixed traits from its own source snapshot.
+        let mut levels = tank_traits?.clone();
         let mut add = |id: &str, level: i32| -> Option<()> {
             if level < 0 { return None; }
             let value = levels.entry(id.to_owned()).or_insert(0);
@@ -166,15 +169,6 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
                 let id = id.to_string_lossy();
                 if !id.starts_with("tconstruct:") { return None; }
                 add(&id, *level)?;
-            }
-        }
-        for module in definition_json.get("modules")?.as_array()? {
-            if module.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:traits") { continue; }
-            for entry in module.get("traits")?.as_array()? {
-                let id = entry.get("name")?.as_str()?;
-                if !id.starts_with("tconstruct:") { return None; }
-                let level = i32::try_from(entry.get("level").and_then(serde_json::Value::as_i64).unwrap_or(1)).ok()?;
-                add(id, level)?;
             }
         }
         // Conditional trait redirects require their full source predicates.
