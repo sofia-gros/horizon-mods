@@ -344,15 +344,19 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
         // Mighty exposes selected source material chapters and the partial advice section.
-        let mighty_advice = book == "tconstruct:mighty_smelting" && key == "tools";
-        if mighty && !matches!(key, "intro" | "tools" | "melee_harvest_materials" | "ranged_materials" | "armor_materials") { continue; }
+        let mighty_advice = mighty && key == "tools";
+        let mighty_smeltery = mighty && key == "smeltery";
+        if mighty && !matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials") { continue; }
         if mighty_advice && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("tools.partial").copied(), labels.get("tools.partial.notice_title").copied(), labels.get("tools.partial.notice").copied()
+        ]) { continue; }
+        if mighty_smeltery && !super::tconstruct_materials_book_index::mighty_advice_ready([
+            labels.get("smeltery.partial").copied(), labels.get("smeltery.partial.notice_title").copied(), labels.get("smeltery.partial.notice").copied()
         ]) { continue; }
         // Modifier chapters currently expose static overview pages only;
         // dynamic modifier-tag pages and recipe layouts need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
+        let heading = if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -498,6 +502,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
+            if mighty_smeltery && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_smeltery_page) { continue; }
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
             if relative == "no-load" {
                 // Source tool sections supply navigation labels in language.lang;
@@ -621,8 +626,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             }
         }
         if !chapter_pages.is_empty() {
-            if mighty_advice {
-                if let (Some(title), Some(note)) = (labels.get("tools.partial.notice_title"), labels.get("tools.partial.notice")) {
+            if mighty_advice || mighty_smeltery {
+                let (title_key, note_key) = if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
+                if let (Some(title), Some(note)) = (labels.get(title_key), labels.get(note_key)) {
                     let notices = split_styled(game, &Text::literal(*note), 182.0, 15).into_iter().map(|part| {
                         let mut notice = Text::styled(*title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
                         notice.push("\n\n");

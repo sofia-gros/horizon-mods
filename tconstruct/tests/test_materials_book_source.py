@@ -35,7 +35,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual((recipe['type'], recipe['cooling_time'], recipe['fluid']['tag']), ('tconstruct:casting_table', 89, 'tconstruct:seared_stone'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
-        self.assertIn('!matches!(key, "intro" | "tools" | "melee_harvest_materials" | "ranged_materials" | "armor_materials")', reader)
+        self.assertIn('!matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials")', reader)
         self.assertIn('mighty_advice_page', reader)
         self.assertIn('tools.partial.notice', reader)
         self.assertIn('source_pages(game, &path, book)', reader)
@@ -57,6 +57,29 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertIn('mighty_material_tier(key, *tier, distant)', reader)
         self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
         self.assertIn('Material entries reflect source data.', reader)
+
+    def test_mighty_smeltery_basics_are_source_faithful_and_partial(self):
+        import hashlib
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        for path, sha in {
+            'sections/smeltery.json': '0125b0c787d061e86d1e74c12d157fa9bd3d2f32',
+            'en_us/smeltery/controller.json': '68bd1e57a4e61f1a22136fef66127645f8d4a287',
+            'en_us/smeltery/alloying.json': '49a047aca33345e2759712225b8741233df68733',
+        }.items():
+            data = (root / path).read_bytes()
+            self.assertEqual(hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest(), sha)
+        image = (ARCHIVE / 'assets/tconstruct/book/images/scontroller.png').read_bytes()
+        self.assertEqual(hashlib.sha1(f'blob {len(image)}\0'.encode() + image).hexdigest(), 'f6876cde9a983114a3208992282474f4dc9d0d23')
+        section = json.loads((root / 'sections/smeltery.json').read_text())
+        self.assertEqual([(page['name'], page['data']) for page in section if page['name'] in ('controller', 'alloying')],
+                         [('controller', 'smeltery/controller.json'), ('alloying', 'smeltery/alloying.json')])
+        language = (root / 'en_us/language.lang').read_text()
+        self.assertIn('smeltery.partial=Smeltery Basics (Partial)', language)
+        self.assertIn('Entity melting and other machine behavior are incomplete.', language)
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('mighty_smeltery_page', reader)
+        self.assertIn('smeltery.partial.notice', reader)
+        self.assertIn('mighty_advice || mighty_smeltery', reader)
 
     def test_mighty_tool_advice_is_source_faithful_and_explicitly_partial(self):
         import hashlib

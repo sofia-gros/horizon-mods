@@ -18,6 +18,12 @@ pub(super) fn mighty_advice_page(name: &str) -> bool {
     matches!(name, "tips" | "designing")
 }
 
+// The Smeltery chapter currently exposes only the source controller and
+// alloying pages. Other pages include unsupported or unverified operations.
+pub(super) fn mighty_smeltery_page(name: &str) -> bool {
+    matches!(name, "controller" | "alloying")
+}
+
 // Never show source advice without the reader's partial-coverage notice.
 pub(super) fn mighty_advice_ready(labels: [Option<&str>; 3]) -> bool {
     labels.into_iter().all(|label| label.is_some_and(|text| !text.trim().is_empty()))
@@ -78,7 +84,14 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{label, layout, mighty_advice_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    use super::{label, layout, mighty_advice_page, mighty_smeltery_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    #[test]
+    fn mighty_smeltery_only_exposes_two_source_pages() {
+        for name in ["controller", "alloying"] { assert!(mighty_smeltery_page(name)); }
+        for name in ["features", "structure", "structurereq", "seared_duct", "seared_chute", "sgui2", "unknown"] {
+            assert!(!mighty_smeltery_page(name));
+        }
+    }
     #[test]
     fn mighty_materials_only_include_nondistant_tier_three() {
         for key in ["melee_harvest_materials", "ranged_materials", "armor_materials"] {
