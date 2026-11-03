@@ -203,3 +203,19 @@ unimplemented. Focused Rust cases cover both launchers, fractional health,
 non-default max health, stacked Raging, bad/missing values and rebuilding;
 official integrated build, real firing, actual material acquisition, save/reload,
 and local/LAN gameplay still require verification.
+
+### Raging melee conditional multiplier correction
+
+Raging melee reads the attack-damage conditional multiplier: the tool
+`multiply_stats` factor and Emerald's 1.25 conditional multiplier apply.
+Handle percentages and Solid/Netherite base-stat multipliers do not multiply
+this conditional bonus. Rebuilding recalculates the saved value, so removing
+Emerald removes its contribution. Existing items need a supported material
+rebuild or regeneration to refresh the stored multiplier. This corrects the
+existing Raging melee path only; it does not implement Ambush melee, other
+conditional modifiers, or the separate Duel Wielding all-damage multiplier.
+The source distinction is in [StatBoostModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/build/StatBoostModule.java),
+[FloatToolStat](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/stat/FloatToolStat.java), and
+[MeleeFormula](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/json/variable/melee/MeleeFormula.java).
+Focused tests cover multiplier selection and rebuilding; integrated host,
+actual combat, material replacement, and local/LAN behavior remain unverified.
