@@ -310,3 +310,57 @@ fn local_armor_haste_survives_item_codec_and_unequip_has_no_effect() {
 #[path = "../../mixins/tconstruct/source-haste-wire.rs"] mod tconstruct_source_haste_wire;
 
 #[path = "../../mixins/tconstruct/source-haste-source.rs"] mod tconstruct_source_haste_source;
+
+#[test]
+fn ambush_projectile_tracks_shooter_full_health_and_material_rebuild() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:draw_speed":1.0,"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:projectile_damage":2.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  let traits=BTreeMap::from([("tconstruct:ambush".into(),2)]);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&traits,false,false).unwrap();
+  let base=projectile::projectile_bonus(&bow);
+  let run=|hp,max| projectile::projectile_bonus_at(&bow,hp,max);
+  assert!((run(Some(20.0),Some(20.0))-base-2.0).abs()<1e-6);
+  assert!((run(Some(19.01),Some(20.0))-base-2.0).abs()<1e-6);
+  assert_eq!(run(Some(19.0),Some(20.0)),base);
+  assert!((run(Some(29.1),Some(30.0))-base-2.0).abs()<1e-6);
+  assert_eq!(run(Some(20.0),Some(30.0)),base);
+  assert_eq!(run(Some(20.0),None),base);
+  assert_eq!(run(Some(20.0),Some(f32::NAN)),base);
+  assert_eq!(run(None,Some(20.0)),base);
+  let combined=BTreeMap::from([("tconstruct:ambush".into(),2), ("tconstruct:raging".into(),1)]);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&combined,false,false).unwrap();
+  let with_both=projectile::projectile_bonus_at(&bow,Some(9.1),Some(10.0));
+  assert!((with_both-base-2.38).abs()<1e-5);
+  let without_max=projectile::projectile_bonus_at(&bow,Some(9.1),None);
+  assert!((without_max-base-0.38).abs()<1e-5);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::new(),false,false).unwrap();
+  assert_eq!(projectile::projectile_bonus_at(&bow,Some(20.0),Some(20.0)),base);
+ }
+}
+
+#[test]
+fn ambush_and_raging_preserve_trait_order_at_float_rounding_boundary() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag;
+ let run = |order: &[&str]| {
+  let mut bow = ItemStack::new("tconstruct:longbow", 1);
+  bow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+   ("tic_projectile_damage", Tag::Float(2.0f32.to_bits())),
+   ("tic_raging_projectile_multiplier", Tag::Float(1.1f32.to_bits())),
+   ("tic_ambush_projectile", Tag::Int(1)), ("tic_raging", Tag::Int(1)),
+   ("tic_trait_order", Tag::List(order.iter().map(|id| Tag::String((*id).into())).collect())),
+  ])));
+  projectile::projectile_bonus_at(&bow, Some(1.01), Some(2.0)) as f32
+ };
+ let health = 1.01f32; let multiplier = 1.1f32;
+ let ambush = 0.5f32 * multiplier;
+ let raging = ((11.0f32 - health) / 10.0).clamp(0.0, 1.0) * multiplier;
+ let ambush_first = (2.0f32 + ambush + raging).clamp(0.0, 1024.0) - 2.0;
+ let raging_first = (2.0f32 + raging + ambush).clamp(0.0, 1024.0) - 2.0;
+ assert_ne!(ambush_first.to_bits(), raging_first.to_bits());
+ assert_eq!(run(&["tconstruct:ambush", "tconstruct:raging"]).to_bits(), ambush_first.to_bits());
+ assert_eq!(run(&["tconstruct:raging", "tconstruct:ambush"]).to_bits(), raging_first.to_bits());
+}

@@ -183,3 +183,23 @@ Test both living and nonliving targets, health 20/11/6/1, broken tools,
 multiple levels and non-unit tool multipliers, partial/full cooldown, critical
 and secondary hits, Jagged/Stonebound combinations, material replacement and
 LAN. Unit, current-target build and gameplay verification remain pending.
+
+## Ambush shooter-health projectile damage
+
+Manyullyn's Ambush adds 0.5 projectile damage per level, scaled by the
+projectile-damage multiplier, when the firing player's health rounds up to at
+least their maximum health. The Longbow and Crossbow read the current acting
+player at firing, including the player body used during a LAN guest turn.
+The maximum is read from that player's current max-health attribute, not assumed
+to be 20. If health or maximum is unavailable or invalid, the Ambush bonus is
+omitted. Supported material rebuilding stores the trait level; an existing
+item must be regenerated or have its material rebuilt to acquire that data.
+Changing its material rebuilds the value rather than accumulating it.
+
+This covers only the shooter-health projectile-stat module from the
+[pinned Ambush definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/ambush.json).
+The projectile's target-health power bonus and Ambush melee effects remain
+unimplemented. Focused Rust cases cover both launchers, fractional health,
+non-default max health, stacked Raging, bad/missing values and rebuilding;
+official integrated build, real firing, actual material acquisition, save/reload,
+and local/LAN gameplay still require verification.

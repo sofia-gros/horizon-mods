@@ -509,6 +509,7 @@ pub fn apply_stats(
         fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
         fields.insert("tic_raging".into(), Tag::Int(level("tconstruct:raging").max(0)));
+        fields.insert("tic_ambush_projectile".into(), Tag::Int(level("tconstruct:ambush").max(0)));
         fields.insert("tic_raging_projectile_multiplier".into(), Tag::Float(((1.0 + projectile_percent) * projectile_multiply).to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
