@@ -77,16 +77,14 @@ The Skyslime Vine Airborne trait multiplies mining speed by five while the
 holder is off the ground, including on blocks where the tool is ineffective.
 It applies after flat conditional mining bonuses and does not apply to broken
 tools. The host and client selectors target the final speed read after airborne and
-water penalties, so flat bonuses can be applied in the source order. The
-transformed combined build and runtime ordering still require verification. Rebuilding or swapping material updates the stored trait. This implements
+water penalties, so flat bonuses can be applied in the source order. An official combined Linux build on Horizon `02c8607e` verified representative airborne and grounded mining; material swapping remains unverified. Rebuilding material updates the stored trait. This implements
 the mining portion of the [original Airborne definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/airborne.json);
 the conditional projectile velocity portion remains unimplemented.
 
 Focused local Rust tests checked trait presence, grounded and broken cases,
 and the Maintained combination after airborne and water penalties, using the
 saved older host NBT library. An isolated official Mixins plan resolved both
-final speed reads and their local captures; the full combined plan remains pending. Current-target compilation, gameplay,
-material acquisition, save/reload and LAN remain unverified. In the combined
+final speed reads and their local captures. The combined Linux transform and build passed on Horizon `02c8607e`; the main branch's earlier pinned host was not retested in that run. The combined Linux client confirmed a supplied tool retains its Airborne data over save/reload. Broken-tool gameplay timed out; material swapping, natural acquisition, LAN and Windows remain unverified. In the combined
 client, make a supported harvest tool with Skyslime Vine, compare the same
 block on the ground and while airborne, including one ineffective block, then
 repeat after breaking the tool and after replacing that material. Capture both
@@ -99,15 +97,15 @@ For a non-broad harvest tool with Knightslime's Overwield trait, an effective
 block receives the source multiplier `1 + 0.2 * min(overslime, level)`. It uses
 the current stored Overslime amount, not capacity, and applies in the same
 ordered percentage stage as Jagged and Stonebound. The tool is checked against
-the loaded `tconstruct:modifiable/broad` item tag. Zero Overslime gives no
+the resolved source `tconstruct:modifiable/broad` item tag. If that tag is
+unavailable, the non-broad bonus is skipped until it resolves. Zero Overslime gives no
 bonus; broad tools and ineffective blocks do not receive this mining effect.
 This implements only the non-broad mining-speed module in the [source
 Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
 Overslime consumption, broad-tool mining-capacity behavior and material
 acquisition remain separate work.
 
-Rust syntax was checked; focused tests, current-target build and gameplay are
-pending. Verify zero, one and multiple Overslime units and trait levels, a broad
+Focused helper tests passed against Horizon 9a6 item/world libraries; host build and gameplay remain unverified. Verify zero, one and multiple Overslime units and trait levels, a broad
 and a non-broad tool, effective and ineffective blocks, live refill and
 consumption, broken tools, and combinations with other mining modifiers. Check
 material replacement and save/reload. Use labelled fixtures where necessary.

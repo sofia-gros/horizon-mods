@@ -107,6 +107,24 @@ pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &st
     evaluated_speed(tool, block, in_tag).flatten()
 }
 
+/// A missing broad tag is unknown, so do not apply the non-broad bonus.
+pub(super) fn broad_or_unknown(tag: Option<&std::collections::HashSet<String>>, item: &str) -> bool {
+    tag.is_none_or(|items| items.contains(item))
+}
+
+#[cfg(test)]
+mod broad_tag_tests {
+    use super::broad_or_unknown;
+    use std::collections::HashSet;
+    #[test]
+    fn missing_broad_tag_fails_closed() {
+        let tag = HashSet::from(["tconstruct:sledge_hammer".to_owned()]);
+        assert!(broad_or_unknown(None, "tconstruct:pickaxe"));
+        assert!(broad_or_unknown(Some(&tag), "tconstruct:sledge_hammer"));
+        assert!(!broad_or_unknown(Some(&tag), "tconstruct:pickaxe"));
+    }
+}
+
 pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: bool) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
