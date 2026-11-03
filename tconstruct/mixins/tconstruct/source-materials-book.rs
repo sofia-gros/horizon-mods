@@ -280,6 +280,9 @@ const ARMOR_MATERIAL_STATS: &[&str] = &[
 fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+    let whitestone_ingots = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
+        .and_then(|v| v.as_ref().ok()).and_then(|tags| tags.get("tconstruct:whitestone_ingots"))
+        .is_some_and(|items| !items.is_empty());
     let kinds: &[&str] = match key {
         "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
         "ranged_materials" => &["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"],
@@ -288,9 +291,14 @@ fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(Stri
         _ => return None,
     };
     let mut selected: Vec<_> = definitions.iter().filter(|(id, (_, hidden, tier, _, _))| {
-        !hidden && super::tconstruct_materials_book_index::material_book_tier(puny, key, *tier,
-            tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id)),
-            tags.get("tconstruct:book/basic_ammo").is_some_and(|set| set.contains(*id)))
+        let distant = tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id));
+        let allowed = if puny && key == "melee_harvest_materials" {
+            super::tconstruct_materials_book_index::puny_melee_material_tier(*tier, distant, id, whitestone_ingots)
+        } else {
+            super::tconstruct_materials_book_index::material_book_tier(puny, key, *tier, distant,
+                tags.get("tconstruct:book/basic_ammo").is_some_and(|set| set.contains(*id)))
+        };
+        !hidden && allowed
             && stats.get(*id).is_some_and(|s| kinds.iter().any(|kind| s.contains_key(*kind)))
     }).collect();
     selected.sort_by_key(|(id, (_, _, tier, order, _))| {
@@ -328,7 +336,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
         // Other material tiers and modifier layouts still need Puny-specific handling.
-        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "ranged_materials" | "armor_materials" | "armor" | "worktable" | "further_reading") { continue; }
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "worktable" | "further_reading") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
