@@ -1,5 +1,5 @@
 // Source snow_boots is a volatile tool flag; breaking the tool does not clear it.
-pub(super) fn refresh(game: &mut super::Game<'_>) {
+pub(super) fn walks(game: &super::Game<'_>) -> bool {
     use horizon_world::nbt::Tag;
     let boots = game.armor[3].as_ref();
     let vanilla = boots.is_some_and(|stack| stack.item.as_ref() == "minecraft:leather_boots");
@@ -16,5 +16,10 @@ pub(super) fn refresh(game: &mut super::Game<'_>) {
         upgrade || super::tconstruct_source_material_traits::levels(&game.world, stack)
             .is_some_and(|traits| traits.levels.get("tconstruct:snow_boots").copied().unwrap_or(0) > 0)
     });
-    if let Some(player) = game.player.as_mut() { player.leather_boots = vanilla || tconstruct; }
+    vanilla || tconstruct
+}
+
+pub(super) fn refresh(game: &mut super::Game<'_>) {
+    let walks = walks(game);
+    if let Some(player) = game.player.as_mut() { player.leather_boots = walks; }
 }
