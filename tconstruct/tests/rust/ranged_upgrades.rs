@@ -177,3 +177,22 @@ fn power_incremental_damage_rebuild_is_stable() {
   }
  }
 }
+
+
+#[test]
+fn overwield_uses_current_capacity_for_draw_and_velocity() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag;
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  for (amount,expected_velocity,expected_ticks) in [(0,1.0_f32,20),(1,1.06,19),(3,1.12,18)] {
+   let mut tool=ItemStack::new(id,1);
+   tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+    ("tic_velocity",Tag::Float(1.0_f32.to_bits())),("tic_accuracy",Tag::Float(1.0_f32.to_bits())),
+    ("tic_draw_speed",Tag::Float(1.0_f32.to_bits())),("tic_overwield_ranged",Tag::Int(2)),
+    ("tic_overslime",Tag::Int(amount)),("tic_overwield_velocity_multiplier",Tag::Float(1.0_f32.to_bits())),
+    ("tic_overwield_draw_multiplier",Tag::Float(1.0_f32.to_bits()))])));
+   let actual=projectile::projectile_stats_at(&tool,64.0,256).unwrap().0;
+   assert!((actual-expected_velocity).abs()<0.0001,"{id} amount {amount}: {actual}");
+   assert_eq!(draw::draw_ticks(&tool),expected_ticks);
+  }
+ }
+}
