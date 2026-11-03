@@ -1,1 +1,15 @@
-{"little_saw": {"category": "player", "sounds": ["tconstruct:little_saw"], "subtitle": "subtitles.tconstruct.little_saw"}}
+{
+  "little_saw": {
+    "category": "player",
+    "sounds": [
+      "tconstruct:little_saw"
+    ],
+    "subtitle": "subtitles.tconstruct.little_saw"
+  },
+  "necrotic_heal": {
+    "sounds": [
+      "mob/zombie/infect"
+    ],
+    "subtitle": "subtitles.tconstruct.necrotic_heal"
+  }
+}
