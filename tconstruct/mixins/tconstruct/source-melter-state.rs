@@ -78,7 +78,7 @@ impl Melter {
         if slot >= self.slots.len() || self.slots[slot].is_none() || required_time == 0 { return false; }
         if self.progress[slot] != -1 && (self.temperature < required_temp || self.rate == 0) { return false; }
         if self.progress[slot] == -1 || u32::try_from(self.progress[slot]).is_ok_and(|p| p >= required_time) {
-            if !self.tank.insert(fluid, amount) { self.progress[slot] = -1; return false; }
+            if amount != 0 && !self.tank.insert(fluid, amount) { self.progress[slot] = -1; return false; }
             let stack = self.slots[slot].as_mut().unwrap();
             stack.count -= 1;
             if stack.count == 0 { self.slots[slot] = None; }
@@ -121,6 +121,15 @@ impl Melter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn zero_output_consumes_after_heating_without_changing_full_tank() {
+        let mut m = Melter::new(); m.slots[0] = Some(ItemStack::new("minecraft:copper_ore", 1));
+        m.temperature = 500; m.rate = 1; m.progress[0] = 50;
+        assert!(m.tank.insert("tconstruct:molten_copper", MELTER_CAPACITY));
+        let mut m = Melter::from_nbt(&m.to_nbt()).unwrap();
+        assert!(m.heat_slot(0, 500, 50, "tconstruct:molten_copper", 0));
+        assert!(m.slots[0].is_none()); assert_eq!(m.tank.amount, MELTER_CAPACITY);
+    }
     #[test]
     fn fuel_quality_survives_reload_and_legacy_data() {
         let mut state = Melter::new(); state.fuel = 35; state.fuel_quality = 100;

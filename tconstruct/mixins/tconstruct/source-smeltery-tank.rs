@@ -67,7 +67,7 @@ impl SmelteryTank {
     pub(super) fn foundry_output(&mut self, primary: &FluidAmount, byproducts: &[FluidAmount]) -> bool {
         if primary.tag.is_some() || byproducts.iter().any(|fluid| fluid.tag.is_some()) { return false; }
         let mut next = self.clone();
-        if !next.insert(&primary.id, primary.amount) { return false; }
+        if primary.id.is_empty() || (primary.amount != 0 && !next.insert(&primary.id, primary.amount)) { return false; }
         for fluid in byproducts {
             let amount = fluid.amount.min(next.capacity.saturating_sub(next.total()));
             if amount > 0 { let _ = next.insert(&fluid.id, amount); }

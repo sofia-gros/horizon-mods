@@ -84,3 +84,16 @@ condition `slime_recipe_fix` intentionally follows `glassRecipeFix` in the
 pinned upstream implementation; deprecated `wither_bone_conversion` is false.
 This is a subset, not full Forge config compatibility. Config capture runs on
 world setup and datapack reload. Game and LAN behavior still need verification.
+
+### Ore-rate settings
+
+The Melter, Smeltery and Foundry use their own `recipes.ore_rates` settings
+from the same world configuration snapshot. The Foundry has separate primary
+and byproduct rates. Metal uses `nuggetsPerMetal` (1–45) divided by 9; gem
+uses `shardsPerGem` (1–20) divided by 4, with integer truncation. Missing
+settings use the pinned source defaults. An invalid or unavailable relevant
+rate prevents that ore match rather than silently falling through to another
+recipe; unrelated non-ore melting stays available. The snapshot is refreshed
+with datapack capture/reload; automatic Forge file watching is not implemented.
+The Forge setting `slimeRecipeFix` and other unsupported settings remain outside
+this reader. Custom ore recipes whose primary amount truncates to zero still consume input after heating and may produce Foundry byproducts. Game, reload-during-heating and LAN behavior need verification.

@@ -35,6 +35,35 @@ pub fn parse(input: &str) -> Result<HashMap<String, bool>, String> {
     Ok(values)
 }
 
+/// Resolve original ore rates. A malformed field is omitted, so callers can
+/// reject only the affected material/rate rather than assume a default.
+pub fn parse_ore_rates(input: &str) -> Result<HashMap<String, u32>, String> {
+    let root: toml::Table = toml::from_str(input).map_err(|e: toml::de::Error| e.to_string())?;
+    let fields = [("melter", 12, 8), ("smeltery", 12, 8), ("foundry", 9, 4), ("foundry_byproduct", 3, 4)];
+    let mut out = HashMap::new();
+    for (machine, metal, gem) in fields {
+        for (key, default, max) in [("nuggetsPerMetal", metal, 45), ("shardsPerGem", gem, 20)] {
+            let mut value = Some(default);
+            let mut table = Some(&root);
+            for section in ["recipes", "ore_rates", machine] {
+                if let Some(current) = table {
+                    match current.get(section) {
+                        None => { table = None; break; },
+                        Some(entry) => match entry.as_table() { Some(child) => table = Some(child), None => { value = None; table = None; break; } },
+                    }
+                }
+            }
+            if let Some(table) = table {
+                if let Some(entry) = table.get(key) {
+                    value = entry.as_integer().and_then(|v| u32::try_from(v).ok()).filter(|v| (1..=max).contains(v));
+                }
+            }
+            if let Some(value) = value { out.insert(format!("{machine}.{key}"), value); }
+        }
+    }
+    Ok(out)
+}
+
 /// Dedicated servers keep config beside server.properties in the process
 /// working directory, regardless of --universe. Single-player worlds live
 /// under the game root's saves directory.
@@ -45,16 +74,20 @@ pub fn root_for_world(world_root: &std::path::Path, dedicated: bool, working_dir
 
 /// Load the supported conditions from the game root without treating a broken
 /// symlink or unreadable file as absent.
-pub fn load(game_root: &std::path::Path) -> Result<HashMap<String, bool>, String> {
+pub fn load_all(game_root: &std::path::Path) -> Result<(HashMap<String, bool>, HashMap<String, u32>), String> {
     let path = game_root.join("config/tconstruct-common.toml");
     match std::fs::symlink_metadata(&path) {
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return parse(""),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok((parse("")?, parse_ore_rates("")?)),
         Err(error) => return Err(format!("cannot inspect {}: {error}", path.display())),
         Ok(_) => {},
     }
     let text = std::fs::read_to_string(&path).map_err(|error| format!("cannot read {}: {error}", path.display()))?;
-    parse(&text).map_err(|error| format!("{}: {error}", path.display()))
+    let conditions = parse(&text).map_err(|error| format!("{}: {error}", path.display()))?;
+    let rates = parse_ore_rates(&text).map_err(|error| format!("{}: {error}", path.display()))?;
+    Ok((conditions, rates))
 }
+
+pub fn load(game_root: &std::path::Path) -> Result<HashMap<String, bool>, String> { load_all(game_root).map(|(conditions, _)| conditions) }
 
 #[cfg(test)]
 mod tests {
@@ -76,7 +109,11 @@ mod tests {
         let path = root.join("config/tconstruct-common.toml");
         std::fs::write(&path, "[debug]\nforceIntegrationMaterials = true\n").unwrap();
         assert!(load(&root).unwrap()["force_integration_materials"]);
+        std::fs::write(&path, "[recipes.ore_rates.melter]\nnuggetsPerMetal = 18\n").unwrap();
+        let (_, rates) = load_all(&root).unwrap();
+        assert_eq!(rates["melter.nuggetsPerMetal"], 18);
         std::fs::write(&path, "[recipes]\nglassRecipeFix = false\n").unwrap();
+        assert_eq!(load_all(&root).unwrap().1["melter.nuggetsPerMetal"], 12);
         let updated = load(&root).unwrap();
         assert!(!updated["glass_recipe_fix"] && !updated["slime_recipe_fix"]);
         std::fs::write(&path, "[recipes]\nglassRecipeFix = 1\n").unwrap();
@@ -85,6 +122,17 @@ mod tests {
         std::fs::write(&path, "[recipes\n").unwrap();
         assert!(load(&root).is_err());
         std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
+    fn ore_rate_defaults_overrides_and_unknown_are_isolated() {
+        let default = parse_ore_rates("").unwrap();
+        assert_eq!(default["melter.nuggetsPerMetal"], 12);
+        assert_eq!(default["foundry_byproduct.nuggetsPerMetal"], 3);
+        let changed = parse_ore_rates("[recipes.ore_rates.melter]\nnuggetsPerMetal = 18\nshardsPerGem = 0\n[recipes.ore_rates.foundry]\nnuggetsPerMetal = 45\n").unwrap();
+        assert_eq!(changed["melter.nuggetsPerMetal"], 18);
+        assert!(!changed.contains_key("melter.shardsPerGem"));
+        assert_eq!(changed["foundry.nuggetsPerMetal"], 45);
+        assert_eq!(changed["smeltery.shardsPerGem"], 8);
     }
     #[test]
     fn defaults_and_original_alias() {

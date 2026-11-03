@@ -105,7 +105,11 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let config = working_dir.and_then(|working_dir| {
         tconstruct_source_config::root_for_world(&game.world_root, dedicated, &working_dir)
             .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
-    }).and_then(|root| crate::game::tconstruct_source_config::load(&root));
+    }).and_then(|root| tconstruct_source_config::load_all(&root));
+    let (config, ore_rates) = match config {
+        Ok((config, rates)) => (Ok(config), Ok(rates)),
+        Err(error) => (Err(error.clone()), Err(error)),
+    };
     let tank_fluids = std::fs::read(game.options.resources.join("tconstruct-melter-fluids.json"))
         .map_err(|error| error.to_string())
         .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
@@ -255,6 +259,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     });
     *game.world.chunks.__horizon_mixins_tconstruct_source_native_durability_mut() = durability;
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
+    *game.world.chunks.__horizon_mixins_tconstruct_source_ore_rates_mut() = Some(ore_rates);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_ids_mut() = Some(block_ids);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags_mut() = Some(resolved_blocks);

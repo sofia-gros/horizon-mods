@@ -150,23 +150,33 @@ mod alloy_tests {
 pub(super) struct MeltingRecipe {
     pub input: Ingredient, pub output: FluidSpec, pub temperature: u32, pub time: u32,
 }
+fn scale_rate(amount: u32, numerator: u32, denominator: u32) -> Option<u32> {
+    u32::try_from(u64::from(amount) * u64::from(numerator) / u64::from(denominator)).ok()
+}
+
 impl MeltingRecipe {
+    /// Match the recipe before calculating output, without applying any
+    /// machine's default rate to a configured recipe.
+    pub(super) fn candidate_input(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Ingredient> {
+        let value: Value = serde_json::from_slice(bytes).ok()?;
+        if !matches!(value.get("type")?.as_str()?, "tconstruct:melting" | "tconstruct:ore_melting") || !enabled(&value, conditions) { return None; }
+        Ingredient::parse(value.get("ingredient")?)
+    }
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        Self::parse_with_rates(bytes, conditions, (Some(12), Some(8)))
+    }
+    pub(super) fn parse_with_rates(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool, rates: (Option<u32>, Option<u32>)) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
         let recipe_type = v.get("type")?.as_str()?;
         if !matches!(recipe_type, "tconstruct:melting" | "tconstruct:ore_melting") || !enabled(&v, conditions) { return None; }
-        // The source Melter uses MeltingModuleInventory, not its foundry
-        // subclass: byproducts are not collected. Ore rates are the source
-        // default Melter settings (12 nuggets / 8 gem shards).
         let mut output = FluidSpec::parse(v.get("result")?)?;
         if recipe_type == "tconstruct:ore_melting" {
             output.amount = match v.get("rate")?.as_str()? {
-                "metal" => output.amount.checked_mul(12)? / 9,
-                "gem" => output.amount.checked_mul(8)? / 4,
+                "metal" => scale_rate(output.amount, rates.0?, 9)?,
+                "gem" => scale_rate(output.amount, rates.1?, 4)?,
                 "none" | "default" => output.amount,
                 _ => return None,
             };
-            if output.amount == 0 { return None; }
         }
         let time = u32::try_from(v.get("time")?.as_u64()?).ok()?;
         let temperature = u32::try_from(v.get("temperature")?.as_u64()?).ok()?;
@@ -246,18 +256,23 @@ pub(super) struct FoundryRecipe {
 }
 impl FoundryRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        Self::parse_with_rates(bytes, conditions, (Some(9), Some(4)), (Some(3), Some(4)))
+    }
+    pub(super) fn parse_with_rates(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool,
+        primary: (Option<u32>, Option<u32>), byproduct: (Option<u32>, Option<u32>)) -> Option<Self> {
         let value: Value = serde_json::from_slice(bytes).ok()?;
-        let mut melting = MeltingRecipe::parse(bytes, conditions)?;
+        let mut melting = MeltingRecipe::parse_with_rates(bytes, conditions, primary)?;
         let ore = value.get("type")?.as_str()? == "tconstruct:ore_melting";
         let main_rate = if ore { value.get("rate")?.as_str()? } else { "none" };
-        let adjust = |amount: u32, rate: &str, byproduct: bool| -> Option<u32> {
+        let adjust = |amount: u32, rate: &str, is_byproduct: bool| -> Option<u32> {
+            let rates = if is_byproduct { byproduct } else { primary };
             let (numerator, denominator) = match rate {
-                "metal" => (if byproduct { 3 } else { 9 }, 9),
-                "gem" => (4, 4),
+                "metal" => (rates.0?, 9),
+                "gem" => (rates.1?, 4),
                 "none" | "default" => (1, 1),
                 _ => return None,
             };
-            amount.checked_mul(numerator).map(|n| n / denominator).filter(|n| *n > 0)
+            scale_rate(amount, numerator, denominator)
         };
         let mut primary = FluidSpec::parse(value.get("result")?)?;
         primary.amount = adjust(primary.amount, main_rate, false)?;
@@ -275,7 +290,7 @@ impl FoundryRecipe {
                 };
                 let mut fluid = FluidSpec::parse(&Value::Object(object))?;
                 fluid.amount = adjust(fluid.amount, if ore { rate } else { "none" }, true)?;
-                byproducts.push(fluid);
+                if fluid.amount > 0 { byproducts.push(fluid); }
             }
         }
         Some(Self { melting, byproducts })
@@ -301,6 +316,42 @@ mod foundry_tests {
         assert_eq!(foundry.melting.output.amount, 180);
         assert_eq!(foundry.byproducts.iter().map(|f| f.amount).collect::<Vec<_>>(), [30, 100]);
         assert_eq!(MeltingRecipe::parse(source, &|_| true).unwrap().output.amount, 240);
+    }
+    #[test]
+    fn scaling_uses_wide_intermediate_and_rejects_unrepresentable_result() {
+        assert_eq!(scale_rate(100_000_000, 45, 9), Some(500_000_000));
+        assert_eq!(scale_rate(u32::MAX, 45, 9), None);
+    }
+    #[test]
+    fn low_rate_allows_zero_primary_and_nonzero_byproduct() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":1,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"amount":90,"fluid":"tconstruct:molten_gold"}]}"#;
+        assert_eq!(MeltingRecipe::parse_with_rates(ore, &|_| true, (Some(1), Some(4))).unwrap().output.amount, 0);
+        let foundry = FoundryRecipe::parse_with_rates(ore, &|_| true, (Some(1), Some(4)), (Some(3), Some(4))).unwrap();
+        assert_eq!(foundry.melting.output.amount, 0);
+        assert_eq!(foundry.byproducts[0].amount, 30);
+    }
+    #[test]
+    fn configured_rates_scale_each_machine_and_byproduct_separately() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":180,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"fluid":"tconstruct:molten_gold","amount":90},{"fluid":"tconstruct:molten_quartz","amount":101,"rate":"gem"}]}"#;
+        assert_eq!(MeltingRecipe::parse_with_rates(ore, &|_| true, (Some(18), Some(8))).unwrap().output.amount, 360);
+        assert_eq!(MeltingRecipe::parse_with_rates(ore, &|_| true, (Some(6), Some(8))).unwrap().output.amount, 120);
+        let recipe = FoundryRecipe::parse_with_rates(ore, &|_| true, (Some(12), Some(4)), (Some(6), Some(6))).unwrap();
+        assert_eq!(recipe.melting.output.amount, 240);
+        assert_eq!(recipe.byproducts.iter().map(|fluid| fluid.amount).collect::<Vec<_>>(), [60, 151]);
+        assert!(MeltingRecipe::parse_with_rates(ore, &|_| true, (None, Some(8))).is_none());
+        assert!(FoundryRecipe::parse_with_rates(ore, &|_| true, (Some(9), Some(4)), (None, Some(4))).is_none());
+        let ordinary = br#"{"type":"tconstruct:melting","ingredient":{"item":"minecraft:iron_ingot"},"result":{"amount":90,"fluid":"tconstruct:molten_iron"},"temperature":500,"time":125}"#;
+        assert_eq!(MeltingRecipe::parse_with_rates(ordinary, &|_| true, (None, None)).unwrap().output.amount, 90);
+    }
+    #[test]
+    fn tiny_byproduct_uses_configured_rate_without_blocking_primary() {
+        let ore = br#"{"type":"tconstruct:ore_melting","ingredient":{"item":"minecraft:copper_ore"},"result":{"amount":90,"fluid":"tconstruct:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"fluid":"tconstruct:molten_gold","amount":1}]}"#;
+        let normal = FoundryRecipe::parse_with_rates(ore, &|_| true, (Some(9), Some(4)), (Some(9), Some(4))).unwrap();
+        assert_eq!(normal.melting.output.amount, 90);
+        assert_eq!(normal.byproducts[0].amount, 1);
+        let zero = FoundryRecipe::parse_with_rates(ore, &|_| true, (Some(9), Some(4)), (Some(1), Some(4))).unwrap();
+        assert_eq!(zero.melting.output.amount, 90);
+        assert!(zero.byproducts.is_empty());
     }
     #[test]
     fn foundry_keeps_non_ore_byproduct_amounts_and_conditions() {
