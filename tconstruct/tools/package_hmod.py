@@ -192,6 +192,7 @@ def package(output):
         'tconstruct-tool-definitions.zip': 'tconstruct-original-pack',
         'tconstruct-station-layouts.zip': 'tconstruct-original-pack',
         'tconstruct-fluid-tags.zip': 'tconstruct-original-pack',
+        'tconstruct-fluid-effects.zip': 'tconstruct-original-pack',
         'tconstruct-block-tags.zip': 'tconstruct-original-pack',
         'forge-47.4.0-data.zip': 'forge-original-pack',
     }
