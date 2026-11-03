@@ -168,5 +168,13 @@ chest Haste. Deterministic tests cover these combinations for Blasting,
 Crumbling and Maintained; local/LAN gameplay remains unverified. Horizon's base
 speed itself differs at Mining Fatigue III and above and uses a configurable
 submerged-mining attribute; those host base-speed differences remain open. Its
-separate `block_break_speed` attribute is not included in the flat bonus
-multiplier and its interaction remains open.
+separate `block_break_speed` attribute adjusts the incoming host speed, but
+is not included in the source flat-bonus multiplier. The fixed source applies
+flat tool hooks to the event speed it receives before the final armor multiplier;
+focused tests cover incoming speeds including zero. This source-order check does
+not establish behavior with other mods or in a running client.
+
+The already-adjusted host speed cannot safely be inverted here: a zero factor
+loses the original value, and contributions from other mods cannot be isolated
+at this hook. The high-Fatigue and custom-water base-speed differences therefore
+remain open pending a safe earlier boundary.
