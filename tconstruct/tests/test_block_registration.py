@@ -49,6 +49,12 @@ class BlockRegistrationTests(unittest.TestCase):
                     self.assertNotIn('pools', json.loads(loot))
                 json.loads(loot)
 
+    def test_pig_iron_uses_source_pink_map_color(self):
+        # TinkerMaterials.java at f4e77d43: OrientableBlock(metalBuilder(COLOR_PINK)).
+        block = json.loads((BLOCKS / 'pig_iron_block.json').read_text())
+        self.assertEqual(block['template'], 'minecraft:white_glazed_terracotta')
+        self.assertEqual(block['properties']['map_color'], 20)
+
     def test_scorched_table_item_uses_pinned_covered_model(self):
         item = json.loads((ASSETS / 'models/item/scorched_table.json').read_text())
         self.assertEqual(item['parent'], 'tconstruct:block/foundry/table_covered')
