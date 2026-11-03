@@ -27,3 +27,8 @@ belongs to each player motion instance; it does not prescribe an equipment rule
 or a landing effect. Its combined-package planning, constructor coverage, type
 checking, and gameplay behavior still require validation.
 
+
+The native package checks cover both the landing-state manifest and a fixture
+without state. They check unique declaration IDs, constructor preservation,
+module and helper archive references, and deterministic package output. The
+updated checks must be run by the validation owner on the integrated candidate.
