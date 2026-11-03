@@ -7,8 +7,17 @@ use super::tconstruct_source_smeltery_state::Smeltery;
 
 type Pos = (i32, i32, i32);
 
-fn smeltery_fluids(tank: &super::tconstruct_source_smeltery_tank::SmelteryTank) -> Vec<(String, u32)> {
-    tank.fluids.iter().map(|fluid| (fluid.id.clone(), fluid.amount)).collect()
+fn alloy_snapshot(tank: &super::tconstruct_source_smeltery_tank::SmelteryTank) -> (Vec<(String, u32)>, Vec<String>, u32) {
+    let mut fluids = Vec::new();
+    let mut tagged = Vec::new();
+    let mut capacity = tank.capacity;
+    for fluid in &tank.fluids {
+        if fluid.tag.is_some() {
+            tagged.push(fluid.id.clone());
+            capacity = capacity.saturating_sub(fluid.amount);
+        } else { fluids.push((fluid.id.clone(), fluid.amount)); }
+    }
+    (fluids, tagged, capacity)
 }
 
 pub(super) fn kind(block: &str) -> Option<&'static str> {
@@ -128,11 +137,12 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
                 state.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
-            let can_alloy = !foundry && super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, fuel.temperature)
+            let (fluids, tagged, capacity) = alloy_snapshot(&state.tank);
+            let can_alloy = !foundry && super::tconstruct_source_melter_world::alloy(&game.world, &fluids, &tagged, capacity, fuel.temperature)
                 .is_some_and(|(_, inputs, output, amount)| {
                     let mut candidate = state.tank.clone();
-                    let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
-                    candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount })
+                    let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
+                    candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount })
                 });
             if !can_heat && !can_alloy { continue; }
             if tank.take(fuel.fluid.amount).is_none() { continue; }
@@ -147,8 +157,8 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                 if state.fuel > 0 || state.progress[index] == -1 {
                     if let Some(time) = recipe.time.checked_mul(10) {
                         if foundry {
-                            let primary = super::tconstruct_source_smeltery_tank::FluidAmount { id: fluid.clone(), amount: recipe.output.amount };
-                            let extras = byproducts.iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id: id.clone(), amount: *amount }).collect::<Vec<_>>();
+                            let primary = super::tconstruct_source_smeltery_tank::FluidAmount { id: fluid.clone(), tag: None, amount: recipe.output.amount };
+                            let extras = byproducts.iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id: id.clone(), tag: None, amount: *amount }).collect::<Vec<_>>();
                             state.heat_foundry_slot(index, recipe.temperature, time, &primary, &extras);
                         } else { state.heat_slot(index, recipe.temperature, time, fluid, recipe.output.amount); }
                     }
@@ -157,9 +167,10 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         }
     }
     if !foundry && state.phase == 2 && state.fuel > 0 {
-        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &smeltery_fluids(&state.tank), state.tank.capacity, state.temperature) {
-            let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, amount }).collect::<Vec<_>>();
-            state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, amount });
+        let (fluids, tagged, capacity) = alloy_snapshot(&state.tank);
+        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &fluids, &tagged, capacity, state.temperature) {
+            let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
+            state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount });
         }
     }
     if state.phase == 3 && state.fuel > 0 {
@@ -213,30 +224,81 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Exchange a standard lava bucket with a source tank, staging the NBT before
-/// changing the held stack. Other fluid containers are not handled here yet.
+/// Exchange one supported container with a source tank. Stage both sides of
+/// the transfer before persisting the tank or changing the held stack.
 pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(block) else { return false; };
     let Some(kind) = kind(block) else { return false; };
     if !ensure(game, pos, block) { return false; }
     let Some(mut tank) = store::read(&game.world, pos, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) else { return false; };
-    let Some(mut held) = game.held().cloned() else { return true; };
+    let Some(held) = game.held().cloned() else { return true; };
     if held.count == 0 { return false; }
-    let Some(replacement) = super::tconstruct_source_smeltery_fuel::exchange(&mut tank, &held.item) else { return true; };
+    game.ensure_datapacks();
+    let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+        .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
+        .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+            .map(|(id, items)| (id.clone(), items.clone())).collect());
+    let before = tank.amount;
+    let mut slots = [Some(held), None];
+    if !super::tconstruct_source_fluid_container::transfer_single_with_tags(&mut tank, &mut slots,
+        super::tconstruct_source_fluid_container::Direction::Auto,
+        &|item| game.res.items().get(item).is_some(),
+        &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref()) { return true; }
     if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
-    if game.creative && replacement == "minecraft:lava_bucket" {
-        // The held empty bucket remains in creative; do not silently discard
-        // the fluid that was removed from the tank.
-        game.give_or_drop(horizon_items::items::ItemStack::new(replacement, 1));
+    if game.creative {
+        // Preserve the held container in creative, but retain fluid removed
+        // from the tank by giving the filled result to the player.
+        if tank.amount < before {
+            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+        }
     } else if !game.creative {
-        held.count -= 1;
-        if held.count == 0 {
-            *game.held_mut() = Some(horizon_items::items::ItemStack::new(replacement, 1));
+        if let Some(rest) = slots[0].take() {
+            *game.held_mut() = Some(rest);
+            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
         } else {
-            *game.held_mut() = Some(held);
-            game.give_or_drop(horizon_items::items::ItemStack::new(replacement, 1));
+            *game.held_mut() = slots[1].take();
         }
     }
+    true
+}
+
+/// A formed drain exposes its controller's tank on every side in TConstruct.
+pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
+    game.ensure_datapacks();
+    let Some(controller) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&pos).copied() else { return false; };
+    let block = game.res.facts().get(game.world.block(controller.0, controller.1, controller.2)).name.clone();
+    if !matches!(&*block, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") { return false; }
+    let Some((min, max, _)) = super::tconstruct_source_smeltery_world::detect(game, controller) else { return false; };
+    let (x, y, z) = pos;
+    let wall = y > min[1] && y <= max[1] && ((x == min[0] || x == max[0]) && z > min[2] && z < max[2]
+        || (z == min[2] || z == max[2]) && x > min[0] && x < max[0]);
+    let floor = y == min[1] && x > min[0] && x < max[0] && z > min[2] && z < max[2];
+    let foundry_shell = &*block == "tconstruct:foundry_controller" && x >= min[0] && x <= max[0]
+        && z >= min[2] && z <= max[2] && y >= min[1] && y <= max[1]
+        && (y == min[1] || x == min[0] || x == max[0] || z == min[2] || z == max[2]);
+    if !wall && !floor && !foundry_shell { return false; }
+    let Some(mut state) = store::read(&game.world, controller, "tconstruct:smeltery").and_then(|tag| Smeltery::from_nbt(&tag)) else { return false; };
+    let Some(held) = game.held().cloned() else { return false; };
+    let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+        .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+    let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
+        .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+            .map(|(id, items)| (id.clone(), items.clone())).collect());
+    let before = state.tank.total();
+    let mut slots = [Some(held), None];
+    if !super::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut slots,
+        super::tconstruct_source_fluid_container::Direction::Auto, None,
+        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref()) { return false; }
+    if !store::write(&mut game.world, controller, "tconstruct:smeltery", state.to_nbt()) { return false; }
+    if game.creative {
+        if state.tank.total() < before {
+            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+        }
+    } else if let Some(rest) = slots[0].take() {
+        *game.held_mut() = Some(rest);
+        if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+    } else { *game.held_mut() = slots[1].take(); }
     true
 }
 
@@ -306,6 +368,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                 .or_else(|| damaged_recipe(game, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid)))
                 .or_else(|| super::tconstruct_source_melter_world::material_melting(&game.world, stack).map(|(id, recipe, fluid, _)| (id, recipe.melting, fluid))))).collect()
     } else { vec![None; melter.slots.len()] };
+    let mut heater_update = None;
+    let mut remainder_drop = None;
     if melter.phase == 0 && has_heater && melter.fuel == 0 {
         if let Some((temperature, rate)) = solid_fuel_rule(game) {
             if recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
@@ -316,17 +380,27 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                 if let Some(fuel) = fuel {
                     let duration = game.res.providers().burn_time(game.res.items(), &fuel, false).max(0) as u32 / 4;
                     let remainder = game.res.items().get(&fuel.item).and_then(|info| info.crafting_remainder.clone());
-                    if duration > 0 && (remainder.is_none() || fuel.count == 1) {
-                        if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&below) {
-                            if let Some(stack) = slots.first_mut().and_then(Option::as_mut) {
-                                stack.count -= 1;
-                                if stack.count == 0 {
-                                    slots[0] = remainder.map(|id| horizon_items::items::ItemStack::new(&id, 1));
+                    if duration > 0 && fuel.count > 0 {
+                        let mut left = fuel.clone();
+                        left.count -= 1;
+                        let mut next = (left.count > 0).then_some(left);
+                        if let Some(id) = remainder {
+                            let remainder = horizon_items::items::ItemStack::new(&id, 1);
+                            // HeaterItemHandler accepts only items whose solid
+                            // burn time exceeds three ticks, even as remainders.
+                            if game.res.providers().burn_time(game.res.items(), &remainder, false) <= 3 {
+                                remainder_drop = Some(remainder);
+                            } else {
+                                match &mut next {
+                                    None => next = Some(remainder),
+                                    Some(stack) if stack.same_item_same_components(&remainder)
+                                        && stack.count < game.res.items().get(&stack.item).map_or(64, |item| item.max_stack).min(64) => stack.count += 1,
+                                    _ => remainder_drop = Some(remainder),
                                 }
-                                melter.fuel = duration; melter.fuel_quality = duration; melter.temperature = temperature; melter.rate = rate;
-                                game.world.modified.insert((below.0 >> 4, below.2 >> 4));
                             }
                         }
+                        heater_update = Some(next);
+                        melter.fuel = duration; melter.fuel_quality = duration; melter.temperature = temperature; melter.rate = rate;
                     }
                 }
             }
@@ -350,24 +424,26 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
             }
         }
     }
+    let mut lit_update = None;
     if melter.phase == 2 {
-        let burning = (has_heater || liquid_kind.is_some()) && melter.fuel > 0;
-        for (index, recipe) in recipes.iter().enumerate() {
-            if let Some((_, recipe, fluid)) = recipe {
-                if burning || melter.progress[index] == -1 {
-                    // MeltingModule stores recipe time in tenths of a heat step.
-                    melter.heat_slot(index, recipe.temperature, recipe.time * 10, fluid, recipe.output.amount);
-                } else { melter.cool_slot(index); }
-            } else { melter.progress[index] = 0; }
+        let formed = has_heater || liquid_kind.is_some();
+        let burning = formed && melter.fuel > 0;
+        // An unformed Melter consumes already-burning fuel without heating or
+        // cooling. It only cools once that stored fuel has run out.
+        if formed || melter.fuel == 0 {
+            for (index, recipe) in recipes.iter().enumerate() {
+                if let Some((_, recipe, fluid)) = recipe {
+                    if burning || melter.progress[index] == -1 {
+                        // MeltingModule stores recipe time in tenths of a heat step.
+                        melter.heat_slot(index, recipe.temperature, recipe.time * 10, fluid, recipe.output.amount);
+                    } else { melter.cool_slot(index); }
+                } else { melter.progress[index] = 0; }
+            }
         }
         if melter.fuel > 0 { melter.fuel -= 1; }
-        lit(game, pos, burning);
-        if has_heater { lit(game, below, burning); }
+        if formed { lit_update = Some(burning); }
     }
     melter.phase = (melter.phase + 1) % 4;
-    if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
-        for (dst, src) in live.iter_mut().take(3).zip(&melter.slots) { *dst = src.clone(); }
-    }
     let heat_codes = if melter.phase == 1 || melter.phase == 3 {
         Some(Tag::IntArray(melter.slots.iter().enumerate().map(|(index, slot)| {
             if slot.is_none() { return -1; }
@@ -386,7 +462,23 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     }
     let mut updates = vec![(pos, "tconstruct:melter", melter_tag)];
     if let Some(update) = fluid_update { updates.push(update); }
-    let _ = store::write_many(&mut game.world, &updates);
+    // The live inventories are distinct from the saved machine metadata.
+    // Validate both before persisting, then publish the already-staged edits.
+    if !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(live)) if live.len() >= 3) { return; }
+    if heater_update.is_some() && !matches!(game.world.block_entities.get(&below), Some(BlockEntity::Chest(live)) if !live.is_empty()) { return; }
+    if !store::write_many(&mut game.world, &updates) { return; }
+    if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+        for (dst, src) in live.iter_mut().take(3).zip(&melter.slots) { *dst = src.clone(); }
+    }
+    if let Some(next) = heater_update {
+        if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&below) { live[0] = next; }
+        game.world.modified.insert((below.0 >> 4, below.2 >> 4));
+    }
+    if let Some(item) = remainder_drop { super::spill::tconstruct_source_smeltery_spill::spill(game, below, vec![item]); }
+    if let Some(burning) = lit_update {
+        lit(game, pos, burning);
+        if has_heater { lit(game, below, burning); }
+    }
 }
 
 fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting)> {
@@ -402,7 +494,7 @@ fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting
 
 // Empty-cast items stand in for an absent recipe cast, but remain physically
 // in the slot. Scorched tables require a physical cast even for those recipes.
-fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Casting, fluid: &str)
+fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Casting, tank: &Tank)
     -> Option<(String, super::tconstruct_source_melting_recipes::CastingRecipe, horizon_items::items::ItemStack)> {
     let block = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
     if block == "tconstruct:scorched_table" && casting.input.is_none() { return None; }
@@ -412,7 +504,7 @@ fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Cas
         let tag = if kind == "tconstruct:basin" { "tconstruct:casts/empty/basin" } else { "tconstruct:casts/empty/table" };
         if tags.get(tag)?.contains(&*stack.item) { input = None; }
     }
-    super::tconstruct_source_melter_world::casting_stack(&game.world, kind == "tconstruct:basin", input, fluid)
+    matched_casting(&game.world, kind == "tconstruct:basin", input, tank)
 }
 
 /// Interact with the two casting slots in the source's order: insert one item
@@ -426,10 +518,10 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
     let mut remaining = None;
     // Molding uses the placed material and one held pattern, before the
     // ordinary pickup path. Preserve a reusable pattern in the output slot.
-    if kind == "tconstruct:table" && casting.output.is_none() {
+    if casting.output.is_none() {
         if let Some(material) = casting.input.as_ref() {
             let pattern = held.as_ref().map(|stack| stack.item.as_ref());
-            if let Some((recipe_id, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, pattern) {
+            if let Some((recipe_id, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, pattern) {
                 let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
                 if let Some(mut stack) = held.clone() {
                     if !recipe.pattern_consumed { let mut item = stack.clone(); item.count = 1; casting.output = Some(item); }
@@ -452,7 +544,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             // A mold-less recipe also applies when the player is holding an
             // unrelated item; leave that item untouched and give the result.
             if held.is_some() {
-                if let Some((_, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, &material.item, None) {
+                if let Some((_, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
                     casting.input = None;
                     if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
                     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
@@ -499,13 +591,22 @@ fn smeltery_source(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery)> {
 
 fn selected_smeltery_fluid(state: &Smeltery) -> Option<Tank> {
     let fluid = state.tank.fluids.first()?;
-    Some(Tank { fluid: Some(fluid.id.clone()), amount: fluid.amount, capacity: state.tank.capacity.max(fluid.amount) })
+    Some(Tank { fluid: Some(fluid.id.clone()), tag: fluid.tag.clone(), amount: fluid.amount, capacity: state.tank.capacity.max(fluid.amount) })
 }
 
 fn apply_smeltery_take(state: &mut Smeltery, before: &Tank, after: &Tank) -> bool {
     let Some(amount) = before.amount.checked_sub(after.amount) else { return false; };
     if amount == 0 { return true; }
-    before.fluid.as_deref().is_some_and(|id| state.tank.take(id, amount))
+    before.fluid.as_deref().is_some_and(|id| state.tank.take_tagged(id, before.tag.as_ref(), amount))
+}
+
+fn matched_casting(world: &super::tconstruct_world::World, basin: bool, input: Option<&horizon_items::items::ItemStack>, tank: &Tank)
+    -> Option<(String, super::tconstruct_source_melting_recipes::CastingRecipe, horizon_items::items::ItemStack)> {
+    let fluid = tank.fluid.as_deref()?;
+    match tank.tag.as_ref() {
+        Some(tag) => super::tconstruct_source_melter_world::potion_casting_stack(world, basin, input, fluid, tag),
+        None => super::tconstruct_source_melter_world::casting_stack(world, basin, input, fluid),
+    }
 }
 
 fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) -> bool {
@@ -517,8 +618,7 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
     if !ensure(game, target, &target_name) { return false; }
     let Some((kind, mut casting)) = casting_at(game, target) else { return false; };
     if casting.recipe.is_none() {
-        let Some(id) = fluid.fluid.as_deref() else { return true; };
-        let Some((recipe_id, recipe, output)) = casting_recipe_at(game, target, kind, &casting, id) else { return true; };
+        let Some((recipe_id, recipe, output)) = casting_recipe_at(game, target, kind, &casting, &fluid) else { return true; };
         if !casting.prepare(&recipe_id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut fluid, &casting.tank) { return true; }
@@ -556,9 +656,9 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     if !ensure(game, source, &source_name) || !ensure(game, target, &target_name) { return false; }
     let Some(mut melter) = store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag)) else { return false; };
     let Some((casting_kind, mut casting)) = casting_at(game, target) else { return false; };
-    let Some(fluid) = melter.tank.fluid.clone() else { return true; };
+    if melter.tank.fluid.is_none() { return true; }
     if casting.recipe.is_none() {
-        let Some((id, recipe, output)) = casting_recipe_at(game, target, casting_kind, &casting, &fluid) else { return true; };
+        let Some((id, recipe, output)) = casting_recipe_at(game, target, casting_kind, &casting, &melter.tank) else { return true; };
         if !casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut melter.tank, &casting.tank) { return true; }
@@ -593,8 +693,8 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
 
 pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     let Some((kind, mut casting)) = casting_at(game, pos) else { return; };
-    let Some(fluid) = casting.tank.fluid.as_deref() else { return; };
-    let valid = casting_recipe_at(game, pos, kind, &casting, fluid)
+    if casting.tank.fluid.is_none() { return; }
+    let valid = casting_recipe_at(game, pos, kind, &casting, &casting.tank)
         .is_some_and(|(id, recipe, result)| casting.recipe.as_deref() == Some(&id)
             && casting.tank.capacity == recipe.fluid.amount && casting.cooling_time == recipe.cooling_time
             && casting.consumes_cast == recipe.consumes_cast && casting.switch_slots == recipe.switch_slots

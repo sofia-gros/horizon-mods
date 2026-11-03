@@ -2,11 +2,12 @@
 //
 // Recipe tags and conditions are resolved by the caller against loaded data.
 // This module does not select recipes or alter a world by itself.
-use horizon_world::nbt::Tag;
+use horizon_world::nbt::{Compound, Tag};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct FluidAmount {
     pub id: String,
+    pub tag: Option<Tag>,
     pub amount: u32,
 }
 
@@ -24,22 +25,31 @@ impl SmelteryTank {
     }
 
     pub(super) fn amount(&self, id: &str) -> u32 {
-        self.fluids.iter().find(|f| f.id == id).map_or(0, |f| f.amount)
+        self.amount_tagged(id, None)
+    }
+    pub(super) fn amount_tagged(&self, id: &str, tag: Option<&Tag>) -> u32 {
+        self.fluids.iter().find(|f| f.id == id && f.tag.as_ref() == tag).map_or(0, |f| f.amount)
     }
 
     pub(super) fn insert(&mut self, id: &str, amount: u32) -> bool {
-        if id.is_empty() || amount == 0 || amount > self.capacity.saturating_sub(self.total()) { return false; }
-        if let Some(fluid) = self.fluids.iter_mut().find(|f| f.id == id) {
+        self.insert_tagged(id, None, amount)
+    }
+    pub(super) fn insert_tagged(&mut self, id: &str, tag: Option<&Tag>, amount: u32) -> bool {
+        if tag.is_some_and(|tag| !matches!(tag, Tag::Compound(_))) || id.is_empty() || amount == 0 || amount > self.capacity.saturating_sub(self.total()) { return false; }
+        if let Some(fluid) = self.fluids.iter_mut().find(|f| f.id == id && f.tag.as_ref() == tag) {
             fluid.amount += amount;
         } else {
-            self.fluids.push(FluidAmount { id: id.to_owned(), amount });
+            self.fluids.push(FluidAmount { id: id.to_owned(), tag: tag.cloned(), amount });
         }
         true
     }
 
     pub(super) fn take(&mut self, id: &str, amount: u32) -> bool {
+        self.take_tagged(id, None, amount)
+    }
+    pub(super) fn take_tagged(&mut self, id: &str, tag: Option<&Tag>, amount: u32) -> bool {
         if amount == 0 { return false; }
-        let Some(index) = self.fluids.iter().position(|f| f.id == id && f.amount >= amount) else { return false; };
+        let Some(index) = self.fluids.iter().position(|f| f.id == id && f.tag.as_ref() == tag && f.amount >= amount) else { return false; };
         self.fluids[index].amount -= amount;
         if self.fluids[index].amount == 0 { self.fluids.remove(index); }
         true
@@ -55,6 +65,7 @@ impl SmelteryTank {
     /// succeeds it fills each byproduct in order, accepting partial amounts
     /// when the remaining tank capacity runs out.
     pub(super) fn foundry_output(&mut self, primary: &FluidAmount, byproducts: &[FluidAmount]) -> bool {
+        if primary.tag.is_some() || byproducts.iter().any(|fluid| fluid.tag.is_some()) { return false; }
         let mut next = self.clone();
         if !next.insert(&primary.id, primary.amount) { return false; }
         for fluid in byproducts {
@@ -67,7 +78,7 @@ impl SmelteryTank {
 
     /// Commit only when every input and the resulting net volume fit.
     pub(super) fn alloy(&mut self, inputs: &[FluidAmount], result: &FluidAmount) -> bool {
-        if result.id.is_empty() || result.amount == 0 { return false; }
+        if inputs.iter().any(|fluid| fluid.tag.is_some()) || result.tag.is_some() || result.id.is_empty() || result.amount == 0 { return false; }
         let mut next = self.clone();
         let mut removed = 0u32;
         for input in inputs {
@@ -77,7 +88,7 @@ impl SmelteryTank {
         }
         // The source allows a net decrease even if a resized tank is overfull.
         if result.amount.saturating_sub(removed) > self.capacity.saturating_sub(self.total()) { return false; }
-        if let Some(fluid) = next.fluids.iter_mut().find(|f| f.id == result.id) {
+        if let Some(fluid) = next.fluids.iter_mut().find(|f| f.id == result.id && f.tag.is_none()) {
             let Some(amount) = fluid.amount.checked_add(result.amount) else { return false; };
             fluid.amount = amount;
         } else { next.fluids.push(result.clone()); }
@@ -87,10 +98,13 @@ impl SmelteryTank {
     }
 
     pub(super) fn to_nbt(&self) -> Tag {
-        let fluids = self.fluids.iter().map(|fluid| Tag::compound([
-            ("id", Tag::String(fluid.id.as_str().into())),
-            ("amount", Tag::Long(i64::from(fluid.amount))),
-        ])).collect();
+        let fluids = self.fluids.iter().map(|fluid| {
+            let mut fields = Compound::new();
+            fields.insert("id".into(), Tag::String(fluid.id.as_str().into()));
+            fields.insert("amount".into(), Tag::Long(i64::from(fluid.amount)));
+            if let Some(tag) = &fluid.tag { fields.insert("fluid_tag".into(), tag.clone()); }
+            Tag::Compound(fields)
+        }).collect();
         Tag::compound([("capacity", Tag::Long(i64::from(self.capacity))), ("fluids", Tag::List(fluids))])
     }
 
@@ -104,9 +118,10 @@ impl SmelteryTank {
             let Tag::Long(amount) = fluid.get("amount")? else { return None; };
             let id = id.to_string_lossy();
             let amount = u32::try_from(*amount).ok()?;
-            if id.is_empty() || amount == 0 || tank.amount(&id) != 0 { return None; }
+            let metadata = match fluid.get("fluid_tag") { None => None, Some(value @ Tag::Compound(_)) => Some(value.clone()), _ => return None };
+            if id.is_empty() || amount == 0 || tank.amount_tagged(&id, metadata.as_ref()) != 0 { return None; }
             total = total.checked_add(amount)?;
-            tank.fluids.push(FluidAmount { id, amount });
+            tank.fluids.push(FluidAmount { id, tag: metadata, amount });
         }
         Some(tank)
     }
@@ -115,7 +130,7 @@ impl SmelteryTank {
 #[cfg(test)]
 mod tests {
     use super::*;
-    fn fluid(id: &str, amount: u32) -> FluidAmount { FluidAmount { id: id.into(), amount } }
+    fn fluid(id: &str, amount: u32) -> FluidAmount { FluidAmount { id: id.into(), tag: None, amount } }
     #[test]
     fn foundry_requires_primary_space_and_fills_byproducts_in_order() {
         let mut tank = SmelteryTank::new(205);

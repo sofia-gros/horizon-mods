@@ -56,6 +56,21 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    pub(super) fn potion_casting(&self, basin: bool, input: &str, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String)> {
+        if !self.known_items.contains(input) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found: Option<(String, CastingRecipe, String)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = super::tconstruct_source_melting_recipes::potion_casting(bytes, conditions) else { continue; };
+            if recipe.basin != basin || !self.matches_fluid(&recipe.fluid, fluid)
+                || !recipe.cast.as_ref().is_some_and(|cast| cast.matches(input, &in_tag)) { continue; }
+            let Some(output) = self.output(&recipe.output) else { continue; };
+            if let Some((_, previous, previous_output)) = &found {
+                if previous != &recipe || previous_output != &output { return None; }
+            } else { found = Some((id.clone(), recipe, output)); }
+        }
+        found
+    }
     pub(super) fn composite_part_swap(&self, basin: bool, input: &str, fluid: &str, identities: &[String],
         supports: &impl Fn(usize, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, CastingRecipe, String, usize)> {
@@ -144,13 +159,13 @@ impl Catalog<'_> {
             }
         }
     }
-    pub(super) fn molding(&self, material: &str, pattern: Option<&str>, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MoldingRecipe)> {
+    pub(super) fn molding(&self, basin: bool, material: &str, pattern: Option<&str>, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MoldingRecipe)> {
         if !self.known_items.contains(material) || pattern.is_some_and(|item| !self.known_items.contains(item)) { return None; }
         let in_tag = |tag: &str, item: &str| self.item_tags.get(tag).is_some_and(|items| items.contains(item));
         let mut found = None;
         for (id, bytes) in self.recipes {
             let Some(recipe) = MoldingRecipe::parse(bytes, conditions) else { continue; };
-            if !self.known_items.contains(&recipe.result) || !recipe.material.matches(material, &in_tag) { continue; }
+            if recipe.basin != basin || !self.known_items.contains(&recipe.result) || !recipe.material.matches(material, &in_tag) { continue; }
             if !match (&recipe.pattern, pattern) { (None, None) => true, (Some(ingredient), Some(item)) => ingredient.matches(item, &in_tag), _ => false } { continue; }
             if found.as_ref().is_some_and(|(_, previous)| previous != &recipe) { return None; }
             if found.is_none() { found = Some((id.clone(), recipe)); }
@@ -168,10 +183,18 @@ impl Catalog<'_> {
     /// Conditions and tags are evaluated against this world's snapshots.
     pub(super) fn alloy(&self, fluids: &[(String, u32)], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, Vec<(String, u32)>, String, u32)> {
+        self.alloy_except(fluids, &[], capacity, temperature, conditions)
+    }
+    /// Stop before a recipe whose ingredients could select a tagged entry;
+    /// selecting a later recipe could change source recipe ordering. The
+    /// caller still includes tagged entries in capacity accounting.
+    pub(super) fn alloy_except(&self, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, Vec<(String, u32)>, String, u32)> {
         let total = fluids.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
         for (id, bytes) in self.recipes {
             let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
             if recipe.temperature > temperature { continue; }
+            if recipe.inputs.iter().any(|ingredient| tagged.iter().any(|fluid| self.matches_fluid(ingredient, fluid))) { return None; }
             let Some(output) = self.resolved_fluid(&recipe.output) else { continue; };
             let mut used = HashSet::new();
             let mut inputs = Vec::with_capacity(recipe.inputs.len());
@@ -255,6 +278,18 @@ impl Catalog<'_> {
             } else { found = Some((id.clone(), recipe, primary, byproducts)); }
         }
         found
+    }
+    pub(super) fn can_filling(&self, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
+        if !self.known_items.contains("tconstruct:copper_can") || !self.known_fluids.contains(fluid) { return None; }
+        let id = self.recipes.iter().find_map(|(id, bytes)| {
+            let value: Value = serde_json::from_slice(bytes).ok()?;
+            if value.get("type")?.as_str()? != "tconstruct:table_filling" || value.get("container")?.as_str()? != "tconstruct:copper_can" || value.get("fluid_amount")?.as_u64()? != 90 { return None; }
+            match value.get("conditions") { None => {}, Some(Value::Array(values)) if conditions(values) => {}, _ => return None }
+            Some(id.clone())
+        })?;
+        Some((id, CastingRecipe { basin: false, retextured: false, cast: Some(Ingredient::Item("tconstruct:copper_can".into())),
+            consumes_cast: true, switch_slots: false, fluid: FluidSpec { id: fluid.to_owned(), tagged: false, amount: 90 },
+            output: Output::Item("tconstruct:copper_can".into()), cooling_time: 5 }))
     }
     pub(super) fn portable_tank_filling(&self, basin: bool, input: &str, fluid: &str, free: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe)> {
         if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) || free == 0 { return None; }
@@ -405,6 +440,17 @@ impl Catalog<'_> {
 mod tests {
     use super::*;
     #[test]
+    fn alloy_rejects_tagged_matching_inputs() {
+        let recipe = br#"{"type":"tconstruct:alloy","inputs":[{"amount":90,"fluid":"test:copper"},{"amount":90,"fluid":"test:tin"}],"result":{"amount":180,"fluid":"test:bronze"},"temperature":700}"#.to_vec();
+        let recipes = std::collections::BTreeMap::from([("alloy".into(), recipe)]);
+        let tags = HashMap::new(); let items = HashSet::new();
+        let fluids = HashSet::from(["test:copper".into(), "test:tin".into(), "test:bronze".into(), "test:potion".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let available = [("test:copper".into(), 90), ("test:tin".into(), 90)];
+        assert!(catalog.alloy_except(&available, &["test:potion".into()], 180, 700, &|_| true).is_some());
+        assert!(catalog.alloy_except(&available, &["test:copper".into()], 180, 700, &|_| true).is_none());
+    }
+    #[test]
     fn foundry_resolves_primary_and_byproduct_tags() {
         let recipe = br#"{"type":"tconstruct:ore_melting","ingredient":{"tag":"forge:ores/copper"},"result":{"amount":180,"tag":"forge:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"amount":90,"tag":"forge:molten_gold"}]}"#;
         let recipes = [("ore".into(), recipe.to_vec())].into_iter().collect();
@@ -449,6 +495,19 @@ mod tests {
         assert!(catalog.duplication(false, "minecraft:stone", "tconstruct:molten_diamond", &|_| true).is_none());
         assert!(catalog.duplication(false, "minecraft:coast_armor_trim_smithing_template", "minecraft:water", &|_| true).is_none());
         assert!(catalog.duplication(true, "minecraft:coast_armor_trim_smithing_template", "tconstruct:molten_diamond", &|_| true).is_none());
+    }
+    #[test]
+    fn all_catalyst_alloy_requires_capacity_without_consuming_input() {
+        let recipe = br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100,"catalyst":true}],"result":{"fluid":"test:result","amount":100},"temperature":700}"#.to_vec();
+        let recipes = std::collections::BTreeMap::from([("catalyst".into(), recipe)]);
+        let tags = HashMap::new(); let items = HashSet::new();
+        let fluids = HashSet::from(["minecraft:water".into(), "minecraft:lava".into(), "test:result".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let available = [("minecraft:water".into(), 250), ("minecraft:lava".into(), 100)];
+        assert!(catalog.alloy(&available, 449, 700, &|_| true).is_none());
+        let (_, consumed, _, amount) = catalog.alloy(&available, 450, 700, &|_| true).unwrap();
+        assert!(consumed.is_empty()); assert_eq!(amount, 100);
+        assert!(catalog.alloy(&[("minecraft:water".into(), 249), ("minecraft:lava".into(), 100)], 450, 700, &|_| true).is_none());
     }
     #[test]
     fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
