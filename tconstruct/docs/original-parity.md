@@ -450,3 +450,5 @@ slime durability, material replacement, reload, and a malformed value. See the
 original [SkullStats](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/stats/SkullStats.java).
 
 The original five slime foliage color maps and their source-coordinate decoder are available as unconnected resources. Terrain, item and particle tint remain unimplemented: the former terrain-face injection was rejected by official Mixins planning, and no color-map module or loader is installed by this data-only change. The PNG decoder and representative boundary coordinates were checked in isolation; host rendering, resource reload and gameplay remain unverified.
+
+Pinned Slime Island reference definitions and their 25 original templates are retained for source comparison. They are reference inputs only: this data does not register island features or establish natural generation, collection, persistence or gameplay.
