@@ -308,10 +308,79 @@ pub(super) struct Casting {
     pub result: Option<ItemStack>, pub cooling_time: u32,
     pub consumes_cast: bool, pub switch_slots: bool, pub redstone: bool,
 }
+
+/// Continue after a canceled candidate, but abort the whole attempt if a
+/// callback changed a snapshot. The callback runs before any staged commit.
+pub(super) fn select_casting_candidate<T>(candidates: Vec<(usize, T)>, mut check: impl FnMut(usize, &T) -> Option<bool>) -> Option<(usize, T)> {
+    for (index, item) in candidates {
+        match check(index, &item) {
+            Some(true) => return Some((index, item)),
+            Some(false) => continue,
+            None => return None,
+        }
+    }
+    None
+}
+
+/// Patch just one slot while keeping unknown machine fields byte-for-byte.
+pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemStack>, after: &Option<ItemStack>) -> Option<Tag> {
+    if !matches!(key, "input" | "output") { return None; }
+    match before {
+        None if saved.get(key).is_none() => {},
+        Some(item) if item.wire_patch().is_none() && saved.get(key) == Some(&item_to_nbt(item)) => {},
+        _ => return None,
+    }
+    let Tag::Compound(mut fields) = saved.clone() else { return None; };
+    match after {
+        None => { fields.remove(&key.into()); },
+        Some(item) => {
+            if item.count == 0 || item.wire_patch().is_some() { return None; }
+            let raw = item_to_nbt(item);
+            let decoded = item_from_nbt(&raw)?;
+            if decoded.count != item.count || !decoded.same_item_same_components(item) { return None; }
+            fields.insert(key.into(), raw);
+        },
+    }
+    Some(Tag::Compound(fields))
+}
 impl Casting {
     pub(super) fn new() -> Self {
         Self { input: None, output: None, tank: Tank::new(0), timer: 0, recipe: None, result: None,
             cooling_time: 0, consumes_cast: false, switch_slots: false, redstone: false }
+    }
+    // Source sided inventory: insert into input with output clear, or extract
+    // only output. Reject pending work conservatively even before fluid arrives.
+    pub(super) fn hopper_push_allowed(&self) -> bool {
+        self.tank.amount == 0 && self.recipe.is_none() && self.input.is_none() && self.output.is_none()
+    }
+    pub(super) fn hopper_pull_allowed(&self) -> bool {
+        self.tank.amount == 0 && self.recipe.is_none() && self.output.as_ref().is_some_and(|s| s.count > 0)
+    }
+    /// Stage exactly one item; the caller validates destination limits, runs
+    /// callbacks, rechecks snapshots and commits both inventories together.
+    pub(super) fn hopper_transfer(&self, hopper: &[Option<ItemStack>], index: usize, push: bool) -> Option<(Vec<Option<ItemStack>>, Self)> {
+        let mut next = self.clone();
+        let mut slots = hopper.to_vec();
+        let target = slots.get_mut(index)?;
+        if push {
+            if !self.hopper_push_allowed() { return None; }
+            let source = target.as_mut().filter(|s| s.count > 0 && s.wire_patch().is_none())?;
+            let mut one = source.clone(); one.count = 1;
+            source.count -= 1;
+            if source.count == 0 { *target = None; }
+            next.input = Some(one);
+        } else {
+            if !self.hopper_pull_allowed() { return None; }
+            let source = next.output.as_mut().filter(|s| s.wire_patch().is_none())?;
+            let mut one = source.clone(); one.count = 1;
+            if let Some(dest) = target.as_mut() {
+                if dest.count == 0 || dest.wire_patch().is_some() || !dest.same_item_same_components(&one) { return None; }
+                dest.count = dest.count.checked_add(1)?;
+            } else { *target = Some(one); }
+            source.count -= 1;
+            if source.count == 0 { next.output = None; }
+        }
+        Some((slots, next))
     }
     /// Recover an oversized external insertion without cancelling a pour.
     /// Leave one source-valid cast in place and return the excess unchanged.
@@ -379,6 +448,77 @@ impl Casting {
 #[cfg(test)]
 mod casting_tests {
     use super::*;
+    #[test]
+    fn canceled_hopper_candidate_tries_next_but_snapshot_change_aborts() {
+        let mut visited = Vec::new();
+        let choice = select_casting_candidate(vec![(0, "first"), (1, "second")], |index, _| {
+            visited.push(index); Some(index == 1)
+        });
+        assert_eq!(choice, Some((1, "second"))); assert_eq!(visited, vec![0, 1]);
+        visited.clear();
+        assert_eq!(select_casting_candidate(vec![(0, "first"), (1, "second")], |index, _| {
+            visited.push(index); if index == 0 { None } else { Some(true) }
+        }), None);
+        assert_eq!(visited, vec![0]);
+        let untouched = [Some(ItemStack::new("minecraft:stone", 3)), Some(ItemStack::new("minecraft:book", 4))];
+        let snapshot = untouched.clone();
+        assert_eq!(select_casting_candidate(vec![(0, "first"), (1, "second")], |_, _| Some(false)), None);
+        assert_eq!(untouched, snapshot);
+    }
+    #[test]
+    fn hopper_only_inserts_one_empty_input_and_extracts_idle_output() {
+        let mut c = Casting::new();
+        assert!(c.hopper_push_allowed()); assert!(!c.hopper_pull_allowed());
+        c.input = Some(ItemStack::new("minecraft:book", 1));
+        assert!(!c.hopper_push_allowed()); assert!(!c.hopper_pull_allowed());
+        c.output = Some(ItemStack::new("minecraft:stone", 2));
+        assert!(!c.hopper_push_allowed()); assert!(c.hopper_pull_allowed());
+        c.tank.amount = 1;
+        assert!(!c.hopper_push_allowed()); assert!(!c.hopper_pull_allowed());
+        c.tank.amount = 0; c.recipe = Some("test:pending".into());
+        assert!(!c.hopper_push_allowed()); assert!(!c.hopper_pull_allowed());
+    }
+    #[test]
+    fn hopper_transfer_stages_one_preserving_other_slots_and_components() {
+        let mut book = ItemStack::new("minecraft:book", 3);
+        book.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("marker", Tag::Int(7))])));
+        let hopper = vec![None, Some(book.clone()), Some(ItemStack::new("minecraft:stone", 1))];
+        let table = Casting::new();
+        let (next, table) = table.hopper_transfer(&hopper, 1, true).unwrap();
+        assert_eq!(next[1].as_ref().unwrap().count, 2);
+        assert!(table.input.as_ref().unwrap().same_item_same_components(&book));
+        assert_eq!(table.input.as_ref().unwrap().count, 1);
+        assert_eq!(next[2], hopper[2]); assert_eq!(hopper[1].as_ref().unwrap().count, 3);
+        assert!(table.hopper_transfer(&next, 1, true).is_none());
+        let mut table = Casting::new(); table.output = Some(book.clone());
+        let (next, table) = table.hopper_transfer(&hopper, 1, false).unwrap();
+        assert_eq!(next[1].as_ref().unwrap().count, 4);
+        assert_eq!(table.output.as_ref().unwrap().count, 2);
+        assert!(table.hopper_transfer(&hopper, 2, false).is_none());
+        assert!(table.hopper_transfer(&hopper, 9, false).is_none());
+    }
+    #[test]
+    fn hopper_slot_patch_preserves_unrelated_raw_data_and_rejects_stale_slots() {
+        let book = ItemStack::new("minecraft:book", 1);
+        let mut c = Casting::new(); c.input = Some(book.clone());
+        let Tag::Compound(mut raw) = c.to_nbt() else { panic!() };
+        raw.insert("future_field".into(), Tag::Int(37));
+        let saved = Tag::Compound(raw);
+        let patched = patch_casting_slot(&saved, "input", &Some(book.clone()), &None).unwrap();
+        assert_eq!(patched.get("future_field"), Some(&Tag::Int(37)));
+        assert!(patched.get("input").is_none());
+        assert!(patch_casting_slot(&saved, "input", &None, &None).is_none());
+        assert!(patch_casting_slot(&saved, "unknown", &None, &None).is_none());
+        let mut output = ItemStack::new("minecraft:book", 3);
+        output.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("marker", Tag::Int(7))])));
+        let mut table = Casting::new(); table.output = Some(output.clone());
+        let saved = table.to_nbt();
+        let mut remaining = output.clone(); remaining.count = 2;
+        let patched = patch_casting_slot(&saved, "output", &Some(output), &Some(remaining.clone())).unwrap();
+        let restored = Casting::from_nbt(&patched).unwrap();
+        assert_eq!(restored.output.as_ref().unwrap().count, 2);
+        assert!(restored.output.as_ref().unwrap().same_item_same_components(&remaining));
+    }
     #[test]
     fn mighty_book_casting_waits_on_invalid_stacks_and_preserves_data_across_reload() {
         let mut book = ItemStack::new("minecraft:book", 2);

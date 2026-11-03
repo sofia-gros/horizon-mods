@@ -39,5 +39,22 @@ class MainIntegrationGuards(unittest.TestCase):
         self.assertIn('fn cannon_transfer(', source)
         self.assertIn('fn casting_tank_transfer(', source)
 
+    def test_casting_hopper_intercepts_before_generic_transfer_and_rechecks(self):
+        source = (MIXINS / 'source-chute-hopper.rs').read_text()
+        for function in ('eject', 'suck'):
+            body = source.split(f'pub(super) fn {function}(', 1)[1].split('\n}', 1)[0]
+            self.assertIn('"tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin"', body)
+            self.assertIn('return Break(casting_transfer(', body)
+        body = source.split('fn casting_transfer(', 1)[1].split('\n}\n', 1)[0]
+        event = body.index('game.native_inventory_move_item(')
+        snapshot = body.index('!= Some(&saved)', event)
+        stage = body.index('state.hopper_transfer(', snapshot)
+        write = body.index('tconstruct_source_melter_store::write(', stage)
+        self.assertLess(event, snapshot)
+        self.assertLess(snapshot, stage)
+        self.assertLess(stage, write)
+        self.assertIn('item_from_nbt(&encoded)', body)
+        self.assertIn('game.container_changed(target)', body)
+
 if __name__ == '__main__':
     unittest.main()

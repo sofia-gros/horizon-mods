@@ -625,7 +625,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting)> {
+pub(super) fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static str, Casting)> {
     let name = game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name.clone();
     let kind = kind(&name)?;
     if !matches!(kind, "tconstruct:table" | "tconstruct:basin") { return None; }
