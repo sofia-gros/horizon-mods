@@ -22,33 +22,44 @@ pub fn ordered_levels_from_definition(
     definition: &[u8], identities: &[String], read: impl Fn(&str) -> Option<Vec<Vec<u8>>>,
 ) -> Option<(BTreeMap<String, i32>, Vec<String>)> {
     let value: serde_json::Value = serde_json::from_slice(definition).ok()?;
-    let part_stats = value.get("modules")?.as_array()?.iter().find(|m| {
-        m.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_stats")
-    })?;
-    let parts = part_stats.get("parts")?.as_array()?;
-    if parts.len() != identities.len() {
-        return None;
-    }
+    let modules = value.get("modules")?.as_array()?;
+    let stats = modules.iter().find(|module| matches!(
+        module.get("type").and_then(serde_json::Value::as_str),
+        Some("tconstruct:part_stats" | "tconstruct:material_stats")
+    ))?;
+    let is_parts = stats.get("type")?.as_str()? == "tconstruct:part_stats";
+    let entries = stats.get(if is_parts { "parts" } else { "stat_types" })?.as_array()?;
+    if entries.len() != identities.len() { return None; }
     let mut result = BTreeMap::new();
     let mut order = Vec::new();
-    for (part, id) in parts.iter().zip(identities) {
-        let part = part
-            .as_str()
-            .or_else(|| part.get("item").and_then(serde_json::Value::as_str))?;
+    let mut add = |id: &str, kind: &str| -> Option<()> {
         let (namespace, name) = id.split_once(':')?;
         let path = name.split('#').next()?;
         let Some(layers) = read(&format!("{namespace}:tinkering/materials/traits/{path}")) else {
-            continue;
+            return Some(());
         };
         let raw = super::tconstruct_tx::source_merge_material_traits(&layers).ok()?;
-        let kind = super::tconstruct_source_station_stats::part_kind(part)?;
         super::tconstruct_source_material_trait_select::add_traits_ordered(
-            &mut result,
-            &mut order,
-            raw.default.as_ref(),
-            &raw.per_stat,
-            kind,
+            &mut result, &mut order, raw.default.as_ref(), &raw.per_stat, kind,
         );
+        Some(())
+    };
+    for (entry, id) in entries.iter().zip(identities) {
+        let name = entry.as_str().or_else(|| entry.get(if is_parts { "item" } else { "stat" }).and_then(serde_json::Value::as_str))?;
+        let kind = if is_parts { super::tconstruct_source_station_stats::part_kind(name)? } else { name.strip_prefix("tconstruct:")? };
+        add(id, kind)?;
+    }
+    // MaterialTraitsModule contributes to normal tool traits only when its
+    // explicit hook list includes tool_traits (or no override is supplied).
+    for module in modules.iter().filter(|m| m.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:material_traits")) {
+        if let Some(hooks) = module.get("hooks").and_then(serde_json::Value::as_array) {
+            if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { continue; }
+        }
+        let index = usize::try_from(module.get("material_index")?.as_u64()?).ok()?;
+        let entry = entries.get(index)?;
+        let stat = module.get("stat_type").and_then(serde_json::Value::as_str)
+            .or_else(|| entry.as_str()).or_else(|| entry.get("stat").and_then(serde_json::Value::as_str))?;
+        add(identities.get(index)?, stat.strip_prefix("tconstruct:")?)?;
     }
     Some((result, order))
 }
@@ -74,18 +85,18 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         .as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = materials
-        .get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?
+        .get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?
         .last()?;
-    let mut recipe = world
-        .chunks
-        .__horizon_mixins_tconstruct_recipe_snapshot()
-        .as_ref()?
-        .values()
-        .filter_map(|bytes| BuildingRecipe::parse(bytes))
-        .find(|recipe| recipe.result == &*tool.item)?;
-    recipe.parts_override = None;
-    if recipe.parts(definition)?.len() != identities.len() {
-        return None;
+    let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
+    let has_part_stats = definition_json.get("modules")?.as_array()?.iter().any(|module| {
+        module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_stats")
+    });
+    if has_part_stats {
+        let mut recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?
+            .values().filter_map(|bytes| BuildingRecipe::parse(bytes))
+            .find(|recipe| recipe.result == &*tool.item)?;
+        recipe.parts_override = None;
+        if recipe.parts(definition)?.len() != identities.len() { return None; }
     }
     let (resolved, order) =
         ordered_levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
