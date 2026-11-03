@@ -19,3 +19,23 @@ The container transaction supports standard 1,000 mB buckets with registered flu
 ## Source assets
 
 Bucket icons use the first frame of the original TConstruct fluid sprites and the Forge bucket-fluid mask. The reference assets are from [TConstruct e14bb5f](https://github.com/SlimeKnights/TinkersConstruct/tree/e14bb5f1794f561ff164f88f84b8b095191c8ecf) and [Forge 243490d](https://github.com/MinecraftForge/MinecraftForge/blob/243490d78001917c7e6ee6e94b45ef98776aa36f/src/main/resources/assets/forge/textures/item/mask/bucket_fluid_drip.png). Regenerating the snapshot with `tools/import_fluid_buckets.py` requires Pillow and those original sources; preparing game resources uses the checked-in snapshot and does not require Pillow.
+
+## Copper Can GUI contents
+
+Filled Copper Cans show a fluid overlay in inventory-style GUI icons and a
+fluid-name/90 mB tooltip when their untagged fluid is known to the current world.
+The overlay crops existing Horizon still sprites to the upstream MIT mask;
+missing sprites leave the original icon unchanged. The tooltip amount is per
+can, not the total for a stack. Empty cans retain their ordinary icon and name.
+
+Malformed data, opaque wire patches, explicit item-model overrides, unknown
+fluids, and tagged fluids are left unchanged. Potion fluids are also excluded:
+variant/effect names and accurate potion colors are not implemented, including
+custom colors. This display does not change container transfer behavior.
+World/hand/dropped-item contents rendering is not implemented. In-game visuals,
+resource-pack transformations and LAN behavior remain unverified; no gameplay
+tests were run for this change.
+
+The GUI fluid overlay is drawn after the base icon and can cover enchantment
+glint in its fluid pixels. Automated tests do not exercise live injection,
+icon composition, tooltip presentation or LAN synchronization.
