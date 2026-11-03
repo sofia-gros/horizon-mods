@@ -116,6 +116,5 @@ broad tag; it does not use AOE size as the amount. A pre-destroy hook spends
 up to five Overslime per level for broad tools or one for other harvest tools.
 A scoped actor flag prevents repeated spends for the center and additional AOE
 blocks; broken tools and unknown item-tag snapshots do not spend. This host
-boundary runs after its permission checks but before mod cancellation and block
-removal. Creative, cancellation, guest behavior and full source parity remain
-unverified; the hook may still run before another mod cancels a break.
+boundary runs after permission checks and mod cancellation handlers, but before
+block removal. Creative, guest behavior and full source parity remain unverified.

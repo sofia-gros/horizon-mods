@@ -1,6 +1,7 @@
-// This native boundary runs after host break permissions but before mod
-// cancellation and actual removal. Area recursion spends only on its first call.
-fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>) {
+// Run after native cancellation handlers and before actual block removal.
+// Area recursion spends only on its first allowed call.
+fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>, canceled: bool) {
+    if canceled { return; }
     use horizon_world::nbt::Tag;
     let actor = game.lan_acting;
     let active = game.world.chunks.__horizon_mixins_tconstruct_area_active().contains(&actor);
