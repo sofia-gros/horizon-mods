@@ -56,12 +56,46 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    /// Resolve the source's consumed-offset head plus slime material form.
+    pub(super) fn slimeskull_casting(&self, basin: bool, input: &str, fluid: &str,
+        supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, CastingRecipe, String, String)> {
+        if !basin || !self.known_items.contains(input) || !self.known_items.contains("tconstruct:slime_helmet") || !self.known_fluids.contains(fluid) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        if self.recipes.values().filter_map(|bytes| super::tconstruct_source_melting_recipes::SlimelytraCastingRecipe::parse(bytes, conditions))
+            .any(|recipe| recipe.cast.matches(input, &in_tag)) { return None; }
+        let mut found = None;
+        for (id, bytes) in self.recipes {
+            let Some(tool) = super::tconstruct_source_melting_recipes::SlimeskullCastingRecipe::parse(bytes, conditions) else { continue; };
+            if !tool.cast.matches(input, &in_tag) || !supports(&tool.material, "tconstruct:skull") { continue; }
+            for raw in self.recipes.values() {
+                let Some(material) = MaterialFluidRecipe::parse(raw, conditions) else { continue; };
+                if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, "tconstruct:slime") { continue; }
+                let amount = material.fluid.amount.checked_mul(tool.item_cost)?;
+                let factor = ((amount as f32) / 90.0_f32).sqrt();
+                let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
+                if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+                let mut spec = material.fluid.clone(); spec.amount = amount;
+                let recipe = CastingRecipe { basin: true, retextured: false, cast: Some(tool.cast.clone()),
+                    consumes_cast: true, switch_slots: false, fluid: spec,
+                    output: Output::Item("tconstruct:slime_helmet".into()), cooling_time: time as u32 };
+                let value = (id.clone(), recipe, tool.material.clone(), material.material);
+                if found.as_ref().is_some_and(|old| old != &value) { return None; }
+                found = Some(value);
+            }
+        }
+        found
+    }
     /// Resolve the consumed-cast slimelytra recipe against one material fluid.
     pub(super) fn slimelytra_casting(&self, basin: bool, input: &str, fluid: &str,
         supports: &impl Fn(&str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, CastingRecipe, String)> {
         if !basin || !self.known_items.contains(input) || !self.known_items.contains("tconstruct:slime_wings") || !self.known_fluids.contains(fluid) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        // Avoid consuming an item if an overlapping supported tool-casting
+        // form could also match it after a datapack change.
+        if self.recipes.values().filter_map(|bytes| super::tconstruct_source_melting_recipes::SlimeskullCastingRecipe::parse(bytes, conditions))
+            .any(|recipe| recipe.cast.matches(input, &in_tag)) { return None; }
         let mut found = None;
         for (id, bytes) in self.recipes {
             let Some(tool) = super::tconstruct_source_melting_recipes::SlimelytraCastingRecipe::parse(bytes, conditions) else { continue; };
@@ -793,6 +827,49 @@ mod fluid_tag_tests {
         assert!(!fluids.contains("other:fluid"));
         assert!(tags["forge:molten_copper"].contains("tconstruct:molten_copper"));
         assert!(!tags.contains_key("forge:external"));
+    }
+}
+
+#[cfg(test)]
+mod slimeskull_tests {
+    use super::*;
+    #[test]
+    fn consumed_offset_uses_skull_then_slime_and_source_cost() {
+        let skull = br#"{"type":"tconstruct:basin_tool_casting","cast":{"item":"minecraft:skeleton_skull"},"cast_purpose":"consumed_offset","extra_materials":["tconstruct:bone"],"fluid_swapping":false,"item_cost":5,"result":"tconstruct:slime_helmet"}"#;
+        let fluid = br#"{"type":"tconstruct:material_fluid","fluid":{"amount":250,"tag":"forge:slime"},"output":"tconstruct:earthslime","temperature":50}"#;
+        let recipes = BTreeMap::from([("skull".into(), skull.to_vec()), ("fluid".into(), fluid.to_vec())]);
+        let item_tags = HashMap::new();
+        let fluid_tags = HashMap::from([("forge:slime".into(), HashSet::from(["tconstruct:earth_slime".into()]))]);
+        let known_items = HashSet::from(["minecraft:skeleton_skull".into(), "tconstruct:slime_helmet".into()]);
+        let known_fluids = HashSet::from(["tconstruct:earth_slime".into()]);
+        let c = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+        let supports = |id: &str, kind: &str| (id, kind) == ("tconstruct:bone", "tconstruct:skull") || (id, kind) == ("tconstruct:earthslime", "tconstruct:slime");
+        let (_, recipe, skull, slime) = c.slimeskull_casting(true, "minecraft:skeleton_skull", "tconstruct:earth_slime", &supports, &|_| true).unwrap();
+        assert_eq!((skull.as_str(), slime.as_str(), recipe.fluid.amount, recipe.consumes_cast), ("tconstruct:bone", "tconstruct:earthslime", 1250, true));
+        assert!(recipe.cooling_time > 0);
+        assert!(c.slimeskull_casting(false, "minecraft:skeleton_skull", "tconstruct:earth_slime", &supports, &|_| true).is_none());
+        assert!(c.slimeskull_casting(true, "minecraft:other", "tconstruct:earth_slime", &supports, &|_| true).is_none());
+        assert!(c.slimeskull_casting(true, "minecraft:skeleton_skull", "tconstruct:earth_slime", &|_,_| false, &|_| true).is_none());
+    }
+    #[test]
+    fn rejects_unhandled_recipe_semantics() {
+        let recipe = |extra: &str| format!(r#"{{"type":"tconstruct:basin_tool_casting","cast":{{"item":"minecraft:skeleton_skull"}},"cast_purpose":"consumed_offset","extra_materials":["tconstruct:bone"],"fluid_swapping":false,"item_cost":5,"result":"tconstruct:slime_helmet"{extra}}}"#);
+        let parse = |value: &str| super::super::tconstruct_source_melting_recipes::SlimeskullCastingRecipe::parse(value.as_bytes(), &|_| true);
+        assert!(parse(&recipe("")).is_some());
+        assert!(parse(&recipe(r#", "allowed_materials":{"type":"example:unknown"}"#)).is_none());
+        assert!(parse(&recipe(r#", "extra_materials":["a","b"]"#)).is_none());
+    }
+    #[test]
+    fn overlapping_supported_tool_casts_fail_closed() {
+        let skull = br#"{"type":"tconstruct:basin_tool_casting","cast":{"item":"minecraft:elytra"},"cast_purpose":"consumed_offset","extra_materials":["tconstruct:bone"],"fluid_swapping":false,"item_cost":5,"result":"tconstruct:slime_helmet"}"#;
+        let wings = br#"{"type":"tconstruct:basin_tool_casting","cast":{"item":"minecraft:elytra"},"cast_purpose":"consumed","item_cost":8,"result":"tconstruct:slime_wings"}"#;
+        let recipes = BTreeMap::from([("skull".into(), skull.to_vec()), ("wings".into(), wings.to_vec())]);
+        let tags = HashMap::new();
+        let items = HashSet::from(["minecraft:elytra".into(), "tconstruct:slime_helmet".into(), "tconstruct:slime_wings".into()]);
+        let fluids = HashSet::from(["test:fluid".into()]);
+        let c = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        assert!(c.slimeskull_casting(true, "minecraft:elytra", "test:fluid", &|_,_| true, &|_| true).is_none());
+        assert!(c.slimelytra_casting(true, "minecraft:elytra", "test:fluid", &|_| true, &|_| true).is_none());
     }
 }
 

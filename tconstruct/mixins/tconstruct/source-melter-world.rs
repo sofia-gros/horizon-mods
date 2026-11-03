@@ -232,6 +232,35 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         output.count = 1;
         return Some((id, recipe, output));
     }
+    // Source consumed-offset slimeskulls use [head material, fluid material].
+    // Refuse component-bearing heads until their deliberate consumption is
+    // proven safe through the host item codec and every material trait resolves.
+    if basin && stack.count == 1 && stack.damage == 0 && stack.wire_patch().is_none() && stack.data().is_none_or(|data| data.is_empty()) {
+        let candidate = (|| {
+            let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+            let definition = materials.get("tconstruct:tinkering/tool_definitions/slime_helmet")?.last()?;
+            let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
+            if !native.contains_key("tconstruct:slime_helmet") { return None; }
+            let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+            let (id, recipe, skull, slime) = with_catalog(world, |catalog, registries, config| {
+                catalog.slimeskull_casting(true, &stack.item, fluid,
+                    &|id, kind| stats.get(id.split('#').next().unwrap_or(id)).is_some_and(|s| s.contains_key(kind)),
+                    &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })??;
+            let identities = vec![skull, slime];
+            for material in &identities {
+                let (namespace, name) = material.split_once(':')?;
+                materials.get(&format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?))?;
+            }
+            super::tconstruct_source_material_traits::levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
+            let output = super::tconstruct_source_station_world::assemble(world, definition, "tconstruct:slime_helmet", &identities, None, &mut None)?;
+            super::tconstruct_source_material_traits::levels(world, &output)?;
+            let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?;
+            if decoded.count != output.count || !decoded.same_item_same_components(&output) { return None; }
+            Some((id, recipe, output))
+        })();
+        if candidate.is_some() { return candidate; }
+    }
     // Build a fresh slimelytra only when all material traits can be resolved.
     // Other tool-casting forms and Elytra with item components remain unsupported.
     if basin && stack.count == 1 && stack.item.as_ref() == "minecraft:elytra"

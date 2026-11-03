@@ -692,6 +692,20 @@ unresolved or ambiguous material data are refused. This is a narrow candidate,
 not complete tool-casting parity; game, LAN, and full integrated behavior remain
 unverified.
 
+### Narrow slimeskull tool casting
+
+The basin can also resolve the pinned `consumed_offset` slimeskull recipes:
+the consumed head supplies the first material, and the fluid supplies the
+second slime material. It checks registered items and fluids, recipe conditions,
+both material stat types, and trait data before using the Station assembly
+path. For example, the skeleton skull and earthslime source recipes use
+1,250 mB and produce a bone/earthslime helmet. Inputs carrying components,
+opaque wire patches, tagged fluids, ambiguous candidates and unsupported
+predicate or recipe forms are rejected. This bounded path does not implement
+other tool-casting forms or all helmet traits and effects. Source-data, catalog
+and saved transaction tests pass; integrated host, gameplay and LAN remain
+unverified.
+
 ### Clearing an existing potion tip
 
 The casting table now supports the bundled ammo and fishing-rod clearing
