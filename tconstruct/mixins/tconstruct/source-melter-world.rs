@@ -6,7 +6,7 @@ use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidFuel, Foundry
 use super::tconstruct_world::World;
 
 type Tags = HashMap<String, HashSet<String>>;
-pub(super) use super::tconstruct_source_conditions::{ModPresence, conditional_conditions, conditional_conditions_with_mods, conditional_recipe};
+pub(super) use super::tconstruct_source_conditions::{ModPresence, conditional_conditions, conditional_conditions_with_mods, conditional_recipe, resolved_recipe_conditions, unconditional_recipe};
 
 fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, Tags>, &HashMap<String, bool>) -> R) -> Option<R> {
     let chunks = &world.chunks;
