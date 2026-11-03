@@ -48,6 +48,21 @@ Verify zero/one/multiple levels, non-unit multipliers, Netherite combinations,
 clamp, equip/unequip, material swap, save/reload and LAN, using labelled
 fixtures when needed. Armor wear remains subject to its separate hold.
 
+## Wool knockback-resistance trait
+
+The source Wool armor trait adds `0.1 * level` to the knockback-resistance
+stat. Station rebuilds now combine that additive amount with Heavy and
+Netherite using the tool's stat multiplier before clamping to 0–1. It uses the
+existing worn-armor attribute path; non-armor effects are not added.
+
+This depends on the material-stat trait resolver for equipment whose definition
+uses `material_stats`. Rust syntax was checked; unit, current-target plan/build
+and gameplay remain pending. Verify Wool material selection, zero/one/multiple
+levels, source fallback, Heavy/Netherite combinations, non-unit multiplier,
+clamp, equip/unequip, part replacement, save/reload and LAN. Creative resource
+generation remains separate. Source:
+[ModifierProvider](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/data/ModifierProvider.java).
+
 ## Slime material and Overslime capacity
 
 For the pinned source slime armor definitions, `SlimeStats.apply` adds the
