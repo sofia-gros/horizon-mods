@@ -20,6 +20,7 @@ version = "0.1.0"
 api = "0.2"
 side = "both"
 capabilities = ["registries"]
+namespaces = ["mantle", "forge"]
 '''
 
 
@@ -192,6 +193,7 @@ def package(output):
         'tconstruct-tool-definitions.zip': 'tconstruct-original-pack',
         'tconstruct-station-layouts.zip': 'tconstruct-original-pack',
         'tconstruct-fluid-tags.zip': 'tconstruct-original-pack',
+        'tconstruct-fluid-effects.zip': 'tconstruct-original-pack',
         'tconstruct-block-tags.zip': 'tconstruct-original-pack',
         'forge-47.4.0-data.zip': 'forge-original-pack',
     }

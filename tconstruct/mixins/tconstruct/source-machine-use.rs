@@ -23,11 +23,22 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
         }
     }
     let handled = match &*name {
+        "tconstruct:seared_casting_tank" => crate::game::tconstruct_source_machine_runtime::interact_casting_tank(game, pos, hit.point[1] - f64::from(pos.1) < 0.6875),
+        "tconstruct:seared_fluid_cannon" => {
+            let mut tank = hit.point[1] - f64::from(pos.1) > 0.5;
+            if tank && hit.face == [0,1,0] && game.pack.assets.registry.state(state).and_then(|state| state.properties.get("facing")).is_some_and(|facing| facing == "up") {
+                let x = hit.point[0] - f64::from(pos.0); let z = hit.point[2] - f64::from(pos.2);
+                tank = x < 0.25 || x > 0.75 || z < 0.25 || z > 0.75;
+            }
+            crate::game::tconstruct_source_machine_runtime::interact_cannon(game,pos,tank)
+        },
+        "tconstruct:copper_gauge" => crate::game::tconstruct_source_gauge::interact(game, pos),
         "tconstruct:crafting_station" => crate::game::tconstruct_crafting_station::open(game, hit.pos),
         "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
-        "tconstruct:seared_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
-        "tconstruct:seared_table" | "tconstruct:seared_basin" => crate::game::tconstruct_source_machine_runtime::interact_casting(game, pos, &name),
+        "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
+        "tconstruct:seared_drain" | "tconstruct:scorched_drain" => crate::game::tconstruct_source_machine_runtime::interact_drain(game, pos),
+        "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" => crate::game::tconstruct_source_machine_runtime::interact_casting(game, pos, &name),
         "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => crate::game::tconstruct_source_machine_runtime::interact_fuel_tank(game, pos, &name),
         _ => return Continue(()),
     };
