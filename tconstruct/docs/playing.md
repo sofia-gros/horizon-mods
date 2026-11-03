@@ -1,6 +1,6 @@
 # Making parts and tools
 
-> **Development build:** Reinforced and Unbreakable application, certain durability effects, and some appearances are temporarily unavailable. On a local Crafting Station, a replacement recipe-book placement path is implemented but remains unverified after a prior item-loss failure; normal and Shift-click results passed a representative local test. See [provisional limitations](provisional.md); older tests below describe their stated revisions.
+> **Development build:** Reinforced and Unbreakable application, certain durability effects, and some appearances are temporarily unavailable. On the Crafting Station, representative Linux recipe-book placement and rejection checks passed locally and for a LAN guest after a prior item-loss failure; Windows and every click combination remain unverified; normal and Shift-click results passed a representative local test. See [provisional limitations](provisional.md); older tests below describe their stated revisions.
 
 Use a Part Builder to make parts, then assemble supported tools at a Tinker Station. The examples below were tested on Linux; the Windows launcher and gameplay remain unverified.
 
@@ -50,7 +50,7 @@ Place and open the Part Builder. Put a pattern and the log in the two input slot
 
 ## Store parts beside a workstation
 
-Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder to access its inventory while working. On a local Crafting Station, a replacement recipe-book placement path is implemented but remains unverified after a prior item-loss failure; normal and Shift-click results passed a representative local test. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
+Craft a Part Chest with a pattern, a wooden chest, four sticks and a plank; use four lapis in place of the sticks for a Tinker's Chest. Place either beside a Part Builder to access its inventory while working. On a local Crafting Station, representative Linux recipe-book placement and rejection checks passed locally and for a LAN guest after a prior item-loss failure; Windows and every click combination remain unverified; normal and Shift-click results passed a representative local test. A Part Chest accepts parts and keeps up to eight of the same component variant in a slot; a Tinker's Chest accepts general items, up to 16 per slot.
 
 ![A Part Chest beside a Part Builder in a LAN test](part-chest-builder-lan.png)
 

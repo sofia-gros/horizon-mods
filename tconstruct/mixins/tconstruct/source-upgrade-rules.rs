@@ -83,6 +83,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
+        "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         "tconstruct:power" => item == "tconstruct:longbow",
