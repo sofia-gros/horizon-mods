@@ -374,3 +374,14 @@ The b53 selector and module-header follow-ups reached `E_INVALID_BINDING`
 for the destructured `Mesher::face` arguments. The integration omits that
 terrain-tint injection only; vegetation, island generation and source lookup
 remain available. Do not infer a tint implementation from map loading.
+
+Earlier Horizon b53 fixtures resolved ten foliage sound declarations to known
+grass sounds and checked Earth/Sky island generation plus Earth foliage harvest
+and reload ([image](slime-foliage-sound-test.png)). Audio was not listened to;
+other foliage and vine placements were not verified. This is not evidence for
+the current build.
+
+The position-dependent terrain tint hook remains disconnected. The former
+`Mesher::tint` site also destructures its inputs, and `Tints::get` lacks the
+block identity needed for a direct substitute. A compatible hook needs separate
+investigation and validation.
