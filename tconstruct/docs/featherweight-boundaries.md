@@ -57,3 +57,14 @@ plan, type or gameplay tests. Verify repeated ticks do not compound, 0.2 →
 0.25 and 0.30, clamp at 1, broken/remove/equip, use/stop, vehicles, local
 world and a guest client, original held-tool speed modifiers and unrelated
 movement attributes; verify guest replay separately before claiming LAN parity.
+
+A guest follow-up proposes adjusting `guest_replay`'s first `item_use` load
+inside the motion setup. It reads the same per-slot movement modifiers from
+the guest's motion and changes the speed once before replay, rather than
+adding on every speculative tick; the sprint flag is retained. This is a
+source candidate, not an established working site: the local capture, load
+ordinal, borrow and actual attribute synchronization require official plan,
+type and game checks. Confirm the same guest motion is the server movement
+input on all supported paths; no complete LAN claim follows from this code.
+Test replay with repeated ticks, use transitions, equipment changes, broken
+armor, passenger state, two guests, and no Featherweight.

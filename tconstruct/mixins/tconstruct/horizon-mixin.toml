@@ -1818,6 +1818,16 @@ helper = "featherweight-local-use-speed.rs"
 bindings = [{ name = "motion", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
 
 [[injection]]
+id = "featherweight-guest-use-speed"
+target = "horizon_client::game::prediction::Game<'_>::guest_replay"
+kind = "MODIFY_VARIABLE"
+variable = { name = "item_use", ordinal = 0, at = "LOAD" }
+require = 2
+ordinal = 0
+helper = "featherweight-guest-use-speed.rs"
+bindings = [{ name = "item_use", ty = "Option<(f32, bool)>", value = "$value" }, { name = "motion", ty = "&&mut PlayerMotion", value = "$local_ref:motion:0" }]
+
+[[injection]]
 id = "material-armor-attributes"
 target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
 kind = "HEAD"
