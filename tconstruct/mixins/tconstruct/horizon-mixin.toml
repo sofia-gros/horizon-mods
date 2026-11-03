@@ -57,6 +57,13 @@ source = "source-block-shapes.rs"
 visibility = "pub"
 
 [[module]]
+id = "pig-iron-piston"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_pig_iron_piston"
+source = "pig-iron-piston.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"

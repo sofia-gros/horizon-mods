@@ -20,3 +20,7 @@ mod tconstruct_source_tags;
 #[allow(dead_code)]
 #[path = "../../../mixins/tconstruct/modifier-snapshot.rs"]
 mod tconstruct_modifier_snapshot;
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/pig-iron-piston.rs"]
+mod tconstruct_pig_iron_piston;

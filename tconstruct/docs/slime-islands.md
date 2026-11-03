@@ -379,3 +379,15 @@ server's target permission checks precede the item-use hook, but full host
 integration and game tests are still needed for protected targets, adventure
 mode, offhand, sounds, save/reload and LAN. Forge tool/action behavior is a
 separate limitation.
+
+### Pig Iron piston reaction
+
+The source Pig Iron block is an `OrientableBlock` built with ordinary metal
+properties. Its four-facing Horizon template is glazed terracotta, whose
+push-only reaction would prevent sticky-piston retraction. Resource preparation
+now changes only the four Pig Iron gameplay rows to `PUSH_PULL`; malformed or
+missing rows fail preparation instead of changing unrelated blocks. The owned
+startup cache generation is bumped so existing owned startup caches are rebuilt.
+Previously hand-prepared resource roots must be prepared again to receive the fix.
+If manual preparation fails, do not use its incomplete output; rerun preparation
+with a new output directory. This has not been tested in a running game or over LAN.
