@@ -447,11 +447,15 @@ pub fn apply_stats(
         let projectile_damage = ((projectile_base + projectile_add) * (1.0 + projectile_percent) * projectile_multiply).clamp(0.0, 1024.0);
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
+        fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
+        fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
         fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
         fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
+        fields.insert("tic_raging".into(), Tag::Int(level("tconstruct:raging").max(0)));
+        fields.insert("tic_raging_projectile_multiplier".into(), Tag::Float(((1.0 + projectile_percent) * projectile_multiply).to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
     }
@@ -461,6 +465,24 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn conditional_projectile_traits_use_ordered_stat_scales() {
+        use super::*;
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1,"tconstruct:projectile_damage":2}}]}"#;
+        let mut stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        stats.velocity_raw[2] = 0.2;
+        stats.projectile_damage_raw[2] = 0.25;
+        let mut tool = ItemStack::new("tconstruct:longbow", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_trait_order", Tag::List(vec![Tag::String("tconstruct:airborne".into()), Tag::String("tconstruct:raging".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:airborne".into(), 1), ("tconstruct:raging".into(), 2)]);
+        apply_stats(&mut tool, &stats, &levels, false, false).unwrap();
+        let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(custom.get("tic_airborne_velocity_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.2).abs() < 0.00001));
+        assert!(matches!(custom.get("tic_raging_projectile_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.25).abs() < 0.00001));
+    }
+
     #[test]
     fn blindshot_uses_dirt_without_slots_or_salvage() {
         use super::*;
