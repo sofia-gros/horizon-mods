@@ -281,13 +281,14 @@ impl Catalog<'_> {
 
     /// Join the original part-cast and non-composite fluid-to-material recipes.
     /// Predicates are evaluated against the caller's world snapshot.
-    pub(super) fn material_casting(&self, input: &str, fluid: &str, supports: &impl Fn(&str, &str) -> bool, allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
-        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+    pub(super) fn material_casting(&self, basin: bool, input: Option<&str>, fluid: &str, supports: &impl Fn(&str, &str) -> bool, allowed: &impl Fn(Option<&Value>, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String, String)> {
+        if input.is_some_and(|item| !self.known_items.contains(item)) || !self.known_fluids.contains(fluid) { return None; }
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found = None;
         for (id, bytes) in self.recipes {
             let Some(part) = MaterialCastingRecipe::parse(bytes, conditions) else { continue; };
-            if !part.cast.matches(input, &in_tag) || !self.known_items.contains(&part.result) { continue; }
+            let cast_matches = match (&part.cast, input) { (None, None) => true, (Some(cast), Some(item)) => cast.matches(item, &in_tag), _ => false };
+            if part.basin != basin || !cast_matches || !self.known_items.contains(&part.result) { continue; }
             for fluid_bytes in self.recipes.values() {
                 let Some(material) = MaterialFluidRecipe::parse(fluid_bytes, conditions) else { continue; };
                 if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, &part.result) || !allowed(part.allowed_materials.as_ref(), &material.material) { continue; }
@@ -296,7 +297,7 @@ impl Catalog<'_> {
                 let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
                 if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
                 let mut spec = material.fluid.clone(); spec.amount = amount;
-                let recipe = CastingRecipe { basin: false, retextured: false, cast: Some(part.cast.clone()),
+                let recipe = CastingRecipe { basin, retextured: false, cast: part.cast.clone(),
                     consumes_cast: part.consumes_cast, switch_slots: part.switch_slots, fluid: spec,
                     output: Output::Item(part.result.clone()), cooling_time: time as u32 };
                 let value = (id.clone(), recipe, part.result.clone(), material.material.clone());
@@ -369,6 +370,22 @@ mod tests {
         assert_eq!((output.as_str(), amount), ("tconstruct:molten_obsidian", 100));
         assert!(catalog.alloy(&available[1..], 350, 1000, &|_| true).is_none());
         assert!(catalog.alloy(&available, 350, 999, &|_| true).is_none());
+    }
+    #[test]
+    fn basin_material_casting_requires_empty_cast_and_scales_cost() {
+        let recipes = [
+            ("block".into(), br#"{"type":"tconstruct:basin_casting_material","item_cost":9,"result":"tconstruct:fake_storage_block"}"#.to_vec()),
+            ("fluid".into(), br#"{"type":"tconstruct:material_fluid","fluid":{"fluid":"tconstruct:molten_test","amount":90},"output":"tconstruct:test","temperature":500}"#.to_vec()),
+        ].into_iter().collect();
+        let item_tags = HashMap::new(); let fluid_tags = HashMap::new();
+        let items = ["tconstruct:fake_storage_block".into(), "minecraft:stone".into()].into_iter().collect();
+        let fluids = ["tconstruct:molten_test".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        let (_, recipe, result, material) = catalog.material_casting(true, None, "tconstruct:molten_test", &|_, _| true, &|_, _| true, &|_| true).unwrap();
+        assert_eq!((recipe.fluid.amount, result.as_str(), material.as_str()), (810, "tconstruct:fake_storage_block", "tconstruct:test"));
+        assert!(catalog.material_casting(false, None, "tconstruct:molten_test", &|_, _| true, &|_, _| true, &|_| true).is_none());
+        assert!(catalog.material_casting(true, Some("minecraft:stone"), "tconstruct:molten_test", &|_, _| true, &|_, _| true, &|_| true).is_none());
+        assert!(catalog.material_casting(true, None, "tconstruct:molten_test", &|_, _| false, &|_, _| true, &|_| true).is_none());
     }
     #[test]
     fn fluid_fuel_requires_known_fluid_and_enough_amount() {

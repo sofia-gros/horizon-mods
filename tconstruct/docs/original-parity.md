@@ -350,6 +350,7 @@ PartCastItem cost tooltips are being connected to the source material-casting re
 
 Casting-table `table_duplication` now matches the source cast and fluid tags, retains the original input and copies its item data into the result. The bundled smithing-template recipe uses 500 mB molten diamond; this path awaits verification. Unsupported casting forms remain separate.
 
+The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
 The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
 The shared source recipe snapshot resolves `forge:conditional` candidates in source order and filters top-level recipe conditions at datapack reload against the current item/tag/config snapshots. Unknown earlier conditions or an unavailable context reject the affected recipe rather than select a later branch; unsupported conditions remain inactive. Consumers still need their own serializer support. This change awaits integrated verification.
 
