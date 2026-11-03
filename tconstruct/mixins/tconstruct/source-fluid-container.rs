@@ -83,7 +83,16 @@ fn can_set_tagged(stack: &ItemStack, fluid: Option<&str>, tag: Option<&horizon_w
 }
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
     if let Some((fluid, _)) = can_contents(stack) { return fluid.as_deref().is_none_or(known_fluid); }
+    if stack.item.as_ref() == "minecraft:potion" { return simple_potion(stack).is_some(); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
+}
+// The host currently models a potion ID separately from its other components.
+// Only accept the lossless simple case until custom effects/color are modeled.
+fn simple_potion(stack: &ItemStack) -> Option<String> {
+    if stack.item.as_ref() != "minecraft:potion" || stack.count == 0 || stack.damage != 0 { return None; }
+    let potion = stack.potion()?;
+    let plain = ItemStack::new("minecraft:potion", 1).with_potion(potion);
+    stack.same_item_same_components(&plain).then(|| potion.to_owned())
 }
 
 /// A normal left/right click on either temporary slot. The output never
@@ -164,6 +173,19 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
     if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
+    if input.item.as_ref() == "minecraft:potion" {
+        use horizon_world::nbt::Tag;
+        if direction == Direction::FillItem || !known_item("minecraft:glass_bottle") { return false; }
+        let Some(potion) = simple_potion(input) else { return false; };
+        let (fluid, metadata) = if potion == "minecraft:water" { ("minecraft:water", None) }
+            else { ("tconstruct:potion", Some(Tag::compound([("Potion", Tag::String(potion.as_str().into()))]))) };
+        let mut next = tank.clone();
+        if !known_fluid(fluid) || !next.insert_tagged(fluid, metadata.as_ref(), 250) { return false; }
+        let mut remaining = input.clone(); remaining.count -= 1;
+        slots[0] = (remaining.count > 0).then_some(remaining);
+        slots[1] = Some(ItemStack::new("minecraft:glass_bottle", 1)); *tank = next;
+        return true;
+    }
     if input.item.as_ref() == "tconstruct:copper_can" {
         let Some((existing, metadata)) = can_contents(input) else { return false; };
         let mut next = tank.clone();

@@ -56,6 +56,21 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    pub(super) fn potion_casting(&self, basin: bool, input: &str, fluid: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, CastingRecipe, String)> {
+        if !self.known_items.contains(input) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found: Option<(String, CastingRecipe, String)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = super::tconstruct_source_melting_recipes::potion_casting(bytes, conditions) else { continue; };
+            if recipe.basin != basin || !self.matches_fluid(&recipe.fluid, fluid)
+                || !recipe.cast.as_ref().is_some_and(|cast| cast.matches(input, &in_tag)) { continue; }
+            let Some(output) = self.output(&recipe.output) else { continue; };
+            if let Some((_, previous, previous_output)) = &found {
+                if previous != &recipe || previous_output != &output { return None; }
+            } else { found = Some((id.clone(), recipe, output)); }
+        }
+        found
+    }
     pub(super) fn composite_part_swap(&self, basin: bool, input: &str, fluid: &str, identities: &[String],
         supports: &impl Fn(usize, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, CastingRecipe, String, usize)> {
