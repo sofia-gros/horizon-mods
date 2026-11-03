@@ -277,7 +277,7 @@ const ARMOR_MATERIAL_STATS: &[&str] = &[
     "tconstruct:shell", "tconstruct:laces", "tconstruct:ribcage",
 ];
 
-fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(String, String)>> {
+fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
     let whitestone_ingots = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
@@ -292,7 +292,9 @@ fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(Stri
     };
     let mut selected: Vec<_> = definitions.iter().filter(|(id, (_, hidden, tier, _, _))| {
         let distant = tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id));
-        let allowed = if puny && key == "melee_harvest_materials" {
+        let allowed = if mighty {
+            super::tconstruct_materials_book_index::mighty_material_tier(key, *tier, distant)
+        } else if puny && key == "melee_harvest_materials" {
             super::tconstruct_materials_book_index::puny_melee_material_tier(*tier, distant, id, whitestone_ingots)
         } else {
             super::tconstruct_materials_book_index::material_book_tier(puny, key, *tier, distant,
@@ -332,6 +334,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         _ => return None,
     };
     let puny = book == "tconstruct:puny_smelting";
+    let mighty = book == "tconstruct:mighty_smelting";
     let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
     let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
@@ -340,9 +343,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
-        // Only the introduction and the explicitly partial advice section are available.
+        // Mighty exposes selected source material chapters and the partial advice section.
         let mighty_advice = book == "tconstruct:mighty_smelting" && key == "tools";
-        if book == "tconstruct:mighty_smelting" && !matches!(key, "intro" | "tools") { continue; }
+        if mighty && !matches!(key, "intro" | "tools" | "melee_harvest_materials" | "ranged_materials" | "armor_materials") { continue; }
         if mighty_advice && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("tools.partial").copied(), labels.get("tools.partial.notice_title").copied(), labels.get("tools.partial.notice").copied()
         ]) { continue; }
@@ -373,9 +376,12 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                 }
                 continue;
             }
-            if let Some(materials) = dynamic_materials(game, key, puny) {
-                if !super::tconstruct_materials_book_index::show_material_chapter(puny, materials.len()) { continue; }
+            if let Some(materials) = dynamic_materials(game, key, puny, mighty) {
+                if !super::tconstruct_materials_book_index::show_material_chapter(puny || mighty, materials.len()) { continue; }
                 let mut chapter_pages = Vec::new();
+                if mighty {
+                    chapter_pages.extend(split_page(game, "Material entries reflect source data. Some materials, traits, or acquisition routes may be incomplete in this port.", 17).into_iter().map(Text::literal));
+                }
                 let subtext = labels.get(format!("{key}.subtext").as_str()).copied().unwrap_or("");
                 if !subtext.is_empty() { chapter_pages.extend(split_page(game, subtext, 17).into_iter().map(Text::literal)); }
                 let visible: &[&str] = match key {

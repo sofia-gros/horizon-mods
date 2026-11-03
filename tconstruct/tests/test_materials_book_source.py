@@ -35,11 +35,28 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual((recipe['type'], recipe['cooling_time'], recipe['fluid']['tag']), ('tconstruct:casting_table', 89, 'tconstruct:seared_stone'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         request = (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text()
-        self.assertIn('!matches!(key, "intro" | "tools")', reader)
+        self.assertIn('!matches!(key, "intro" | "tools" | "melee_harvest_materials" | "ranged_materials" | "armor_materials")', reader)
         self.assertIn('mighty_advice_page', reader)
         self.assertIn('tools.partial.notice', reader)
         self.assertIn('source_pages(game, &path, book)', reader)
         self.assertIn('source_pages(game, &path, book)', request)
+
+    def test_mighty_material_chapters_follow_source_tier_and_predicate(self):
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        entries = {entry['name']: entry for entry in index}
+        for name, kind in [('melee_harvest_materials', 'melee_harvest'),
+                           ('ranged_materials', 'ranged'), ('armor_materials', 'armor')]:
+            entry = entries[name]
+            self.assertEqual(entry['data'], 'no-load')
+            definition = entry['extraData']['tconstruct:material_tier']
+            self.assertEqual((definition['type'], definition['tier']), (f'tconstruct:{kind}', 3))
+            self.assertEqual(definition['predicate'], {'type': 'mantle:inverted',
+                'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('mighty_material_tier(key, *tier, distant)', reader)
+        self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
+        self.assertIn('Material entries reflect source data.', reader)
 
     def test_mighty_tool_advice_is_source_faithful_and_explicitly_partial(self):
         import hashlib
@@ -136,7 +153,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertEqual(tier['tier'], 2)
         self.assertEqual(tier['predicate'], {'type': 'mantle:inverted', 'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('show_material_chapter(puny, materials.len())', reader)
+        self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
             definition = json.loads(archive.read('data/tconstruct/tinkering/materials/definition/slimewood.json'))
             stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/slimewood.json'))['stats']
@@ -154,7 +171,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         for stat in ('plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'maille', 'shield_core', 'cuirass', 'slime', 'skull', 'shell', 'laces', 'ribcage'):
             self.assertIn('"tconstruct:' + stat + '"', reader)
         self.assertIn('groups.chunks(4)', reader)
-        self.assertIn('show_material_chapter(puny, materials.len())', reader)
+        self.assertIn('show_material_chapter(puny || mighty, materials.len())', reader)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
             stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/iron.json'))['stats']
             self.assertIn('tconstruct:plating_helmet', stats)
