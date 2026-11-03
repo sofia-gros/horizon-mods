@@ -112,7 +112,7 @@ pub fn apply_stat_traits(
     );
     if ductile > 0 {
         let attack = stats.attack_damage + stats.attack_damage_boost_unit * 0.05 * ductile as f32;
-        let toughness = stats.armor_toughness + ductile as f32;
+        let toughness = (stats.armor_toughness + ductile as f32 * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0);
         fields.insert(
             "tic_attack_damage".into(),
             horizon_world::nbt::Tag::Float(attack.to_bits()),
@@ -146,6 +146,7 @@ mod tests {
         let levels = [("tconstruct:ductile".to_owned(), 3), ("tconstruct:overlord".to_owned(), 2)].into_iter().collect();
         apply_stat_traits(&mut stack, &stats, &levels).unwrap();
         let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        // Source: 100 * (1 + 0.1 * 3) * (1 - 0.15 * 2).
         assert!(matches!(custom.get("tic_max_damage"), Some(Tag::Int(91))));
         assert!(matches!(custom.get("tic_attack_damage"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 11.5).abs() < 0.001));
         assert!(matches!(custom.get("tic_armor_toughness"), Some(Tag::Float(bits)) if (f32::from_bits(*bits) - 5.0).abs() < 0.001));
@@ -345,7 +346,7 @@ pub(super) fn ordered_durability_multiplier(stack: &horizon_items::items::ItemSt
     percent
 }
 
-pub(super) fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
+pub fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
     use horizon_world::nbt::Tag;
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(fields) = &mut custom else { return None; };
@@ -378,7 +379,24 @@ mod source_order_tests {
         let second = ordered_durability_multiplier(&make("tconstruct:preserved", "tconstruct:ductile"), &stats, &levels, false);
         assert_eq!(first.to_bits(), (((1.0f32 * 1.2) * 1.5 * 1.1) * (1.0 + 0.15f32 * 4.0)).to_bits());
         assert_eq!(second.to_bits(), (((1.0f32 * 1.2) * 1.5 * (1.0 + 0.15f32 * 4.0)) * 1.1).to_bits());
-        // Equal f32 results are allowed when multiplication rounds identically.
+        // Java rounds each multiplication in modifier order; equal results are valid.
+    }
+
+    #[test]
+    fn overlord_copies_before_its_priority_50_reduction() {
+        let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))])),
+            ("tic_upgrade_order", Tag::List(vec![Tag::String("tconstruct:emerald".into()),Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order", Tag::List(vec![Tag::String("tconstruct:ductile".into()),Tag::String("tconstruct:overlord".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:ductile".into(),1),("tconstruct:overlord".into(),2)]);
+        let before_copy = ordered_durability_multiplier(&stack, &stats, &levels, false);
+        let after = ordered_durability_multiplier(&stack, &stats, &levels, true);
+        assert!((before_copy - 1.5 * 1.2 * 1.1).abs() < 0.00001);
+        assert!((after - 1.5 * 1.2 * 1.1 * 0.7).abs() < 0.00001);
     }
 
     #[test]

@@ -1,7 +1,6 @@
 fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
     use horizon_world::nbt::Tag;
     let mut values = Vec::new();
-    let mut landing_enabled = false;
     for (stack, slot) in game.armor.iter().zip(["head", "chest", "legs", "feet"]) {
         let Some(stack) = stack.as_ref().filter(|stack| stack.item.starts_with("tconstruct:")) else { continue; };
         let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
@@ -22,9 +21,6 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             trait_level + upgrade_level
         };
         let level = modifier_level("tconstruct:vintage");
-        if !broken && (modifier_level("tconstruct:bouncy") > 0 || stack.item == "tconstruct:slime_boots") {
-            landing_enabled = true;
-        }
         if level > 0 {
             if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:vintage_movement/{slot}"), -0.1 * f64::from(level), "add_multiplied_total")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:vintage_gravity/{slot}"), 0.1 * f64::from(level), "add_multiplied_total"));
@@ -51,13 +47,20 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         if !broken && entwined > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:entwined_movement/{slot}"), 0.1 * f64::from(entwined), "add_multiplied_total"));
         }
+        let speedy_trait = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:speedy").copied()).unwrap_or(0).max(0);
+        let speedy_progress = match data.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:speedy")) {
+            Some(Tag::Int(progress)) => (*progress).max(0), _ => 0,
+        };
+        let speedy = f64::from(speedy_trait) + f64::from(speedy_progress) / 45.0;
+        if !broken && speedy > 0.0 {
+            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:speedy_movement/{slot}"), 0.1 * speedy, "add_multiplied_total"));
+        }
         let step_up = modifier_level("tconstruct:step_up");
         if !broken && step_up > 0 {
             values.push(("minecraft:step_height".to_owned(), format!("tconstruct:step_up/{slot}"), 0.5 * f64::from(step_up), "add_value"));
         }
     }
     let Some(player) = game.player.as_mut() else { return; };
-    horizon_client::motion::pluto_landing_state::get_mut(player).enabled = landing_enabled;
     for (attribute, id, amount, op) in values {
         if player.set_modifier(&attribute, &id, amount, op, true).is_ok() {
             game.applied_modifiers.push((attribute, id));

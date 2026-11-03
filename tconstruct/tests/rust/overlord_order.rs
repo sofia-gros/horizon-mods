@@ -1,7 +1,11 @@
 extern crate horizon_items as horizon_client;
 #[path="../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
 #[path="../../mixins/tconstruct/source-material-effects.rs"] mod tconstruct_source_material_effects;
-mod tconstruct_source_fluid_container { pub fn no_crafting_remainder(_: &horizon_items::items::ItemStack)->Option<bool>{None} }
+#[path="../../../pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"] mod pluto_stack_fluid;
+#[path="../../mixins/tconstruct/source-smeltery-tank.rs"] mod tconstruct_source_smeltery_tank;
+#[path="../../mixins/tconstruct/source-melter-state.rs"] mod tconstruct_source_melter_state;
+#[path="../../mixins/tconstruct/source-smeltery-fuel.rs"] mod tconstruct_source_smeltery_fuel;
+#[path="../../mixins/tconstruct/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="../../mixins/tconstruct/source-upgrade-rules.rs"] mod tconstruct_source_upgrade_rules;
 
 
