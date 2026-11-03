@@ -60,10 +60,10 @@ fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable:
     !on_ground && !in_water && !riding && !climbable
 }
 
-// Use the exact host climbable check; LAN guest state needs separate verification.
+// The host swaps the acting player's motion and vehicle into Game during a turn.
 #[cfg(not(test))]
 pub(crate) fn airborne(game: &mut crate::game::Game<'_>) -> bool {
-    if game.lan_acting.is_some() || game.riding.is_some() { return false; }
+    if game.riding.is_some() { return false; }
     let Some(player) = game.player.as_mut() else { return false; };
     if player.ground.on_ground || player.fluids.was_touching_water { return false; }
     let mut motion = horizon_client::motion::MotionWorld {
