@@ -122,3 +122,21 @@ fn spiny_velocity_and_removal_on_both_launchers() {
   }
  }
 }
+
+
+#[test]
+fn blindshot_accepts_supported_launchers_and_rejects_other_items() {
+ use horizon_items::items::ItemStack; use std::collections::{BTreeMap,HashMap,HashSet};
+ let recipe=br#"{"type":"tconstruct:incremental_modifier","amount_per_item":1,"needed_per_level":10,"input":{"item":"minecraft:dirt"},"result":"tconstruct:blindshot","tools":{"tag":"tconstruct:modifiable/ranged"}}"#.to_vec();
+ let recipes=BTreeMap::from([("blindshot".to_string(),recipe)]);
+ let tags=HashMap::from([("tconstruct:modifiable/ranged".to_string(),HashSet::from(["tconstruct:longbow".to_string(),"tconstruct:crossbow".to_string(),"tconstruct:slime_sling".to_string()]))]);
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let tool=ItemStack::new(id,1);
+  let input=[Some(ItemStack::new("minecraft:dirt",1))];
+  let plan=tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&input,0).unwrap();
+  assert_eq!(plan.id,"tconstruct:blindshot"); assert_eq!(plan.amount,1);
+  assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(ItemStack::new("minecraft:stone",1))],0).is_none());
+ }
+ let sling=ItemStack::new("tconstruct:slime_sling",1);
+ assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&sling,&[Some(ItemStack::new("minecraft:dirt",1))],0).is_none());
+}
