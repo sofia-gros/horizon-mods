@@ -292,19 +292,20 @@ mod foundry_tests {
     }
 }
 
-/// Source table molding with an optional hand-held pattern.
+/// Source table or basin molding with an optional hand-held pattern.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MoldingRecipe {
-    pub material: Ingredient, pub pattern: Option<Ingredient>,
+    pub basin: bool, pub material: Ingredient, pub pattern: Option<Ingredient>,
     pub pattern_consumed: bool, pub result: String,
 }
 impl MoldingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        if v.get("type")?.as_str()? != "tconstruct:molding_table" || !enabled(&v, conditions) { return None; }
+        let basin = match v.get("type")?.as_str()? { "tconstruct:molding_table" => false, "tconstruct:molding_basin" => true, _ => return None };
+        if !enabled(&v, conditions) { return None; }
         let pattern = match v.get("pattern") { Some(value) => Some(Ingredient::parse(value)?), None => None };
         let pattern_consumed = match v.get("pattern_consumed") { None => false, Some(value) => value.as_bool()? };
-        Some(Self { material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
+        Some(Self { basin, material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
             result: v.get("result")?.as_str()?.to_owned() })
     }
 }
@@ -499,6 +500,18 @@ mod tests {
         let c = br#"{"type":"tconstruct:casting_basin","conditions":[{"type":"forge:mod_loaded","modid":"unknown"}],"cooling_time":40,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"item":"minecraft:stone","nbt":{}}}"#;
         assert!(CastingRecipe::parse(c, &|_| false).is_none());
         assert!(CastingRecipe::parse(c, &|_| true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod basin_molding_tests {
+    use super::*;
+    #[test]
+    fn source_molding_type_keeps_table_and_basin_distinct() {
+        let raw = br#"{"type":"tconstruct:molding_basin","material":{"item":"minecraft:sand"},"pattern":{"item":"minecraft:stone"},"result":"minecraft:gravel"}"#;
+        let recipe = MoldingRecipe::parse(raw, &|_| true).unwrap();
+        assert!(recipe.basin);
+        assert!(!recipe.pattern_consumed);
     }
 }
 
