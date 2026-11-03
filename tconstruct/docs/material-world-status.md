@@ -227,3 +227,8 @@ recipes, capacity, mining arithmetic and regeneration. The cancellation-safe
 mining helper also passed a targeted #101 apply on Horizon 0c7b/Mixins ddd and
 an older stub-Game check. These are revision-scoped checks, not proof of the
 current integrated build or gameplay.
+
+The Overlord ordering regression combines stat rebuild and Overslime capacity
+rebuild: the focused host-crate test covers durability, copied capacity and
+shield clamping together. It does not enable the deferred Bouncy hooks or
+establish integrated gameplay behavior.
