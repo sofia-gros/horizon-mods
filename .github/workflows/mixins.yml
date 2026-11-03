@@ -1,6 +1,7 @@
 name: Mixins validation
 on:
   workflow_dispatch:
+  workflow_call:
 concurrency:
   group: mixins-${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -47,6 +48,7 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           python3 -m unittest discover -s tconstruct/tests -v
+          python3 -m unittest discover -s pluto-lib/tests -p "test_package_native.py" -v
           rustc --edition=2021 --test tconstruct/tests/rust/broad_wire.rs -o /tmp/tconstruct-broad-wire-test
           /tmp/tconstruct-broad-wire-test
           rustc --test tconstruct/tests/rust/command.rs -o /tmp/tconstruct-command-test
@@ -83,12 +85,9 @@ jobs:
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |
-          git fetch --no-tags origin 5520a221655e9ea5b55b9ce32a46bca511c3ae71
           mkdir -p "$RUNNER_TEMP/pluto-source"
-          git archive 5520a221655e9ea5b55b9ce32a46bca511c3ae71 pluto-lib | tar -x -C "$RUNNER_TEMP/pluto-source"
-          mkdir -p "$RUNNER_TEMP/pluto-source/pluto-lib/.work"
-          (cd "$RUNNER_TEMP/pluto-source/pluto-lib" && python3 tools/package_native.py .work/plutolib.hnmod)
-          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/pluto-lib/.work/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
+          python3 pluto-lib/tools/package_native.py "$RUNNER_TEMP/pluto-source/plutolib.hnmod"
+          python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
           python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
           cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p tconstruct-source-config --lib
