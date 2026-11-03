@@ -47,7 +47,33 @@ fn filled_bottle(fluid: &str) -> Option<&'static str> {
         _ => None,
     }
 }
+// Copper cans carry exactly 90 mB per item in custom data. Fluids with
+// additional fluid tags need a tagged-fluid tank and are rejected for now.
+pub(super) fn can_fluid(stack: &ItemStack) -> Option<Option<String>> {
+    use horizon_world::nbt::Tag;
+    if stack.item.as_ref() != "tconstruct:copper_can" || stack.damage != 0 || stack.count == 0 { return None; }
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+        None => Some(None),
+        Some(Tag::Compound(data)) => {
+            if data.contains_key(&"fluid_tag".into()) { return None; }
+            match data.get(&"fluid".into()) { None => Some(None), Some(Tag::String(id)) => { let value = id.to_string_lossy(); if value == "minecraft:empty" { Some(None) } else { (!value.is_empty()).then_some(Some(value)) } }, _ => None }
+        }
+        _ => None,
+    }
+}
+pub(super) fn can_set_fluid(stack: &ItemStack, fluid: Option<&str>) -> Option<ItemStack> {
+    use horizon_world::nbt::{Compound, Tag};
+    can_fluid(stack)?;
+    let mut data = match stack.data().and_then(|value| value.other("minecraft:custom_data")) {
+        None => Compound::new(), Some(Tag::Compound(value)) => value.clone(), _ => return None,
+    };
+    match fluid { Some(fluid) if !fluid.is_empty() && fluid != "minecraft:empty" => { data.insert("fluid".into(), Tag::String(fluid.into())); }, None => { data.remove(&"fluid".into()); }, _ => return None }
+    let mut result = stack.clone(); result.count = 1;
+    result.data_mut().set_other("minecraft:custom_data", (!data.is_empty()).then_some(Tag::Compound(data)));
+    Some(result)
+}
 pub(super) fn accepts(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) -> bool {
+    if let Some(fluid) = can_fluid(stack) { return fluid.as_deref().is_none_or(known_fluid); }
     stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
 
@@ -67,7 +93,7 @@ pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<Ite
         return true;
     };
     if index != 0 || !accepts(&held, known_fluid) { *carried = Some(held); return false; }
-    let max = if held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     match slots[index].as_mut() {
         None => {
             let count = if right { 1 } else { held.count.min(max) };
@@ -89,7 +115,7 @@ pub(super) fn quick_input(slots: &mut [Option<ItemStack>; 2], stack: &mut Option
     known_fluid: &impl Fn(&str) -> bool) -> bool {
     let Some(held) = stack.as_mut() else { return false; };
     if !accepts(held, known_fluid) { return false; }
-    let max = if held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || held.item.as_ref() == "minecraft:glass_bottle" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     let amount = match slots[0].as_mut() {
         None => {
             let amount = held.count.min(max);
@@ -128,7 +154,24 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
     selected: Option<&str>, known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
     if slots[1].is_some() { return false; }
     let Some(input) = slots[0].as_ref() else { return false; };
-    if input.count == 0 || input.damage != 0 || input.extra.is_some() || !known_item(&input.item) { return false; }
+    if input.count == 0 || input.damage != 0 || !known_item(&input.item) { return false; }
+    if input.item.as_ref() == "tconstruct:copper_can" {
+        let Some(existing) = can_fluid(input) else { return false; };
+        let mut next = tank.clone();
+        let output = if let Some(fluid) = existing {
+            if direction == Direction::FillItem || !known_fluid(&fluid) || !next.insert(&fluid, 90) { return false; }
+            let Some(output) = can_set_fluid(input, None) else { return false; }; output
+        } else {
+            if direction == Direction::EmptyItem { return false; }
+            let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
+            if !known_fluid(&fluid) || !next.take(&fluid, 90) { return false; }
+            let Some(output) = can_set_fluid(input, Some(&fluid)) else { return false; }; output
+        };
+        let mut remaining = input.clone(); remaining.count -= 1;
+        slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
+        return true;
+    }
+    if input.extra.is_some() { return false; }
     let mut next = tank.clone();
     let replacement = if input.item.as_ref() == "minecraft:glass_bottle" && direction != Direction::EmptyItem {
         let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
@@ -192,6 +235,21 @@ mod tests {
         let before=(tank.clone(),slots.clone());
         assert!(!transfer(&mut tank,&mut slots,Direction::Auto,&known,&known));
         assert_eq!((tank,slots),before);
+    }
+    #[test]
+    fn copper_can_moves_one_ingot_and_retains_other_stack_items() {
+        let mut tank = SmelteryTank::new(180);
+        assert!(tank.insert("minecraft:lava", 90));
+        let mut slots = [Some(ItemStack::new("tconstruct:copper_can", 2)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!(tank.total(), 0);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        let filled = slots[1].take().unwrap();
+        assert_eq!(can_fluid(&filled), Some(Some("minecraft:lava".into())));
+        slots = [Some(filled), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 90);
+        assert_eq!(can_fluid(slots[1].as_ref().unwrap()), Some(None));
     }
     #[test]
     fn venom_bottle_returns_glass_only_after_full_transfer() {

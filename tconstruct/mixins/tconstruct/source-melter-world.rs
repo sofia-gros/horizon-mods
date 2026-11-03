@@ -182,6 +182,14 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 }
             }
         }
+        if stack.count == 1 && super::tconstruct_source_fluid_container::can_fluid(stack) == Some(None) {
+            if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+                catalog.can_filling(fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+            })? {
+                let output = super::tconstruct_source_fluid_container::can_set_fluid(stack, Some(fluid))?;
+                return Some((id, recipe, output));
+            }
+        }
         if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
             catalog.duplication(basin, &stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
         })? {
