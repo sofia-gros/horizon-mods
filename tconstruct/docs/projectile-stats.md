@@ -133,3 +133,19 @@ checks are pending. Verify zero/partial/full Overslime at multiple levels,
 charge times for both bows, velocity at low and high altitude with Dwarven,
 Quick Charge, Netherite, material replacement, reload and LAN. Record a fixture
 when the material is not naturally available.
+
+## Power upgrade
+
+The original Power recipe consumes Ichor Slime Crystals incrementally: 72 per
+level, up to five levels, on tools in `tconstruct:modifiable/ranged/power`.
+Once Power is present, its source stat module adds `0.5 + 0.5 * effectiveLevel`
+to projectile damage, scaled by the tool definition's additive multiplier.
+The Station selector, tooltip progress and modifier extraction now include
+Power; the existing recipe and tag determine eligible tools and consumption.
+
+Rust syntax was checked. Unit, plan, current-target build and gameplay remain
+pending. Verify zero, 1/72, 72/72 and max progress; upgrade slots, wrong inputs,
+crystal extraction/reapplication, tag rejection, both eligible bows, projectile
+damage, material replacement, save/reload and LAN. Refer to the pinned original
+[recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/upgrade/power.json)
+and [modifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/power.json).
