@@ -63,3 +63,52 @@ material is unavailable in the test world; this is not a survival progression
 claim. Keen remains outside this batch: its original Quartz assignment is to
 ammo, and adding a bow-only number would not implement the material ammunition
 path. Other conditional projectile modifiers and armor effects remain incomplete.
+
+## Airborne projectile velocity
+
+A bow with the Airborne trait adds `0.1 * velocityMultiplier` to arrow velocity
+when its holder is off the ground, out of water, not riding and not climbing.
+The source gives the flat bonus once regardless of trait level. It runs before
+Dwarven's altitude adjustment. The single-player path uses the existing host
+climbable query, including its ladder and trapdoor rules; if the query fails,
+the bonus is not applied. The acting player's motion is used during a LAN turn;
+guest water, climbing and riding state still require runtime verification.
+The mining portion is tracked separately in [mining traits](mining-traits.md).
+
+Focused Rust checks use older host item and NBT libraries. A combined Linux
+client on Horizon `02c8607` tested supplied Longbows in local and guest play:
+airborne speed increased, while underwater did not. Ladder exclusion was
+observed in diagnostics, and a mounted case did not isolate riding from the
+grounded state. Crossbow Airborne and guest water, ladder and riding remain
+unverified. A supplied Crossbow material swap removed the trait and persisted
+after save/reload. Natural material acquisition and Windows remain unverified.
+
+## Solid projectile damage
+
+Invar's Solid trait adds 0.75 projectile damage per level, scaled by the
+tool definition's projectile-damage additive multiplier. It combines with
+Diamond and Ductile during stat rebuilding and is removed on material swap;
+it is not added again when the same tool is rebuilt. This implements only the
+projectile-damage portion of the [original Solid definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/solid.json).
+
+A combined Linux client on Horizon `02c8607` tested both bows with supplied
+parts and a temporary Solid II datapack. Crossbow material replacement removed
+the bonus and persisted after restart in local and LAN guest play. Invar is a
+compatibility material; its natural acquisition, all level combinations and
+Windows remain unverified. Protection, movement and gravity are separate work.
+
+## Raging projectile damage
+
+Pewter's Raging trait adds conditional projectile damage at firing time:
+`clamp((11 - health) / 10, 0, 1) * level * projectileDamageMultiplier`.
+At 11 health or higher there is no bonus; at 1 health or lower it reaches its
+maximum. The tool's material traits are rebuilt on a part swap. This implements
+the projectile portion of [the original Raging definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/raging.json).
+
+The firing path uses the current acting player's health, including during a LAN
+turn when the host has swapped that player's body into the game. On the combined
+Linux `02c8607` client, supplied Raging II bows showed different damage at
+health 20 and 6; guest shots followed guest health rather than host health. A
+supplied Crossbow material swap removed the trait and persisted after reload.
+Pewter's natural acquisition, all levels and Windows remain unverified; melee
+is separate work. See [the test evidence](https://github.com/sofia-gros/horizon-mods/pull/140#issuecomment-6585341785).
