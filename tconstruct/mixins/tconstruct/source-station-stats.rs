@@ -8,22 +8,38 @@ pub struct BaseStats {
     pub durability_multiplier: f32,
     pub durability_boost_unit: f32,
     pub durability_multiplier_unit: f32,
+    pub durability_base_raw: f32,
+    pub durability_percent_raw: f32,
     pub mining_speed: f32,
+    pub mining_speed_base_raw: f32,
+    pub mining_speed_add_raw: f32,
+    pub mining_speed_percent_raw: f32,
     pub mining_speed_add_multiplier: f32,
     pub mining_speed_all_multiplier: f32,
     pub attack_damage: f32,
+    pub attack_damage_base_raw: f32,
+    pub attack_damage_add_raw: f32,
+    pub attack_damage_percent_raw: f32,
     pub attack_damage_boost_unit: f32,
     pub attack_damage_multiplier: f32,
     pub attack_damage_multiplier_unit: f32,
     pub attack_speed: f32,
+    pub attack_speed_base_raw: f32,
+    pub attack_speed_add_raw: f32,
+    pub attack_speed_percent_raw: f32,
+    pub attack_speed_multiplier_unit: f32,
     pub attack_speed_boost_unit: f32,
     pub draw_speed: f32,
+    pub draw_speed_raw: [f32; 4],
     pub draw_speed_add_multiplier: f32,
     pub velocity: f32,
+    pub velocity_raw: [f32; 4],
     pub velocity_add_multiplier: f32,
     pub accuracy: f32,
+    pub accuracy_raw: [f32; 4],
     pub accuracy_add_multiplier: f32,
     pub projectile_damage: f32,
+    pub projectile_damage_raw: [f32; 4],
     pub projectile_damage_add_multiplier: f32,
     pub overslime_material: f32,
     pub armor: f32,
@@ -43,7 +59,7 @@ struct Accumulator {
 }
 /// The registered chestplate item and its original data definition have
 /// different IDs; other namespaces and equipment names are not rewritten.
-pub(super) fn definition_name<'a>(namespace: &str, item_name: &'a str) -> &'a str {
+pub fn definition_name<'a>(namespace: &str, item_name: &'a str) -> &'a str {
     if namespace == "tconstruct" && item_name == "slimy_chestplate" { "slime_chestplate" } else { item_name }
 }
 
@@ -296,22 +312,38 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
         durability_multiplier: (1.0 + stats[0].percent) * stats[0].multiply,
         durability_boost_unit: (stats[0].base + stats[0].add) * stats[0].multiply,
         durability_multiplier_unit: stats[0].multiply,
+        durability_base_raw: stats[0].base + stats[0].add,
+        durability_percent_raw: stats[0].percent,
         mining_speed: stats[1].result(),
+        mining_speed_base_raw: stats[1].base,
+        mining_speed_add_raw: stats[1].add,
+        mining_speed_percent_raw: stats[1].percent,
         mining_speed_add_multiplier: (1.0 + stats[1].percent) * stats[1].multiply,
         mining_speed_all_multiplier: stats[1].multiply,
         attack_damage: stats[2].result(),
+        attack_damage_base_raw: stats[2].base,
+        attack_damage_add_raw: stats[2].add,
+        attack_damage_percent_raw: stats[2].percent,
         attack_damage_boost_unit: (stats[2].base + stats[2].add) * stats[2].multiply,
         attack_damage_multiplier: (1.0 + stats[2].percent) * stats[2].multiply,
         attack_damage_multiplier_unit: stats[2].multiply,
         attack_speed: stats[3].result(),
+        attack_speed_base_raw: stats[3].base,
+        attack_speed_add_raw: stats[3].add,
+        attack_speed_percent_raw: stats[3].percent,
+        attack_speed_multiplier_unit: stats[3].multiply,
         attack_speed_boost_unit: (stats[3].base + stats[3].add) * stats[3].multiply,
         draw_speed: stats[4].result(),
+        draw_speed_raw: [stats[4].base, stats[4].add, stats[4].percent, stats[4].multiply],
         draw_speed_add_multiplier: (1.0 + stats[4].percent) * stats[4].multiply,
         velocity: stats[5].result(),
+        velocity_raw: [stats[5].base, stats[5].add, stats[5].percent, stats[5].multiply],
         velocity_add_multiplier: (1.0 + stats[5].percent) * stats[5].multiply,
         accuracy: stats[6].result(),
+        accuracy_raw: [stats[6].base, stats[6].add, stats[6].percent, stats[6].multiply],
         accuracy_add_multiplier: (1.0 + stats[6].percent) * stats[6].multiply,
         projectile_damage: stats[10].result(),
+        projectile_damage_raw: [stats[10].base, stats[10].add, stats[10].percent, stats[10].multiply],
         projectile_damage_add_multiplier: (1.0 + stats[10].percent) * stats[10].multiply,
         overslime_material: stats[11].result(),
         armor: stats[7].result(),
@@ -326,6 +358,19 @@ pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn skull_slime_and_chest_definition_keep_source_values() {
+        let mut stats: [Accumulator; 12] = std::array::from_fn(|_| Accumulator::new(0.0));
+        let skull = serde_json::json!({"tconstruct:skull":{"armor": 3}}).as_object().unwrap().clone();
+        let slime = serde_json::json!({"tconstruct:slime":{"durability": 40}}).as_object().unwrap().clone();
+        apply_material(&mut stats, "skull", &skull, 1.0).unwrap();
+        apply_material(&mut stats, "slime", &slime, 0.5).unwrap();
+        assert_eq!(stats[7].result(), 3.0);
+        assert_eq!(stats[11].result(), 20.0);
+        assert_eq!(definition_name("tconstruct", "slimy_chestplate"), "slime_chestplate");
+        assert_eq!(definition_name("example", "slimy_chestplate"), "slimy_chestplate");
+    }
+
     #[test]
     fn applies_limb_and_grip_source_stats() {
         let definition = br#"{"modules":[{"type":"tconstruct:part_stats","parts":["tconstruct:bow_limb","tconstruct:bow_grip"]}]}"#;
@@ -376,22 +421,38 @@ mod tests {
                 durability_multiplier: 1.0,
                 durability_boost_unit: 85.0,
                 durability_multiplier_unit: 1.0,
+                durability_base_raw: 85.0,
+                durability_percent_raw: 0.0,
                 mining_speed: 3.5,
+                mining_speed_base_raw: 0.0,
+                mining_speed_add_raw: 3.5,
+                mining_speed_percent_raw: 0.0,
                 mining_speed_add_multiplier: 1.0,
                 mining_speed_all_multiplier: 1.0,
                 attack_damage: 1.75,
+                attack_damage_base_raw: 0.0,
+                attack_damage_add_raw: 1.75,
+                attack_damage_percent_raw: 0.0,
                 attack_damage_boost_unit: 1.75,
                 attack_damage_multiplier: 1.0,
                 attack_damage_multiplier_unit: 1.0,
                 attack_speed: 1.2,
+                attack_speed_base_raw: 0.0,
+                attack_speed_add_raw: 1.2,
+                attack_speed_percent_raw: 0.0,
+                attack_speed_multiplier_unit: 1.0,
                 attack_speed_boost_unit: 1.2,
                 draw_speed: 1.0,
+                draw_speed_raw: [1.0, 0.0, 0.0, 1.0],
                 draw_speed_add_multiplier: 1.0,
                 velocity: 1.0,
+                velocity_raw: [1.0, 0.0, 0.0, 1.0],
                 velocity_add_multiplier: 1.0,
                 accuracy: 0.75,
+                accuracy_raw: [0.75, 0.0, 0.0, 1.0],
                 accuracy_add_multiplier: 1.0,
                 projectile_damage: 2.0,
+                projectile_damage_raw: [2.0, 0.0, 0.0, 1.0],
                 projectile_damage_add_multiplier: 1.0,
                 overslime_material: 0.0,
                 armor: 0.0,
