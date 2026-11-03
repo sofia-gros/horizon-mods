@@ -266,7 +266,7 @@ fn tool_pages(game: &Game<'_>, title: &str, id: &str, data: Option<&serde_json::
     result
 }
 
-fn dynamic_materials(game: &Game<'_>, key: &str) -> Option<Vec<(String, String)>> {
+fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
     let kinds: &[&str] = match key {
@@ -276,10 +276,10 @@ fn dynamic_materials(game: &Game<'_>, key: &str) -> Option<Vec<(String, String)>
         _ => return None,
     };
     let mut selected: Vec<_> = definitions.iter().filter(|(id, (_, hidden, tier, _, _))| {
-        !hidden && (0..=1).contains(tier)
+        !hidden && super::tconstruct_materials_book_index::material_book_tier(puny, key, *tier,
+            tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id)),
+            tags.get("tconstruct:book/basic_ammo").is_some_and(|set| set.contains(*id)))
             && stats.get(*id).is_some_and(|s| kinds.iter().any(|kind| s.contains_key(*kind)))
-            && if key == "ammo_materials" { tags.get("tconstruct:book/basic_ammo").is_some_and(|set| set.contains(*id)) }
-               else { !tags.get("tconstruct:book/distant").is_some_and(|set| set.contains(*id)) }
     }).collect();
     selected.sort_by_key(|(id, (_, _, tier, order, _))| {
         let has = |kind: &str| stats.get(*id).is_some_and(|s| s.contains_key(kind));
@@ -314,8 +314,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
-        // Material tiers and modifier layouts still need Puny-specific handling.
-        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "armor" | "worktable" | "further_reading") { continue; }
+        // Other material tiers and modifier layouts still need Puny-specific handling.
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "ranged_materials" | "armor" | "worktable" | "further_reading") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
@@ -340,7 +340,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                 }
                 continue;
             }
-            if let Some(materials) = dynamic_materials(game, key) {
+            if let Some(materials) = dynamic_materials(game, key, puny) {
+                if !super::tconstruct_materials_book_index::show_material_chapter(puny, materials.len()) { continue; }
                 let mut chapter_pages = Vec::new();
                 let subtext = labels.get(format!("{key}.subtext").as_str()).copied().unwrap_or("");
                 if !subtext.is_empty() { chapter_pages.extend(split_page(game, subtext, 17).into_iter().map(Text::literal)); }
