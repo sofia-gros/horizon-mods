@@ -53,10 +53,10 @@ fn airborne_conditions(on_ground: bool, in_water: bool, riding: bool, climbable:
     !on_ground && !in_water && !riding && !climbable
 }
 
-// Use the exact host climbable check; LAN guest state needs separate verification.
+// The host swaps the acting player's motion and vehicle into Game during a turn.
 #[cfg(not(test))]
 pub(crate) fn airborne(game: &mut crate::game::Game<'_>) -> bool {
-    if game.lan_acting.is_some() || game.riding.is_some() { return false; }
+    if game.riding.is_some() { return false; }
     let Some(player) = game.player.as_mut() else { return false; };
     if player.ground.on_ground || player.fluids.was_touching_water { return false; }
     let mut motion = horizon_client::motion::MotionWorld {
@@ -74,6 +74,17 @@ pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
         Some(Tag::Int(value)) if *value > 0 => 0.5,
         _ => 0.0,
     }
+}
+
+/// Original Raging conditional projectile damage, evaluated at firing time.
+pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>) -> f64 {
+    let base = projectile_bonus(stack);
+    let Some(health) = health.filter(|value| value.is_finite()) else { return base; };
+    let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return base; };
+    let level = match custom.get("tic_raging") { Some(Tag::Int(level)) => (*level).max(0), _ => 0 };
+    let Some(multiplier) = stat(stack, "tic_raging_projectile_multiplier").filter(|value| value.is_finite()) else { return base; };
+    let bonus = ((11.0 - health) / 10.0).clamp(0.0, 1.0) * level as f32 * multiplier;
+    ((base as f32 + 2.0 + bonus).clamp(0.0, 1024.0) - 2.0) as f64
 }
 
 /// Pinned RestrictAngleModule rounds the horizontal direction after launch.
