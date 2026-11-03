@@ -1,4 +1,5 @@
 """Check that registered block assets resolve inside the source content pack."""
+import hashlib
 import json
 import unittest
 from pathlib import Path
@@ -47,6 +48,13 @@ class BlockRegistrationTests(unittest.TestCase):
                 else:
                     self.assertNotIn('pools', json.loads(loot))
                 json.loads(loot)
+
+    def test_scorched_table_item_uses_pinned_covered_model(self):
+        item = json.loads((ASSETS / 'models/item/scorched_table.json').read_text())
+        self.assertEqual(item['parent'], 'tconstruct:block/foundry/table_covered')
+        model = (ASSETS / 'models/block/foundry/table_covered.json').read_bytes()
+        self.assertEqual(hashlib.sha256(model).hexdigest(),
+                         '7fdb6b49f4b00f2e6e9f71df25be31dec734eeeb1d69ce78d9ef818c2e03c2dd')
 
     def test_glow_uses_six_facing_states_light_and_no_drops(self):
         glow = json.loads((BLOCKS / 'glow.json').read_text())
