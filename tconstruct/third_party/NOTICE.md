@@ -69,3 +69,11 @@ The potion, water and airborne mining multiplier order was checked against
 [BreakSpeedContext.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/mining/BreakSpeedContext.java)
 at Tinkers' Construct f4e77d43. Copyright (c) 2022 SlimeKnights; MIT license,
 see `tconstruct/third_party/tconstruct/LICENSE`.
+
+Hydraulic's mining data and incremental recipes were checked against
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2).
+Its eye-water and rain predicates were checked against MIT-licensed Mantle
+[LivingEntityPredicate.java](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/data/predicate/entity/LivingEntityPredicate.java)
+and [HasEnchantmentEntityPredicate.java](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/data/predicate/entity/HasEnchantmentEntityPredicate.java).
+Copyright (c) SlimeKnights; MIT licenses, see the respective files in
+`tconstruct/third_party/`.

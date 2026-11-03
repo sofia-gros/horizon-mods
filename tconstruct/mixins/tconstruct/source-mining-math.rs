@@ -1,6 +1,6 @@
 // Original stat boosts and effective-block conditional mining modifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Blasting(i32), Overwield(i32, i32, bool) }
+pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Blasting(i32), Hydraulic(i32), Overwield(i32, i32, bool) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
@@ -29,8 +29,14 @@ pub(super) fn conditional_speed_for(speed: f32, loss: u32, maximum: u32, durabil
     conditional_speed_for_resistance(speed, loss, maximum, durability_all, mining_all, modifiers, position, effective, tool_not_required, None)
 }
 
-pub(super) fn conditional_speed_for_resistance(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
+pub(super) fn conditional_speed_for_resistance(speed: f32, loss: u32, maximum: u32, durability_all: f32,
     mining_all: f32, modifiers: &[Conditional], position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, resistance: Option<f32>) -> f32 {
+    conditional_speed_with_water(speed, loss, maximum, durability_all, mining_all, modifiers, position, effective, tool_not_required, resistance, None)
+}
+
+/// `water` is Some(aqua_affinity) only when the actor's eyes are in water.
+pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
+    mining_all: f32, modifiers: &[Conditional], position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, resistance: Option<f32>, water: Option<bool>) -> f32 {
     let wear = (loss as f32 / durability_all.max(f32::MIN_POSITIVE)).sqrt() * 0.01;
     let half = maximum as f32 * 0.5;
     let remaining = maximum.saturating_sub(loss) as f32;
@@ -39,6 +45,11 @@ pub(super) fn conditional_speed_for_resistance(mut speed: f32, loss: u32, maximu
         match *modifier {
             Conditional::Maintained(level) if effective => speed += maintained * level.max(0) as f32 * 6.0 * mining_all,
             Conditional::Crumbling(level) if tool_not_required => speed += level.max(0) as f32 * mining_all,
+            Conditional::Hydraulic(amount) if effective => {
+                if let Some(aqua) = water {
+                    speed += (mining_all * if aqua { 8.0 } else { 40.0 }) * (amount.max(0) as f32 / 36.0);
+                }
+            },
             Conditional::Blasting(amount) if effective => {
                 if let Some(resistance) = resistance.filter(|v| v.is_finite()) {
                     speed += 3.0f32.powf((6.0 - resistance) / 1.5).min(10.0) * (amount.max(0) as f32 / 20.0) * mining_all;
@@ -72,6 +83,17 @@ pub(super) fn conditional_speed_for_resistance(mut speed: f32, loss: u32, maximu
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn hydraulic_uses_source_float_operation_order() {
+        let amount = 1;
+        let multiplier = 0.04f32;
+        let level = amount as f32 / 36.0;
+        let actual = conditional_speed_with_water(0.0, 0, 100, 1.0, multiplier, &[Conditional::Hydraulic(amount)], None, true, false, None, Some(false));
+        let source_order = (multiplier * 40.0) * level;
+        let reordered = (40.0 * level) * multiplier;
+        assert_eq!(actual.to_bits(), source_order.to_bits());
+        assert_ne!(source_order.to_bits(), reordered.to_bits());
+    }
     #[test]
     fn blasting_uses_resistance_incremental_level_and_order() {
         let effects = [Conditional::Stonebound(1), Conditional::Blasting(10)];
