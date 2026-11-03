@@ -358,6 +358,25 @@ fallback, and arrow head/shaft/fletching with ammo fallback. Check material
 swaps and saved/LAN stacks. Source:
 [MaterialRegistry](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/materials/MaterialRegistry.java).
 
+### Traits on material-stat equipment
+
+The trait resolver now accepts a tool definition's `material_stats.stat_types`
+as well as `part_stats.parts`, preserving material order and using the original
+stat-type fallback rules. Explicit `material_traits` modules contribute to the
+normal tool trait list only when their hooks include `tconstruct:tool_traits`
+or use the source default hooks; trim-only and rebalanced-only modules are not
+mistaken for normal tool traits. Material-stat tools no longer require an
+unrelated `tool_building` recipe merely to read their traits.
+
+This connects trait selection for these definitions; it does not implement
+every selected modifier, material acquisition, trim rendering or equipment
+behavior. Rust syntax was checked; unit, combined build and gameplay remain
+pending. Verify Plate Shield and Slime armor material order, exact/fallback and
+empty traits, Slime Chestplate's explicit tool-traits module, trim-only hooks,
+missing/invalid indices, material swap, reload and LAN. Compare the pinned
+[MaterialStatsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialStatsModule.java)
+and [MaterialTraitsModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/material/MaterialTraitsModule.java).
+
 The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
 
 The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack damage, known maximum durability and source unit rounding, including Foundry byproducts. Unknown or malformed maximum-damage components fail closed; exact runtime, reload and LAN behavior await verification.
