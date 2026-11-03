@@ -76,7 +76,7 @@ head; this inclusion does not imply formal apply or gameplay success.
 The next follow-up ports skull armor #107, slime-material Overslime #111 and
 slimy chestplate definition resolution #121. The material capacity is combined
 with the later ordered Overlord copy rather than restoring the older capacity
-formula; focused tests and all target checks remain pending. Wool #120,
+formula; source-shaped skull/slime and capacity helper fixtures passed with older host libraries. Current-target checks remain pending. Wool #120,
 Ductile #136 and Forming #142 are represented in the #309 armor calculation.
 
 The subsequent F02/F05 follow-up ports #98 and #101 together, including the

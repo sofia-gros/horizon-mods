@@ -39,7 +39,7 @@ Overcast and global durability multipliers. The source also has an
 durability field for the stat contribution, so this calculation follows that
 method rather than the tooltip value.
 
-Rust syntax was checked. Unit tests, combined build and gameplay are pending.
+The source-shaped skull/slime and capacity helper fixtures pass with older host libraries. Combined current-host build and gameplay are pending.
 Verify each slime armor scale, material replacement, Overcast/Overforced,
 global durability multiplier, capacity clamping, existing shield contents and
 save/reload. Armor wear and Overslime writeback remain subject to the separately
