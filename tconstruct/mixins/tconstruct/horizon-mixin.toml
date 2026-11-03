@@ -2028,6 +2028,16 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_tank"
 source = "source-smeltery-tank.rs"
 
+[[injection]]
+id = "source-potion-color-encode"
+target = "horizon_client_lib::lan::guest::stack_to_network"
+kind = "RETURN"
+helper = "source-potion-color-encode.rs"
+bindings = [
+  { name = "value", ty = "Option<Stack>", value = "$value" },
+  { name = "source", ty = "&Option<ItemStack>", value = "s" },
+]
+
 [[module]]
 id = "source-fluid-direct"
 file = "crates/horizon-client/src/game.rs"
