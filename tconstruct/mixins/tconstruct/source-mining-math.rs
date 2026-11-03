@@ -1,6 +1,6 @@
 // Original stat boosts and effective-block conditional mining modifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Overwield(i32, i32, bool) }
+pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Blasting(i32), Overwield(i32, i32, bool) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
@@ -24,8 +24,13 @@ pub(super) fn conditional_speed_at(speed: f32, loss: u32, maximum: u32, durabili
     conditional_speed_for(speed, loss, maximum, durability_all, mining_all, modifiers, position, true, false)
 }
 
-pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
+pub(super) fn conditional_speed_for(speed: f32, loss: u32, maximum: u32, durability_all: f32,
     mining_all: f32, modifiers: &[Conditional], position: Option<(i32, i32)>, effective: bool, tool_not_required: bool) -> f32 {
+    conditional_speed_for_resistance(speed, loss, maximum, durability_all, mining_all, modifiers, position, effective, tool_not_required, None)
+}
+
+pub(super) fn conditional_speed_for_resistance(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
+    mining_all: f32, modifiers: &[Conditional], position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, resistance: Option<f32>) -> f32 {
     let wear = (loss as f32 / durability_all.max(f32::MIN_POSITIVE)).sqrt() * 0.01;
     let half = maximum as f32 * 0.5;
     let remaining = maximum.saturating_sub(loss) as f32;
@@ -34,6 +39,11 @@ pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, dur
         match *modifier {
             Conditional::Maintained(level) if effective => speed += maintained * level.max(0) as f32 * 6.0 * mining_all,
             Conditional::Crumbling(level) if tool_not_required => speed += level.max(0) as f32 * mining_all,
+            Conditional::Blasting(amount) if effective => {
+                if let Some(resistance) = resistance.filter(|v| v.is_finite()) {
+                    speed += 3.0f32.powf((6.0 - resistance) / 1.5).min(10.0) * (amount.max(0) as f32 / 20.0) * mining_all;
+                }
+            },
             _ => {},
         }
     }
@@ -62,6 +72,20 @@ pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, dur
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn blasting_uses_resistance_incremental_level_and_order() {
+        let effects = [Conditional::Stonebound(1), Conditional::Blasting(10)];
+        let calculate = |resistance, effective| conditional_speed_for_resistance(
+            4.0, 25, 100, 1.0, 2.0, &effects, None, effective, false, resistance);
+        // Resistance 3 produces 9 extra at half a level with multiplier 2;
+        // the flat boost precedes Stonebound's 1.05 multiplier.
+        assert!((calculate(Some(3.0), true) - 13.65).abs() < 0.0001);
+        assert_eq!(calculate(Some(0.0), false), 4.0);
+        assert!((calculate(Some(0.0), true) - 14.7).abs() < 0.0001); // cap 10
+        assert!((calculate(Some(6.0), true) - 5.25).abs() < 0.0001);
+        assert!((calculate(None, true) - 4.2).abs() < 0.0001);
+        assert!((calculate(Some(f32::NAN), true) - 4.2).abs() < 0.0001);
+    }
     #[test]
     fn overwield_uses_live_overslime_and_broad_cost() {
         for (level, amount, broad, expected) in [(2, 0, false, 10.0), (2, 1, false, 12.0), (2, 5, false, 14.0), (2, 1, true, 10.4), (2, 5, true, 12.0), (2, 10, true, 14.0)] {

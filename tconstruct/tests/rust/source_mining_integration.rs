@@ -9,6 +9,7 @@ use horizon_world::nbt::Tag;
 use std::collections::{BTreeMap, HashSet};
 #[path = "../../mixins/tconstruct/source-mining-math.rs"] mod tconstruct_source_mining_math;
 #[path = "../../mixins/tconstruct/source-station-stats.rs"] mod tconstruct_source_station_stats;
+#[path = "../../mixins/tconstruct/source-material-effects.rs"] mod tconstruct_source_material_effects;
 #[path = "../../mixins/tconstruct/source-mining-stack.rs"] mod tconstruct_source_mining_stack;
 #[path = "../../mixins/tconstruct/source-mining-rules.rs"] mod tconstruct_source_mining_rules;
 include!("../../mixins/tconstruct/source-mining-return.rs");

@@ -141,3 +141,23 @@ overrides the same modifier.
 The source-data and host-type fixtures cover
 trait-only, partial-upgrade and combined inputs; actual Station, Creative,
 reload and LAN behavior on the integrated host remains unverified.
+
+## Blasting candidate
+
+Blasting's incremental gunpowder recipe is connected for the source harvest/stone
+tag, and its effective level scales a flat mining-speed bonus by the target
+block's explosion resistance. The source formula caps the per-level resistance
+term at 10; the bonus applies only to effective, unbroken tools and precedes
+percentage effects. Chest Haste is applied after those tool effects, matching
+the source hook order. Existing tools need a supported regeneration or station
+operation to populate the mining-effect snapshot. Focused formula and station-plan tests passed, including partial consumption and
+rejection checks. The full transformed client, actual station
+transactions, save/reload, and local/LAN mining remain unverified. This does
+not resolve the separate Crumbling plus Stonebound observation.
+
+The source data declares resistance 3.0 as a fallback. In the live hook Horizon
+always supplies its block `StateFacts` resistance; for an absent or non-finite
+value the helper conservatively skips Blasting rather than assuming a block
+value. This defensive case is a deliberate difference from the source fallback.
+The pinned source `PostFixFormula.processLevel` uses the modifier's effective
+level, including incremental progress.

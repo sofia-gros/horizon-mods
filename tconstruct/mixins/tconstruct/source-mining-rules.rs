@@ -1,6 +1,11 @@
 // Shared per-stack effective-block recognition and conditional calculations.
 use horizon_world::nbt::Tag;
-use super::tconstruct_source_mining_math::{Conditional, conditional_speed_for};
+use super::tconstruct_source_mining_math::{Conditional, conditional_speed_for_resistance};
+
+/// The source applies the player's armor attribute after tool break-speed hooks.
+pub(super) fn finish_mining_speed(speed: f32, armor_multiplier: f32) -> f32 {
+    speed * armor_multiplier
+}
 
 /// Haste on a non-harvest chestplate applies the source player mining-speed multiplier.
 pub(super) fn haste_armor_multiplier(custom: &Tag, damage: u32) -> f32 {
@@ -141,6 +146,10 @@ mod broad_tag_tests {
 }
 
 pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>) -> Option<f32> {
+    conditional_with_resistance(custom, damage, speed, potion_multiplier, position, effective, tool_not_required, broad, None)
+}
+
+pub(super) fn conditional_with_resistance(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>, resistance: Option<f32>) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
@@ -154,19 +163,48 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
             "tconstruct:maintained" => Conditional::Maintained(*level),
             "tconstruct:dwarven" => Conditional::Dwarven(*level),
             "tconstruct:crumbling" => Conditional::Crumbling(*level),
+            "tconstruct:blasting" => Conditional::Blasting(*level),
             "tconstruct:overwield" if broad.is_some() => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }, broad.unwrap()),
             _ => continue,
         };
         ordered.push(effect);
     }
     if !effective && !(tool_not_required && ordered.iter().any(|effect| matches!(effect, Conditional::Crumbling(level) if *level > 0))) { return None; }
-    Some(conditional_speed_for(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position, effective, tool_not_required))
+    Some(conditional_speed_for_resistance(speed, damage, *max as u32, multiplier("tic_durability_all"), multiplier("tic_mining_all") * potion_multiplier, &ordered, position, effective, tool_not_required, resistance))
 }
 
 #[cfg(test)]
 mod shared_rules_tests {
     use super::*;
 
+    #[test]
+    fn armor_haste_multiplies_conditional_blasting_after_tool_effects() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([
+                ("id", Tag::String("tconstruct:blasting".into())), ("level", Tag::Int(20))
+            ])])),
+        ]);
+        let tool_speed = conditional_with_resistance(&custom, 0, 4.0, 1.0, None, true, false, Some(false), Some(6.0)).unwrap();
+        assert_eq!(tool_speed, 5.0);
+        assert_eq!(finish_mining_speed(tool_speed, 1.1), 5.5);
+        // Vanilla/unsupported tools and absent Haste still preserve host speed.
+        assert_eq!(finish_mining_speed(4.0, 1.0), 4.0);
+        assert_eq!(finish_mining_speed(4.0, 1.1), 4.4);
+    }
+    #[test]
+    fn blasting_requires_effective_unbroken_tool() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([
+                ("id", Tag::String("tconstruct:blasting".into())), ("level", Tag::Int(10))
+            ])])),
+        ]);
+        let run = |damage, effective| conditional_with_resistance(&custom, damage, 4.0, 1.0, None, effective, false, Some(false), Some(6.0));
+        assert_eq!(run(0, true), Some(4.5));
+        assert_eq!(run(0, false), None);
+        assert_eq!(run(100, true), None);
+    }
     #[test]
     fn crumbling_respects_effectiveness_block_and_breakage() {
         let custom = Tag::compound([

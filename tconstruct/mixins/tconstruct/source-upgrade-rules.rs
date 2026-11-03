@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 21] = [
+const UPGRADES: [(&str, i32); 22] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -297,6 +297,10 @@ pub(super) fn plan_with_traits(
         else {
             continue;
         };
+        // The Blasting snapshot encodes twentieths of a level. Reject a
+        // datapack that changes the denominator rather than consuming items
+        // while silently applying the wrong effect.
+        if id == "tconstruct:blasting" && needed != 20 { continue; }
         let Some(per_item) = value
             .get("amount_per_item")
             .and_then(Value::as_i64)
@@ -1132,6 +1136,36 @@ mod tests {
         let output = plan(&recipes, &tags, &tool(0), &third, 3).unwrap();
         assert_eq!(output.amount, 8);
         assert_eq!(output.consumed, [(0, 1), (3, 8)]);
+    }
+
+    #[test]
+    fn blasting_plan_consumes_only_needed_and_rejects_wrong_tool_or_full_slots() {
+        let recipe = br#"{"type":"tconstruct:incremental_modifier","allow_crystal":true,"amount_per_item":1,"needed_per_level":20,"input":{"tag":"forge:gunpowder"},"result":"tconstruct:blasting","level":{"max":5},"slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/harvest/stone"}}"#.to_vec();
+        let recipes = BTreeMap::from([("blasting".into(), recipe)]);
+        let tags = HashMap::from([
+            ("forge:gunpowder".into(), HashSet::from(["minecraft:gunpowder".into()])),
+            ("tconstruct:modifiable/harvest/stone".into(), HashSet::from(["tconstruct:pickaxe".into()])),
+        ]);
+        let make_tool = |amount| {
+            let mut pick = ItemStack::new("tconstruct:pickaxe", 1);
+            pick.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:blasting", Tag::Int(amount))]))
+            ])));
+            pick
+        };
+        let gunpowder = [Some(ItemStack::new("minecraft:gunpowder", 32))];
+        let preview = plan(&recipes, &tags, &make_tool(10), &gunpowder, 1).unwrap();
+        assert_eq!(preview.amount, 20);
+        assert_eq!(preview.consumed, [(0, 1), (1, 10)]);
+        assert_eq!(gunpowder[0].as_ref().unwrap().count, 32);
+        assert!(preview.leftover.is_none());
+        assert!(plan(&recipes, &tags, &make_tool(0), &gunpowder, 0).is_none());
+        assert!(plan(&recipes, &tags, &make_tool(100), &gunpowder, 6).is_none());
+        assert!(plan(&recipes, &tags, &ItemStack::new("tconstruct:longbow", 1), &gunpowder, 5).is_none());
+        assert!(plan(&recipes, &tags, &make_tool(0), &[Some(ItemStack::new("minecraft:dirt", 1))], 5).is_none());
+        let modified = String::from_utf8(recipes["blasting"].clone()).unwrap().replace("\"needed_per_level\":20", "\"needed_per_level\":10");
+        let other_recipe = BTreeMap::from([("blasting".into(), modified.into_bytes())]);
+        assert!(plan(&other_recipe, &tags, &make_tool(0), &gunpowder, 5).is_none());
     }
 
     #[test]
