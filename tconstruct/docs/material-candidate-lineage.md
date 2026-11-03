@@ -1,5 +1,7 @@
 # Material, equipment and world candidate lineage
 
+> Historical snapshot: the inventory below records the earlier #291 integration stage. Later work is consolidated in #354; its `321ed5438dd89a9e6575c5ba715c1846a7b4054b` candidate has a separate 0c7b/ddd official apply and client-build record. It does not establish every listed feature's game behavior. #360 corrects the stat-builder multiplier calculation on top of that candidate and still requires independent review and current-host validation. Preserve its changes and the narrow Bouncy landing deferral when integrating; do not replay older implementations over them.
+
 This is a source-integration inventory, not a test or release status. PR heads
 are immutable inputs for the dedicated test owner. A Git ancestor means the
 commit is present; a ported change is identified separately and must not be
