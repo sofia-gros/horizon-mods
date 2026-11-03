@@ -440,6 +440,17 @@ impl Catalog<'_> {
 mod tests {
     use super::*;
     #[test]
+    fn alloy_rejects_tagged_matching_inputs() {
+        let recipe = br#"{"type":"tconstruct:alloy","inputs":[{"amount":90,"fluid":"test:copper"},{"amount":90,"fluid":"test:tin"}],"result":{"amount":180,"fluid":"test:bronze"},"temperature":700}"#.to_vec();
+        let recipes = std::collections::BTreeMap::from([("alloy".into(), recipe)]);
+        let tags = HashMap::new(); let items = HashSet::new();
+        let fluids = HashSet::from(["test:copper".into(), "test:tin".into(), "test:bronze".into(), "test:potion".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let available = [("test:copper".into(), 90), ("test:tin".into(), 90)];
+        assert!(catalog.alloy_except(&available, &["test:potion".into()], 180, 700, &|_| true).is_some());
+        assert!(catalog.alloy_except(&available, &["test:copper".into()], 180, 700, &|_| true).is_none());
+    }
+    #[test]
     fn foundry_resolves_primary_and_byproduct_tags() {
         let recipe = br#"{"type":"tconstruct:ore_melting","ingredient":{"tag":"forge:ores/copper"},"result":{"amount":180,"tag":"forge:molten_copper"},"temperature":500,"time":125,"rate":"metal","byproducts":[{"amount":90,"tag":"forge:molten_gold"}]}"#;
         let recipes = [("ore".into(), recipe.to_vec())].into_iter().collect();
