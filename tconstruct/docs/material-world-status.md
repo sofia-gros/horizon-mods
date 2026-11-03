@@ -216,3 +216,8 @@ Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not
 Earlier integration evidence applies only to the recorded candidate revision.
 Keep the later stat-order corrections and the documented Bouncy deferral;
 validate the current integrated build and gameplay separately.
+
+Bouncy landing hooks remain deferred. The current landing-state package uses
+ChunkMap and its Default constructor, not the older PlayerMotion design. Check
+package tests, plan and build on the same integrated revision; a pass from an
+older candidate does not establish success for current main.
