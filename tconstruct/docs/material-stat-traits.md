@@ -16,6 +16,8 @@ these traits are still unimplemented. The official Mixins `a2af5c0dd4117d51ecd70
 
 A separate temporary-datapack regression checked Preserved maximum durability and Ductile damage, broken retention, repair, part replacement and save/reload. The shared source operation order changes the tested Ductile damage from the previous implementation's 2.1875 to 2.21375. The saved, already-created tools do not automatically recalculate until a supported regeneration operation. These are representative Linux checks, not individual tests of every material or tool.
 
+Ductile's armor toughness contribution now uses the definition's additive-stat multiplier and the source 0–20 toughness limit when rebuilding a tool. This correction has not yet been tested in game; verify a non-unit toughness multiplier, a part replacement that removes Ductile, and the interaction with Diamond, Emerald and Netherite.
+
 ![Station part replacement after an upgrade](material-melee-followup.png)
 
 ![LAN cobalt tool upgrade](material-melee-lan.png)

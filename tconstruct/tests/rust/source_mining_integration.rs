@@ -1,4 +1,10 @@
 use horizon_items::items::{ItemStack, Items};
+#[path = "../../../pluto-lib/mixins/pluto_tool_rules/rules.rs"] pub mod rules;
+mod tconstruct_tool_api {
+    pub use horizon_items::item_data::canon_tag;
+    pub use crate::rules;
+}
+#[path = "../../mixins/tconstruct/source-dwarven.rs"] mod tconstruct_source_dwarven;
 use horizon_world::nbt::Tag;
 use std::collections::{BTreeMap, HashSet};
 #[path = "../../mixins/tconstruct/source-mining-math.rs"] mod tconstruct_source_mining_math;
@@ -19,24 +25,26 @@ fn per_stack_rules_respect_effective_blocks_broken_and_material_swap() {
     stack.data_mut().set_other("minecraft:tool", Some(Tag::compound([("rules", Tag::List(vec![
         Tag::compound([("blocks", Tag::String("#minecraft:mineable/pickaxe".into())), ("speed", Tag::Float(3.5f32.to_bits()))])
     ]))])));
-    let mut items = Items::tags_only(std::path::Path::new("/tmp")).unwrap();
+    let mut items = Items::tags_only(std::path::Path::new("/tmp"), &horizon_world::loot::PackOverlay::NONE).unwrap();
     items.block_tags.insert("minecraft:mineable/pickaxe".into(), HashSet::from(["minecraft:stone".into()]));
     let levels = BTreeMap::from([("tconstruct:lightweight".to_string(), 1), ("tconstruct:jagged".to_string(), 1)]);
     let order = vec!["tconstruct:lightweight".to_string(), "tconstruct:jagged".to_string()];
     tconstruct_source_mining_stack::apply(&mut stack, &stats, &levels, &order, true).unwrap();
     assert!((tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items) - 3.78).abs() < 0.0001);
-    // The vanilla wire codec may omit the tool patch; synchronized custom data retains the rules.
+    // Absent Tool falls back to the host result; restore the actual component.
+    let tool = stack.data().unwrap().other("minecraft:tool").unwrap().clone();
     stack.data_mut().set_other("minecraft:tool", None);
-    assert!((tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items) - 3.78).abs() < 0.0001);
+    assert_eq!(tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items), 1.0);
+    stack.data_mut().set_other("minecraft:tool", Some(tool));
     assert_eq!(tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:dirt", &items), 1.0);
     stack.damage = 25;
     let base = tconstruct_material_mining_speed(1.0, Some(&stack), "minecraft:stone", &items);
     assert!((base - 3.78).abs() < 0.0001);
     let custom = stack.data().unwrap().other("minecraft:custom_data").unwrap();
     // Efficiency is added before the source percentage modifier; Haste scales both.
-    assert!((tconstruct_source_mining_rules::conditional(custom, 25, (base + 1.0) * 1.2, 1.2).unwrap() - 5.4492).abs() < 0.0001);
+    assert!((tconstruct_source_mining_rules::conditional(custom, 25, (base + 1.0) * 1.2, 1.2, None, true, false).unwrap() - 5.4492).abs() < 0.0001);
     stack.damage = 100;
-    assert_eq!(tconstruct_material_mining_speed(0.3, Some(&stack), "minecraft:stone", &items), 0.3);
+    assert_eq!(tconstruct_material_mining_speed(0.3, Some(&stack), "minecraft:stone", &items), 1.0);
     stack.damage = 25;
     let cached = stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_mining_tool").unwrap().clone();
     stack.data_mut().set_other("minecraft:tool", Some(cached));
@@ -54,7 +62,7 @@ fn unsupported_harvest_tool_without_rules_still_builds() {
 
 #[test]
 fn material_tier_effectiveness_and_broken_state_control_real_harvest() {
-    let mut items = Items::tags_only(std::path::Path::new("/tmp")).unwrap();
+    let mut items = Items::tags_only(std::path::Path::new("/tmp"), &horizon_world::loot::PackOverlay::NONE).unwrap();
     items.block_tags.insert("minecraft:incorrect_for_stone_tool".into(), HashSet::from(["minecraft:diamond_ore".into()]));
     items.block_tags.insert("tconstruct:source_effective/minecraft/mineable/pickaxe".into(), HashSet::from(["minecraft:stone".into(), "minecraft:diamond_ore".into()]));
     let rules = |tier: &str| Tag::compound([("rules", Tag::List(vec![
@@ -64,16 +72,18 @@ fn material_tier_effectiveness_and_broken_state_control_real_harvest() {
     let mut pick = ItemStack::new("tconstruct:pickaxe", 1);
     let data = |tier: &str| Tag::compound([("tic_max_damage", Tag::Int(100)), ("tic_mining_traits", Tag::List(vec![])), ("tic_mining_tool", rules(tier))]);
     pick.data_mut().set_other("minecraft:custom_data", Some(data("stone")));
+    pick.data_mut().set_other("minecraft:tool", Some(rules("stone")));
     assert!(tconstruct_material_correct_for_drops(false, Some(&pick), "minecraft:stone", &items));
     assert!(!tconstruct_material_correct_for_drops(true, Some(&pick), "minecraft:diamond_ore", &items));
     assert_eq!(tconstruct_material_mining_speed(3.5, Some(&pick), "minecraft:diamond_ore", &items), 1.0);
     pick.data_mut().set_other("minecraft:custom_data", Some(data("diamond")));
+    pick.data_mut().set_other("minecraft:tool", Some(rules("diamond")));
     assert!(tconstruct_material_correct_for_drops(false, Some(&pick), "minecraft:diamond_ore", &items));
     assert_eq!(tconstruct_material_mining_speed(3.5, Some(&pick), "minecraft:diamond_ore", &items), 7.0);
     assert!(!tconstruct_material_correct_for_drops(true, Some(&pick), "minecraft:dirt", &items));
     pick.damage = 100;
     assert!(!tconstruct_material_correct_for_drops(false, Some(&pick), "minecraft:stone", &items));
-    assert_eq!(tconstruct_material_mining_speed(0.3, Some(&pick), "minecraft:stone", &items), 0.3);
+    assert_eq!(tconstruct_material_mining_speed(0.3, Some(&pick), "minecraft:stone", &items), 1.0);
     let vanilla = ItemStack::new("minecraft:iron_pickaxe", 1);
     assert!(tconstruct_material_correct_for_drops(true, Some(&vanilla), "minecraft:stone", &items));
 }
@@ -105,7 +115,7 @@ fn gem_mining_applies_additive_speed_and_conditional_multiplier_separately() {
     let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
     let Some(Tag::List(rules))=custom.get("tic_mining_tool").and_then(|t|t.get("rules")) else {panic!()};
     assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-6.0).abs()<0.0001));
-    assert!((tconstruct_source_mining_rules::conditional(custom,25,6.0,1.0).unwrap()-9.75).abs()<0.0001);
+    assert!((tconstruct_source_mining_rules::conditional(custom,25,6.0,1.0,None,true,false).unwrap()-9.75).abs()<0.0001);
 }
 
 #[test]

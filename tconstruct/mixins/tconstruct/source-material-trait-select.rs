@@ -18,20 +18,20 @@ pub(super) fn add_traits_ordered(
     per_stat: &BTreeMap<String, Vec<Value>>,
     kind: &str,
 ) {
-    let stat = match kind {
-        "head" | "handle" | "binding" | "limb" | "grip" | "bowstring" | "maille" => {
-            format!("tconstruct:{kind}")
-        }
-        "plating_helmet" | "plating_chestplate" | "plating_leggings" | "plating_boots" => {
-            "tconstruct:armor".into()
-        }
-        _ => return,
-    };
+    // The source registry first checks the exact stat type and then its
+    // registered trait fallback, before using the material's default traits.
     let fallback = match kind {
         "head" | "handle" | "binding" => Some("tconstruct:melee_harvest"),
         "limb" | "grip" | "bowstring" => Some("tconstruct:ranged"),
-        _ => None,
+        "plating_helmet" | "plating_chestplate" | "plating_leggings" | "plating_boots"
+        | "plating_shield" | "maille" | "shield_core" | "cuirass" | "slime" | "skull"
+        | "shell" | "laces" => Some("tconstruct:armor"),
+        "arrow_head" | "arrow_shaft" | "fletching" => Some("tconstruct:ammo"),
+        // Ribcage deliberately has no armor fallback in MaterialRegistry.
+        "ribcage" | "repair_kit" => None,
+        _ => return,
     };
+    let stat = format!("tconstruct:{kind}");
     let selected = per_stat
         .get(&stat)
         .or_else(|| fallback.and_then(|id| per_stat.get(id)))
