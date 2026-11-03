@@ -97,14 +97,14 @@ impl Catalog<'_> {
             let Some(output) = self.resolved_fluid(&recipe.output) else { continue; };
             let mut used = HashSet::new();
             let mut inputs = Vec::with_capacity(recipe.inputs.len());
-            for ingredient in &recipe.inputs {
+            for (ingredient, catalyst) in recipe.inputs.iter().zip(&recipe.catalysts) {
                 let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
                     !used.contains(index) && *amount >= ingredient.amount && self.matches_fluid(ingredient, fluid));
                 let Some((index, (fluid, _))) = matched else { break; };
                 used.insert(index);
-                inputs.push((fluid.clone(), ingredient.amount));
+                if !*catalyst { inputs.push((fluid.clone(), ingredient.amount)); }
             }
-            if inputs.len() == recipe.inputs.len() {
+            if used.len() == recipe.inputs.len() {
                 let removed = inputs.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
                 if recipe.output.amount.saturating_sub(removed) > capacity.saturating_sub(total) { continue; }
                 return Some((id.clone(), inputs, output, recipe.output.amount));
@@ -124,6 +124,38 @@ impl Catalog<'_> {
                 if previous.temperature != recipe.temperature || previous.time != recipe.time
                     || previous.output.amount != recipe.output.amount || previous_fluid != &fluid { return None; }
             } else { found = Some((id.clone(), recipe, fluid)); }
+        }
+        found
+    }
+    pub(super) fn material_melting(&self, item: &str, material: &str, cost: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+        if !self.known_items.contains(item) { return None; }
+        let mut found: Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = super::tconstruct_source_melting_recipes::material_melting(bytes, item, material, cost, conditions) else { continue; };
+            let Some(primary) = self.resolved_fluid(&recipe.melting.output) else { continue; };
+            let Some(byproducts) = recipe.byproducts.iter().map(|fluid| self.resolved_fluid(fluid).map(|id| (id, fluid.amount))).collect::<Option<Vec<_>>>() else { continue; };
+            if let Some((_, old, old_primary, old_byproducts)) = &found {
+                if old.melting.temperature != recipe.melting.temperature || old.melting.time != recipe.melting.time
+                    || old.melting.output.amount != recipe.melting.output.amount || old_primary != &primary || old_byproducts != &byproducts { return None; }
+            } else { found = Some((id.clone(), recipe, primary, byproducts)); }
+        }
+        found
+    }
+    pub(super) fn damaged_melting(&self, item: &str, damage: u32, maximum: u32, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+        if !self.known_items.contains(item) { return None; }
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let mut found: Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> = None;
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = super::tconstruct_source_melting_recipes::damaged_melting(bytes, damage, maximum, conditions) else { continue; };
+            if !recipe.melting.input.matches(item, &in_tag) { continue; }
+            let Some(primary) = self.resolved_fluid(&recipe.melting.output) else { continue; };
+            let Some(byproducts) = recipe.byproducts.iter().map(|fluid| self.resolved_fluid(fluid).map(|id| (id, fluid.amount))).collect::<Option<Vec<_>>>() else { continue; };
+            if let Some((_, old, old_primary, old_byproducts)) = &found {
+                if old.melting.temperature != recipe.melting.temperature || old.melting.time != recipe.melting.time
+                    || old.melting.output.amount != recipe.melting.output.amount || old_primary != &primary || old_byproducts != &byproducts { return None; }
+            } else { found = Some((id.clone(), recipe, primary, byproducts)); }
         }
         found
     }
@@ -281,6 +313,19 @@ mod tests {
         assert_eq!(id, "bronze");
         assert_eq!((inputs.len(), output.as_str(), amount), (2, "tconstruct:bronze", 360));
         assert!(catalog.alloy(&stored[..1], 360, 700, &|_| true).is_none());
+    }
+    #[test]
+    fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
+        let recipes = [("obsidian".into(), br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100}],"result":{"fluid":"tconstruct:molten_obsidian","amount":100},"temperature":1000}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let items = HashSet::new(); let tags = HashMap::new();
+        let fluids = ["minecraft:water".into(), "minecraft:lava".into(), "tconstruct:molten_obsidian".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let available = [("minecraft:water".into(), 250), ("minecraft:lava".into(), 100)];
+        let (_, inputs, output, amount) = catalog.alloy(&available, 350, 1000, &|_| true).unwrap();
+        assert_eq!(inputs, vec![("minecraft:lava".into(), 100)]);
+        assert_eq!((output.as_str(), amount), ("tconstruct:molten_obsidian", 100));
+        assert!(catalog.alloy(&available[1..], 350, 1000, &|_| true).is_none());
+        assert!(catalog.alloy(&available, 350, 999, &|_| true).is_none());
     }
     #[test]
     fn fluid_fuel_requires_known_fluid_and_enough_amount() {
