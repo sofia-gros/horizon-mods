@@ -198,3 +198,17 @@ The source-backed crossbow test binds both input part arrays before borrowing
 them. An earlier exact-head test compile failed with E0716; a disposable
 old-host diagnostic passed after the same lifetime correction. This new
 candidate has not yet passed the dedicated exact-head test or official build.
+
+### Raging and Airborne projectile integration candidate
+
+The #140 actor-state candidate is integrated with the ordered bow stat builder:
+conditional velocity and projectile damage use the builder's current
+multiply-base and multiply-all scales rather than an earlier precomputed stat.
+The included photographs document the earlier #140 session, not this integrated
+head. Syntax only; official apply and type checks and same-shot health 20/6,
+local/guest actor identity, ground/water/climb/vehicle, save/reload and actual
+projectile damage still require dedicated verification on this candidate.
+
+### Stat builder multiplier correction
+
+Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, mining speed, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
