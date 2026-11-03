@@ -166,6 +166,7 @@ pub(super) fn extract_upgrade_with_traits(
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
+    if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
@@ -1222,6 +1223,19 @@ mod tests {
         let modified = String::from_utf8(recipes["blasting"].clone()).unwrap().replace("\"needed_per_level\":20", "\"needed_per_level\":10");
         let other_recipe = BTreeMap::from([("blasting".into(), modified.into_bytes())]);
         assert!(plan(&other_recipe, &tags, &make_tool(0), &gunpowder, 5).is_none());
+    }
+
+    #[test]
+    fn blasting_extraction_requires_stone_tool_tag() {
+        let mut tool = ItemStack::new("tconstruct:pickaxe", 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:blasting", Tag::Int(30))]))
+        ])));
+        let inputs = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+        let mut tags = HashMap::from([("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into()]))]);
+        assert!(extract_upgrade(&tags, &tool, &inputs, "tconstruct:blasting").is_none());
+        tags.insert("tconstruct:modifiable/harvest/stone".into(), HashSet::from(["tconstruct:pickaxe".into()]));
+        assert_eq!(extract_upgrade(&tags, &tool, &inputs, "tconstruct:blasting").unwrap().upgrade.amount, 10);
     }
 
     #[test]

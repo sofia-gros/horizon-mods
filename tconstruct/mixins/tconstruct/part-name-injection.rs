@@ -118,15 +118,21 @@ fn tconstruct_part_name(
         if hydraulic_upgrade || hydraulic_trait {
             value.push((horizon_client::text::Text::literal("Hydraulic: underwater only; rain bonus unavailable"), horizon_client::hud::rgba(255, 170, 0, 255)));
         }
-        for (id, needed) in [("hydraulic", 36), ("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
+        for (id, needed) in [("blasting", 20), ("hydraulic", 36), ("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
-            let level = amount.saturating_add(needed - 1) / needed;
+            let level = (amount - 1) / needed + 1;
             let base_key = format!("modifier.tconstruct.{id}");
             let level_key = format!("{base_key}.{level}");
-            let name = game.pack.names.display_get(&level_key).or_else(|| game.pack.names.display_get(&base_key)).unwrap_or(base_key);
-            let remainder = amount % needed;
-            let text = if remainder == 0 { name } else { format!("{name} {remainder}/{needed}") };
+            let text = if id == "blasting" {
+                let base = game.pack.names.display_get(&base_key).unwrap_or(base_key);
+                let Some(text) = crate::game::tconstruct_station_info_ui::blasting_label(&base, *amount) else { continue; };
+                text
+            } else {
+                let name = game.pack.names.display_get(&level_key).or_else(|| game.pack.names.display_get(&base_key)).unwrap_or(base_key);
+                let remainder = amount % needed;
+                if remainder == 0 { name } else { format!("{name} {remainder}/{needed}") }
+            };
             if game.options_advanced_tooltips() && tconstruct_source_config::client_modifier_ids() {
                 let template = game.pack.names.display_get("item.tconstruct.tool.id_format")
                     .unwrap_or_else(|| "%s (%s)".to_owned());
