@@ -51,7 +51,45 @@ fn choices_from(
         (Some(_), Some(found)) => SourcePartInput::Material { input_item: id, material: &found.material, craftable, supported_outputs: &supported },
         (Some(_), None) => SourcePartInput::Invalid,
     };
-    tx::source_all_part_choices(recipes, &*pattern.item, &input, id, count, items, &instruments, &instrument_tags, &registries, config, None, None, true)
+    let mut tool_patterns = HashMap::new();
+    if let Some(tool) = material {
+        for (recipe_id, bytes) in recipes {
+            let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+            if value.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:part_builder_tool_recycling") { continue; }
+            let recipe = tx::SourceToolRecyclingRecipe::parse(recipe_id.clone(), &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+            if !recipe.partial_match(&pattern.item, id, count, items, &instruments, &instrument_tags) { continue; }
+            match recipe.enabled(&registries, config, None) { Some(false) => continue, None => return Err(SourceLookupError::UnknownCondition), Some(true) => {} }
+            let (parts, materials, supported) = recycling_tool_parts(world, tool, &recipe)?;
+            let patterns = tx::source_tool_recycling_patterns(&recipe, Some(&parts), &materials, &supported, true)?;
+            tool_patterns.insert(recipe_id.clone(), patterns);
+        }
+    }
+    tx::source_all_part_choices(recipes, &*pattern.item, &input, id, count, items, &instruments, &instrument_tags, &registries, config, None, Some(&tool_patterns), true)
+}
+
+fn recycling_tool_parts(world: &super::tconstruct_world::World, tool: &ItemStack, recipe: &tx::SourceToolRecyclingRecipe)
+    -> Result<(Vec<String>, Vec<String>, HashMap<String, HashSet<String>>), SourceLookupError> {
+    use horizon_world::nbt::Tag;
+    let custom = tool.data().and_then(|data| data.other("minecraft:custom_data")).ok_or(SourceLookupError::IncompleteContext)?;
+    let Tag::List(raw) = custom.get("tic_materials").ok_or(SourceLookupError::IncompleteContext)? else { return Err(SourceLookupError::IncompleteContext); };
+    let materials = raw.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy()), _ => None })
+        .collect::<Option<Vec<_>>>().ok_or(SourceLookupError::IncompleteContext)?;
+    let snapshot = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+    let (namespace, name) = tool.item.split_once(':').ok_or(SourceLookupError::IncompleteContext)?;
+    let definition = snapshot.get(&format!("{namespace}:tinkering/tool_definitions/{name}")).and_then(|layers| layers.last()).ok_or(SourceLookupError::IncompleteContext)?;
+    let default = super::tconstruct_source_station_recipes::BuildingRecipe {
+        result: tool.item.to_string(), result_count: 1, layout: None, parts_override: None, extra_requirements: Vec::new(), extra_materials: Vec::new(),
+    };
+    let parts = if recipe.parts.is_empty() { default.parts(definition).ok_or(SourceLookupError::IncompleteContext)? } else { recipe.parts.clone() };
+    // The source bounds output by ToolMaterialHook.stats; do not infer a
+    // mismatched list's missing indices or default materials.
+    if parts.len() != materials.len() { return Err(SourceLookupError::IncompleteContext); }
+    let mut supported = HashMap::new();
+    for material in &materials {
+        let base = material.split_once('#').map_or(material.as_str(), |(base, _)| base);
+        if !supported.contains_key(base) { supported.insert(base.to_owned(), supported_material(world, material)?.1); }
+    }
+    Ok((parts, materials, supported))
 }
 
 /// Cached `IMaterialValue` is independent of the pattern/recipe list and is
@@ -187,12 +225,6 @@ pub(super) fn plan(
         let recipe = tx::SourceRecyclingRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
         let Some(stack) = material else { return Ok(None); };
         let durability = chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
-        let override_damage = stack.data().and_then(|data| data.other("minecraft:max_damage"));
-        // A cached wire patch may contain removals or additions not reflected
-        // by the local component snapshot. Do not guess its effective value.
-        if override_damage.is_some() && stack.wire_patch().is_some() { return Err(SourceLookupError::IncompleteContext); }
-        let max_damage = super::tconstruct_source_native_durability::max_damage(&stack.item, durability, override_damage).ok_or(SourceLookupError::IncompleteContext)?;
-        let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
         // The original applies different checks to modifiable items. Do not
         // infer non-membership from an unresolved world tag.
         let modifiable = if let Some(values) = items.get("tconstruct:modifiable") {
@@ -203,8 +235,29 @@ pub(super) fn plan(
                 .map_err(|_| SourceLookupError::IncompleteContext)? { return Err(SourceLookupError::IncompleteContext); }
             false
         };
-        if modifiable { return Err(SourceLookupError::IncompleteContext); }
-        if !recipe.matches(true, max_damage, damage, false, false, !stack.enchantments().is_empty())? { return Ok(None); }
+        let (max_damage, upgrades) = if modifiable {
+            use horizon_world::nbt::Tag;
+            // An opaque patch can hide additions or removals affecting the
+            // source's no-upgrades check or maximum durability.
+            if stack.wire_patch().is_some() { return Err(SourceLookupError::IncompleteContext); }
+            let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+            if custom.is_some_and(|value| !matches!(value, Tag::Compound(_))) { return Err(SourceLookupError::IncompleteContext); }
+            let upgrades = match custom.and_then(|value| value.get("tic_upgrades")) {
+                None => false, Some(Tag::Compound(values)) => !values.is_empty(), _ => return Err(SourceLookupError::IncompleteContext),
+            };
+            let maximum = match custom.and_then(|value| value.get("tic_max_damage")) {
+                Some(Tag::Int(value)) if *value > 0 => *value,
+                Some(_) => return Err(SourceLookupError::IncompleteContext),
+                None => return Err(SourceLookupError::IncompleteContext),
+            };
+            (maximum, upgrades)
+        } else {
+            let override_damage = stack.data().and_then(|data| data.other("minecraft:max_damage"));
+            if override_damage.is_some() && stack.wire_patch().is_some() { return Err(SourceLookupError::IncompleteContext); }
+            (super::tconstruct_source_native_durability::max_damage(&stack.item, durability, override_damage).ok_or(SourceLookupError::IncompleteContext)?, false)
+        };
+        let damage = i32::try_from(stack.damage).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+        if !recipe.matches(true, max_damage, damage, modifiable, upgrades, !stack.enchantments().is_empty())? { return Ok(None); }
         let Some(output) = recipe.output(selected, max_damage, damage)? else { return Ok(None); };
         let original_count = recipe.results.get(selected).ok_or(SourceLookupError::IncompleteContext)?.count;
         let mut alternatives = Vec::new();
@@ -226,7 +279,54 @@ pub(super) fn plan(
         let count = output.count;
         return Ok(Some(tx::SourcePartPlan {
             output: tx::SourcePartOutput::Item { output, count }, materials_used: 1,
-            pattern_used: i32::from(!reusable), leftover: None, random_alternatives: alternatives,
+            pattern_used: i32::from(!reusable), leftover: None, random_alternatives: alternatives, random_material_alternatives: Vec::new(), random_damage_gate: None,
+        }));
+    }
+    if value.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:part_builder_tool_recycling") {
+        use horizon_world::nbt::Tag;
+        let recipe = tx::SourceToolRecyclingRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let Some(tool) = material else { return Ok(None); };
+        let count = i32::try_from(tool.count).map_err(|_| SourceLookupError::UnsupportedRecipe)?;
+        if !recipe.partial_match(&pattern.item, &tool.item, count, items, &HashSet::new(), &HashMap::new()) { return Ok(None); }
+        let fluids = chunks.__horizon_mixins_tconstruct_resolved_fluid_tags().as_ref().and_then(|value| value.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+        let config = chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|value| value.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
+        let registries = [("minecraft:item".to_owned(), items.clone()), ("minecraft:fluid".to_owned(), fluids.clone())].into_iter().collect();
+        match recipe.enabled(&registries, config, None) { Some(false) => return Ok(None), None => return Err(SourceLookupError::UnknownCondition), Some(true) => {} }
+        if tool.wire_patch().is_some() { return Err(SourceLookupError::IncompleteContext); }
+        let custom = tool.data().and_then(|data| data.other("minecraft:custom_data")).ok_or(SourceLookupError::IncompleteContext)?;
+        match custom.get("tic_upgrades") {
+            None => {}, Some(Tag::Compound(values)) if values.is_empty() => {},
+            Some(Tag::Compound(_)) => return Ok(None), _ => return Err(SourceLookupError::IncompleteContext),
+        }
+        let maximum = match custom.get("tic_max_damage") {
+            Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => return Err(SourceLookupError::IncompleteContext),
+        };
+        let (parts, materials, supported) = recycling_tool_parts(world, tool, &recipe)?;
+        let available = |index: usize| {
+            let Some(material) = materials.get(index) else { return false; };
+            let base = material.split_once('#').map_or(material.as_str(), |(base, _)| base);
+            parts.get(index).is_some_and(|part| supported.get(base).is_some_and(|items| items.contains(part)))
+        };
+        let Some(index) = parts.iter().enumerate().find_map(|(index, part)| (part == selected && available(index)).then_some(index)) else { return Ok(None); };
+        let mut skipped_first = false;
+        let mut alternatives = Vec::new();
+        for (index, part) in parts.iter().enumerate() {
+            if !skipped_first && part == selected { skipped_first = true; continue; }
+            if available(index) { alternatives.push((part.clone(), materials[index].clone())); }
+        }
+        let reusable = if let Some(values) = items.get("tconstruct:patterns/reusable") {
+            values.contains(&*pattern.item)
+        } else {
+            let raw = chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot().as_ref().ok_or(SourceLookupError::IncompleteContext)?;
+            if !super::tconstruct_source_tags::definitely_absent("tconstruct:patterns/reusable", &pattern.item, raw)
+                .map_err(|_| SourceLookupError::IncompleteContext)? { return Err(SourceLookupError::IncompleteContext); }
+            false
+        };
+        return Ok(Some(tx::SourcePartPlan {
+            output: tx::SourcePartOutput::MaterialItem { item: parts[index].clone(), material: materials[index].clone(), count: 1 },
+            materials_used: recipe.amount_needed, pattern_used: i32::from(!reusable), leftover: None,
+            random_alternatives: Vec::new(), random_material_alternatives: alternatives,
+            random_damage_gate: (tool.damage > 0).then_some((tool.damage, maximum)),
         }));
     }
     let recipe = tx::SourcePartRecipe::parse(choice_id, &value).ok_or(SourceLookupError::UnsupportedRecipe)?;

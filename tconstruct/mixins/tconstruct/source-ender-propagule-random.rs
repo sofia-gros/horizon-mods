@@ -1,0 +1,1 @@
+fn tconstruct_ender_propagule_random(level: &mut GameLevel<'_>,ticks: &mut Ticks,pos: BlockPos,state: BlockStateId,handled: &mut bool) {super::tconstruct_ender_propagule::random(level,ticks,pos,state,handled);}
