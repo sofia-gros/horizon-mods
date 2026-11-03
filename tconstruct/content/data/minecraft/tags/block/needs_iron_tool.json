@@ -9,7 +9,6 @@
     "tconstruct:cobalt_ore",
     "tconstruct:slimesteel_block",
     "tconstruct:cinderslime_block",
-    "tconstruct:pig_iron_block",
     "tconstruct:ichor_slime_dirt",
     "tconstruct:ichor_earth_slime_grass",
     "tconstruct:ichor_sky_slime_grass",
@@ -17,6 +16,8 @@
     "tconstruct:sky_ichor_slime_grass",
     "tconstruct:ichor_ichor_slime_grass",
     "tconstruct:blood_ichor_slime_grass",
-    "tconstruct:ichor_vanilla_slime_grass"
+    "tconstruct:ichor_vanilla_slime_grass",
+    "tconstruct:pig_iron_block",
+    "tconstruct:knightmetal_block"
   ]
 }

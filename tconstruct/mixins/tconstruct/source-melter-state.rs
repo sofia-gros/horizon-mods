@@ -181,10 +181,12 @@ impl Faucet {
         if output.fluid.as_deref().is_some_and(|other| other != fluid || output.tag != input.tag) { return false; }
         let amount = input.amount.min(90).min(output.capacity.saturating_sub(output.amount));
         if amount == 0 { return false; }
-        let Some(fluid) = input.take(amount) else { return false; };
-        // An empty buffer with capacity 90 always accepts this validated amount.
-        debug_assert!(self.pending.amount == 0 && amount <= self.pending.capacity);
-        self.pending.fluid = Some(fluid); self.pending.amount = amount;
+        let tag = input.tag.clone();
+        let mut next_input = input.clone();
+        let mut next_pending = self.pending.clone();
+        let Some(fluid) = next_input.take_tagged(tag.as_ref(), amount) else { return false; };
+        if !next_pending.insert_tagged(&fluid, tag.as_ref(), amount) { return false; }
+        *input = next_input; self.pending = next_pending;
         true
     }
     pub(super) fn tick(&mut self, input: &mut Tank, output: Option<&mut Tank>) {
@@ -195,9 +197,12 @@ impl Faucet {
             if output.fluid.as_deref().is_some_and(|other| other != fluid || output.tag != self.pending.tag) { return; }
             let amount = self.pending.amount.min(10).min(output.capacity.saturating_sub(output.amount));
             if amount == 0 { return; }
-            let Some(fluid) = self.pending.take(amount) else { return; };
-            let inserted = output.insert(&fluid, amount);
-            debug_assert!(inserted);
+            let tag = self.pending.tag.clone();
+            let mut next_pending = self.pending.clone();
+            let mut next_output = output.clone();
+            let Some(fluid) = next_pending.take_tagged(tag.as_ref(), amount) else { return; };
+            if !next_output.insert_tagged(&fluid, tag.as_ref(), amount) { return; }
+            self.pending = next_pending; *output = next_output;
         } else if self.stop_after_packet || !self.begin_packet(input, output) {
             self.active = false; self.stop_after_packet = false;
         }

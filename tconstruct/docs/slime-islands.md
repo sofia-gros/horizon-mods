@@ -1,5 +1,3 @@
-> Integration status: this candidate carries the existing island and vegetation code with the foliage terrain-tint injection deferred. The 0c7b/ddd build evidence applies to the earlier fixed integration head; this candidate requires its own apply, type and runtime verification. Slime fluids and some island Ender-tree markers remain incomplete.
-
 # Slime islands
 
 The reference definitions and 25 island templates are pinned to TConstruct
@@ -154,17 +152,16 @@ to the host placement context's direction ordering. The bridge plan, placing
 on each face, replacement, no-support rejection, player/dispenser behavior,
 item consumption and local/LAN regression require dedicated validation.
 
-## Combined validation candidate
+## Historical combined validation candidate
 
-The combined branch is based on repository main `283cc1a21fd7880a05312400b5d8e531027d442e`.
+This earlier candidate was based on repository main `283cc1a21fd7880a05312400b5d8e531027d442e`.
 Its source dependencies are #191 → #200, followed by #204, #206 → #218,
 #208 and #212 → #215. It also includes #173's congealed-slime loot.
-The TConstruct target is Horizon `9a6f7dd5a193d709f389adeb1f51858465b8f747`
-and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Stage it with
-the unified PlutoLib bundle built for that exact Horizon target from this
-checkout's `pluto-lib` tree `aa8a6068ae9f24938f935a665733bf67cac53fea`;
-the bundle itself is not supplied or verified by this integration branch.
-No combined plan, stage, build or game result is claimed.
+Its TConstruct target was Horizon `9a6f7dd5a193d709f389adeb1f51858465b8f747`
+and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its staging instructions
+required a unified PlutoLib bundle for that exact host from tree
+`aa8a6068ae9f24938f935a665733bf67cac53fea`; that branch did not supply or verify
+the bundle or claim a combined plan, stage, build or game result.
 
 ## Experimental Ender slime vine
 
@@ -178,13 +175,16 @@ action and dedicated-server behavior remain open.
 
 ## Target and validation
 
-The island candidate requires a newer host than the current main pin. The
-earlier fixed integration passed an official apply and client build on
+The [current target](../compatibility.json) is Horizon 0c7b with Mixins ddd.
+The earlier fixed integration in [#354](https://github.com/sofia-gros/horizon-mods/pull/354)
+passed an official apply and client build on
 Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` and Mixins
 `ddd9700b21997c95d95ac6ee5ecafe3830cf622a` with its matching unified
 PlutoLib bundle. That result does not establish this candidate's apply, build
-or gameplay. Natural generation, source fluids, save/reload and LAN require
-separate validation.
+or gameplay. [#361's plan report](https://github.com/sofia-gros/horizon-mods/pull/361#issuecomment-6594377397)
+records a plan pass for `aeef32affb1c8f0145a1e4d07e8b6ccdd6670b73`,
+not a completed apply, build or game pass. Natural generation, source fluids,
+save/reload and LAN require separate validation.
 
 On Horizon `b193a877110ac1505227e6e057b40aade8aac8dd`, the pinned Mixins
 transformer reformats the host's valid `(0. ..=1.)` frequency range as invalid
@@ -205,8 +205,8 @@ vanilla and Ender trees remain deferred. Missing features change later marker
 RNG and leave generated chunks incomplete. Updating the mod does not
 automatically repair those chunks, so use a disposable world for validation.
 
-This is not complete source generation: source fluids, the deferred tree and
-fungus features, slime mob overrides and several plant behaviors remain open.
+This is not complete source generation: source fluids, deferred tree features,
+fungus parity, slime mob overrides and several plant behaviors remain open.
 The reference templates remain untouched. Target Mixins plan, loading, biome
 selection, weighted placement, markers, terrain, block drops, missing-fluid
 positions, save/reload and local/LAN regressions require dedicated validation.
@@ -239,9 +239,9 @@ the host feature accepts one base block while the original uses a tag. A
 third-party addition to that tag has no corresponding variant yet. The
 runtime conservatively refuses placement across an unloaded chunk boundary.
 
-This connects planted growth only; the island's Blood fungus marker remains
-deferred. Compare the host writer's block-update flags, source replaceability
-and RNG against TConstruct before claiming parity. Tag loading, all feature
+This section describes planted growth; the separate experimental island Blood
+fungus path is described below. Compare the host writer's block-update flags,
+source replaceability and RNG against TConstruct before claiming parity. Tag loading, all feature
 variants, bone-meal consumption, obstruction, chunk boundaries, source loot,
 save/reload, vanilla-fungus regression and local/LAN need dedicated testing.
 Dedicated-server support and normal acquisition are not established.
@@ -297,3 +297,45 @@ The b53 selector and module-header follow-ups reached `E_INVALID_BINDING`
 for the destructured `Mesher::face` arguments. The integration omits that
 terrain-tint injection only; vegetation, island generation and source lookup
 remain available. Do not infer a tint implementation from map loading.
+
+Earlier Horizon b53 fixtures resolved ten foliage sound declarations to known
+grass sounds and checked Earth/Sky island generation plus Earth foliage harvest
+and reload ([image](slime-foliage-sound-test.png)). Audio was not listened to;
+other foliage and vine placements were not verified. This is not evidence for
+the current build.
+
+The position-dependent terrain tint hook remains disconnected. The former
+`Mesher::tint` site also destructures its inputs, and `Tints::get` lacks the
+block identity needed for a direct substitute. A compatible hook needs separate
+investigation and validation.
+
+## Historical implementation evidence
+
+The [pre-reconciliation island notes](https://github.com/sofia-gros/horizon-mods/blob/aeef32affb1c8f0145a1e4d07e8b6ccdd6670b73/tconstruct/docs/slime-islands.md)
+retain the earlier implementation sequence and probe details. They describe
+older targets, not the current feature status:
+
+- Source Overworld sky placement uses spacing 35, separation 4, frequency 0.5
+  and Sky:Clay weights 4:1. Placement tests cover rotation offsets and four
+  surface samples; marker tests cover three successful trees, a skipped fourth,
+  soil rejection, grass/vine handling and saved-piece round-tripping.
+- Generic `place_in_chunk` and closure-contained call probes reported
+  `E_UNSUPPORTED_SIGNATURE` and `E_UNSUPPORTED_CONTROL_FLOW`. Limited HEAD
+  probes for `try_generate` and `StructureState::use_saved_start` passed
+  transformation and `horizon-world` type checks. Those isolated checks did not
+  establish natural generation, save/reload or the later integrated build.
+- A `FluidKind` state probe reported `E_BRIDGE_TARGET`; a struct state bridge
+  does not add fluid enum variants. Earlier content-state restrictions were
+  investigated against host `e7f4440f05461c8975bebd2d185e3e9c6214aa4a`;
+  those old restrictions are not evidence that today's registered vine states
+  are absent. No vanilla fluid or tree substitution establishes source parity.
+- The historical b53 follow-up was based on main
+  `61613253e4aa06eb2e739a9f6343a93652f014f8`, targeting Horizon
+  `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` with ddd and its matching
+  unified PlutoLib bundle. Other joint b53 work did not verify that candidate;
+  earlier #220 and #223 heads were unchanged.
+- The b53 apply for `f0b9ee660e22fb35517e798d053d0f3672d6136b`
+  reported `E_SELECTOR`; ordinal zero with `require = 1` addressed that selector.
+  A later `E_MODULE` led to ordinary rather than inner-doc module comments.
+  The subsequent `E_INVALID_BINDING` left only the terrain-face tint injection
+  deferred. These intermediate fixes are not independent build/game passes.
