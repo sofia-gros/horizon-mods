@@ -359,3 +359,18 @@ This does not implement Blood or Ichor nylium bonemeal, which also spreads to
 soil and may grow saplings. Datapack tag reload, obstruction, consumption,
 placement and survival, save/reload, local/LAN and dedicated-server behavior
 remain unverified in the running game.
+
+## Experimental slime-grass seeds
+
+The five seed items and their pinned textures are registered in the blocks
+creative tab. On the authoritative server, a seed converts the clicked dirt
+or slime dirt to the corresponding grass or nylium. Sky and Ender seeds also
+convert a vanilla vine, preserving its faces. A failed write does not consume
+the seed; creative mode keeps it. This is an intentional safety difference
+from the original, which consumes after attempting the write.
+
+Natural acquisition from source loot injectors is not implemented. The
+server's target permission checks precede the item-use hook, but full host
+integration and game tests are still needed for protected targets, adventure
+mode, offhand, sounds, save/reload and LAN. Forge tool/action behavior is a
+separate limitation.
