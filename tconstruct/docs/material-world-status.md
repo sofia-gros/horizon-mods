@@ -221,3 +221,9 @@ Bouncy landing hooks remain deferred. The current landing-state package uses
 ChunkMap and its Default constructor, not the older PlayerMotion design. Check
 package tests, plan and build on the same integrated revision; a pass from an
 older candidate does not establish success for current main.
+
+Earlier material fixtures passed against older host libraries for skull/slime
+recipes, capacity, mining arithmetic and regeneration. The cancellation-safe
+mining helper also passed a targeted #101 apply on Horizon 0c7b/Mixins ddd and
+an older stub-Game check. These are revision-scoped checks, not proof of the
+current integrated build or gameplay.
