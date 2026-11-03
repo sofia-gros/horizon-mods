@@ -203,6 +203,7 @@ fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, se
             }
             let supported_types: std::collections::HashSet<_> = match section {
                 "melee_harvest_materials" => ["tconstruct:head", "tconstruct:handle", "tconstruct:binding"].as_slice(),
+                "armor_materials" => ARMOR_MATERIAL_STATS,
                 _ => ["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"].as_slice(),
             }.iter().map(|v| (*v).to_owned()).collect();
             let page_parts = crate::game::tconstruct_tx::source_supported_original_parts(&supported_types, false);
@@ -266,12 +267,23 @@ fn tool_pages(game: &Game<'_>, title: &str, id: &str, data: Option<&serde_json::
     result
 }
 
+// Armor materials can have more stat types than fit on one panel. Keep all
+// supported armor types available for both selection and display.
+const ARMOR_MATERIAL_STATS: &[&str] = &[
+    "tconstruct:plating_helmet", "tconstruct:plating_chestplate",
+    "tconstruct:plating_leggings", "tconstruct:plating_boots",
+    "tconstruct:plating_shield", "tconstruct:maille", "tconstruct:shield_core",
+    "tconstruct:cuirass", "tconstruct:slime", "tconstruct:skull",
+    "tconstruct:shell", "tconstruct:laces", "tconstruct:ribcage",
+];
+
 fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
     let kinds: &[&str] = match key {
         "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
         "ranged_materials" => &["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"],
+        "armor_materials" => ARMOR_MATERIAL_STATS,
         "ammo_materials" => &["tconstruct:arrow_head", "tconstruct:arrow_shaft", "tconstruct:fletching"],
         _ => return None,
     };
@@ -286,6 +298,7 @@ fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool) -> Option<Vec<(Stri
         let group = match key {
             "melee_harvest_materials" => (i32::from(!has("tconstruct:head")), 0, 0),
             "ranged_materials" => (i32::from(!has("tconstruct:bowstring")), i32::from(has("tconstruct:limb")), 0),
+            "armor_materials" => (i32::from(!has("tconstruct:plating_helmet")), 0, 0),
             _ => (i32::from(!has("tconstruct:arrow_head")), i32::from(has("tconstruct:fletching")), i32::from(has("tconstruct:arrow_shaft"))),
         };
         (group, *tier, *order, (*id).clone())
@@ -315,7 +328,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
         // Other material tiers and modifier layouts still need Puny-specific handling.
-        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "ranged_materials" | "armor" | "worktable" | "further_reading") { continue; }
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "ranged_materials" | "armor_materials" | "armor" | "worktable" | "further_reading") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
@@ -348,13 +361,14 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                 let visible: &[&str] = match key {
                     "melee_harvest_materials" => &["tconstruct:head", "tconstruct:handle", "tconstruct:binding"],
                     "ranged_materials" => &["tconstruct:limb", "tconstruct:grip", "tconstruct:bowstring"],
+                    "armor_materials" => ARMOR_MATERIAL_STATS,
                     _ => &["tconstruct:arrow_head", "tconstruct:arrow_shaft", "tconstruct:fletching"],
                 };
                 for (id, name) in materials {
                     let mut groups: Vec<Option<serde_json::Value>> = vec![None; visible.len()];
                     let (namespace, material) = id.split_once(':').unwrap_or(("tconstruct", &id));
                     let base = material.split('#').next().unwrap_or(material);
-                    let suffix = match key { "melee_harvest_materials" => "melee_harvest", "ranged_materials" => "ranged", _ => "ammo" };
+                    let suffix = match key { "melee_harvest_materials" => "melee_harvest", "ranged_materials" => "ranged", "armor_materials" => "armor", _ => "ammo" };
                     let specific = game.translate(&format!("material.{namespace}.{base}.flavor.{suffix}"), "");
                     let flavor = if specific.is_empty() { game.translate(&format!("material.{namespace}.{base}.flavor"), "") } else { specific };
                     let color_name = material.replace('#', ".");
@@ -414,32 +428,39 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                         }
                     }
                     let sidebar = material_sidebar(game, &material_context, &id, key);
-                    let ranges: Vec<_> = groups.iter().map(|group| group.as_ref().and_then(|g| g.get("lines")).and_then(|v| v.as_array()).map(|lines| {
-                        let continuation: Vec<_> = lines.iter().map(|line| line.get("continuation").and_then(|v| v.as_bool()).unwrap_or(false)).collect();
-                        super::tconstruct_materials_book_layout::material_line_ranges(&continuation)
-                    })).collect();
-                    let count = ranges.iter().flatten().map(Vec::len).max().unwrap_or(1).max(1);
-                    for chunk in 0..count {
-                        let page_groups: Vec<_> = groups.iter().zip(&ranges).map(|(group, ranges)| group.as_ref().and_then(|group| {
-                            let mut group = group.clone();
-                            let lines = group.get("lines").and_then(|v| v.as_array()).cloned().unwrap_or_default();
-                            let range = ranges.as_ref().and_then(|ranges| ranges.get(chunk)).cloned().unwrap_or(0..0);
-                            if chunk > 0 && range.is_empty() { return None; }
-                            group["lines"] = serde_json::json!(&lines[range]); Some(group)
+                    if key == "armor_materials" {
+                        groups.retain(Option::is_some);
+                        if groups.is_empty() { groups.push(None); }
+                    }
+                    let group_batches = groups.len().max(1).div_ceil(4);
+                    for (batch_index, batch) in groups.chunks(4).enumerate() {
+                        let ranges: Vec<_> = batch.iter().map(|group| group.as_ref().and_then(|g| g.get("lines")).and_then(|v| v.as_array()).map(|lines| {
+                            let continuation: Vec<_> = lines.iter().map(|line| line.get("continuation").and_then(|v| v.as_bool()).unwrap_or(false)).collect();
+                            super::tconstruct_materials_book_layout::material_line_ranges(&continuation)
                         })).collect();
-                        let lengths: Vec<_> = page_groups.iter().map(|group| group.as_ref().and_then(|g| g.get("lines")).and_then(|v| v.as_array()).map(Vec::len)).collect();
-                        let available = super::tconstruct_materials_book_layout::material_flavor_rows(&lengths);
-                        let mut flavor_overflow = Vec::new();
-                        let mut flavor_runs = serde_json::Value::Null;
-                        if chunk + 1 == count && !flavor.is_empty() {
-                            let text = Text::styled(format!("\"{flavor}\""), horizon_client::text::Style { italic:Some(true), ..Default::default() });
-                            let pages = split_styled(game, &text, 155.0, available.max(1));
-                            if available > 0 { if let Some(first) = pages.first() { flavor_runs = serde_json::json!(super::tconstruct_materials_book_layout::encode_runs(first)); } flavor_overflow.extend(pages.into_iter().skip(1)); }
-                            else { flavor_overflow.extend(pages); }
+                        let count = ranges.iter().flatten().map(Vec::len).max().unwrap_or(1).max(1);
+                        for chunk in 0..count {
+                            let page_groups: Vec<_> = batch.iter().zip(&ranges).map(|(group, ranges)| group.as_ref().and_then(|group| {
+                                let mut group = group.clone();
+                                let lines = group.get("lines").and_then(|v| v.as_array()).cloned().unwrap_or_default();
+                                let range = ranges.as_ref().and_then(|ranges| ranges.get(chunk)).cloned().unwrap_or(0..0);
+                                if chunk > 0 && range.is_empty() { return None; }
+                                group["lines"] = serde_json::json!(&lines[range]); Some(group)
+                            })).collect();
+                            let lengths: Vec<_> = page_groups.iter().map(|group| group.as_ref().and_then(|g| g.get("lines")).and_then(|v| v.as_array()).map(Vec::len)).collect();
+                            let available = super::tconstruct_materials_book_layout::material_flavor_rows(&lengths);
+                            let mut flavor_overflow = Vec::new();
+                            let mut flavor_runs = serde_json::Value::Null;
+                            if batch_index + 1 == group_batches && chunk + 1 == count && !flavor.is_empty() {
+                                let text = Text::styled(format!("\"{flavor}\""), horizon_client::text::Style { italic:Some(true), ..Default::default() });
+                                let pages = split_styled(game, &text, 155.0, available.max(1));
+                                if available > 0 { if let Some(first) = pages.first() { flavor_runs = serde_json::json!(super::tconstruct_materials_book_layout::encode_runs(first)); } flavor_overflow.extend(pages.into_iter().skip(1)); }
+                                else { flavor_overflow.extend(pages); }
+                            }
+                            let spec = serde_json::json!({"material_panel":{"material":id,"groups":page_groups,"sidebar":sidebar,"flavor_runs":flavor_runs}});
+                            chapter_pages.push(Text::styled(&name, horizon_client::text::Style { insertion:Some(format!("tconstruct:book:{spec}")), color:color_value, underlined:Some(true), ..Default::default() }));
+                            for part in flavor_overflow { chapter_pages.push(part); }
                         }
-                        let spec = serde_json::json!({"material_panel":{"material":id,"groups":page_groups,"sidebar":sidebar,"flavor_runs":flavor_runs}});
-                        chapter_pages.push(Text::styled(&name, horizon_client::text::Style { insertion:Some(format!("tconstruct:book:{spec}")), color:color_value, underlined:Some(true), ..Default::default() }));
-                        for part in flavor_overflow { chapter_pages.push(part); }
                     }
                 }
                 if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }

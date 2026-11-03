@@ -50,6 +50,7 @@ jobs:
           python3 -m unittest discover -s tconstruct/tests -v
           python3 -m unittest discover -s pluto-lib/tests -p "test_package_native.py" -v
           cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
+          cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml
           rustc --edition=2021 --test tconstruct/tests/rust/slime_plant_support.rs -o /tmp/tconstruct-slime-plant-support-test
           /tmp/tconstruct-slime-plant-support-test
           rustc --edition=2021 --test tconstruct/tests/rust/broad_wire.rs -o /tmp/tconstruct-broad-wire-test
