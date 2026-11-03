@@ -149,10 +149,25 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
     let has_slurping = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:slurping")), Some(Tag::Int(level)) if *level > 0);
     let has_spilling = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:spilling")), Some(Tag::Int(level)) if *level > 0);
     let has_splashing = matches!(fields.get(&"tic_upgrades".into()).and_then(|v| v.get("tconstruct:splashing")), Some(Tag::Int(level)) if *level > 0);
-    let has_tank_trait = tank_traits.is_some_and(|traits| [
+    const TANK_HANDLERS: [&str; 10] = [
         "tank", "slurping", "spilling", "splashing", "bursting", "wetting",
         "melting", "spitting", "bucketing", "overburn",
-    ].iter().any(|id| traits.get(&format!("tconstruct:{id}")).is_some_and(|level| *level > 0)));
+    ];
+    // If a definition itself declares a tank handler, failure to resolve its
+    // traits cannot safely be treated as an ordinary tankless tool.
+    if tank_traits.is_none() && definition_json.get("modules")?.as_array()?.iter().any(|module| {
+        if module.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:traits") { return false; }
+        if let Some(hooks) = module.get("hooks").and_then(serde_json::Value::as_array) {
+            if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { return false; }
+        }
+        module.get("traits").and_then(serde_json::Value::as_array).is_some_and(|traits| traits.iter().any(|entry| {
+            entry.get("name").and_then(serde_json::Value::as_str)
+                .and_then(|id| id.strip_prefix("tconstruct:"))
+                .is_some_and(|id| TANK_HANDLERS.contains(&id))
+        }))
+    }) { return None; }
+    let has_tank_trait = tank_traits.is_some_and(|traits| TANK_HANDLERS.iter()
+        .any(|id| traits.get(&format!("tconstruct:{id}")).is_some_and(|level| *level > 0)));
     if tank_level > 0 || has_slurping || has_spilling || has_splashing || has_tank_trait || fields.get(&"tic_tank_capacity".into()).is_some() {
         let mut probe = output.clone();
         probe.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(fields.clone())));
