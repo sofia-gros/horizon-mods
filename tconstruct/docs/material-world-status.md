@@ -109,3 +109,47 @@ plan could not resolve `MotionWorld::player_fall_damage` through either tested
 module path. The unrelated stat, crafting and fluid candidates remain present.
 The generic Pluto landing state remains included; neither this isolation nor its
 formal apply, type or gameplay validation is established by the earlier tests.
+
+A follow-up corrects two direct NBT compound lookups to use the host's
+`JavaString` key type. The old-host diagnostic fixture passed its focused tests
+with this correction; the exact follow-up head still needs the dedicated tests
+and official target type check.
+
+## Ranged stat-order candidate
+
+A source candidate rebuilds bow draw speed, velocity, accuracy and projectile
+damage through the same ordered add, multiply-base and multiply-all phases.
+It also connects the Solid trait's source `+0.75` projectile damage per level
+for the supported launchers. The nonzero pre-existing draw/velocity percentage
+in the focused check is a synthetic builder input; natural material coverage is
+not established by it. The candidate has not been applied, type-checked or
+checked in game. Compare source float ordering, material/part swaps, Quick
+Charge, Netherite, Vintage, Solid and conditional arrow velocity on the exact
+integrated target before claiming parity.
+
+### Source-backed crossbow reference cases
+
+The original `crossbow` definition uses a limb, grip and bowstring, with a
+2x durability multiplier. The following are source-data calculation inputs,
+not completed natural-survival playthroughs:
+
+| Limb / grip / bowstring | Source traits | Quick Charge 1 expected draw / velocity / accuracy |
+| --- | --- | --- |
+| Cobalt / Cobalt / String | Lightweight 2, Stringy 1 | 1.3875 / 1.11 / 0.85 |
+| Amethyst Bronze / Wood / String | Crystalbound 1, Cultivated 1, Stringy 1 | 1.0625 / 1.25 / 0.70 |
+
+The values use the original generated material stats and traits at
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Cobalt ore generation and ore-to-part
+steps have representative tests with supplied tools; the Amethyst Bronze
+smeltery route has a representative test. Neither proves fixture-free acquisition
+of these complete crossbows. The added product-helper cases require a dedicated
+run and original builder comparison.
+
+The Solid projectile-damage candidate in #86 and the #279 stat rebuild edit the
+same calculation. #86 is not an ancestor of #279: on #279 the source module
+adds Solid once when rebuilding `tic_projectile_damage`, and the projectile
+path reads that stored result. Preserve that single addition when integrating
+#86; do not apply its old formula a second time. Invar's Solid source material
+is compatibility-conditional, so its ordinary acquisition is not asserted.
+
+Source stat builder `MULTIPLY_BASE` factors compound in modifier order for durability, mining and the supported melee/ranged stats. The focused older-host helper fixtures cover these phases; the current-host build and game behavior remain unverified for this candidate.
