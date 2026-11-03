@@ -10,7 +10,7 @@ This unit follows the original Tinkers' Construct revision `f4e77d43f39ba1047bf9
 
 Tool definitions with supported material stats now also contribute their fixed `tconstruct:traits` entries in module order. This resolves, for example, the Pickaxe's Pierce and the boots' Snow Boots or Bouncy traits; resolving a trait does not itself implement every effect. Check the combined fixed and material levels, part replacement and save/reload in the target build. Optional external traits and definitions without a supported material-stat module are not established by this change.
 
-Traveler's Boots' Snow Boots flag now updates the existing player powder-snow walking state after local body synchronization and equipment changes, including while the boots are broken. The separate block-placement collision context receives the same predicate. The original vanilla leather-boots check remains included. These changes are not yet verified in a target build; check movement onto and through powder snow, block placement, crouching, equipping, removing, breaking and repairing the boots, and vanilla boots in local and guest play. Slime Boots bounce remains unimplemented.
+Traveler's Boots' Snow Boots flag now updates the existing player powder-snow walking state after local body synchronization and equipment changes, including while the boots are broken. The separate block-placement collision hook is deferred: the official plan rejects the generic host boundary. The original vanilla leather-boots check remains included. These changes are not yet verified in a target build; check movement onto and through powder snow, block placement, crouching, equipping, removing, breaking and repairing the boots, and vanilla boots in local and guest play. Slime Boots bounce remains unimplemented.
 
 Gold's Golden armor trait is included in the host Piglin-safe-armor check for worn TConstruct armor, while retaining the vanilla result. The original volatile flag is not removed merely because a tool breaks. This path needs target-build verification with gold and non-gold materials, removal, breakage, vanilla gold armor and separate local/guest players.
 
@@ -36,7 +36,7 @@ integration candidates, not target apply or gameplay results. Raging melee uses
 the acting player state rather than treating `lan_acting` as a guest-only
 indicator; confirm both local and guest actors. Spiny's distinct self-damage
 remains deferred. Test original tool tags, broken/equipped state, powder-snow
-walking and placement, Piglin checks, conditional projectile scales and
+walking, vanilla placement regression, Piglin checks, conditional projectile scales and
 cooldown/critical/secondary melee handling on the exact combined build.
 
 The next integration ports Vintage/Gilded slot accounting and salvage from
@@ -56,3 +56,38 @@ recipe's upgrade slot and respects its leggings tag and level range. Verify
 material replacement and removal, gem/no-gem combinations, modifier ordering,
 partial or full inventories, salvage, two levels, broken equipment, save/reload
 and LAN on the integrated target. These paths are syntax-checked only.
+
+Skull material armor, slime material Overslime capacity and the registered
+slimy chestplate's source-definition alias are included in a follow-up candidate.
+The capacity includes both material and Overlord contributions before Overcast
+and durability multipliers. Verify each material, assembly, repair, part swaps,
+Overlord/Overcast combinations, rounding boundaries and save/reload in the
+combined target. This candidate has not run unit, apply, type or game tests.
+
+The placement-only Snow Boots hook is omitted after an official 0c plan reported `E_UNSUPPORTED_SIGNATURE` for generic `Game::with_level`, even with an explicit selector. Powder-snow walking is deferred after the synchronization candidates failed official plan. The #311 skull/slime focused fixture now uses the source material map shape; only a disposable diagnostic has passed so far.
+
+The Creative resource candidate now uses the same armor rebuild as Station
+after source material traits, and resolves the slimy chestplate definition
+alias. The worn-armor decision uses the original item tag and generated item
+registry. Verify generated Creative variants against source-built Station
+items for Forming, Heavy, Wool and Ductile with non-unit stat multipliers;
+compare slimy chestplate and unrelated items, preparation, reload and tooltips.
+This is syntax-checked only and has no package or gameplay result.
+
+The #325 formal apply stopped at the `sync_player_body` RETURN hook with
+`E_UNSUPPORTED_CONTROL_FLOW`; an isolated `apply_equipment` RETURN diagnostic
+also reported `E_UNSUPPORTED_MACRO`. A subsequent candidate omits those two
+hooks and instead proposes modifying the single `leather_boots` local at its
+STORE before `sync_player_body` writes the player field. The host's existing
+value is retained. This different boundary has not passed official plan or
+apply. Local walking, guest/server synchronization, equipment changes and
+powder-snow placement must be checked independently; the earlier generic
+placement hook remains omitted.
+
+An isolated official plan of #331's `leather_boots` STORE candidate also
+returned `E_UNSUPPORTED_CONTROL_FLOW` for `sync_player_body`. The subsequent
+verification candidate omits this walking injection; it preserves the Snow
+Boots item and other armor behavior but does not implement custom-boots walking
+or placement on powder snow. Vanilla leather-boots behavior is unchanged.
+The omission is not an apply or gameplay pass; check official package, apply
+and type, and verify vanilla movement and unrelated equipment in game.
