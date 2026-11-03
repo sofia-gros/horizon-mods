@@ -1,0 +1,3 @@
+# Casting Tank comparator partial fixture
+
+Linux combined cc868cdb/b53/ddd client `7b911c13d230d3b4c7f444c5f155ad6073853164d08d8748d8510888ac7d569b`, isolated #263/#265/#269 resource setup. Command-set Seared Casting Tank (0,71,3), comparator facing south (0,71,2), and wire (0,71,1). Empty: powered=false, wire=0. In survival, a supplied Water Bucket was emptied into the tank, leaving an empty bucket; comparator powered=true and wire=4. Replacing the tank with Redstone Block as a positive circuit control yielded wire=15. Screens show the supplied fixture. The initial north-facing comparator was incorrect and excluded. This does not validate other levels, all redstone updates, save/LAN, exact PR head or current target.
