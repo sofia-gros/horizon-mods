@@ -378,7 +378,7 @@ Copper Can has a source-shaped standalone copper-ingot recipe and stores 90 mB p
 
 The single- and multi-fluid tank NBT formats retain optional compound fluid tags and distinguish otherwise identical fluids by tag. Copper Can container-slot transfers preserve tagged fluid data and move one 90 mB can at a time; selecting by ID refuses ambiguous variants. Ordinary alloys can proceed alongside unrelated tagged entries while ambiguous ingredient matches fail closed; other untagged transfer paths reject tagged entries until their routing supports metadata; additional tagged fluid paths remain unsupported. Save, wire synchronization and behavior with older worlds remain unverified.
 
-The faucet packet buffer retains the fluid tag across reservation, pouring and its saved NBT. The source potion casting serializers resolve their bottle ingredient and fluid against the current recipe and tags; the supported base-potion case copies the potion ID to the result. A plain normal potion can be emptied into the tank for 250 mB, returning a glass bottle; water potions produce water as in the source. Extra potion NBT, colors, custom effects, mod-specific potion fluid preference and other tagged casting forms remain unsupported and are rejected. This path awaits integration and runtime verification.
+The faucet packet buffer retains the fluid tag across reservation, pouring and its saved NBT. The source potion casting serializers resolve their bottle ingredient and fluid against the current recipe and tags; the supported base-potion case copies the potion ID to the result. A plain normal potion can be emptied into the tank for 250 mB, returning a glass bottle; water potions produce water as in the source. At that earlier candidate, extra potion NBT, colors and custom effects were rejected; later limited support is described below. Mod-specific fluid preference and other tagged forms require separate verification.
 
 The container slot can also fill a glass bottle with a plain potion from 250 mB of TConstruct potion fluid, or a water potion from 500 mB of water, matching the corresponding Mantle source transfers. Tags with additional potion data and ambiguous same-ID variants are refused. Runtime behavior remains unverified.
 
@@ -633,3 +633,9 @@ transfers, persistence and drops are implemented; hopper and comparator
 support were added later. Projectile or fluid-effect firing, dynamic light,
 item rendering and helmet use remain unimplemented or unverified. Validate the
 integrated behavior separately; storage support does not imply a working gun.
+
+Later conversion code supports a bounded set of vanilla effect IDs, preserves
+recognized color/effect data through supported local conversions, and maps a
+water base to plain water. Unknown fields and invalid types are rejected, and
+color acceptance is gated by the relevant operation. Rendering, outgoing
+transport and LAN behavior require separate integrated verification.
