@@ -19,6 +19,9 @@ class LocalArmorHaste(unittest.TestCase):
                       'tconstruct_source_material_traits::levels(&game.world, stack)'):
             self.assertIn(field, source)
         self.assertIn('unwrap_or(0)', source)
+        self.assertLess(source.index('conditional_with_resistance('), source.rindex('finish_mining_speed('))
+        self.assertIn('return speed * armor_multiplier', source)
+        self.assertIn('Some(facts.explosion_resistance)', source)
         sender = (ROOT / 'mixins/tconstruct/source-haste-wire-send.rs').read_text()
         receiver = (ROOT / 'mixins/tconstruct/source-haste-wire-receive.rs').read_text()
         self.assertIn('guest.armor[1]', sender)

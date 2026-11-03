@@ -56,3 +56,11 @@ The bounded advanced part material-ID line references MIT-licensed
 
 The chest-slot Haste attribute check uses the pinned MIT modifier data and
 [AttributeModule.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/behavior/AttributeModule.java).
+
+Blasting's recipe and mining formula were checked against Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2), including
+`data/tconstruct/tinkering/modifiers/blasting.json`, its incremental recipe,
+and `ModifierFormula.java` and `PostFixFormula.java` for effective levels.
+The order of armor Haste and tool speed hooks was checked against
+[`ToolEvents.java`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/ToolEvents.java). Copyright (c) 2022 SlimeKnights; MIT license,
+see `tconstruct/third_party/tconstruct/LICENSE`.

@@ -1,6 +1,6 @@
 // Apply source conditional break-speed modules after efficiency and potions.
 pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_items::blocks::StateFacts, held: &Option<&horizon_client::items::ItemStack>, position: Option<(i32, i32)>) -> f32 {
-    let speed = game.armor[1].as_ref().and_then(|stack| {
+    let armor_multiplier = game.armor[1].as_ref().and_then(|stack| {
         let custom = stack.data()?.other("minecraft:custom_data")?;
         // A client uses only the matching actor-specific authoritative frame.
         // A server uses the acting player's swapped equipment and live world.
@@ -17,15 +17,15 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
                 Some(crate::game::tconstruct_source_material_traits::levels(&game.world, stack)?.levels.get("tconstruct:haste").copied().unwrap_or(0))
             })().unwrap_or(0)
         };
-        Some(speed * crate::game::tconstruct_source_mining_rules::haste_armor_multiplier_with_trait(custom, stack.damage, traits))
-    }).unwrap_or(speed);
-    let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return speed; };
-    let Some(data) = stack.data() else { return speed; };
-    let Some(custom) = data.other("minecraft:custom_data") else { return speed; };
+        Some(crate::game::tconstruct_source_mining_rules::haste_armor_multiplier_with_trait(custom, stack.damage, traits))
+    }).unwrap_or(1.0);
+    let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return speed * armor_multiplier; };
+    let Some(data) = stack.data() else { return speed * armor_multiplier; };
+    let Some(custom) = data.other("minecraft:custom_data") else { return speed * armor_multiplier; };
     let effective = match data.other("minecraft:tool") {
         Some(tool) => match crate::game::tconstruct_source_mining_rules::evaluated_speed(tool, &facts.name, |tag, block| game.items().block_in_tag(tag, block)) {
             Some(value) => value.is_some(),
-            None => return speed,
+            None => return speed * armor_multiplier,
         },
         None => false,
     };
@@ -37,7 +37,7 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
             .and_then(|tags| tags.get("tconstruct:modifiable/broad"))
     };
     let broad = crate::game::tconstruct_source_mining_rules::broad_or_unknown(broad_tag, &stack.item);
-    let speed = crate::game::tconstruct_source_mining_rules::conditional(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool, broad).unwrap_or(speed);
+    let speed = crate::game::tconstruct_source_mining_rules::conditional_with_resistance(custom, stack.damage, speed, game.potions.effects.mining_speed_factor(), position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance)).unwrap_or(speed);
     let on_ground = game.player.as_ref().map_or(true, |player| player.ground.on_ground);
-    speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground)
+    crate::game::tconstruct_source_mining_rules::finish_mining_speed(speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground), armor_multiplier)
 }
