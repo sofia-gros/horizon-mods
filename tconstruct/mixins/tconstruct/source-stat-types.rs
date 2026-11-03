@@ -115,8 +115,8 @@ mod tests {
         let mut count = 0;
         for index in 0..zip.len() {
             let mut entry = zip.by_index(index).unwrap();
-            if !entry.name().contains("/materials/stats/") { continue; }
-            let name = entry.name().to_owned();
+            if !entry.name().expect("valid zip entry name").contains("/materials/stats/") { continue; }
+            let name = entry.name().expect("valid zip entry name").into_owned();
             let mut bytes = Vec::new(); entry.read_to_end(&mut bytes).unwrap();
             let merged = super::super::tconstruct_tx::source_merge_material_stats(&[bytes]).unwrap();
             let valid = validate_builtin_stats(&merged, Some(&tiers)).unwrap_or_else(|e| panic!("{name}: {e}"));
