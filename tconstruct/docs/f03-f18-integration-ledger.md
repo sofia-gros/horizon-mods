@@ -1,5 +1,7 @@
 # Workstation and smeltery integration ledger
 
+> Historical snapshot from 2026-11-02: PR status, integration candidates and target pins below may have changed. Consult the current [functional plan](v0.5-functional-plan.md), compatibility manifest and linked PRs for current status.
+
 This is a development handoff, not a claim that any full feature is complete. Drafts below may be stacked and their fixed heads must be integrated and tested before their behavior is treated as released. The formal game target for the next gate is Horizon `02c8607ee8ebd216f2f535c1eb7b62b572830df2` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Local helper results reported on another host do not substitute for that gate.
 
 | Task | Implemented or submitted subset | Remaining work and external gate |
