@@ -180,6 +180,14 @@ pub(super) fn tagged_portable_casting_stack(world: &World, basin: bool, input: O
 /// casting and material casting then use the same persistent transaction.
 pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str) -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
     let input_id = input.map(|stack| &*stack.item);
+    // Resolve ambiguity before *either* tool-cast or part-swap dispatch can
+    // consume an input. Missing snapshot context must also fail closed.
+    if let Some(item) = input_id {
+        let overlap = with_catalog(world, |catalog, registries, config| {
+            catalog.tool_swap_overlap(basin, item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+        })?;
+        if overlap { return None; }
+    }
     if let Some((id, recipe, output)) = casting(world, basin, input_id, fluid) {
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
@@ -328,6 +336,43 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 catalog.tip_clearing(basin, &stack.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
             })? { return Some((id, recipe, output)); }
         }
+    }
+    // Restricted source tool-casting fluid swap. Only a pristine, losslessly
+    // reproducible tool is eligible; removed-trait validation remains active.
+    if stack.count == 1 && stack.damage == 0 && stack.wire_patch().is_none() {
+        let candidate = (|| {
+            use horizon_world::nbt::Tag;
+            let expected_count = match stack.item.as_ref() {
+                "tconstruct:slime_wings" => 1,
+                "tconstruct:plate_shield" | "tconstruct:slime_boots" | "tconstruct:slimy_chestplate" | "tconstruct:slime_leggings" => 2,
+                _ => return None,
+            };
+            let Tag::List(values) = stack.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
+            let mut identities = values.iter().map(|v| match v { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<_>>>()?;
+            if identities.len() != expected_count { return None; }
+            let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+            let (namespace, name) = stack.item.split_once(':')?;
+            let definition_name = super::tconstruct_source_station_stats::definition_name(namespace, name);
+            let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{definition_name}"))?.last()?;
+            let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
+            if !native.contains_key(&*stack.item) { return None; }
+            let pristine = super::tconstruct_source_station_world::assemble(world, definition, &stack.item, &identities, None, &mut None)?;
+            if !stack.same_item_same_components(&pristine) { return None; }
+            let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+            let (id, recipe, material) = with_catalog(world, |catalog, registries, config| {
+                catalog.tool_fluid_swap(basin, &stack.item, identities.last()?, fluid,
+                    &|id, kind| stats.get(id.split('#').next().unwrap_or(id)).is_some_and(|s| s.contains_key(kind)),
+                    &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })??;
+            let (namespace, name) = material.split_once(':')?;
+            materials.get(&format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?))?;
+            *identities.last_mut()? = material;
+            let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &identities, 0, true, &mut None)?;
+            let decoded = horizon_items::item_nbt::item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?;
+            if decoded.count != output.count || !decoded.same_item_same_components(&output) { return None; }
+            Some((id, recipe, output))
+        })();
+        if candidate.is_some() { return candidate; }
     }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Ordinary casts may repair; composite casts do not. Supported

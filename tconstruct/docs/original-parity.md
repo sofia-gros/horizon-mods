@@ -720,6 +720,20 @@ other datapack forms and overlaps are not generally analyzed. This does not
 establish full tool casting, trait effects, host integration, gameplay or LAN
 parity.
 
+### Narrow fluid replacement for cast tools
+
+The default fluid-swapping form of the supported slimelytra and four
+first-material recipes can replace their last material with a different
+ordinary casting fluid. It requires an undamaged, unmodified item matching a
+freshly assembled copy exactly. The Station rebuild validates slots and
+rejects unsupported material-trait removal, and the result must round-trip
+through the item codec. Slimeskull explicitly disables fluid swapping in the
+source and is not admitted. Damaged or modified tools, composite fluids,
+unknown forms and unrecognized data remain unsupported. A parsed tool-cast
+and explicit part-swap overlap is rejected before either path dispatches;
+overlaps outside the parsed recipe families are not generally analyzed. Host integration, real
+gameplay and LAN behavior remain unverified.
+
 ### Clearing an existing potion tip
 
 The casting table now supports the bundled ammo and fishing-rod clearing

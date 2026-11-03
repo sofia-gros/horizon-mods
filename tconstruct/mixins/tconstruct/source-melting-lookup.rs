@@ -56,6 +56,53 @@ pub(super) struct Catalog<'a> {
     pub known_fluids: &'a HashSet<String>,
 }
 impl Catalog<'_> {
+    /// A supported tool-cast and explicit part-swap on the same workstation
+    /// must not be resolved by dispatch order, even if one later fails validation.
+    pub(super) fn tool_swap_overlap(&self, basin: bool, input: &str, conditions: &impl Fn(&[Value]) -> bool) -> bool {
+        let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
+        let tool = self.recipes.values().any(|b| {
+            super::tconstruct_source_melting_recipes::FirstMaterialCastingRecipe::parse(b, conditions)
+                .is_some_and(|r| r.basin == basin && r.result == input)
+            || super::tconstruct_source_melting_recipes::SlimelytraCastingRecipe::parse(b, conditions)
+                .is_some_and(|r| basin && r.result == input)
+        });
+        let part = self.recipes.values().filter_map(|b| super::tconstruct_source_melting_recipes::PartSwapCastingRecipe::parse(b, conditions))
+            .any(|r| r.basin == basin && r.tools.matches(input, &in_tag));
+        tool && part
+    }
+    /// The default fluid-swapping form of the five supported tool casts.
+    /// Composite fluids and unrecognized tool-casting forms are not inferred.
+    pub(super) fn tool_fluid_swap(&self, basin: bool, input: &str, old: &str, fluid: &str,
+        supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
+        -> Option<(String, CastingRecipe, String)> {
+        if !self.known_items.contains(input) || !self.known_fluids.contains(fluid) { return None; }
+        if self.tool_swap_overlap(basin, input, conditions) { return None; }
+        let mut found = None;
+        for (id, bytes) in self.recipes {
+            let first = super::tconstruct_source_melting_recipes::FirstMaterialCastingRecipe::parse(bytes, conditions)
+                .filter(|r| r.basin == basin && r.result == input)
+                .map(|r| (r.item_cost, r.fluid_stat));
+            let wings = super::tconstruct_source_melting_recipes::SlimelytraCastingRecipe::parse(bytes, conditions)
+                .filter(|r| basin && r.result == input).map(|r| (r.item_cost, "tconstruct:slime"));
+            let Some((cost, stat)) = first.or(wings) else { continue; };
+            for raw in self.recipes.values() {
+                let Some(material) = MaterialFluidRecipe::parse(raw, conditions) else { continue; };
+                let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
+                if !self.matches_fluid(&material.fluid, fluid) || !supports(&material.material, stat)
+                    || canonical(old) == canonical(&material.material) { continue; }
+                let amount = material.fluid.amount.checked_mul(cost)?;
+                let time = (((material.temperature as f64 + 300.0).powf(0.585_f32 as f64)) * ((amount as f32 / 90.0_f32).sqrt() as f64)).round();
+                if !(1.0..=u32::MAX as f64).contains(&time) { continue; }
+                let mut spec = material.fluid.clone(); spec.amount = amount;
+                let recipe = CastingRecipe { basin, retextured: false, cast: Some(Ingredient::Item(input.into())), consumes_cast: true,
+                    switch_slots: false, fluid: spec, output: Output::Item(input.into()), cooling_time: time as u32 };
+                let value = (id.clone(), recipe, material.material);
+                if found.as_ref().is_some_and(|old| old != &value) { return None; }
+                found = Some(value);
+            }
+        }
+        found
+    }
     /// Match only the four source first-material recipes and resolved material fluids.
     pub(super) fn first_material_casting(&self, basin: bool, input: &str, first: &str, fluid: &str,
         supports: &impl Fn(&str, &str) -> bool, conditions: &impl Fn(&[Value]) -> bool)
@@ -1062,5 +1109,57 @@ mod first_material_tests {
         for invalid in [valid.replace("\"item_cost\":4", "\"item_cost\":4,\"allowed_materials\":{}"), valid.replace("\"item\":\"tconstruct:laces\"", "\"item\":\"tconstruct:laces\",\"predicate\":{}"), valid.replace("slime_boots", "unknown")] {
             assert!(Recipe::parse(invalid.as_bytes(), &|_| true).is_none());
         }
+    }
+}
+
+#[cfg(test)]
+mod tool_fluid_swap_tests {
+    use super::*;
+    #[test]
+    fn only_default_swapping_recipe_uses_new_last_material() {
+        let boots = br#"{"type":"tconstruct:basin_tool_casting","cast":{"type":"tconstruct:material","item":"tconstruct:laces"},"cast_purpose":"first_material","item_cost":4,"result":"tconstruct:slime_boots"}"#;
+        let skull = br#"{"type":"tconstruct:basin_tool_casting","cast":{"item":"minecraft:skeleton_skull"},"cast_purpose":"consumed_offset","extra_materials":["tconstruct:bone"],"fluid_swapping":false,"item_cost":5,"result":"tconstruct:slime_helmet"}"#;
+        let fluid = br#"{"type":"tconstruct:material_fluid","fluid":{"amount":250,"fluid":"test:fluid"},"output":"test:new","temperature":50}"#;
+        let recipes = BTreeMap::from([("boots".into(),boots.to_vec()),("skull".into(),skull.to_vec()),("fluid".into(),fluid.to_vec())]);
+        let tags = HashMap::new(); let items = HashSet::from(["tconstruct:slime_boots".into(), "tconstruct:slime_helmet".into()]);
+        let fluids = HashSet::from(["test:fluid".into()]);
+        let c = Catalog { recipes:&recipes, item_tags:&tags, fluid_tags:&tags, known_items:&items, known_fluids:&fluids };
+        let supports = |id: &str, stat: &str| id == "test:new" && stat == "tconstruct:slime";
+        let (_, spec, result) = c.tool_fluid_swap(true,"tconstruct:slime_boots","test:old","test:fluid",&supports,&|_|true).unwrap();
+        assert_eq!((result.as_str(),spec.fluid.amount,spec.consumes_cast), ("test:new",1000,true));
+        assert!(c.tool_fluid_swap(true,"tconstruct:slime_boots","test:new#default","test:fluid",&supports,&|_|true).is_none());
+        assert!(c.tool_fluid_swap(false,"tconstruct:slime_boots","test:old","test:fluid",&supports,&|_|true).is_none());
+        assert!(c.tool_fluid_swap(true,"tconstruct:slime_helmet","test:old","test:fluid",&supports,&|_|true).is_none());
+        assert!(c.tool_fluid_swap(true,"tconstruct:slime_boots","test:old","test:fluid",&|_,_|false,&|_|true).is_none());
+    }
+    #[test]
+    fn wings_and_shield_follow_their_own_cost_and_stat() {
+        for (basin, input, raw, stat, cost) in [
+            (true, "tconstruct:slime_wings", r#"{"type":"tconstruct:basin_tool_casting","cast":{"item":"minecraft:elytra"},"cast_purpose":"consumed","item_cost":8,"result":"tconstruct:slime_wings"}"#, "tconstruct:slime", 8),
+            (false, "tconstruct:plate_shield", r#"{"type":"tconstruct:table_tool_casting","cast":{"type":"tconstruct:material","item":"tconstruct:shield_core"},"cast_purpose":"first_material","item_cost":3,"result":"tconstruct:plate_shield"}"#, "tconstruct:plating_shield", 3),
+        ] {
+            let fluid = br#"{"type":"tconstruct:material_fluid","fluid":{"amount":250,"fluid":"test:fluid"},"output":"test:new","temperature":50}"#;
+            let recipes = BTreeMap::from([("tool".into(), raw.as_bytes().to_vec()), ("fluid".into(), fluid.to_vec())]);
+            let tags = HashMap::new(); let items = HashSet::from([input.into()]); let fluids = HashSet::from(["test:fluid".into()]);
+            let c = Catalog { recipes:&recipes, item_tags:&tags, fluid_tags:&tags, known_items:&items, known_fluids:&fluids };
+            let (_, recipe, _) = c.tool_fluid_swap(basin,input,"test:old","test:fluid",&|_, kind| kind == stat,&|_|true).unwrap();
+            assert_eq!(recipe.fluid.amount, 250 * cost);
+        }
+    }
+    #[test]
+    fn explicit_part_swap_overlap_is_refused() {
+        let boots = br#"{"type":"tconstruct:basin_tool_casting","cast":{"type":"tconstruct:material","item":"tconstruct:laces"},"cast_purpose":"first_material","item_cost":4,"result":"tconstruct:slime_boots"}"#;
+        let other = br#"{"type":"tconstruct:basin_casting_part_swapping","tools":{"item":"tconstruct:slime_boots"},"item_cost":4,"index":1}"#;
+        let recipes = BTreeMap::from([("boots".into(),boots.to_vec()),("other".into(),other.to_vec())]);
+        let tags = HashMap::new(); let items = HashSet::from(["tconstruct:slime_boots".into()]); let fluids = HashSet::from(["test:fluid".into()]);
+        let c = Catalog { recipes:&recipes, item_tags:&tags, fluid_tags:&tags, known_items:&items, known_fluids:&fluids };
+        assert!(c.tool_swap_overlap(true, "tconstruct:slime_boots", &|_|true));
+        assert!(!c.tool_swap_overlap(false, "tconstruct:slime_boots", &|_|true));
+        assert!(!c.tool_swap_overlap(true, "tconstruct:other", &|_|true));
+        assert!(c.tool_fluid_swap(true,"tconstruct:slime_boots","test:old","test:fluid",&|_,_|true,&|_|true).is_none());
+        let reversed = BTreeMap::from([("a".into(),other.to_vec()),("z".into(),boots.to_vec())]);
+        let c = Catalog { recipes:&reversed, item_tags:&tags, fluid_tags:&tags, known_items:&items, known_fluids:&fluids };
+        assert!(c.tool_swap_overlap(true, "tconstruct:slime_boots", &|_|true));
+        assert!(c.tool_fluid_swap(true,"tconstruct:slime_boots","test:old","test:fluid",&|_,_|true,&|_|true).is_none());
     }
 }
