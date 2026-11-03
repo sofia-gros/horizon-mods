@@ -1,3 +1,15 @@
+pub(super) fn mod_snapshot(game: &mut crate::game::Game<'_>) -> (std::collections::HashMap<String, Option<bool>>, bool) {
+    let mut native = Vec::new();
+    game.native_mods(&mut native);
+    let mut states = std::collections::HashMap::new();
+    for entry in native {
+        if !entry.id.is_empty() { states.insert(entry.id.clone(), game.native_on(&entry.id).then_some(true)); }
+    }
+    // Unadvertised native hooks and rejected content announcements make the
+    // complete set unknowable; a missing ID must remain unknown.
+    (states, false)
+}
+
 pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     if game.remote.is_some() || game.world_root.as_os_str().is_empty() { return; }
     let mut recipes = std::collections::BTreeMap::new();
@@ -27,6 +39,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
         merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+        crate::game::tconstruct_source_tags::bridge_vanilla_mud_tag(&mut block_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
     // A content mod can provide the unflattened source layers as ordinary
@@ -64,7 +77,18 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         .and_then(|builtin| builtin.get("minecraft:block").map(|ids| ids.ids.clone()).ok_or_else(|| "missing block registry".to_owned()));
     let resolved_blocks = block_ids.as_ref().map_err(Clone::clone).and_then(|ids| {
         let registry = ids.keys().filter(|id| !id.is_empty()).cloned().collect();
-        crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)
+        let mut resolved = crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)?;
+        // Herbicide's original tags include source blocks not yet registered
+        // in this port. Project only these explicit source tags onto the
+        // actual registry; unresolved required nested tags remain errors.
+        for id in ["minecraft:replaceable_by_trees", "minecraft:leaves", "tconstruct:slimy_soil/vanilla"] {
+            if !resolved.contains_key(id) {
+                if let Ok(values) = crate::game::tconstruct_source_tags::resolve_available_blocks(id, &block_tags, &registry) {
+                    resolved.insert(id.to_owned(), values.into_iter().collect());
+                }
+            }
+        }
+        Ok(resolved)
     });
     let resolved_fluids = horizon_protocol::registry::Builtin::find(&game.options.resources)
         .ok_or_else(|| "missing built-in registry report".to_owned())
@@ -77,6 +101,86 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let config = game.world_root.parent().and_then(std::path::Path::parent)
         .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
         .and_then(crate::game::tconstruct_source_config::load);
+    let tank_fluids = std::fs::read(game.options.resources.join("tconstruct-melter-fluids.json"))
+        .map_err(|error| error.to_string())
+        .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
+        .and_then(|source| crate::game::tconstruct_source_melting_lookup::tank_fluid_tags(&fluid_tags, &source));
+    // Capture actual native-hook presence; content package names are not
+    // sufficient proof that their overlay survived all validation.
+    let (states, complete) = mod_snapshot(game);
+    let mod_presence = crate::game::tconstruct_source_melter_world::ModPresence { states, complete };
+    // All source-recipe consumers share this snapshot. Resolve Forge wrappers
+    // once, after tags and config are known, rather than separately per lookup.
+    // An unavailable context must never select a guessed fallback branch.
+    let condition_context = (|| {
+        let item_tags = resolved_tags.as_ref()?.as_ref().ok()?;
+        // The machine catalog uses this source-fluid registry, which includes
+        // virtual TConstruct tank fluids absent from the built-in registry.
+        let (_, fluid_tags) = tank_fluids.as_ref().ok()?;
+        let config = config.as_ref().ok()?;
+        let items: std::collections::HashSet<String> = game.res.rest.get()?.items.items.keys().map(|id| id.to_string()).collect();
+        let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
+        Some((registries, config, items))
+    })();
+    recipes.retain(|_, bytes| {
+        let wrapper = serde_json::from_slice::<serde_json::Value>(bytes).ok()
+            .and_then(|value| value.get("type").and_then(serde_json::Value::as_str).map(str::to_owned))
+            .is_some_and(|kind| kind == "forge:conditional");
+        if wrapper {
+            let Some((registries, config, items)) = &condition_context else { return false; };
+            let Some(selected) = crate::game::tconstruct_source_melter_world::conditional_recipe(bytes, registries, config, items, Some(&mod_presence)) else { return false; };
+            *bytes = selected;
+        }
+        // Forge also gates ordinary recipes with a top-level conditions list.
+        // Applying it here protects consumers that only parse the recipe body.
+        let Ok(mut value) = serde_json::from_slice::<serde_json::Value>(bytes) else { return true; };
+        let Some(raw_conditions) = value.get("conditions") else { return true; };
+        let Some(conditions) = raw_conditions.as_array() else { return false; };
+        if conditions.is_empty() { return true; }
+        let Some((registries, config, items)) = &condition_context else { return false; };
+        if crate::game::tconstruct_source_melter_world::conditional_conditions_with_mods(conditions, registries, config, items, Some(&mod_presence)) != Some(true) { return false; }
+        // The shared snapshot has already checked these conditions. Remove
+        // only lists containing mod_loaded so older consumers do not recheck
+        // them without the runtime context and incorrectly reject the recipe.
+        fn has_mod_loaded(value: &serde_json::Value) -> bool {
+            match value {
+                serde_json::Value::Object(map) => map.get("type").and_then(serde_json::Value::as_str) == Some("forge:mod_loaded") || map.values().any(has_mod_loaded),
+                serde_json::Value::Array(values) => values.iter().any(has_mod_loaded),
+                _ => false,
+            }
+        }
+        if has_mod_loaded(raw_conditions) {
+            let Some(map) = value.as_object_mut() else { return false; };
+            map.remove("conditions");
+            let Ok(resolved) = serde_json::to_vec(&value) else { return false; };
+            *bytes = resolved;
+        }
+        true
+    });
+    // The source basin mud recipe uses BlockTagIngredient. Resolve its block
+    // tag through Block::asItem's exported state fact, not a guessed matching
+    // item identifier. Keep it unsupported when either registry is missing.
+    if let (Ok(block_tags), Some(rest)) = (&resolved_blocks, game.res.rest.get()) {
+        for bytes in recipes.values_mut() {
+            let Ok(mut recipe) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+            if recipe.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:casting_basin") { continue; }
+            let Some(cast) = recipe.get_mut("cast") else { continue; };
+            let Some(object) = cast.as_object() else { continue; };
+            if object.len() != 2 || object.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:block_tag") { continue; }
+            let Some(tag) = object.get("tag").and_then(serde_json::Value::as_str) else { continue; };
+            let Some(blocks) = block_tags.get(tag) else { continue; };
+            let mut items = std::collections::BTreeSet::new();
+            for facts in &game.res.facts().states {
+                if blocks.contains(facts.name.as_ref()) && facts.item.as_ref() != "minecraft:air"
+                    && rest.items.items.contains_key(&facts.item) {
+                    items.insert(facts.item.to_string());
+                }
+            }
+            if items.is_empty() { continue; }
+            *cast = serde_json::Value::Array(items.into_iter().map(|item| serde_json::json!({"item": item})).collect());
+            if let Ok(rewritten) = serde_json::to_vec(&recipe) { *bytes = rewritten; }
+        }
+    }
     // Preserve an explicit failure when any required input is unavailable.
     // These definitions describe the current Horizon registries, which do not
     // yet contain every original TConstruct item or fluid.
@@ -137,10 +241,6 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         let costs = crate::game::tconstruct_tx::source_material_casting_costs(&filtered, &material_items, &registries, config, true).ok()?;
         Some(crate::game::tconstruct_source_cast_info::PARTS.iter().map(|part| costs.get(&format!("tconstruct:{part}")).copied().unwrap_or(0)).collect())
     })();
-    let tank_fluids = std::fs::read(game.options.resources.join("tconstruct-melter-fluids.json"))
-        .map_err(|error| error.to_string())
-        .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))
-        .and_then(|source| crate::game::tconstruct_source_melting_lookup::tank_fluid_tags(&fluid_tags, &source));
     let known_items = game.res.rest.get().map(|rest| rest.items.items.keys().map(|id| id.to_string()).collect());
     *game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context_mut() = Some(tank_fluids);
     *game.world.chunks.__horizon_mixins_tconstruct_melter_known_items_mut() = known_items;
@@ -159,6 +259,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_source_shared_recipes_mut() = Some(std::sync::Arc::new(recipes.clone()));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
+    *game.world.chunks.__horizon_mixins_tconstruct_recipe_mod_snapshot_mut() = Some((mod_presence.states, mod_presence.complete));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);

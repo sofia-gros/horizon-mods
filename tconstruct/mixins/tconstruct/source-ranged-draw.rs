@@ -14,7 +14,13 @@ pub(crate) fn draw_ticks(stack: &ItemStack) -> u32 {
         Some(Tag::Float(bits)) => f32::from_bits(*bits),
         _ => 1.0,
     };
-    ticks_for_speed(speed)
+    let bonus = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|custom| {
+        let level = match custom.get("tic_overwield_ranged") { Some(Tag::Int(n)) => (*n).max(0), _ => 0 };
+        let amount = match custom.get("tic_overslime") { Some(Tag::Int(n)) => (*n).max(0), _ => 0 };
+        let multiplier = match custom.get("tic_overwield_draw_multiplier") { Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return None };
+        multiplier.is_finite().then_some(level.min(amount) as f32 * 0.06 * multiplier)
+    }).unwrap_or(0.0);
+    ticks_for_speed((speed + bonus).clamp(0.0, 1024.0))
 }
 
 pub(crate) fn vanilla_charge_ticks(elapsed: u32, draw_ticks: u32) -> u32 {

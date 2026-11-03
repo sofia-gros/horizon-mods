@@ -14,7 +14,7 @@ fn tconstruct_resume_island(
         let index = state.registry.structures.iter().position(|s| s.name == structure)
             .ok_or_else(|| format!("unknown island structure {structure}"))?;
         if pieces.len() != 1 { return Err(format!("{structure} at {chunk:?}: expected one island piece")); }
-        let piece = super::structure::start::tconstruct_slime_island_piece::IslandPiece::from_saved(&state.resources, &pieces[0])
+        let piece = super::structure::start::tconstruct_slime_island_piece::IslandPiece::from_saved(&state.resources, &pieces[0], super::structure::start::tconstruct_slime_island_start::fungus_replaceable(&state.bindings, &state.resources), context.generation().height)
             .ok_or_else(|| format!("{structure} at {chunk:?}: invalid island piece"))?;
         if piece.structure_name() != structure { return Err(format!("{structure} at {chunk:?}: island structure mismatch")); }
         Ok((index, piece))
