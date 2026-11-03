@@ -302,6 +302,8 @@ and complete lifecycle parity remain open.
 
 ### Repair calculation investigation
 
+The station material-repair path also resolves the source `material_repair` module's explicit `stat_type` against that material's merged stats. This covers the source shape used by the staffs and Flint and Brick when their registered repair materials are available, including tools without a material-part list. Unknown material stats still produce no repair. This addition awaits integration and game verification; it does not establish the remaining modifier repair recipes.
+
 At the pinned revision, `MaterialStatsModule.addTraits` adds traits from each
 part and `ModifierEntry.merge` adds levels. The default wood trait data names
 Cultivated with `each_level: 0.5`; `RepairModule` applies its percent formula.
@@ -342,13 +344,19 @@ The Windows playtest bundles the Forge 47.4.0 item/fluid tags and recipes extrac
 
 Current compatibility decision: v1.0 targets the complete TConstruct port on Horizon's Minecraft 26.3; Minecraft-side classifications and recipes may follow 26.3. The Windows playtest now derives Minecraft tags and recipes from the user's prepared 26.3 resources and does not search for or download the 1.20.1 client. The bundled Forge reference data remains for TConstruct compatibility. In a Linux test-generated build, both native blank-cast recipes, a gold-cast part and a sand-cast shape were checked using 26.3-derived input; broader material and tag compatibility and Windows remain unverified. This supersedes earlier descriptions of a 1.20.1 client requirement for the playtest.
 
-Minecraft-side recycling durability now comes from the per-world snapshot of the prepared Horizon 26.3 item registry, instead of the 1.20.1 reference table. Stack-specific maximum-damage overrides and non-Minecraft items remain unsupported. The original TConstruct recycling formula and output logic are unchanged. The official Mixins build passed a Linux GUI test using a test-only datapack that changes the source stone-axe recipe input to a 26.3 mace. Damage 250 of 500 produced one cobblestone, consumed the inputs, returned the bottle and survived save/reload. The original has no mace recipe; Windows and other data overrides remain unverified.
+Minecraft-side recycling durability now comes from the per-world snapshot of the prepared Horizon 26.3 item registry, instead of the 1.20.1 reference table. A positive integer stack-specific maximum-damage component is also used for registered, normally damageable Minecraft items when no cached wire patch obscures its effective value; malformed overrides, cached-patch overrides and non-Minecraft items remain unsupported. This addition awaits game and LAN verification. The original TConstruct recycling formula and output logic are unchanged. The official Mixins build passed a Linux GUI test using a test-only datapack that changes the source stone-axe recipe input to a 26.3 mace. Damage 250 of 500 produced one cobblestone, consumed the inputs, returned the bottle and survived save/reload. The original has no mace recipe; Windows and other data overrides remain unverified.
 
 `DummyMaterialItem.appendHoverText` adds the original translated gray warning for the four stone plating dummy items. The shared tooltip hook uses the source translation. Official Mixins transformation and build succeeded, and the English helmet warning was visually checked in a Linux game; the other three and other languages remain unverified. Cast-cost tooltips use a separate source-recipe path, described below.
 
 PartCastItem cost tooltips are being connected to the source material-casting recipe snapshot and synchronized while a remote Part Builder is open. Unknown/incomplete costs are omitted; remote inventory outside that menu is not yet supported. Official Mixins transformation and game build succeeded. In both Linux game modes, the pick-head gold cast showed cost 2, then cost 3 after overriding both relevant recipes and reloading the datapack. Other cast tooltips and Windows remain unverified.
 
-Part-swapping table and basin serializers now have a narrow casting candidate for undamaged, unupgraded tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged tools, modifier or trait changes, explicit material predicates and composite-fluid swaps remain unsupported; no game or LAN behavior has been verified for this candidate.
+Part-swapping table and basin serializers now have a narrow ordinary casting candidate for undamaged tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged ordinary swaps, modifier or trait changes and explicit material predicates remain unsupported; no game or LAN behavior has been verified for this candidate.
+
+The same candidate also resolves composite-fluid part swaps after checking ordinary casting precedence. For this composite path, undamaged or damaged unbroken tools are accepted only if the damage fits both old and new durability; the original composite operation does not repair. Changed traits and unsupported upgrades or modifier hooks remain unsupported. This addition awaits runtime verification.
+
+The casting swap candidate additionally permits single-level Diamond and Emerald upgrades, using the Station's existing stat rebuild, slot validation and unbreakable checks. It still requires unchanged material traits and rejects all other upgrades, malformed modifier data and unsupported cached item patches. Ordinary damaged swaps and source modifier-removal hooks are not yet supported. This addition awaits integrated game and LAN verification.
+
+A follow-up incorporates the explicit material and index types from #214 after the integrated build reported an inference error. The updated source still requires a host type check and gameplay validation.
 
 Casting-table `table_duplication` now matches the source cast and fluid tags, retains the original input and copies its item data into the result. The bundled smithing-template recipe uses 500 mB molten diamond; this path awaits verification. Unsupported casting forms remain separate.
 
@@ -434,3 +442,5 @@ Rust syntax was checked. Unit tests, official build and gameplay verification
 are pending. Check missing/zero/nonzero armor, non-unit scale, the Slime Helmet's
 slime durability, material replacement, reload, and a malformed value. See the
 original [SkullStats](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/stats/SkullStats.java).
+
+The original five slime foliage color maps and their source-coordinate decoder are available as unconnected resources. Terrain, item and particle tint remain unimplemented: the former terrain-face injection was rejected by official Mixins planning, and no color-map module or loader is installed by this data-only change. The PNG decoder and representative boundary coordinates were checked in isolation; host rendering, resource reload and gameplay remain unverified.

@@ -225,8 +225,12 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     let mut tool = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(original) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
     };
-    let custom = tool.data()?.other("minecraft:custom_data")?;
-    let Tag::List(ids) = custom.get("tic_materials")? else { return None; };
+    let empty_ids = Vec::new();
+    let ids = match tool.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|custom| custom.get("tic_materials")) {
+        Some(Tag::List(ids)) => ids,
+        None => &empty_ids,
+        _ => return None,
+    };
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
@@ -257,7 +261,16 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     for module in parsed.get("modules")?.as_array()? {
         match module.get("type").and_then(serde_json::Value::as_str) {
             Some("tconstruct:material_repair") => {
-                if let (Some(id), Some(value)) = (module.get("material").and_then(serde_json::Value::as_str), module.get("durability").and_then(serde_json::Value::as_f64)) { fixed_repairs.push((id.to_owned(), value as f32)); }
+                if let Some(id) = module.get("material").and_then(serde_json::Value::as_str) {
+                    let value = module.get("durability").and_then(serde_json::Value::as_f64).or_else(|| {
+                        let stat = module.get("stat_type")?.as_str()?;
+                        let (namespace, path) = id.split_once(':')?;
+                        let layers = materials.get(&format!("{namespace}:tinkering/materials/stats/{}", path.split('#').next()?))?;
+                        let stats = super::tconstruct_tx::source_merge_material_stats(layers).ok()?;
+                        stats.get(stat)?.get("durability")?.as_f64()
+                    });
+                    if let Some(value) = value { fixed_repairs.push((id.to_owned(), value as f32)); }
+                }
             }
             Some("tconstruct:statless_part_repair") => {
                 if let (Some(index), Some(value)) = (module.get("part_index").and_then(serde_json::Value::as_u64), module.get("repair_amount").and_then(serde_json::Value::as_f64)) {
