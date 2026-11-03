@@ -123,3 +123,16 @@ test binary was not built: both parallel and single-job attempts ended with
 rustc killed by SIGKILL. Therefore the host integration tests remain unverified;
 this harness does not replace them. Gameplay, LAN and reload while heating also
 remain unverified.
+
+### Rose Gold crafting conversions
+
+The source Rose Gold block/ingot and ingot/nugget conversions are supplied as
+native crafting recipes. The shaped conversions require the source Rose Gold
+item in the center and eight members of its corresponding Forge tag; the
+reverse shapeless recipes return nine ingots or nuggets. Native tag files
+contain the pinned source members. Datapack additions are intended but host tag
+merging has not been verified.
+These conversions do not add an alloy production route: the ingot or block
+must first be obtained by melting, alloying and casting. Source-data and early
+reachability tests pass; crafting-grid behavior, recipe-book display, datapack
+reload, save/reload, and LAN remain unverified in game.
