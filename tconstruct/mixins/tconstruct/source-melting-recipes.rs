@@ -387,6 +387,7 @@ pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> boo
         consumes_cast: true, switch_slots: false, fluid: FluidSpec::parse(value.get("fluid")?)?,
         output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
 }
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize }
 impl PartSwapCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {

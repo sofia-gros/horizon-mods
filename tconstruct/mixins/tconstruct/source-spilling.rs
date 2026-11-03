@@ -1,4 +1,4 @@
-//! Source melee spilling: one server-side attack owns one pending context.
+// Source melee spilling: one server-side attack owns one pending context.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use std::collections::HashSet;

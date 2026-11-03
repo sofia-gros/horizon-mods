@@ -1,4 +1,4 @@
-//! Conservative access to the host's static crafting remainder for an item.
+// Conservative access to the host's static crafting remainder for an item.
 use horizon_items::items::ItemStack;
 
 /// For an unpatched stack, report whether its registry item has no remainder.
