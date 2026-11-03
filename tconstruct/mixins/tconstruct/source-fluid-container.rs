@@ -208,6 +208,38 @@ pub(super) fn transfer_selected(tank: &mut SmelteryTank, slots: &mut [Option<Ite
         slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
         return true;
     }
+    // Mantle's standard glass-bottle transfers fill a base potion from the
+    // potion fluid or a water potion from water. Other potion tags remain
+    // rejected until the host can represent them without dropping fields.
+    if input.item.as_ref() == "minecraft:glass_bottle" && input.extra.is_none() && direction != Direction::EmptyItem {
+        use horizon_world::nbt::Tag;
+        let entry = if let Some(id) = selected {
+            let mut choices = tank.fluids.iter().filter(|fluid| fluid.id == id);
+            let Some(entry) = choices.next() else { return false; };
+            if choices.next().is_some() { return false; }
+            entry
+        } else { let Some(entry) = tank.fluids.first() else { return false; }; entry };
+        let is_potion = entry.id == "tconstruct:potion";
+        let is_water = entry.id == "minecraft:water" && entry.tag.is_none();
+        if is_potion || is_water {
+            let potion = if is_water { "minecraft:water".to_owned() } else {
+                let Some(Tag::Compound(fields)) = entry.tag.as_ref() else { return false; };
+                if fields.len() != 1 { return false; }
+                let Some(Tag::String(potion)) = fields.get(&"Potion".into()) else { return false; };
+                let potion = potion.to_string_lossy();
+                if potion.is_empty() || potion == "minecraft:empty" { return false; }
+                potion
+            };
+            let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
+            let amount = if is_water { 500 } else { 250 };
+            let mut next = tank.clone();
+            if !known_item("minecraft:potion") || !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
+            let mut remaining = input.clone(); remaining.count -= 1;
+            slots[0] = (remaining.count > 0).then_some(remaining);
+            slots[1] = Some(ItemStack::new("minecraft:potion", 1).with_potion(&potion)); *tank = next;
+            return true;
+        }
+    }
     if input.extra.is_some() { return false; }
     let mut next = tank.clone();
     let replacement = if input.item.as_ref() == "minecraft:glass_bottle" && direction != Direction::EmptyItem {
