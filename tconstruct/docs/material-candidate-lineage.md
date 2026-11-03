@@ -1,7 +1,5 @@
 # Material, equipment and world candidate lineage
 
-> Historical snapshot: the inventory below records the earlier #291 integration stage. Later work is consolidated in #354; its `321ed5438dd89a9e6575c5ba715c1846a7b4054b` candidate has a separate 0c7b/ddd official apply and client-build record. It does not establish every listed feature's game behavior. #360 corrects the stat-builder multiplier calculation on top of that candidate and still requires independent review and current-host validation. Preserve its changes and the narrow Bouncy landing deferral when integrating; do not replay older implementations over them.
-
 This is a source-integration inventory, not a test or release status. PR heads
 are immutable inputs for the dedicated test owner. A Git ancestor means the
 commit is present; a ported change is identified separately and must not be
@@ -33,3 +31,67 @@ old-host diagnostic, not a pass of #291. #283's later formal apply reports an
 `E_INVALID_HELPER` in the separately owned splash path; its proposed return-type
 explanation is unconfirmed and must be resolved before calling the combined
 apply successful.
+
+## Equipment integration after #301
+
+The following is a source inclusion inventory for the follow-up branch. It is
+not a substitute for the exact-head tests. The prior #298 and #301 heads remain
+fixed for their ongoing checks.
+
+| Plan | Included by ancestry or port | Still separate or incomplete |
+| --- | --- | --- |
+| F02 | Material trait fallback #117/#119 and ordered stats #251/#256/#260/#262/#267/#271/#275/#279 are ancestors. Fixed tool-definition traits #152 are ported. | Skull/overslime armor #107/#111, Wool #120, slime chest definition #121, Ductile toughness #136 and Forming armor #142 require individual source comparison and integration. |
+| F05 | Actor-aware Raging/Airborne shooting #91/#140 are ancestors via #301. Raging melee #96 is ported with the actor turn and current ordered stat scale. Overwield ranged #102 and Spiny velocity #150 are ported. | Melee, guest actor identity and stat ordering await exact-head verification; Spiny self-damage remains deferred. Do not replay the listed old commits. |
+| F06 | Vintage/Heavy/Featherweight and Solid/Entwined armor #130/#131/#132/#138, broken gravity #155 and Step Up behavior #163 are ancestors. Snow Boots #156/#158 and Golden armor #161 are ported. | Step Up recipe #164, Speedy #139, and other omitted armor candidates need source comparison. Bouncy remains narrowly deferred. |
+| F12 | Power and Blindshot were ported in #289; ordered upgrades #267/#279 and splash fixes through #298 are ancestors. | Gilded and slot transactions #123/#124/#128/#165 and separately owned current fluid changes need reconciliation, not blind replay. |
+| F14 | Island/vegetation and planted propagule candidate #242 is an ancestor, including #191/#200/#204/#206/#208/#212/#215/#218/#220/#223/#226/#227/#230/#231/#236/#240. Unsupported terrain tint remains absent. | Ender island marker world boundary, slime fluids and custom mob registration remain narrow deferrals; all integrated generation requires target game checks. |
+| F15 | Island source candidate #242 is an ancestor. | #141 Cobalt loot, #168 cluster harvest, #173 slime loot, #178/#180 material tags and #181/#183/#186/#188 storage blocks are not ancestors; compare actual source before replaying, since product effects may be independently ported. |
+
+A port means equivalent intent was incorporated into this branch, not that it
+has passed official plan/apply/type or gameplay. #295 is present by cherry-pick
+rather than Git ancestry. The #298 package source-identity check applies to its
+fixed Pluto tree; these TConstruct changes need their own exact-head gates.
+
+The follow-up after #304 ports Vintage/Gilded #123/#124/#128/#165 and Speedy
+#139, and carries the source Cobalt sequence #141, cluster tool tag #168,
+ingot/nugget registrations #178/#180 and Pig Iron/Knightmetal block series
+#181/#183/#186/#188. Source loot #173 was already byte-identical in the
+candidate and was not replayed. Existing fluid ability and Blindshot guards are
+preserved during the Gilded merge. #142 Forming and #164 Step Up recipe remain
+separate pending comparison. Package, target apply, type and game behavior of
+this combined source remain unverified.
+
+The subsequent target-integration candidate ports #268's named Ingredient
+field for the declared 0c host and #305's narrower guest splash completion
+hook. The other #305 dependencies are not implied to be included. Both fixes
+are source-level; the 0c apply/type/game results must be checked on this exact
+head. The previous #298 official apply stopped at guest packet RETURN.
+
+The subsequent follow-up ports Forming #142 together with the previously
+separate Heavy/Wool knockback and Ductile toughness contributions, and ports
+Step Up recipe #164 without replacing the existing #163 equipment behavior.
+The source stat and recipe effects must be checked on the exact integration
+head; this inclusion does not imply formal apply or gameplay success.
+
+The next follow-up ports skull armor #107, slime-material Overslime #111 and
+slimy chestplate definition resolution #121. The material capacity is combined
+with the later ordered Overlord copy rather than restoring the older capacity
+formula; focused tests and all target checks remain pending. Wool #120,
+Ductile #136 and Forming #142 are represented in the #309 armor calculation.
+
+The subsequent F02/F05 follow-up ports #98 and #101 together, including the
+intermediate broad-speed calculation, live Overslime reads and the area-harvest
+spend. The #82 Airborne penalty boundary and later ordered stat calculations are
+retained. These paths still need formal apply and gameplay checks; ordinary
+single-block capacity spending and other Overslime consumers remain incomplete.
+
+The #318 success-boundary spend is replaced in the next candidate by a
+pre-removal `native_destroy_block` hook. The host performs permission checks
+before that boundary, so it still requires source comparison for restricted,
+cancelled and creative cases. Actor-scoped area state prevents repeated spends;
+formal apply and gameplay remain pending. Other capacity consumers remain open.
+
+A later Creative resource candidate closes the source-level armor rebuild and
+slimy chestplate alias gap recorded in the open-PR inventory. It uses the same
+Station rebuild helper and source armor tags; official resource preparation,
+Creative inventory output and gameplay validation are still pending.
