@@ -27,6 +27,55 @@ mod haste_tests {
     }
 }
 
+// Airborne's percent module runs after flat mining bonuses and does not
+// require an effective tool. A broken tool cannot apply modifiers.
+pub(super) fn airborne_multiplier(custom: &Tag, damage: u32, on_ground: bool) -> f32 {
+    if on_ground { return 1.0; }
+    let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return 1.0; };
+    if *max <= 0 || damage >= *max as u32 { return 1.0; }
+    let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return 1.0; };
+    if modifiers.iter().any(|modifier| matches!((modifier.get("id"), modifier.get("level")),
+        (Some(Tag::String(id)), Some(Tag::Int(level))) if id.to_string_lossy() == "tconstruct:airborne" && *level > 0)) { 5.0 } else { 1.0 }
+}
+
+#[cfg(test)]
+mod airborne_tests {
+    use super::*;
+    #[test]
+    fn maintained_addition_uses_speed_after_airborne_penalty() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![
+                Tag::compound([("id", Tag::String("tconstruct:maintained".into())), ("level", Tag::Int(1))]),
+                Tag::compound([("id", Tag::String("tconstruct:airborne".into())), ("level", Tag::Int(1))]),
+            ])),
+        ]);
+        // Inputs are the final host values after the applicable air/water
+        // penalties; the product hook must call this only after those steps.
+        for (host_speed, on_ground, expected) in [
+            (4.0 / 5.0, false, 34.0),
+            (4.0, true, 10.0),
+            (4.0 / 5.0, true, 6.8),
+            (4.0 / 25.0, false, 30.8),
+        ] {
+            let with_flat = conditional(&custom, 0, host_speed, 1.0, None, true, false, false).unwrap();
+            let actual = with_flat * airborne_multiplier(&custom, 0, on_ground);
+            assert!((actual - expected).abs() < 0.0001, "{actual} != {expected}");
+        }
+    }
+    #[test]
+    fn only_unbroken_airborne_trait_boosts_airborne_speed() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([("id", Tag::String("tconstruct:airborne".into())), ("level", Tag::Int(1))])])),
+        ]);
+        assert_eq!(airborne_multiplier(&custom, 0, false), 5.0);
+        assert_eq!(airborne_multiplier(&custom, 0, true), 1.0);
+        assert_eq!(airborne_multiplier(&custom, 100, false), 1.0);
+        assert_eq!(airborne_multiplier(&Tag::compound(Vec::<(&str, Tag)>::new()), 0, false), 1.0);
+    }
+}
+
 // Evaluate the actual Tool with PlutoLib. A missing or invalid component leaves
 // host fallback decisions to the caller.
 fn outcome(tool: &Tag, block: &str, in_tag: impl Fn(&str, &str) -> bool) -> Option<super::tconstruct_tool_api::rules::Outcome> {
@@ -58,7 +107,25 @@ pub(super) fn effective_speed(tool: &Tag, block: &str, in_tag: impl Fn(&str, &st
     evaluated_speed(tool, block, in_tag).flatten()
 }
 
-pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool) -> Option<f32> {
+/// A missing broad tag is unknown, so do not apply the non-broad bonus.
+pub(super) fn broad_or_unknown(tag: Option<&std::collections::HashSet<String>>, item: &str) -> bool {
+    tag.is_none_or(|items| items.contains(item))
+}
+
+#[cfg(test)]
+mod broad_tag_tests {
+    use super::broad_or_unknown;
+    use std::collections::HashSet;
+    #[test]
+    fn missing_broad_tag_fails_closed() {
+        let tag = HashSet::from(["tconstruct:sledge_hammer".to_owned()]);
+        assert!(broad_or_unknown(None, "tconstruct:pickaxe"));
+        assert!(broad_or_unknown(Some(&tag), "tconstruct:sledge_hammer"));
+        assert!(!broad_or_unknown(Some(&tag), "tconstruct:pickaxe"));
+    }
+}
+
+pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: bool) -> Option<f32> {
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
@@ -72,6 +139,7 @@ pub(super) fn conditional(custom: &Tag, damage: u32, speed: f32, potion_multipli
             "tconstruct:maintained" => Conditional::Maintained(*level),
             "tconstruct:dwarven" => Conditional::Dwarven(*level),
             "tconstruct:crumbling" => Conditional::Crumbling(*level),
+            "tconstruct:overwield" if !broad => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }),
             _ => continue,
         };
         ordered.push(effect);
@@ -91,13 +159,13 @@ mod shared_rules_tests {
             ("tic_mining_all", Tag::Float(1.5f32.to_bits())),
             ("tic_mining_traits", Tag::List(vec![Tag::compound([("id", Tag::String("tconstruct:crumbling".into())), ("level", Tag::Int(2))])])),
         ]);
-        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, true), Some(4.0));
-        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, false), None);
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, true, false), Some(4.0));
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, false, false, false), None);
         let tool = Tag::compound([("rules", Tag::List(vec![Tag::compound([("blocks", Tag::String("minecraft:stone".into())), ("speed", Tag::Float(4.0f32.to_bits()))])]))]);
         let effective = evaluated_speed(&tool, "minecraft:dirt", |_, _| false).unwrap().is_some();
         assert!(!effective);
-        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, effective, true), Some(4.0));
-        assert_eq!(conditional(&custom, 100, 1.0, 1.0, None, false, true), None);
+        assert_eq!(conditional(&custom, 0, 1.0, 1.0, None, effective, true, false), Some(4.0));
+        assert_eq!(conditional(&custom, 100, 1.0, 1.0, None, false, true, false), None);
     }
 
     #[test]

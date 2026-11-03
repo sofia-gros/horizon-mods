@@ -3,13 +3,19 @@ id = "pluto_component_display_3a"
 version = "0.1.0"
 priority = 100
 [compatibility]
-horizon_revision = "fd6cfda6bdef59a53aee830009f78c14832b0308"
+horizon_revision = "9a6f7dd5a193d709f389adeb1f51858465b8f747"
+[[module]]
+id = "tooltip-policy"
+file = "crates/horizon-client/src/game.rs"
+name = "pluto_component_display"
+source = "policy.rs"
 [[injection]]
 id = "durability-tooltip"
 target = "horizon_client::game::native_hooks::Game<'_>::native_tooltip"
 kind = "HEAD"
 helper = "tooltip.rs"
 bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "stack", ty = "&ItemStack", value = "stack" },
   { name = "lines", ty = "&mut Vec<(Text, u32)>", value = "&mut *lines" },
 ]
