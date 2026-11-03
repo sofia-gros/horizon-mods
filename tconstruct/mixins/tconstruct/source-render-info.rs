@@ -259,7 +259,7 @@ mod tests {
         let mut available = HashSet::new();
         for i in 0..zip.len() {
             let mut entry = zip.by_index(i).unwrap();
-            let name = entry.name().to_owned();
+            let name = entry.name().expect("valid zip entry name").into_owned();
             if let Some(path) = name.strip_prefix("assets/tconstruct/tinkering/materials/").and_then(|s| s.strip_suffix(".json")) {
                 let mut bytes = Vec::new(); entry.read_to_end(&mut bytes).unwrap();
                 records.insert(format!("tconstruct:{path}"), serde_json::from_slice(&bytes).unwrap());

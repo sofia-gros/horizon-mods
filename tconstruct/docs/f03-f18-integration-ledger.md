@@ -54,3 +54,15 @@ This section supersedes older target and blanket-status statements above. The fi
 | Fluid abilities (F12) | #225/#229 tool-tank work, #232 onward limited slurping/spilling, and #302 restricted staff/pan splashing recipe and supported effects; #303 adds bounded guest cures. Exact #293 parser fixtures and #294 water parser fixture passed with their documented stubs/old host, not Game. | Source-specific lava and water-sensitive damage, milk cure with special equipment/mod effects, instant potion effects and water block breaking remain unsupported; guest-target work is subject to the #305 apply/site check. Source water loot needs exact hit origin, actor and empty-tool context; existing host break helpers do not jointly provide those semantics. The recipe candidate is restricted and must not be called full source parity. |
 
 Concrete and redstone acid are Immersive Engineering conditional recipes, not standard no-mod functionality. Unknown mod state does not authorize their selection. A supported operation must be checked in Game against its exact head; a parser fixture, package pass or earlier host success is not a substitute.
+
+## Earlier workstation evidence
+
+The #217 supplied-material Linux fixture covered ordinary planks, Blazewood,
+Nahuatl, mixed and failure cases, including a LAN guest using Nahuatl. It does
+not validate Windows, LAN restart or source retexturing.
+
+The #214 head `506d43661b5cb581736e94ae4d5e3a590d6a51b3` was reported to
+pass official apply and Linux build in integrated tree
+`e3bd01cb5e6c94c29d0ffb3095fcf4851d1dcbd3` on Horizon `b53cfcd1` and Mixins
+`ddd9700b`, using temporary pin edits and the matching Pluto bundle. That
+historical result does not establish current main or gameplay success.

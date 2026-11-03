@@ -16,7 +16,7 @@ class ResourceOverlay(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
-            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:honey_bottle': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
+            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
                    'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
@@ -97,6 +97,13 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual(slime_bottle['minecraft:crafting_remainder'], {'id': 'minecraft:glass_bottle'})
                 texture = 'ichor' if kind == 'ichor' else f'{kind}_slime'
                 self.assertTrue((out / f'assets/tconstruct/textures/item/bottle/{texture}_contents.png').is_file())
+            magma = items['tconstruct:magma_bottle']
+            self.assertEqual(magma['minecraft:max_stack_size'], 16)
+            self.assertEqual(magma['minecraft:use_remainder'], {'id': 'minecraft:glass_bottle'})
+            self.assertEqual(magma['minecraft:crafting_remainder'], {'id': 'minecraft:glass_bottle'})
+            self.assertNotIn('minecraft:food', magma)
+            self.assertNotIn('minecraft:consumable', magma)
+            self.assertTrue((out / 'assets/tconstruct/textures/item/bottle/magma_contents.png').is_file())
             ichor = items['tconstruct:ichor_slime_bottle']
             self.assertEqual(ichor['minecraft:consumable']['on_consume_effects'][0]['effects'], [
                 {'id': 'minecraft:levitation', 'duration': 200},
@@ -171,8 +178,17 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_melter.png').read_bytes(), melter_assets.read('assets/tconstruct/textures/gui/melter.png'))
                 fluids = json.loads(melter_assets.read('assets/tconstruct/melter-fluid-textures.json'))
                 self.assertIn('tconstruct:molten_copper', fluids)
+                animations = json.loads((Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
+                self.assertEqual(animations['tconstruct:molten_copper'], {'animation': {'frametime': 2}})
+                self.assertEqual(animations['tconstruct:ichor'], {'animation': {'frametime': 3, 'interpolate': True}})
+                self.assertEqual(set(fluids) - set(animations), {'tconstruct:powdered_snow'})
+                self.assertEqual(json.loads((out / 'assets/minecraft/textures/block/tconstruct_fluid_fallback.png.mcmeta').read_text()), {'animation': {'frametime': 2}})
                 for fluid, texture in fluids.items():
                     self.assertEqual((out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).read_bytes(), melter_assets.read('assets/tconstruct/' + texture))
+                    meta = out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta')
+                    self.assertEqual(meta.exists(), fluid in animations)
+                    if fluid in animations:
+                        self.assertEqual(json.loads(meta.read_text()), animations[fluid])
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-station-layouts.zip') as layouts:
                 for name in layouts.namelist():

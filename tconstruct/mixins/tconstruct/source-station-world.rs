@@ -3,6 +3,16 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_station_recipes::{BuildingMatch, BuildingRecipe};
 
+// Some worlds can be observed before the index has been captured. Preserve the
+// previous lookup in that case rather than changing availability of recipes.
+fn building_recipes(world: &super::tconstruct_world::World) -> Option<Box<dyn Iterator<Item = &Vec<u8>> + '_>> {
+    if let Some(index) = world.chunks.__horizon_mixins_tconstruct_station_building_recipes().as_ref() {
+        Some(Box::new(index.iter()))
+    } else {
+        Some(Box::new(world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()))
+    }
+}
+
 /// Whether slot zero contains a tool displayed in the station's repair layout.
 pub(super) fn has_operation_tool(slots: &[Option<ItemStack>]) -> bool {
     slots.first().and_then(Option::as_ref).is_some_and(|stack| {
@@ -24,10 +34,10 @@ pub(super) fn building_plan_with_capacity(world: &super::tconstruct_world::World
 
 pub(super) fn building_plan_diagnostic(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], input_capacity: usize, reason: &mut Option<String>) -> Option<(BuildingMatch, ItemStack)> {
     if !matches!(input_capacity, 3 | 5) { return None; }
-    let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
+    let recipes = building_recipes(world)?;
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let registered = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
-    for bytes in recipes.values() {
+    for bytes in recipes {
         let Some(recipe) = BuildingRecipe::parse(bytes) else { continue; };
         if !registered.contains_key(&recipe.result) { continue; }
         let Some((namespace, name)) = recipe.result.split_once(':') else { continue; };
@@ -231,7 +241,7 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
-    let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
+    let recipe = building_recipes(world)?
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item)?;
     let parts = recipe.parts(definition)?;
     let index = if parts.get(slot - 1).is_some_and(|id| id == &*part.item) { slot - 1 }
@@ -310,7 +320,7 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?;
-    let recipe = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?.values()
+    let recipe = building_recipes(world)?
         .filter_map(|bytes| BuildingRecipe::parse(bytes)).find(|recipe| recipe.result == &*tool.item);
     let mut repair_parts: Vec<(String, String)> = Vec::new();
     if let Some(parts) = recipe.as_ref().and_then(|recipe| recipe.parts(definition)) {

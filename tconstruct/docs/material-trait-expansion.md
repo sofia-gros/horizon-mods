@@ -92,3 +92,9 @@ Boots item and other armor behavior but does not implement custom-boots walking
 or placement on powder snow. Vanilla leather-boots behavior is unchanged.
 The omission is not an apply or gameplay pass; check official package, apply
 and type, and verify vanilla movement and unrelated equipment in game.
+
+Speedy applies to supported leggings, not main-hand items. Redstone dust or
+blocks contribute 45 units per level, up to three levels; each level uses one
+upgrade slot and gives +10% multiply-total movement speed. Check partial and
+leftover materials, modifier-crystal salvage, broken behavior and save/LAN on
+the integrated build; the earlier fixture is not a full gameplay pass.

@@ -164,13 +164,17 @@ Horizon item registry. Missing required references omit their tag, while
 cycles fail closed because Forge's dependency sorter is not yet ported. In
 one locally prepared fixture resource set, 274 of 616 fixed source item tags resolve;
 342 do not, including tags referencing unregistered TConstruct items. This is
-not an original-equivalent item registry. If `config/tconstruct-common.toml`
-is absent, the source condition defaults are captured per world; if it exists
-or cannot be inspected, configuration is explicitly unavailable. Forge TOML
-parsing and user overrides remain unimplemented. A server-side fixture in both
-game modes verified actual oak-log and Pattern tags through pack replacement,
-disabling and reload; flint and oak-log material lookup with real item tags
-and default configuration; and rejection of a present common config file.
+not an original-equivalent item registry. A missing
+`config/tconstruct-common.toml` uses source condition defaults. A present file
+can supply the supported condition keys documented in the development guide;
+invalid TOML and read failures make the snapshot unavailable. An invalid known
+value leaves only its condition unknown; unsupported settings do not disable
+other conditions, but their own gameplay behavior is not implemented here.
+Full Forge config support remains incomplete. An earlier server-side fixture in
+both game modes verified actual oak-log and Pattern tags through pack replacement,
+disabling and reload, plus flint and oak-log material lookup with real item tags
+and default configuration. That older fixture rejected all present config files;
+it does not verify the current bounded reader.
 Other registries remain incomplete and these contexts are not used for player
 crafting yet.
 
@@ -378,9 +382,9 @@ Copper Can has a source-shaped standalone copper-ingot recipe and stores 90 mB p
 
 The single- and multi-fluid tank NBT formats retain optional compound fluid tags and distinguish otherwise identical fluids by tag. Copper Can container-slot transfers preserve tagged fluid data and move one 90 mB can at a time; selecting by ID refuses ambiguous variants. Ordinary alloys can proceed alongside unrelated tagged entries while ambiguous ingredient matches fail closed; other untagged transfer paths reject tagged entries until their routing supports metadata; additional tagged fluid paths remain unsupported. Save, wire synchronization and behavior with older worlds remain unverified.
 
-The faucet packet buffer retains the fluid tag across reservation, pouring and its saved NBT. The source potion casting serializers resolve their bottle ingredient and fluid against the current recipe and tags; the supported base-potion case copies the potion ID to the result. A plain normal potion can be emptied into the tank for 250 mB, returning a glass bottle; water potions produce water as in the source. Extra potion NBT, colors, custom effects, mod-specific potion fluid preference and other tagged casting forms remain unsupported and are rejected. This path awaits integration and runtime verification.
+The faucet packet buffer retains the fluid tag across reservation, pouring and its saved NBT. The source potion casting serializers resolve their bottle ingredient and fluid against the current recipe and tags; the supported base-potion case copies the potion ID to the result. A plain normal potion can be emptied into the tank for 250 mB, returning a glass bottle; water potions produce water as in the source. At that earlier candidate, extra potion NBT, colors and custom effects were rejected; later limited support is described below. Mod-specific fluid preference and other tagged forms require separate verification.
 
-The container slot can also fill a glass bottle with a plain potion from 250 mB of TConstruct potion fluid, or a water potion from 500 mB of water, matching the corresponding Mantle source transfers. Tags with additional potion data and ambiguous same-ID variants are refused. Runtime behavior remains unverified.
+The container slot can also fill a glass bottle with a plain potion from 250 mB of TConstruct potion fluid, or a water potion from 500 mB of water, matching the corresponding Mantle source transfers. This earlier fill path refused extra potion data and ambiguous same-ID variants. Later local container-slot handling accepts supported colored normal potions; it refuses colored data while LAN is active and does not accept splash or lingering potions in this slot. Ambiguous same-ID variants remain refused. Runtime behavior remains unverified.
 
 The direct tank interaction also accepts plain splash and lingering potions. Their returned bottle is selected from the resolved source bottle tag if it has one registered item, or is a glass bottle when the tag is empty; missing tag context or an ambiguous tag refuses the exchange. Other paths and filling those specialized bottles remain unsupported. This is unverified in game and LAN.
 
@@ -618,7 +622,40 @@ The empty-bottle source-ray follow-up checks a nearer waterlogged source using t
 
 The subsequent modifier-repair candidate recognizes nested Forge difference and intersection ingredients and selected fixed definition traits. It uses trait levels already included by the current resolver exactly once; optional relevant traits and definition-provided Emerald remain conservative exclusions. Extracted-code fixtures for the paired resolver and repair calculation passed, but the reconciled candidate requires game, save and LAN verification.
 
-The remote Melter tooltip uses the captured menu position, like the renderer.
-The earlier missing tooltip and gray gauge observation did not establish a
-single cause; verify fluid name, amount, gauge and saved metadata in local and
-integrated-owner play on the final build. See issue #365 group 06.
+For the Crafting Station workbench-difference recipe, verify the pattern and
+valid workbench input, reject the Station itself as the workbench, and confirm
+unrelated shaped recipes remain unaffected. Check nested ingredient matching
+and the integrated build and game behavior on the actual host revision; the
+named-field compatibility change alone is not runtime evidence.
+
+Composite material lookup uses explicit types and borrows to resolve Rust type
+inference. This correction does not change recipe selection. Verify the final
+integrated build and game behavior separately; syntax alone is not a pass.
+
+Fluid Cannon stores up to 2,000 mB and one item stack. Direct and Faucet
+transfers, persistence and drops are implemented; hopper and comparator
+support were added later. Projectile or fluid-effect firing, dynamic light,
+item rendering and helmet use remain unimplemented or unverified. Validate the
+integrated behavior separately; storage support does not imply a working gun.
+
+Later conversion code supports a bounded set of vanilla effect IDs, preserves
+recognized color/effect data through supported local conversions, and maps a
+water base to plain water. Unknown fields and invalid types are rejected, and
+color acceptance is gated by the relevant operation. Rendering, outgoing
+transport and LAN behavior require separate integrated verification.
+
+Spilling normalizes known effect IDs before comparing them with saved effects,
+so `poison` and `minecraft:poison` refer to the same status when accounting
+for fluid use. Verify new, extended and stronger existing effects, undead
+immunity and fluid balance on the integrated build; this is not a gameplay pass.
+
+The remote Melter tooltip reads the menu position captured when the screen opens,
+matching the renderer. On base `90446cc`, this change passed the official 0c7b/ddd
+Mixins stage, offline locked client check and dev build, and two source guards.
+The subsequent `da3bd019` base changes only an inventory document; those results
+are not a build of that exact revision. An earlier selective b53/ddd test observed
+local and guest tooltip/gauge behavior; neither test proves the final build in game.
+For issue #365 group 06, use multiple Melters with distinct fluids and amounts;
+check local and LAN guest name, amount, gauge, and interaction target when opening
+and switching machines, then verify saved state after reload. Include empty tanks
+and normal inventory tooltips as regressions. The final-main game check remains open.

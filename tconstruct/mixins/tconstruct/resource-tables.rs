@@ -395,7 +395,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let marker = cache.join("tconstruct-startup-owner");
     let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
     // Invalidate only our owned cache when Creative preparation semantics change.
-    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v2");
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v4");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
@@ -572,6 +572,11 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
                     {"id":"minecraft:slowness","duration":200,"amplifier":1}]}]});
             }
         }
+    }
+    if let Some(item) = items.get_mut("tconstruct:magma_bottle") {
+        item["minecraft:max_stack_size"] = serde_json::json!(16);
+        item["minecraft:use_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
+        item["minecraft:crafting_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
     }
     if let Some(item) = items.get_mut("tconstruct:venom_bottle") {
         item["minecraft:food"] = serde_json::json!({"can_always_eat":true,"nutrition":0,"saturation":0.0});

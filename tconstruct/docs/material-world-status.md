@@ -212,3 +212,23 @@ projectile damage still require dedicated verification on this candidate.
 ### Stat builder multiplier correction
 
 Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, mining speed, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
+
+Earlier integration evidence applies only to the recorded candidate revision.
+Keep the later stat-order corrections and the documented Bouncy deferral;
+validate the current integrated build and gameplay separately.
+
+Bouncy landing hooks remain deferred. The current landing-state package uses
+ChunkMap and its Default constructor, not the older PlayerMotion design. Check
+package tests, plan and build on the same integrated revision; a pass from an
+older candidate does not establish success for current main.
+
+Earlier material fixtures passed against older host libraries for skull/slime
+recipes, capacity, mining arithmetic and regeneration. The cancellation-safe
+mining helper also passed a targeted #101 apply on Horizon 0c7b/Mixins ddd and
+an older stub-Game check. These are revision-scoped checks, not proof of the
+current integrated build or gameplay.
+
+The Overlord ordering regression combines stat rebuild and Overslime capacity
+rebuild: the focused host-crate test covers durability, copied capacity and
+shield clamping together. It does not enable the deferred Bouncy hooks or
+establish integrated gameplay behavior.

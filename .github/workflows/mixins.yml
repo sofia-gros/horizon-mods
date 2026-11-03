@@ -47,14 +47,14 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           python3 -m unittest discover -s tconstruct/tests -v
+          rustc --edition=2021 --test tconstruct/tests/rust/broad_wire.rs -o /tmp/tconstruct-broad-wire-test
+          /tmp/tconstruct-broad-wire-test
           rustc --test tconstruct/tests/rust/command.rs -o /tmp/tconstruct-command-test
           /tmp/tconstruct-command-test
           rustc --test tconstruct/tests/rust/recipe_snapshot.rs -o /tmp/tconstruct-recipe-snapshot-test
           /tmp/tconstruct-recipe-snapshot-test
           rustc --test tconstruct/tests/rust/material_snapshot.rs -o /tmp/tconstruct-material-snapshot-test
           /tmp/tconstruct-material-snapshot-test
-          rustc --test tconstruct/tests/rust/source_config.rs -o /tmp/tconstruct-source-config-test
-          /tmp/tconstruct-source-config-test
           rustc --test tconstruct/tests/rust/source_builder_wire.rs -o /tmp/tconstruct-source-builder-wire-test
           /tmp/tconstruct-source-builder-wire-test
           rustc --test tconstruct/tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
@@ -91,6 +91,7 @@ jobs:
           python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/pluto-lib/.work/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
           python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
           cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p tconstruct-source-config --lib
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests

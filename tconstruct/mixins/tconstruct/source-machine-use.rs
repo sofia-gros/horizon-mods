@@ -37,7 +37,12 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
         "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
-        "tconstruct:seared_drain" | "tconstruct:scorched_drain" => crate::game::tconstruct_source_machine_runtime::interact_drain(game, pos),
+        "tconstruct:seared_drain" | "tconstruct:scorched_drain" => {
+            // A drain only consumes supported fluid transfers. If no transfer
+            // happened, let the held item act (for example, place a faucet).
+            if !crate::game::tconstruct_source_machine_runtime::interact_drain(game, pos) { return Continue(()); }
+            true
+        },
         "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" => crate::game::tconstruct_source_machine_runtime::interact_casting(game, pos, &name),
         "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => crate::game::tconstruct_source_machine_runtime::interact_fuel_tank(game, pos, &name),
         _ => return Continue(()),

@@ -14,7 +14,7 @@ Place an ingot cast on the table, use the faucet, and wait for the copper ingot 
 
 The copper sequence, saving and reloading, and shared input and casting in LAN have been checked on Linux. Other materials and Windows have not received the same game checks.
 
-The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; animated fluid frames and the casting cooling fade are not yet implemented.
+The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; source animation metadata is now staged for fluid aliases, while the casting cooling fade remains unimplemented. Atlas animation and reload still need in-game verification.
 
 Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. The Faucet, Casting Basin and Casting Table use the original selection and collision shapes. A Linux game check covered all five Faucet directions, right-click targeting, the Basin and Table recesses, walking against one Faucet, and falling into the Basin and Table. The Melter screen still opened. Other machine shapes remain to be compared.
 
@@ -38,3 +38,9 @@ unknown membership and cycles still refuse the operation. Focused recipe and
 tag tests pass, but a game rerun of the corrected Basin path is still pending.
 
 ![Lantern filled on the Casting Table](test-lantern-table.png)
+
+The fluid animation manifest records the original `.mcmeta` entries from TConstruct
+revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, including frame timing and
+interpolation. Powdered snow has no source animation metadata. Both the manual
+resource overlay and the content package stage metadata beside each alias.
+Tests check packaging and values, not visible animation or resource reload.

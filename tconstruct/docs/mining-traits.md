@@ -98,7 +98,7 @@ block receives the source multiplier `1 + 0.2 * min(overslime, level)`. It uses
 the current stored Overslime amount, not capacity, and applies in the same
 ordered percentage stage as Jagged and Stonebound. The tool is checked against
 the resolved source `tconstruct:modifiable/broad` item tag. If the tag is
-unavailable, both Overwield speed variants are skipped until it resolves. Zero
+unavailable, both Overwield speed variants are skipped until it resolves. In hosted LAN, the host sends the resolved broad-tool membership to each guest and replaces it when the tag changes; reconnect, a world reset, and tag reload start unknown until a fresh snapshot arrives. Unchanged snapshots refresh within 20 active host ticks (about one second at 20 ticks per second; longer if paused or slow). The frame is capped at 16 KiB, so periodic payload is at most 16 KiB per guest per 20 ticks, plus protocol overhead; oversized membership is unknown. Invalid or unavailable snapshots remain unknown rather than treating every tool as narrow. Overslime spending remains host-authoritative. Reload and datapack changes invalidate parked levels’ item-tag snapshots; the next level update rebuilds them before a fresh snapshot can be sent. This synchronization still needs gameplay verification, including datapack reload across dimensions and reconnect. Zero
 Overslime or an ineffective block gives no bonus. The formulas correspond to
 the [source Overwield definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
 Material acquisition remains separate work.

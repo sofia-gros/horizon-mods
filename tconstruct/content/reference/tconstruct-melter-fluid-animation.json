@@ -1,0 +1,358 @@
+{
+  "tconstruct:beetroot_soup": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:blazing_blood": {
+    "animation": {}
+  },
+  "tconstruct:earth_slime": {
+    "animation": {
+      "frametime": 3
+    }
+  },
+  "tconstruct:ender_slime": {
+    "animation": {
+      "frametime": 3
+    }
+  },
+  "tconstruct:fiery_liquid": {
+    "animation": {
+      "frametime": 3
+    }
+  },
+  "tconstruct:honey": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:ichor": {
+    "animation": {
+      "frametime": 3,
+      "interpolate": true
+    }
+  },
+  "tconstruct:liquid_soul": {
+    "animation": {
+      "frametime": 6,
+      "interpolate": true
+    }
+  },
+  "tconstruct:magma": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:meat_soup": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_aluminum": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_amethyst": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_amethyst_bronze": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_bendalloy": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_brass": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_bronze": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_cadmium": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_chromium": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_cinderslime": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_clay": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_cobalt": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_constantan": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_copper": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_debris": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_diamond": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_duralumin": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_electrum": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_emerald": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_ender": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_enderium": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_glass": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_gold": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_hepatizon": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_invar": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_iron": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_knightmetal": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_knightslime": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_lead": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_lumium": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_manyullyn": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_netherite": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_nickel": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_nicrosil": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_obsidian": {
+    "animation": {
+      "frametime": 3,
+      "interpolate": true
+    }
+  },
+  "tconstruct:molten_osmium": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_pewter": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_pig_iron": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_platinum": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_porcelain": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_quartz": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_queens_slime": {
+    "animation": {
+      "frametime": 2,
+      "interpolate": true
+    }
+  },
+  "tconstruct:molten_refined_glowstone": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_refined_obsidian": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_rose_gold": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_signalum": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_silver": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_slimesteel": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_soulsteel": {
+    "animation": {
+      "frametime": 6,
+      "interpolate": true
+    }
+  },
+  "tconstruct:molten_steel": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_steeleaf": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_tin": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_tungsten": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_uranium": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:molten_zinc": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:mushroom_stew": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:potion": {
+    "animation": {}
+  },
+  "tconstruct:rabbit_stew": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:scorched_stone": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:seared_stone": {
+    "animation": {
+      "frametime": 2
+    }
+  },
+  "tconstruct:sky_slime": {
+    "animation": {
+      "frametime": 3
+    }
+  },
+  "tconstruct:venom": {
+    "animation": {
+      "frametime": 2
+    }
+  }
+}

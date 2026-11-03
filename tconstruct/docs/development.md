@@ -40,3 +40,47 @@ Preparing game resources and running the game also require Horizon 26.3 resource
 The `tests/game/anvil_*.py` scripts exercise the real client using a dedicated test world under `tconstruct/target`. Supply `--game`, `--ctl`, `--resources`, and the same `--run-dir` inside that directory to each script. Run `anvil_acceptance.py` first to prepare the world, then `anvil_parts.py`, `anvil_compat.py`, `anvil_lan.py`, and `anvil_lan_upgrade.py`. These scripts place and break blocks in that test world; do not point them at a player world. Linux GUI tests need a display and Vulkan adapter. They do not replace Windows testing or a full survival run.
 
 The development manifest targets Horizon `fd6cfda6bdef59a53aee830009f78c14832b0308` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. A combined Linux build and representative checks have passed, with remaining limitations in [compatibility](compatibility.md).
+
+## Station recipe lookup
+
+Tool-building recipe candidates are indexed when the world recipe snapshot is
+captured, after pack overrides are applied. Station previews and repairs use
+that per-world index in the same recipe-ID order as the snapshot. Reloading
+recipes rebuilds it, and clearing world state discards it. Input matching,
+material validation, and the authoritative take still run against current
+state. This reduces repeated parsing during station rendering; the reported
+Windows FPS drop still needs an in-game before/after measurement.
+
+### Block item assets
+
+Each registered block that has an item needs an `assets/tconstruct/items/`
+item definition as well as its item model. The block registration test follows
+those references through local model parents and textures. The covered
+Scorched Table item model is taken from the pinned Tinkers' Construct revision
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2` at
+`src/main/resources/assets/tconstruct/models/block/foundry/table_covered.json`.
+The resource-overlay test uses a minimal vanilla item fixture, including the
+book template required for the Puny Smelting item.
+
+## Source common configuration
+
+The condition snapshot reads `config/tconstruct-common.toml` from the game
+root (the standalone dedicated server uses its working directory, independent
+of `--universe`). An absent file uses source defaults. The reader supports these
+boolean condition keys:
+
+- `[gameplay]`: `shouldSpawnWithTinkersBook`, `syncKnockbackResistance`
+- `[recipes]`: `addGravelToFlintRecipe`, `cheaperNetheriteAlloy`,
+  `witherBoneDrop`, `glassRecipeFix`
+- `[compatability]`: `allowIngotlessAlloys` (the spelling matches upstream)
+- `[debug]`: `forceIntegrationMaterials`
+- `[loot]`: `slimy_loot`
+
+Other settings do not disable these conditions, but their corresponding
+gameplay behavior is not supplied by this reader. A non-boolean supported value
+leaves that condition unknown without disabling unrelated conditions; malformed
+TOML or read failures make the snapshot unavailable. The source
+condition `slime_recipe_fix` intentionally follows `glassRecipeFix` in the
+pinned upstream implementation; deprecated `wither_bone_conversion` is false.
+This is a subset, not full Forge config compatibility. Config capture runs on
+world setup and datapack reload. Game and LAN behavior still need verification.
