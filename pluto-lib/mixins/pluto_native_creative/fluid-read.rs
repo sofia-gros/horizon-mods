@@ -1,4 +1,4 @@
-//! Read-only access to the host's registered block-entity fluid tanks.
+// Read-only access to the host's registered block-entity fluid tanks.
 use crate::{containers::BlockEntity, world::World};
 use horizon_core::geometry::Direction;
 use horizon_world::nbt::Tag;
