@@ -6,6 +6,11 @@ priority = 100
 [compatibility]
 horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
 
+[[crate]]
+id = "source-config-parser"
+path = "source-config-parser"
+dependent = "horizon-client"
+
 [[injection]]
 id = "command"
 target = "horizon_client::game::commands::Game<'_>::run_command"

@@ -98,9 +98,14 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
             let registry = ids.names.iter().filter(|id| !id.is_empty()).cloned().collect();
             crate::game::tconstruct_source_tags::resolve_registry(&fluid_tags, &registry)
         });
-    let config = game.world_root.parent().and_then(std::path::Path::parent)
-        .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
-        .and_then(crate::game::tconstruct_source_config::load);
+    let dedicated = game.standalone_server();
+    let working_dir = if dedicated {
+        std::env::current_dir().map_err(|error| format!("cannot locate server working directory: {error}"))
+    } else { Ok(std::path::PathBuf::new()) };
+    let config = working_dir.and_then(|working_dir| {
+        tconstruct_source_config::root_for_world(&game.world_root, dedicated, &working_dir)
+            .ok_or_else(|| "cannot locate the game root for the source config".to_owned())
+    }).and_then(|root| crate::game::tconstruct_source_config::load(&root));
     let tank_fluids = std::fs::read(game.options.resources.join("tconstruct-melter-fluids.json"))
         .map_err(|error| error.to_string())
         .and_then(|bytes| serde_json::from_slice::<std::collections::HashSet<String>>(&bytes).map_err(|error| error.to_string()))

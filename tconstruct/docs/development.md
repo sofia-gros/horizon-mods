@@ -61,3 +61,26 @@ Scorched Table item model is taken from the pinned Tinkers' Construct revision
 `src/main/resources/assets/tconstruct/models/block/foundry/table_covered.json`.
 The resource-overlay test uses a minimal vanilla item fixture, including the
 book template required for the Puny Smelting item.
+
+## Source common configuration
+
+The condition snapshot reads `config/tconstruct-common.toml` from the game
+root (the standalone dedicated server uses its working directory, independent
+of `--universe`). An absent file uses source defaults. The reader supports these
+boolean condition keys:
+
+- `[gameplay]`: `shouldSpawnWithTinkersBook`, `syncKnockbackResistance`
+- `[recipes]`: `addGravelToFlintRecipe`, `cheaperNetheriteAlloy`,
+  `witherBoneDrop`, `glassRecipeFix`
+- `[compatability]`: `allowIngotlessAlloys` (the spelling matches upstream)
+- `[debug]`: `forceIntegrationMaterials`
+- `[loot]`: `slimy_loot`
+
+Other settings do not disable these conditions, but their corresponding
+gameplay behavior is not supplied by this reader. A non-boolean supported value
+leaves that condition unknown without disabling unrelated conditions; malformed
+TOML or read failures make the snapshot unavailable. The source
+condition `slime_recipe_fix` intentionally follows `glassRecipeFix` in the
+pinned upstream implementation; deprecated `wither_bone_conversion` is false.
+This is a subset, not full Forge config compatibility. Config capture runs on
+world setup and datapack reload. Game and LAN behavior still need verification.
