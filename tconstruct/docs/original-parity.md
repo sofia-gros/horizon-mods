@@ -639,3 +639,8 @@ recognized color/effect data through supported local conversions, and maps a
 water base to plain water. Unknown fields and invalid types are rejected, and
 color acceptance is gated by the relevant operation. Rendering, outgoing
 transport and LAN behavior require separate integrated verification.
+
+Spilling normalizes known effect IDs before comparing them with saved effects,
+so `poison` and `minecraft:poison` refer to the same status when accounting
+for fluid use. Verify new, extended and stronger existing effects, undead
+immunity and fluid balance on the integrated build; this is not a gameplay pass.
