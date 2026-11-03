@@ -1,3 +1,67 @@
+// Keep source artwork untouched while fitting the host GUI atlas' 1024x512 limit.
+fn copy_guide_image(source: &std::path::Path, target: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::Read;
+    let mut file = std::fs::File::open(source)?;
+    let mut header = [0u8; 24];
+    file.read_exact(&mut header)?;
+    if &header[..8] != b"\x89PNG\r\n\x1a\n" || &header[12..16] != b"IHDR" { return Err("invalid guide PNG header".into()); }
+    let width = u32::from_be_bytes(header[16..20].try_into()?);
+    let height = u32::from_be_bytes(header[20..24].try_into()?);
+    if width == 0 || height == 0 { return Err("empty guide PNG".into()); }
+    if width <= 1024 && height <= 512 { std::fs::copy(source, target)?; return Ok(()); }
+    let scale = (1024.0 / f64::from(width)).min(512.0 / f64::from(height)).min(1.0);
+    let new_width = (f64::from(width) * scale).floor().max(1.0) as u32;
+    let new_height = (f64::from(height) * scale).floor().max(1.0) as u32;
+    let mut decoder = png::Decoder::new(std::io::BufReader::new(std::fs::File::open(source)?));
+    decoder.set_transformations(png::Transformations::EXPAND | png::Transformations::STRIP_16);
+    let mut reader = decoder.read_info()?;
+    let mut input = vec![0; reader.output_buffer_size().ok_or("guide PNG too large")?];
+    let info = reader.next_frame(&mut input)?;
+    let channels = info.color_type.samples();
+    let mut output = vec![0; new_width as usize * new_height as usize * channels];
+    for y in 0..new_height as usize {
+        for x in 0..new_width as usize {
+            let source_x = x * width as usize / new_width as usize;
+            let source_y = y * height as usize / new_height as usize;
+            let from = (source_y * width as usize + source_x) * channels;
+            let to = (y * new_width as usize + x) * channels;
+            output[to..to + channels].copy_from_slice(&input[from..from + channels]);
+        }
+    }
+    let mut encoder = png::Encoder::new(std::io::BufWriter::new(std::fs::File::create(target)?), new_width, new_height);
+    encoder.set_color(info.color_type);
+    encoder.set_depth(info.bit_depth);
+    encoder.write_header()?.write_image_data(&output)?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod guide_image_tests {
+    use super::copy_guide_image;
+    #[test]
+    fn oversized_guide_art_fits_the_atlas_and_small_art_is_unchanged() {
+        let root = std::env::temp_dir().join(format!("tconstruct-guide-image-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let large = root.join("large.png"); let scaled = root.join("scaled.png");
+        let small = root.join("small.png"); let copied = root.join("copied.png");
+        for (path, width, height) in [(&large, 1184, 747), (&small, 16, 16)] {
+            let mut encoder = png::Encoder::new(std::fs::File::create(path).unwrap(), width, height);
+            encoder.set_color(png::ColorType::Rgb); encoder.set_depth(png::BitDepth::Eight);
+            encoder.write_header().unwrap().write_image_data(&vec![90; width as usize * height as usize * 3]).unwrap();
+        }
+        let original = std::fs::read(&large).unwrap();
+        copy_guide_image(&large, &scaled).unwrap(); copy_guide_image(&small, &copied).unwrap();
+        assert_eq!(std::fs::read(&large).unwrap(), original);
+        assert_eq!(std::fs::read(&small).unwrap(), std::fs::read(&copied).unwrap());
+        let mut reader = png::Decoder::new(std::io::BufReader::new(std::fs::File::open(&scaled).unwrap())).read_info().unwrap();
+        let mut pixels = vec![0; reader.output_buffer_size().unwrap()];
+        let info = reader.next_frame(&mut pixels).unwrap();
+        assert!(info.width <= 1024 && info.height <= 512);
+        assert_eq!(info.height, 512); assert!(pixels.iter().all(|v| *v == 90));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
 // Shared post-processing for manually prepared and startup content roots.
 pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
         // The guide's pinned source images join the same GUI atlas in both
@@ -14,7 +78,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                     let name = path.strip_prefix(root)?.to_string_lossy().replace('\\', "/");
                     if !name.ends_with(".png") || !name.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) || name.contains("..") { continue; }
                     let sprite = format!("tconstruct_book_{}", name.trim_end_matches(".png").replace(['/', '-'], "_"));
-                    std::fs::copy(path, target.join(format!("{sprite}.png")))?;
+                    copy_guide_image(&path, &target.join(format!("{sprite}.png")))?;
                 }
                 Ok(())
             }
@@ -111,7 +175,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         let machines = [("tconstruct:crafting_station", "tconstruct:crafting_station"), ("tconstruct:part_chest", "tconstruct:part_chest"), ("tconstruct:tinkers_chest", "tconstruct:modifier_chest"),
             ("tconstruct:tinkers_anvil", "tconstruct:anvil"), ("tconstruct:scorched_anvil", "tconstruct:anvil"),
             ("tconstruct:seared_melter", "tconstruct:melter"), ("tconstruct:seared_heater", "tconstruct:heater"),
-            ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"),
+            ("tconstruct:seared_faucet", "tconstruct:faucet"), ("tconstruct:scorched_faucet", "tconstruct:faucet"), ("tconstruct:seared_table", "tconstruct:table"), ("tconstruct:scorched_table", "tconstruct:table"),
             ("tconstruct:seared_basin", "tconstruct:basin"), ("tconstruct:smeltery_controller", "tconstruct:smeltery"),
             ("tconstruct:foundry_controller", "tconstruct:smeltery"),
             ("tconstruct:seared_fuel_tank", "tconstruct:fuel_tank"), ("tconstruct:seared_fuel_gauge", "tconstruct:fuel_tank"),
@@ -214,7 +278,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
         if let (Some(states), Some(rows)) = (facts["states"].as_array(), gameplay["states"].as_array_mut()) {
             for (id, state) in states.iter().enumerate() {
                 let Some(name) = state.get(0).and_then(serde_json::Value::as_str) else { continue; };
-                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:seared_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge") { continue; }
+                if !matches!(name, "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" | "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge") { continue; }
                 let row = rows.get_mut(id).ok_or("missing machine gameplay row")?;
                 row["block_entity"] = serde_json::Value::Bool(true);
                 if !matches!(name, "tconstruct:seared_heater" | "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
@@ -280,7 +344,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }
         }
-        for name in ["tconstruct:seared_melter", "tconstruct:seared_faucet", "tconstruct:seared_table", "tconstruct:seared_basin"] {
+        for name in ["tconstruct:seared_melter", "tconstruct:seared_faucet", "tconstruct:scorched_faucet", "tconstruct:seared_table", "tconstruct:scorched_table", "tconstruct:seared_basin"] {
             if let Some(row) = render.get_mut(name).and_then(serde_json::Value::as_object_mut) {
                 row.insert("can_occlude".into(), serde_json::Value::Bool(false));
             }

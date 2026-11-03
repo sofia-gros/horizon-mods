@@ -82,6 +82,19 @@ pub fn plan_move<T>(
     }))
 }
 
+/// Plan a move between snapshots owned by different containers. The caller
+/// revalidates and commits both live containers as one transaction.
+pub fn plan_between<T>(
+    source: Option<StackSnapshot<'_, T>>,
+    destination: Option<StackSnapshot<'_, T>>,
+    requested: u32,
+    limit: impl FnOnce(usize, &T) -> u32,
+    accepts: impl FnOnce(usize, &T) -> bool,
+    same: impl FnOnce(&T, &T) -> bool,
+) -> Result<Option<MovePlan>, MoveError> {
+    plan_move(&[source, destination], 0, 1, requested, limit, accepts, same)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -89,6 +102,19 @@ mod tests {
     struct Item(&'static str, u8);
     fn stack(item: &Item, count: u32) -> Option<StackSnapshot<'_, Item>> {
         Some(StackSnapshot { item, count })
+    }
+    #[test]
+    fn separate_container_plan_respects_identity_and_limits() {
+        let source = Item("example:part", 1);
+        let same = Item("example:part", 1);
+        let different = Item("example:part", 2);
+        let plan = plan_between(stack(&source, 4), stack(&same, 63), 4,
+            |_, _| 64, |_, _| true, |a, b| a == b).unwrap().unwrap();
+        assert_eq!((plan.count, plan.source_count_before, plan.destination_count_before), (1, 4, Some(63)));
+        assert!(plan_between(stack(&source, 4), stack(&different, 1), 1,
+            |_, _| 64, |_, _| true, |a, b| a == b).unwrap().is_none());
+        assert!(plan_between(stack(&source, 4), None, 1,
+            |_, _| 1, |_, _| false, |a, b| a == b).unwrap().is_none());
     }
     fn plan(
         slots: &[Option<StackSnapshot<'_, Item>>],

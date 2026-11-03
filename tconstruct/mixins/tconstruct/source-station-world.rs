@@ -206,7 +206,13 @@ pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, defi
         i32::try_from(total).ok()
     };
     let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
-    if old_traits.as_ref().is_some_and(|old| old != &traits) { return None; }
+    // These upstream material traits have no removal hook; their supported
+    // stat and repair effects are rebuilt by the station path above. Other
+    // changed traits remain closed until their removal hooks are handled.
+    if old_traits.as_ref().is_some_and(|old| old.iter().chain(traits.iter()).any(|(id, _)| {
+        old.get(id).copied().unwrap_or(0) != traits.get(id).copied().unwrap_or(0)
+            && !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense")
+    })) { return None; }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
@@ -349,8 +355,6 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
         let Some(modifier) = value.get("modifier").and_then(serde_json::Value::as_str) else { continue; };
         // Default trait modules contribute to TOOL_TRAITS. Explicit hook
         // overrides contribute only when they include that hook.
-        let mut definition_modifier = 0i32;
-        let mut definition_repair_traits = repair_traits.clone();
         let mut known = true;
         for module in modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits")) {
             if let Some(hooks) = module.get("hooks") {
@@ -364,12 +368,8 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
                 if id != modifier && !matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense" | "tconstruct:emerald") { continue; }
                 if id == "tconstruct:emerald" || !matches!(entry.get("optional"), None | Some(serde_json::Value::Bool(false))) { known = false; break; }
                 let value = match entry.get("level") { None => Some(1), Some(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()).filter(|value| *value > 0) };
-                let Some(value) = value else { known = false; break; };
-                if id == modifier { definition_modifier = definition_modifier.checked_add(value)?; }
-                if matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense") {
-                    let level = definition_repair_traits.entry(id.to_owned()).or_default();
-                    *level = level.checked_add(value)?;
-                }
+                if value.is_none() { known = false; break; }
+                // The trait resolver already included this fixed trait exactly once.
             }
             if !known { break; }
         }
@@ -384,9 +384,9 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
         }
         if !eligible || count == 0 { continue; }
         let upgrade = match upgrades.and_then(|upgrades| upgrades.get(modifier)) { Some(Tag::Int(level)) if *level >= 0 => *level, None => 0, _ => return None };
-        let level = traits.levels.get(modifier).copied().unwrap_or(0).checked_add(upgrade)?.checked_add(definition_modifier)?;
+        let level = traits.levels.get(modifier).copied().unwrap_or(0).checked_add(upgrade)?;
         let raw = level.checked_mul(per_level)?;
-        let factor = station_repair_factor(original, Some(&definition_repair_traits));
+        let factor = station_repair_factor(original, Some(&repair_traits));
         if raw <= 0 || !factor.is_finite() || factor <= 0.0 { continue; }
         let per_item = ((raw as f32 * factor) as i32).max(0) as u32;
         if per_item == 0 { continue; }
