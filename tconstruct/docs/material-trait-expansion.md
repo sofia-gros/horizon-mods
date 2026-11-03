@@ -56,3 +56,10 @@ recipe's upgrade slot and respects its leggings tag and level range. Verify
 material replacement and removal, gem/no-gem combinations, modifier ordering,
 partial or full inventories, salvage, two levels, broken equipment, save/reload
 and LAN on the integrated target. These paths are syntax-checked only.
+
+Skull material armor, slime material Overslime capacity and the registered
+slimy chestplate's source-definition alias are included in a follow-up candidate.
+The capacity includes both material and Overlord contributions before Overcast
+and durability multipliers. Verify each material, assembly, repair, part swaps,
+Overlord/Overcast combinations, rounding boundaries and save/reload in the
+combined target. Source-shaped skull/slime and capacity helper fixtures passed using older host libraries; apply, current-host type and game tests remain pending.
