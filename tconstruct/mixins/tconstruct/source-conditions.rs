@@ -68,3 +68,80 @@ pub(super) fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags
     }
     None
 }
+
+/// Recipes with no conditions, including an empty list, need no snapshot.
+/// A nonempty or malformed list must still go through the fail-closed gate.
+pub(super) fn unconditional_recipe(bytes: &[u8]) -> Option<Vec<u8>> {
+    let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    match value.get("conditions") {
+        None => Some(bytes.to_vec()),
+        Some(serde_json::Value::Array(conditions)) if conditions.is_empty() => {
+            value.as_object_mut()?.remove("conditions");
+            serde_json::to_vec(&value).ok()
+        },
+        _ => None,
+    }
+}
+
+/// Gate an ordinary recipe using the same snapshot as the Forge wrapper.
+/// Once accepted, remove the already-evaluated list: downstream parsers may
+/// lack item/mod registry context and must not evaluate it a second time.
+pub(super) fn resolved_recipe_conditions(bytes: &[u8], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<Vec<u8>> {
+    let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    let Some(raw) = value.get("conditions") else { return Some(bytes.to_vec()); };
+    let conditions = raw.as_array()?;
+    if conditional_conditions_with_mods(conditions, registries, config, items, mods) != Some(true) { return None; }
+    value.as_object_mut()?.remove("conditions");
+    serde_json::to_vec(&value).ok()
+}
+
+#[cfg(test)]
+mod snapshot_tests {
+    use super::*;
+    #[test]
+    fn accepted_item_exists_is_not_rechecked_by_legacy_consumers() {
+        let tags = HashMap::new(); let config = HashMap::new();
+        let items = ["example:hammer".to_owned()].into_iter().collect();
+        let recipe = br#"{"type":"tconstruct:melting","conditions":[{"type":"forge:item_exists","item":"example:hammer"}],"result":{"fluid":"example:metal"}}"#;
+        let result = resolved_recipe_conditions(recipe, &tags, &config, &items, None).unwrap();
+        let parsed: serde_json::Value = serde_json::from_slice(&result).unwrap();
+        assert!(parsed.get("conditions").is_none());
+        assert_eq!(parsed["result"]["fluid"], "example:metal");
+        assert!(resolved_recipe_conditions(recipe, &tags, &config, &HashSet::new(), None).is_none());
+    }
+    #[test]
+    fn empty_conditions_need_no_registry_or_config_snapshot() {
+        let recipe = br#"{"type":"example:recipe","conditions":[]}"#;
+        let result = unconditional_recipe(recipe).unwrap();
+        let parsed: serde_json::Value = serde_json::from_slice(&result).unwrap();
+        assert!(parsed.get("conditions").is_none());
+        assert_eq!(parsed["type"], "example:recipe");
+        assert!(unconditional_recipe(br#"{"conditions":[{"type":"forge:true"}]}"#).is_none());
+        assert!(unconditional_recipe(br#"{"conditions":{}}"#).is_none());
+    }
+    #[test]
+    fn selected_wrapper_recipe_still_gates_its_own_conditions() {
+        let tags = HashMap::new(); let config = HashMap::new();
+        let items = ["example:hammer".to_owned()].into_iter().collect();
+        let wrapper = br#"{"type":"forge:conditional","recipes":[{"conditions":[{"type":"forge:true"}],"recipe":{"type":"example:melting","conditions":[{"type":"forge:item_exists","item":"example:hammer"}]}}]}"#;
+        let selected = conditional_recipe(wrapper, &tags, &config, &items, None).unwrap();
+        assert!(resolved_recipe_conditions(&selected, &tags, &config, &HashSet::new(), None).is_none());
+        let result = resolved_recipe_conditions(&selected, &tags, &config, &items, None).unwrap();
+        let parsed: serde_json::Value = serde_json::from_slice(&result).unwrap();
+        assert_eq!(parsed["type"], "example:melting");
+        assert!(parsed.get("conditions").is_none());
+        let unconditional = br#"{ "type": "example:recipe" }"#;
+        assert_eq!(resolved_recipe_conditions(unconditional, &tags, &config, &items, None).unwrap(), unconditional);
+    }
+    #[test]
+    fn compound_mod_and_unknown_conditions_are_gated_before_removal() {
+        let tags = HashMap::new(); let config = HashMap::new(); let items = HashSet::new();
+        let mods = ModPresence { states: [("example".to_owned(), Some(true))].into_iter().collect(), complete: true };
+        let recipe = br#"{"type":"example:recipe","conditions":[{"type":"forge:and","values":[{"type":"forge:mod_loaded","modid":"example"},{"type":"forge:not","value":{"type":"forge:false"}}]}]}"#;
+        assert!(resolved_recipe_conditions(recipe, &tags, &config, &items, Some(&mods)).is_some());
+        assert!(resolved_recipe_conditions(recipe, &tags, &config, &items, None).is_none());
+        let unknown = br#"{"type":"example:recipe","conditions":[{"type":"example:unknown"}]}"#;
+        assert!(resolved_recipe_conditions(unknown, &tags, &config, &items, Some(&mods)).is_none());
+        assert!(resolved_recipe_conditions(br#"{"conditions":{}}"#, &tags, &config, &items, Some(&mods)).is_none());
+    }
+}
