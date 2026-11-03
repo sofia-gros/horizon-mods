@@ -19,12 +19,10 @@ pub(super) struct MeleeInputs {
 pub(super) fn melee_stats(v: MeleeInputs) -> (f32, f32) {
     let damage = if v.melee {
         (v.damage + (0.5 * v.pierce.max(0) as f32 + 0.75 * v.sharpness.max(0.0)) * v.damage_add_multiplier)
-            * (1.0 + 0.05 * v.ductile.max(0) as f32)
-            * (1.0 + 0.15 * v.solid.max(0) as f32)
+            * (1.0 + 0.05 * v.ductile.max(0) as f32 + 0.15 * v.solid.max(0) as f32)
     } else { v.damage };
     let speed = if v.melee_weapon {
-        v.speed * (1.0 + 0.08 * v.lightweight.max(0) as f32)
-            * (1.0 + 0.05 * v.swiftstrike.max(0.0))
+        v.speed * (1.0 + 0.08 * v.lightweight.max(0) as f32 + 0.05 * v.swiftstrike.max(0.0))
             * (1.0 - 0.1 * v.vintage.max(0) as f32)
     } else { v.speed };
     (if v.melee { damage.clamp(0.0, 2048.0) } else { damage },
@@ -38,8 +36,8 @@ mod tests {
     fn source_operations_combine_from_base_once() {
         let v = MeleeInputs { damage: 5.0, damage_add_multiplier: 1.25, speed: 1.2, ductile: 2, solid: 1, pierce: 1, lightweight: 2, vintage: 1, sharpness: 0.5, swiftstrike: 0.5, melee: true, melee_weapon: true };
         let (damage, speed) = melee_stats(v);
-        assert!((damage - 7.708594).abs() < 0.0001);
-        assert!((speed - 1.28412).abs() < 0.0001);
+        assert!((damage - 7.6171875).abs() < 0.0001);
+        assert!((speed - 1.2798).abs() < 0.0001);
         assert_eq!(melee_stats(v), (damage, speed));
     }
     #[test]

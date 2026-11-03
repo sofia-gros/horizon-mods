@@ -84,3 +84,16 @@ material traits, adding Ductile before Preserved produces the float32 percentage
 `1.4000000953674316`; the reverse order produces `1.399999976158142`. The added
 focused checks, Station/Creative/part-swap and extraction paths, legacy saves,
 priority coverage, official apply/type and local/LAN behavior are unverified.
+
+## Non-durability base multiplier candidate
+
+The supported melee and mining stat rebuild uses the saved modifier order and
+source add / multiply-base / multiply-all phases. Ductile and Solid add to the
+same attack-damage percentage; Lightweight and Swiftstrike add to the same
+attack-speed percentage; Lightweight, Heavy and Netherite add to the same
+mining-speed percentage. Vintage remains a multiply-all operation. The source
+reference for base attack 10 with Ductile 1 and Solid 1 is 12; base attack
+speed 1 with Lightweight 1 and Swiftstrike 1 is 1.13; mining speed 4 with
+Lightweight 1 and Heavy 1 is 4.92. These candidate paths and focused tests are
+not yet applied, type-checked or verified in game. Other modifier modules and
+unsupported stat operations are not claimed complete.

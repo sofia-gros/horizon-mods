@@ -284,8 +284,8 @@ mod tests {
 pub(super) fn reconcile_upgrade_order(custom: &mut horizon_world::nbt::Tag, added: Option<&str>) -> Option<()> {
     use horizon_world::nbt::Tag;
     let Tag::Compound(fields) = custom else { return None; };
-    let Tag::Compound(upgrades) = fields.get("tic_upgrades")? else { return None; };
-    let mut ids: Vec<String> = match fields.get("tic_upgrade_order") {
+    let Tag::Compound(upgrades) = fields.get(&"tic_upgrades".into())? else { return None; };
+    let mut ids: Vec<String> = match fields.get(&"tic_upgrade_order".into()) {
         Some(Tag::List(list)) => list.iter().filter_map(|v| if let Tag::String(s) = v { Some(s.to_string_lossy().to_string()) } else { None }).collect(),
         _ => Vec::new(),
     };
@@ -302,9 +302,8 @@ pub(super) fn reconcile_upgrade_order(custom: &mut horizon_world::nbt::Tag, adde
     Some(())
 }
 
-pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack,
-    stats: &super::tconstruct_source_station_stats::BaseStats,
-    levels: &std::collections::BTreeMap<String,i32>, include_overlord: bool) -> f32 {
+pub(super) fn ordered_modifier_ids(stack: &horizon_items::items::ItemStack,
+    levels: &std::collections::BTreeMap<String,i32>) -> Vec<String> {
     use horizon_world::nbt::Tag;
     let custom = stack.data().and_then(|d| d.other("minecraft:custom_data"));
     let upgrades = custom.and_then(|d| d.get("tic_upgrades"));
@@ -320,8 +319,16 @@ pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack
     for id in levels.keys() { if !ids.contains(id) { ids.push(id.clone()); } }
     let mut seen = std::collections::BTreeSet::new();
     ids.retain(|id| seen.insert(id.clone()));
+    ids
+}
+
+pub(super) fn ordered_durability_percent(stack: &horizon_items::items::ItemStack,
+    stats: &super::tconstruct_source_station_stats::BaseStats,
+    levels: &std::collections::BTreeMap<String,i32>, include_overlord: bool) -> f32 {
+    use horizon_world::nbt::Tag;
+    let upgrades = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
     let mut percent = stats.durability_percent_raw;
-    for id in ids {
+    for id in ordered_modifier_ids(stack, levels) {
         let trait_level = levels.get(&id).copied().unwrap_or(0).max(0);
         let upgrade = match upgrades.and_then(|u|u.get(id.as_str())) {Some(Tag::Int(n)) => (*n).max(0), _=>0};
         let delta = match id.as_str() {
