@@ -138,6 +138,47 @@ pub(super) fn classify_definition(
     }
 }
 
+/// A deliberately narrow authoritative serializer slice. These exact two
+/// module-free shapes use registered singleton level displays and standard
+/// tooltip settings; all other forms require the source's full loader.
+#[allow(dead_code)]
+pub(super) fn known_moduleless_modifier(json: &serde_json::Value) -> Option<bool> {
+    let mut body = json.clone();
+    if body.get("condition") == Some(&serde_json::json!({"type":"forge:true"})) {
+        body.as_object_mut()?.remove("condition");
+    }
+    if body == serde_json::json!({"level_display":"tconstruct:default"})
+        || body == serde_json::json!({"level_display":"tconstruct:no_levels", "show_in_tooltips":"advanced"}) {
+        Some(true)
+    } else { None }
+}
+
+/// Only literal Forge true/false are known without a world or mod context.
+/// More complex or malformed conditions remain unknown, not false.
+#[allow(dead_code)]
+pub(super) fn known_literal_condition(json: &serde_json::Value) -> Option<bool> {
+    if *json == serde_json::json!({"type":"forge:true"}) { Some(true) }
+    else if *json == serde_json::json!({"type":"forge:false"}) { Some(false) }
+    else { None }
+}
+
+/// Attempt a complete classification of every highest-priority definition.
+/// One unknown stops the entire result: a partial map must not look complete.
+#[allow(dead_code)]
+pub(super) fn classify_bounded_snapshot(snapshot: &Raw) -> Result<BTreeMap<String, ClassifiedDefinition>, String> {
+    let mut results = BTreeMap::new();
+    for (key, layers) in &snapshot.0 {
+        let (namespace, path) = key.split_once(':').ok_or("invalid modifier resource key")?;
+        let path = path.strip_prefix("tinkering/modifiers/").ok_or("invalid modifier resource path")?;
+        let bytes = layers.last().ok_or("modifier resource has no layers")?;
+        let id = format!("{namespace}:{path}");
+        let value = classify_definition(bytes, known_literal_condition, known_moduleless_modifier)
+            .map_err(|error| format!("{id}: {error}"))?;
+        if results.insert(id, value).is_some() { return Err("duplicate modifier resource".into()); }
+    }
+    Ok(results)
+}
+
 /// Compose already-classified definitions with the complete static registry.
 /// The returned map resolves an ID to the actual modifier's ID. Source checks
 /// static entries first, then ordinary dynamics; redirects are resolved in a
@@ -318,6 +359,34 @@ mod tests {
         let bad = [("tconstruct:empty", "tconstruct:empty"), ("x:alias", "x:missing")]
             .into_iter().map(|(k,v)| (k.into(),v.into())).collect();
         assert!(resolve_canonical_tag(&raw, "x:root", Some(&bad)).is_err());
+    }
+
+    #[test]
+    fn bounded_classifier_recognizes_only_proven_shapes_and_literals() {
+        assert_eq!(known_moduleless_modifier(&serde_json::json!({"level_display":"tconstruct:default"})), Some(true));
+        assert_eq!(known_moduleless_modifier(&serde_json::json!({"level_display":"tconstruct:no_levels","show_in_tooltips":"advanced"})), Some(true));
+        assert_eq!(known_moduleless_modifier(&serde_json::json!({"level_display":"tconstruct:default","modules":[]})), None);
+        assert_eq!(known_moduleless_modifier(&serde_json::json!({"level_display":"x:unknown"})), None);
+        assert_eq!(known_literal_condition(&serde_json::json!({"type":"forge:true"})), Some(true));
+        assert_eq!(known_literal_condition(&serde_json::json!({"type":"forge:false"})), Some(false));
+        assert_eq!(known_literal_condition(&serde_json::json!({"type":"forge:mod_loaded","modid":"x"})), None);
+        let conditioned = br#"{"condition":{"type":"forge:true"},"level_display":"tconstruct:default"}"#;
+        assert_eq!(classify_definition(conditioned, known_literal_condition, known_moduleless_modifier).unwrap(), ClassifiedDefinition::Loaded);
+        let unsupported = br#"{"condition":{"type":"forge:mod_loaded","modid":"x"},"level_display":"tconstruct:default"}"#;
+        assert!(classify_definition(unsupported, known_literal_condition, known_moduleless_modifier).is_err());
+    }
+    #[test]
+    fn bounded_snapshot_rejects_unknown_without_returning_partial_map() {
+        let mut raw = Raw::default();
+        raw.0.insert("x:tinkering/modifiers/a".into(), vec![br#"{"level_display":"tconstruct:default"}"#.to_vec()]);
+        raw.0.insert("x:tinkering/modifiers/redirect".into(), vec![br#"{"redirects":[{"id":"x:a"}]}"#.to_vec()]);
+        raw.0.insert("x:tinkering/modifiers/off".into(), vec![br#"{"condition":{"type":"forge:false"},"modules":[{"type":"unknown"}]}"#.to_vec()]);
+        let result = classify_bounded_snapshot(&raw).unwrap();
+        assert_eq!(result["x:off"], ClassifiedDefinition::Skipped);
+        assert_eq!(result["x:a"], ClassifiedDefinition::Loaded);
+        assert_eq!(result["x:redirect"], ClassifiedDefinition::Redirect("x:a".into()));
+        raw.0.get_mut("x:tinkering/modifiers/a").unwrap().push(br#"{"modules":[{"type":"unknown"}]}"#.to_vec());
+        assert!(classify_bounded_snapshot(&raw).unwrap_err().contains("x:a"));
     }
 
 }
