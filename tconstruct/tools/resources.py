@@ -176,6 +176,17 @@ entries = [
     ('tconstruct:pickaxe', 'minecraft:stone_pickaxe', 'Pickaxe'),
     ('tconstruct:amethyst_bronze_ingot', 'minecraft:copper_ingot', 'Amethyst Bronze Ingot'),
     ('tconstruct:cobalt_ingot', 'minecraft:copper_ingot', 'Cobalt Ingot'),
+    ('tconstruct:steel_ingot', 'minecraft:flint', 'Steel Ingot'),
+    ('tconstruct:slimesteel_ingot', 'minecraft:flint', 'Slimesteel Ingot'),
+    ('tconstruct:rose_gold_ingot', 'minecraft:flint', 'Rose Gold Ingot'),
+    ('tconstruct:pig_iron_ingot', 'minecraft:flint', 'Pig Iron Ingot'),
+    ('tconstruct:cinderslime_ingot', 'minecraft:flint', 'Cinderslime Ingot'),
+    ('tconstruct:queens_slime_ingot', 'minecraft:flint', "Queen's Slime Ingot"),
+    ('tconstruct:manyullyn_ingot', 'minecraft:flint', 'Manyullyn Ingot'),
+    ('tconstruct:hepatizon_ingot', 'minecraft:flint', 'Hepatizon Ingot'),
+    ('tconstruct:soulsteel_ingot', 'minecraft:flint', 'Soulsteel Ingot'),
+    ('tconstruct:knightmetal_ingot', 'minecraft:flint', 'Knightmetal Ingot'),
+    ('tconstruct:knightslime_ingot', 'minecraft:flint', 'Knightslime Ingot'),
     ('tconstruct:cobalt_nugget', 'minecraft:flint', 'Cobalt Nugget'),
     ('tconstruct:sky_slime_crystal', 'minecraft:flint', 'Skyslime Crystal'),
     ('tconstruct:steel_shard', 'minecraft:flint', 'Steel Shard'),
@@ -275,6 +286,9 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/' + contents + '_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('emerald_reinforcement', 'slimesteel_reinforcement'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
+    elif short in ('steel_ingot', 'slimesteel_ingot', 'rose_gold_ingot', 'pig_iron_ingot', 'cinderslime_ingot', 'queens_slime_ingot', 'manyullyn_ingot', 'hepatizon_ingot', 'soulsteel_ingot', 'knightmetal_ingot', 'knightslime_ingot'):
+        texture = 'pigiron_ingot' if short == 'pig_iron_ingot' else short
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + texture}}
     elif short in ('sky_slime_crystal', 'modifier_crystal', 'steel_shard', 'earth_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal', 'cobalt_shard', 'cobalt_ingot', 'cobalt_nugget', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball', 'seared_brick', 'scorched_brick'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + short}}
     elif name in casts or short.endswith('_plating_dummy'):
