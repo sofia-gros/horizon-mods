@@ -17,7 +17,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                     let fuel = position.and_then(|pos| crate::game::tconstruct_source_melter_render::fuel_tank(game, pos));
                     if let Some(tank) = fuel {
                         if let Some(fluid) = tank.fluid.as_deref() {
-                            let name = crate::game::tconstruct_source_melter_render::fluid_name(game, fluid);
+                            let name = crate::game::tconstruct_source_melter_render::fluid_name_tagged(game, fluid, tank.tag.as_ref(), game.remote.is_none());
                             let temperature = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"))
                                 .and_then(|tag| match tag.get("fuel_temperature") { Some(horizon_world::nbt::Tag::Long(value)) => u32::try_from(*value).ok(), _ => None }).unwrap_or(0);
                             let detail = if temperature > 0 {
@@ -39,7 +39,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
             if (ox + 89.0..ox + 143.0).contains(&game.cursor.0) && (oy + 15.0..oy + 69.0).contains(&game.cursor.1) {
                 let mut lines = Vec::new();
                 if let Some(fluid) = state.tank.fluid.as_ref() {
-                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name(game, fluid), u32::MAX));
+                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name_tagged(game, fluid, state.tank.tag.as_ref(), game.remote.is_none()), u32::MAX));
                     lines.push((format!("{} mB", state.tank.amount), 0xffaaaaaa));
                 } else {
                     let label = game.pack.names.display_get("gui.tconstruct.melting.capacity").unwrap_or_else(|| "Capacity:".to_owned());
@@ -120,7 +120,7 @@ fn tconstruct_result_tooltip(game: &mut crate::game::Game<'_>, batch: &mut horiz
                 let hovered = crate::game::tconstruct_source_smeltery_layout::fluid_at(&amounts, tank.capacity, game.cursor.1 - oy);
                 let mut lines = Vec::new();
                 if let Some(fluid) = hovered.and_then(|index| tank.fluids.get(index)) {
-                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name(game, &fluid.id), u32::MAX));
+                    lines.push((crate::game::tconstruct_source_melter_render::fluid_name_tagged(game, &fluid.id, fluid.tag.as_ref(), game.remote.is_none()), u32::MAX));
                     lines.push((format!("{} mB", fluid.amount), 0xffaaaaaa));
                 } else {
                     for (key, fallback, amount) in [("capacity", "Capacity:", tank.capacity),
