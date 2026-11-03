@@ -23,6 +23,7 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
         }
     }
     let handled = match &*name {
+        "tconstruct:seared_casting_tank" => crate::game::tconstruct_source_machine_runtime::interact_casting_tank(game, pos, hit.point[1] - f64::from(pos.1) < 0.6875),
         "tconstruct:crafting_station" => crate::game::tconstruct_crafting_station::open(game, hit.pos),
         "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },

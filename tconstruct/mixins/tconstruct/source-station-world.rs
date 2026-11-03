@@ -354,7 +354,7 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
             let Some(config) = world.chunks.__horizon_mixins_tconstruct_source_config_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { conditions_ok = false; break; };
             let Some(items) = world.chunks.__horizon_mixins_tconstruct_melter_known_items().as_ref() else { conditions_ok = false; break; };
             let registries = [("minecraft:item".to_owned(), tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
-            if super::tconstruct_source_melter_world::conditional_conditions(conditions, &registries, config, items) != Some(true) { conditions_ok = false; break; }
+            if super::tconstruct_source_conditions::conditional_conditions(conditions, &registries, config, items) != Some(true) { conditions_ok = false; break; }
         }
         if !conditions_ok { continue; }
         let Some(modifier) = value.get("modifier").and_then(serde_json::Value::as_str) else { continue; };

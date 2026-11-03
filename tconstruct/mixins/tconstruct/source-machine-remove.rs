@@ -24,7 +24,9 @@ fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizo
         let kind = crate::game::tconstruct_source_machine_runtime::kind(&name);
         if side_effects {
             if let Some((_, tank)) = kind.and_then(|kind| crate::game::tconstruct_source_melter_store::read(level.world, (pos.x, pos.y, pos.z), kind)
-                .and_then(|tag| crate::game::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity).map(|tank| (kind, tank)))) {
+                .and_then(|tag| if kind == "tconstruct:casting_tank" {
+                    crate::game::tconstruct_source_casting_tank::CastingTank::from_nbt(&tag).map(|state| (kind, state.tank))
+                } else { crate::game::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity).map(|tank| (kind, tank)) })) {
                 if tank.amount > 0 {
                     let entry = level.pending.copied.entry([pos.x, pos.y, pos.z]).or_insert_with(|| (name.to_string(), horizon_world::nbt::Compound::new()));
                     entry.1.insert("tconstruct:internal_tank_copy".into(), tank.to_nbt());
