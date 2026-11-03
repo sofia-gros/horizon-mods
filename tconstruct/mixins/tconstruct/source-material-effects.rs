@@ -116,7 +116,7 @@ pub fn apply_stat_traits(
     );
     if ductile > 0 {
         let attack = stats.attack_damage + stats.attack_damage_boost_unit * 0.05 * ductile as f32;
-        let toughness = stats.armor_toughness + ductile as f32;
+        let toughness = (stats.armor_toughness + ductile as f32 * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0);
         fields.insert(
             "tic_attack_damage".into(),
             horizon_world::nbt::Tag::Float(attack.to_bits()),
