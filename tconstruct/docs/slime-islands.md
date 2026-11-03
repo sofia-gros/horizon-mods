@@ -391,3 +391,10 @@ startup cache generation is bumped so existing owned startup caches are rebuilt.
 Previously hand-prepared resource roots must be prepared again to receive the fix.
 If manual preparation fails, do not use its incomplete output; rerun preparation
 with a new output directory. This has not been tested in a running game or over LAN.
+
+## Slime dirt crystal recipes
+
+The four slime dirt types have their pinned-source blast-furnace recipes: one
+Earth, Sky, Ichor or Ender slime dirt yields its matching crystal in 400 ticks
+with 0.2 experience. These are data declarations and source-comparison tests;
+resource preparation, in-game furnace use, save/reload and LAN remain unverified.
