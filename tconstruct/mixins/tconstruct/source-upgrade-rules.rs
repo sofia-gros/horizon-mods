@@ -26,11 +26,12 @@ const UPGRADES: [(&str, i32); 12] = [
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
-const BONUS_SLOTS: [(&str, i32, i32); 6] = [
+const BONUS_SLOTS: [(&str, i32, i32); 7] = [
     ("tconstruct:writable", 1, 0), ("tconstruct:harmonious", 1, 0),
     ("tconstruct:recapitated", 1, 0), ("tconstruct:forecast", 1, 0),
     ("tconstruct:draconic", 0, 1),
     ("tconstruct:enhanced", 1, 0),
+    ("tconstruct:vintage", 0, 1),
 ];
 
 fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
@@ -319,9 +320,19 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     let diamond = amount(tool, "tconstruct:diamond") > 0;
     let emerald = amount(tool, "tconstruct:emerald") > 0;
     let netherite = amount(tool, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
+    let heavy = levels.get("tconstruct:heavy").copied().unwrap_or(0).max(0) as f32;
+    let wool = levels.get("tconstruct:knockback_resistance").copied().unwrap_or(0).max(0) as f32;
+    let forming = levels.get("tconstruct:forming").copied().unwrap_or(0).max(0) as f32;
+    let armor_value = (stats.armor + (forming + if diamond { 1.0 } else { 0.0 }) * stats.armor_add_multiplier).clamp(0.0, 30.0);
+    let knockback_resistance = (stats.knockback_resistance
+        + (0.15 * heavy + 0.1 * wool + 0.05 * forming + if netherite { 0.05 } else { 0.0 }) * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0);
     if !diamond && !emerald && !netherite {
         let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
         let Tag::Compound(ref mut fields) = custom else { return None; };
+        if armor {
+            fields.insert("tic_armor".into(), Tag::Float(armor_value.to_bits()));
+            fields.insert("tic_knockback_resistance".into(), Tag::Float(knockback_resistance.to_bits()));
+        }
         fields.remove(&"tconstruct:diamond_armor".into());
         fields.remove(&"tconstruct:netherite".into());
         fields.remove(&"tic_attack_conditional_multiplier".into());
@@ -341,13 +352,13 @@ pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super
     if emerald { fields.insert("tic_attack_conditional_multiplier".into(), Tag::Float(1.25f32.to_bits())); }
     else { fields.remove(&"tic_attack_conditional_multiplier".into()); }
     if armor {
-        if diamond { fields.insert("tic_armor".into(), Tag::Float((stats.armor + stats.armor_add_multiplier).clamp(0.0, 30.0).to_bits())); }
+        fields.insert("tic_armor".into(), Tag::Float(armor_value.to_bits()));
         if emerald || netherite {
             let ductile = *levels.get("tconstruct:ductile").unwrap_or(&0) as f32;
             let bonus = i32::from(emerald) + i32::from(netherite);
             fields.insert("tic_armor_toughness".into(), Tag::Float((stats.armor_toughness + (ductile + bonus as f32) * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0).to_bits()));
         }
-        if netherite { fields.insert("tic_knockback_resistance".into(), Tag::Float((stats.knockback_resistance + 0.05 * stats.knockback_resistance_add_multiplier).clamp(0.0, 1.0).to_bits())); }
+        fields.insert("tic_knockback_resistance".into(), Tag::Float(knockback_resistance.to_bits()));
     }
     if netherite { fields.insert("tconstruct:netherite".into(), Tag::Byte(1)); } else { fields.remove(&"tconstruct:netherite".into()); }
     if diamond && worn_armor { fields.insert("tconstruct:diamond_armor".into(), Tag::Byte(1)); }
@@ -401,14 +412,19 @@ pub fn apply_stats(
             * if netherite { 1.1 } else { 1.0 }).clamp(0.0, 1024.0);
         let accuracy = (stats.accuracy + stats.accuracy_add_multiplier * (0.1 * (true_level + emerald + heavy) + 0.05 * feather)).clamp(0.1, 1.0);
         let projectile_damage = (stats.projectile_damage + stats.projectile_damage_add_multiplier
-            * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32)).clamp(0.0, 1024.0);
+            * (0.5 * effective(tool, "tconstruct:diamond", 1).min(1.0) + 0.25 * level("tconstruct:ductile").max(0) as f32
+                + 0.75 * level("tconstruct:solid").max(0) as f32)).clamp(0.0, 1024.0);
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
+        fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
+        fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
         fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
         fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float((stats.velocity_add_multiplier * if netherite { 1.1 } else { 1.0 }).to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
+        fields.insert("tic_raging".into(), Tag::Int(level("tconstruct:raging").max(0)));
+        fields.insert("tic_raging_projectile_multiplier".into(), Tag::Float(stats.projectile_damage_add_multiplier.to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
     }
