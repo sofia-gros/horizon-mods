@@ -2699,9 +2699,13 @@ require = 1
 [[injection]]
 id = "source-overwield-harvest-start"
 target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
-kind = "HEAD"
+kind = "AFTER_CALL"
+selector = "mod_api::dispatch_destroy_block"
+require = 1
+ordinal = 0
+result = "()"
 helper = "source-overwield-harvest-start.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
 
 [[injection]]
 id = "source-area-guest-hit"
@@ -4242,10 +4246,13 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "source-splash-bottle-brewing"
-target = "horizon_client::stations::StationData::load"
-kind = "RETURN"
+target = "horizon_client_lib::stations::StationData::load"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "crate::brewing::Brewing::load(root, items, overlay)"
+require = 1
+ordinal = 0
 helper = "source-splash-bottle-brewing.rs"
-bindings = [{ name = "value", ty = "Self", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
+bindings = [{ name = "value", ty = "crate::brewing::Brewing", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
 
 [[injection]]
 id = "source-empty-bottle-use"
