@@ -1,6 +1,8 @@
 # Open pull request inclusion inventory
 
-Snapshot of all open PRs from GitHub against fixed #318. Ancestor means Git
+Historical snapshot of open PRs on 2026-11-02 against original #318 head
+`01f2f402a48483ac27cb95117b3954942e6c816b`; this is not the current PR status.
+Ancestor means Git
 ancestry only; ported indicates the intended changes were integrated or compared,
 not that the original PR head passed verification. Other rows require source
 comparison or owner review; non-ancestry does not establish absence. F labels
