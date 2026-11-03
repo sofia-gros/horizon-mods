@@ -4,6 +4,10 @@ pub(super) fn capacity(has_overslime: bool, overforced_amount: i32, overforced_t
     capacity_with_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier)
 }
 
+pub(super) fn capacity_with_material(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, material: f32) -> u32 {
+    capacity_with_material_and_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier, material)
+}
+
 fn capacity_with_overlord(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, overlord: i32, durability: f32, source_multiplier: f32) -> u32 {
     capacity_with_material_and_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, overlord, durability, source_multiplier, 0.0)
 }
@@ -41,6 +45,40 @@ pub(super) fn friendly(levels: &std::collections::BTreeMap<String, i32>, overfor
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn rebuild_copies_gem_and_ductile_before_overlord_reduction() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        use std::collections::BTreeMap;
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))])),
+            ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:emerald".into()),Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:ductile".into()),Tag::String("tconstruct:overlord".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:ductile".into(),3),("tconstruct:overlord".into(),2),("tconstruct:overslime".into(),1)]);
+        // Priority 50 copy: 100 * 1.5 * 1.2 * 1.3 * 0.2 = 46.8; base shield 50.
+        rebuild(&mut stack,&stats,&levels,false,false,false,false).unwrap();
+        let data=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(data.get("tic_overslime_capacity"),Some(Tag::Int(96))));
+        super::super::tconstruct_source_material_effects::apply_stat_traits(&mut stack,&stats,&levels).unwrap();
+        let data=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        // Overlord then multiplies durability by 0.7: floor(234 * 0.7) = 163.
+        assert!(matches!(data.get("tic_max_damage"),Some(Tag::Int(163))));
+    }
+
+    #[test]
+    fn oversized_spend_cannot_increase_shield() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_overslime", Tag::Int(5))])));
+        spend(&mut stack, u32::MAX);
+        assert!(matches!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_overslime"), Some(Tag::Int(0))));
+    }
+
     #[test]
     fn material_and_overlord_stack_before_source_multipliers() {
         assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 1, 2.0, 1, 100.0, 1.0, 30.0), 345);

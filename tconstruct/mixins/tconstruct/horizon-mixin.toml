@@ -1913,6 +1913,9 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_snow_boots"
 source = "source-snow-boots.rs"
 
+# The Snow Boots powder-snow walking hook is deferred: both RETURN and the
+# leather_boots STORE candidate in sync_player_body were rejected by plan.
+
 [[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"
@@ -2683,13 +2686,6 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
-[[injection]]
-id = "source-area-guest-hit"
-target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
-kind = "HEAD"
-helper = "source-area-guest-hit.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
-
 [[state]]
 id = "area-overwield-spent"
 target = "horizon_client_render::chunk_map::ChunkMap"
@@ -2710,6 +2706,13 @@ ordinal = 0
 result = "()"
 helper = "source-overwield-harvest-start.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
+
+[[injection]]
+id = "source-area-guest-hit"
+target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
+kind = "HEAD"
+helper = "source-area-guest-hit.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
 
 [[injection]]
 id = "source-area-break"
@@ -4242,6 +4245,46 @@ helper = "source-splashing-interact.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "entity", ty = "i32", value = "entity" }, { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" }, { name = "claimed", ty = "&mut bool", value = "&mut *claimed" }]
 
 [[injection]]
+id = "source-splash-bottle-brewing"
+target = "horizon_client_lib::stations::StationData::load"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "crate::brewing::Brewing::load(root, items, overlay)"
+require = 1
+ordinal = 0
+helper = "source-splash-bottle-brewing.rs"
+bindings = [{ name = "value", ty = "crate::brewing::Brewing", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
+
+[[injection]]
+id = "source-empty-bottle-use"
+target = "horizon_client::game::potions::Game<'_>::use_potion_item"
+kind = "HEAD"
+cancellable = true
+helper = "source-empty-bottle-use.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_items::items::ItemStack", value = "stack" }]
+
+[[module]]
+id = "source-bottle-fill"
+file = "crates/horizon-client/src/game/potions.rs"
+name = "tconstruct_source_bottle_fill"
+source = "source-bottle-fill.rs"
+
+[[injection]]
+id = "source-bottle-cauldron"
+target = "horizon_client::game::Game<'_>::use_on_cauldron"
+kind = "HEAD"
+cancellable = true
+helper = "source-bottle-cauldron.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
+
+[[injection]]
+id = "source-bottle-cauldron-remote"
+target = "horizon_client::game::remote::Game<'_>::remote_block_reacts"
+kind = "HEAD"
+cancellable = true
+helper = "source-bottle-cauldron-remote.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "hit", ty = "&super::Hit", value = "hit" }, { name = "held", ty = "Option<&horizon_items::items::ItemStack>", value = "held" }]
+
+[[injection]]
 id = "source-splashing-block"
 target = "horizon_client::game::Game<'_>::use_block_transformer"
 kind = "HEAD"
@@ -4582,3 +4625,9 @@ file = "crates/horizon-world/src/level/mod.rs"
 name = "tconstruct_ender_live_place"
 source = "source-ender-tree-live-place.rs"
 visibility = "pub"
+
+[[module]]
+id = "source-splash-conditional"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_splash_conditional"
+source = "source-splash-conditional.rs"

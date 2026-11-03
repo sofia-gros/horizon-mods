@@ -76,7 +76,7 @@ head; this inclusion does not imply formal apply or gameplay success.
 The next follow-up ports skull armor #107, slime-material Overslime #111 and
 slimy chestplate definition resolution #121. The material capacity is combined
 with the later ordered Overlord copy rather than restoring the older capacity
-formula; source-shaped skull/slime and capacity helper fixtures passed with older host libraries. Current-target checks remain pending. Wool #120,
+formula; focused tests and all target checks remain pending. Wool #120,
 Ductile #136 and Forming #142 are represented in the #309 armor calculation.
 
 The subsequent F02/F05 follow-up ports #98 and #101 together, including the
@@ -84,3 +84,14 @@ intermediate broad-speed calculation, live Overslime reads and the area-harvest
 spend. The #82 Airborne penalty boundary and later ordered stat calculations are
 retained. These paths still need formal apply and gameplay checks; ordinary
 single-block capacity spending and other Overslime consumers remain incomplete.
+
+The #318 success-boundary spend is replaced in the next candidate by a
+pre-removal `native_destroy_block` hook. The host performs permission checks
+before that boundary, so it still requires source comparison for restricted,
+cancelled and creative cases. Actor-scoped area state prevents repeated spends;
+formal apply and gameplay remain pending. Other capacity consumers remain open.
+
+A later Creative resource candidate closes the source-level armor rebuild and
+slimy chestplate alias gap recorded in the open-PR inventory. It uses the same
+Station rebuild helper and source armor tags; official resource preparation,
+Creative inventory output and gameplay validation are still pending.

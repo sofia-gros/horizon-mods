@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 19] = [
+const UPGRADES: [(&str, i32); 20] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -83,9 +83,11 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
+        "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         "tconstruct:power" => item == "tconstruct:longbow",
+        "tconstruct:splashing" => matches!(item, "tconstruct:sky_staff" | "tconstruct:earth_staff" | "tconstruct:ichor_staff" | "tconstruct:ender_staff" | "tconstruct:melting_pan"),
         "tconstruct:speedy" | "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
     }
@@ -104,7 +106,7 @@ fn amount(tool: &ItemStack, id: &str) -> i32 {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -209,10 +211,10 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:step_up")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
-            let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling");
+            let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
@@ -358,7 +360,7 @@ pub(super) fn plan_with_traits(
 }
 
 /// Regenerate gem durability and armor from baseline, never from a previous upgrade result.
-pub(super) fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
+pub fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &BTreeMap<String, i32>, armor: bool, worn_armor: bool) -> Option<()> {
     let diamond = amount(tool, "tconstruct:diamond") > 0;
     let emerald = amount(tool, "tconstruct:emerald") > 0;
