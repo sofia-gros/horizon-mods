@@ -97,7 +97,6 @@ fn apply_material(
             | "ribcage"
             | "shell"
             | "laces"
-            | "skull"
     ) {
         return Some(());
     }
@@ -123,6 +122,9 @@ fn apply_material(
             ] {
                 stats[index].percent += number(key, 0.0)? * scale;
             }
+        }
+        "skull" => {
+            stats[7].update(number("armor", 0.0)? * scale);
         }
         "slime" => {
             stats[0].update(number("durability", 1.0)? * scale);
