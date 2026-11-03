@@ -1,4 +1,4 @@
-//! Held-tool slurping for source mob-effect/add and mob-effect/set definitions.
+// Held-tool slurping for source mob-effect/add and mob-effect/set definitions.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 use std::collections::{HashMap, HashSet};
