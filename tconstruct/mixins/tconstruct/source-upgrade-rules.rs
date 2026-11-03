@@ -108,7 +108,9 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id)).collect()
+        (supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
+        .collect()
 }
 
 pub(super) fn effective(tool: &ItemStack, id: &str, needed: i32) -> f32 {
@@ -128,9 +130,10 @@ pub(super) fn extract_upgrade_with_traits(
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
     if !supported(id, &tool.item) { return None; }
-    let needed = UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))?;
+    let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
+    if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
     // Validation applies to the rebuilt tool, including material traits.
