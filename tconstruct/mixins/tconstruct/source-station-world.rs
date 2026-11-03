@@ -60,7 +60,7 @@ pub(super) fn building_plan_diagnostic(world: &super::tconstruct_world::World, s
     None
 }
 
-fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &str, identities: &[String], original: Option<&ItemStack>, reason: &mut Option<String>) -> Option<ItemStack> {
+pub(super) fn assemble(world: &super::tconstruct_world::World, definition: &[u8], item: &str, identities: &[String], original: Option<&ItemStack>, reason: &mut Option<String>) -> Option<ItemStack> {
     let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let mut stat_maps: Vec<serde_json::Map<String, serde_json::Value>> = Vec::new();
     for material in identities {

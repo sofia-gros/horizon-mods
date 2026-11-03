@@ -679,3 +679,15 @@ Any custom color or custom effects on that potion are lost during this transfer.
 This applies to normal, splash and lingering potions when their extra data is
 accepted. Other potion bases retain the supported potion data. The current LAN
 path rejects custom potion data rather than transferring it.
+
+### Narrow slimelytra tool casting
+
+The basin can select the consumed-cast slimelytra recipe, join the selected
+material fluid with a material that has slime stats, and assemble slime wings
+through the Station's existing stat and trait path. Its pending result is staged
+in the existing casting transaction, revalidated before consumption, and saved
+with the basin. The supplied earthslime recipe uses 2,000 mB. Damaged Elytra or
+ones with item components, other tool-casting forms, tagged fluid, and
+unresolved or ambiguous material data are refused. This is a narrow candidate,
+not complete tool-casting parity; game, LAN, and full integrated behavior remain
+unverified.

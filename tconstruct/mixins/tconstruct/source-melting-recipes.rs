@@ -456,6 +456,23 @@ impl PartSwapCastingRecipe {
     }
 }
 
+/// Narrow consumed-cast form for the supplied slimelytra recipe.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct SlimelytraCastingRecipe { pub cast: Ingredient, pub item_cost: u32, pub result: String }
+impl SlimelytraCastingRecipe {
+    pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let v: Value = serde_json::from_slice(bytes).ok()?;
+        if v.as_object()?.keys().any(|key| !matches!(key.as_str(), "type" | "cast" | "cast_purpose" | "item_cost" | "result" | "conditions"))
+            || v.get("type")?.as_str()? != "tconstruct:basin_tool_casting"
+            || v.get("cast_purpose")?.as_str()? != "consumed"
+            || v.get("result")?.as_str()? != "tconstruct:slime_wings"
+            || !enabled(&v, conditions) { return None; }
+        let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
+        if item_cost == 0 { return None; }
+        Some(Self { cast: Ingredient::parse(v.get("cast")?)?, item_cost, result: "tconstruct:slime_wings".into() })
+    }
+}
+
 /// The source material casting recipe and the independent fluid-to-material
 /// recipe are joined only after the current world's tags are resolved.
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -215,6 +215,33 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         output.count = 1;
         return Some((id, recipe, output));
     }
+    // Build a fresh slimelytra only when all material traits can be resolved.
+    // Other tool-casting forms and Elytra with item components remain unsupported.
+    if basin && stack.count == 1 && stack.item.as_ref() == "minecraft:elytra"
+        && stack.damage == 0 && stack.data().is_none_or(|data| data.is_empty()) {
+        let candidate = (|| {
+            let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
+            let definition = materials.get("tconstruct:tinkering/tool_definitions/slime_wings")?.last()?;
+            let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
+            if !native.contains_key("tconstruct:slime_wings") { return None; }
+            let stats = world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
+            let (id, recipe, material) = with_catalog(world, |catalog, registries, config| {
+                catalog.slimelytra_casting(true, &stack.item, fluid,
+                    &|id| stats.get(id.split('#').next().unwrap_or(id)).is_some_and(|s| s.contains_key("tconstruct:slime")),
+                    &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })??;
+            let (namespace, name) = material.split_once(':')?;
+            let trait_path = format!("{namespace}:tinkering/materials/traits/{}", name.split('#').next()?);
+            // Missing trait context must not silently produce an unmodified tool.
+            materials.get(&trait_path)?;
+            let identities = vec![material];
+            super::tconstruct_source_material_traits::levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
+            let output = super::tconstruct_source_station_world::assemble(world, definition, "tconstruct:slime_wings", &identities, None, &mut None)?;
+            super::tconstruct_source_material_traits::levels(world, &output)?;
+            Some((id, recipe, output))
+        })();
+        if candidate.is_some() { return candidate; }
+    }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Ordinary casts may repair; composite casts do not. Supported
     // upgrades and material traits are rebuilt through the Station path.
