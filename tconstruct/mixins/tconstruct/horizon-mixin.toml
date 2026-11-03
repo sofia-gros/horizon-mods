@@ -3930,3 +3930,33 @@ bindings = [
     { name = "entry_index", ty = "usize", value = "entry_index" },
     { name = "use_max", ty = "bool", value = "use_max" },
 ]
+
+[[module]]
+id = "source-chute-hopper"
+file = "crates/horizon-client/src/game/machines.rs"
+name = "tconstruct_chute_hopper"
+source = "source-chute-hopper.rs"
+
+[[injection]]
+id = "source-chute-hopper-eject"
+target = "horizon_client::game::machines::Game<'_>::hopper_eject"
+kind = "HEAD"
+cancellable = true
+helper = "source-chute-hopper-eject.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
+
+[[injection]]
+id = "source-chute-hopper-suck"
+target = "horizon_client::game::machines::Game<'_>::hopper_suck"
+kind = "HEAD"
+cancellable = true
+helper = "source-chute-hopper-suck.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
