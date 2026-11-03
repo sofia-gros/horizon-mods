@@ -150,6 +150,28 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
     if let Some(stack) = input {
+        if basin && stack.count == 1 && stack.damage == 0 {
+            if let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(&stack.item) {
+                use horizon_world::nbt::{Compound, Tag};
+                let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+                let mut data = match custom { None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return None };
+                let mut tank = match data.get(&"tconstruct:tank".into()) {
+                    Some(tag) => super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity)?,
+                    None => super::tconstruct_source_melter_state::Tank::new(capacity),
+                };
+                if tank.fluid.as_deref().is_some_and(|existing| existing != fluid) { return None; }
+                let free = capacity.saturating_sub(tank.amount);
+                if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+                    catalog.basin_filling(&stack.item, fluid, free, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+                })? {
+                    if !tank.insert(fluid, recipe.fluid.amount) { return None; }
+                    data.insert("tconstruct:tank".into(), tank.to_nbt());
+                    let mut output = stack.clone();
+                    output.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(data)));
+                    return Some((id, recipe, output));
+                }
+            }
+        }
         if !basin {
             // Forge FluidBucketWrapper replaces the stack with a new filled bucket.
             if stack.item.as_ref() == "minecraft:bucket" && stack.damage == 0 && stack.count == 1 {
