@@ -353,12 +353,27 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
         if value.get("type").and_then(serde_json::Value::as_str) != Some("tconstruct:modifier_repair") { continue; }
         if ["conditions", "forge:conditions"].iter().any(|key| value.get(*key).is_some_and(|conditions| conditions.as_array().is_none_or(|entries| !entries.is_empty()))) { continue; }
         let Some(modifier) = value.get("modifier").and_then(serde_json::Value::as_str) else { continue; };
-        // Material traits are resolved above. Do not guess a tool-definition
-        // trait's hook semantics when it can affect this repair.
-        if modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits"))
-            .flat_map(|module| module.get("traits").and_then(serde_json::Value::as_array).into_iter().flatten())
-            .filter_map(|entry| entry.get("name").and_then(serde_json::Value::as_str))
-            .any(|id| id == modifier || matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense" | "tconstruct:emerald")) { continue; }
+        // Default trait modules contribute to TOOL_TRAITS. Explicit hook
+        // overrides contribute only when they include that hook.
+        let mut known = true;
+        for module in modules.iter().filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits")) {
+            if let Some(hooks) = module.get("hooks") {
+                let Some(hooks) = hooks.as_array() else { known = false; break; };
+                if hooks.iter().any(|hook| hook.as_str().is_none()) { known = false; break; }
+                if !hooks.iter().any(|hook| hook.as_str() == Some("tconstruct:tool_traits")) { continue; }
+            }
+            let Some(entries) = module.get("traits").and_then(serde_json::Value::as_array) else { known = false; break; };
+            for entry in entries {
+                let Some(id) = entry.get("name").and_then(serde_json::Value::as_str) else { known = false; break; };
+                if id != modifier && !matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense" | "tconstruct:emerald") { continue; }
+                if id == "tconstruct:emerald" || !matches!(entry.get("optional"), None | Some(serde_json::Value::Bool(false))) { known = false; break; }
+                let value = match entry.get("level") { None => Some(1), Some(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()).filter(|value| *value > 0) };
+                if value.is_none() { known = false; break; }
+                // The trait resolver already included this fixed trait exactly once.
+            }
+            if !known { break; }
+        }
+        if !known { continue; }
         let Some(per_level) = value.get("repair_amount").and_then(serde_json::Value::as_i64).and_then(|v| i32::try_from(v).ok()).filter(|v| *v > 0) else { continue; };
         let Some(ingredient) = value.get("ingredient") else { continue; };
         let mut count = 0u32;
