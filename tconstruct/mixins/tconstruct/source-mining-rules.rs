@@ -2,6 +2,19 @@
 use horizon_world::nbt::Tag;
 use super::tconstruct_source_mining_math::{Conditional, conditional_speed_for_resistance};
 
+/// Source BreakSpeedContext multiplier for additive tool bonuses. The host's
+/// base speed may use different fatigue or submerged-attribute rules.
+pub(super) fn environment_multiplier(haste: Option<i32>, conduit: Option<i32>, fatigue: Option<i32>, in_water: bool, aqua_affinity: bool, on_ground: bool) -> f32 {
+    let mut multiplier = 1.0;
+    if let Some(level) = haste.max(conduit) { multiplier *= 1.0 + (level + 1) as f32 * 0.2; }
+    if let Some(level) = fatigue {
+        multiplier *= match level { 0 => 0.3, 1 => 0.09, 2 => 0.0027, _ => 0.00081 };
+    }
+    if in_water && !aqua_affinity { multiplier /= 5.0; }
+    if !on_ground { multiplier /= 5.0; }
+    multiplier
+}
+
 /// The source applies the player's armor attribute after tool break-speed hooks.
 pub(super) fn finish_mining_speed(speed: f32, armor_multiplier: f32) -> f32 {
     speed * armor_multiplier
@@ -72,13 +85,13 @@ mod airborne_tests {
         ]);
         // Inputs are the final host values after the applicable air/water
         // penalties; the product hook must call this only after those steps.
-        for (host_speed, on_ground, expected) in [
-            (4.0 / 5.0, false, 34.0),
-            (4.0, true, 10.0),
-            (4.0 / 5.0, true, 6.8),
-            (4.0 / 25.0, false, 30.8),
+        for (host_speed, on_ground, multiplier, expected) in [
+            (4.0 / 5.0, false, 1.0 / 5.0, 10.0),
+            (4.0, true, 1.0, 10.0),
+            (4.0 / 5.0, true, 1.0 / 5.0, 2.0),
+            (4.0 / 25.0, false, 1.0 / 25.0, 2.0),
         ] {
-            let with_flat = conditional(&custom, 0, host_speed, 1.0, None, true, false, Some(false)).unwrap();
+            let with_flat = conditional(&custom, 0, host_speed, multiplier, None, true, false, Some(false)).unwrap();
             let actual = with_flat * airborne_multiplier(&custom, 0, on_ground);
             assert!((actual - expected).abs() < 0.0001, "{actual} != {expected}");
         }
@@ -177,6 +190,57 @@ pub(super) fn conditional_with_resistance(custom: &Tag, damage: u32, speed: f32,
 mod shared_rules_tests {
     use super::*;
 
+    #[test]
+    fn flat_bonuses_follow_potions_water_air_and_armor_order() {
+        let entry = |id| Tag::compound([("id", Tag::String(id)), ("level", Tag::Int(1))]);
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![
+                entry("tconstruct:crumbling".into()), entry("tconstruct:maintained".into()),
+                Tag::compound([("id", Tag::String("tconstruct:blasting".into())), ("level", Tag::Int(20))]),
+            ])),
+        ]);
+        for (water, aqua, ground, environmental) in [
+            (false, false, true, 1.2), (true, false, true, 0.24),
+            (false, false, false, 0.24), (true, false, false, 0.048),
+            (true, true, true, 1.2),
+        ] {
+            let multiplier = environment_multiplier(Some(0), None, None, water, aqua, ground);
+            assert!((multiplier - environmental).abs() < 1e-6);
+            let speed = 4.0 * multiplier;
+            let result = conditional_with_resistance(&custom, 25, speed, multiplier, None, true, true, Some(false), Some(6.0)).unwrap();
+            // Base 4 + Crumbling 1 + Maintained 3 + Blasting 1, then armor Haste.
+            assert!((finish_mining_speed(result, 1.1) - 9.0 * environmental * 1.1).abs() < 1e-5);
+        }
+    }
+    #[test]
+    fn source_potions_use_max_haste_and_capped_fatigue_table() {
+        for (fatigue, expected) in [(None,1.0), (Some(0),0.3), (Some(1),0.09), (Some(2),0.0027), (Some(3),0.00081), (Some(8),0.00081)] {
+            assert!((environment_multiplier(None, None, fatigue, false, false, true) - expected).abs() < 1e-7);
+        }
+        assert!((environment_multiplier(Some(0), Some(2), Some(2), true, false, false) - 1.6 * 0.0027 / 25.0).abs() < 1e-7);
+    }
+    #[test]
+    fn source_bonus_does_not_rewrite_host_base_speed() {
+        let custom = Tag::compound([
+            ("tic_max_damage", Tag::Int(100)),
+            ("tic_mining_traits", Tag::List(vec![Tag::compound([
+                ("id", Tag::String("tconstruct:blasting".into())), ("level", Tag::Int(20))
+            ])])),
+        ]);
+        let bonus_multiplier = environment_multiplier(None, None, Some(2), false, false, true);
+        // Host's Fatigue III base speed uses 0.027; only this modifier's
+        // addition uses source 0.0027. Do not claim full host parity.
+        let host_speed = 4.0 * 0.027;
+        let actual = conditional_with_resistance(&custom, 0, host_speed, bonus_multiplier, None, true, false, Some(false), Some(6.0)).unwrap();
+        assert!((actual - (host_speed + 0.0027)).abs() < 1e-7);
+        // The host can supply a custom submerged factor; source bonus still
+        // uses the binary Aqua Affinity condition, without rewriting the base.
+        let host_speed = 4.0 * 0.4;
+        let bonus_multiplier = environment_multiplier(None, None, None, true, false, true);
+        let actual = conditional_with_resistance(&custom, 0, host_speed, bonus_multiplier, None, true, false, Some(false), Some(6.0)).unwrap();
+        assert!((actual - 1.8).abs() < 1e-6);
+    }
     #[test]
     fn armor_haste_multiplies_conditional_blasting_after_tool_effects() {
         let custom = Tag::compound([

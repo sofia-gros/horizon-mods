@@ -161,3 +161,12 @@ value the helper conservatively skips Blasting rather than assuming a block
 value. This defensive case is a deliberate difference from the source fallback.
 The pinned source `PostFixFormula.processLevel` uses the modifier's effective
 level, including incremental progress.
+
+Flat conditional mining bonuses use the pinned source's Haste/Conduit maximum,
+Mining Fatigue table, binary Aqua Affinity check, and airborne penalty before
+chest Haste. Deterministic tests cover these combinations for Blasting,
+Crumbling and Maintained; local/LAN gameplay remains unverified. Horizon's base
+speed itself differs at Mining Fatigue III and above and uses a configurable
+submerged-mining attribute; those host base-speed differences remain open. Its
+separate `block_break_speed` attribute is not included in the flat bonus
+multiplier and its interaction remains open.
