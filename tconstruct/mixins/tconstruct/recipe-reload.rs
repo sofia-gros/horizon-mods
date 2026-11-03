@@ -268,3 +268,13 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let generation = game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation().wrapping_add(1);
     *game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = generation;
 }
+
+// The active level is captured below the reload hook. Parked levels retain
+// their own ChunkMap and must not continue serving pre-reload tag membership.
+pub(super) fn invalidate_parked_item_tags(game: &mut crate::game::Game<'_>) {
+    for dim in [crate::game::Dim::Overworld, crate::game::Dim::Nether, crate::game::Dim::End] {
+        if let Some(world) = game.levels.parked_world_mut(dim) {
+            *world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = None;
+        }
+    }
+}
