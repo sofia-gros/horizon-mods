@@ -295,7 +295,8 @@ impl Casting {
     /// selected recipe against the current cast/fluid before consuming either.
     pub(super) fn tick(&mut self, valid: bool) -> bool {
         if self.recipe.is_none() || self.result.is_none() || self.tank.amount != self.tank.capacity || self.tank.amount == 0 { return false; }
-        if !valid { self.timer = 0; return false; }
+        // Another inventory path may have filled the output while pouring.
+        if !valid || self.output.is_some() { self.timer = 0; return false; }
         self.timer = self.timer.saturating_add(1);
         if self.timer < self.cooling_time { return false; }
         let Some(result) = self.result.take() else { return false; };
@@ -357,4 +358,40 @@ mod casting_tests {
         assert_eq!(c.tank.amount, 90); assert!(c.input.is_some()); assert!(c.output.is_none());
         assert!(c.tick(true)); assert!(c.input.is_none()); assert!(c.output.is_some());
     }
+}
+
+#[cfg(test)]
+mod slimelytra_tests {
+    use super::*;
+
+#[test]
+fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
+    let mut result = ItemStack::new("tconstruct:slime_wings", 1);
+    result.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+        ("tic_materials", Tag::List(vec![Tag::String("tconstruct:earthslime".into())])),
+        ("tic_max_damage", Tag::Int(222)),
+    ])));
+    let mut basin = Casting::new();
+    basin.input = Some(ItemStack::new("minecraft:elytra", 1));
+    basin.output = Some(ItemStack::new("minecraft:stone", 1));
+    assert!(!basin.prepare("test:slimelytra", 2000, 2, result.clone(), true, false));
+    assert_eq!(basin.tank.amount, 0); assert!(basin.input.is_some());
+    basin.output = None;
+    assert!(basin.prepare("test:slimelytra", 2000, 2, result, true, false));
+    assert!(basin.tank.insert("tconstruct:molten_slime", 1999));
+    assert!(!basin.tick(true)); assert!(basin.input.is_some());
+    assert!(basin.tank.insert("tconstruct:molten_slime", 1));
+    let mut basin = Casting::from_nbt(&basin.to_nbt()).unwrap();
+    assert!(!basin.tick(false)); assert!(basin.input.is_some()); assert_eq!(basin.tank.amount, 2000);
+    basin.output = Some(ItemStack::new("minecraft:stone", 1));
+    assert!(!basin.tick(true)); assert!(basin.input.is_some()); assert_eq!(basin.tank.amount, 2000);
+    assert_eq!(&*basin.output.as_ref().unwrap().item, "minecraft:stone");
+    basin.output = None;
+    assert!(!basin.tick(true)); assert!(basin.tick(true));
+    assert!(basin.input.is_none()); assert_eq!(basin.tank.amount, 0);
+    let output = basin.output.unwrap();
+    assert_eq!(&*output.item, "tconstruct:slime_wings");
+    assert_eq!(output.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_max_damage"), Some(&Tag::Int(222)));
+}
+
 }
