@@ -101,7 +101,7 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         .as_ref()?;
     let (namespace, name) = tool.item.split_once(':')?;
     let definition = materials
-        .get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?
+        .get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?
         .last()?;
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let has_part_stats = definition_json.get("modules")?.as_array()?.iter().any(|module| {
