@@ -428,13 +428,13 @@ pub fn apply_stats(
     for id in super::tconstruct_source_material_effects::ordered_modifier_ids(tool, levels) {
         match id.as_str() {
             "tconstruct:diamond" if amount(tool, &id) > 0 && melee => damage_add += 0.5,
-            "tconstruct:sharpness" if melee => damage_add += 0.75 * effective(tool, &id, 36),
+            "tconstruct:sharpness" if melee => damage_add += 0.75 * (effective(tool, &id, 36) + level(&id).max(0) as f32),
             "tconstruct:pierce" if melee => damage_add += 0.5 * level(&id).max(0) as f32,
             "tconstruct:ductile" if melee => damage_multiplier *= 1.0 + 0.05 * level(&id).max(0) as f32,
             "tconstruct:solid" if melee => damage_multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,
             "tconstruct:netherite" if melee && (amount(tool, &id) > 0 || level(&id) > 0) => damage_multiplier *= 1.2,
             "tconstruct:lightweight" if melee_weapon => speed_multiplier *= 1.0 + 0.08 * level(&id).max(0) as f32,
-            "tconstruct:swiftstrike" if melee_weapon => speed_multiplier *= 1.0 + 0.05 * effective(tool, &id, 72),
+            "tconstruct:swiftstrike" if melee_weapon => speed_multiplier *= 1.0 + 0.05 * (effective(tool, &id, 72) + level(&id).max(0) as f32),
             "tconstruct:vintage" if melee_weapon => speed_multiplier *= 1.0 - 0.1 * level(&id).max(0) as f32,
             _ => {},
         }
@@ -455,8 +455,8 @@ pub fn apply_stats(
         for id in super::tconstruct_source_material_effects::ordered_modifier_ids(tool, levels) {
             let trait_level = level(&id).max(0) as f32;
             match id.as_str() {
-                "tconstruct:quick_charge" if &*tool.item == "tconstruct:crossbow" => draw_multiply *= 1.0 + 0.25 * effective(tool, &id, 5),
-                "tconstruct:trueshot" => accuracy_add += 0.1 * effective(tool, &id, 10),
+                "tconstruct:quick_charge" => draw_multiply *= 1.0 + 0.25 * (effective(tool, &id, 5) + trait_level),
+                "tconstruct:trueshot" => accuracy_add += 0.1 * (effective(tool, &id, 10) + trait_level),
                 "tconstruct:blindshot" => accuracy_add -= 0.1 * (effective(tool, &id, 10) + trait_level),
                 "tconstruct:emerald" if amount(tool, &id) > 0 || trait_level > 0.0 => accuracy_add += 0.1,
                 "tconstruct:netherite" if amount(tool, &id) > 0 || trait_level > 0.0 => velocity_multiply *= 1.1,
@@ -1250,4 +1250,32 @@ mod tests {
         assert_eq!(&*crystal.item, "tconstruct:modifier_crystal");
         assert!(matches!(crystal.data().unwrap().other("minecraft:custom_data").unwrap().get("modifier"), Some(Tag::String(id)) if id.to_string_lossy() == "tconstruct:sharpness"));
     }
+    #[test]
+    fn incremental_stat_traits_and_partial_upgrades_combine() {
+        use super::*;
+        let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":2,"tconstruct:attack_speed":1,"tconstruct:draw_speed":1,"tconstruct:accuracy":0.5}}]}"#;
+        let stats=super::super::tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+        let levels=BTreeMap::from([("tconstruct:sharpness".into(),2),("tconstruct:swiftstrike".into(),2), ("tconstruct:quick_charge".into(),2),("tconstruct:trueshot".into(),2)]);
+        for item in ["tconstruct:pickaxe","tconstruct:longbow","tconstruct:crossbow"] {
+            let mut tool=ItemStack::new(item,1);
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([
+                ("tconstruct:sharpness",Tag::Int(18)),("tconstruct:swiftstrike",Tag::Int(36)),
+                ("tconstruct:quick_charge",Tag::Int(2)),("tconstruct:trueshot",Tag::Int(5))]))])));
+            let melee=item=="tconstruct:pickaxe";
+            for (traits,damage,speed,draw,accuracy) in [(&levels,3.875,1.125,1.6,0.75),(&BTreeMap::new(),2.375,1.025,1.1,0.55)] {
+                apply_stats(&mut tool,&stats,traits,melee,melee).unwrap();
+                let data=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+                let n=|key| match data.get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("{key}")};
+                if melee { assert!((n("tic_attack_damage")-damage).abs()<1e-5); assert!((n("tic_attack_speed")-speed).abs()<1e-5); }
+                else { assert!((n("tic_draw_speed")-draw).abs()<1e-5); assert!((n("tic_accuracy")-accuracy).abs()<1e-5); }
+            }
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+            apply_stats(&mut tool,&stats,&levels,melee,melee).unwrap();
+            let data=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+            let n=|key| match data.get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("{key}")};
+            if melee { assert!((n("tic_attack_damage")-3.5).abs()<1e-5); assert!((n("tic_attack_speed")-1.1).abs()<1e-5); }
+            else { assert!((n("tic_draw_speed")-1.5).abs()<1e-5); assert!((n("tic_accuracy")-0.7).abs()<1e-5); }
+        }
+    }
+
 }

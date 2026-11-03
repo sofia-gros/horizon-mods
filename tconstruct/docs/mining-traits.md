@@ -118,3 +118,15 @@ A scoped actor flag prevents repeated spends for the center and additional AOE
 blocks; broken tools and unknown item-tag snapshots do not spend. This host
 boundary runs after permission checks and mod cancellation handlers, but before
 block removal. Creative, guest behavior and full source parity remain unverified.
+
+### Incremental modifiers supplied as material traits
+
+When a datapack supplies Haste, Sharpness, Swiftstrike, Quick Charge or
+Trueshot as material traits, the existing stat rebuild now combines those
+integer trait levels with the saved fractional incremental upgrade progress.
+The implemented scope is harvest-tool mining speed, melee attack damage and
+speed, and longbow/crossbow draw speed and accuracy. Rebuilding after a material
+change recalculates from the baseline. Haste supplied as a trait on worn armor
+is not covered by this change. The source-data and host-type fixtures cover
+trait-only, partial-upgrade and combined inputs; actual Station, Creative,
+reload and LAN behavior on the integrated host remains unverified.
