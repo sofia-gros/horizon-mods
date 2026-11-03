@@ -76,6 +76,21 @@ fn tconstruct_part_name(
         .and_then(|display| display.get("hide_tooltip"))
         .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Byte(n) if *n != 0));
     if !hidden {
+        let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+        // Source display-only stacks do not expose part details. Malformed
+        // flags are unknown and are conservatively treated as display-only.
+        let display = match custom.and_then(|data| data.get("tic_display")) {
+            None | Some(horizon_world::nbt::Tag::Byte(0)) => false,
+            Some(_) => true,
+        };
+        if let Some(horizon_world::nbt::Tag::String(raw)) = custom.and_then(|data| data.get("Material")) {
+                if let Some(material) = crate::game::tconstruct_source_part_material_id::source_part_material_id(&stack.item, &raw.to_string_lossy(), game.options_advanced_tooltips(), hidden, display) {
+                    let key = "tooltip.tconstruct.part.material_id";
+                    let template = game.pack.names.display_get(key).unwrap_or_else(|| key.into());
+                    let text = horizon_client::text::format_translation(&template, &[horizon_client::text::Text::literal(material)]);
+                    value.push((text, horizon_client::hud::rgba(85, 85, 85, 255)));
+                }
+        }
         let upgrades = stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tic_upgrades"));
         let amount = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_overslime"));
         let capacity = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_overslime_capacity"));

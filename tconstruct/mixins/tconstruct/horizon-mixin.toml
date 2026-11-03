@@ -4963,3 +4963,21 @@ initial = "::core::default::Default::default()"
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
+
+[[module]]
+id = "source-part-material-id"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_part_material_id"
+source = "source-part-material-id.rs"
+
+[[module]]
+id = "source-part-material-id-lib"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_part_material_id"
+source = "source-part-material-id.rs"
+
+[[module]]
+id = "source-part-material-id-host-tests"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_part_material_id_host_tests"
+source = "source-part-material-id-host-tests.rs"
