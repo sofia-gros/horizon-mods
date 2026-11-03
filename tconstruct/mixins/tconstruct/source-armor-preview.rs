@@ -49,7 +49,8 @@ pub(in crate::game) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: 
     if poses.has("base_plate") { let part = poses.get("base_plate"); part[6] = 0.0; part[7] = 0.0; part[8] = 0.0; }
     let mut verts: Vec<Vertex> = Vec::new(); let light = 240 | 240 << 8;
     render::draw(model, base, &poses, uv(wood), u32::MAX, light, 0, &mut verts);
-    game.armor_stand_items(&stand, model, base, &poses, light, &mut verts);
+    // The preview renders into CPU vertices rather than a world skin batch.
+    game.armor_stand_items(&stand, model, base, &poses, light, None, &mut verts);
     if let Some(layer) = layer {
         let slot = match layer { "helmet" => 5, "chestplate" => 4, "leggings" => 3, _ => 2 };
         if let Some(stack) = stand.equipment[slot].as_ref() {
