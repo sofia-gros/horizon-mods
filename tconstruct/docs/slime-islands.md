@@ -339,3 +339,12 @@ older targets, not the current feature status:
   A later `E_MODULE` led to ordinary rather than inner-doc module comments.
   The subsequent `E_INVALID_BINDING` left only the terrain-face tint injection
   deferred. These intermediate fixes are not independent build/game passes.
+
+## Experimental slime plant support
+
+The authoritative level's survival hook recognizes all five slime fern and
+short-grass variants. These plants can remain on any of the four slime dirts
+or 25 slime-grass combinations, and reject ordinary dirt and unrelated
+blocks. This connects support checks; it does not implement slime-grass
+bonemeal or establish placement, neighbor updates, drops, dedicated-server,
+save/reload, or LAN parity. Those remain to be validated.
