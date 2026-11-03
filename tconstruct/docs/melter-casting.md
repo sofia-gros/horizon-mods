@@ -4,6 +4,8 @@ Use a Melter, a Seared Heater, a Faucet and a Casting Table or Basin to melt and
 
 Open the Melter, put a supported fuel in the heater slot, and add material to the three input slots. For example, ten copper ingots produce 900 mB of molten copper.
 
+Solid fuel consumption and Melter state are staged together. A fuel remainder returns to the heater only if it is itself valid heater fuel and fits; otherwise it drops at the heater, as in the source. If the Melter becomes unformed while fuel remains, that fuel burns down without heating or cooling its inputs; cooling resumes after it runs out. These additions need game, persistence and LAN verification.
+
 ![Melter containing molten copper](melter-filled.png)
 
 The input slots are on the left, the heater slot is on the right, and the tank shows the stored liquid.
