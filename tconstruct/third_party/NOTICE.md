@@ -82,3 +82,7 @@ Copper Gauge's capability, support and display behavior was checked against
 MIT-licensed [Mantle GaugeBlock.java](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/block/GaugeBlock.java)
 and the pinned Tinkers' Construct CastingTankBlockEntity and FluidCannonBlockEntity.
 Copyright (c) SlimeKnights; see the corresponding licenses in this directory.
+
+The Copper Gauge potion-fluid display follows MIT-licensed
+[Tinkers' Construct PotionFluidType.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/fluids/fluids/PotionFluidType.java).
+Copyright (c) 2022 SlimeKnights; see `tconstruct/third_party/tconstruct/LICENSE`.

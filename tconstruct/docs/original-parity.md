@@ -773,3 +773,12 @@ survival and action-bar use, so empty and filled machines expose their capacity
 and contents without changing fluid or items. Malformed or unavailable tank
 data fails closed. Unit tests cover nested decoding and direct-tank regression;
 placement, live updates, save/reload and LAN remain to be verified in game.
+
+Copper Gauge now names tagged potion fluid using the known source-era vanilla
+base potion's localized potion name. Long and strong variants share the base
+name, and color or custom effects do not change it. Missing/empty potion data
+uses the empty-potion name on supported TConstruct tank paths; unknown, modded
+or malformed IDs retain the generic fluid name rather than guessing. Native
+fluid snapshots omit metadata, so their potion name remains generic. This is a display-only candidate; translated
+names, datapack changes, save/reload and local/LAN action bars need in-game
+verification. Other fluid tooltips are unchanged.
