@@ -59,7 +59,7 @@ struct Accumulator {
 }
 /// The registered chestplate item and its original data definition have
 /// different IDs; other namespaces and equipment names are not rewritten.
-pub(super) fn definition_name<'a>(namespace: &str, item_name: &'a str) -> &'a str {
+pub fn definition_name<'a>(namespace: &str, item_name: &'a str) -> &'a str {
     if namespace == "tconstruct" && item_name == "slimy_chestplate" { "slime_chestplate" } else { item_name }
 }
 
