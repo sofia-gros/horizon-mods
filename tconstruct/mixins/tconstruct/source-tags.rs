@@ -131,9 +131,19 @@ pub(super) fn merge_pack_block_tags(
     for file in files {
         let Some(rest) = file.strip_prefix("data/") else { continue; };
         let Some((namespace, path)) = rest.split_once('/') else { continue; };
-        let Some(path) = path.strip_prefix("tags/blocks/").and_then(|p| p.strip_suffix(".json")) else { continue; };
+        let Some(path) = path.strip_prefix("tags/blocks/").or_else(|| path.strip_prefix("tags/block/"))
+            .and_then(|p| p.strip_suffix(".json")) else { continue; };
         if !valid_id(&format!("{namespace}:{path}")) || path.split('/').any(|p| p.is_empty() || p == "." || p == "..") { continue; }
         if let Some(bytes) = read(&file) { tags.entry(format!("{namespace}:{path}")).or_default().push(bytes); }
+    }
+}
+
+/// Bridge the source 1.20 spelling to the vanilla 26.3 block tag when the
+/// original vanilla tag is absent. Insert at vanilla priority so later
+/// datapacks can extend or replace the legacy tag normally.
+pub(super) fn bridge_vanilla_mud_tag(tags: &mut BTreeMap<String, Vec<Vec<u8>>>) {
+    if !tags.contains_key("minecraft:convertable_to_mud") && tags.contains_key("minecraft:convertible_to_mud") {
+        tags.insert("minecraft:convertable_to_mud".into(), vec![br##"{"values":["#minecraft:convertible_to_mud"]}"##.to_vec()]);
     }
 }
 
@@ -272,6 +282,30 @@ mod tests {
         assert!(!resolved.contains_key("tconstruct:casts/empty/basin"));
         assert_eq!(definitely_absent("tconstruct:casts/empty/basin", "tconstruct:seared_lantern", &tags), Ok(true));
         assert_eq!(definitely_absent("tconstruct:casts/empty/basin", "tconstruct:gold_platform", &tags), Ok(false));
+    }
+
+    #[test]
+    fn source_mud_tag_uses_vanilla_layer_and_respects_replacement() {
+        let mut tags = BTreeMap::new();
+        let path = "data/minecraft/tags/block/convertible_to_mud.json";
+        merge_pack_block_tags(&mut tags, [path.to_owned()], |_| Some(br#"{"values":["minecraft:dirt","minecraft:coarse_dirt","minecraft:rooted_dirt"]}"#.to_vec()));
+        bridge_vanilla_mud_tag(&mut tags);
+        let registry = ["minecraft:dirt", "minecraft:coarse_dirt", "minecraft:rooted_dirt", "minecraft:stone"].into_iter().map(str::to_owned).collect();
+        let values = resolve_tag("minecraft:convertable_to_mud", &tags, &registry).unwrap();
+        assert_eq!(values.len(), 3);
+        assert!(values.contains(&"minecraft:dirt".to_owned()));
+        tags.get_mut("minecraft:convertable_to_mud").unwrap().push(br#"{"replace":true,"values":["minecraft:stone"]}"#.to_vec());
+        assert_eq!(resolve_tag("minecraft:convertable_to_mud", &tags, &registry).unwrap(), vec!["minecraft:stone".to_owned()]);
+    }
+
+    #[test]
+    fn source_mud_tag_does_not_override_existing_legacy_layer() {
+        let mut tags = BTreeMap::new();
+        tags.insert("minecraft:convertible_to_mud".into(), vec![br#"{"values":["minecraft:dirt"]}"#.to_vec()]);
+        tags.insert("minecraft:convertable_to_mud".into(), vec![br#"{"values":["minecraft:stone"]}"#.to_vec()]);
+        bridge_vanilla_mud_tag(&mut tags);
+        let registry = ["minecraft:dirt", "minecraft:stone"].into_iter().map(str::to_owned).collect();
+        assert_eq!(resolve_tag("minecraft:convertable_to_mud", &tags, &registry).unwrap(), vec!["minecraft:stone".to_owned()]);
     }
     #[test]
     fn absent_member_is_provable_without_unrelated_registered_casts() {
