@@ -18,9 +18,22 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     let diamond = has_gem("tconstruct:diamond");
     let emerald = has_gem("tconstruct:emerald");
     let netherite = has_gem("tconstruct:netherite") || level("tconstruct:netherite") > 0;
-    let speed = super::tconstruct_source_mining_math::base_speed_unclamped(stats.mining_speed + (4.0 * haste + if diamond { 2.0 } else { 0.0 }) * stats.mining_speed_add_multiplier, stats.mining_speed_add_multiplier,
-        level("tconstruct:lightweight"), level("tconstruct:heavy"), vintage, level("tconstruct:entangled") > 0);
-    let speed = (speed * if netherite { 1.25 } else { 1.0 }).clamp(0.1, 2048.0);
+    let mut add = stats.mining_speed_add_raw;
+    let percent = stats.mining_speed_percent_raw;
+    let mut multiplier = stats.mining_speed_all_multiplier;
+    for id in super::tconstruct_source_material_effects::ordered_modifier_ids(stack, levels) {
+        match id.as_str() {
+            "tconstruct:diamond" if diamond => add += 2.0,
+            "tconstruct:haste" => add += 4.0 * haste,
+            "tconstruct:entangled" if level(&id) > 0 => add += 6.0,
+            "tconstruct:lightweight" => multiplier *= 1.0 + 0.08 * level(&id).max(0) as f32,
+            "tconstruct:heavy" => multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,
+            "tconstruct:netherite" if netherite => multiplier *= 1.25,
+            "tconstruct:vintage" => multiplier *= 1.0 - 0.1 * vintage.max(0) as f32,
+            _ => {},
+        }
+    }
+    let speed = ((stats.mining_speed_base_raw + add) * (1.0 + percent) * multiplier).clamp(0.1, 2048.0);
     // A harvest-tagged tool without an explicit Tool component is still able
     // to carry traits such as Crumbling, which also applies when ineffective.
     let mut tool = stack.data().and_then(|data| data.other("minecraft:tool")).cloned();
@@ -37,7 +50,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     };
     let Tag::Compound(ref mut fields) = custom else { return if tool.is_none() { Some(()) } else { None } };
     let dynamic: Vec<Tag> = order.iter().filter_map(|id| {
-        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:airborne") { return None; }
+        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:airborne" | "tconstruct:overwield") { return None; }
         Some(Tag::compound([("id", Tag::String(id.as_str().into())), ("level", Tag::Int(level(id)))]))
     }).collect();
     // Retain the existing generated-rule mirror for legacy consumers; the
@@ -55,6 +68,42 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn mining_base_multipliers_compound_before_application() {
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:lightweight".into()),Tag::String("tconstruct:heavy".into())]))])));
+        stack.data_mut().set_other("minecraft:tool", Some(Tag::compound([("rules",Tag::List(vec![Tag::compound([("speed",Tag::Float(4.0f32.to_bits()))])]))])));
+        let levels = BTreeMap::from([("tconstruct:lightweight".into(),1),("tconstruct:heavy".into(),1)]);
+        apply(&mut stack, &stats, &levels, &[], true).unwrap();
+        let tool = stack.data().unwrap().other("minecraft:tool").unwrap();
+        let Some(Tag::List(rules)) = tool.get("rules") else { panic!() };
+        assert!(matches!(rules[0].get("speed"), Some(Tag::Float(v)) if (f32::from_bits(*v)-4.968).abs()<0.0001));
+    }
+
+    #[test]
+    fn mining_builder_keeps_add_percent_multipliers_and_harvest_scope() {
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+        let mut stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        stats.mining_speed_percent_raw = 0.2;
+        let mut stack = ItemStack::new("tconstruct:pickaxe",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:diamond",Tag::Int(1)),("tconstruct:haste",Tag::Int(45)),("tconstruct:netherite",Tag::Int(1))])),
+            ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:diamond".into()),Tag::String("tconstruct:haste".into()),Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:lightweight".into()),Tag::String("tconstruct:heavy".into()),Tag::String("tconstruct:vintage".into())])),
+        ])));
+        stack.data_mut().set_other("minecraft:tool",Some(Tag::compound([("rules",Tag::List(vec![Tag::compound([("speed",Tag::Float(4.0f32.to_bits()))])]))])));
+        let levels=BTreeMap::from([("tconstruct:lightweight".into(),1),("tconstruct:heavy".into(),1),("tconstruct:vintage".into(),1)]);
+        let before=stack.data().unwrap().other("minecraft:tool").unwrap().clone();
+        apply(&mut stack,&stats,&levels,&[],false).unwrap();
+        assert_eq!(stack.data().unwrap().other("minecraft:tool"),Some(&before));
+        apply(&mut stack,&stats,&levels,&[],true).unwrap();
+        let tool=stack.data().unwrap().other("minecraft:tool").unwrap();
+        let Some(Tag::List(rules))=tool.get("rules") else {panic!()};
+        // (4 + diamond 2 + Haste 4) * 1.2 * 1.25 * 1.08 * 1.15 * 0.9.
+        assert!(matches!(rules[0].get("speed"),Some(Tag::Float(v)) if (f32::from_bits(*v)-16.767).abs()<0.0001));
+    }
 
     #[test]
     fn crumbling_is_stored_without_tool_rules_and_removed_on_rebuild() {
