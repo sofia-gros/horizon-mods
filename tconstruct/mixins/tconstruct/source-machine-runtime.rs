@@ -502,7 +502,15 @@ fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Cas
     if let Some(stack) = input {
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
         let tag = if kind == "tconstruct:basin" { "tconstruct:casts/empty/basin" } else { "tconstruct:casts/empty/table" };
-        if tags.get(tag)?.contains(&*stack.item) { input = None; }
+        if let Some(values) = tags.get(tag) {
+            if values.contains(&*stack.item) { input = None; }
+        } else {
+            // A missing required cast such as an unregistered gold platform
+            // invalidates the resolved tag, but unrelated items can still be
+            // proved absent using the source tag graph.
+            let raw = game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot().as_ref()?;
+            if !super::tconstruct_source_tags::definitely_absent(tag, &stack.item, raw).ok()? { return None; }
+        }
     }
     matched_casting(&game.world, kind == "tconstruct:basin", input, tank)
 }

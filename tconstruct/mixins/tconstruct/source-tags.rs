@@ -264,6 +264,16 @@ pub(super) fn resolve_material_registry(
 mod tests {
     use super::*;
     #[test]
+    fn missing_platform_does_not_block_unrelated_basin_input() {
+        let tags = BTreeMap::from([("tconstruct:casts/empty/basin".into(),
+            vec![br#"{"values":["tconstruct:gold_platform"]}"#.to_vec()])]);
+        let registry = ["tconstruct:seared_lantern".to_owned()].into_iter().collect();
+        let resolved = resolve_registry(&tags, &registry).unwrap();
+        assert!(!resolved.contains_key("tconstruct:casts/empty/basin"));
+        assert_eq!(definitely_absent("tconstruct:casts/empty/basin", "tconstruct:seared_lantern", &tags), Ok(true));
+        assert_eq!(definitely_absent("tconstruct:casts/empty/basin", "tconstruct:gold_platform", &tags), Ok(false));
+    }
+    #[test]
     fn absent_member_is_provable_without_unrelated_registered_casts() {
         let mut tags = BTreeMap::new();
         tags.insert("tconstruct:patterns/reusable".into(), vec![br##"{"values":["#tconstruct:casts/gold","minecraft:elytra"]}"##.to_vec()]);
