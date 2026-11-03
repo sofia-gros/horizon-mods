@@ -61,4 +61,20 @@ and gameplay remain pending. Verify Wool material selection, zero/one/multiple
 levels, source fallback, Heavy/Netherite combinations, non-unit multiplier,
 clamp, equip/unequip, part replacement, save/reload and LAN. Creative resource
 generation remains separate. Source:
-[knockback_resistance modifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/knockback_resistance.json).
+[ModifierProvider](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/data/ModifierProvider.java).
+
+## Slime material and Overslime capacity
+
+For the pinned source slime armor definitions, `SlimeStats.apply` adds the
+scaled slime material durability to both durability and the Overslime stat.
+The capacity calculation now includes that material contribution before the
+Overcast and global durability multipliers. The source also has an
+`overslime_capacity` field for its tooltip; its pinned `apply` method uses the
+durability field for the stat contribution, so this calculation follows that
+method rather than the tooltip value.
+
+Rust syntax was checked. Unit tests, combined build and gameplay are pending.
+Verify each slime armor scale, material replacement, Overcast/Overforced,
+global durability multiplier, capacity clamping, existing shield contents and
+save/reload. Armor wear and Overslime writeback remain subject to the separately
+documented provisional hook limitations.
