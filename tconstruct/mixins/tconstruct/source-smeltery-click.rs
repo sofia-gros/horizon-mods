@@ -23,9 +23,9 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                     containers[slot - 300] = remaining;
                     let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
                         .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
-                    crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut containers,
-                        crate::game::tconstruct_source_fluid_container::Direction::from_index(direction),
-                        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+                    crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut containers,
+                        crate::game::tconstruct_source_fluid_container::Direction::from_index(direction), None,
+                        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), None, game.lan.is_none());
                     if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                         game.inventory = inventory;
                         game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
@@ -41,10 +41,10 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
         let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
         if input == horizon_client::menu::Input::Pickup && matches!(button, 0 | 1)
-            && crate::game::tconstruct_source_fluid_container::click(&mut containers, &mut carried, slot - 300, button == 1, &|id| known_fluids.contains(id)) {
-            crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut containers,
-                crate::game::tconstruct_source_fluid_container::Direction::from_index(direction),
-                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id));
+            && crate::game::tconstruct_source_fluid_container::click_with_color(&mut containers, &mut carried, slot - 300, button == 1, &|id| known_fluids.contains(id), game.lan.is_none()) {
+            crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut containers,
+                crate::game::tconstruct_source_fluid_container::Direction::from_index(direction), None,
+                &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), None, game.lan.is_none());
             if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                 game.carried = carried;
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
@@ -65,13 +65,13 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
         let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
         let mut stack = game.inventory.get(slot).cloned().flatten();
-        if stack.as_ref().is_some_and(|stack| crate::game::tconstruct_source_fluid_container::accepts(stack, &|fluid| fluids.contains(fluid))) {
+        if stack.as_ref().is_some_and(|stack| crate::game::tconstruct_source_fluid_container::accepts_with_color(stack, &|fluid| fluids.contains(fluid), game.lan.is_none())) {
             let (mut containers, mode) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
                 .get(&pos).cloned().unwrap_or(([None, None], 0));
-            if crate::game::tconstruct_source_fluid_container::quick_input(&mut containers, &mut stack, &|fluid| fluids.contains(fluid)) {
-                crate::game::tconstruct_source_fluid_container::transfer(&mut state.tank, &mut containers,
-                    crate::game::tconstruct_source_fluid_container::Direction::from_index(mode),
-                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid));
+            if crate::game::tconstruct_source_fluid_container::quick_input_with_color(&mut containers, &mut stack, &|fluid| fluids.contains(fluid), game.lan.is_none()) {
+                crate::game::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut containers,
+                    crate::game::tconstruct_source_fluid_container::Direction::from_index(mode), None,
+                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), None, game.lan.is_none());
                 if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
                     game.inventory[slot] = stack;
                     game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), mode));

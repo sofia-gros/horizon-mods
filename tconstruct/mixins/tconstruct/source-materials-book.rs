@@ -303,8 +303,9 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
     super::tconstruct_materials_book_recipe::resolve(&recipe, tags, grid_size)
 }
 
-pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Vec<Text>> {
-    let root = "assets/tconstruct/book/materials_and_you/";
+pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) -> Option<Vec<Text>> {
+    let root = if puny { "assets/tconstruct/book/puny_smelting/" } else { "assets/tconstruct/book/materials_and_you/" };
+    let book_title = if puny { "Puny Smelting" } else { "Materials & You" };
     let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
     let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
@@ -313,6 +314,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
+        // Only the source's introductory machine chapters are supported here;
+        // the other book's material tiers and modifier layouts differ.
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
@@ -484,7 +488,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
             let mut graphic = value.get("image").and_then(|image| {
                 let file = image.get("file")?.as_str()?;
-                Some(serde_json::json!({"image":file,"width":image.get("width")?.as_u64()?,"height":image.get("height")?.as_u64()?}))
+                // Mantle permits omitted dimensions; the renderer falls back
+                // to the atlas sprite's intrinsic width and height.
+                Some(serde_json::json!({"image":file,"width":image.get("width").and_then(|v| v.as_u64()),"height":image.get("height").and_then(|v| v.as_u64())}))
             })
                 .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
                 .or_else(|| {
@@ -494,26 +500,33 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                         let nbt = item.get("nbt");
                         let damage = nbt.and_then(|v| v.get("Damage")).and_then(|v| v.as_u64()).unwrap_or(0);
                         let maximum = nbt.and_then(|v| v.get("tic_stats")).and_then(|v| v.get("tconstruct:durability")).and_then(|v| v.as_u64());
-                        Some(serde_json::json!({"id":id, "damage":damage, "max_damage":maximum}))
+                        let count = item.get("amount_needed").and_then(|v| v.as_u64()).unwrap_or(1).clamp(1, u32::MAX as u64);
+                        Some(serde_json::json!({"id":id, "damage":damage, "max_damage":maximum, "count":count}))
+                    };
+                    let source_choices = |value: &serde_json::Value| -> Option<serde_json::Value> {
+                        if let Some(choices) = value.as_array() {
+                            let choices: Vec<_> = choices.iter().filter_map(&source_stack).collect();
+                            if choices.is_empty() { None } else { Some(serde_json::json!(choices)) }
+                        } else { source_stack(value) }
                     };
                     let mut slots: Vec<Option<serde_json::Value>> = vec![None; 9];
                     for (y, row) in rows.iter().take(3).enumerate() {
                         for (x, item) in row.as_array()?.iter().take(3).enumerate() {
-                            slots[y * 3 + x] = source_stack(item);
+                            slots[y * 3 + x] = source_choices(item);
                         }
                     }
-                    let result = value.get("result").and_then(source_stack);
+                    let result = value.get("result").and_then(source_choices);
                     let grid = if value.get("grid_size").and_then(|v| v.as_str()) == Some("small") { 2 } else { 3 };
                     Some(serde_json::json!({"slots":slots, "result":result, "grid":grid}))
                 })
                 .or_else(|| {
                     let item = value.get("item")?;
-                    let id = item.get("item")?.as_str()?;
+                    let id = super::tconstruct_materials_book_recipe::showcase_item(item)?;
                     if id == "tconstruct:creative_slot" {
                         let slot = item.pointer("/nbt/slot")?.as_str()?;
                         let source = match slot { "upgrades" => "upgrade", "abilities" => "ability", "defense" => "defense", "slotless" => "slotless", _ => return None };
                         Some(serde_json::json!({"source_icon":source}))
-                    } else { Some(serde_json::json!({"item":id})) }
+                    } else { Some(serde_json::json!({"showcase_item":id})) }
                 });
             let mut text = String::new();
             if let Some(s) = value.get("subText").and_then(|v| v.as_str()) { text.push_str(s); }
@@ -531,8 +544,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
                     let lines: Vec<_> = tooltip.iter().filter_map(|v| v.as_str().or_else(|| v.get("text").and_then(|s| s.as_str()))).take(16).collect();
                     if !lines.is_empty() { graphic["tooltip"] = serde_json::json!(lines); }
                 }
-                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
-                    let height = if graphic.get("source_icon").is_some() { 40.0 }
+                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
+                    let height = if graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() { 40.0 }
                         else if graphic.get("slots").is_some() { if graphic.get("grid").and_then(|v| v.as_u64()) == Some(2) { 78.0 } else { 114.0 } }
                         else { graphic.get("height").and_then(|v| v.as_u64()).unwrap_or(100).min(100) as f32 };
                     let rows = ((137.0 - height) / 9.0).floor().max(1.0) as usize;
@@ -566,11 +579,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
     let (_, locations) = super::tconstruct_materials_book_index::layout(&sizes)?;
     let mut indexes = Vec::new();
     let mut pages = Vec::new();
-    let mut contents = Text::styled("Materials & You\n\n", horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
+    let mut contents = Text::styled(format!("{book_title}\n\n"), horizon_client::text::Style { insertion: Some("tconstruct:materials-book-root".into()), ..Default::default() });
     for (index, (heading, mut chapter)) in chapters.into_iter().enumerate() {
         if index > 0 && index % 5 == 0 {
             indexes.push(contents);
-            contents = Text::literal("Materials & You\n\n");
+            contents = Text::literal(format!("{book_title}\n\n"));
         }
         let (chapter_page, first_page) = locations[index];
         let link = Text::styled(format!("{heading}\n"), horizon_client::text::Style {
@@ -626,10 +639,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path) -> Option<Ve
 }
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
-    if &*stack.item != "tconstruct:materials_and_you" { return false; }
+    let puny = &*stack.item == "tconstruct:puny_smelting";
+    if !puny && &*stack.item != "tconstruct:materials_and_you" { return false; }
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.clone();
-        let Some(pages) = source_pages(game, &path) else { return false; };
+        let Some(pages) = source_pages(game, &path, puny) else { return false; };
         *game.world.chunks.__horizon_mixins_tconstruct_materials_book_history_mut() = None;
         game.open_book(BookScreen::View { pages, page: usize::MAX, lectern: None });
         if remote {
