@@ -164,6 +164,7 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-part-visuals.zip
 items = json.loads((src / 'items.json').read_text())
 entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
+    ('tconstruct:puny_smelting', 'minecraft:book', 'Puny Smelting'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
     ('tconstruct:wood_binding', 'minecraft:flint', 'Wooden Tool Binding'),
@@ -187,6 +188,21 @@ entries = [
     ('tconstruct:knightmetal_ingot', 'minecraft:flint', 'Knightmetal Ingot'),
     ('tconstruct:knightslime_ingot', 'minecraft:flint', 'Knightslime Ingot'),
     ('tconstruct:cobalt_nugget', 'minecraft:flint', 'Cobalt Nugget'),
+    ('tconstruct:copper_nugget', 'minecraft:flint', 'Copper Nugget'),
+    ('tconstruct:netherite_nugget', 'minecraft:flint', 'Netherite Nugget'),
+    ('tconstruct:debris_nugget', 'minecraft:flint', 'Debris Scrap'),
+    ('tconstruct:steel_nugget', 'minecraft:flint', 'Steel Nugget'),
+    ('tconstruct:slimesteel_nugget', 'minecraft:flint', 'Slimesteel Nugget'),
+    ('tconstruct:amethyst_bronze_nugget', 'minecraft:flint', 'Amethyst Bronze Nugget'),
+    ('tconstruct:rose_gold_nugget', 'minecraft:flint', 'Rose Gold Nugget'),
+    ('tconstruct:pig_iron_nugget', 'minecraft:flint', 'Pig Iron Nugget'),
+    ('tconstruct:cinderslime_nugget', 'minecraft:flint', 'Cinderslime Nugget'),
+    ('tconstruct:queens_slime_nugget', 'minecraft:flint', "Queen's Slime Nugget"),
+    ('tconstruct:manyullyn_nugget', 'minecraft:flint', 'Manyullyn Nugget'),
+    ('tconstruct:hepatizon_nugget', 'minecraft:flint', 'Hepatizon Nugget'),
+    ('tconstruct:soulsteel_nugget', 'minecraft:flint', 'Soulsteel Nugget'),
+    ('tconstruct:knightmetal_nugget', 'minecraft:flint', 'Knightmetal Nugget'),
+    ('tconstruct:knightslime_nugget', 'minecraft:flint', 'Knightslime Nugget'),
     ('tconstruct:sky_slime_crystal', 'minecraft:flint', 'Skyslime Crystal'),
     ('tconstruct:steel_shard', 'minecraft:flint', 'Steel Shard'),
     ('tconstruct:earth_slime_crystal', 'minecraft:flint', 'Earthslime Crystal'),
@@ -287,6 +303,9 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
     elif short in ('steel_ingot', 'slimesteel_ingot', 'rose_gold_ingot', 'pig_iron_ingot', 'cinderslime_ingot', 'queens_slime_ingot', 'manyullyn_ingot', 'hepatizon_ingot', 'soulsteel_ingot', 'knightmetal_ingot', 'knightslime_ingot'):
         texture = 'pigiron_ingot' if short == 'pig_iron_ingot' else short
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + texture}}
+    elif short in ('copper_nugget', 'netherite_nugget', 'debris_nugget', 'steel_nugget', 'slimesteel_nugget', 'amethyst_bronze_nugget', 'rose_gold_nugget', 'pig_iron_nugget', 'cinderslime_nugget', 'queens_slime_nugget', 'manyullyn_nugget', 'hepatizon_nugget', 'soulsteel_nugget', 'knightmetal_nugget', 'knightslime_nugget'):
+        texture = 'pigiron_nugget' if short == 'pig_iron_nugget' else short
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + texture}}
     elif short in ('sky_slime_crystal', 'modifier_crystal', 'steel_shard', 'earth_slime_crystal', 'ichor_slime_crystal', 'ender_slime_crystal', 'cobalt_shard', 'cobalt_ingot', 'cobalt_nugget', 'knightmetal_shard', 'sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball', 'seared_brick', 'scorched_brick'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/' + short}}
