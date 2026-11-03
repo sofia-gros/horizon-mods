@@ -1,4 +1,4 @@
-//! Source Sky slime vine random growth and neighbor connection rules.
+// Source slime vine random growth and neighbor connection rules.
 use super::*;
 use horizon_core::{geometry::Direction, random::RandomSource};
 const SIDES: [(Direction, &str, (i32,i32,i32)); 4] = [
@@ -18,17 +18,17 @@ fn active(state: &horizon_world::chunk::BlockState, name: &str) -> bool {
 fn is_leaves(level: &GameLevel<'_>, state: BlockStateId) -> Option<bool> {
     Some(level.behaviours.tag("tconstruct:slimy_leaves")?.contains(level.behaviours.block(state)))
 }
-fn has_attachment(level: &GameLevel<'_>, pos: BlockPos, direction: Direction, key: &str, delta: (i32,i32,i32)) -> Option<bool> {
+fn has_attachment(vine: &str, level: &GameLevel<'_>, pos: BlockPos, direction: Direction, key: &str, delta: (i32,i32,i32)) -> Option<bool> {
     if acceptable(level, offset(pos, delta)?, direction) { return Some(true); }
     let above = level.block_state(offset(pos,(0,1,0))?);
     if is_leaves(level, above)? { return Some(true); }
     if direction == Direction::Up { return Some(false); }
     let state = level.registry.state(above)?;
-    Some(state.name == "tconstruct:sky_slime_vine" && active(state,key) && state.properties.get("stage").is_some_and(|s| s != "end"))
+    Some(state.name == vine && active(state,key) && state.properties.get("stage").is_some_and(|s| s != "end"))
 }
 pub(super) fn placement(level: &GameLevel<'_>, state: BlockStateId, context: &PlacementContext, answer: &mut Option<Option<BlockStateId>>) {
     let Some(default) = level.registry.state(state) else { return; };
-    if default.name != "tconstruct:sky_slime_vine" { return; }
+    if !matches!(default.name.as_str(), "tconstruct:sky_slime_vine" | "tconstruct:ender_slime_vine") { return; }
     let existing_id = level.block_state(context.pos);
     let existing = level.registry.state(existing_id);
     let same = existing.is_some_and(|v| v.name == default.name);
@@ -40,7 +40,7 @@ pub(super) fn placement(level: &GameLevel<'_>, state: BlockStateId, context: &Pl
             Direction::West => ("west", (-1,0,0)), Direction::Down => continue,
         };
         if same && active(&chosen, key) { continue; }
-        let Some(attached) = has_attachment(level, context.pos, direction, key, delta) else { *answer = Some(None); return; };
+        let Some(attached) = has_attachment(&default.name, level, context.pos, direction, key, delta) else { *answer = Some(None); return; };
         if attached {
             chosen.properties.insert(key.into(), "true".into());
             *answer = Some(level.registry.resolve(&chosen).ok());
@@ -51,7 +51,7 @@ pub(super) fn placement(level: &GameLevel<'_>, state: BlockStateId, context: &Pl
 }
 pub(super) fn update(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, direction: Direction, new: &mut Option<BlockStateId>) {
     let Some(block) = level.registry.state(state) else { return; };
-    if block.name != "tconstruct:sky_slime_vine" || direction == Direction::Down { return; }
+    if !matches!(block.name.as_str(), "tconstruct:sky_slime_vine" | "tconstruct:ender_slime_vine") || direction == Direction::Down { return; }
     let mut next = block.clone();
     if active(&next,"up") {
         let Some(above) = offset(pos,(0,1,0)) else { *new=Some(state); return; };
@@ -59,7 +59,7 @@ pub(super) fn update(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, 
     }
     for (direction,key,delta) in SIDES {
         if active(&next,key) {
-            let Some(attached) = has_attachment(level,pos,direction,key,delta) else { *new=Some(state); return; };
+            let Some(attached) = has_attachment(&block.name,level,pos,direction,key,delta) else { *new=Some(state); return; };
             next.properties.insert(key.into(),attached.to_string());
         }
     }
@@ -69,7 +69,7 @@ pub(super) fn update(level: &GameLevel<'_>, pos: BlockPos, state: BlockStateId, 
 }
 pub(super) fn random(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, state: BlockStateId, handled: &mut bool) {
     let Some(block) = level.registry.state(state) else { return; };
-    if block.name != "tconstruct:sky_slime_vine" { return; }
+    if !matches!(block.name.as_str(), "tconstruct:sky_slime_vine" | "tconstruct:ender_slime_vine") { return; }
     *handled = true;
     let mut next = block.clone();
     let horizontal = SIDES.iter().any(|(_,key,_)| active(&next,key));
@@ -99,7 +99,7 @@ pub(super) fn random(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos
         for dy in 1..3 {
             let Some(above) = offset(pos,(0,dy,0)) else { break; };
             let Some(other) = level.registry.state(level.block_state(above)) else { break; };
-            if other.name != "tconstruct:sky_slime_vine" || other.properties.get("stage") != Some(&stage) { break; }
+            if other.name != block.name || other.properties.get("stage") != Some(&stage) { break; }
             count += 1;
         }
         if count > 2 || matches!(level.world.random.next_int_bound(2),Ok(0)) {

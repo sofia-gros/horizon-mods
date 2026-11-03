@@ -10,6 +10,16 @@ pub(super) fn capacity(name: &str) -> Option<u32> {
     }
 }
 
+/// Portable tank items include lanterns, which are not multiblock fuel tanks.
+pub(super) fn item_capacity(name: &str) -> Option<u32> {
+    capacity(name).or_else(|| match name {
+        "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => Some(50),
+        "tconstruct:seared_casting_tank" => Some(4000),
+        "tconstruct:seared_fluid_cannon" => Some(2000),
+        _ => None,
+    })
+}
+
 /// Return the replacement container after a complete bucket transfer. The
 /// caller must perform this on a copy until both inventory and NBT can commit.
 pub(super) fn exchange(tank: &mut Tank, held: &str) -> Option<&'static str> {

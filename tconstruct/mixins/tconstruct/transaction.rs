@@ -200,6 +200,7 @@ impl SourceIngredient {
 enum SourceCondition {
     TagFilled { registry: String, tag: String },
     TagCombination { registry: String, required: Vec<String>, ignore: Option<String> },
+    TagDifference { registry: String, base: String, subtracted: Vec<String> },
     Or(Vec<Self>),
     And(Vec<Self>),
     Config(String),
@@ -212,6 +213,20 @@ impl SourceCondition {
         let registry = text("registry").unwrap_or_else(|| "minecraft:item".into());
         match o.get("type")?.as_str()? {
             "mantle:tag_filled" => Some(Self::TagFilled { registry, tag: text("tag")? }),
+            // The deprecated TConstruct serializers still require an explicit registry.
+            "tconstruct:tag_not_empty" => Some(Self::TagFilled { registry: text("registry")?, tag: text("tag")? }),
+            "tconstruct:tag_intersection_present" => {
+                let required: Vec<String> = o.get("tags")?.as_array()?.iter()
+                    .map(|v| v.as_str().map(str::to_owned)).collect::<Option<_>>()?;
+                if required.is_empty() { return None; }
+                Some(Self::TagCombination { registry: text("registry")?, required, ignore: None })
+            }
+            "tconstruct:tag_difference_present" => {
+                let subtracted: Vec<String> = o.get("subtracted")?.as_array()?.iter()
+                    .map(|v| v.as_str().map(str::to_owned)).collect::<Option<_>>()?;
+                if subtracted.is_empty() { return None; }
+                Some(Self::TagDifference { registry: text("registry")?, base: text("base")?, subtracted })
+            }
             "mantle:tag_combination_filled" => {
                 let value = o.get("match")?;
                 let required: Vec<String> = if let Some(id) = value.as_str() { vec![id.into()] }
@@ -242,6 +257,12 @@ impl SourceCondition {
                 let Some(first) = required.first().and_then(|tag| tags.get(tag)) else { return Some(false); };
                 Some(first.iter().any(|entry| !ignore.as_ref().and_then(|tag| tags.get(tag)).is_some_and(|values| values.contains(entry))
                     && required[1..].iter().all(|tag| tags.get(tag).is_some_and(|values| values.contains(entry)))))
+            }
+            Self::TagDifference { registry, base, subtracted } => {
+                let tags = registries.get(registry)?;
+                let Some(entries) = tags.get(base) else { return Some(false); };
+                Some(entries.iter().any(|entry| subtracted.iter().all(|tag|
+                    !tags.get(tag).is_some_and(|values| values.contains(entry)))))
             }
             Self::Or(values) => {
                 let mut unknown = false;
@@ -1301,6 +1322,9 @@ pub(super) struct SourcePartPlan {
     pub pattern_used: i32,
     pub leftover: Option<(SourceItemOutput, i32)>,
     pub random_alternatives: Vec<(SourceItemOutput, i32)>,
+    pub random_material_alternatives: Vec<(String, String)>,
+    /// Source tool recycling rolls damage/max before selecting a leftover.
+    pub random_damage_gate: Option<(u32, u32)>,
 }
 
 /// The source table rebuilds candidate buttons on a pattern item change or
@@ -1362,7 +1386,16 @@ pub(super) fn source_resolve_part_plan(
         Some((item, count)) => resolve(item, *count)?,
         None => None,
     };
-    let alternatives = plan.random_alternatives.iter().map(|(item, count)| resolve(item, *count)?.ok_or(SourceLookupError::IncompleteContext)).collect::<Result<Vec<_>, _>>()?;
+    let mut alternatives = plan.random_alternatives.iter().map(|(item, count)| resolve(item, *count)?.ok_or(SourceLookupError::IncompleteContext)).collect::<Result<Vec<_>, _>>()?;
+    for (item, material) in &plan.random_material_alternatives {
+        if !registered.contains(item) { return Err(SourceLookupError::IncompleteContext); }
+        let material = super::tconstruct_source_render_info::material_id(material).ok_or(SourceLookupError::UnsupportedRecipe)?;
+        let mut stack = ItemStack::new(item, 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(horizon_world::nbt::Tag::compound([
+            ("Material", horizon_world::nbt::Tag::String(material.as_str().into()))
+        ])));
+        alternatives.push(stack);
+    }
     Ok(Some((output, leftover, alternatives)))
 }
 
@@ -1376,7 +1409,7 @@ pub(super) fn source_take_part_plan(
     slots: &mut [Option<ItemStack>], carried: &mut Option<ItemStack>,
     plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
-    output_max: u32, random: impl FnOnce(usize) -> Option<usize>,
+    output_max: u32, mut random: impl FnMut(usize) -> Option<usize>,
 ) -> Option<Vec<ItemStack>> {
     if slots.len() < 2 || output.count == 0 || output.count > output_max { return None; }
     let material_used = u32::try_from(plan.materials_used).ok()?;
@@ -1391,10 +1424,15 @@ pub(super) fn source_take_part_plan(
     // The original consumes the random draw only during a successful craft,
     // after output movement/capacity checks and before input consumption.
     let mut give = Vec::new();
-    if !alternatives.is_empty() {
+    let passed = match plan.random_damage_gate {
+        Some((damage, maximum)) if damage > 0 && maximum > 0 => random(maximum as usize)? >= damage as usize,
+        Some((_, 0)) => return None,
+        _ => true,
+    };
+    if passed && !alternatives.is_empty() {
         let chosen = random(alternatives.len())?;
         give.push(alternatives.get(chosen)?.clone());
-    } else if let Some(leftover) = leftover { give.push(leftover); }
+    } else if passed { if let Some(leftover) = leftover { give.push(leftover); } }
     for (slot, used, container) in [(1, material_used, material_container), (0, pattern_used, pattern_container)] {
         if used == 0 { continue; }
         let stack = slots[slot].as_mut().expect("inputs were validated");
@@ -1499,7 +1537,7 @@ pub(super) fn source_quick_take_part_plan(
     slots: &mut [Option<ItemStack>], inventory: &mut [Option<ItemStack>], side: &mut [Option<ItemStack>],
     plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>,
-    output_max: u32, stackable: bool, random: impl FnOnce(usize) -> Option<usize>,
+    output_max: u32, stackable: bool, random: impl FnMut(usize) -> Option<usize>,
 ) -> Option<(Vec<ItemStack>, u32)> {
     source_quick_take_part_plan_inner(slots,inventory,side,plan,output,leftover,alternatives,material_container,pattern_container,output_max,stackable,None,random)
 }
@@ -1512,7 +1550,7 @@ pub(super) fn source_quick_take_part_chest_plan(
     plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>, output_max: u32,
     stackable: bool, kind: super::tconstruct_chest_rules::ChestKind, tagged_part: bool,
-    random: impl FnOnce(usize) -> Option<usize>,
+    random: impl FnMut(usize) -> Option<usize>,
 ) -> Option<(Vec<ItemStack>, u32)> {
     if side.len()!=kind.slots() { return None; }
     source_quick_take_part_plan_inner(slots,inventory,side,plan,output,leftover,alternatives,material_container,pattern_container,output_max,stackable,Some((kind,tagged_part)),random)
@@ -1523,7 +1561,7 @@ fn source_quick_take_part_plan_inner(
     plan: &SourcePartPlan, output: ItemStack, leftover: Option<ItemStack>, alternatives: Vec<ItemStack>,
     material_container: Option<ItemStack>, pattern_container: Option<ItemStack>, output_max: u32,
     stackable: bool, chest: Option<(super::tconstruct_chest_rules::ChestKind,bool)>,
-    random: impl FnOnce(usize) -> Option<usize>,
+    random: impl FnMut(usize) -> Option<usize>,
 ) -> Option<(Vec<ItemStack>, u32)> {
     let mut staged_inventory = inventory.to_vec();
     let mut staged_side = side.to_vec();
@@ -1598,7 +1636,7 @@ pub(super) fn source_part_plan_value(
     let pattern_used = i32::from(!reusable_pattern);
     match (&recipe.kind, input, material) {
         (SourcePartKind::Item { material: required, output }, SourcePartInput::Empty, None) if required == "tconstruct:unknown" => {
-            Ok(Some(SourcePartPlan { output: SourcePartOutput::Item { output: output.clone(), count: output.count }, materials_used: 0, pattern_used, leftover: None, random_alternatives: Vec::new() }))
+            Ok(Some(SourcePartPlan { output: SourcePartOutput::Item { output: output.clone(), count: output.count }, materials_used: 0, pattern_used, leftover: None, random_alternatives: Vec::new(), random_material_alternatives: Vec::new(), random_damage_gate: None }))
         },
         (kind, SourcePartInput::Material { input_item, material: identity, craftable, supported_outputs }, Some(source)) => {
             if source.material != *identity { return Err(SourceLookupError::IncompleteContext); }
@@ -1617,7 +1655,7 @@ pub(super) fn source_part_plan_value(
                 SourcePartKind::MaterialItem { item, .. } => SourcePartOutput::MaterialItem { item: item.clone(), material: source.material.to_owned(), count },
                 SourcePartKind::Item { output, .. } => SourcePartOutput::Item { output: output.clone(), count },
             };
-            Ok(Some(SourcePartPlan { output, materials_used: used, pattern_used, leftover, random_alternatives: Vec::new() }))
+            Ok(Some(SourcePartPlan { output, materials_used: used, pattern_used, leftover, random_alternatives: Vec::new(), random_material_alternatives: Vec::new(), random_damage_gate: None }))
         },
         _ => Ok(None),
     }
@@ -1906,6 +1944,29 @@ mod tests {
         let alternatives = SourceIngredient::parse(&serde_json::json!([{"tag":"forge:storage_blocks/copper"}, {"item":"minecraft:waxed_copper_block"}])).unwrap();
         assert!(alternatives.matches("minecraft:waxed_copper_block", None, &tags, &known, &instruments));
         assert!(SourceIngredient::parse(&serde_json::json!({"type":"example:unknown"})).is_none());
+    }
+    #[test]
+    fn deprecated_tag_conditions_use_the_source_registry_and_set_rules() {
+        use std::collections::{HashMap, HashSet};
+        let mut tags = HashMap::new();
+        tags.insert("test:base".into(), HashSet::from(["test:a".into(), "test:b".into()]));
+        tags.insert("test:one".into(), HashSet::from(["test:a".into()]));
+        tags.insert("test:two".into(), HashSet::from(["test:b".into()]));
+        let registries = HashMap::from([("minecraft:item".into(), tags)]);
+        let config = HashMap::new();
+        let parse = |v: serde_json::Value| SourceCondition::parse(&v).unwrap();
+        let difference = parse(serde_json::json!({"type":"tconstruct:tag_difference_present", "registry":"minecraft:item", "base":"test:base", "subtracted":["test:one"]}));
+        assert_eq!(difference.matches(&registries, &config), Some(true));
+        let all_removed = parse(serde_json::json!({"type":"tconstruct:tag_difference_present", "registry":"minecraft:item", "base":"test:base", "subtracted":["test:one", "test:two"]}));
+        assert_eq!(all_removed.matches(&registries, &config), Some(false));
+        let intersection = parse(serde_json::json!({"type":"tconstruct:tag_intersection_present", "registry":"minecraft:item", "tags":["test:base", "test:one"]}));
+        assert_eq!(intersection.matches(&registries, &config), Some(true));
+        let disjoint = parse(serde_json::json!({"type":"tconstruct:tag_intersection_present", "registry":"minecraft:item", "tags":["test:one", "test:two"]}));
+        assert_eq!(disjoint.matches(&registries, &config), Some(false));
+        let unknown = parse(serde_json::json!({"type":"tconstruct:tag_not_empty", "registry":"test:unavailable", "tag":"test:base"}));
+        assert_eq!(unknown.matches(&registries, &config), None);
+        assert!(SourceCondition::parse(&serde_json::json!({"type":"tconstruct:tag_intersection_present", "registry":"minecraft:item", "tags":[]})).is_none());
+        assert!(SourceCondition::parse(&serde_json::json!({"type":"tconstruct:tag_not_empty", "tag":"test:base"})).is_none());
     }
     #[test]
     fn source_tag_conditions_use_intersection_exclusion_and_or() {
@@ -2842,7 +2903,7 @@ mod tests {
 
     #[test]
     fn recycling_random_draw_occurs_only_after_successful_capacity_checks() {
-        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![] };
+        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![], random_material_alternatives: vec![], random_damage_gate: None };
         let original = vec![Some(ItemStack::new("tconstruct:pattern", 1)), Some(ItemStack::new("minecraft:oak_log", 1))];
         let output = ItemStack::new("tconstruct:pick_head", 1);
         let draws = std::cell::Cell::new(0);
@@ -2854,6 +2915,23 @@ mod tests {
         cursor = None;
         assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output, None, vec![ItemStack::new("minecraft:stick", 1)], None, None, 64, |_| { draws.set(draws.get() + 1); Some(0) }).is_some());
         assert_eq!(draws.get(), 1);
+    }
+
+    #[test]
+    fn damaged_tool_recycling_rolls_only_after_output_can_move() {
+        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![], random_material_alternatives: vec![], random_damage_gate: Some((40, 100)) };
+        let original = vec![Some(ItemStack::new("tconstruct:venom_bottle", 1)), Some(ItemStack::new("tconstruct:pickaxe", 1))];
+        let output = ItemStack::new("tconstruct:pick_head", 1);
+        let calls = std::cell::Cell::new(0);
+        let mut slots = original.clone();
+        let mut cursor = Some(ItemStack::new("minecraft:stone", 64));
+        assert!(source_take_part_plan(&mut slots, &mut cursor, &plan, output.clone(), None, vec![ItemStack::new("tconstruct:tool_handle", 1)], None, None, 64, |_| { calls.set(calls.get()+1); Some(0) }).is_none());
+        assert_eq!((calls.get(), &slots), (0, &original));
+        cursor = None;
+        let give = source_take_part_plan(&mut slots, &mut cursor, &plan, output, None, vec![ItemStack::new("tconstruct:tool_handle", 1)], None, None, 64, |_| { calls.set(calls.get()+1); Some(39) }).unwrap();
+        assert!(give.is_empty());
+        assert_eq!(calls.get(), 1);
+        assert!(slots.iter().all(Option::is_none));
     }
 
     #[test]
@@ -2873,7 +2951,7 @@ mod tests {
 
     #[test]
     fn recycling_selects_each_alternative_only_after_capacity_check() {
-        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![] };
+        let plan = SourcePartPlan { output: SourcePartOutput::MaterialItem { item: "tconstruct:pick_head".into(), material: "tconstruct:wood".into(), count: 1 }, materials_used: 1, pattern_used: 1, leftover: None, random_alternatives: vec![], random_material_alternatives: vec![], random_damage_gate: None };
         for chosen in 0..3 {
             let mut slots = vec![Some(ItemStack::new("tconstruct:pattern", 1)), Some(ItemStack::new("minecraft:oak_log", 1))];
             let mut cursor = None;
