@@ -1,0 +1,1 @@
+{"variants":{"facing=north":{"model":"tconstruct:block/foundry/table","y":0},"facing=east":{"model":"tconstruct:block/foundry/table","y":90},"facing=south":{"model":"tconstruct:block/foundry/table","y":180},"facing=west":{"model":"tconstruct:block/foundry/table","y":270}}}

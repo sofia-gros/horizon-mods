@@ -4,7 +4,7 @@ version = "0.1.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "fd6cfda6bdef59a53aee830009f78c14832b0308"
+horizon_revision = "9a6f7dd5a193d709f389adeb1f51858465b8f747"
 
 [[injection]]
 id = "command"
@@ -749,6 +749,16 @@ source = "source-config.rs"
 id = "source-config-snapshot"
 target = "horizon_client_render::chunk_map::ChunkMap"
 ty = "Option<Result<std::collections::HashMap<String,bool>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "recipe-mod-snapshot"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(std::collections::HashMap<String,Option<bool>>,bool)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
@@ -1877,6 +1887,21 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_material_traits"
 source = "source-material-traits.rs"
 
+[[injection]]
+id = "source-golden-armor"
+target = "horizon_client::game::piglins::Game<'_>::wearing_gold"
+kind = "RETURN"
+helper = "golden-armor.rs"
+bindings = [{ name = "value", ty = "bool", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[module]]
+id = "host-source-snow-boots"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_snow_boots"
+source = "source-snow-boots.rs"
+
+# Powder-snow walking and placement hooks are deferred after official plan rejection.
+
 [[module]]
 id = "server-source-material-traits"
 file = "crates/horizon-client/src/client_lib.rs"
@@ -2480,8 +2505,8 @@ source = "source-mining-rules.rs"
 id = "source-host-mining-context"
 target = "horizon_client::game::Game<'_>::tick_mining"
 kind = "MODIFY_VARIABLE"
-variable = { name = "speed", ordinal = 0, at = "STORE" }
-require = 5
+variable = { name = "speed", ordinal = 0, at = "LOAD" }
+require = 2
 ordinal = 1
 helper = "source-mining-context-host.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }]
@@ -2490,8 +2515,8 @@ bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", t
 id = "source-client-mining-context"
 target = "horizon_client::game::hand::Game<'_>::destroy_progress"
 kind = "MODIFY_VARIABLE"
-variable = { name = "speed", ordinal = 0, at = "STORE" }
-require = 5
+variable = { name = "speed", ordinal = 0, at = "LOAD" }
+require = 2
 ordinal = 1
 helper = "source-mining-context.rs"
 bindings = [{ name = "speed", ty = "f32", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "facts", ty = "&&horizon_items::blocks::StateFacts", value = "$local_ref:facts:0" }, { name = "held", ty = "&Option<&ItemStack>", value = "$local_ref:held:0" }, { name = "pos", ty = "[i32; 3]", value = "pos" }]
@@ -2554,6 +2579,27 @@ target = "horizon_client::game::lan_actions::Game<'_>::lan_guest_packet"
 kind = "HEAD"
 helper = "source-area-guest-hit.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&horizon_protocol::packets::play::Serverbound", value = "&packet" }]
+
+[[state]]
+id = "area-overwield-spent"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-overwield-harvest-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
+kind = "AFTER_CALL"
+selector = "mod_api::dispatch_destroy_block"
+require = 1
+ordinal = 0
+result = "()"
+helper = "source-overwield-harvest-start.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
 
 [[injection]]
 id = "source-area-break"
@@ -2719,7 +2765,7 @@ id = "source-melee-damage-return"
 target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "source-melee-damage-return.rs"
-bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "living", ty = "bool", value = "living" }]
 
 [[injection]]
 id = "source-melee-sweep-position"
@@ -3424,6 +3470,20 @@ file = "crates/horizon-client/src/game/lan_crafting.rs"
 name = "tconstruct_crafting_lan"
 source = "source-crafting-lan.rs"
 
+# LAN recipe placement is a separate server entry point from menu clicks.
+[[injection]]
+id = "crafting-station-lan-recipe-guard"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_place_recipe"
+kind = "HEAD"
+cancellable = true
+helper = "source-crafting-lan-recipe-guard.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "packet", ty = "&horizon_protocol::packets::recipes::PlaceRecipe", value = "p" },
+]
+
 [[injection]]
 id = "crafting-station-lan-click"
 target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_click"
@@ -3878,12 +3938,46 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_inventory_api"
 source = "chest-inventory-api-lib.rs"
 
-# The host recipe-book placement mutates the temporary grid without a safe
-# post-mutation sync hook. Keep the book visible, but block only this action.
+# Stage local recipe placement and persist its validated menu grid.
 [[injection]]
 id = "crafting-station-recipe-placement-guard"
 target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
 kind = "HEAD"
 cancellable = true
 helper = "source-crafting-recipe-guard.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [
+    { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+    { name = "book_type", ty = "horizon_client::recipe_book::BookType", value = "book_type" },
+    { name = "entry_index", ty = "usize", value = "entry_index" },
+    { name = "use_max", ty = "bool", value = "use_max" },
+]
+
+[[module]]
+id = "source-chute-hopper"
+file = "crates/horizon-client/src/game/machines.rs"
+name = "tconstruct_chute_hopper"
+source = "source-chute-hopper.rs"
+
+[[injection]]
+id = "source-chute-hopper-eject"
+target = "horizon_client::game::machines::Game<'_>::hopper_eject"
+kind = "HEAD"
+cancellable = true
+helper = "source-chute-hopper-eject.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
+
+[[injection]]
+id = "source-chute-hopper-suck"
+target = "horizon_client::game::machines::Game<'_>::hopper_suck"
+kind = "HEAD"
+cancellable = true
+helper = "source-chute-hopper-suck.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "pos", ty = "(i32, i32, i32)", value = "pos" },
+  { name = "hopper", ty = "&View", value = "hopper" },
+]
