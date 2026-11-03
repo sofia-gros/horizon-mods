@@ -24,7 +24,8 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
         batch.text(atlas, &title, ox + 8.0, oy + 6.0, color, false);
         batch.text(atlas, &inventory, ox + 8.0, oy + 72.0, color, false);
         // The same saved state is synchronized to guests for this menu.
-        let position = if game.remote.is_some() { crate::game::remote::tconstruct_source_machine_remote::position(game) } else { game.container };
+        // remote_open_screen consumes use_target before opening the menu.
+        let position = if game.remote.is_some() { *game.world.chunks.__horizon_mixins_tconstruct_remote_screen_position() } else { game.container };
         let saved = position.and_then(|pos| crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:melter"));
         let parsed = saved.as_ref().and_then(crate::game::tconstruct_source_melter_state::Melter::from_nbt);
         if let Some(melter) = parsed {
@@ -40,7 +41,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                             while y < height {
                                 let h = (height - y).min(16.0); let mut part = sprite;
                                 part.u1 = part.u0 + 12.0 * du; part.v1 = part.v0 + h * dv;
-                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color_tagged(fluid, tank.tag.as_ref()));
                                 y += h;
                             }
                         }
@@ -62,7 +63,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         while x < 52.0 {
                             let w = (52.0_f32 - x).min(16.0);
                             let mut part = sprite; part.u1 = part.u0 + w * du; part.v1 = part.v0 + h * dv;
-                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, crate::game::tconstruct_source_melter_render::color(fluid));
+                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, crate::game::tconstruct_source_melter_render::color_tagged(fluid, melter.tank.tag.as_ref()));
                             x += w;
                         }
                         y += h;

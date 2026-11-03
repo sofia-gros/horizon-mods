@@ -1,6 +1,6 @@
 # Coverage and roadmap
 
-> **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
+> **v0.5 release target:** Some effects and operations remain unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
 
 The reference is Tinkers' Construct 1.20.1, commit
 `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. The [feature matrix](feature-matrix.md)
@@ -8,8 +8,7 @@ links to original sources and records the wider scope. The
 [source-to-port record](original-parity.md) describes the evidence and known
 mismatches. Archived Wasm work is not evidence of coverage in this port.
 
-The intended v0.5 milestone is a playable prerelease that reproduces almost all
-of the original mod's content and behavior on its own. The scope of full parity and balance will be decided after v0.5. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. v0.5 has not been reached.
+The v0.5 target is a formal release after the final main build and distribution pass integration, installation, launch, persistence and applicable feature checks. Individual operations may remain unavailable when evidence establishes that Horizon or Mixins must first provide a safe supported boundary; document the affected operation and evidence. Incomplete or untested mod behavior is not an upstream limitation and remains open. Full parity and balance remain future work. Existing Horizon 26.3 Minecraft materials, recipes and progression remain unchanged. Release acceptance has not yet been established.
 Broad compatibility testing with other mods, including hypothetical ID changes,
 is not a prerequisite for v0.5. The mod's own saving, synchronization and
 transaction integrity remain part of the work.
@@ -29,7 +28,7 @@ Each stage is split into playable PRs with shared source-derived behavior and re
 
 1. **Material traits:** expand the existing attack, durability and repair dispatcher from original definitions. Accept source-value and level checks, part replacement, save/reload, representative combat and LAN. Representative melee stats, mining effects and Dense wear/repair are implemented and tested; other trait modules remain open.
 2. **Equipment actions:** implement original tool, weapon and armor actions, area mining, projectiles and armor effects. Accept representative use, wear, save/reload and multiplayer by shared behavior type.
-   Traveler's Boots powder-snow walking and Slime Boots landing bounce remain unimplemented. Supported Mixins candidates exist for the snow collision and landing paths, but carrying source equipment traits to both LAN sides and preserving source bounce through the different local and guest velocity-update orders remain unresolved. Vanilla `minecraft:bounciness` also affects horizontal collisions and is not an equivalent replacement. The source snow flag's broken-item behavior must be preserved when implemented.
+   Traveler's Boots powder-snow walking and placement remain unimplemented: official Mixins planning rejected the candidate walking and generic placement injection sites. Vanilla leather-boots behavior is retained; a supported boundary and local/guest verification are still needed. Slime Boots bounce remains unimplemented pending a supported landing hook.
 3. **Modifier and part processing:** implement the higher-tier Station and survival assembly for four-part tools, then expand Station modifier recipes, crystals, parts and materials, and dyeing. Accept source ingredients and slots, partial progress, outputs, effects and persistence. Reinforced ordinary wear and its source casting chain have representative Linux checks; broader modifier coverage remains open. Glowing direct use and walking have representative Linux fixture and dedicated-server protection checks, while live arrow impact has representative checks; saved projectiles and broader acquisition remain incomplete; Netherite and Unbreakable have representative Linux transaction, equipment, Crystal, save and LAN checks with supplied materials; broader effects and acquisition remain open. Overslime and Overforced have representative Linux shield, crafting, LAN and supplied-input casting checks; Earth, Sky and Ender bottle effects, natural acquisition and broader source effects remain open. Tanned ordinary melee wear has a representative Linux check; source modifier-caused actions remain open.
 4. **Smelting, casting and remaining blocks:** implement special recipes, remaining containers, transport/automation and source-specific block actions. Accept complete input-to-output loops with conservation, save/reload and LAN.
 5. **Acquisition and world:** expand the existing Sky, Earthslime, Ichor and Enderslime geodes and Nether Cobalt ore routes with remaining slime terrain, creatures and resources while reusing appropriate vanilla content. Geode generation and mining and Cobalt generation, mining and processing have representative Linux checks; crystal regrowth and other world progression remain open. Accept survival acquisition and world persistence.
@@ -99,3 +98,6 @@ The combined Bouncy integration candidate uses the shared PlutoLib landing state
 and targets Horizon `7084e67744cbb4fe25961f24126e15b6b36f0523` with Mixins
 `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its pinned revisions match, but the
 combined apply, type check and local/LAN game behavior remain unverified.
+
+For the current material, equipment and world candidates and their remaining
+validation, see [material and world status](material-world-status.md).
