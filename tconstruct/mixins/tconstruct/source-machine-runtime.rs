@@ -646,7 +646,15 @@ fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Cas
     if let Some(stack) = input {
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
         let tag = if kind == "tconstruct:basin" { "tconstruct:casts/empty/basin" } else { "tconstruct:casts/empty/table" };
-        if tags.get(tag)?.contains(&*stack.item) { input = None; }
+        if let Some(values) = tags.get(tag) {
+            if values.contains(&*stack.item) { input = None; }
+        } else {
+            // A missing required cast such as an unregistered gold platform
+            // invalidates the resolved tag, but unrelated items can still be
+            // proved absent using the source tag graph.
+            let raw = game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot().as_ref()?;
+            if !super::tconstruct_source_tags::definitely_absent(tag, &stack.item, raw).ok()? { return None; }
+        }
     }
     matched_casting(&game.world, kind == "tconstruct:basin", input, tank, game.lan.is_none() && game.lan_acting_uuid.is_none())
 }
@@ -688,15 +696,13 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             // A mold-less recipe also applies when the player is holding an
             // unrelated item; leave that item untouched and give the result.
             if held.is_some() {
-                if let Some((recipe_id, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
+                if let Some((_, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
                     casting.input = None;
                     if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
                     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
                     let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
-                    game.give_or_drop(result.clone());
-                    let player = game.native_acting_id();
-                    game.native_item_crafted(player, &recipe_id, &result);
-                    game.stats.add("crafted", &result.item, 1);
+                    // The source fallback gives the assembled item without onCraftedBy.
+                    game.give_or_drop(result);
                     return true;
                 }
             }
