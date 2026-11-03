@@ -1,6 +1,6 @@
-//! Source right-click selection and nearby entity geometry for splashing.
-//! Runtime effect handling and the Station recipe remain disabled until the
-//! authoritative target enumeration includes guest players and other entities.
+// Source right-click selection and nearby entity geometry for splashing.
+// Runtime effect handling and the Station recipe remain disabled until the
+// authoritative target enumeration includes guest players and other entities.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 
@@ -221,7 +221,7 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
     if *capacity <= 0 { return false; }
     let Some(Some(fluid)) = super::pluto_stack_fluid::read(stack, "tic_persistent", "tconstruct:tank_fluid") else { return false; };
     if fluid.tag.is_some() || fluid.amount == 0 || fluid.amount > *capacity as u32 { return false; }
-    let Some(recipe) = super::tconstruct_source_slurping::recipe(game, &fluid.id) else { return false; };
+    let Some(recipe) = super::tconstruct_source_slurping::tagged_recipe(game, &fluid.id, fluid.tag.as_ref()) else { return false; };
     let mut ids = std::collections::HashSet::new();
     let mut hunger_seen = false;
     if recipe.entity.is_empty() || recipe.entity.iter().any(|effect| match effect {
@@ -229,6 +229,8 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
         super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::brewing::effect(id).is_none_or(|known| known.id != "poison" || !ids.insert(known.id)),
         super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => { let duplicate = hunger_seen; hunger_seen = true; duplicate },
         super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => true,
+        super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => false,
+        super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage | super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => false,
     }) { return false; }
     if order_known { return true; }
     u32::try_from(count).ok().and_then(|count| recipe.amount.checked_mul(level as u32).and_then(|amount| amount.checked_mul(count))).is_some_and(|required| fluid.amount >= required)
@@ -360,6 +362,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if fluid.amount > *capacity as u32 || ((game.lan.is_some() || game.lan_acting_uuid.is_some()) && fluid.tag.is_some()) { return None; }
     let recipe = super::tconstruct_source_slurping::raw_recipe(game, &fluid.id)?;
     let effects = recipe.get("block_effects")?.as_array()?;
+    let conditional = super::tconstruct_source_splash_conditional::supported(game, effects);
     // Create's three potion-cloud effects are mutually exclusive Bottle
     // predicates. Select the matching one without dropping unknown actions.
     let potion_bottle = fluid.tag.as_ref().and_then(|tag| tag.get("Bottle")).and_then(|tag| match tag {
@@ -385,7 +388,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
         value.get("type").and_then(|v| v.as_str()) == Some("tconstruct:place_block")
         && value.get("block").and_then(|v| v.as_str()) == Some("tconstruct:glow")
         && value.keys().all(|key| matches!(key.as_str(), "type" | "block")));
-    if effects.len() != 1 && !mixed_glow && potion_choice.is_none() { return None; }
+    if effects.len() != 1 && !mixed_glow && potion_choice.is_none() && !conditional { return None; }
     let effect = if let Some(selected) = potion_choice { selected } else { effects[0].as_object()? };
     let kind = effect.get("type")?.as_str()?;
     let is_potion_cloud = kind == "tconstruct:potion_cloud";
@@ -393,7 +396,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
     if mixed_glow && !is_cloud { return None; }
     let mut cloud = Vec::new();
     let mut cloud_scale = 1.0f32;
-    let (block, sound) = if is_cloud {
+    let (block, sound) = if conditional { ("", None) } else if is_cloud {
         if is_potion_cloud {
             if effect.keys().any(|key| !matches!(key.as_str(), "type" | "nbt" | "scale")) { return None; }
             if effects.len() == 1 && effect.contains_key("nbt") { return None; }
@@ -491,7 +494,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     item: "minecraft:snow".to_owned(), can_use_game_master_blocks: game.can_use_game_master_blocks(),
                 })
             } else { None };
-            let target = if is_cloud {
+            let target = if conditional { position } else if is_cloud {
                 let Some(x) = position[0].checked_add(face[0]) else { continue; };
                 let Some(y) = position[1].checked_add(face[1]) else { continue; };
                 let Some(z) = position[2].checked_add(face[2]) else { continue; };
@@ -511,7 +514,13 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
             let glow_target = if game.res.facts().get(game.world.block(position[0], position[1], position[2])).replaceable { position } else { target };
             let glow_before = game.world.block(glow_target[0], glow_target[1], glow_target[2]);
             let mut cloud_spawned = false;
+            let mut conditional_applied = false;
             let attempt = (|| -> horizon_client::Result<bool> {
+                if conditional {
+                    if place_used == 0 { return Ok(false); }
+                    super::tconstruct_source_splash_conditional::apply(game, effects, position, face, &mut conditional_applied)?;
+                    return Ok(conditional_applied);
+                }
                 if is_cloud {
                     if cloud_used > 0 && game.world.loaded(target[0], target[2]) && game.res.facts().get(game.world.block(target[0], target[1], target[2])).replaceable {
                         let hit = hit_point.unwrap();
@@ -560,7 +569,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     let (used, updated) = if cloud_spawned { (cloud_used, cloud_stage) } else { (place_used, place_stage) };
                     remaining.amount -= used;
                     last_updated = updated;
-                    if !is_cloud {
+                    if !is_cloud && !conditional {
                         let default_sound = game.res.facts().get(game.world.block(target[0], target[1], target[2])).sounds.place.clone();
                         game.audio.play(sound.as_deref().unwrap_or(&default_sound), Some([target[0] as f64 + 0.5, target[1] as f64 + 0.5, target[2] as f64 + 0.5]), 1.0, 1.0);
                         game.post_block_game_event("minecraft:block_place", target, game.sculk_actor(), None);
@@ -573,7 +582,7 @@ pub(super) fn block(game: &mut super::Game<'_>, stack: &ItemStack, clicked: [i32
                     let after = game.world.block(target[0], target[1], target[2]);
                     let glow_after = game.world.block(glow_target[0], glow_target[1], glow_target[2]);
                     let glow_written = mixed_glow && glow_before != glow_after && game.res.facts().get(glow_after).name.as_ref() == "tconstruct:glow";
-                    if cloud_spawned || glow_written || (before != after && game.res.facts().get(after).name.as_ref() == block) {
+                    if cloud_spawned || conditional_applied || glow_written || (before != after && game.res.facts().get(after).name.as_ref() == block) {
                         successes += 1;
                         last_updated = if cloud_spawned { cloud_stage } else { place_stage };
                     }
