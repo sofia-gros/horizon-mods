@@ -6,73 +6,7 @@ use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidFuel, Foundry
 use super::tconstruct_world::World;
 
 type Tags = HashMap<String, HashSet<String>>;
-pub(super) struct ModPresence { pub states: HashMap<String, Option<bool>>, pub complete: bool }
-
-// Resolve conditional recipes in source order. An unknown condition stops
-// selection: falling through could select a different recipe than Forge.
-fn conditional_test(value: &serde_json::Value, registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<bool> {
-    match value.get("type")?.as_str()? {
-        "forge:true" => Some(true),
-        "forge:false" => Some(false),
-        "forge:item_exists" => Some(items.contains(value.get("item")?.as_str()?)),
-        "forge:mod_loaded" => {
-            let id = value.get("modid")?.as_str()?.trim();
-            if id.is_empty() { return None; }
-            let mods = mods?;
-            mods.states.get(id).copied().unwrap_or_else(|| mods.complete.then_some(false))
-        }
-        "forge:not" => Some(!conditional_test(value.get("value")?, registries, config, items, mods)?),
-        kind @ ("forge:and" | "forge:or") => {
-            let values = value.get("values")?.as_array()?;
-            if values.is_empty() { return None; }
-            let mut unknown = false;
-            for child in values {
-                match conditional_test(child, registries, config, items, mods) {
-                    Some(result) if (kind == "forge:and" && !result) || (kind == "forge:or" && result) => return Some(result),
-                    Some(_) => {}, None => unknown = true,
-                }
-            }
-            if unknown { None } else { Some(kind == "forge:and") }
-        }
-        _ => super::tconstruct_tx::source_conditions_match(std::slice::from_ref(value), registries, config),
-    }
-}
-
-pub(super) fn conditional_conditions(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<bool> {
-    conditional_conditions_with_mods(values, registries, config, items, None)
-}
-pub(super) fn conditional_conditions_with_mods(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<bool> {
-    for value in values { if !conditional_test(value, registries, config, items, mods)? { return Some(false); } }
-    Some(true)
-}
-
-pub(super) fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<Vec<u8>> {
-    // Most entries are ordinary recipes; keep their exact bytes untouched.
-    if !bytes.windows(b"forge:conditional".len()).any(|part| part == b"forge:conditional") { return Some(bytes.to_vec()); }
-    let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
-    for _ in 0..16 {
-        if value.get("type").and_then(serde_json::Value::as_str) != Some("forge:conditional") {
-            return serde_json::to_vec(&value).ok();
-        }
-        match value.get("conditions") {
-            None => {},
-            Some(serde_json::Value::Array(conditions)) if conditional_conditions_with_mods(conditions, registries, config, items, mods)? => {},
-            _ => return None,
-        }
-        let branches = value.get("recipes")?.as_array()?;
-        let mut selected = None;
-        for branch in branches {
-            let conditions = branch.get("conditions")?.as_array()?;
-            let mut matches = true;
-            for condition in conditions {
-                if !conditional_test(condition, registries, config, items, mods)? { matches = false; break; }
-            }
-            if matches { selected = Some(branch.get("recipe")?.clone()); break; }
-        }
-        value = selected?;
-    }
-    None
-}
+pub(super) use super::tconstruct_source_conditions::{ModPresence, conditional_conditions, conditional_conditions_with_mods, conditional_recipe};
 
 fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, Tags>, &HashMap<String, bool>) -> R) -> Option<R> {
     let chunks = &world.chunks;
@@ -88,13 +22,25 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
 
 pub(super) fn molding(world: &World, basin: bool, material: &str, pattern: Option<&str>) -> Option<(String, super::tconstruct_source_melting_recipes::MoldingRecipe)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.molding(basin, material, pattern, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.molding(basin, material, pattern, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
         catalog.melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Option<(String, MeltingRecipe, String)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.melting_with_container(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn foundry_melting_stack(world: &World, stack: &horizon_items::items::ItemStack, no_container: Option<bool>) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.foundry_melting_with_container(&stack.item, no_container, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
@@ -142,22 +88,17 @@ pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &s
     })?
 }
 
-/// Resolve the source potion serializer for an unmodified base potion tag.
-/// Custom effects, colors and additional NBT require a lossless host codec.
-pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag)
+/// Resolve base potion and, on the local path, its custom color. Unsupported
+/// potion metadata is rejected before reserving the fluid.
+pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&horizon_items::items::ItemStack>, fluid: &str, tag: &horizon_world::nbt::Tag, allow_color: bool)
     -> Option<(String, CastingRecipe, horizon_items::items::ItemStack)> {
-    use horizon_world::nbt::Tag;
-    let Tag::Compound(fields) = tag else { return None; };
-    if fields.len() != 1 { return None; }
-    let Tag::String(potion) = fields.get(&"Potion".into())? else { return None; };
-    let potion = potion.to_string_lossy();
-    if potion.is_empty() || potion == "minecraft:empty" { return None; }
+    let (potion, color, effects) = super::tconstruct_source_fluid_container::potion_tag(tag, allow_color)?;
     let input = input?;
     let (id, recipe, output) = with_catalog(world, |catalog, registries, config| {
         catalog.potion_casting(basin, &input.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })??;
     if !matches!(output.as_str(), "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion" | "minecraft:tipped_arrow") { return None; }
-    Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1).with_potion(&potion)))
+    Some((id, recipe, super::tconstruct_source_fluid_container::potion_stack(&output, &potion, color, effects)))
 }
 
 /// Resolve the completed stack before reserving fluid. Both normal item
@@ -168,53 +109,54 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
     if let Some(stack) = input {
-        if basin && stack.count == 1 && stack.damage == 0 {
-            if let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(&stack.item) {
-                use horizon_world::nbt::{Compound, Tag};
-                let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
-                let mut data = match custom { None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return None };
-                let mut tank = match data.get(&"tconstruct:tank".into()) {
-                    Some(tag) => super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity)?,
-                    None => super::tconstruct_source_melter_state::Tank::new(capacity),
-                };
-                if tank.fluid.as_deref().is_some_and(|existing| existing != fluid) { return None; }
-                let free = capacity.saturating_sub(tank.amount);
-                if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
-                    catalog.basin_filling(&stack.item, fluid, free, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
-                })? {
-                    if !tank.insert(fluid, recipe.fluid.amount) { return None; }
-                    data.insert("tconstruct:tank".into(), tank.to_nbt());
-                    let mut output = stack.clone();
-                    output.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(data)));
-                    return Some((id, recipe, output));
-                }
+    let lantern = matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern");
+    if (basin || lantern) && stack.count == 1 && stack.damage == 0 {
+        if let Some(capacity) = super::tconstruct_source_smeltery_fuel::item_capacity(&stack.item) {
+            use horizon_world::nbt::{Compound, Tag};
+            let custom = stack.data().and_then(|data| data.other("minecraft:custom_data"));
+            let mut data = match custom { None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return None };
+            let mut tank = match data.get(&"tconstruct:tank".into()) {
+                Some(tag) => super::tconstruct_source_melter_state::Tank::from_nbt(tag, capacity)?,
+                None => super::tconstruct_source_melter_state::Tank::new(capacity),
+            };
+            if tank.fluid.as_deref().is_some_and(|existing| existing != fluid) { return None; }
+            let free = capacity.saturating_sub(tank.amount);
+            if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+                catalog.portable_tank_filling(basin, &stack.item, fluid, free, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })? {
+                if !tank.insert(fluid, recipe.fluid.amount) { return None; }
+                data.insert("tconstruct:tank".into(), tank.to_nbt());
+                let mut output = stack.clone();
+                output.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(data)));
+                return Some((id, recipe, output));
             }
         }
-        if !basin {
-            // Forge FluidBucketWrapper replaces the stack with a new filled bucket.
-            if stack.item.as_ref() == "minecraft:bucket" && stack.damage == 0 && stack.count == 1 {
-                if let Some((id, recipe, output)) = with_catalog(world, |catalog, registries, config| {
-                    catalog.bucket_filling(fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
-                })? {
-                    return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
-                }
+    }
+    if !basin {
+        // Forge FluidBucketWrapper replaces the stack with a new filled bucket.
+        if stack.item.as_ref() == "minecraft:bucket" && stack.damage == 0 && stack.count == 1 {
+            if let Some((id, recipe, output)) = with_catalog(world, |catalog, registries, config| {
+                catalog.bucket_filling(fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+            })? {
+                return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
             }
         }
         if stack.count == 1 && super::tconstruct_source_fluid_container::can_fluid(stack) == Some(None) {
             if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
-                catalog.can_filling(fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+                catalog.can_filling(fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
             })? {
                 let output = super::tconstruct_source_fluid_container::can_set_fluid(stack, Some(fluid))?;
                 return Some((id, recipe, output));
             }
         }
-        if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
-            catalog.duplication(basin, &stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
-        })? {
-            let mut output = stack.clone();
-            output.count = 1;
-            return Some((id, recipe, output));
-        }
+    }
+    if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+        catalog.duplication(basin, &stack.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })? {
+        let mut output = stack.clone();
+        output.count = 1;
+        return Some((id, recipe, output));
+    }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Ordinary casts may repair; composite casts do not. Supported
     // upgrades and material traits are rebuilt through the Station path.

@@ -29,3 +29,66 @@ Gold's Golden armor trait is included in the host Piglin-safe-armor check for wo
 Representative Linux tests built a leather-binding pickaxe from supplied parts, checked ordinary melee wear and shield-before-durability, and retained its material and shield after reload. Supplied Stringy tools repaired from damage 50 to 4 using four String locally and for a LAN guest; a leather-binding tool rejected that repair. A supplied Rose Gold pickaxe used its extra slot, rejected an over-budget head replacement without consuming inputs, and accepted a replacement once the used slots fit. The #50 surplus-bottle correction also retained a supplied bottle's name and custom data in a game crafting transaction.
 
 Glowing's source effect places light blocks through several distinct interaction paths and remains unimplemented; its explicitly identified wear bypass remains reserved for that future action. Source secondary modifier-caused actions, many other material effects, unrelated equipment and Windows remain open. The tests did not collect the supplied materials naturally or exercise every source tool.
+
+The consolidated equipment candidate ports the existing fixed-trait #152,
+Snow Boots #156/#158, Golden armor #161, Spiny ranged velocity #150,
+Overwield ranged #102 and Raging melee #96 paths. These are source-level
+integration candidates, not target apply or gameplay results. Raging melee uses
+the acting player state rather than treating `lan_acting` as a guest-only
+indicator; confirm both local and guest actors. Spiny's distinct self-damage
+remains deferred. Test original tool tags, broken/equipped state, powder-snow
+walking, vanilla placement regression, Piglin checks, conditional projectile scales and
+cooldown/critical/secondary melee handling on the exact combined build.
+
+The next integration ports Vintage/Gilded slot accounting and salvage from
+#123/#124/#128/#165 while retaining the newer tank, slurping, spilling and
+Blindshot guards. Speedy #139 is integrated for the three source leggings, with
+45 redstone per level and source movement scaling; the equipment path and broken
+state need target verification. Test Gilded levels, slot exhaustion, rejected
+salvage without consumption, rebuilding, fluid abilities and partial Speedy
+progress together, including save/reload and LAN. These are unverified source
+candidates, not game results.
+
+The next integration ports #142 Forming armor and #164 Step Up recipe handling.
+Forming adds one armor and 0.05 knockback resistance per level in the source
+stat builder, including when no gem is installed; the calculation also carries
+the earlier Heavy, Wool and Ductile contributions. Step Up consumes the source
+recipe's upgrade slot and respects its leggings tag and level range. Verify
+material replacement and removal, gem/no-gem combinations, modifier ordering,
+partial or full inventories, salvage, two levels, broken equipment, save/reload
+and LAN on the integrated target. These paths are syntax-checked only.
+
+Skull material armor, slime material Overslime capacity and the registered
+slimy chestplate's source-definition alias are included in a follow-up candidate.
+The capacity includes both material and Overlord contributions before Overcast
+and durability multipliers. Verify each material, assembly, repair, part swaps,
+Overlord/Overcast combinations, rounding boundaries and save/reload in the
+combined target. This candidate has not run unit, apply, type or game tests.
+
+The placement-only Snow Boots hook is omitted after an official 0c plan reported `E_UNSUPPORTED_SIGNATURE` for generic `Game::with_level`, even with an explicit selector. Powder-snow walking is deferred after the synchronization candidates failed official plan. The #311 skull/slime focused fixture now uses the source material map shape; only a disposable diagnostic has passed so far.
+
+The Creative resource candidate now uses the same armor rebuild as Station
+after source material traits, and resolves the slimy chestplate definition
+alias. The worn-armor decision uses the original item tag and generated item
+registry. Verify generated Creative variants against source-built Station
+items for Forming, Heavy, Wool and Ductile with non-unit stat multipliers;
+compare slimy chestplate and unrelated items, preparation, reload and tooltips.
+This is syntax-checked only and has no package or gameplay result.
+
+The #325 formal apply stopped at the `sync_player_body` RETURN hook with
+`E_UNSUPPORTED_CONTROL_FLOW`; an isolated `apply_equipment` RETURN diagnostic
+also reported `E_UNSUPPORTED_MACRO`. A subsequent candidate omits those two
+hooks and instead proposes modifying the single `leather_boots` local at its
+STORE before `sync_player_body` writes the player field. The host's existing
+value is retained. This different boundary has not passed official plan or
+apply. Local walking, guest/server synchronization, equipment changes and
+powder-snow placement must be checked independently; the earlier generic
+placement hook remains omitted.
+
+An isolated official plan of #331's `leather_boots` STORE candidate also
+returned `E_UNSUPPORTED_CONTROL_FLOW` for `sync_player_body`. The subsequent
+verification candidate omits this walking injection; it preserves the Snow
+Boots item and other armor behavior but does not implement custom-boots walking
+or placement on powder snow. Vanilla leather-boots behavior is unchanged.
+The omission is not an apply or gameplay pass; check official package, apply
+and type, and verify vanilla movement and unrelated equipment in game.

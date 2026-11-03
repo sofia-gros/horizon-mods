@@ -1,14 +1,24 @@
 // Source Overslime capacity, refill and damage-shield arithmetic.
 // The armor/durability multiplier is the source global durability multiplier.
 pub(super) fn capacity(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32) -> u32 {
-    capacity_with_material(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0.0)
+    capacity_with_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier)
 }
 
 pub(super) fn capacity_with_material(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, material: f32) -> u32 {
+    capacity_with_material_and_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier, material)
+}
+
+fn capacity_with_overlord(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, overlord: i32, durability: f32, source_multiplier: f32) -> u32 {
+    capacity_with_material_and_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, overlord, durability, source_multiplier, 0.0)
+}
+
+fn capacity_with_material_and_overlord(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, overlord: i32, durability: f32, source_multiplier: f32, material: f32) -> u32 {
     let base = if has_overslime { 50.0 } else { 0.0 };
     let effective = overforced_amount.max(0) as f32 / 4.0 + overforced_trait.max(0) as f32;
     let overcast = overcast.max(0) as f32;
-    ((base + material + 75.0 * effective + 25.0 * overcast) * (1.0 + 0.5 * overcast) * durability_multiplier.max(0.0)).clamp(0.0, 32767.0) as u32
+    let multiplier = durability_multiplier.max(0.0);
+    let copied = if source_multiplier > 0.0 { durability.max(0.0) * 0.1 * overlord.max(0) as f32 / source_multiplier } else { 0.0 };
+    ((base + material + 75.0 * effective + 25.0 * overcast + copied) * (1.0 + 0.5 * overcast) * multiplier).clamp(0.0, 32767.0) as u32
 }
 
 /// Returns (shield remaining, damage passed to later modifiers).
@@ -35,6 +45,53 @@ pub(super) fn friendly(levels: &std::collections::BTreeMap<String, i32>, overfor
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn rebuild_copies_gem_and_ductile_before_overlord_reduction() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        use std::collections::BTreeMap;
+        let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#;
+        let stats = super::super::tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+        let mut stack = ItemStack::new("tconstruct:pickaxe",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))])),
+            ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:emerald".into()),Tag::String("tconstruct:netherite".into())])),
+            ("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:ductile".into()),Tag::String("tconstruct:overlord".into())])),
+        ])));
+        let levels = BTreeMap::from([("tconstruct:ductile".into(),3),("tconstruct:overlord".into(),2),("tconstruct:overslime".into(),1)]);
+        // Priority 50 copy: 100 * 1.5 * 1.2 * 1.3 * 0.2 = 46.8; base shield 50.
+        rebuild(&mut stack,&stats,&levels,false,false,false,false).unwrap();
+        let data=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert!(matches!(data.get("tic_overslime_capacity"),Some(Tag::Int(96))));
+        super::super::tconstruct_source_material_effects::apply_stat_traits(&mut stack,&stats,&levels).unwrap();
+        let data=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+        // Overlord then multiplies durability by 0.7: floor(234 * 0.7) = 163.
+        assert!(matches!(data.get("tic_max_damage"),Some(Tag::Int(163))));
+    }
+
+    #[test]
+    fn oversized_spend_cannot_increase_shield() {
+        use horizon_items::items::ItemStack;
+        use horizon_world::nbt::Tag;
+        let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_overslime", Tag::Int(5))])));
+        spend(&mut stack, u32::MAX);
+        assert!(matches!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_overslime"), Some(Tag::Int(0))));
+    }
+
+    #[test]
+    fn material_and_overlord_stack_before_source_multipliers() {
+        assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 1, 2.0, 1, 100.0, 1.0, 30.0), 345);
+        assert_eq!(capacity_with_material_and_overlord(true, 0, 0, 0, 1.0, 0, 0.0, 1.0, 30.0), 80);
+    }
+
+    #[test]
+    fn overlord_copies_unreduced_float_durability_before_final_capacity_truncation() {
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 1, 100.0, 1.0), 60);
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 6, 100.0, 1.0), 110);
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 7, 100.0, 1.0), 120);
+        assert_eq!(capacity_with_overlord(true, 0, 0, 0, 1.0, 1, 99.9, 1.0), 59);
+    }
     #[test]
     fn capacity_uses_fractional_upgrade_and_source_global_multiplier() {
         assert_eq!(capacity(true, 0, 0, 0, 1.0), 50);
@@ -103,7 +160,14 @@ pub fn rebuild(stack: &mut horizon_items::items::ItemStack,
     use horizon_world::nbt::Tag;
     let has = upgrade(stack,"tconstruct:overslime") > 0 || levels.get("tconstruct:overslime").copied().unwrap_or(0) > 0;
     let overforced = upgrade(stack,"tconstruct:overforced");
-    let cap = capacity_with_material(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, stats.overslime_material);
+    // StatCopy runs before the other modules of Overlord and reads a float,
+    // not the final integer durability after Overlord's own reduction.
+    let diamond = upgrade(stack, "tconstruct:diamond") > 0;
+    let diamond_add = if diamond { if armor { 250.0 } else { 500.0 } } else { 0.0 };
+    let percent = super::tconstruct_source_material_effects::ordered_durability_multiplier(stack, stats, levels, false);
+    let source_multiplier = stats.durability_multiplier_unit;
+    let durability = (stats.durability_base_raw + diamond_add) * (1.0 + stats.durability_percent_raw) * percent;
+    let cap = capacity_with_material_and_overlord(has, overforced, levels.get("tconstruct:overforced").copied().unwrap_or(0), levels.get("tconstruct:overcast").copied().unwrap_or(0), stats.durability_multiplier_unit, levels.get("tconstruct:overlord").copied().unwrap_or(0), durability, source_multiplier, stats.overslime_material);
     let unfriendly = has && !friendly(levels, overforced);
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };

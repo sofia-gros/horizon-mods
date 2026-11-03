@@ -63,6 +63,16 @@ pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, dur
 mod tests {
     use super::*;
     #[test]
+    fn overwield_uses_live_overslime_and_broad_cost() {
+        for (level, amount, broad, expected) in [(2, 0, false, 10.0), (2, 1, false, 12.0), (2, 5, false, 14.0), (2, 1, true, 10.4), (2, 5, true, 12.0), (2, 10, true, 14.0)] {
+            let modifiers = [Conditional::Overwield(level, amount, broad)];
+            let speed = conditional_speed_for(10.0, 0, 100, 1.0, 1.0, &modifiers, None, true, false);
+            assert!((speed - expected).abs() < 0.0001);
+            assert_eq!(conditional_speed_for(10.0, 0, 100, 1.0, 1.0, &modifiers, None, false, false), 10.0);
+        }
+    }
+
+    #[test]
     fn crumbling_handles_ineffective_and_required_tool_blocks() {
         let effects = [Conditional::Crumbling(2), Conditional::Maintained(1), Conditional::Jagged(1)];
         // Ineffective but no tool required: only Crumbling is active.
