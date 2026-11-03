@@ -70,15 +70,44 @@ pub(crate) fn projectile_bonus(stack: &ItemStack) -> f64 {
     }
 }
 
-/// Original Raging conditional projectile damage, evaluated at firing time.
-pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>) -> f64 {
+pub(crate) fn ambush_level(stack: &ItemStack) -> i32 {
+    match stack.data().and_then(|data| data.other("minecraft:custom_data"))
+        .and_then(|custom| custom.get("tic_ambush_projectile")) {
+        Some(Tag::Int(level)) => (*level).max(0), _ => 0,
+    }
+}
+
+/// Source full-health predicate uses ceil(current health), not exact equality.
+fn full_health(health: f32, maximum: f32) -> bool {
+    health.is_finite() && maximum.is_finite() && maximum > 0.0 && health.ceil() >= maximum
+}
+
+/// Conditional projectile damage evaluated for the acting shooter at release.
+/// Missing/invalid maximum health skips Ambush rather than guessing a maximum.
+pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>, maximum: Option<f32>) -> f64 {
     let base = projectile_bonus(stack);
     let Some(health) = health.filter(|value| value.is_finite()) else { return base; };
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return base; };
-    let level = match custom.get("tic_raging") { Some(Tag::Int(level)) => (*level).max(0), _ => 0 };
     let Some(multiplier) = stat(stack, "tic_raging_projectile_multiplier").filter(|value| value.is_finite()) else { return base; };
-    let bonus = ((11.0 - health) / 10.0).clamp(0.0, 1.0) * level as f32 * multiplier;
-    ((base as f32 + 2.0 + bonus).clamp(0.0, 1024.0) - 2.0) as f64
+    let raging = match custom.get("tic_raging") { Some(Tag::Int(level)) => (*level).max(0), _ => 0 };
+    let ambush = ambush_level(stack);
+    let raging_bonus = ((11.0 - health) / 10.0).clamp(0.0, 1.0) * raging as f32 * multiplier;
+    let ambush_bonus = if maximum.is_some_and(|maximum| full_health(health, maximum)) {
+        0.5 * ambush as f32 * multiplier
+    } else { 0.0 };
+    // Equal-priority flat effects retain material insertion order. Old items
+    // without the saved order keep the prior Raging-first fallback.
+    let ambush_first = match custom.get("tic_trait_order") {
+        Some(Tag::List(ids)) => {
+            let position = |name: &str| ids.iter().position(|id| matches!(id, Tag::String(id) if id.to_string_lossy() == name));
+            matches!((position("tconstruct:ambush"), position("tconstruct:raging")), (Some(a), Some(r)) if a < r)
+        }
+        _ => false,
+    };
+    let mut value = base as f32 + 2.0;
+    if ambush_first { value += ambush_bonus; value += raging_bonus; }
+    else { value += raging_bonus; value += ambush_bonus; }
+    (value.clamp(0.0, 1024.0) - 2.0) as f64
 }
 
 /// Pinned RestrictAngleModule rounds the horizontal direction after launch.

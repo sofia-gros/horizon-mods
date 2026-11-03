@@ -21,7 +21,11 @@ fn tconstruct_crossbow_use(
                 (angle, power, i == 0)
             }).collect();
             let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, game.player.as_ref().map(|player| player.health.health())), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            let health = game.player.as_ref().map(|player| player.health.health());
+            let maximum = if crate::game::tconstruct_projectile_stats::ambush_level(stack) > 0 {
+                game.player.as_mut().and_then(|player| player.attribute("minecraft:max_health").ok()).map(|value| value as f32)
+            } else { None };
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, health, maximum), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);
