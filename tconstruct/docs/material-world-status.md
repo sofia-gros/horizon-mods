@@ -151,3 +151,5 @@ adds Solid once when rebuilding `tic_projectile_damage`, and the projectile
 path reads that stored result. Preserve that single addition when integrating
 #86; do not apply its old formula a second time. Invar's Solid source material
 is compatibility-conditional, so its ordinary acquisition is not asserted.
+
+Source stat builder `MULTIPLY_BASE` factors compound in modifier order for durability, mining and the supported melee/ranged stats. The focused older-host helper fixtures cover these phases; the current-host build and game behavior remain unverified for this candidate.
