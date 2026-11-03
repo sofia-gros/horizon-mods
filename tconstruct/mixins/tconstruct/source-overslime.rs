@@ -4,6 +4,10 @@ pub(super) fn capacity(has_overslime: bool, overforced_amount: i32, overforced_t
     capacity_with_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier)
 }
 
+pub(super) fn capacity_with_material(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, material: f32) -> u32 {
+    capacity_with_material_and_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, 0, 0.0, durability_multiplier, material)
+}
+
 fn capacity_with_overlord(has_overslime: bool, overforced_amount: i32, overforced_trait: i32, overcast: i32, durability_multiplier: f32, overlord: i32, durability: f32, source_multiplier: f32) -> u32 {
     capacity_with_material_and_overlord(has_overslime, overforced_amount, overforced_trait, overcast, durability_multiplier, overlord, durability, source_multiplier, 0.0)
 }

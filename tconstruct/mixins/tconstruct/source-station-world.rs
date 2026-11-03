@@ -413,7 +413,7 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
     }
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = original.item.split_once(':')?;
-    let definition: serde_json::Value = serde_json::from_slice(definitions.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?).ok()?;
+    let definition: serde_json::Value = serde_json::from_slice(definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?).ok()?;
     let modules = definition.get("modules")?.as_array()?;
     let inputs = slots.get(1..=input_capacity)?;
     let recipes = world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref()?;
