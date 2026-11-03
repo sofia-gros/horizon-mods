@@ -99,7 +99,16 @@ fn tconstruct_part_name(
             let name = game.pack.names.display_get(&level_key).or_else(|| game.pack.names.display_get(&base_key)).unwrap_or(base_key);
             let remainder = amount % needed;
             let text = if remainder == 0 { name } else { format!("{name} {remainder}/{needed}") };
-            value.push((horizon_client::text::Text::literal(text), horizon_client::hud::rgba(170, 170, 170, 255)));
+            if game.options_advanced_tooltips() && tconstruct_source_config::client_modifier_ids() {
+                let template = game.pack.names.display_get("item.tconstruct.tool.id_format")
+                    .unwrap_or_else(|| "%s (%s)".to_owned());
+                let text = horizon_client::text::format_translation(&template, &[
+                    horizon_client::text::Text::literal(text), horizon_client::text::Text::literal(key),
+                ]);
+                value.push((text, horizon_client::hud::rgba(85, 85, 85, 255)));
+            } else {
+                value.push((horizon_client::text::Text::literal(text), horizon_client::hud::rgba(170, 170, 170, 255)));
+            }
         }
     }
     if stack.custom_name().is_some()
