@@ -52,6 +52,40 @@ pub(super) fn resolve_tag(snapshot: &Raw, tag: &str, complete_registry: Option<&
     super::tconstruct_source_tags::resolve_tag(tag, &tags, registry)
 }
 
+/// Resolve modifier identities only with a complete authoritative ID-to-object
+/// map from `compose_registry`. Without remove operations, projecting IDs to
+/// canonical object IDs after expansion preserves linked-set order. Removals
+/// are conservatively unsupported here: an alias and its target may denote the
+/// same object, and ID-based removal must not be mistaken for object removal.
+#[allow(dead_code)]
+pub(super) fn resolve_canonical_tag(
+    snapshot: &Raw,
+    tag: &str,
+    registry: Option<&BTreeMap<String, String>>,
+) -> Result<Vec<String>, String> {
+    let registry = registry.ok_or("modifier registry unavailable")?;
+    if registry.get("tconstruct:empty").map(String::as_str) != Some("tconstruct:empty")
+        || registry.values().any(|canonical| registry.get(canonical) != Some(canonical)) {
+        return Err("invalid canonical modifier registry".into());
+    }
+    if snapshot.1.values().any(|layers|
+        super::tconstruct_source_tags::merge_tag_files(layers).iter().any(|entry| entry.remove)) {
+        return Err("canonical modifier tag removals unsupported".into());
+    }
+    // Source's missing-value sentinel is accepted only for the explicit empty
+    // ID, not for an alias that returns the same empty modifier object.
+    let usable: HashSet<String> = registry.iter().filter(|(id, canonical)|
+        canonical.as_str() != "tconstruct:empty" || id.as_str() == "tconstruct:empty")
+        .map(|(id, _)| id.clone()).collect();
+    let ids = resolve_tag(snapshot, tag, Some(&usable))?;
+    let mut values = Vec::new();
+    for id in ids {
+        let canonical = registry.get(&id).ok_or("modifier registry changed")?;
+        if !values.contains(canonical) { values.push(canonical.clone()); }
+    }
+    Ok(values)
+}
+
 /// Authoritative results of evaluating the highest-priority JSON resource.
 /// Producing these results requires the source condition context and modifier
 /// deserializer; this module intentionally does not guess them from file names.
@@ -257,6 +291,33 @@ mod tests {
         assert!(classify_definition(br#"{"redirects":[{"id":"x:a"},{}]}"#, none, none).is_err());
         assert_eq!(classify_definition(br#"{"redirects":[{"id":"stone"}]}"#, none, none).unwrap(), ClassifiedDefinition::Redirect("minecraft:stone".into()));
         assert!(classify_definition(br#"[]"#, none, none).is_err());
+    }
+
+    #[test]
+    fn canonical_tag_resolves_aliases_and_empty_sentinel() {
+        let mut raw = Raw::default();
+        let key = "x:tinkering/tags/modifiers/root";
+        raw.1.insert(key.into(), vec![br##"{"values":["x:alias","x:actual","#x:child",{"id":"x:empty_alias","required":false},"tconstruct:empty"]}"##.to_vec()]);
+        raw.1.insert("x:tinkering/tags/modifiers/child".into(), vec![br#"{"values":["x:other","x:alias"]}"#.to_vec()]);
+        let registry = [("tconstruct:empty", "tconstruct:empty"), ("x:empty_alias", "tconstruct:empty"),
+            ("x:actual", "x:actual"), ("x:alias", "x:actual"), ("x:other", "x:other")]
+            .into_iter().map(|(k,v)| (k.into(),v.into())).collect();
+        assert_eq!(resolve_canonical_tag(&raw, "x:root", Some(&registry)).unwrap(), ["x:actual", "x:other", "tconstruct:empty"]);
+        raw.1.insert(key.into(), vec![br#"{"values":["x:empty_alias"]}"#.to_vec()]);
+        assert!(resolve_canonical_tag(&raw, "x:root", Some(&registry)).is_err());
+    }
+    #[test]
+    fn canonical_tag_refuses_removal_incomplete_registry_and_bad_targets() {
+        let mut raw = Raw::default();
+        raw.1.insert("x:tinkering/tags/modifiers/root".into(), vec![br#"{"values":["x:a"],"remove":["x:alias"]}"#.to_vec()]);
+        let registry = [("tconstruct:empty", "tconstruct:empty"), ("x:a", "x:a"), ("x:alias", "x:a")]
+            .into_iter().map(|(k,v)| (k.into(),v.into())).collect();
+        assert!(resolve_canonical_tag(&raw, "x:root", None).is_err());
+        assert!(resolve_canonical_tag(&raw, "x:root", Some(&registry)).is_err());
+        raw.1.insert("x:tinkering/tags/modifiers/root".into(), vec![br#"{"values":["x:alias"]}"#.to_vec()]);
+        let bad = [("tconstruct:empty", "tconstruct:empty"), ("x:alias", "x:missing")]
+            .into_iter().map(|(k,v)| (k.into(),v.into())).collect();
+        assert!(resolve_canonical_tag(&raw, "x:root", Some(&bad)).is_err());
     }
 
 }

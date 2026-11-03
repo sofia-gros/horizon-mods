@@ -76,3 +76,12 @@ an error on unknown results. Conditional redirects are deliberately rejected:
 the pinned source parses their conditions from the enclosing redirect object,
 which needs further compatibility work. This helper is also not connected to
 production and does not make the registry or modifier pages complete.
+
+An unconnected tag helper can project IDs to canonical modifier identities
+when supplied a complete authoritative registry. It preserves first-seen
+ordering, deduplicates aliases, and treats an alias to the empty sentinel as
+missing, as the source's tag lookup does. To avoid incorrect alias removal,
+it currently rejects the snapshot if any modifier tag contains a remove
+operation. It does not construct the registry or enable modifier pages. The
+pinned TConstruct registration class alone cannot prove a complete registry:
+other mods may register static modifiers through the registration event.
