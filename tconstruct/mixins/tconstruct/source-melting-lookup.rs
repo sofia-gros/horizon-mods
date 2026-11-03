@@ -440,7 +440,7 @@ impl Catalog<'_> {
 mod tests {
     use super::*;
     #[test]
-    fn alloy_preserves_order_when_tagged_inputs_may_match() {
+    fn alloy_rejects_tagged_matching_inputs() {
         let recipe = br#"{"type":"tconstruct:alloy","inputs":[{"amount":90,"fluid":"test:copper"},{"amount":90,"fluid":"test:tin"}],"result":{"amount":180,"fluid":"test:bronze"},"temperature":700}"#.to_vec();
         let recipes = std::collections::BTreeMap::from([("alloy".into(), recipe)]);
         let tags = HashMap::new(); let items = HashSet::new();
