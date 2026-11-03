@@ -15,6 +15,16 @@ pub(super) fn fluid_name(game: &super::Game<'_>, fluid: &str) -> String {
     }).unwrap_or_else(|| match fluid { "minecraft:lava" => "Lava".to_owned(), "minecraft:water" => "Water".to_owned(), _ => fluid.to_owned() })
 }
 
+/// Resolve potion names only when the caller knows the fluid metadata is complete.
+/// Remote machine snapshots may omit tags, so they must retain the generic name.
+pub(super) fn fluid_name_tagged(game: &super::Game<'_>, fluid: &str, tag: Option<&horizon_world::nbt::Tag>, metadata_complete: bool) -> String {
+    if fluid == "tconstruct:potion" && metadata_complete {
+        if let Some(name) = super::tconstruct_source_smeltery_fuel::potion_fluid_name(tag)
+            .and_then(|key| game.pack.names.display_get(&key)) { return name; }
+    }
+    fluid_name(game, fluid)
+}
+
 // Generated from the source FluidTextureProvider ARGB colors.
 pub(super) fn color(fluid: &str) -> u32 {
     match fluid {
