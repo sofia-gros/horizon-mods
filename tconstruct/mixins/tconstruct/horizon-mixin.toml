@@ -1817,6 +1817,23 @@ kind = "HEAD"
 helper = "featherweight-local-use-speed.rs"
 bindings = [{ name = "motion", ty = "&mut crate::motion::MotionWorld<'_, '_, '_>", value = "&mut *self" }]
 
+[[state]]
+id = "featherweight-guest-use-snapshot"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(u32, f64)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "featherweight-guest-use-head"
+target = "horizon_client::game::prediction::Game<'_>::guest_replay"
+kind = "HEAD"
+helper = "featherweight-guest-use-head.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "host", ty = "&crate::game::lan::LanHost", value = "&*host" }, { name = "conn", ty = "u32", value = "conn" }]
+
 [[injection]]
 id = "featherweight-guest-use-speed"
 target = "horizon_client::game::prediction::Game<'_>::guest_replay"
@@ -1825,7 +1842,7 @@ variable = { name = "item_use", ordinal = 0, at = "LOAD" }
 require = 2
 ordinal = 0
 helper = "featherweight-guest-use-speed.rs"
-bindings = [{ name = "item_use", ty = "Option<(f32, bool)>", value = "$value" }, { name = "motion", ty = "&&mut PlayerMotion", value = "$local_ref:motion:0" }]
+bindings = [{ name = "item_use", ty = "Option<(f32, bool)>", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "conn", ty = "u32", value = "conn" }]
 
 [[injection]]
 id = "material-armor-attributes"

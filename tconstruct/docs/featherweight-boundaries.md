@@ -103,3 +103,14 @@ use-speed modifiers.
 On fixed heads #346 and #348, dedicated stub tests reported 0.2 → 0.25/0.30,
 clamping, absent use and passenger exclusions. Those tests supplied fake motion
 and attributes and do not prove real sync, plan/apply, type, server or LAN.
+
+The #348 candidate captured `motion` from an `if let` binding. The pinned
+Mixins scope resolver marks conditional/destructured locals unsupported, so
+that exact capture would be rejected statically; the earlier helper-only
+checks did not exercise it. A follow-up snapshots a single `(connection,
+bonus)` at `guest_replay` HEAD, before the mutable guest borrow, and the
+`item_use` LOAD reads it only for the same connection. Every invocation
+replaces the previous snapshot; no bonus leaves the host value unchanged.
+Nested different-guest calls may suppress an outer correction rather than
+apply another player's data. Constructor packaging, the LOAD ordinal, borrowing
+and guest attribute freshness still need official plan/type and game checks.
