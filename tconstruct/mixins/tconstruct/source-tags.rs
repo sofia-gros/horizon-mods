@@ -274,6 +274,17 @@ pub(super) fn resolve_material_registry(
 mod tests {
     use super::*;
     #[test]
+    fn missing_platform_does_not_block_unrelated_basin_input() {
+        let tags = BTreeMap::from([("tconstruct:casts/empty/basin".into(),
+            vec![br#"{"values":["tconstruct:gold_platform"]}"#.to_vec()])]);
+        let registry = ["tconstruct:seared_lantern".to_owned()].into_iter().collect();
+        let resolved = resolve_registry(&tags, &registry).unwrap();
+        assert!(!resolved.contains_key("tconstruct:casts/empty/basin"));
+        assert_eq!(definitely_absent("tconstruct:casts/empty/basin", "tconstruct:seared_lantern", &tags), Ok(true));
+        assert_eq!(definitely_absent("tconstruct:casts/empty/basin", "tconstruct:gold_platform", &tags), Ok(false));
+    }
+
+    #[test]
     fn source_mud_tag_uses_vanilla_layer_and_respects_replacement() {
         let mut tags = BTreeMap::new();
         let path = "data/minecraft/tags/block/convertible_to_mud.json";

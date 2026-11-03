@@ -5,6 +5,16 @@ This candidate follows TinkersConstruct source
 package, apply, type and game checks. These are bounded paths, not complete
 modifier parity.
 
+## Current integration check
+
+Reconciled with main `232cfe0b` on 2026-11-03. The existing host pins and
+main stat, durability and cancellation fixes are preserved. Rust syntax checks
+passed for 482 source files; three tests extracted unchanged from the source
+arithmetic helpers passed. These checks do not establish host type compatibility,
+hook application or gameplay. Build and actual-game confirmation remain open in
+[Issue #365, group 10](https://github.com/sofia-gros/horizon-mods/issues/365).
+The candidate remains Draft until the integration requirements are met.
+
 ## Necrotic
 
 The source `LifestealModule` restores 5% of actual dealt damage per Necrotic

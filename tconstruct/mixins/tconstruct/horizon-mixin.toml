@@ -1913,19 +1913,8 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_snow_boots"
 source = "source-snow-boots.rs"
 
-[[injection]]
-id = "source-snow-boots-sync"
-target = "horizon_client::game::Game<'_>::sync_player_body"
-kind = "RETURN"
-helper = "snow-boots-sync.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
-[[injection]]
-id = "source-snow-boots-equipment"
-target = "horizon_client::game::Game<'_>::apply_equipment"
-kind = "RETURN"
-helper = "snow-boots-equipment.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+# The Snow Boots powder-snow walking hook is deferred: both RETURN and the
+# leather_boots STORE candidate in sync_player_body were rejected by plan.
 
 [[module]]
 id = "server-source-material-traits"
@@ -2710,9 +2699,13 @@ require = 1
 [[injection]]
 id = "source-overwield-harvest-start"
 target = "horizon_client::game::native_hooks::Game<'_>::native_destroy_block"
-kind = "HEAD"
+kind = "AFTER_CALL"
+selector = "mod_api::dispatch_destroy_block"
+require = 1
+ordinal = 0
+result = "()"
 helper = "source-overwield-harvest-start.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
 
 [[injection]]
 id = "source-area-guest-hit"
@@ -4393,10 +4386,13 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[injection]]
 id = "source-splash-bottle-brewing"
-target = "horizon_client::stations::StationData::load"
-kind = "RETURN"
+target = "horizon_client_lib::stations::StationData::load"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = "crate::brewing::Brewing::load(root, items, overlay)"
+require = 1
+ordinal = 0
 helper = "source-splash-bottle-brewing.rs"
-bindings = [{ name = "value", ty = "Self", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
+bindings = [{ name = "value", ty = "crate::brewing::Brewing", value = "$value" }, { name = "items", ty = "&Items", value = "items" }]
 
 [[injection]]
 id = "source-empty-bottle-use"

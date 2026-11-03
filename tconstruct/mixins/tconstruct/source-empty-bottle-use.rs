@@ -1,5 +1,5 @@
 // Source BottleItem fills the matching water potion from a water source.
-fn tconstruct_empty_bottle_use(game: &mut crate::game::Game<'_>, stack: &ItemStack) -> std::ops::ControlFlow<horizon_client::Result<bool>> {
+fn tconstruct_empty_bottle_use(game: &mut crate::game::Game<'_>, stack: &horizon_items::items::ItemStack) -> std::ops::ControlFlow<horizon_client::Result<bool>> {
     use std::ops::ControlFlow::{Break, Continue};
     let result = match stack.item.as_ref() {
         "tconstruct:splash_bottle" => "minecraft:splash_potion",
