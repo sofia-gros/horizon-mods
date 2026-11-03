@@ -360,6 +360,8 @@ A follow-up incorporates the explicit material and index types from #214 after t
 
 Casting-table `table_duplication` now matches the source cast and fluid tags, retains the original input and copies its item data into the result. The bundled smithing-template recipe uses 500 mB molten diamond; this path awaits verification. Unsupported casting forms remain separate.
 
+The source `table_filling` recipe supports a plain empty bucket for registered bucket fluids through the existing casting transaction. It consumes the empty bucket and 1,000 mB and cools for five ticks; this path awaits game verification. As in the source Forge bucket wrapper, filling replaces the input with a new bucket rather than retaining input components. Other fluid-capability containers remain unsupported.
+
 The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
 The registered `basin_duplication` serializer now shares the duplication transaction with table recipes while matching only its own basin type. No production recipe is added; datapack operation, data preservation and runtime behavior await verification.
 The shared source recipe snapshot resolves `forge:conditional` candidates in source order and filters top-level recipe conditions at datapack reload against the current item/tag/config snapshots. Unknown earlier conditions or an unavailable context reject the affected recipe rather than select a later branch; unsupported conditions remain inactive. Consumers still need their own serializer support. This change awaits integrated verification.

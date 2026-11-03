@@ -311,6 +311,19 @@ impl MoldingRecipe {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum Output { Item(String), Tag(String) }
+/// Bucket subset of source table-filling recipes. Other containers require
+/// their own fluid-capability semantics.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct BucketFillingRecipe;
+impl BucketFillingRecipe {
+    pub(super) fn matches(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> bool {
+        let Ok(value) = serde_json::from_slice::<Value>(bytes) else { return false; };
+        value.get("type").and_then(Value::as_str) == Some("tconstruct:table_filling")
+            && value.get("container").and_then(Value::as_str) == Some("minecraft:bucket")
+            && value.get("fluid_amount").and_then(Value::as_u64) == Some(1000)
+            && enabled(&value, conditions)
+    }
+}
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct DuplicationRecipe { pub basin: bool, pub cast: Ingredient, pub fluid: FluidSpec, pub cooling_time: u32 }
 impl DuplicationRecipe {

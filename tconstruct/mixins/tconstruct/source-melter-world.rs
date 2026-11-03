@@ -150,6 +150,16 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
     if let Some(stack) = input {
+        if !basin {
+            // Forge FluidBucketWrapper replaces the stack with a new filled bucket.
+            if stack.item.as_ref() == "minecraft:bucket" && stack.damage == 0 && stack.count == 1 {
+                if let Some((id, recipe, output)) = with_catalog(world, |catalog, registries, config| {
+                    catalog.bucket_filling(fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+                })? {
+                    return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
+                }
+            }
+        }
         if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
             catalog.duplication(basin, &stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
         })? {
@@ -157,7 +167,6 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             output.count = 1;
             return Some((id, recipe, output));
         }
-    }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. Regular casts are limited to undamaged tools; composite
     // casts do not repair. Supported gem upgrades are rebuilt through the
@@ -208,6 +217,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             Some((id, recipe, output))
         })();
         if candidate.is_some() { return candidate; }
+    }
     }
     let material_tags = &world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?.2;
     let supports_checked = |material: &str, output: &str| super::tconstruct_source_builder_world::supported_material(world, material)
