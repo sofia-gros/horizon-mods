@@ -8,9 +8,11 @@ fn tconstruct_materials_book_request(game: &mut Game<'_>, host: &mut LanHost, co
         [1] => guest.offhand.as_ref(),
         _ => None,
     };
-    if !held.is_some_and(|item| &*item.item == "tconstruct:materials_and_you") { return Break(()); }
+    let Some(held) = held else { return Break(()); };
+    let puny = &*held.item == "tconstruct:puny_smelting";
+    if !puny && &*held.item != "tconstruct:materials_and_you" { return Break(()); }
     let path = game.options.resources.clone();
-    let Some(pages) = super::books::tconstruct_materials_book::source_pages(game, &path) else { return Break(()); };
+    let Some(pages) = super::books::tconstruct_materials_book::source_pages(game, &path, puny) else { return Break(()); };
     let Some(data) = super::books::tconstruct_materials_book_wire::encode(&pages) else { return Break(()); };
     guest.send(&C::CustomPayload(horizon_protocol::packets::configuration::CustomPayload {
         channel: "tconstruct:materials_book".into(), data,
