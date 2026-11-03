@@ -258,6 +258,8 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions_mut() = Some(definitions);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats_mut() = Some(stats);
     *game.world.chunks.__horizon_mixins_tconstruct_source_shared_recipes_mut() = Some(std::sync::Arc::new(recipes.clone()));
+    *game.world.chunks.__horizon_mixins_tconstruct_station_building_recipes_mut() = Some(
+        crate::game::tconstruct_source_station_recipes::building_recipe_index(&recipes));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot_mut() = Some(recipes);
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_mod_snapshot_mut() = Some((mod_presence.states, mod_presence.complete));
     *game.world.chunks.__horizon_mixins_tconstruct_recipe_tag_snapshot_mut() = Some(tags);

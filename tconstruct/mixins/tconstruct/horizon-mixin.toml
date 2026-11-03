@@ -775,6 +775,17 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
+# Parsed once per recipe snapshot; retains the source ordering for station matching.
+[[state]]
+id = "station-building-recipes"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<Vec<Vec<u8>>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
 [[module]]
 id = "recipe-reload-helper"
 file = "crates/horizon-client/src/game/functions.rs"
