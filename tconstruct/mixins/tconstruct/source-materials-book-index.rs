@@ -37,6 +37,13 @@ pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool
     }
 }
 
+// The pinned Mighty index uses tier 3 and excludes distant materials for
+// all three chapters. Stat support and hidden status are checked by the caller.
+pub(super) fn mighty_material_tier(key: &str, tier: i32, distant: bool) -> bool {
+    matches!(key, "melee_harvest_materials" | "ranged_materials" | "armor_materials")
+        && tier == 3 && !distant
+}
+
 // The melee chapter also admits Whitestone when its special item tag is
 // populated, even when that material is tagged as distant.
 pub(super) fn puny_melee_material_tier(tier: i32, distant: bool, id: &str, whitestone_ingots: bool) -> bool {
@@ -71,7 +78,18 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{label, layout, mighty_advice_page, mighty_advice_ready, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    use super::{label, layout, mighty_advice_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
+    #[test]
+    fn mighty_materials_only_include_nondistant_tier_three() {
+        for key in ["melee_harvest_materials", "ranged_materials", "armor_materials"] {
+            assert!(mighty_material_tier(key, 3, false));
+            assert!(!mighty_material_tier(key, 2, false));
+            assert!(!mighty_material_tier(key, 4, false));
+            assert!(!mighty_material_tier(key, 3, true));
+        }
+        assert!(!mighty_material_tier("ammo_materials", 3, false));
+        assert!(!mighty_material_tier("unknown", 3, false));
+    }
     #[test]
     fn mighty_advice_needs_all_notice_labels() {
         assert!(mighty_advice_ready([Some("Partial"), Some("Notice"), Some("Details")]));
