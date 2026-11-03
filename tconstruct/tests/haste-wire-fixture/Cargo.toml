@@ -1,0 +1,13 @@
+[package]
+name = "tconstruct-haste-wire-fixture"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+horizon-items = { path = "../../target/modded/crates/horizon-items" }
+horizon-world = { path = "../../target/modded/crates/horizon-world" }
+horizon-protocol = { path = "../../target/modded/crates/horizon-protocol" }
+
+[[test]]
+name = "haste_wire_send"
+path = "../rust/haste_wire_send.rs"
