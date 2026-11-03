@@ -1,0 +1,1 @@
+{"template":"minecraft:iron_chain","properties":{"hardness":5.0,"explosion_resistance":5.0,"requires_tool":true,"sounds":"minecraft:netherite_block","map_color":1},"default_state":{"waterlogged":"false"},"shapes":{"property":"waterlogged","values":{"false":[[0.0625,0.0625,0.0625,0.9375,0.9375,0.9375]],"true":[[0.0625,0.0625,0.0625,0.9375,0.9375,0.9375]]}}}
