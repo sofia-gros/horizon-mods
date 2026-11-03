@@ -67,7 +67,7 @@ impl SmelteryTank {
 
     /// Commit only when every input and the resulting net volume fit.
     pub(super) fn alloy(&mut self, inputs: &[FluidAmount], result: &FluidAmount) -> bool {
-        if inputs.is_empty() || result.id.is_empty() || result.amount == 0 { return false; }
+        if result.id.is_empty() || result.amount == 0 { return false; }
         let mut next = self.clone();
         let mut removed = 0u32;
         for input in inputs {

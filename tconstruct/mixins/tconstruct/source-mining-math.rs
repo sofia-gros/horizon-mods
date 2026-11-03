@@ -1,6 +1,6 @@
 // Original stat boosts and effective-block conditional mining modifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32) }
+pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Overwield(i32, i32) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
@@ -48,6 +48,7 @@ pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, dur
         match *modifier {
             Conditional::Jagged(level) if effective => speed *= 1.0 - wear * level.max(0) as f32,
             Conditional::Stonebound(level) if effective => speed *= 1.0 + wear * level.max(0) as f32,
+            Conditional::Overwield(level, overslime) if effective => speed *= 1.0 + 0.2 * level.max(0).min(overslime.max(0)) as f32,
             _ => {},
         }
     }

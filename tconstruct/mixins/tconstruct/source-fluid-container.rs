@@ -30,6 +30,7 @@ pub(super) fn is_bucket(stack: &ItemStack, known_fluid: &impl Fn(&str) -> bool) 
 }
 fn bottle_fluid(item: &str) -> Option<&'static str> {
     match item {
+        "tconstruct:venom_bottle" => Some("tconstruct:venom"),
         "tconstruct:earth_slime_bottle" => Some("tconstruct:earth_slime"),
         "tconstruct:sky_slime_bottle" => Some("tconstruct:sky_slime"),
         "tconstruct:ichor_slime_bottle" => Some("tconstruct:ichor"),
@@ -191,6 +192,33 @@ mod tests {
         let before=(tank.clone(),slots.clone());
         assert!(!transfer(&mut tank,&mut slots,Direction::Auto,&known,&known));
         assert_eq!((tank,slots),before);
+    }
+    #[test]
+    fn venom_bottle_returns_glass_only_after_full_transfer() {
+        let mut tank = SmelteryTank::new(249);
+        let mut slots = [Some(ItemStack::new("tconstruct:venom_bottle", 2)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots.clone()), before);
+        tank = SmelteryTank::new(250);
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("tconstruct:venom"), 250);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
+    }
+    #[test]
+    fn venom_transfer_preserves_other_fluids_and_blocked_stacks() {
+        let mut tank = SmelteryTank::new(1500);
+        assert!(tank.insert("minecraft:lava", 1000));
+        let mut slots = [Some(ItemStack::new("tconstruct:venom_bottle", 2)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(tank.amount("tconstruct:venom"), 250);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:glass_bottle");
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots), before);
     }
     #[test]
     fn single_fluid_tank_rejects_mixing_without_losing_container() {
