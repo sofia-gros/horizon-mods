@@ -4,7 +4,7 @@
 use serde_json::Value;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>) }
+pub(super) enum Ingredient { Item(String), Tag(String), Any(Vec<Ingredient>), All(Vec<Ingredient>), Difference(Box<Ingredient>, Box<Ingredient>), NoContainer(Box<Ingredient>) }
 
 impl Ingredient {
     pub(super) fn parse(value: &Value) -> Option<Self> {
@@ -21,6 +21,20 @@ impl Ingredient {
         if obj.get("type").and_then(Value::as_str) == Some("forge:difference") {
             if obj.keys().any(|key| key != "type" && key != "base" && key != "subtracted") { return None; }
             return Some(Self::Difference(Box::new(Self::parse(obj.get("base")?)?), Box::new(Self::parse(obj.get("subtracted")?)?)));
+        }
+        if obj.get("type").and_then(Value::as_str) == Some("tconstruct:no_container") {
+            let nested = if let Some(value) = obj.get("match") {
+                if obj.len() != 2 { return None; }
+                Self::parse(value)?
+            } else {
+                if obj.keys().any(|key| key != "type" && key != "item" && key != "tag") { return None; }
+                match (obj.get("item"), obj.get("tag")) {
+                    (Some(id), None) => Self::Item(id.as_str()?.to_owned()),
+                    (None, Some(id)) => Self::Tag(id.as_str()?.to_owned()),
+                    _ => return None,
+                }
+            };
+            return Some(Self::NoContainer(Box::new(nested)));
         }
         // With the default ANY predicate the source material ingredient only
         // tests its nested item or tag, without reading material NBT.
@@ -42,12 +56,16 @@ impl Ingredient {
         }
     }
     pub(super) fn matches(&self, item: &str, in_tag: &impl Fn(&str, &str) -> bool) -> bool {
+        self.matches_with_container(item, in_tag, None).unwrap_or(false)
+    }
+    pub(super) fn matches_with_container(&self, item: &str, in_tag: &impl Fn(&str, &str) -> bool, no_container: Option<bool>) -> Option<bool> {
         match self {
-            Self::Item(id) => id == item,
-            Self::Tag(tag) => in_tag(tag, item),
-            Self::Any(choices) => choices.iter().any(|choice| choice.matches(item, in_tag)),
-            Self::All(choices) => choices.iter().all(|choice| choice.matches(item, in_tag)),
-            Self::Difference(base, removed) => base.matches(item, in_tag) && !removed.matches(item, in_tag),
+            Self::Item(id) => Some(id == item),
+            Self::Tag(tag) => Some(in_tag(tag, item)),
+            Self::Any(choices) => { let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(true) => return Some(true), Some(false) => {}, None => unknown = true } } if unknown { None } else { Some(false) } },
+            Self::All(choices) => { let mut unknown = false; for choice in choices { match choice.matches_with_container(item, in_tag, no_container) { Some(false) => return Some(false), Some(true) => {}, None => unknown = true } } if unknown { None } else { Some(true) } },
+            Self::Difference(base, removed) => Some(base.matches_with_container(item, in_tag, no_container)? && !removed.matches_with_container(item, in_tag, no_container)?),
+            Self::NoContainer(inner) => Some(inner.matches_with_container(item, in_tag, no_container)? && no_container?),
         }
     }
 }
@@ -157,6 +175,67 @@ impl MeltingRecipe {
     }
 }
 
+pub(super) fn material_melting(bytes: &[u8], item: &str, material: &str, cost: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<FoundryRecipe> {
+    let mut value: Value = serde_json::from_slice(bytes).ok()?;
+    if value.get("type")?.as_str()? != "tconstruct:material_melting" || !enabled(&value, conditions) || cost == 0 { return None; }
+    let wanted = value.get("input")?.as_str()?;
+    let (base, variant) = wanted.split_once('#').unwrap_or((wanted, ""));
+    let (actual_base, actual_variant) = material.split_once('#').unwrap_or((material, ""));
+    if base != actual_base || !(variant.is_empty() || variant == actual_variant || variant == "default" && actual_variant.is_empty()) { return None; }
+    let object = value.as_object_mut()?;
+    let result = object.get_mut("result")?.as_object_mut()?;
+    let amount = u32::try_from(result.get("amount")?.as_u64()?).ok()?.checked_mul(cost)?;
+    if amount == 0 || amount > i32::MAX as u32 { return None; }
+    result.insert("amount".into(), Value::from(amount));
+    if let Some(byproducts) = object.get_mut("byproducts") {
+        for fluid in byproducts.as_array_mut()? {
+            let fluid = fluid.as_object_mut()?;
+            let amount = u32::try_from(fluid.get("amount")?.as_u64()?).ok()?.checked_mul(cost)?;
+            if amount == 0 || amount > i32::MAX as u32 { return None; }
+            fluid.insert("amount".into(), Value::from(amount));
+        }
+    }
+    let temperature = u32::try_from(object.get("temperature")?.as_u64()?).ok()?;
+    let factor = ((amount as f32) / 90.0_f32).sqrt();
+    let time = (((temperature as f64 + 300.0).powf(0.585_f32 as f64)) * factor as f64).round();
+    if !(1.0..=u32::MAX as f64).contains(&time) { return None; }
+    object.insert("time".into(), Value::from(time as u32));
+    object.insert("ingredient".into(), serde_json::json!({"item": item}));
+    object.insert("type".into(), Value::String("tconstruct:melting".into()));
+    FoundryRecipe::parse(&serde_json::to_vec(&value).ok()?, conditions)
+}
+
+/// Source damageable melting uses one unit minimum and Java int arithmetic.
+pub(super) fn damaged_melting(bytes: &[u8], damage: u32, maximum: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<FoundryRecipe> {
+    let mut value: Value = serde_json::from_slice(bytes).ok()?;
+    if value.get("type")?.as_str()? != "tconstruct:damagable_melting" { return None; }
+    let object = value.as_object_mut()?;
+    object.insert("type".into(), Value::String("tconstruct:melting".into()));
+    fn take_unit(value: &mut Value) -> Option<u32> {
+        let unit = match value.as_object_mut()?.remove("unit_size") { None => 1, Some(v) => u32::try_from(v.as_u64()?).ok()? };
+        (unit > 0 && unit <= i32::MAX as u32).then_some(unit)
+    }
+    let unit = take_unit(object.get_mut("result")?)?;
+    let units = match object.get_mut("byproducts") {
+        None => Vec::new(),
+        Some(v) => v.as_array_mut()?.iter_mut().map(take_unit).collect::<Option<Vec<_>>>()?,
+    };
+    let mut recipe = FoundryRecipe::parse(&serde_json::to_vec(&value).ok()?, conditions)?;
+    let scale = |amount: u32, unit: u32| -> Option<u32> {
+        let amount = i32::try_from(amount).ok()?;
+        let unit = i32::try_from(unit).ok()?;
+        if maximum == 0 { return u32::try_from(amount).ok(); }
+        let max = i32::try_from(maximum).ok()?;
+        let damage = i32::try_from(damage).ok()?;
+        let scaled = amount.wrapping_mul(max.wrapping_sub(damage)) / max;
+        let scaled = if scaled <= unit { unit } else { scaled - scaled % unit };
+        u32::try_from(scaled).ok()
+    };
+    recipe.melting.output.amount = scale(recipe.melting.output.amount, unit)?;
+    for (fluid, unit) in recipe.byproducts.iter_mut().zip(units) { fluid.amount = scale(fluid.amount, unit)?; }
+    Some(recipe)
+}
+
 /// Foundries use the source's separate ore and byproduct rates. Keep these
 /// outputs distinct so the caller can insert the primary fluid first and
 /// then fill byproducts in their original order.
@@ -231,19 +310,20 @@ mod foundry_tests {
     }
 }
 
-/// Source table molding with an optional hand-held pattern.
+/// Source table or basin molding with an optional hand-held pattern.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MoldingRecipe {
-    pub material: Ingredient, pub pattern: Option<Ingredient>,
+    pub basin: bool, pub material: Ingredient, pub pattern: Option<Ingredient>,
     pub pattern_consumed: bool, pub result: String,
 }
 impl MoldingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        if v.get("type")?.as_str()? != "tconstruct:molding_table" || !enabled(&v, conditions) { return None; }
+        let basin = match v.get("type")?.as_str()? { "tconstruct:molding_table" => false, "tconstruct:molding_basin" => true, _ => return None };
+        if !enabled(&v, conditions) { return None; }
         let pattern = match v.get("pattern") { Some(value) => Some(Ingredient::parse(value)?), None => None };
         let pattern_consumed = match v.get("pattern_consumed") { None => false, Some(value) => value.as_bool()? };
-        Some(Self { material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
+        Some(Self { basin, material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
             result: v.get("result")?.as_str()?.to_owned() })
     }
 }
@@ -264,14 +344,27 @@ impl BucketFillingRecipe {
     }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct DuplicationRecipe { pub cast: Ingredient, pub fluid: FluidSpec, pub cooling_time: u32 }
+pub(super) struct BasinFillingRecipe { pub container: String, pub fluid_amount: u32 }
+impl BasinFillingRecipe {
+    pub(super) fn parse(bytes: &[u8], basin: bool, conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
+        let value: Value = serde_json::from_slice(bytes).ok()?;
+        let expected = if basin { "tconstruct:basin_filling" } else { "tconstruct:table_filling" };
+        if value.get("type")?.as_str()? != expected || !enabled(&value, conditions) { return None; }
+        let fluid_amount = u32::try_from(value.get("fluid_amount")?.as_u64()?).ok()?;
+        if fluid_amount == 0 { return None; }
+        Some(Self { container: value.get("container")?.as_str()?.to_owned(), fluid_amount })
+    }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(super) struct DuplicationRecipe { pub basin: bool, pub cast: Ingredient, pub fluid: FluidSpec, pub cooling_time: u32 }
 impl DuplicationRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let value: Value = serde_json::from_slice(bytes).ok()?;
-        if value.get("type")?.as_str()? != "tconstruct:table_duplication" || !enabled(&value, conditions) { return None; }
+        let basin = match value.get("type")?.as_str()? { "tconstruct:table_duplication" => false, "tconstruct:basin_duplication" => true, _ => return None };
+        if !enabled(&value, conditions) { return None; }
         let cooling_time = u32::try_from(value.get("cooling_time")?.as_u64()?).ok()?;
         if cooling_time == 0 { return None; }
-        Some(Self { cast: Ingredient::parse(value.get("cast")?)?, fluid: FluidSpec::parse(value.get("fluid")?)?, cooling_time })
+        Some(Self { basin, cast: Ingredient::parse(value.get("cast")?)?, fluid: FluidSpec::parse(value.get("fluid")?)?, cooling_time })
     }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -294,6 +387,7 @@ pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> boo
         consumes_cast: true, switch_slots: false, fluid: FluidSpec::parse(value.get("fluid")?)?,
         output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
 }
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize }
 impl PartSwapCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
@@ -315,19 +409,21 @@ impl PartSwapCastingRecipe {
 /// recipe are joined only after the current world's tags are resolved.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MaterialCastingRecipe {
-    pub cast: Ingredient, pub item_cost: u32, pub result: String,
+    pub basin: bool, pub cast: Option<Ingredient>, pub item_cost: u32, pub result: String,
     pub consumes_cast: bool, pub switch_slots: bool, pub allowed_materials: Option<Value>,
 }
 impl MaterialCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        if v.get("type")?.as_str()? != "tconstruct:table_casting_material" || !enabled(&v, conditions) { return None; }
+        let basin = match v.get("type")?.as_str()? { "tconstruct:table_casting_material" => false, "tconstruct:basin_casting_material" => true, _ => return None };
+        if !enabled(&v, conditions) { return None; }
         let item_cost = u32::try_from(v.get("item_cost")?.as_u64()?).ok()?;
         if item_cost == 0 { return None; }
-        Some(Self { cast: Ingredient::parse(v.get("cast")?)?, item_cost,
+        let cast = match v.get("cast") { Some(value) => Some(Ingredient::parse(value)?), None => None };
+        Some(Self { basin, cast, item_cost,
             result: v.get("result")?.as_str()?.to_owned(), allowed_materials: v.get("allowed_materials").cloned(),
-            consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
-            switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false) })
+            consumes_cast: optional_bool(&v, "cast_consumed")?,
+            switch_slots: optional_bool(&v, "switch_slots")? })
     }
 }
 
@@ -398,10 +494,13 @@ impl CastingRecipe {
             };
         let cooling_time = u32::try_from(v.get("cooling_time")?.as_u64()?).ok()?;
         if cooling_time == 0 { return None; }
-        Some(Self { basin, retextured, cast, consumes_cast: v.get("cast_consumed").and_then(Value::as_bool).unwrap_or(false),
-            switch_slots: v.get("switch_slots").and_then(Value::as_bool).unwrap_or(false),
+        Some(Self { basin, retextured, cast, consumes_cast: optional_bool(&v, "cast_consumed")?,
+            switch_slots: optional_bool(&v, "switch_slots")?,
             fluid: FluidSpec::parse(v.get("fluid")?)?, output, cooling_time })
     }
+}
+fn optional_bool(value: &Value, key: &str) -> Option<bool> {
+    match value.get(key) { None => Some(false), Some(value) => value.as_bool() }
 }
 fn enabled(value: &Value, conditions: &impl Fn(&[Value]) -> bool) -> bool {
     match value.get("conditions") { None => true, Some(Value::Array(items)) => conditions(items), _ => false }
@@ -410,6 +509,17 @@ fn enabled(value: &Value, conditions: &impl Fn(&[Value]) -> bool) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn container_ingredients_require_known_stack_state() {
+        let v = serde_json::json!({"type":"tconstruct:no_container", "match":[{"item":"tconstruct:seared_fuel_gauge"},{"item":"tconstruct:seared_ingot_gauge"}]});
+        let ingredient = Ingredient::parse(&v).unwrap();
+        let tags = |_: &str, _: &str| false;
+        assert_eq!(ingredient.matches_with_container("tconstruct:seared_fuel_gauge", &tags, Some(true)), Some(true));
+        assert_eq!(ingredient.matches_with_container("tconstruct:seared_fuel_gauge", &tags, Some(false)), Some(false));
+        assert_eq!(ingredient.matches_with_container("tconstruct:seared_fuel_gauge", &tags, None), None);
+        assert_eq!(ingredient.matches_with_container("minecraft:stone", &tags, None), Some(false));
+    }
+
     const COPPER: &[u8] = br#"{"type":"tconstruct:melting","ingredient":{"tag":"forge:ingots/copper"},"result":{"amount":90,"tag":"forge:molten_copper"},"temperature":500,"time":50}"#;
     const CAST: &[u8] = br#"{"type":"tconstruct:casting_table","cast":{"tag":"tconstruct:casts/multi_use/ingot"},"cooling_time":50,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"tag":"forge:ingots/copper"}}"#;
     #[test]
@@ -436,5 +546,47 @@ mod tests {
         let c = br#"{"type":"tconstruct:casting_basin","conditions":[{"type":"forge:mod_loaded","modid":"unknown"}],"cooling_time":40,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"item":"minecraft:stone","nbt":{}}}"#;
         assert!(CastingRecipe::parse(c, &|_| false).is_none());
         assert!(CastingRecipe::parse(c, &|_| true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod damaged_tests {
+    use super::*;
+    #[test]
+    fn scales_primary_and_byproduct_by_source_units() {
+        let raw = br#"{"type":"tconstruct:damagable_melting","ingredient":{"item":"minecraft:diamond_pickaxe"},"result":{"amount":300,"fluid":"tconstruct:molten_diamond","unit_size":25},"temperature":1450,"time":137,"byproducts":[{"fluid":"tconstruct:molten_gold","amount":90,"unit_size":10}]}"#;
+        let half = damaged_melting(raw, 50, 100, &|_| true).unwrap();
+        assert_eq!(half.melting.output.amount, 150);
+        assert_eq!(half.byproducts[0].amount, 40);
+        let almost_broken = damaged_melting(raw, 99, 100, &|_| true).unwrap();
+        assert_eq!((almost_broken.melting.output.amount, almost_broken.byproducts[0].amount), (25, 10));
+        assert_eq!(damaged_melting(raw, 0, 0, &|_| true).unwrap().melting.output.amount, 300);
+    }
+}
+
+#[cfg(test)]
+mod material_melting_tests {
+    use super::*;
+    #[test]
+    fn material_and_cost_control_outputs() {
+        let raw = br#"{"type":"tconstruct:material_melting","input":"tconstruct:copper","result":{"fluid":"tconstruct:molten_copper","amount":90},"temperature":500,"byproducts":[{"fluid":"tconstruct:molten_gold","amount":10}]}"#;
+        let found = material_melting(raw, "tconstruct:pick_head", "tconstruct:copper#default", 2, &|_| true).unwrap();
+        assert_eq!(found.melting.output.amount, 180);
+        assert_eq!(found.byproducts[0].amount, 20);
+        assert!(found.melting.time > 0);
+        assert!(material_melting(raw, "tconstruct:pick_head", "tconstruct:iron", 2, &|_| true).is_none());
+        assert!(material_melting(raw, "tconstruct:pick_head", "tconstruct:copper", 0, &|_| true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod basin_molding_tests {
+    use super::*;
+    #[test]
+    fn source_molding_type_keeps_table_and_basin_distinct() {
+        let raw = br#"{"type":"tconstruct:molding_basin","material":{"item":"minecraft:sand"},"pattern":{"item":"minecraft:stone"},"result":"minecraft:gravel"}"#;
+        let recipe = MoldingRecipe::parse(raw, &|_| true).unwrap();
+        assert!(recipe.basin);
+        assert!(!recipe.pattern_consumed);
     }
 }

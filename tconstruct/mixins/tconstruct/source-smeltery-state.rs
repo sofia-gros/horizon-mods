@@ -17,10 +17,11 @@ pub(super) struct Smeltery {
     pub rate: u32,
     pub fuel_cost: u32,
     pub phase: u8,
+    pub entity_phase: u8,
 }
 impl Smeltery {
     pub(super) fn new() -> Self {
-        Self { slots: Vec::new(), progress: Vec::new(), tank: SmelteryTank::new(0), fuel: 0, fuel_quality: 0, fuel_view: Default::default(), temperature: 0, rate: 0, fuel_cost: 1, phase: 0 }
+        Self { slots: Vec::new(), progress: Vec::new(), tank: SmelteryTank::new(0), fuel: 0, fuel_quality: 0, fuel_view: Default::default(), temperature: 0, rate: 0, fuel_cost: 1, phase: 0, entity_phase: 0 }
     }
     /// Resize with the structure. The caller must return or drop any displaced
     /// stacks; shrinking capacity does not discard already stored liquid.
@@ -86,13 +87,14 @@ impl Smeltery {
             self.fuel = self.fuel.saturating_sub(self.fuel_cost);
         }
         self.phase = (self.phase + 1) % 4;
+        self.entity_phase = (self.entity_phase + 1) % 20;
     }
     pub(super) fn to_nbt(&self) -> Tag {
         let slots = self.slots.iter().map(|slot| slot.as_ref().map(item_to_nbt).unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()))).collect();
         Tag::compound([("slots", Tag::List(slots)), ("progress", Tag::IntArray(self.progress.clone())),
             ("tank", self.tank.to_nbt()), ("fuel", Tag::Long(i64::from(self.fuel))), ("fuel_quality", Tag::Long(i64::from(self.fuel_quality))), ("fuel_view", self.fuel_view.to_nbt()),
             ("temperature", Tag::Long(i64::from(self.temperature))), ("rate", Tag::Long(i64::from(self.rate))),
-            ("fuel_cost", Tag::Long(i64::from(self.fuel_cost))), ("phase", Tag::Int(i32::from(self.phase)))])
+            ("fuel_cost", Tag::Long(i64::from(self.fuel_cost))), ("phase", Tag::Int(i32::from(self.phase))), ("entity_phase", Tag::Int(i32::from(self.entity_phase)))])
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
@@ -104,8 +106,9 @@ impl Smeltery {
         if progress.len() != inventory.len() || progress.iter().any(|value| *value < -1) { return None; }
         let number = |key| match tag.get(key)? { Tag::Long(n) => u32::try_from(*n).ok(), _ => None };
         let phase = match tag.get("phase")? { Tag::Int(n) if (0..4).contains(n) => *n as u8, _ => return None };
+        let entity_phase = match tag.get("entity_phase") { None => 0, Some(Tag::Int(n)) if (0..20).contains(n) => *n as u8, _ => return None };
         Some(Self { slots: inventory, progress: progress.clone(), tank: SmelteryTank::from_nbt(tag.get("tank")?)?,
-            fuel: number("fuel")?, fuel_quality: number("fuel_quality").unwrap_or(number("fuel")?), fuel_view: tag.get("fuel_view").and_then(super::tconstruct_source_smeltery_fuel::FuelView::from_nbt).unwrap_or_default(), temperature: number("temperature")?, rate: number("rate")?, fuel_cost: number("fuel_cost").unwrap_or(1), phase })
+            fuel: number("fuel")?, fuel_quality: number("fuel_quality").unwrap_or(number("fuel")?), fuel_view: tag.get("fuel_view").and_then(super::tconstruct_source_smeltery_fuel::FuelView::from_nbt).unwrap_or_default(), temperature: number("temperature")?, rate: number("rate")?, fuel_cost: number("fuel_cost").unwrap_or(1), phase, entity_phase })
     }
 }
 
