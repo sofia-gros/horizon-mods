@@ -97,3 +97,17 @@ recipe; unrelated non-ore melting stays available. The snapshot is refreshed
 with datapack capture/reload; automatic Forge file watching is not implemented.
 The Forge setting `slimeRecipeFix` and other unsupported settings remain outside
 this reader. Custom ore recipes whose primary amount truncates to zero still consume input after heating and may produce Foundry byproducts. Game, reload-during-heating and LAN behavior need verification.
+
+Foundry output follows upstream TConstruct f4e77d43: only the primary output
+must fit. Byproducts are filled in order up to the remaining capacity, and any
+unaccepted remainder is discarded while the input is consumed. A zero primary
+output passes the capacity check even when the tank is full, so all byproducts
+can be lost. A blocked nonzero primary preserves the input and retries later.
+
+The focused state, tank, fuel and melter harness passed 32 tests, including
+blocked-primary reload/retry and partial/full capacity cases, linked against
+Horizon item and world libraries. The generated-host `horizon-client --lib`
+test binary was not built: both parallel and single-job attempts ended with
+rustc killed by SIGKILL. Therefore the host integration tests remain unverified;
+this harness does not replace them. Gameplay, LAN and reload while heating also
+remain unverified.

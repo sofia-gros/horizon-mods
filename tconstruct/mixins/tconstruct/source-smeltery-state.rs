@@ -171,7 +171,7 @@ mod tests {
         assert_eq!(s.tank.total(), 10);
     }
     #[test]
-    fn zero_foundry_primary_accepts_partial_and_full_byproduct_capacity() {
+    fn zero_foundry_primary_discards_unfilled_byproducts_as_upstream_does() {
         use super::super::tconstruct_source_smeltery_tank::FluidAmount;
         for (occupied, expected_gold) in [(90, 10), (100, 0)] {
             let mut s = Smeltery::new(); s.resize(1, 100);
@@ -189,7 +189,26 @@ mod tests {
         }
     }
     #[test]
-    fn foundry_consumes_input_only_after_primary_and_byproduct_are_staged() {
+    fn blocked_foundry_primary_preserves_input_and_retries_after_reload() {
+        use super::super::tconstruct_source_smeltery_tank::FluidAmount;
+        let mut s = Smeltery::new(); s.resize(1, 100);
+        s.slots[0] = Some(ItemStack::new("minecraft:copper_ore", 1));
+        s.temperature = 500; s.rate = 1; s.progress[0] = 50;
+        assert!(s.tank.insert("iron", 90));
+        let primary = FluidAmount { id: "copper".into(), tag: None, amount: 20 };
+        let extra = [FluidAmount { id: "gold".into(), tag: None, amount: 30 }];
+        assert!(!s.heat_foundry_slot(0, 500, 50, &primary, &extra));
+        assert_eq!(s.progress[0], -1);
+        assert_eq!(s.slots[0].as_ref().unwrap().count, 1);
+        assert_eq!((s.tank.amount("iron"), s.tank.amount("copper"), s.tank.amount("gold")), (90, 0, 0));
+        let mut s = Smeltery::from_nbt(&s.to_nbt()).unwrap();
+        assert!(s.tank.take("iron", 40));
+        assert!(s.heat_foundry_slot(0, 500, 50, &primary, &extra));
+        assert!(s.slots[0].is_none());
+        assert_eq!((s.tank.amount("iron"), s.tank.amount("copper"), s.tank.amount("gold")), (50, 20, 30));
+    }
+    #[test]
+    fn foundry_consumes_input_after_primary_and_partial_byproduct_fill() {
         use super::super::tconstruct_source_smeltery_tank::FluidAmount;
         let mut s = Smeltery::new(); s.resize(1, 205);
         s.slots[0] = Some(ItemStack::new("minecraft:copper_ore", 1));
