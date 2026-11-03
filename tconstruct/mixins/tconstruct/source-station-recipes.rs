@@ -90,9 +90,61 @@ impl BuildingRecipe {
     }
 }
 
+/// Build in snapshot order after pack overrides have been applied. Keep bytes so
+/// consumers continue to use the same validation and matching paths.
+pub(super) fn building_recipe_index(recipes: &std::collections::BTreeMap<String, Vec<u8>>) -> Vec<Vec<u8>> {
+    recipes.values().filter(|bytes| BuildingRecipe::parse(bytes).is_some()).cloned().collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn building_index_preserves_order_and_tracks_snapshot_replacement() {
+        use std::collections::BTreeMap;
+        let a = br#"{"type":"tconstruct:tool_building","result":"tconstruct:a"}"#.to_vec();
+        let b = br#"{"type":"tconstruct:tool_building","result":"tconstruct:b"}"#.to_vec();
+        let mut snapshot = BTreeMap::from([
+            ("z".to_owned(), b.clone()), ("a".to_owned(), a.clone()),
+            ("other".to_owned(), br#"{"type":"minecraft:crafting_shaped"}"#.to_vec()),
+            ("invalid".to_owned(), b"{".to_vec()),
+        ]);
+        assert_eq!(building_recipe_index(&snapshot), vec![a.clone(), b.clone()]);
+        snapshot.insert("a".into(), br#"{"type":"minecraft:crafting_shaped"}"#.to_vec());
+        assert_eq!(building_recipe_index(&snapshot), vec![b]);
+        assert_eq!(building_recipe_index(&BTreeMap::from([("a".into(), a.clone())])), vec![a]);
+    }
+    #[test]
+    fn indexed_and_full_scans_choose_the_same_build_and_tool_recipe() {
+        use std::collections::BTreeMap;
+        let recipe = |item: &str, part: &str| format!(
+            r#"{{"type":"tconstruct:tool_building","result":"{item}","parts_override":["{part}"]}}"#).into_bytes();
+        let snapshot = BTreeMap::from([
+            ("a".into(), br#"{"type":"minecraft:crafting_shaped"}"#.to_vec()),
+            ("b".into(), recipe("tconstruct:pickaxe", "tconstruct:pick_head")),
+            ("c".into(), recipe("tconstruct:pickaxe", "tconstruct:other_head")),
+        ]);
+        let indexed = building_recipe_index(&snapshot);
+        let full: Vec<_> = snapshot.values().collect();
+        let fast: Vec<_> = indexed.iter().collect();
+        let select_build = |bytes: &[&Vec<u8>], slots: &[Option<ItemStack>]| {
+            bytes.iter().filter_map(|bytes| BuildingRecipe::parse(bytes)).find_map(|recipe| {
+                let parts = recipe.parts(b"{}").unwrap();
+                recipe.match_inputs(&parts, parts.len(), slots, |_| Some("tconstruct:wood".into()), |_, _| true, |_, _| false)
+            })
+        };
+        let select_tool = |bytes: &[&Vec<u8>]| bytes.iter().filter_map(|bytes| BuildingRecipe::parse(bytes))
+            .find(|recipe| recipe.result == "tconstruct:pickaxe");
+        // Build selection follows inputs. Swap and repair both select the first
+        // recipe by result, including when multiple recipes share that result.
+        for part in ["tconstruct:pick_head", "tconstruct:other_head", "tconstruct:missing"] {
+            let slots = [Some(ItemStack::new(part, 1)), None, None];
+            assert_eq!(select_build(&full, &slots), select_build(&fast, &slots));
+        }
+        assert_eq!(select_tool(&full), select_tool(&fast));
+        assert_eq!(select_tool(&fast).unwrap().parts_override.unwrap(), vec!["tconstruct:pick_head"]);
+    }
+
     #[test]
     fn modifier_repair_ingredients_resolve_set_forms_without_negating_unknowns() {
         let tags = std::collections::HashMap::from([("forge:foods".to_owned(),
