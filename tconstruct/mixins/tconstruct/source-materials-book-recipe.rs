@@ -1,6 +1,15 @@
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
+pub(super) fn showcase_item(value: &Value) -> Option<&str> {
+    let id = value.as_str().or_else(|| value.get("item").and_then(Value::as_str))?;
+    let (namespace, path) = id.split_once(':')?;
+    if namespace.is_empty() || path.is_empty()
+        || !namespace.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_.-".contains(&c))
+        || !path.bytes().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || b"_./-".contains(&c)) { return None; }
+    Some(id)
+}
+
 pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<String>>>, grid_size: &str) -> Option<Value> {
     fn ingredient(value: &serde_json::Value, tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> Vec<String> {
         if let Some(choices) = value.as_array() {
@@ -36,6 +45,16 @@ pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn showcase_accepts_source_item_forms_and_rejects_invalid_values() {
+        for id in ["tconstruct:copper_gauge", "tconstruct:seared_fluid_cannon", "tconstruct:seared_casting_tank"] {
+            assert_eq!(showcase_item(&serde_json::json!(id)), Some(id));
+            assert_eq!(showcase_item(&serde_json::json!({"item":id})), Some(id));
+        }
+        for value in [serde_json::Value::Null, serde_json::json!({}), serde_json::json!({"item":42}), serde_json::json!(""), serde_json::json!("tconstruct:"), serde_json::json!("no namespace"), serde_json::json!("tconstruct:bad id")] {
+            assert_eq!(showcase_item(&value), None);
+        }
+    }
     #[test]
     fn preserves_tag_candidates_and_output_count() {
         let tags = HashMap::from([("tconstruct:planklike".to_owned(), ["minecraft:birch_planks".to_owned(), "minecraft:oak_planks".to_owned()].into_iter().collect())]);

@@ -196,3 +196,15 @@ fn overwield_uses_current_capacity_for_draw_and_velocity() {
   }
  }
 }
+
+
+#[test]
+fn blindshot_stays_unsalvageable_when_gilded_is_present() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag;
+ let mut tool=ItemStack::new("tconstruct:longbow",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([
+  ("tconstruct:blindshot",Tag::Int(10)),("tconstruct:gilded",Tag::Int(1))]))])));
+ let ids=tconstruct_source_upgrade_rules::extractable(&tool);
+ assert!(ids.contains(&"tconstruct:gilded"));
+ assert!(!ids.contains(&"tconstruct:blindshot"));
+}
