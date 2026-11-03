@@ -171,8 +171,17 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_melter.png').read_bytes(), melter_assets.read('assets/tconstruct/textures/gui/melter.png'))
                 fluids = json.loads(melter_assets.read('assets/tconstruct/melter-fluid-textures.json'))
                 self.assertIn('tconstruct:molten_copper', fluids)
+                animations = json.loads((Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
+                self.assertEqual(animations['tconstruct:molten_copper'], {'animation': {'frametime': 2}})
+                self.assertEqual(animations['tconstruct:ichor'], {'animation': {'frametime': 3, 'interpolate': True}})
+                self.assertEqual(set(fluids) - set(animations), {'tconstruct:powdered_snow'})
+                self.assertEqual(json.loads((out / 'assets/minecraft/textures/block/tconstruct_fluid_fallback.png.mcmeta').read_text()), {'animation': {'frametime': 2}})
                 for fluid, texture in fluids.items():
                     self.assertEqual((out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).read_bytes(), melter_assets.read('assets/tconstruct/' + texture))
+                    meta = out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta')
+                    self.assertEqual(meta.exists(), fluid in animations)
+                    if fluid in animations:
+                        self.assertEqual(json.loads(meta.read_text()), animations[fluid])
             pattern_root = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-station-layouts.zip') as layouts:
                 for name in layouts.namelist():
