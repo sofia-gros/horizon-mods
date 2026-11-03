@@ -186,6 +186,13 @@ PlutoLib bundle. That result does not establish this candidate's apply, build
 or gameplay. Natural generation, source fluids, save/reload and LAN require
 separate validation.
 
+On Horizon `b193a877110ac1505227e6e057b40aade8aac8dd`, the pinned Mixins
+transformer reformats the host's valid `(0. ..=1.)` frequency range as invalid
+`0...=1.` when processing the island destination file. The targeted host or
+Mixins formatter needs a compatible spelling or serialization before an
+unmodified-source latest-host build can pass. This is separate from the 0c7b
+verification and does not disable the island integration.
+
 ## Experimental inland, Nether and End terrain
 
 The original inland Sky/Clay, Nether Blood and End island structure sets,
