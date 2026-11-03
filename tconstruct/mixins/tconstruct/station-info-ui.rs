@@ -84,8 +84,11 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         let tip = if id.as_ref() == "tconstruct:hydraulic" {
                             Some("Hydraulic: underwater only; rain bonus unavailable".to_owned())
                         } else { key.and_then(|key| game.pack.names.display_get(&format!("{key}.description"))) };
-                        let needed = match id.as_ref() { "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
-                        let shown = if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic") { label } else { format!("{label}: {amount}/{needed}") };
+                        let needed = match id.as_ref() { "tconstruct:blasting" => 20, "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
+                        let shown = if id.as_ref() == "tconstruct:blasting" {
+                            let Some(shown) = blasting_label(&label, *amount) else { continue; };
+                            shown
+                        } else if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic") { label } else { format!("{label}: {amount}/{needed}") };
                         bottom.push((shown, tip));
                     }
                 }
@@ -130,4 +133,13 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut horizon_client::hud::HudBatch, o
             batch.scale_since(start, x, y, scale, scale);
         }
     }
+}
+
+// Blasting uses the upstream default level display and 20 items per level.
+pub(super) fn blasting_label(label: &str, amount: i32) -> Option<String> {
+    if amount <= 0 { return None; }
+    let level = (amount - 1) / 20 + 1;
+    let numeral = match level { 1 => "I".to_owned(), 2 => "II".to_owned(), 3 => "III".to_owned(), 4 => "IV".to_owned(), 5 => "V".to_owned(), _ => level.to_string() };
+    let remainder = amount % 20;
+    Some(if remainder == 0 { format!("{label} {numeral}") } else { format!("{label} {numeral}: {remainder} / 20") })
 }
