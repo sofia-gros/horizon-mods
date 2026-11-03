@@ -1,6 +1,6 @@
-//! Source right-click selection and nearby entity geometry for splashing.
-//! Runtime effect handling and the Station recipe remain disabled until the
-//! authoritative target enumeration includes guest players and other entities.
+// Source right-click selection and nearby entity geometry for splashing.
+// Runtime effect handling and the Station recipe remain disabled until the
+// authoritative target enumeration includes guest players and other entities.
 use horizon_items::items::ItemStack;
 use horizon_world::nbt::Tag;
 
@@ -229,8 +229,8 @@ pub(super) fn deferred_recipe_supported(game: &super::Game<'_>, stack: &ItemStac
         super::tconstruct_source_fluid_effects::EntityEffect::Remove(id) => horizon_client::brewing::effect(id).is_none_or(|known| known.id != "poison" || !ids.insert(known.id)),
         super::tconstruct_source_fluid_effects::EntityEffect::Hunger { .. } => { let duplicate = hunger_seen; hunger_seen = true; duplicate },
         super::tconstruct_source_fluid_effects::EntityEffect::Push { .. } => true,
-        super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => true,
-        super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage | super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => true,
+        super::tconstruct_source_fluid_effects::EntityEffect::CureMilk | super::tconstruct_source_fluid_effects::EntityEffect::Calcified => false,
+        super::tconstruct_source_fluid_effects::EntityEffect::WaterSensitiveDamage | super::tconstruct_source_fluid_effects::EntityEffect::Extinguish => false,
     }) { return false; }
     if order_known { return true; }
     u32::try_from(count).ok().and_then(|count| recipe.amount.checked_mul(level as u32).and_then(|amount| amount.checked_mul(count))).is_some_and(|required| fluid.amount >= required)
