@@ -39,6 +39,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         merge(&builtin, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
         let vanilla = horizon_client::datapack::DataPack::builtin(&game.options.resources.join("minecraft-original-pack"));
         merge(&vanilla, &mut recipes, &mut tags, &mut fluid_tags, &mut block_tags, &mut materials, &mut material_tags);
+        crate::game::tconstruct_source_tags::bridge_vanilla_mud_tag(&mut block_tags);
     }
     crate::game::tconstruct_source_tags::merge_mantle_fluid_tags(&mut fluid_tags);
     // A content mod can provide the unflattened source layers as ordinary
@@ -76,7 +77,18 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
         .and_then(|builtin| builtin.get("minecraft:block").map(|ids| ids.ids.clone()).ok_or_else(|| "missing block registry".to_owned()));
     let resolved_blocks = block_ids.as_ref().map_err(Clone::clone).and_then(|ids| {
         let registry = ids.keys().filter(|id| !id.is_empty()).cloned().collect();
-        crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)
+        let mut resolved = crate::game::tconstruct_source_tags::resolve_registry(&block_tags, &registry)?;
+        // Herbicide's original tags include source blocks not yet registered
+        // in this port. Project only these explicit source tags onto the
+        // actual registry; unresolved required nested tags remain errors.
+        for id in ["minecraft:replaceable_by_trees", "minecraft:leaves", "tconstruct:slimy_soil/vanilla"] {
+            if !resolved.contains_key(id) {
+                if let Ok(values) = crate::game::tconstruct_source_tags::resolve_available_blocks(id, &block_tags, &registry) {
+                    resolved.insert(id.to_owned(), values.into_iter().collect());
+                }
+            }
+        }
+        Ok(resolved)
     });
     let resolved_fluids = horizon_protocol::registry::Builtin::find(&game.options.resources)
         .ok_or_else(|| "missing built-in registry report".to_owned())
