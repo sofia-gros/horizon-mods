@@ -460,7 +460,12 @@ pub fn apply_stats(
     let speed = (stats.attack_speed_base_raw + stats.attack_speed_add_raw) * (1.0 + speed_percent) * speed_multiplier;
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
-    if melee { fields.insert("tic_raging_melee_multiplier".into(), Tag::Float(((1.0 + damage_percent) * damage_multiplier).to_bits())); }
+    // Conditional melee modules read the source multiplier map. Tool-definition
+    // multiply_stats uses multiplyAll; Emerald separately multiplies conditional
+    // damage. Handle percent and Solid/Netherite multiply only the base stat.
+    let conditional_damage_multiplier = stats.attack_damage_multiplier_unit
+        * if amount(tool, "tconstruct:emerald") > 0 || level("tconstruct:emerald") > 0 { 1.25 } else { 1.0 };
+    if melee { fields.insert("tic_raging_melee_multiplier".into(), Tag::Float(conditional_damage_multiplier.to_bits())); }
     if melee { fields.insert("tic_attack_damage".into(), Tag::Float(damage.clamp(0.0, 2048.0).to_bits())); }
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.clamp(0.0, 1024.0).to_bits())); }
     if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {

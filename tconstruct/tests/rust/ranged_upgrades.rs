@@ -364,3 +364,32 @@ fn ambush_and_raging_preserve_trait_order_at_float_rounding_boundary() {
  assert_eq!(run(&["tconstruct:ambush", "tconstruct:raging"]).to_bits(), ambush_first.to_bits());
  assert_eq!(run(&["tconstruct:raging", "tconstruct:ambush"]).to_bits(), raging_first.to_bits());
 }
+
+#[test]
+fn raging_melee_multiplier_uses_global_and_emerald_not_base_stat_multipliers() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":4.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:attack_damage":2.0}}]}"#;
+ let mut stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ // Handle percentages and Solid/Netherite modify the base stat, not the
+ // separate conditional multiplier read by the source melee formula.
+ stats.attack_damage_percent_raw=0.3;
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:netherite",Tag::Int(1))]))
+ ])));
+ let traits=BTreeMap::from([("tconstruct:raging".into(),1),("tconstruct:solid".into(),2),("tconstruct:ductile".into(),1)]);
+ let multiplier=|tool:&ItemStack| match tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_raging_melee_multiplier") {Some(Tag::Float(bits))=>f32::from_bits(*bits),_=>panic!("missing multiplier")};
+ tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+ assert_eq!(multiplier(&tool),2.5);
+ tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+ assert_eq!(multiplier(&tool),2.5);
+ let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+ let Tag::Compound(ref mut fields)=custom else { panic!("expected compound") };
+ fields.insert("tic_upgrades".into(),Tag::compound([("tconstruct:netherite",Tag::Int(1))]));
+ tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+ tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+ assert_eq!(multiplier(&tool),2.0);
+ let mut trait_emerald=traits.clone(); trait_emerald.insert("tconstruct:emerald".into(),1);
+ tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&trait_emerald,true,true).unwrap();
+ assert_eq!(multiplier(&tool),2.5);
+}

@@ -28,6 +28,11 @@ mod game {
   assert_eq!(run(&mut game,false),2.0);
   game.player.as_mut().unwrap().health.0=20.0;assert_eq!(run(&mut game,true),2.0);
   game.lan_acting=Some(5);game.player.as_mut().unwrap().health.0=1.0;assert!((run(&mut game,true)-4.5).abs()<0.0001);
+  // Stored conditional multiplier (e.g. a definition factor plus Emerald)
+  // scales the flat Raging contribution before cooldown and wear traits.
+  game.tool.as_mut().unwrap().data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(100)),("tic_raging_melee_multiplier",Tag::Float(2.5_f32.to_bits()))])));
+  assert!((run(&mut game,true)-8.25).abs()<0.0001);
+  game.tool.as_mut().unwrap().data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(100)),("tic_raging_melee_multiplier",Tag::Float(1.0_f32.to_bits()))])));
   game.tool.as_mut().unwrap().damage=100;assert_eq!(run(&mut game,true),2.0);
   game.tool.as_mut().unwrap().damage=25;game.player.as_mut().unwrap().health.0=6.0;game.world.levels.insert("tconstruct:jagged".into(),1);
   assert!((run(&mut game,true)-3.28125).abs()<0.0001);
