@@ -68,3 +68,11 @@ are not yet faithfully reproduced. The helper therefore has no production
 consumer, and it must not be mistaken for a complete registry. Modifier tag
 entries can resolve redirects to the target modifier object, so the existing
 string-only tag resolver is not sufficient for displaying those entries.
+
+A separate classifier models the source's order for unconditional redirects,
+then the normal condition, then modifier deserialization. It requires the
+caller to provide authoritative condition and deserializer results and returns
+an error on unknown results. Conditional redirects are deliberately rejected:
+the pinned source parses their conditions from the enclosing redirect object,
+which needs further compatibility work. This helper is also not connected to
+production and does not make the registry or modifier pages complete.

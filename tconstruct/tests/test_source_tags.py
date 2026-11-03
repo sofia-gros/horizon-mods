@@ -32,6 +32,22 @@ class SourceTags(unittest.TestCase):
         retained = ROOT / 'content/reference/tconstruct-tags/data/tconstruct/tinkering/tags/modifiers/durability/bypass_reinforced.json'
         self.assertTrue(retained.is_file())
 
+    def test_pinned_modifier_redirect_forms(self):
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
+            definitions = {name: json.loads(archive.read(name)) for name in archive.namelist()
+                           if '/tinkering/modifiers/' in name}
+        redirects = {name.rsplit('/', 1)[-1]: value['redirects'] for name, value in definitions.items()
+                     if 'redirects' in value}
+        self.assertEqual(redirects, {
+            'frosttouch.json': [{'id': 'tconstruct:slow_bones'}],
+            'lightspeed_armor.json': [{'id': 'tconstruct:lightspeed'}],
+            'path_maker.json': [{'id': 'tconstruct:pathing'}],
+            'plowing.json': [{'id': 'tconstruct:tilling'}],
+            'sharpweight.json': [{'id': 'tconstruct:heavy'}],
+            'sturdy.json': [{'id': 'tconstruct:ductile'}],
+        })
+        self.assertEqual(sum('condition' in value for value in definitions.values()), 3)
+
     def test_fluid_tags_match_pinned_manifest(self):
         rows = (ROOT / 'docs/upstream-fluid-tags.sha256').read_text().splitlines()
         expected = dict(row.split('  ', 1)[::-1] for row in rows)
