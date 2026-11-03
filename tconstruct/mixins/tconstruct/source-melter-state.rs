@@ -48,6 +48,36 @@ impl Tank {
     }
 }
 
+/// Read only a losslessly representable portable tank before tagged casting.
+pub(super) fn portable_tank(stack: &ItemStack, capacity: u32) -> Option<Tank> {
+    if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+        None => Some(Tank::new(capacity)),
+        Some(Tag::Compound(custom)) => match custom.get(&"tconstruct:tank".into()) {
+            None => Some(Tank::new(capacity)),
+            Some(tag @ Tag::Compound(fields)) if fields.keys().all(|key| matches!(key.to_string_lossy().as_str(), "fluid" | "fluid_tag" | "amount")) => Tank::from_nbt(tag, capacity),
+            _ => None,
+        },
+        _ => None,
+    }
+}
+
+pub(super) fn fill_portable_tagged(stack: &ItemStack, mut tank: Tank, fluid: &str, tag: &Tag, amount: u32) -> Option<ItemStack> {
+    if !tank.insert_tagged(fluid, Some(tag), amount) { return None; }
+    let mut custom = match stack.data().and_then(|data| data.other("minecraft:custom_data")) {
+        None => Compound::new(), Some(Tag::Compound(data)) => data.clone(), _ => return None,
+    };
+    custom.insert("tconstruct:tank".into(), tank.to_nbt());
+    let mut result = stack.clone();
+    result.data_mut().set_other("minecraft:custom_data", Some(Tag::Compound(custom)));
+    // Casting persists both the input and reserved result, so do not accept
+    // components that Horizon's item NBT codec would silently discard.
+    let lossless = |item: &ItemStack| item_from_nbt(&item_to_nbt(item))
+        .is_some_and(|decoded| decoded.count == item.count && decoded.damage == item.damage
+            && decoded.same_item_same_components(item));
+    (lossless(stack) && lossless(&result)).then_some(result)
+}
+
 #[derive(Clone, Debug)]
 pub(super) struct Melter {
     pub slots: [Option<ItemStack>; 3],
@@ -394,4 +424,60 @@ fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
     assert_eq!(output.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_max_damage"), Some(&Tag::Int(222)));
 }
 
+}
+
+#[cfg(test)]
+mod tagged_portable_tests {
+    use super::*;
+    #[test]
+    fn tagged_fill_preserves_components_and_requires_matching_fluid_data() {
+        let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("other", Tag::Int(17))])));
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+        let other = Tag::compound([("Potion", Tag::String("minecraft:poison".into()))]);
+        let output = fill_portable_tagged(&stack, portable_tank(&stack, 50).unwrap(), "tconstruct:potion", &tag, 10).unwrap();
+        let custom = output.data().unwrap().other("minecraft:custom_data").unwrap();
+        assert_eq!(custom.get("other"), Some(&Tag::Int(17)));
+        let tank = portable_tank(&output, 50).unwrap();
+        assert_eq!((tank.amount, tank.tag.as_ref()), (10, Some(&tag)));
+        assert!(fill_portable_tagged(&output, tank.clone(), "tconstruct:potion", &other, 10).is_none());
+        assert!(fill_portable_tagged(&output, tank.clone(), "minecraft:water", &tag, 10).is_none());
+        assert!(fill_portable_tagged(&output, tank.clone(), "tconstruct:potion", &tag, 41).is_none());
+        assert_eq!(fill_portable_tagged(&output, tank, "tconstruct:potion", &tag, 40).and_then(|s| portable_tank(&s, 50)).unwrap().amount, 50);
+        assert!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tconstruct:tank").is_none());
+    }
+    #[test]
+    fn tagged_casting_roundtrips_and_waits_for_full_reserved_amount() {
+        let input = ItemStack::new("tconstruct:seared_lantern", 1);
+        let metadata = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+        let result = fill_portable_tagged(&input, portable_tank(&input, 50).unwrap(), "tconstruct:potion", &metadata, 10).unwrap();
+        let mut casting = Casting::new();
+        casting.input = Some(input);
+        assert!(casting.prepare("test:lantern", 10, 5, result, true, false));
+        assert!(casting.tank.insert_tagged("tconstruct:potion", Some(&metadata), 9));
+        assert!(!casting.tick(true));
+        assert_eq!(casting.tank.amount, 9);
+        assert!(casting.tank.insert_tagged("tconstruct:potion", Some(&metadata), 1));
+        let mut restored = Casting::from_nbt(&casting.to_nbt()).unwrap();
+        assert_eq!(restored.tank.tag.as_ref(), Some(&metadata));
+        for _ in 0..4 { assert!(!restored.tick(true)); }
+        assert!(!restored.tick(false));
+        for _ in 0..4 { assert!(!restored.tick(true)); }
+        assert!(restored.tick(true));
+        let output = restored.output.as_ref().unwrap();
+        let tank = portable_tank(output, 50).unwrap();
+        assert_eq!((tank.amount, tank.tag.as_ref()), (10, Some(&metadata)));
+        assert!(restored.input.is_none());
+        assert_eq!(restored.tank.amount, 0);
+    }
+    #[test]
+    fn tagged_fill_rejects_unknown_tank_fields_and_non_single_items() {
+        let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("amount", Tag::Int(0)), ("unknown", Tag::Int(1))]))])));
+        assert!(portable_tank(&stack, 50).is_none());
+        let mut two = ItemStack::new("tconstruct:seared_lantern", 2);
+        assert!(portable_tank(&two, 50).is_none());
+        two.count = 1;
+        assert!(portable_tank(&two, 50).is_some());
+    }
 }
