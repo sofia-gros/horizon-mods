@@ -160,7 +160,7 @@ pub(super) fn spend(stack: &mut horizon_items::items::ItemStack, used: u32) {
     if used == 0 { return; }
     let Some(mut custom) = stack.data().and_then(|d| d.other("minecraft:custom_data")).cloned() else { return; };
     if let Tag::Compound(ref mut fields) = custom {
-        if let Some(Tag::Int(value)) = fields.get_mut(&"tic_overslime".into()) { *value = value.saturating_sub(used as i32).max(0); }
+        if let Some(Tag::Int(value)) = fields.get_mut(&"tic_overslime".into()) { *value = value.saturating_sub(i32::try_from(used).unwrap_or(i32::MAX)).max(0); }
     }
     stack.data_mut().set_other("minecraft:custom_data",Some(custom));
 }

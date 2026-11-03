@@ -1,6 +1,6 @@
 // Original stat boosts and effective-block conditional mining modifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32) }
+pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Overwield(i32, i32, bool) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
@@ -8,7 +8,8 @@ pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32
 
 pub(super) fn base_speed_unclamped(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     (base + if entangled { 6.0 * add_scale } else { 0.0 })
-        * (1.0 + 0.08 * lightweight.max(0) as f32 + 0.15 * heavy.max(0) as f32)
+        * (1.0 + 0.08 * lightweight.max(0) as f32)
+        * (1.0 + 0.15 * heavy.max(0) as f32)
         * (1.0 - 0.1 * vintage.max(0) as f32)
 }
 
@@ -47,6 +48,11 @@ pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, dur
         match *modifier {
             Conditional::Jagged(level) if effective => speed *= 1.0 - wear * level.max(0) as f32,
             Conditional::Stonebound(level) if effective => speed *= 1.0 + wear * level.max(0) as f32,
+            Conditional::Overwield(level, overslime, broad) if effective => {
+                let cost = if broad { 5 } else { 1 };
+                let used = overslime.max(0).min(level.max(0).saturating_mul(cost));
+                speed *= 1.0 + 0.2 * used as f32 / cost as f32;
+            },
             _ => {},
         }
     }
@@ -56,6 +62,16 @@ pub(super) fn conditional_speed_for(mut speed: f32, loss: u32, maximum: u32, dur
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn overwield_uses_live_overslime_and_broad_cost() {
+        for (level, amount, broad, expected) in [(2, 0, false, 10.0), (2, 1, false, 12.0), (2, 5, false, 14.0), (2, 1, true, 10.4), (2, 5, true, 12.0), (2, 10, true, 14.0)] {
+            let modifiers = [Conditional::Overwield(level, amount, broad)];
+            let speed = conditional_speed_for(10.0, 0, 100, 1.0, 1.0, &modifiers, None, true, false);
+            assert!((speed - expected).abs() < 0.0001);
+            assert_eq!(conditional_speed_for(10.0, 0, 100, 1.0, 1.0, &modifiers, None, false, false), 10.0);
+        }
+    }
+
     #[test]
     fn crumbling_handles_ineffective_and_required_tool_blocks() {
         let effects = [Conditional::Crumbling(2), Conditional::Maintained(1), Conditional::Jagged(1)];
@@ -78,7 +94,7 @@ mod tests {
     }
     #[test]
     fn source_static_operations_and_clamp() {
-        assert!((base_speed(3.5, 1.0, 1, 1, 1, false) - 3.8745).abs() < 0.0001);
+        assert!((base_speed(3.5, 1.0, 1, 1, 1, false) - 3.9123).abs() < 0.0001);
         assert!((base_speed(3.5, 1.2, 0, 0, 0, true) - 10.7).abs() < 0.0001);
         assert_eq!(base_speed(1.0, 1.0, 0, 0, 20, false), 0.1);
     }
