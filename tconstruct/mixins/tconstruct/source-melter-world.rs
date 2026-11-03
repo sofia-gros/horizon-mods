@@ -77,14 +77,14 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 .find(|recipe| recipe.result == &*stack.item)?;
             let parts = building.parts(definition)?;
             let Tag::List(values) = custom.get("tic_materials")? else { return None; };
-            let identities = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<_>>>()?;
+            let identities: Vec<String> = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<String>>>()?;
             if identities.len() != parts.len() { return None; }
             let ((id, recipe, material, index), composite) = with_catalog(world, |catalog, registries, config| {
-                let supports = |index, material: &str| {
+                let supports = |index: usize, material: &str| {
                     let Some(part) = parts.get(index) else { return false; };
                     let Some(old) = identities.get(index) else { return false; };
                     let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
-                    canonical(old) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
+                    canonical(old.as_str()) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
                         .is_ok_and(|(_, supported)| supported.contains(part))
                 };
                 let conditions = |values: &[serde_json::Value]| super::tconstruct_tx::source_conditions_match(values, registries, config).unwrap_or(false);

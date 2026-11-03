@@ -344,3 +344,5 @@ PartCastItem cost tooltips are being connected to the source material-casting re
 Part-swapping table and basin serializers now have a narrow ordinary casting candidate for undamaged, unupgraded tools when the material traits remain unchanged. It uses the source recipe's tool ingredient, material-fluid cost and index, then reuses the station's tool rebuild and validation. Damaged ordinary swaps, modifier or trait changes and explicit material predicates remain unsupported; no game or LAN behavior has been verified for this candidate.
 
 The same candidate also resolves composite-fluid part swaps after checking ordinary casting precedence. For this composite path, undamaged or damaged unbroken tools are accepted only if the damage fits both old and new durability; the original composite operation does not repair. Changed traits, upgrades and other modifier hooks remain unsupported. This addition awaits runtime verification.
+
+A follow-up incorporates the explicit material and index types from #214 after the integrated build reported an inference error. The updated source still requires a host type check and gameplay validation.
