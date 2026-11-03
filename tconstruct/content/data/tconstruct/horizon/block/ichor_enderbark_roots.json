@@ -1,0 +1,10 @@
+{
+  "template": "minecraft:dirt",
+  "properties": {
+    "hardness": 0.7,
+    "explosion_resistance": 0.7,
+    "requires_tool": false,
+    "sounds": "minecraft:muddy_mangrove_roots",
+    "light": 10
+  }
+}
