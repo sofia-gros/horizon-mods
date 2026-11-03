@@ -70,7 +70,7 @@ impl FluidSpec {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct AlloyRecipe {
-    pub inputs: Vec<FluidSpec>, pub output: FluidSpec, pub temperature: u32,
+    pub inputs: Vec<FluidSpec>, pub catalysts: Vec<bool>, pub output: FluidSpec, pub temperature: u32,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -93,11 +93,18 @@ impl AlloyRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
         if v.get("type")?.as_str()? != "tconstruct:alloy" || !enabled(&v, conditions) { return None; }
-        let inputs: Vec<_> = v.get("inputs")?.as_array()?.iter().map(FluidSpec::parse).collect::<Option<_>>()?;
+        let mut inputs = Vec::new();
+        let mut catalysts = Vec::new();
+        for entry in v.get("inputs")?.as_array()? {
+            let mut object = entry.as_object()?.clone();
+            let catalyst = match object.remove("catalyst") { None => false, Some(value) => value.as_bool()? };
+            inputs.push(FluidSpec::parse(&Value::Object(object))?);
+            catalysts.push(catalyst);
+        }
         if inputs.len() < 2 { return None; }
         let temperature = u32::try_from(v.get("temperature")?.as_u64()?).ok()?;
         if temperature == 0 { return None; }
-        Some(Self { inputs, output: FluidSpec::parse(v.get("result")?)?, temperature })
+        Some(Self { inputs, catalysts, output: FluidSpec::parse(v.get("result")?)?, temperature })
     }
 }
 
