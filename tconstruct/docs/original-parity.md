@@ -374,6 +374,8 @@ The faucet packet buffer retains the fluid tag across reservation, pouring and i
 
 The container slot can also fill a glass bottle with a plain potion from 250 mB of TConstruct potion fluid, or a water potion from 500 mB of water, matching the corresponding Mantle source transfers. Tags with additional potion data and ambiguous same-ID variants are refused. Runtime behavior remains unverified.
 
+The direct tank interaction also accepts plain splash and lingering potions. Their returned bottle is selected from the resolved source bottle tag if it has one registered item, or is a glass bottle when the tag is empty; missing tag context or an ambiguous tag refuses the exchange. Other paths and filling those specialized bottles remain unsupported. This is unverified in game and LAN.
+
 The source `basin_filling` recipes for seared and scorched fuel and ingot tanks use the existing tank-item data representation. Filling consumes at most the recipe amount and available capacity, retains other item components, and rejects mixed fluids. A combined Linux build verified representative 250 mB and 90 mB fills, capacity and rejection cases, saved NBT and representative LAN guest operation; Windows and all timing/component combinations remain unverified. Other basin containers remain unsupported.
 
 The source `basin_casting_material` form now joins the existing material-fluid and casting-cost logic with an optional empty cast, including the bundled nine-unit fake-storage-block recipe when that material supports it. Datapack and world behavior await verification.
