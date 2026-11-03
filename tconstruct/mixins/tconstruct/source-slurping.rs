@@ -86,11 +86,20 @@ pub(super) fn plan_for(game: &super::Game<'_>, stack: &ItemStack, modifier: &str
                 // Strong Bones and calcifiable armor can add an independent
                 // effect after curing. Hold that case until its exact hooks
                 // and curative metadata are available.
-                if modifier != "tconstruct:slurping" || game.armor.iter().flatten().any(|item| item.item.starts_with("tconstruct:"))
-                    || game.offhand.as_ref().is_some_and(|item| item.item.starts_with("tconstruct:")) { return None; }
-                let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
-                if ["tconstruct:frosttouch", "tconstruct:slow_bones", "tconstruct:withered"].iter().any(|id|
-                    traits.levels.get(*id).copied().unwrap_or(0) > 0 || super::tconstruct_source_overslime::upgrade(stack, id) > 0) { return None; }
+                let may_have_traits = |item: &ItemStack| item.item.starts_with("tconstruct:") || item.data()
+                    .and_then(|data| data.other("minecraft:custom_data"))
+                    .is_some_and(|data| data.get("tic_upgrades").is_some() || data.get("tic_materials").is_some());
+                if !matches!(modifier, "tconstruct:slurping" | "tconstruct:splashing") || game.armor.iter().flatten().any(may_have_traits)
+                    || game.offhand.as_ref().is_some_and(may_have_traits) { return None; }
+                if modifier == "tconstruct:splashing" {
+                    // `as_guest` has swapped in the receiver's equipment;
+                    // `stack` is the separate actor's staged fluid tool.
+                    if game.stack_in(game.selected).is_some_and(may_have_traits) { return None; }
+                } else {
+                    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+                    if ["tconstruct:frosttouch", "tconstruct:slow_bones", "tconstruct:withered"].iter().any(|id|
+                        traits.levels.get(*id).copied().unwrap_or(0) > 0 || super::tconstruct_source_overslime::upgrade(stack, id) > 0) { return None; }
+                }
                 if matches!(effect, super::tconstruct_source_fluid_effects::EntityEffect::Calcified) { continue; }
                 if strength < 1.0 || game.potions.effects.list.is_empty() { continue; }
                 if game.potions.effects.list.iter().any(|entry| horizon_client::brewing::is_mod_effect(entry.id)) { return None; }
