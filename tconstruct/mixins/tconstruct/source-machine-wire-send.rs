@@ -14,7 +14,7 @@ fn tconstruct_machine_wire_send(hub: &mut crate::lan::hub::Hub, ctx: &mut crate:
                 "tconstruct:anvil" => &["tconstruct:tinkers_anvil", "tconstruct:scorched_anvil", "tconstruct:modifier_worktable"],
                 "tconstruct:melter" => &["tconstruct:seared_melter"],
                 "tconstruct:heater" => &["tconstruct:seared_heater"],
-                "tconstruct:faucet" => &["tconstruct:seared_faucet"],
+                "tconstruct:faucet" => &["tconstruct:seared_faucet", "tconstruct:scorched_faucet"],
                 "tconstruct:table" => &["tconstruct:seared_table"],
                 "tconstruct:basin" => &["tconstruct:seared_basin"],
                 "tconstruct:smeltery" => &["tconstruct:smeltery_controller", "tconstruct:foundry_controller"],
