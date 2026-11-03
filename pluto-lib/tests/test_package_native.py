@@ -57,8 +57,8 @@ class NativePackageTests(unittest.TestCase):
                         self.assertTrue(all(c.get("target") and c.get("selector") and c.get("require", 0) > 0
                                             for c in matches[0]["constructor"]))
                 landing = next(x for x in combined["state"] if x["id"] == "landing-state")
-                self.assertEqual(landing["target"], "horizon_client::motion::PlayerMotion")
-                self.assertEqual(landing["constructor"], [{"target": "horizon_client::motion::PlayerMotion::new", "selector": "Self", "require": 1}])
+                self.assertEqual(landing["target"], "horizon_client_render::chunk_map::ChunkMap")
+                self.assertEqual(landing["constructor"], [{"target": "horizon_client_render::chunk_map::<ChunkMap as Default>::default", "selector": "Self", "require": 1}])
                 module = next(x for x in combined["module"] if x["name"] == "pluto_landing_state")
                 self.assertIn("pluto_landing_state::LandingState", landing["ty"])
                 self.assertIn(prefix + module["source"], names)

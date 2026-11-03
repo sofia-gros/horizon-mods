@@ -15,9 +15,11 @@ fn tconstruct_bouncy_guest_enter(value: Option<GuestSwap>, game: &mut Game<'_>, 
     }
     if let Some(player) = game.player.as_mut() {
         player.shift_key_down = sneaking;
-        let state = horizon_client::motion::pluto_landing_state::get_mut(player);
+        let state = horizon_client_render::chunk_map::pluto_landing_state::get_mut(&mut game.world.chunks, player.entity_id);
         state.guest = true;
         state.enabled = enabled;
+        state.rebound_y = None;
+        state.damage_multiplier = None;
     }
     value
 }

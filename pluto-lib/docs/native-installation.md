@@ -19,11 +19,27 @@ Install and enable PlutoLib once alongside each consuming mod's separate `.hnmod
 
 Use `pluto_api::creative` and `pluto_api::item` as described in [Creative preparation](native-creative.md) and [short item use](item-use-b2.md). Tool functions currently use host-side paths shown in the [combined demo](../experiments/unified-target/README.md). Do not enable the individual six component bundles alongside this archive: doing so would register the same hooks or crate twice. Do not combine the older Creative paging or item-network adapters with it.
 
-The single-file package targets Horizon `7124749605ed577f7e3775a573662eb3c3619cb2` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The earlier `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` package passed official validation and extraction, and its Linux demo ran with a LAN guest save and reconnect. This target awaits integration testing. A joint TConstruct Linux build and representative game checks passed on the earlier `fd6cfda6bdef59a53aee830009f78c14832b0308` target; see [compatibility](compatibility.md) for scope. Full launcher installation and Windows remain unverified. TConstruct adopted selected APIs on the earlier pair; see [compatibility](compatibility.md).
+The single-file package targets Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` and Mixins `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. The earlier `cabe8b5de7d0b45541c923c4a6b3c5cb3e3686c7` package passed official validation and extraction, and its Linux demo ran with a LAN guest save and reconnect. This target awaits integration testing. A joint TConstruct Linux build and representative game checks passed on the earlier `fd6cfda6bdef59a53aee830009f78c14832b0308` target; see [compatibility](compatibility.md) for scope. Full launcher installation and Windows remain unverified. TConstruct adopted selected APIs on the earlier pair; see [compatibility](compatibility.md).
 
 The development bundle can include Mixins per-instance `[[state]]` declarations
 and their `[[state.constructor]]` entries. The landing state is transient and
-belongs to each player motion instance; it does not prescribe an equipment rule
+is scoped to a world and keyed by player entity ID; it does not prescribe an equipment rule
 or a landing effect. Its combined-package planning, constructor coverage, type
 checking, and gameplay behavior still require validation.
 
+
+The native package checks cover both the landing-state manifest and a fixture
+without state. They check unique declaration IDs, constructor preservation,
+module and helper archive references, and deterministic package output. The
+updated checks must be run by the validation owner on the integrated candidate.
+
+The landing-state follow-up stores a transient map on the existing
+`horizon_client_render::chunk_map::ChunkMap` construction boundary. The
+PlayerMotion constructor could not be transformed by the pinned Mixins. The
+map clears with the chunk map; equipment state is overwritten when an actor is
+entered. This alternative requires official plan/apply and type verification.
+
+On the fixed integrated candidate, the ChunkMap state and clear hook passed a
+state-only official plan. The combined apply then failed to resolve TConstruct's
+landing target. A follow-up names `MotionWorld` by its defining module; its
+combined apply, bindings and runtime behavior remain to be verified.
