@@ -681,6 +681,7 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
         let melee = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee", &raw_tags, &registry)?;
         let melee_weapon = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/melee/weapon", &raw_tags, &registry)?;
         let armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor", &raw_tags, &registry)?;
+        let worn_armor = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/armor/worn", &raw_tags, &registry)?;
         let ranged = crate::tconstruct_source_tags::resolve_tag("tconstruct:modifiable/ranged", &raw_tags, &registry)?;
                 for tab in tabs.iter_mut().filter(|tab| tab.get("id").and_then(serde_json::Value::as_str) == Some("tconstruct:tools")) {
                     if let Some(stacks) = tab.get_mut("items").and_then(serde_json::Value::as_array_mut) {
@@ -691,7 +692,8 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                             let Some(short) = item.strip_prefix("tconstruct:") else { continue; };
                             let Some(ids) = raw.pointer("/components/minecraft:custom_data/tic_materials").and_then(serde_json::Value::as_array) else { continue; };
                             let Some(ids) = ids.iter().map(|id| id.as_str().map(str::to_owned)).collect::<Option<Vec<_>>>() else { continue; };
-                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{short}.json"))) else { continue; };
+                            let source_name = crate::tconstruct_source_station_stats::definition_name("tconstruct", short);
+                            let Ok(definition) = std::fs::read(original_pack.join(format!("data/tconstruct/tinkering/tool_definitions/{source_name}.json"))) else { continue; };
                             let mut maps = Vec::new();
                             for id in &ids {
                                 let Some(name) = id.strip_prefix("tconstruct:") else { maps.clear(); break; };
@@ -700,14 +702,15 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                                 maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
                             }
                             if maps.len() != ids.len() { continue; }
-                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
-                                let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
-                                    let (namespace, path) = id.split_once(':')?;
-                                    std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
-                                });
+                            let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
+                                let (namespace, path) = id.split_once(':')?;
+                                std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
+                            });
+                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None, traits.as_ref().map(|(levels, _)| levels)) {
                                 if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
                                     if crate::tconstruct_source_material_effects::store_trait_order(&mut stack, &order).is_none() { continue; }
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
+                                    if crate::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut stack, &stats, &traits, armor.iter().any(|id| id == item), worn_armor.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_upgrade_rules::apply_stats(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), melee_weapon.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_mining_stack::apply(&mut stack, &stats, &traits, &order, harvest.iter().any(|id| id == item)).is_none() { continue; }
                                     if crate::tconstruct_source_overslime::rebuild(&mut stack, &stats, &traits, melee.iter().any(|id| id == item), armor.iter().any(|id| id == item), ranged.iter().any(|id| id == item), harvest.iter().any(|id| id == item)).is_none() { continue; }

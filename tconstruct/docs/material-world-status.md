@@ -212,3 +212,12 @@ projectile damage still require dedicated verification on this candidate.
 ### Stat builder multiplier correction
 
 Source `MULTIPLY_BASE` modules compound in modifier order; their factors are not added to the builder's percent field. Durability, mining speed, melee damage, attack speed, draw speed and projectile velocity now retain that distinction. Overlord copies durability before its own priority-50 reduction. These calculations have focused helper coverage using older host libraries; official current-host validation and gameplay remain pending.
+
+Earlier integration evidence applies only to the recorded candidate revision.
+Keep the later stat-order corrections and the documented Bouncy deferral;
+validate the current integrated build and gameplay separately.
+
+Bouncy landing hooks remain deferred. The current landing-state package uses
+ChunkMap and its Default constructor, not the older PlayerMotion design. Check
+package tests, plan and build on the same integrated revision; a pass from an
+older candidate does not establish success for current main.

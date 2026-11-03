@@ -112,7 +112,7 @@ pub fn apply_stat_traits(
     );
     if ductile > 0 {
         let attack = stats.attack_damage + stats.attack_damage_boost_unit * 0.05 * ductile as f32;
-        let toughness = stats.armor_toughness + ductile as f32;
+        let toughness = (stats.armor_toughness + ductile as f32 * stats.armor_toughness_add_multiplier).clamp(0.0, 20.0);
         fields.insert(
             "tic_attack_damage".into(),
             horizon_world::nbt::Tag::Float(attack.to_bits()),
@@ -346,7 +346,7 @@ pub(super) fn ordered_durability_multiplier(stack: &horizon_items::items::ItemSt
     percent
 }
 
-pub(super) fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
+pub fn store_trait_order(stack: &mut horizon_items::items::ItemStack, order: &[String]) -> Option<()> {
     use horizon_world::nbt::Tag;
     let mut custom = stack.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(fields) = &mut custom else { return None; };
