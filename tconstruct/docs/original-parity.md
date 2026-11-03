@@ -360,6 +360,8 @@ swaps and saved/LAN stacks. Source:
 
 The Smeltery recipe catalog resolves `forge:conditional` candidates in source order against the current item/tag/config snapshots. Unknown earlier conditions reject the wrapper rather than select a later branch; unsupported conditions remain inactive. This change awaits integrated verification and does not claim all recipe serializers or other recipe consumers are covered.
 
+The Melter and Smeltery/Foundry now resolve `damagable_melting` using stack damage, known maximum durability and source unit rounding, including Foundry byproducts. Unknown or malformed maximum-damage components fail closed; exact runtime, reload and LAN behavior await verification.
+
 ### Skull material armor stat
 
 The original `SkullStats.apply` updates the armor stat using the skull

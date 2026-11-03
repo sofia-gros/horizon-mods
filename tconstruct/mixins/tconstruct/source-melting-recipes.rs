@@ -150,6 +150,37 @@ impl MeltingRecipe {
     }
 }
 
+/// Source damageable melting uses one unit minimum and Java int arithmetic.
+pub(super) fn damaged_melting(bytes: &[u8], damage: u32, maximum: u32, conditions: &impl Fn(&[Value]) -> bool) -> Option<FoundryRecipe> {
+    let mut value: Value = serde_json::from_slice(bytes).ok()?;
+    if value.get("type")?.as_str()? != "tconstruct:damagable_melting" { return None; }
+    let object = value.as_object_mut()?;
+    object.insert("type".into(), Value::String("tconstruct:melting".into()));
+    fn take_unit(value: &mut Value) -> Option<u32> {
+        let unit = match value.as_object_mut()?.remove("unit_size") { None => 1, Some(v) => u32::try_from(v.as_u64()?).ok()? };
+        (unit > 0 && unit <= i32::MAX as u32).then_some(unit)
+    }
+    let unit = take_unit(object.get_mut("result")?)?;
+    let units = match object.get_mut("byproducts") {
+        None => Vec::new(),
+        Some(v) => v.as_array_mut()?.iter_mut().map(take_unit).collect::<Option<Vec<_>>>()?,
+    };
+    let mut recipe = FoundryRecipe::parse(&serde_json::to_vec(&value).ok()?, conditions)?;
+    let scale = |amount: u32, unit: u32| -> Option<u32> {
+        let amount = i32::try_from(amount).ok()?;
+        let unit = i32::try_from(unit).ok()?;
+        if maximum == 0 { return u32::try_from(amount).ok(); }
+        let max = i32::try_from(maximum).ok()?;
+        let damage = i32::try_from(damage).ok()?;
+        let scaled = amount.wrapping_mul(max.wrapping_sub(damage)) / max;
+        let scaled = if scaled <= unit { unit } else { scaled - scaled % unit };
+        u32::try_from(scaled).ok()
+    };
+    recipe.melting.output.amount = scale(recipe.melting.output.amount, unit)?;
+    for (fluid, unit) in recipe.byproducts.iter_mut().zip(units) { fluid.amount = scale(fluid.amount, unit)?; }
+    Some(recipe)
+}
+
 /// Foundries use the source's separate ore and byproduct rates. Keep these
 /// outputs distinct so the caller can insert the primary fluid first and
 /// then fill byproducts in their original order.
@@ -357,5 +388,20 @@ mod tests {
         let c = br#"{"type":"tconstruct:casting_basin","conditions":[{"type":"forge:mod_loaded","modid":"unknown"}],"cooling_time":40,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"item":"minecraft:stone","nbt":{}}}"#;
         assert!(CastingRecipe::parse(c, &|_| false).is_none());
         assert!(CastingRecipe::parse(c, &|_| true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod damaged_tests {
+    use super::*;
+    #[test]
+    fn scales_primary_and_byproduct_by_source_units() {
+        let raw = br#"{"type":"tconstruct:damagable_melting","ingredient":{"item":"minecraft:diamond_pickaxe"},"result":{"amount":300,"fluid":"tconstruct:molten_diamond","unit_size":25},"temperature":1450,"time":137,"byproducts":[{"fluid":"tconstruct:molten_gold","amount":90,"unit_size":10}]}"#;
+        let half = damaged_melting(raw, 50, 100, &|_| true).unwrap();
+        assert_eq!(half.melting.output.amount, 150);
+        assert_eq!(half.byproducts[0].amount, 40);
+        let almost_broken = damaged_melting(raw, 99, 100, &|_| true).unwrap();
+        assert_eq!((almost_broken.melting.output.amount, almost_broken.byproducts[0].amount), (25, 10));
+        assert_eq!(damaged_melting(raw, 0, 0, &|_| true).unwrap().melting.output.amount, 300);
     }
 }
