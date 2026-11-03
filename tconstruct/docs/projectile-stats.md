@@ -145,3 +145,24 @@ crystal extraction/reapplication, tag rejection, both eligible bows, projectile
 damage, material replacement, save/reload and LAN. Refer to the pinned original
 [recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/upgrade/power.json)
 and [modifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/power.json).
+
+## Raging melee integration pending
+
+The same material's Raging melee module adds up to `2.5 * level *
+attackDamageMultiplier` based on the attacker's current health, using the
+same health factor as its projectile effect. The added damage precedes the
+Jagged and Stonebound percentage traits, receives attack-cooldown scaling, and
+is not itself multiplied by the critical bonus. The source module requires a
+living target.
+
+The shared Mixins manifest passes the target method’s `living: bool` to the
+helper. The combined plan, build and runtime ordering still require verification
+before this behavior is considered complete. The acting-player health path is
+used for local and guest turns; melee gameplay and LAN remain unverified. Pewter remains a compatibility
+material; the source alloy requires Tin or Lead, neither supplied by the base
+TConstruct content.
+
+Test both living and nonliving targets, health 20/11/6/1, broken tools,
+multiple levels and non-unit tool multipliers, partial/full cooldown, critical
+and secondary hits, Jagged/Stonebound combinations, material replacement and
+LAN. Unit, current-target build and gameplay verification remain pending.

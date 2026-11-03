@@ -409,6 +409,7 @@ pub fn apply_stats(
     let mut custom = tool.data()?.other("minecraft:custom_data")?.clone();
     let Tag::Compound(ref mut fields) = custom else { return None; };
     let netherite = amount(tool, "tconstruct:netherite") > 0 || level("tconstruct:netherite") > 0;
+    if melee { fields.insert("tic_raging_melee_multiplier".into(), Tag::Float((stats.attack_damage_multiplier * if netherite { 1.2 } else { 1.0 }).to_bits())); }
     if melee { fields.insert("tic_attack_damage".into(), Tag::Float((damage * if netherite { 1.2 } else { 1.0 }).clamp(0.0, 2048.0).to_bits())); }
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.to_bits())); }
     let quick = effective(tool, "tconstruct:quick_charge", 5);
