@@ -6,6 +6,73 @@ use super::tconstruct_source_melting_recipes::{CastingRecipe, FluidFuel, Foundry
 use super::tconstruct_world::World;
 
 type Tags = HashMap<String, HashSet<String>>;
+pub(super) struct ModPresence { pub states: HashMap<String, Option<bool>>, pub complete: bool }
+
+// Resolve conditional recipes in source order. An unknown condition stops
+// selection: falling through could select a different recipe than Forge.
+fn conditional_test(value: &serde_json::Value, registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<bool> {
+    match value.get("type")?.as_str()? {
+        "forge:true" => Some(true),
+        "forge:false" => Some(false),
+        "forge:item_exists" => Some(items.contains(value.get("item")?.as_str()?)),
+        "forge:mod_loaded" => {
+            let id = value.get("modid")?.as_str()?.trim();
+            if id.is_empty() { return None; }
+            let mods = mods?;
+            mods.states.get(id).copied().unwrap_or_else(|| mods.complete.then_some(false))
+        }
+        "forge:not" => Some(!conditional_test(value.get("value")?, registries, config, items, mods)?),
+        kind @ ("forge:and" | "forge:or") => {
+            let values = value.get("values")?.as_array()?;
+            if values.is_empty() { return None; }
+            let mut unknown = false;
+            for child in values {
+                match conditional_test(child, registries, config, items, mods) {
+                    Some(result) if (kind == "forge:and" && !result) || (kind == "forge:or" && result) => return Some(result),
+                    Some(_) => {}, None => unknown = true,
+                }
+            }
+            if unknown { None } else { Some(kind == "forge:and") }
+        }
+        _ => super::tconstruct_tx::source_conditions_match(std::slice::from_ref(value), registries, config),
+    }
+}
+
+pub(super) fn conditional_conditions(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>) -> Option<bool> {
+    conditional_conditions_with_mods(values, registries, config, items, None)
+}
+pub(super) fn conditional_conditions_with_mods(values: &[serde_json::Value], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<bool> {
+    for value in values { if !conditional_test(value, registries, config, items, mods)? { return Some(false); } }
+    Some(true)
+}
+
+pub(super) fn conditional_recipe(bytes: &[u8], registries: &HashMap<String, Tags>, config: &HashMap<String, bool>, items: &HashSet<String>, mods: Option<&ModPresence>) -> Option<Vec<u8>> {
+    // Most entries are ordinary recipes; keep their exact bytes untouched.
+    if !bytes.windows(b"forge:conditional".len()).any(|part| part == b"forge:conditional") { return Some(bytes.to_vec()); }
+    let mut value: serde_json::Value = serde_json::from_slice(bytes).ok()?;
+    for _ in 0..16 {
+        if value.get("type").and_then(serde_json::Value::as_str) != Some("forge:conditional") {
+            return serde_json::to_vec(&value).ok();
+        }
+        match value.get("conditions") {
+            None => {},
+            Some(serde_json::Value::Array(conditions)) if conditional_conditions_with_mods(conditions, registries, config, items, mods)? => {},
+            _ => return None,
+        }
+        let branches = value.get("recipes")?.as_array()?;
+        let mut selected = None;
+        for branch in branches {
+            let conditions = branch.get("conditions")?.as_array()?;
+            let mut matches = true;
+            for condition in conditions {
+                if !conditional_test(condition, registries, config, items, mods)? { matches = false; break; }
+            }
+            if matches { selected = Some(branch.get("recipe")?.clone()); break; }
+        }
+        value = selected?;
+    }
+    None
+}
 
 fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, Tags>, &HashMap<String, bool>) -> R) -> Option<R> {
     let chunks = &world.chunks;
@@ -19,34 +86,59 @@ fn with_catalog<R>(world: &World, f: impl FnOnce(&Catalog<'_>, &HashMap<String, 
     Some(f(&catalog, &registries, config))
 }
 
+pub(super) fn molding(world: &World, material: &str, pattern: Option<&str>) -> Option<(String, super::tconstruct_source_melting_recipes::MoldingRecipe)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.molding(material, pattern, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+    })?
+}
+
 pub(super) fn melting(world: &World, item: &str) -> Option<(String, MeltingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.melting(item, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
 pub(super) fn foundry_melting(world: &World, item: &str) -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.foundry_melting(item, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.foundry_melting(item, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn material_melting(world: &World, stack: &horizon_items::items::ItemStack)
+    -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    if !tags.get("tconstruct:parts")?.contains(stack.item.as_ref()) { return None; }
+    let material = super::tconstruct_source_builder_world::lookup_material(world, stack).ok()??;
+    let cost = u32::try_from(material.value).ok()?;
+    super::tconstruct_source_builder_world::supported_material(world, &material.material).ok()?;
+    with_catalog(world, |catalog, registries, config| {
+        catalog.material_melting(&stack.item, &material.material, cost, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
+    })?
+}
+
+pub(super) fn damaged_melting(world: &World, item: &str, damage: u32, maximum: u32)
+    -> Option<(String, FoundryRecipe, String, Vec<(String, u32)>)> {
+    with_catalog(world, |catalog, registries, config| {
+        catalog.damaged_melting(item, damage, maximum, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
 pub(super) fn alloy(world: &World, fluids: &[(String, u32)], capacity: u32, temperature: u32)
     -> Option<(String, Vec<(String, u32)>, String, u32)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.alloy(fluids, capacity, temperature, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.alloy(fluids, capacity, temperature, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
 pub(super) fn fluid_fuel(world: &World, fluid: &str, available: u32) -> Option<FluidFuel> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.fluid_fuel(fluid, available, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.fluid_fuel(fluid, available, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
 pub(super) fn casting(world: &World, basin: bool, input: Option<&str>, fluid: &str) -> Option<(String, CastingRecipe, String)> {
     with_catalog(world, |catalog, registries, config| {
-        catalog.casting(basin, input, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.casting(basin, input, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })?
 }
 
@@ -58,6 +150,15 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         return Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1)));
     }
     let stack = input?;
+    if !basin {
+        if let Some((id, recipe)) = with_catalog(world, |catalog, registries, config| {
+            catalog.duplication(&stack.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        })? {
+            let mut output = stack.clone();
+            output.count = 1;
+            return Some((id, recipe, output));
+        }
+    }
     // The source rebuilds and validates a tool when metal replaces one of its
     // materials. For now accept only undamaged, unupgraded tools and unchanged
     // traits; repair-factor and modifier hooks need wider support.
@@ -74,7 +175,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 .find(|recipe| recipe.result == &*stack.item)?;
             let parts = building.parts(definition)?;
             let Tag::List(values) = custom.get("tic_materials")? else { return None; };
-            let identities = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<_>>>()?;
+            let identities: Vec<String> = values.iter().map(|value| match value { Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None }).collect::<Option<Vec<String>>>()?;
             if identities.len() != parts.len() { return None; }
             let (id, recipe, material, index) = with_catalog(world, |catalog, registries, config| {
                 catalog.part_swap_casting(basin, &stack.item, fluid, &|index, material| {
@@ -83,7 +184,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                     let canonical = |id: &str| id.strip_suffix("#default").unwrap_or(id).to_owned();
                     canonical(old) != canonical(material) && super::tconstruct_source_builder_world::supported_material(world, material)
                         .is_ok_and(|(_, supported)| supported.contains(part))
-                }, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+                }, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
             })??;
             let mut next = identities; *next.get_mut(index)? = material;
             let output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
@@ -99,7 +200,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         .and_then(|tag| tag.get("Material"))
         .and_then(|tag| match tag { horizon_world::nbt::Tag::String(id) => Some(id.to_string_lossy().to_string()), _ => None });
     let resolved = with_catalog(world, |catalog, registries, config| {
-        let conditions = |values: &[serde_json::Value]| super::tconstruct_tx::source_conditions_match(values, registries, config).unwrap_or(false);
+        let conditions = |values: &[serde_json::Value]| conditional_conditions(values, registries, config, catalog.known_items).unwrap_or(false);
         let allowed = |value: Option<&serde_json::Value>, material: &str| {
             let extra = |kind: &str, value: &serde_json::Value, material: &str| -> Option<bool> {
                 let base = material.split_once('#').map_or(material, |(base, _)| base);
@@ -155,4 +256,30 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         ("Material", horizon_world::nbt::Tag::String(material.as_str().into()))
     ])));
     Some((id, recipe, output_stack))
+}
+
+#[cfg(test)]
+mod conditional_tests {
+    use super::*;
+    #[test]
+    fn source_order_and_unknown_do_not_choose_wrong_fallback() {
+        let tags = HashMap::new();
+        let mut config = HashMap::new();
+        config.insert("cheaper_netherite_alloy".into(), true);
+        let items = HashSet::new();
+        let bytes = br#"{"type":"forge:conditional","recipes":[{"conditions":[{"type":"tconstruct:config","prop":"cheaper_netherite_alloy"}],"recipe":{"type":"tconstruct:alloy","choice":1}},{"conditions":[{"type":"forge:true"}],"recipe":{"type":"tconstruct:alloy","choice":2}}]}"#;
+        let selected = conditional_recipe(bytes, &tags, &config, &items, None).unwrap();
+        assert_eq!(serde_json::from_slice::<serde_json::Value>(&selected).unwrap()["choice"], 1);
+        config.insert("cheaper_netherite_alloy".into(), false);
+        let selected = conditional_recipe(bytes, &tags, &config, &items, None).unwrap();
+        assert_eq!(serde_json::from_slice::<serde_json::Value>(&selected).unwrap()["choice"], 2);
+        config.clear();
+        assert!(conditional_recipe(bytes, &tags, &config, &items, None).is_none());
+        let outer = br#"{"type":"forge:conditional","conditions":[{"type":"tconstruct:config","prop":"cheaper_netherite_alloy"}],"recipes":[{"conditions":[{"type":"forge:true"}],"recipe":{"type":"tconstruct:alloy"}}]}"#;
+        assert!(conditional_recipe(outer, &tags, &config, &items, None).is_none());
+        config.insert("cheaper_netherite_alloy".into(), false);
+        assert!(conditional_recipe(outer, &tags, &config, &items, None).is_none());
+        config.insert("cheaper_netherite_alloy".into(), true);
+        assert!(conditional_recipe(outer, &tags, &config, &items, None).is_some());
+    }
 }
