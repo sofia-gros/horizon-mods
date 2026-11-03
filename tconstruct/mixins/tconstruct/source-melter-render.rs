@@ -138,3 +138,77 @@ pub(super) fn fuel_tank(game: &super::Game<'_>, pos: (i32, i32, i32)) -> Option<
     super::tconstruct_source_melter_store::read(&game.world, below, kind)
         .and_then(|tag| super::tconstruct_source_melter_state::Tank::from_nbt(&tag, capacity))
 }
+
+/// Horizontal faucet model at y=0 is attached to the south face and opens
+/// towards the centre. Rotate its stream using the blockstate model rotations.
+pub(super) fn faucet_stream_bounds(facing: &str) -> [[f32; 6]; 2] {
+    [[6.0, 6.0, 10.0, 10.0, 9.0, 16.0], [6.0, 0.0, 8.0, 10.0, 9.0, 10.0]].map(|[x0,y0,z0,x1,y1,z1]| {
+        match facing {
+            "south" => [16.0-x1,y0,16.0-z1,16.0-x0,y1,16.0-z0],
+            "east" => [16.0-z1,y0,x0,16.0-z0,y1,x1],
+            "west" => [z0,y0,16.0-x1,z1,y1,16.0-x0],
+            _ => [x0,y0,z0,x1,y1,z1],
+        }
+    })
+}
+
+#[cfg(test)]
+mod faucet_geometry_tests {
+    use super::faucet_stream_bounds;
+    #[test] fn stream_starts_at_attached_side_and_ends_at_outlet() {
+        assert_eq!(faucet_stream_bounds("north"), [[6.,6.,10.,10.,9.,16.],[6.,0.,8.,10.,9.,10.]]);
+        assert_eq!(faucet_stream_bounds("south"), [[6.,6.,0.,10.,9.,6.],[6.,0.,6.,10.,9.,8.]]);
+        assert_eq!(faucet_stream_bounds("east"), [[0.,6.,6.,6.,9.,10.],[6.,0.,6.,8.,9.,10.]]);
+        assert_eq!(faucet_stream_bounds("west"), [[10.,6.,6.,16.,9.,10.],[8.,0.,6.,10.,9.,10.]]);
+    }
+}
+
+/// Source TinkerFluids registrations provide the minimum block light used by
+/// Mantle's fluid renderer. Unknown fluids retain the world's existing light.
+pub(super) fn fluid_luminosity(fluid: &str) -> u8 {
+    match fluid {
+        "minecraft:lava" | "tconstruct:fiery_liquid" => 15,
+        "tconstruct:molten_glass" => 1,
+        "tconstruct:liquid_soul" | "tconstruct:molten_porcelain" => 2,
+        "tconstruct:magma" | "tconstruct:molten_clay" | "tconstruct:molten_obsidian" => 3,
+        "tconstruct:scorched_stone" | "tconstruct:molten_osmium" => 4,
+        "tconstruct:molten_ender" => 5,
+        "tconstruct:seared_stone" | "tconstruct:molten_quartz" | "tconstruct:molten_soulsteel" => 6,
+        "tconstruct:molten_refined_obsidian" => 7,
+        "tconstruct:molten_cobalt" | "tconstruct:molten_hepatizon" => 8,
+        "tconstruct:molten_emerald" | "tconstruct:molten_queens_slime" | "tconstruct:molten_bendalloy" => 9,
+        "tconstruct:molten_slimesteel" | "tconstruct:molten_pig_iron" | "tconstruct:molten_bronze" | "tconstruct:molten_brass" | "tconstruct:molten_electrum" | "tconstruct:molten_invar" | "tconstruct:molten_constantan" | "tconstruct:molten_pewter" | "tconstruct:molten_cinderslime" | "tconstruct:molten_knightmetal" | "tconstruct:molten_cadmium" | "tconstruct:molten_duralumin" | "tconstruct:molten_steeleaf" => 10,
+        "tconstruct:molten_amethyst" | "tconstruct:molten_manyullyn" => 11,
+        "tconstruct:molten_iron" | "tconstruct:molten_gold" | "tconstruct:molten_copper" | "tconstruct:molten_amethyst_bronze" | "tconstruct:molten_rose_gold" | "tconstruct:molten_knightslime" | "tconstruct:molten_tin" | "tconstruct:molten_aluminum" | "tconstruct:molten_lead" | "tconstruct:molten_silver" | "tconstruct:molten_nickel" | "tconstruct:molten_zinc" | "tconstruct:molten_platinum" | "tconstruct:molten_tungsten" | "tconstruct:molten_enderium" => 12,
+        "tconstruct:molten_diamond" | "tconstruct:molten_steel" | "tconstruct:molten_signalum" | "tconstruct:molten_chromium" => 13,
+        "tconstruct:molten_debris" | "tconstruct:molten_netherite" | "tconstruct:molten_nicrosil" => 14,
+        "tconstruct:blazing_blood" | "tconstruct:molten_uranium" | "tconstruct:molten_lumium" | "tconstruct:molten_refined_glowstone" => 15,
+        _ => 0,
+    }
+}
+
+/// Horizon packs sky into the low byte and block light into the next byte.
+pub(super) fn fluid_light(world_light: u8, fluid: &str) -> u32 {
+    let sky = u32::from(world_light >> 4) * 16;
+    let block = u32::from((world_light & 15).max(fluid_luminosity(fluid))) * 16;
+    sky | (block << 8)
+}
+
+#[cfg(test)]
+mod fluid_light_tests {
+    use super::{fluid_light, fluid_luminosity};
+    #[test] fn source_emission_preserves_sky_and_brighter_world_light() {
+        for (id, expected) in [
+            ("tconstruct:molten_cinderslime", 10), ("tconstruct:molten_knightmetal", 10),
+            ("tconstruct:molten_cadmium", 10), ("tconstruct:molten_duralumin", 10),
+            ("tconstruct:molten_steeleaf", 10), ("tconstruct:molten_chromium", 13),
+            ("tconstruct:molten_nicrosil", 14), ("tconstruct:molten_bendalloy", 9),
+            ("tconstruct:fiery_liquid", 15),
+        ] { assert_eq!(fluid_luminosity(id), expected, "{id}"); }
+        assert_eq!(fluid_luminosity("other:molten_cinderslime"), 0);
+        assert_eq!(fluid_light(0x20, "tconstruct:molten_copper"), 32 | (192 << 8));
+        assert_eq!(fluid_light(0xff, "tconstruct:molten_copper"), 240 | (240 << 8));
+        assert_eq!(fluid_light(0x52, "minecraft:water"), 80 | (32 << 8));
+        assert_eq!(fluid_light(0x00, "minecraft:lava"), 240 << 8);
+    }
+}
