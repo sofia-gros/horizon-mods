@@ -1,4 +1,4 @@
-//! Direct guest-player interaction: the caller already checked packet reach.
+// Direct guest-player interaction: the caller already checked packet reach.
 use horizon_world::nbt::Tag;
 
 pub(super) fn queue(game: &mut super::Game<'_>, entity: i32) -> bool {

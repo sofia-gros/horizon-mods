@@ -200,6 +200,7 @@ impl SourceIngredient {
 enum SourceCondition {
     TagFilled { registry: String, tag: String },
     TagCombination { registry: String, required: Vec<String>, ignore: Option<String> },
+    TagDifference { registry: String, base: String, subtracted: Vec<String> },
     Or(Vec<Self>),
     And(Vec<Self>),
     Config(String),
@@ -212,6 +213,20 @@ impl SourceCondition {
         let registry = text("registry").unwrap_or_else(|| "minecraft:item".into());
         match o.get("type")?.as_str()? {
             "mantle:tag_filled" => Some(Self::TagFilled { registry, tag: text("tag")? }),
+            // The deprecated TConstruct serializers still require an explicit registry.
+            "tconstruct:tag_not_empty" => Some(Self::TagFilled { registry: text("registry")?, tag: text("tag")? }),
+            "tconstruct:tag_intersection_present" => {
+                let required: Vec<String> = o.get("tags")?.as_array()?.iter()
+                    .map(|v| v.as_str().map(str::to_owned)).collect::<Option<_>>()?;
+                if required.is_empty() { return None; }
+                Some(Self::TagCombination { registry: text("registry")?, required, ignore: None })
+            }
+            "tconstruct:tag_difference_present" => {
+                let subtracted: Vec<String> = o.get("subtracted")?.as_array()?.iter()
+                    .map(|v| v.as_str().map(str::to_owned)).collect::<Option<_>>()?;
+                if subtracted.is_empty() { return None; }
+                Some(Self::TagDifference { registry: text("registry")?, base: text("base")?, subtracted })
+            }
             "mantle:tag_combination_filled" => {
                 let value = o.get("match")?;
                 let required: Vec<String> = if let Some(id) = value.as_str() { vec![id.into()] }
@@ -242,6 +257,12 @@ impl SourceCondition {
                 let Some(first) = required.first().and_then(|tag| tags.get(tag)) else { return Some(false); };
                 Some(first.iter().any(|entry| !ignore.as_ref().and_then(|tag| tags.get(tag)).is_some_and(|values| values.contains(entry))
                     && required[1..].iter().all(|tag| tags.get(tag).is_some_and(|values| values.contains(entry)))))
+            }
+            Self::TagDifference { registry, base, subtracted } => {
+                let tags = registries.get(registry)?;
+                let Some(entries) = tags.get(base) else { return Some(false); };
+                Some(entries.iter().any(|entry| subtracted.iter().all(|tag|
+                    !tags.get(tag).is_some_and(|values| values.contains(entry)))))
             }
             Self::Or(values) => {
                 let mut unknown = false;
@@ -1923,6 +1944,29 @@ mod tests {
         let alternatives = SourceIngredient::parse(&serde_json::json!([{"tag":"forge:storage_blocks/copper"}, {"item":"minecraft:waxed_copper_block"}])).unwrap();
         assert!(alternatives.matches("minecraft:waxed_copper_block", None, &tags, &known, &instruments));
         assert!(SourceIngredient::parse(&serde_json::json!({"type":"example:unknown"})).is_none());
+    }
+    #[test]
+    fn deprecated_tag_conditions_use_the_source_registry_and_set_rules() {
+        use std::collections::{HashMap, HashSet};
+        let mut tags = HashMap::new();
+        tags.insert("test:base".into(), HashSet::from(["test:a".into(), "test:b".into()]));
+        tags.insert("test:one".into(), HashSet::from(["test:a".into()]));
+        tags.insert("test:two".into(), HashSet::from(["test:b".into()]));
+        let registries = HashMap::from([("minecraft:item".into(), tags)]);
+        let config = HashMap::new();
+        let parse = |v: serde_json::Value| SourceCondition::parse(&v).unwrap();
+        let difference = parse(serde_json::json!({"type":"tconstruct:tag_difference_present", "registry":"minecraft:item", "base":"test:base", "subtracted":["test:one"]}));
+        assert_eq!(difference.matches(&registries, &config), Some(true));
+        let all_removed = parse(serde_json::json!({"type":"tconstruct:tag_difference_present", "registry":"minecraft:item", "base":"test:base", "subtracted":["test:one", "test:two"]}));
+        assert_eq!(all_removed.matches(&registries, &config), Some(false));
+        let intersection = parse(serde_json::json!({"type":"tconstruct:tag_intersection_present", "registry":"minecraft:item", "tags":["test:base", "test:one"]}));
+        assert_eq!(intersection.matches(&registries, &config), Some(true));
+        let disjoint = parse(serde_json::json!({"type":"tconstruct:tag_intersection_present", "registry":"minecraft:item", "tags":["test:one", "test:two"]}));
+        assert_eq!(disjoint.matches(&registries, &config), Some(false));
+        let unknown = parse(serde_json::json!({"type":"tconstruct:tag_not_empty", "registry":"test:unavailable", "tag":"test:base"}));
+        assert_eq!(unknown.matches(&registries, &config), None);
+        assert!(SourceCondition::parse(&serde_json::json!({"type":"tconstruct:tag_intersection_present", "registry":"minecraft:item", "tags":[]})).is_none());
+        assert!(SourceCondition::parse(&serde_json::json!({"type":"tconstruct:tag_not_empty", "tag":"test:base"})).is_none());
     }
     #[test]
     fn source_tag_conditions_use_intersection_exclusion_and_or() {
