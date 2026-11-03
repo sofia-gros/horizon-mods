@@ -112,13 +112,13 @@ preparation for the island marker and tree code, not proof of natural island
 generation or acquisition.
 
 Source-specific sapling, leaf, grass and vine updates are experimental and
-unverified; position-dependent foliage terrain tint is disconnected. Other island sets, source fluids and
+unverified; position-dependent foliage terrain tint is disconnected. Inland,
+Nether and End island sets are partial candidates. Source fluids and
 save/reload remain open. The target registry, model and
 loot loading, face/stage combinations, tree placement, source drop conditions
 and vanilla plant regressions all require dedicated validation.
-The two registered leaves are added to `minecraft:leaves` so the existing
-tree writer can recognize them as replaceable; other original slime leaves
-are not registered or added by this batch.
+Earth, Sky and Ender slime leaves are registered and added to
+`minecraft:leaves` so the tree writer can recognize them as replaceable.
 
 The four Earth/Sky slime-grass combinations present in the Earth and Sky
 island templates are also registered with their pinned source models and
@@ -148,9 +148,9 @@ Consequently pools are absent and existing water or other terrain may remain;
 this is partial generation, not source-equivalent fluid behavior.
 
 Custom slime mobs and their spawn overrides and item tint are still missing.
-Plant random-tick candidates require validation. Sky-inland/clay, End and Nether sets remain
-unconnected because their original feature types and resources are not yet
-implemented. The target-version injections, loading, placement and saved-start
+Plant random-tick and the partial inland, End and Nether island candidates
+require validation. Source fluids, slime mobs and some tree markers remain
+unconnected. The target-version injections, loading, placement and saved-start
 restoration require dedicated plan, build and in-game validation; no natural
 generation or survival acquisition is claimed until that succeeds.
 
@@ -176,8 +176,8 @@ If the slime-log tag or a required state cannot be resolved, the source hook
 keeps the leaf state rather than falling through to vanilla's different log
 rules. Placement requests persistent leaves using the same source distance calculation;
 if required source data is unavailable, placement is refused rather than
-using vanilla distance rules. Ender leaf registration and dedicated-server
-behavior remain incomplete; Sky-vine support, sapling growth and grass
+using vanilla distance rules. Ender leaves are registered; dedicated-server
+behavior remains incomplete. Sky-vine support, sapling growth and grass
 spreading are experimental candidates requiring validation. The target injection plan, source tag resolution,
 placed/persistent leaves, log removal, loot, cross-chunk behavior and
 single-player/LAN/save regression require dedicated validation.
@@ -249,16 +249,15 @@ use the source hardness and resistance of 0.75. The Ender vine and its
 natural acquisition have not been tested; Ender leaves and islands do not yet form a complete generation route. Forge's extended shears
 action and dedicated-server behavior remain open.
 
-## b53 follow-up candidate
+## Target and validation
 
-The follow-up candidate is based on main `61613253e4aa06eb2e739a9f6343a93652f014f8`
-and targets Horizon `b53cfcd14eab7b6ed2fe91a3a3773d7415402ab9` with Mixins
-`ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Use the unified PlutoLib
-bundle built for that exact host by the joint build owner. The earlier #220
-and #223 heads remain unchanged. The joint b53 build for other work is not
-verification of this island candidate; its combined official plan, stage,
-build, game and survival behavior still need validation. Source slime fluids
-remain omitted as described above.
+The island candidate requires a newer host than the current main pin. The
+earlier fixed integration passed an official apply and client build on
+Horizon `0c7b5b61a5e746d621afffba919b12aeccf9c0fa` and Mixins
+`ddd9700b21997c95d95ac6ee5ecafe3830cf622a` with its matching unified
+PlutoLib bundle. That result does not establish this candidate's apply, build
+or gameplay. Natural generation, source fluids, save/reload and LAN require
+separate validation.
 
 ## Experimental inland, Nether and End terrain
 
@@ -266,12 +265,11 @@ The original inland Sky/Clay, Nether Blood and End island structure sets,
 biome tags, weighted definitions and source templates are connected as
 partial terrain. Ender/Blood fern and grass registrations supply their marker
 choices. Source Ender slime and magma fluid palette entries are ignored at
-placement, leaving pre-existing blocks at those positions. The marker's chosen
-unsupported vanilla tree, Ender tree or Blood fungus is saved with the piece
-and its initial marker random draw is consumed; the feature itself is not yet
-placed. The missing feature changes later marker RNG and leaves generated
-chunks without those trees or fungi. Updating the mod does not automatically
-repair chunks already generated, so use a disposable world for validation.
+placement, leaving pre-existing blocks at those positions. Blood fungus markers
+have an experimental source-derived placement path; selected unsupported
+vanilla and Ender trees remain deferred. Missing features change later marker
+RNG and leave generated chunks incomplete. Updating the mod does not
+automatically repair those chunks, so use a disposable world for validation.
 
 This is not complete source generation: source fluids, the deferred tree and
 fungus features, slime mob overrides and several plant behaviors remain open.
@@ -332,21 +330,10 @@ budget, save/reload, local/LAN and normal-world tests remain necessary. Use a
 disposable world until these checks pass; earlier chunks without fungi are not
 retrogened.
 
-The official b53 apply for candidate `f0b9ee660e22fb35517e798d053d0f3672d6136b`
-reported `E_SELECTOR` for the foliage face hook because its site ordinal was
-missing. The follow-up specifies ordinal zero and retains `require = 1` for
-Mesher::face's single `tint` initialization. This source-level correction has
-not yet passed the official plan/apply, type check or game validation.
-
-The b53 follow-up apply after the tint selector fix reached support-module
-loading but reported `E_MODULE`: four module source files used inner-doc
-comments, which are parsed as file attributes. The follow-up changes those
-comments to ordinary comments. Its official apply, type check, build and game
-behavior remain unverified.
-
-The later Ender-propagule and planted/island-fungus support modules also use
-ordinary comments so that the Mixins module loader does not interpret their
-headers as file attributes. Their combined official apply remains unverified.
+The unsupported terrain-face tint injection remains omitted. Island support
+modules use ordinary comments so the Mixins loader does not interpret their
+headers as file attributes. The earlier fixed integration passed apply and a
+client build on 0c7b/ddd; this candidate requires its own verification.
 
 ## Ender tree components
 
