@@ -99,3 +99,6 @@ The combined Bouncy integration candidate uses the shared PlutoLib landing state
 and targets Horizon `7084e67744cbb4fe25961f24126e15b6b36f0523` with Mixins
 `ddd9700b21997c95d95ac6ee5ecafe3830cf622a`. Its pinned revisions match, but the
 combined apply, type check and local/LAN game behavior remain unverified.
+
+For the current material, equipment and world candidates and their remaining
+validation, see [material and world status](material-world-status.md).
