@@ -17,12 +17,12 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 12] = [
+const UPGRADES: [(&str, i32); 13] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
-    ("tconstruct:glowing", 1),
+    ("tconstruct:glowing", 1), ("tconstruct:step_up", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -64,6 +64,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
+        "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         _ => UPGRADES.iter().any(|(name, _)| *name == id) || BONUS_SLOTS.iter().any(|(name, _, _)| *name == id),
@@ -134,6 +135,7 @@ pub(super) fn extract_upgrade_with_traits(
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
+    if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
     // Validation applies to the rebuilt tool, including material traits.
@@ -185,13 +187,13 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
-            if id != "tconstruct:gilded" && old != 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && old != 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if id == "tconstruct:gilded" {
+            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
