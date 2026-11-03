@@ -335,9 +335,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
-        // Slotless currently exposes its static overview pages only; dynamic
-        // modifier-tag pages and the other modifier layouts need more work.
-        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "slotless" | "worktable" | "further_reading") { continue; }
+        // Modifier chapters currently expose static overview pages only;
+        // dynamic modifier-tag pages and recipe layouts need more work.
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {

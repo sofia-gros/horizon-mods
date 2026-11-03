@@ -36,7 +36,22 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 self.assertTrue(page.get('title'))
                 self.assertTrue(page.get('text') or page.get('description') or page.get('subText'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('"casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "slotless" | "worktable" | "further_reading"', reader)
+        self.assertIn('"casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading"', reader)
+
+    def test_puny_upgrade_static_overviews_are_available(self):
+        root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        chapter = next(entry for entry in index if entry['name'] == 'upgrades')
+        entries = json.loads((root / chapter['data']).read_text())
+        pages = [page for page in entries if 'data' in page]
+        self.assertEqual([page['data'] for page in pages], [
+            'upgrades/general.json', 'upgrades/melee.json', 'upgrades/harvest.json',
+            'upgrades/ranged.json', 'upgrades/armor.json'])
+        for page in pages:
+            content = json.loads((root / 'en_us' / page['data']).read_text())
+            self.assertTrue(content.get('title'))
+            self.assertTrue(content.get('text'))
+        self.assertEqual(sum('extraData' in page for page in entries), 10)
 
     def test_puny_slotless_static_overviews_are_available(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
