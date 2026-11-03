@@ -64,7 +64,7 @@ and durability multipliers. Verify each material, assembly, repair, part swaps,
 Overlord/Overcast combinations, rounding boundaries and save/reload in the
 combined target. This candidate has not run unit, apply, type or game tests.
 
-The placement-only Snow Boots hook is omitted after an official 0c plan reported `E_UNSUPPORTED_SIGNATURE` for generic `Game::with_level`, even with an explicit selector. Walking and equipment synchronization remain connected and await official validation. The #311 skull/slime focused fixture now uses the source material map shape; only a disposable diagnostic has passed so far.
+The placement-only Snow Boots hook is omitted after an official 0c plan reported `E_UNSUPPORTED_SIGNATURE` for generic `Game::with_level`, even with an explicit selector. Powder-snow walking is deferred after the synchronization candidates failed official plan. The #311 skull/slime focused fixture now uses the source material map shape; only a disposable diagnostic has passed so far.
 
 The Creative resource candidate now uses the same armor rebuild as Station
 after source material traits, and resolves the slimy chestplate definition
@@ -83,3 +83,11 @@ value is retained. This different boundary has not passed official plan or
 apply. Local walking, guest/server synchronization, equipment changes and
 powder-snow placement must be checked independently; the earlier generic
 placement hook remains omitted.
+
+An isolated official plan of #331's `leather_boots` STORE candidate also
+returned `E_UNSUPPORTED_CONTROL_FLOW` for `sync_player_body`. The subsequent
+verification candidate omits this walking injection; it preserves the Snow
+Boots item and other armor behavior but does not implement custom-boots walking
+or placement on powder snow. Vanilla leather-boots behavior is unchanged.
+The omission is not an apply or gameplay pass; check official package, apply
+and type, and verify vanilla movement and unrelated equipment in game.

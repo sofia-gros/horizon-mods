@@ -702,11 +702,11 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                                 maps.push(merged.into_iter().map(|(key, fields)| (key, serde_json::Value::Object(fields))).collect());
                             }
                             if maps.len() != ids.len() { continue; }
-                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None) {
-                                let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
-                                    let (namespace, path) = id.split_once(':')?;
-                                    std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
-                                });
+                            let traits = crate::tconstruct_source_material_traits::ordered_levels_from_definition(&definition, &ids, |id| {
+                                let (namespace, path) = id.split_once(':')?;
+                                std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
+                            });
+                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None, traits.as_ref().map(|(levels, _)| levels)) {
                                 if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
                                     if crate::tconstruct_source_material_effects::store_trait_order(&mut stack, &order).is_none() { continue; }
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }
