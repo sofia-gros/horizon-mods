@@ -314,16 +314,17 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
-        // Material tiers, armor and modifier layouts still need Puny-specific handling.
-        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "worktable" | "further_reading") { continue; }
+        // Material tiers and modifier layouts still need Puny-specific handling.
+        if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "armor" | "worktable" | "further_reading") { continue; }
         let heading = labels.get(key).copied().unwrap_or(key);
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
                 let item_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
-                if let Some(tools) = item_tags.and_then(|tags| tags.get("tconstruct:modifiable/book_armor/materials_and_you")).filter(|tools| !tools.is_empty()) {
+                let armor_tag = if puny { "tconstruct:modifiable/book_armor/puny_smelting" } else { "tconstruct:modifiable/book_armor/materials_and_you" };
+                if let Some(tools) = item_tags.and_then(|tags| tags.get(armor_tag)).filter(|tools| !tools.is_empty()) {
                     let mut tools: Vec<_> = tools.iter().collect();
-                    tools.sort();
+                    tools.sort_by_key(|id| (if puny { super::tconstruct_materials_book_index::puny_armor_order(id) } else { usize::MAX }, (*id).clone()));
                     let mut chapter_pages = Vec::new();
                     if let Some(subtext) = labels.get("armor.subtext") {
                         chapter_pages.extend(split_page(game, subtext, 17).into_iter().map(Text::literal));
@@ -331,7 +332,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, puny: bool) 
                     for id in tools {
                         let (namespace, name) = id.split_once(':').unwrap_or(("tconstruct", id));
                         let title = game.translate(&format!("item.{namespace}.{name}"), name);
-                        let source = format!("assets/tconstruct/book/encyclopedia/en_us/armor/{}.json", id.replace(':', "_"));
+                        let source = format!("assets/tconstruct/book/{}/en_us/armor/{}.json", if puny { "puny_smelting" } else { "encyclopedia" }, id.replace(':', "_"));
                         let value = read(path, &source).and_then(|raw| serde_json::from_str::<serde_json::Value>(&raw).ok());
                         chapter_pages.extend(tool_pages(game, &title, id, value.as_ref()));
                     }

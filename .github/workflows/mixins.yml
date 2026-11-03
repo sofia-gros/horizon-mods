@@ -62,6 +62,8 @@ jobs:
           /tmp/tconstruct-source-builder-wire-test
           rustc --test tconstruct/tests/rust/source_builder_layout.rs -o /tmp/tconstruct-source-builder-layout-test
           /tmp/tconstruct-source-builder-layout-test
+          rustc --edition=2021 --test tconstruct/tests/rust/materials_book_index.rs -o /tmp/tconstruct-materials-book-index-test
+          /tmp/tconstruct-materials-book-index-test
           rustc --edition=2021 --test tconstruct/tests/rust/source_cast_info.rs -o /tmp/tconstruct-cast-info-test
           /tmp/tconstruct-cast-info-test
           rustc --edition=2021 --test tconstruct/tests/rust/native_item_durability.rs -o /tmp/tconstruct-native-item-test

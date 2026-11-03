@@ -36,7 +36,27 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 self.assertTrue(page.get('title'))
                 self.assertTrue(page.get('text') or page.get('description') or page.get('subText'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('"casting" | "worktable" | "further_reading"', reader)
+        self.assertIn('"casting" | "armor" | "worktable" | "further_reading"', reader)
+
+    def test_puny_armor_pages_follow_source_tag_and_have_descriptions(self):
+        root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
+        index = json.loads((root / 'index.json').read_text())
+        armor = next(entry for entry in index if entry['name'] == 'armor')
+        tag = 'tconstruct:modifiable/book_armor/puny_smelting'
+        self.assertEqual(armor['condition']['tag'], tag)
+        self.assertEqual(armor['extraData']['tconstruct:load_tools']['tag'], tag)
+        self.assertFalse(armor['extraData']['tconstruct:load_tools']['sort'])
+        tag_file = ARCHIVE / 'reference/tconstruct-tags/data/tconstruct/tags/items/modifiable/book_armor/puny_smelting.json'
+        ids = json.loads(tag_file.read_text())['values']
+        self.assertEqual(len(ids), 10)
+        for item in ids:
+            page = json.loads((root / 'en_us/armor' / (item.replace(':', '_') + '.json')).read_text())
+            self.assertEqual(page['tool'], item)
+            self.assertTrue(page['text'])
+            self.assertTrue(page['properties'])
+        order = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()
+        offsets = [order.index('"' + item + '"') for item in ids]
+        self.assertEqual(offsets, sorted(offsets))
 
     def test_source_static_chapters_and_referenced_pages(self):
         with DirectoryArchive(ARCHIVE) as archive:

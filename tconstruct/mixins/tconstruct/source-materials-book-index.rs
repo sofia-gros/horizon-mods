@@ -1,4 +1,17 @@
 // Keep long descriptions usable as index links without wrapping across entries.
+// The host tag snapshot is a set, so retain the pinned source's built-in
+// order explicitly. Unknown datapack additions follow in lexical order.
+pub(super) fn puny_armor_order(id: &str) -> usize {
+    const ORDER: &[&str] = &[
+        "tconstruct:travelers_helmet", "tconstruct:travelers_chestplate",
+        "tconstruct:travelers_leggings", "tconstruct:travelers_boots",
+        "tconstruct:travelers_shield", "tconstruct:plate_helmet",
+        "tconstruct:plate_chestplate", "tconstruct:plate_leggings",
+        "tconstruct:plate_boots", "tconstruct:plate_shield",
+    ];
+    ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)
+}
+
 pub(super) fn label(text: &str) -> String {
     let first = text.lines().next().unwrap_or("");
     if first.chars().count() <= 26 { return first.to_owned(); }
@@ -23,7 +36,13 @@ pub(super) fn layout(sizes: &[usize]) -> Option<(usize, Vec<(usize, usize)>)> {
 
 #[cfg(test)]
 mod tests {
-    use super::{label, layout};
+    use super::{label, layout, puny_armor_order};
+    #[test]
+    fn puny_armor_uses_source_order_and_leaves_unknowns_last() {
+        assert!(puny_armor_order("tconstruct:travelers_helmet") < puny_armor_order("tconstruct:plate_helmet"));
+        assert!(puny_armor_order("tconstruct:plate_boots") < puny_armor_order("tconstruct:plate_shield"));
+        assert_eq!(puny_armor_order("example:custom"), usize::MAX);
+    }
     #[test]
     fn index_labels_keep_names_and_bound_long_descriptions() {
         assert_eq!(label("Traveler's Goggles"), "Traveler's Goggles");
