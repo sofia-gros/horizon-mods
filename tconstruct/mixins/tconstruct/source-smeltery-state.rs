@@ -151,8 +151,8 @@ mod tests {
         let mut s = Smeltery::new(); s.resize(1, 205);
         s.slots[0] = Some(ItemStack::new("minecraft:copper_ore", 1));
         s.temperature = 1000; s.rate = 10; s.progress[0] = 500;
-        let primary = FluidAmount { id: "copper".into(), amount: 180 };
-        let extra = [FluidAmount { id: "gold".into(), amount: 30 }];
+        let primary = FluidAmount { id: "copper".into(), tag: None, amount: 180 };
+        let extra = [FluidAmount { id: "gold".into(), tag: None, amount: 30 }];
         assert!(s.heat_foundry_slot(0, 500, 500, &primary, &extra));
         assert!(s.slots[0].is_none());
         assert_eq!((s.tank.amount("copper"), s.tank.amount("gold")), (180, 25));
@@ -186,7 +186,7 @@ mod tests {
         s.temperature = 1000; s.rate = 10; s.progress = vec![500, 650];
         assert!(s.heat_slot(0, 500, 500, "tconstruct:molten_copper", 90));
         assert!(s.heat_slot(1, 950, 650, "tconstruct:molten_amethyst", 100));
-        let f = |id: &str, amount| FluidAmount { id: id.into(), amount };
+        let f = |id: &str, amount| FluidAmount { id: id.into(), tag: None, amount };
         assert!(s.tank.alloy(&[f("tconstruct:molten_copper", 90), f("tconstruct:molten_amethyst", 100)], &f("tconstruct:molten_amethyst_bronze", 90)));
         assert_eq!(s.tank.amount("tconstruct:molten_amethyst_bronze"), 90);
         assert!(s.slots.iter().all(Option::is_none));

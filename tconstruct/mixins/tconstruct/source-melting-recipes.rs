@@ -292,19 +292,20 @@ mod foundry_tests {
     }
 }
 
-/// Source table molding with an optional hand-held pattern.
+/// Source table or basin molding with an optional hand-held pattern.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct MoldingRecipe {
-    pub material: Ingredient, pub pattern: Option<Ingredient>,
+    pub basin: bool, pub material: Ingredient, pub pattern: Option<Ingredient>,
     pub pattern_consumed: bool, pub result: String,
 }
 impl MoldingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
-        if v.get("type")?.as_str()? != "tconstruct:molding_table" || !enabled(&v, conditions) { return None; }
+        let basin = match v.get("type")?.as_str()? { "tconstruct:molding_table" => false, "tconstruct:molding_basin" => true, _ => return None };
+        if !enabled(&v, conditions) { return None; }
         let pattern = match v.get("pattern") { Some(value) => Some(Ingredient::parse(value)?), None => None };
         let pattern_consumed = match v.get("pattern_consumed") { None => false, Some(value) => value.as_bool()? };
-        Some(Self { material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
+        Some(Self { basin, material: Ingredient::parse(v.get("material")?)?, pattern, pattern_consumed,
             result: v.get("result")?.as_str()?.to_owned() })
     }
 }
@@ -353,6 +354,23 @@ pub(super) struct CastingRecipe {
     pub basin: bool, pub retextured: bool, pub cast: Option<Ingredient>, pub consumes_cast: bool,
     pub switch_slots: bool, pub fluid: FluidSpec, pub output: Output, pub cooling_time: u32,
 }
+/// The source potion serializer copies the fluid tag into its result.
+pub(super) fn potion_casting(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<CastingRecipe> {
+    let value: Value = serde_json::from_slice(bytes).ok()?;
+    let basin = match value.get("type")?.as_str()? {
+        "tconstruct:casting_table_potion" => false,
+        "tconstruct:casting_basin_potion" => true,
+        _ => return None,
+    };
+    if !enabled(&value, conditions) { return None; }
+    let cooling_time = match value.get("cooling_time") { None => 5, Some(n) => u32::try_from(n.as_u64()?).ok()? };
+    if cooling_time == 0 { return None; }
+    Some(CastingRecipe { basin, retextured: false, cast: Some(Ingredient::parse(value.get("bottle")?)?),
+        consumes_cast: true, switch_slots: false, fluid: FluidSpec::parse(value.get("fluid")?)?,
+        output: Output::Item(value.get("result")?.as_str()?.to_owned()), cooling_time })
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct PartSwapCastingRecipe { pub basin: bool, pub tools: Ingredient, pub item_cost: u32, pub index: usize }
 impl PartSwapCastingRecipe {
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
@@ -500,6 +518,18 @@ mod tests {
         let c = br#"{"type":"tconstruct:casting_basin","conditions":[{"type":"forge:mod_loaded","modid":"unknown"}],"cooling_time":40,"fluid":{"amount":90,"tag":"forge:molten_copper"},"result":{"item":"minecraft:stone","nbt":{}}}"#;
         assert!(CastingRecipe::parse(c, &|_| false).is_none());
         assert!(CastingRecipe::parse(c, &|_| true).is_none());
+    }
+}
+
+#[cfg(test)]
+mod basin_molding_tests {
+    use super::*;
+    #[test]
+    fn source_molding_type_keeps_table_and_basin_distinct() {
+        let raw = br#"{"type":"tconstruct:molding_basin","material":{"item":"minecraft:sand"},"pattern":{"item":"minecraft:stone"},"result":"minecraft:gravel"}"#;
+        let recipe = MoldingRecipe::parse(raw, &|_| true).unwrap();
+        assert!(recipe.basin);
+        assert!(!recipe.pattern_consumed);
     }
 }
 
