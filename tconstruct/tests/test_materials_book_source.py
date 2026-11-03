@@ -36,7 +36,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
                 self.assertTrue(page.get('title'))
                 self.assertTrue(page.get('text') or page.get('description') or page.get('subText'))
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        self.assertIn('"casting" | "ranged_materials" | "armor" | "worktable" | "further_reading"', reader)
+        self.assertIn('"casting" | "ranged_materials" | "armor_materials" | "armor" | "worktable" | "further_reading"', reader)
 
     def test_puny_ranged_material_chapter_uses_source_tier_and_predicate(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
@@ -53,6 +53,23 @@ class MaterialsBookSourceTest(unittest.TestCase):
             stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/slimewood.json'))['stats']
             self.assertEqual(definition['tier'], 2)
             self.assertTrue({'tconstruct:limb', 'tconstruct:grip', 'tconstruct:bowstring'} & stats.keys())
+
+    def test_puny_armor_material_chapter_uses_source_range_and_stats(self):
+        root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'
+        chapter = next(entry for entry in json.loads((root / 'index.json').read_text()) if entry['name'] == 'armor_materials')
+        tier = chapter['extraData']['tconstruct:material_tier']
+        self.assertEqual(tier['type'], 'tconstruct:armor')
+        self.assertEqual(tier['tier'], {'min': 0, 'max': 2})
+        self.assertEqual(tier['predicate'], {'type': 'mantle:inverted', 'inverted_type': 'mantle:tag', 'tag': 'tconstruct:book/distant'})
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        for stat in ('plating_helmet', 'plating_chestplate', 'plating_leggings', 'plating_boots', 'plating_shield', 'maille', 'shield_core', 'cuirass', 'slime', 'skull', 'shell', 'laces', 'ribcage'):
+            self.assertIn('"tconstruct:' + stat + '"', reader)
+        self.assertIn('groups.chunks(4)', reader)
+        self.assertIn('show_material_chapter(puny, materials.len())', reader)
+        with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-materials.zip') as archive:
+            stats = json.loads(archive.read('data/tconstruct/tinkering/materials/stats/iron.json'))['stats']
+            self.assertIn('tconstruct:plating_helmet', stats)
+            self.assertIn('tconstruct:maille', stats)
 
     def test_puny_armor_pages_follow_source_tag_and_have_descriptions(self):
         root = ARCHIVE / 'assets/tconstruct/book/puny_smelting'

@@ -16,7 +16,11 @@ pub(super) fn puny_armor_order(id: &str) -> usize {
 // are checked separately against the current material registry.
 pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool, basic_ammo: bool) -> bool {
     if puny {
-        key == "ranged_materials" && tier == 2 && !distant
+        !distant && match key {
+            "ranged_materials" => tier == 2,
+            "armor_materials" => (0..=2).contains(&tier),
+            _ => false,
+        }
     } else {
         (0..=1).contains(&tier) && if key == "ammo_materials" { basic_ammo } else { !distant }
     }
@@ -63,6 +67,10 @@ mod tests {
         assert!(!material_book_tier(true, "ranged_materials", 1, false, false));
         assert!(!material_book_tier(true, "ranged_materials", 2, true, false));
         assert!(!material_book_tier(true, "melee_harvest_materials", 2, false, false));
+        for tier in 0..=2 { assert!(material_book_tier(true, "armor_materials", tier, false, false)); }
+        assert!(!material_book_tier(true, "armor_materials", -1, false, false));
+        assert!(!material_book_tier(true, "armor_materials", 3, false, false));
+        assert!(!material_book_tier(true, "armor_materials", 2, true, false));
         assert!(material_book_tier(false, "ranged_materials", 1, false, false));
         assert!(!material_book_tier(false, "ranged_materials", 2, false, false));
         assert!(material_book_tier(false, "ammo_materials", 1, true, true));

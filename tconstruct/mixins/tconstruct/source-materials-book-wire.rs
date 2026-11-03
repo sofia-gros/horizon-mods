@@ -82,6 +82,38 @@ mod tests {
         assert_eq!(pages[1].spans[0].style.color, Some(0x102030));
     }
     #[test]
+    fn page_and_byte_limits_are_enforced_at_the_boundary() {
+        let root = || Text::styled("contents", Style { insertion: Some(ROOT.into()), ..Default::default() });
+        let mut page_limited = vec![root()];
+        page_limited.extend((1..512).map(|_| Text::literal("page")));
+        let wire = encode(&page_limited).unwrap();
+        assert_eq!(decode(&wire).unwrap().len(), 512);
+        page_limited.push(Text::literal("one too many"));
+        assert!(encode(&page_limited).is_none());
+
+        // Find the last valid byte using ordinary page text, each span below the
+        // decoder's per-span limit. This checks the actual serializer overhead.
+        let mut byte_limited = vec![root()];
+        loop {
+            byte_limited.push(Text::literal("x".repeat(4000)));
+            if encode(&byte_limited).is_none() { byte_limited.pop(); break; }
+        }
+        byte_limited.push(Text::literal(""));
+        let mut low = 0;
+        let mut high = 4000;
+        while low < high {
+            let middle = (low + high + 1) / 2;
+            *byte_limited.last_mut().unwrap() = Text::literal("x".repeat(middle));
+            if encode(&byte_limited).is_some() { low = middle; } else { high = middle - 1; }
+        }
+        *byte_limited.last_mut().unwrap() = Text::literal("x".repeat(low));
+        let wire = encode(&byte_limited).unwrap();
+        assert_eq!(wire.len(), LIMIT);
+        assert!(decode(&wire).is_some());
+        *byte_limited.last_mut().unwrap() = Text::literal("x".repeat(low + 1));
+        assert!(encode(&byte_limited).is_none());
+    }
+    #[test]
     fn rejects_oversize_and_unmarked_pages() {
         assert!(decode(&vec![0; LIMIT + 1]).is_none());
         assert!(decode(br#"[[{"text":"not the book"}]]"#).is_none());
