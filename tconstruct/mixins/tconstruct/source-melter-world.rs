@@ -154,7 +154,7 @@ pub(super) fn potion_casting_stack(world: &World, basin: bool, input: Option<&ho
     if potion.is_empty() || potion == "minecraft:empty" { return None; }
     let input = input?;
     let (id, recipe, output) = with_catalog(world, |catalog, registries, config| {
-        catalog.potion_casting(basin, &input.item, fluid, &|conditions| super::tconstruct_tx::source_conditions_match(conditions, registries, config).unwrap_or(false))
+        catalog.potion_casting(basin, &input.item, fluid, &|conditions| conditional_conditions(conditions, registries, config, catalog.known_items).unwrap_or(false))
     })??;
     if !matches!(output.as_str(), "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion" | "minecraft:tipped_arrow") { return None; }
     Some((id, recipe, horizon_items::items::ItemStack::new(&output, 1).with_potion(&potion)))
