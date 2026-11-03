@@ -97,6 +97,13 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual(slime_bottle['minecraft:crafting_remainder'], {'id': 'minecraft:glass_bottle'})
                 texture = 'ichor' if kind == 'ichor' else f'{kind}_slime'
                 self.assertTrue((out / f'assets/tconstruct/textures/item/bottle/{texture}_contents.png').is_file())
+            magma = items['tconstruct:magma_bottle']
+            self.assertEqual(magma['minecraft:max_stack_size'], 16)
+            self.assertEqual(magma['minecraft:use_remainder'], {'id': 'minecraft:glass_bottle'})
+            self.assertEqual(magma['minecraft:crafting_remainder'], {'id': 'minecraft:glass_bottle'})
+            self.assertNotIn('minecraft:food', magma)
+            self.assertNotIn('minecraft:consumable', magma)
+            self.assertTrue((out / 'assets/tconstruct/textures/item/bottle/magma_contents.png').is_file())
             ichor = items['tconstruct:ichor_slime_bottle']
             self.assertEqual(ichor['minecraft:consumable']['on_consume_effects'][0]['effects'], [
                 {'id': 'minecraft:levitation', 'duration': 200},

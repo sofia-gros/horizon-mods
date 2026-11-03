@@ -18,6 +18,11 @@ class ContentPackageTest(unittest.TestCase):
             package(output)
             with zipfile.ZipFile(output) as packed:
                 names = set(packed.namelist())
+                for path in ('assets/tconstruct/items/magma_bottle.json',
+                             'assets/tconstruct/models/item/magma_bottle.json',
+                             'assets/tconstruct/textures/item/bottle/magma_contents.png',
+                             'data/tconstruct/horizon/item/magma_bottle.json'):
+                    self.assertIn(path, names)
                 animations = json.loads((MOD / 'content/reference/tconstruct-melter-fluid-animation.json').read_text())
                 for fluid, animation in animations.items():
                     path = 'assets/tconstruct/runtime/block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta'
