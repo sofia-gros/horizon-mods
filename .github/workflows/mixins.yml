@@ -51,6 +51,7 @@ jobs:
           python3 -m unittest discover -s pluto-lib/tests -p "test_package_native.py" -v
           cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml
+          SOUL_REPO_ROOT="$GITHUB_WORKSPACE" cargo test --locked --manifest-path tconstruct/tests/soul-glass/Cargo.toml
           rustc --edition=2021 --test tconstruct/tests/rust/slime_grass_meal.rs -o /tmp/tconstruct-slime-grass-meal-test
           /tmp/tconstruct-slime-grass-meal-test
           rustc --edition=2021 --test tconstruct/tests/rust/slime_seed_use.rs -o /tmp/tconstruct-slime-seed-use-test
