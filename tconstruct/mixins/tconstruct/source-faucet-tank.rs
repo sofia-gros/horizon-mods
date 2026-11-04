@@ -35,10 +35,11 @@ fn patch_faucet(raw: &Tag, faucet: &Faucet) -> Option<Tag> {
     fields.insert("stop".into(), Tag::Byte(i8::from(faucet.stop_after_packet)));
     Some(Tag::Compound(fields))
 }
-enum Source { Melter(Melter, Tag), Tank(&'static str, Tank, Tag) }
+pub(super) enum Source { Melter(Melter, Tag), Tank(&'static str, Tank, Tag) }
 impl Source {
-    fn tank(&mut self) -> &mut Tank { match self { Self::Melter(m,_) => &mut m.tank, Self::Tank(_,t,_) => t } }
-    fn data(&self) -> Option<(&'static str, Tag)> { match self {
+    pub(super) fn canonical_tank(&self) -> bool { match self { Self::Tank(_, tank, raw) => tank.to_nbt() == *raw, Self::Melter(_, _) => false } }
+    pub(super) fn tank(&mut self) -> &mut Tank { match self { Self::Melter(m,_) => &mut m.tank, Self::Tank(_,t,_) => t } }
+    pub(super) fn data(&self) -> Option<(&'static str, Tag)> { match self {
         Self::Melter(m,raw) => {
             Some(("tconstruct:melter", patch_melter_tank(raw, &m.tank)?))
         }, Self::Tank(k,t,raw) => Some((*k,patch_tank(raw,t)?)) } }
@@ -50,7 +51,7 @@ fn tank_kind(name: &str) -> Option<(&'static str,u32)> {
     super::tconstruct_source_smeltery_fuel::capacity(name).zip(super::tconstruct_source_machine_runtime::kind(name))
         .map(|(capacity,key)| (key,capacity))
 }
-fn load_source(game: &super::Game<'_>, at: Pos, block: &str) -> Option<Source> {
+pub(super) fn load_source(game: &super::Game<'_>, at: Pos, block: &str) -> Option<Source> {
     if !matches!(game.world.block_entities.get(&at), Some(horizon_client::containers::BlockEntity::Chest(_))) { return None; }
     if block == "tconstruct:seared_melter" {
         let raw = store::read(&game.world,at,"tconstruct:melter")?;
@@ -60,7 +61,7 @@ fn load_source(game: &super::Game<'_>, at: Pos, block: &str) -> Option<Source> {
     let raw=store::read(&game.world,at,key)?;
     Some(Source::Tank(key,Tank::from_nbt(&raw,capacity)?,raw))
 }
-fn is_source(name: &str) -> bool { name == "tconstruct:seared_melter" || tank_kind(name).is_some() }
+pub(super) fn is_source(name: &str) -> bool { name == "tconstruct:seared_melter" || tank_kind(name).is_some() }
 
 /// Stop after the reserved packet, retaining unknown faucet and packet data.
 pub(super) fn stop(game: &mut super::Game<'_>, pos: Pos, mut faucet: Faucet) -> bool {
