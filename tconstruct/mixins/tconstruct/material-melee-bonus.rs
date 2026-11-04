@@ -31,7 +31,13 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
         .and_then(|tags| tags.get("tconstruct:modifiable/melee/weapon"))
         .is_some_and(|items| items.contains(&*stack.item));
     let damage = if broken || !melee_weapon { 0.0 } else { f32::from_bits(*bits) };
-    let trait_bonus = (!broken).then(|| crate::game::tconstruct_source_material_traits::levels(&game.world, stack)).flatten()
+    // Conditional melee wear modifiers require MELEE, independently of the
+    // narrower MELEE_WEAPON requirement for the base attribute above.
+    let melee = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
+        .and_then(|tags| tags.as_ref().ok())
+        .and_then(|tags| tags.get("tconstruct:modifiable/melee"))
+        .is_some_and(|items| items.contains(&*stack.item));
+    let trait_bonus = (!broken && melee).then(|| crate::game::tconstruct_source_material_traits::levels(&game.world, stack)).flatten()
         .map(|traits| {
             let jagged = traits.levels.get("tconstruct:jagged").copied().unwrap_or(0);
             let stonebound = traits
