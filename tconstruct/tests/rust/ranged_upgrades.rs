@@ -814,3 +814,26 @@ fn non_emerald_modifier_repair_factor_uses_resolved_order() {
  let actual=tconstruct_source_material_effects::ordered_known_repair_amount(&tool,&combined,&order,1.0).unwrap();
  assert_eq!(actual.to_bits(),(((1.0f32*1.5)*1.3)*(1.0+(-0.5 + -0.05*7.0))).to_bits());
 }
+
+#[test]
+fn casting_repair_uses_ordered_non_emerald_upgrades() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:preserved",Tag::Int(2)),("tconstruct:dense",Tag::Int(7))])),
+  ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:dense".into()),Tag::String("tconstruct:preserved".into())]))
+ ])));
+ let traits=BTreeMap::from([("tconstruct:cultivated".into(),1)]);
+ let order=vec!["tconstruct:cultivated".into()];
+ let result=tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).unwrap();
+ let expected=((20.0f32*(1.0+(-0.5 + -0.05*7.0)))*1.3)*1.5;
+ assert_eq!(result.to_bits(),expected.to_bits());
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:preserved",Tag::Int(2)),("tconstruct:dense",Tag::Int(7))]))
+ ])));
+ assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).is_none());
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:cultivated",Tag::String("bad".into()))]))
+ ])));
+ assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).is_none());
+}
