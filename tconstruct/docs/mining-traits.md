@@ -447,7 +447,8 @@ negative/malformed progress handling and durability-limit gating are retained.
 
 This slice corrects only effective-level rounding. The existing single-chest
 float multiplier and final float speed multiplication remain unchanged; they
-do not emulate the source double attribute evaluation or its 0-to-100 clamp.
+do not emulate the source double attribute evaluation. The later attribute-bound
+correction below adds the supported single-chest 0-to-100 clamp.
 Other equipment slots and source attribute stacking remain outside this
 change. End-to-end bit-exact source speed is not claimed.
 
@@ -551,4 +552,30 @@ The actual-helper integration harness covers both boundaries, positive/negative
 flags, matching/unmatched blocks, absent Tool, malformed/absent maximum, repair,
 wrong-typed flags, namespace boundaries, the existing damage fallback, and the
 legacy flint threshold. No full generated-host build, gameplay, LAN, or Windows
+validation was run.
+
+
+## Chest Haste attribute bound
+
+The existing single-chest Haste projection now clamps its calculated multiplier
+to 0..100 before multiplying the mining speed. Pinned
+[`TinkerAttributes.MINING_SPEED_MULTIPLIER`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/shared/TinkerAttributes.java)
+uses Mantle's `AttributeDeferredRegister.registerMultiplier`, which registers
+default 1, minimum 0 and maximum 100. This was verified against Mantle 1.11.115's
+source JAR, the version named in the pinned TConstruct gradle.properties.
+For example, trait level 1000 previously supplied 101 and now supplies 100.
+Ordinary recipe-level multipliers are unchanged.
+
+The bound applies only to the supported single-chest projection. Its existing
+f32 incremental-level, multiplier and final speed arithmetic remains; this does
+not add Java double attribute evaluation, other equipment slots, arbitrary
+attribute stacking or the separate ArmorStatModule additive contribution. It is
+not full mining-attribute emulation. Overflow still supplies no Haste bonus;
+broken, malformed and missing-state gates and wire eligibility remain unchanged.
+
+The cached `source_mining_integration.rs` harness executes the actual helper and
+wire encode/decode/matching path around level 990 and its partial-progress
+neighbors, merged trait/progress cases, large/overflow inputs and broken armor.
+It verifies the bounded multiplier reaches `finish_mining_speed` without capping
+that final speed itself. No full generated-host build, gameplay, LAN or Windows
 validation was run.
