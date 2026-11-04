@@ -5086,13 +5086,6 @@ target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
 selector = "Self"
 require = 1
 
-[[injection]]
-id = "lan-craft-reload-generation"
-target = "horizon_client::game::Game<'_>::reload_world_tables"
-kind = "RETURN"
-helper = "source-lan-craft-reload.rs"
-bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
-
 [[module]]
 id = "lan-craft-stale-guard-module"
 file = "crates/horizon-client/src/game/lan_crafting.rs"
