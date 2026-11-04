@@ -653,7 +653,7 @@ fn take_tconstruct_creative_groups(inventory: &mut serde_json::Value) -> Result<
     let tabs = inventory.get_mut("tabs").and_then(serde_json::Value::as_array_mut).ok_or("missing Creative tabs")?;
     let mut groups = Vec::new();
     tabs.retain(|tab| {
-        if matches!(tab.get("id").and_then(serde_json::Value::as_str), Some("tconstruct:tools" | "tconstruct:blocks")) {
+        if matches!(tab.get("id").and_then(serde_json::Value::as_str), Some("tconstruct:tools" | "tconstruct:blocks" | "tconstruct:world")) {
             groups.push(tab.clone());
             false
         } else { true }

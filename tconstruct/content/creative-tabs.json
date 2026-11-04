@@ -60,5 +60,17 @@
     "row": "BOTTOM",
     "column": 5,
     "items": []
+  },
+  {
+    "id": "tconstruct:world",
+    "title": "Tinkers' World",
+    "icon": "{count:1,id:\"tconstruct:cobalt_ore\"}",
+    "row": "TOP",
+    "column": 0,
+    "page": 1,
+    "auto_place": true,
+    "items": [
+      "{count:1,id:\"tconstruct:necrotic_bone\"}"
+    ]
   }
 ]

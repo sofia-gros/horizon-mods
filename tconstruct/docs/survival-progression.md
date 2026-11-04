@@ -230,3 +230,12 @@ four matching bricks, as in the pinned source. The existing lamp blocks and
 self-drop loot are unchanged. Source-style recipe-book unlock advancements use
 the adapted recipe IDs; runtime unlocking remains unverified. Crafting and placement in a running host, saved
 worlds, and LAN remain unverified.
+
+The partial World Creative tab exposes the registered Necrotic Bone using the
+source World-tab ID and cobalt ore icon. Other World items and source ordering
+remain incomplete. This is Creative access only, not survival loot. Both native
+and manual preparation use paged placement; existing tab IDs are retained.
+Actual screen, reload, other-mod combinations and LAN remain unverified.
+Manual Creative tab registration does not add these entries to the Search tab;
+native Search registration is present but has not been verified in a running
+client. Manual and native page positions may differ.
