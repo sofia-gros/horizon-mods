@@ -25,3 +25,7 @@ The pinned source recipe crafts 16 Clear Glass Panes from six Clear Glass blocks
 ## Stained clear glass
 
 The pinned source recipes dye eight Clear Glass blocks with an item from the matching `forge:dyes/<color>` tag to produce eight colored blocks. The sixteen additive dye tags include their Forge 47.4.0 defaults. Source, registration, collision and package-content checks pass. The host's existing Forge namespace ownership restriction and lack of Forge tag `remove` support limit cross-mod and datapack parity. Actual acquisition, crafting, recipe-book display, save/reload and LAN remain unverified.
+
+## Stained clear glass panes
+
+For each of the 16 colors, the pinned source recipe makes 16 matching stained Clear Glass Panes from six matching stained Clear Glass blocks in two rows of three. Source, registration and collision tests pass. The matching stained-glass recipes provide the input at the data level. Actual acquisition, crafting, recipe-book display, save/reload and LAN remain unverified.
