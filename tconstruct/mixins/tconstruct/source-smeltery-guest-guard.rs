@@ -112,7 +112,7 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
                 if remaining.is_none() { state.progress[index] = 0; }
                 remaining
             } else if let Some(index) = player_index {
-                let remaining = crate::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, max, stackable);
+                let remaining = crate::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, 1, false);
                 inventory[index] = remaining.clone();
                 remaining
             } else { None };

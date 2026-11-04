@@ -97,7 +97,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             let stackable = info.is_some_and(|item| max > 1 && !(item.max_damage > 0 && stack.damage > 0));
             let before = stack.count;
             let remaining = if slot < 36 {
-                let remaining = crate::game::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, max, stackable);
+                let remaining = crate::game::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, 1, false);
                 inventory[slot] = remaining.clone(); remaining
             } else {
                 let Some(index) = crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300) else { return Break(true); };
