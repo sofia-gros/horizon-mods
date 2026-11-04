@@ -782,3 +782,9 @@ or malformed IDs retain the generic fluid name rather than guessing. Native
 fluid snapshots omit metadata, so their potion name remains generic. This is a display-only candidate; translated
 names, datapack changes, save/reload and local/LAN action bars need in-game
 verification. Other fluid tooltips are unchanged.
+
+The source netherite ingot and scrap nugget conversions are available as native
+crafting recipes. Each ingot or scrap yields nine corresponding nuggets; the
+reverse uses a TConstruct nugget in the center and eight nuggets from the
+corresponding extensible Forge tag. Source-data tests cover recipe and tag
+translation; live crafting, datapack tag changes and LAN remain unverified.
