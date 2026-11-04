@@ -280,3 +280,23 @@ conditional float additions, native base-2 reconstruction, Diamond fallback,
 invalid context, clamps and an explicit regression documenting the tiny-value
 limit. This is not a generated-host build or gameplay test. In-game bow/crossbow
 shots, save/reload, LAN and Windows remain unverified.
+
+## Longbow release threshold order
+
+The Longbow release hook now tests `charge * velocity < 0.1` before computing
+the host's three-times launch power, matching pinned
+[`ModifiableBowItem.releaseUsing`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/item/ranged/ModifiableBowItem.java).
+The previous `(charge * 3) * velocity < 0.3` comparison can round differently
+on either side of the threshold. Exact equality still permits release.
+The dispatched launch power remains `charge * 3`; this is only a firing-gate
+correction, not a launch-vector or projectile-damage change.
+
+The isolated cached-library harness executes the real release hook, draw,
+charge, and stat helpers with actor/dispatch boundary doubles. It checks both
+rounding-error directions, threshold equality and adjacent floats, ordinary
+charge times, broken/changed-hand/non-Longbow gates, missing-stat fallback,
+and actor-context cleanup. Source ammo/Forge-event ordering, full actor
+behavior, native projectile damage, gameplay, LAN, and Windows remain outside
+this validation. Run the harness through `test_longbow_release_threshold.py`
+with `TC_LONGBOW_HARNESS_DEPS` pointing to compatible cached Horizon rlibs;
+no dependency build is performed.
