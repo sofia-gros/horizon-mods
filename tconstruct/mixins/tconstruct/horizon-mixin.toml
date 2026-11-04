@@ -2242,6 +2242,18 @@ name = "tconstruct_source_melter_world"
 source = "source-melter-world.rs"
 
 [[module]]
+id = "source-smeltery-nbt-preserve"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_nbt_preserve"
+source = "source-smeltery-nbt-preserve.rs"
+
+[[module]]
+id = "source-smeltery-nbt-preserve-lib"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_smeltery_nbt_preserve"
+source = "source-smeltery-nbt-preserve.rs"
+
+[[module]]
 id = "source-melter-store"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_store"
