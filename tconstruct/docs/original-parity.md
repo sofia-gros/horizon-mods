@@ -1077,5 +1077,12 @@ Portable tanks and Copper Cans now display the source empty-potion name when
 an otherwise empty potion tag carries an explicit integer `CustomPotionColor`.
 The Copper Can icon uses that explicit color; the original tag remains intact.
 Only a missing Potion field or explicit empty ID and the color field are
-accepted in this narrow case. Other fields and numeric types remain outside it.
+accepted in this narrow case. Other fields and Float/Double colors remain outside it.
 Integrated GUI, resource packs, save/reload and LAN remain unverified.
+
+Portable potion views now also recognize Byte, Short and Long explicit colors,
+using source integer narrowing while retaining the original NBT. Complete local
+machine metadata uses the same tint; guest snapshots retain their earlier
+fallback. Float/Double colors and transfer parsing remain unchanged. Focused
+tests cover the conversion and item validation; integrated GUI, resource packs,
+save/reload and LAN remain unverified.

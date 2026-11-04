@@ -359,12 +359,25 @@ pub(super) fn tank_display_empty_potion(stack: &ItemStack, known: &impl Fn(&str)
     lantern_tank(stack).is_some_and(|tank| tank.amount > 0 && tank.fluid.as_deref() == Some("tconstruct:potion") && empty_potion_tag(tank.tag.as_ref()))
 }
 
+/// Integer NBT color forms accepted by source CompoundTag.getInt. Float and
+/// Double require separate source-floor boundary handling and remain unsupported.
+pub(super) fn display_potion_color(tag: &horizon_world::nbt::Tag) -> Option<i32> {
+    use horizon_world::nbt::Tag;
+    match tag.get("CustomPotionColor")? {
+        Tag::Byte(value) => Some(i32::from(*value)),
+        Tag::Short(value) => Some(i32::from(*value)),
+        Tag::Int(value) => Some(*value),
+        Tag::Long(value) => Some(*value as i32),
+        _ => None,
+    }
+}
+
 fn known_potion_tag(tag: horizon_world::nbt::Tag) -> Option<horizon_world::nbt::Tag> {
     use horizon_world::nbt::Tag;
     // Source PotionFluidType prioritizes an explicit color even for EMPTY.
     // Accept only the exact known fields; unrelated metadata stays opaque.
     if let Tag::Compound(fields) = &tag {
-        let color = matches!(fields.get(&"CustomPotionColor".into()), Some(Tag::Int(_)));
+        let color = display_potion_color(&tag).is_some();
         let potion = fields.get(&"Potion".into());
         let empty = match potion {
             None => fields.len() == 1,
@@ -373,7 +386,15 @@ fn known_potion_tag(tag: horizon_world::nbt::Tag) -> Option<horizon_world::nbt::
         };
         if color && empty { return Some(tag); }
     }
-    let (potion, _, _) = potion_tag(&tag, true)?;
+    // Validate a normalized copy only; callers receive the original NBT and
+    // the transfer parser remains strict about its representable item data.
+    let mut normalized = tag.clone();
+    if let Some(color) = display_potion_color(&tag) {
+        if let Tag::Compound(fields) = &mut normalized {
+            fields.insert("CustomPotionColor".into(), Tag::Int(color));
+        }
+    }
+    let (potion, _, _) = potion_tag(&normalized, true)?;
     if potion == "empty" { return None; }
     super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(&tag))?;
     Some(tag)
@@ -698,6 +719,30 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn numeric_potion_colors_preserve_original_item_tags() {
+        use horizon_world::nbt::Tag;
+        let can = ItemStack::new("tconstruct:copper_can", 1);
+        for color in [Tag::Byte(-128), Tag::Byte(127), Tag::Short(-32768),
+            Tag::Short(32767), Tag::Long(0x1234_5678_9abc_def0), Tag::Long(-1)] {
+            for potion in [None, Some("empty"), Some("minecraft:empty"), Some("minecraft:swiftness")] {
+                let mut fields = vec![("CustomPotionColor", color.clone())];
+                if let Some(id) = potion { fields.push(("Potion", Tag::String(id.into()))); }
+                let tag = Tag::compound(fields);
+                let filled = can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap();
+                assert_eq!(can_display_potion(&filled, &known), Some(tag.clone()));
+                assert_eq!(can_display_potion_icon(&filled, &known), Some(tag.clone()));
+                let mut tank = ItemStack::new("tconstruct:seared_fuel_tank", 1);
+                tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("tconstruct:potion".into())), ("amount", Tag::Int(250)), ("fluid_tag", tag.clone())]))])));
+                assert_eq!(tank_display_potion(&tank, &known), Some(tag.clone()));
+                if potion == Some("minecraft:swiftness") { assert!(potion_tag(&tag, true).is_none()); }
+            }
+        }
+        for color in [Tag::Float(1.0f32.to_bits()), Tag::Double(1.0f64.to_bits()), Tag::String("red".into())] {
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", color)]);
+            assert_eq!(can_display_potion(&can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap(), &known), None);
+        }
+    }
     #[test]
     fn explicit_empty_potion_color_is_preserved_for_item_views() {
         use horizon_world::nbt::Tag;
