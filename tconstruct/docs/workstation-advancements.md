@@ -45,3 +45,12 @@ announcement. Its icon's material-preview NBT is omitted because the host icon
 accepts an item ID only. This does not claim full equipment behavior or ordinary
 acquisition. Actual inventory events, persistence, display and LAN are unverified
 in a running world.
+
+The source Tool Smith challenge records seven separate inventory criteria:
+Pickaxe, Mattock, Pickadze, Hand Axe, Kama, Dagger and Sword. Acquisitions may
+occur at different times. Its Tinker Tool parent is not registered, so this
+challenge is not laid out in the advancement tree; the host may still show a
+toast or chat announcement. Its icon's material-preview NBT is omitted because
+the host icon accepts an item ID only. This does not claim complete tool behavior
+or ordinary acquisition. Actual inventory events, persistence, display and LAN
+are unverified in a running world.
