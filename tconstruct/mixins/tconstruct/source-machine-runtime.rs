@@ -942,6 +942,8 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
         return;
     }
     let Some((kind, mut casting)) = casting_at(game, target) else {
+        let name = &*game.res.facts().get(game.world.block(target.0, target.1, target.2)).name;
+        if super::tconstruct_source_melter_state::is_casting_block(name) { return; }
         faucet.tick(input, None);
         let _ = store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
         return;

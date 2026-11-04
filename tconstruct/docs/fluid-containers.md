@@ -58,3 +58,9 @@ finish after its source is removed. This does not cover unrelated actions,
 malformed item decoding, or data written by the destination. The tank-only
 codec and wiring have focused tests; the legacy routes have not been exercised
 in a live world, save/reload, LAN, or a full host build.
+
+On the legacy Melter route, a Faucet holding a packet now waits if its target
+is a recognized Casting Table or Basin whose saved state cannot be read. If
+the target block is actually removed, the older route still stops and discards
+its packet. This distinction has focused state and wiring tests; live world,
+chunk-boundary and LAN behavior remain unverified.

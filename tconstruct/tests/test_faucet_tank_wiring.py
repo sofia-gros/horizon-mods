@@ -17,5 +17,7 @@ class LegacyMelterWiring(unittest.TestCase):
         self.assertIn('let Some(state) = Melter::from_nbt(&raw) else { return; };', legacy)
         self.assertIn('game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))', legacy)
         self.assertIn('} else { None };', legacy)
+        missing=legacy.split('let Some((kind, mut casting)) = casting_at(game, target) else {',1)[1]
+        self.assertLess(missing.index('is_casting_block(name)'), missing.index('faucet.tick(input, None)'))
 
 if __name__=='__main__': unittest.main()

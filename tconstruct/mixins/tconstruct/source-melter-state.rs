@@ -329,6 +329,11 @@ impl Faucet {
     }
 }
 
+/// Distinguish a recognized but unreadable casting from a removed target.
+pub(super) fn is_casting_block(name: &str) -> bool {
+    matches!(name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin")
+}
+
 #[cfg(test)]
 mod faucet_tests {
     use super::*;

@@ -159,3 +159,12 @@ fn fixture()->(Game<'static>,Pos,Pos,Pos) {
  let mut state=Melter::new();let fluid_tag=Tag::compound([("Potion",Tag::String("minecraft:water".into()))]);assert!(state.tank.insert_tagged("x:potion",Some(&fluid_tag),90));let mut raw=state.to_nbt();if let Tag::Compound(fields)=&mut raw {fields.insert("heat_codes".into(),Tag::IntArray(vec![7,8,9]));if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()) {tank.insert("extension".into(),Tag::Int(42));}}
  assert_eq!(state.tank.take_tagged(Some(&fluid_tag),90).as_deref(),Some("x:potion"));let out=tconstruct_source_faucet_tank::patch_melter_tank(&raw,&state.tank).unwrap();assert_eq!(out.get("heat_codes"),raw.get("heat_codes"));let tank=out.get("tank").unwrap();assert_eq!(tank.get("amount"),Some(&Tag::Int(0)));assert_eq!(tank.get("extension"),Some(&Tag::Int(42)));assert!(tank.get("fluid").is_none());assert!(tank.get("fluid_tag").is_none());
 }
+#[test] fn unreadable_casting_target_waits_and_removed_target_keeps_existing_behavior() {
+ use tconstruct_source_melter_state::is_casting_block;
+ for name in ["tconstruct:seared_table","tconstruct:scorched_table","tconstruct:seared_basin"] {
+  let mut source=Tank::new(90); assert!(source.insert("x:copper",90)); let output=Tank::new(90); let mut faucet=Faucet::new();assert!(faucet.activate(&mut source,&output));
+  let before=faucet.to_nbt();if !is_casting_block(name) {faucet.tick(&mut source,None);}assert_eq!(faucet.to_nbt(),before);
+  let mut restored=Faucet::from_nbt(&faucet.to_nbt()).unwrap();let mut repaired=Tank::new(90);restored.tick(&mut source,Some(&mut repaired));assert_eq!((restored.pending.amount,repaired.amount),(80,10));
+  if !is_casting_block("minecraft:air") {faucet.tick(&mut source,None);}assert!(!faucet.active);assert_eq!(faucet.pending.amount,0);
+ }
+}

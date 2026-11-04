@@ -67,6 +67,19 @@ mod tconstruct_source_smeltery_fuel {
   assert!(catalog.casting(true,Some("tconstruct:pattern"),"tconstruct:seared_stone",&|_|true).is_none());
   assert!(catalog.casting(false,None,"tconstruct:seared_stone",&|_|true).is_none());
  }
+ #[test] fn blazing_bone_source_recipe_requires_bone_blood_and_registered_output() {
+  let bytes=include_bytes!("../fixtures/blazing_bone.json").to_vec();
+  let recipes=BTreeMap::from([("tconstruct:smeltery/casting/blaze/bone".into(),bytes)]);
+  let tags=HashMap::from([("forge:wither_bones".into(),HashSet::from(["example:wither_bone".into()]))]);
+  let fluids=HashMap::from([("tconstruct:blazing_blood".into(),HashSet::from(["tconstruct:blazing_blood".into()]))]);
+  let items=HashSet::from(["example:wither_bone".into(),"tconstruct:blazing_bone".into()]);
+  let known_fluids=HashSet::from(["tconstruct:blazing_blood".into()]);
+  let c=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&fluids,known_items:&items,known_fluids:&known_fluids};
+  let (_,r,out)=c.casting(false,Some("example:wither_bone"),"tconstruct:blazing_blood",&|_|true).unwrap();
+  assert_eq!((r.fluid.amount,r.cooling_time,r.consumes_cast,out.as_str()),(200,120,true,"tconstruct:blazing_bone"));
+  assert!(c.casting(true,Some("example:wither_bone"),"tconstruct:blazing_blood",&|_|true).is_none());
+  assert!(c.casting(false,None,"tconstruct:blazing_blood",&|_|true).is_none());
+ }
  #[test] fn invalid_and_different_amount_alternatives_fail_closed() {
   use tconstruct_source_melting_recipes::CastingRecipe;
   let recipe=include_str!("../fixtures/seared_reinforcement.json"); let mut value:serde_json::Value=serde_json::from_str(recipe).unwrap();

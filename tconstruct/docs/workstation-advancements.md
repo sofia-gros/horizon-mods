@@ -23,3 +23,5 @@ its current advancement Display reads only the item ID, not the source NBT
 used for a material preview. Source trigger logic and requirements are retained;
 gameplay, already-held gear, persistence and LAN actor attribution are not
 verified. No recipe-book reward is added.
+
+The source Tinkers' Anvil goal is intended to be recorded when either the Tinker's Anvil or Scorched Anvil enters the inventory. Its source parent, the Smeltery-open advancement, is not yet connected, so this goal is not placed in the advancement tree until that parent exists. The host may nevertheless show a toast or chat announcement when its criterion completes. The source goal has no reward. Actual acquisition, progress persistence, toast and LAN behavior have not been verified in a running world.
