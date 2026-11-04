@@ -491,3 +491,42 @@ fn dwarven_velocity_depth_bonus_uses_conditional_multiplier() {
   assert_eq!(projectile::projectile_stats_at(&bow,0.0,320).unwrap().0,projectile::projectile_stats(&bow).unwrap().0);
  }
 }
+
+#[test]
+fn diamond_trait_adds_melee_and_projectile_stats_once() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":4.0,"tconstruct:projectile_damage":2.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:attack_damage":2.0,"tconstruct:projectile_damage":3.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut tool=ItemStack::new(id,1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  let traits=BTreeMap::from([("tconstruct:diamond".into(),2)]);
+  let read=|tool:&ItemStack,key| match tool.data().unwrap().other("minecraft:custom_data").unwrap().get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("missing {key}")};
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+   assert_eq!(read(&tool,"tic_attack_damage"),9.0);
+   assert_eq!(read(&tool,"tic_projectile_damage"),7.5);
+  }
+  let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+  let Tag::Compound(ref mut fields)=custom else {panic!()};
+  fields.insert("tic_upgrades".into(),Tag::compound([("tconstruct:diamond",Tag::Int(1))]));
+  tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+  tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+  assert_eq!(read(&tool,"tic_attack_damage"),9.0); assert_eq!(read(&tool,"tic_projectile_damage"),7.5);
+  let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+  let Tag::Compound(ref mut fields)=custom else {panic!()}; fields.remove(&"tic_upgrades".into());
+  tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+  tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::new(),true,true).unwrap();
+  assert_eq!(read(&tool,"tic_attack_damage"),8.0); assert_eq!(read(&tool,"tic_projectile_damage"),6.0);
+ }
+}
+
+#[test]
+fn diamond_trait_does_not_write_melee_stats_without_melee_tag() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":4.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap(); let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::from([("tconstruct:diamond".into(),1)]),false,false).unwrap();
+ assert!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_damage").is_none());
+}
