@@ -36,8 +36,9 @@ This follows the pinned [Maintained definition](https://github.com/SlimeKnights/
 and [ConditionalStatModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/behavior/ConditionalStatModule.java).
 Its flat adjustment has priority 100, before Dwarven's priority 85 altitude
 adjustment. Consequently Dwarven's high-altitude penalty also scales the
-Maintained bonus. The existing velocity multiplier includes the tool definition
-and Netherite upgrade. Both existing firing hooks read the changed calculation;
+Maintained bonus. The conditional velocity multiplier includes the tool definition, but not
+Netherite’s base-only multiplier. Existing bows need a material rebuild or
+regeneration to refresh the saved multiplier. Both existing firing hooks read the changed calculation;
 no new hook registration is required.
 
 Focused Rust tests cover both bows, full/three-quarter/half/broken durability,
