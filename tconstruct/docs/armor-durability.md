@@ -108,7 +108,7 @@ Level resolution, modifier amounts/operations, existing broken checks, modifier
 cleanup, armor wear and native item attributes are unchanged. Other modifier
 modules and external item classes are not implemented by this slice.
 
-Nine Rust boundary tests execute the actual helper against lightweight host
+Ten Rust boundary tests execute the actual helper against lightweight host
 doubles, covering all thirteen IDs in all four slots, unsupported items,
 relocation/repair, each of the seven supported effects in correct/wrong slots
 and on broken armor, and retained gravity. Two Python checks run the
@@ -134,5 +134,30 @@ normalize positive infinity; that downstream behavior is not changed or
 validated here. This is not general metadata sanitization. The actual-helper
 fixture checks each field independently and models clearing a previously
 installed modifier after its value becomes NaN, retaining the other stats
-and movement/gravity effects. The focused suite passes nine Rust tests and
+and movement/gravity effects. The focused suite passes ten Rust tests and
 two Python checks; the existing host-double limitations above still apply.
+
+### Integer modifier amount precision
+
+Vintage, Heavy, Solid, Featherweight, Entwined and Step Up now compute their
+implemented movement, gravity and step amounts as
+`0.0f32 + coefficient_f32 * level_as_f32` before widening to the host's double
+attribute value. This follows pinned
+[LevelingValue.compute](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/json/LevelingValue.java)
+and
+[AttributeModule.createModifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/behavior/AttributeModule.java).
+The prior double-only multiplication differed even at level one for coefficients
+such as 0.1 and 0.05. The source converts integer effective levels to float,
+so levels above float's exact integer range also use that conversion.
+
+The current trait-plus-upgrade integer resolver, attribute operations and all
+slot/tag/broken gates are unchanged. Speedy is deliberately unchanged: its
+incremental effective level needs the source's logical-level/partial-progress
+evaluation order, not a simple conversion of `progress / 45` to float. This
+slice does not implement arbitrary datapack formulas or fractional effective
+levels for other modifiers.
+
+The actual-helper fixture checks exact widened bits for all six modifiers and
+their applicable gravity effects at levels 1, 3 and 16,777,217, retaining the
+existing operations and gate regressions. Ten Rust tests and two Python checks
+pass. Host integration and gameplay remain unverified.

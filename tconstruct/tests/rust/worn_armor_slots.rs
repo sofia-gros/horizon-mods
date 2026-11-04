@@ -113,7 +113,7 @@ fn apply(g:&mut game::Game<'_>) {
    g.armor[slot]=Some(item);apply(&mut g);
    let values=&g.player.as_ref().unwrap().values;
    let entry=values.iter().find(|((attr,_),_)|attr==&format!("minecraft:{attribute}"));
-   if slot==0 && !broken {assert_eq!(entry.map(|(_,value)|value),Some(&(amount,op.into())),"{id}");}
+   if slot==0 && !broken {let expected=if id=="speedy" {amount}else{f64::from(amount as f32)};assert_eq!(entry.map(|(_,value)|value),Some(&(expected,op.into())),"{id}");}
    else {assert!(entry.is_none(),"{id} slot {slot} broken {broken}");}
    let gravity=values.keys().any(|(attr,_)|attr=="minecraft:gravity");
    assert_eq!(gravity,matches!(id,"vintage"|"heavy"|"solid"));
@@ -168,4 +168,36 @@ fn apply(g:&mut game::Game<'_>) {
  assert!(!g.applied_modifiers.iter().any(|(_,id)|id=="tconstruct:tic_armor/head"));
  assert!(g.applied_modifiers.iter().any(|(_,id)|id=="tconstruct:vintage_movement/head"));
  assert!(g.applied_modifiers.iter().any(|(_,id)|id=="tconstruct:vintage_gravity/head"));
+}
+
+#[test] fn integer_modifier_formulas_compute_float_then_widen() {
+ for (id,coefficient,attribute,op,gravity) in [
+  ("vintage",-0.1f32,"movement_speed","add_multiplied_total",Some(0.1f32)),
+  ("heavy",-0.1,"movement_speed","add_multiplied_base",Some(0.05)),
+  ("solid",-0.1,"movement_speed","add_multiplied_base",Some(0.05)),
+  ("featherweight",0.05,"movement_speed","add_multiplied_base",None),
+  ("entwined",0.1,"movement_speed","add_multiplied_total",None),
+  ("step_up",0.5,"step_height","add_value",None),
+ ] {
+  for level in [1,3,16_777_217] {
+   let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+   let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+   data.insert("tic_upgrades".into(),Tag::Compound([(format!("tconstruct:{id}"),Tag::Int(level))].into()));
+   g.world.chunks.0=Some(Ok(HashMap::from([("tconstruct:modifiable/armor".into(),HashSet::from(["tconstruct:plate_helmet".into()]))])));
+   g.armor[0]=Some(item);apply(&mut g);
+   let values=&g.player.as_ref().unwrap().values;
+   let (_, (amount,operation))=values.iter().find(|((attr,_),_)|attr==&format!("minecraft:{attribute}")).unwrap();
+   let expected=f64::from(0.0f32+coefficient*level as f32);
+   assert_eq!(amount.to_bits(),expected.to_bits(),"{id} level {level}");
+   assert_eq!(operation,op);
+   if let Some(coefficient)=gravity {
+    let (_, (amount,operation))=values.iter().find(|((attr,_),_)|attr=="minecraft:gravity").unwrap();
+    assert_eq!(amount.to_bits(),f64::from(0.0f32+coefficient*level as f32).to_bits());
+    assert_eq!(operation,"add_multiplied_total");
+   }
+  }
+ }
+ // Counterexamples to the former double-only calculations.
+ assert_ne!(f64::from(0.1f32).to_bits(),0.1f64.to_bits());
+ assert_ne!(f64::from(0.5f32*16_777_217i32 as f32).to_bits(),(0.5f64*16_777_217.0).to_bits());
 }
