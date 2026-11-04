@@ -842,3 +842,8 @@ The pinned seared and scorched glass-pane crafting recipes now each convert six
 matching glass blocks into sixteen panes. Both glass and pane blocks were
 already registered. Source-data tests cover the translated recipes; live
 crafting, datapack reload and LAN remain unverified.
+
+The pinned seared brick slab, stairs and wall crafting recipes are available
+for the already registered blocks. Their source patterns and output counts
+are covered by source-data tests; live crafting, datapack reload and LAN
+remain unverified.
