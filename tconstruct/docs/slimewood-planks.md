@@ -7,3 +7,7 @@ Source comparisons, registration checks and resource-overlay tests pass. Actual 
 ## Log-to-wood recipes
 
 For each slimewood, the pinned source's normal and stripped log-to-wood recipes are also registered. Four matching logs in a 2×2 square produce three matching wood blocks. Source and registration tests pass; actual host crafting, packaging, recipe-book presentation, save/reload and LAN remain unverified.
+
+## Slabs and stairs
+
+The four slimewood slab and stair recipes follow the pinned source. Three matching planks make six slabs; six matching planks make four stairs. Source and registration tests pass. Host recipe loading, actual crafting and placement, packaging, recipe-book presentation, save/reload and LAN remain unverified.
