@@ -24,7 +24,13 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
     // projection so the host's static item damage is removed rather than
     // falling through and reintroducing it. Percent wear traits also stop.
     let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
-    let damage = if broken { 0.0 } else { f32::from_bits(*bits) };
+    // Only the base held stat requires MELEE_WEAPON. Modifier effects below
+    // remain independent; retain the clone projection to remove native damage.
+    let melee_weapon = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
+        .and_then(|tags| tags.as_ref().ok())
+        .and_then(|tags| tags.get("tconstruct:modifiable/melee/weapon"))
+        .is_some_and(|items| items.contains(&*stack.item));
+    let damage = if broken || !melee_weapon { 0.0 } else { f32::from_bits(*bits) };
     let trait_bonus = (!broken).then(|| crate::game::tconstruct_source_material_traits::levels(&game.world, stack)).flatten()
         .map(|traits| {
             let jagged = traits.levels.get("tconstruct:jagged").copied().unwrap_or(0);

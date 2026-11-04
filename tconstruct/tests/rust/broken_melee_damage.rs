@@ -3,7 +3,7 @@
 extern crate self as horizon_world;
 extern crate self as horizon_items;
 pub mod items { pub type ItemStack=super::Stack; }
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap,HashMap,HashSet};
 use std::ops::ControlFlow;
 pub mod nbt {
     use super::BTreeMap;
@@ -34,7 +34,9 @@ impl Player {
     }
     fn attribute(&mut self,id:&str)->Result<f64,()>{assert_eq!(id,"minecraft:attack_damage");if self.fail_read{return Err(())}Ok(((self.base+self.native+self.additive+self.projection)*self.total).max(0.0))}
 }
-pub struct World { trait_level:i32 }
+pub struct Chunks { tags:Option<Result<HashMap<String,HashSet<String>>,String>> }
+impl Chunks {fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<HashMap<String,HashSet<String>>,String>>{&self.tags}}
+pub struct World { trait_level:i32, chunks:Chunks }
 pub mod game {
     use super::*;
     pub struct Game<'a>{pub inventory:Vec<Option<Stack>>,pub selected:usize,pub offhand:Option<Stack>,pub acting_offhand:bool,pub attack_item:Option<String>,pub info:Option<ItemInfo>,pub player:Option<Player>,pub world:World,pub marker:std::marker::PhantomData<&'a ()>}
@@ -57,7 +59,7 @@ pub mod game {
 fn game()->game::Game<'static>{
     let mut held=Stack::new("tconstruct:sword",1);
     held.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_attack_damage",Tag::Float(8.0f32.to_bits())),("tic_max_damage",Tag::Int(100)),("tic_broken",Tag::Byte(0))])));
-    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0},marker:std::marker::PhantomData}
+    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0,chunks:Chunks{tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()]))])))}},marker:std::marker::PhantomData}
 }
 fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.inventory[0].as_mut().unwrap().data_mut().0 else{panic!()};v.insert(key.into(),value);}
 #[test] fn broken_removes_native_and_material_damage_and_repair_restores(){
@@ -114,4 +116,25 @@ fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.i
     assert_eq!(game::run(&g),ControlFlow::Continue(()));
     g.inventory[1]=None;assert_eq!(game::run(&g),ControlFlow::Continue(()));
     g.selected=usize::MAX;assert_eq!(game::run(&g),ControlFlow::Continue(()));
+}
+
+#[test] fn missing_or_removed_weapon_tag_removes_only_saved_base_contribution() {
+    let mut g=game();let p=g.player.as_mut().unwrap();p.base=5.0;p.additive=3.0;p.total=1.5;
+    assert_eq!(game::run(&g),ControlFlow::Break(24.0));
+    for tags in [None,Some(Err("unavailable".into())),Some(Ok(HashMap::new())),Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::new())])))] {
+        g.world.chunks.tags=tags;
+        assert_eq!(game::run(&g),ControlFlow::Break(12.0));
+        assert_eq!(g.player.as_ref().unwrap().projection,0.0);
+    }
+    g.world.chunks.tags=Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()]))])));
+    assert_eq!(game::run(&g),ControlFlow::Break(24.0));
+    field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(12.0));
+}
+#[test] fn base_weapon_gate_does_not_disable_independent_percent_modifier() {
+    let mut g=game();g.world.chunks.tags=None;g.world.trait_level=1;
+    // Existing percent-wear projection uses the remaining base 1, not the
+    // removed saved tool damage 8; its independent 50% fixture still applies.
+    assert_eq!(game::run(&g),ControlFlow::Break(1.5));
+    field(&mut g,"tic_broken",Tag::Byte(1));g.world.trait_level=-1;
+    assert_eq!(game::run(&g),ControlFlow::Break(1.0));
 }
