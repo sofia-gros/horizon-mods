@@ -795,3 +795,9 @@ compression recipes require the corresponding TConstruct item in the center
 and eight items from its extensible Forge tag. Source-data tests cover the
 translation and tag contents. Live crafting, datapack reload and LAN remain
 unverified.
+
+The pinned cinderslime ingot, nugget and block conversions are available as
+native crafting recipes. Each reverse recipe returns nine units; compression
+requires the corresponding TConstruct item at the center and eight items
+from its extensible Forge tag. Source-data tests cover the translation and tag
+contents. Live crafting, datapack reload and LAN remain unverified.
