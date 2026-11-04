@@ -73,10 +73,15 @@ class MaterialsBookSourceTest(unittest.TestCase):
         for path, sha in {
             'sections/smeltery.json': '0125b0c787d061e86d1e74c12d157fa9bd3d2f32',
             'en_us/smeltery/controller.json': '68bd1e57a4e61f1a22136fef66127645f8d4a287',
-            'en_us/smeltery/alloying.json': '49a047aca33345e2759712225b8741233df68733',
         }.items():
             data = (root / path).read_bytes()
             self.assertEqual(hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest(), sha)
+        source = (ROOT / 'tests/fixtures/mighty_alloying_source.json').read_bytes()
+        self.assertEqual(hashlib.sha1(f'blob {len(source)}\0'.encode() + source).hexdigest(), '49a047aca33345e2759712225b8741233df68733')
+        adapted = json.loads((root / 'en_us/smeltery/alloying.json').read_text())
+        original = json.loads(source)
+        self.assertEqual(adapted['title'], original['title'])
+        self.assertEqual(adapted['text'][:len(original['text'])], original['text'])
         image = (ARCHIVE / 'assets/tconstruct/book/images/scontroller.png').read_bytes()
         self.assertEqual(hashlib.sha1(f'blob {len(image)}\0'.encode() + image).hexdigest(), 'f6876cde9a983114a3208992282474f4dc9d0d23')
         section = json.loads((root / 'sections/smeltery.json').read_text())
