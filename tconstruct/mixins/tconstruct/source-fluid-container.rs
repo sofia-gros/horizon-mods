@@ -301,6 +301,16 @@ fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_sta
     }
 }
 
+/// Read only supported, untagged portable tank contents for tooltip display.
+pub(super) fn tank_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<String> {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return None; }
+    let tank = lantern_tank(stack)?;
+    let fluid = tank.fluid?;
+    if tank.amount == 0 || tank.tag.is_some() || fluid == "tconstruct:potion" || !known(&fluid)
+        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava") || fluid.starts_with("tconstruct:")) { return None; }
+    Some(fluid)
+}
+
 /// A normal left/right click on either temporary slot. The output never
 /// accepts inserted items; all changes are staged in caller-owned copies.
 pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<ItemStack>, index: usize,
@@ -620,6 +630,33 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn portable_tank_tooltip_view_is_read_only_and_conservative() {
+        use horizon_world::nbt::Tag;
+        for item in ["tconstruct:seared_fuel_tank", "tconstruct:seared_fuel_gauge", "tconstruct:scorched_fuel_tank", "tconstruct:scorched_fuel_gauge", "tconstruct:seared_ingot_tank", "tconstruct:seared_ingot_gauge", "tconstruct:scorched_ingot_tank", "tconstruct:scorched_ingot_gauge", "tconstruct:seared_lantern", "tconstruct:scorched_lantern", "tconstruct:seared_casting_tank", "tconstruct:seared_fluid_cannon"] {
+            let mut stack = ItemStack::new(item, 2);
+            assert_eq!(tank_display_fluid(&stack, &known), None);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("minecraft:flowing_water".into())), ("amount", Tag::Int(1))]))])));
+            let before = stack.clone();
+            assert_eq!(tank_display_fluid(&stack, &known).as_deref(), Some("minecraft:flowing_water"));
+            assert_eq!(stack, before);
+            assert_eq!(tank_display_fluid(&stack, &|_| false), None);
+            stack.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
+            assert_eq!(tank_display_fluid(&stack, &known), None);
+            let mut tagged = before.clone();
+            tagged.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int(1)), ("fluid_tag", Tag::compound([("variant", Tag::Int(1))]))]))])));
+            assert_eq!(tank_display_fluid(&tagged, &known), None);
+        }
+        assert_eq!(tank_display_fluid(&ItemStack::new("minecraft:stone", 1), &known), None);
+        for fluid in ["minecraft:empty", "minecraft:milk", "other:fluid", "tconstruct:potion"] {
+            let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String(fluid.into())), ("amount", Tag::Int(1))]))])));
+            assert_eq!(tank_display_fluid(&stack, &known), None, "{fluid}");
+        }
+        let mut malformed = ItemStack::new("tconstruct:seared_lantern", 1);
+        malformed.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int(51))]))])));
+        assert_eq!(tank_display_fluid(&malformed, &known), None);
+    }
     #[test]
     fn can_display_is_read_only_and_conservative() {
         use horizon_world::nbt::Tag;
