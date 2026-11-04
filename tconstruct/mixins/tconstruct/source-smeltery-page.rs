@@ -43,6 +43,45 @@ pub(super) fn commit_with_containers(slots: &mut [Option<ItemStack>], offset: us
     true
 }
 
+/// Equality ignores retained wire bytes, including after a stack was edited.
+/// Do not infer a lossless or current page from equality when those bytes exist.
+pub(super) fn no_retained_wire(page: &[Option<ItemStack>]) -> bool {
+    page.iter().flatten().all(|stack| stack.data().is_none_or(|data| data.wire.patch().is_none()))
+}
+pub(super) fn sent_page_matches(sent: &[Option<ItemStack>], expected: &[Option<ItemStack>]) -> bool {
+    expected.len() == MENU_SIZE && sent.get(..MENU_SIZE).is_some_and(|page|
+        no_retained_wire(page) && no_retained_wire(expected) && page == expected)
+}
+
+/// Stage a single insertion into an empty raw melting slot. Keep every other
+/// field byte-for-byte and reject stacks that the item codec cannot preserve.
+pub(super) fn prepare_single_insert(raw: &horizon_world::nbt::Tag, index: usize, held: &ItemStack)
+    -> Option<(horizon_world::nbt::Tag, ItemStack, ItemStack)> {
+    use horizon_world::nbt::Tag;
+    if held.count <= 1 || held.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
+    let mut one = held.clone(); one.count = 1;
+    let encoded = horizon_items::item_nbt::item_to_nbt(&one);
+    let decoded = horizon_items::item_nbt::item_from_nbt(&encoded)?;
+    if decoded.count != 1 || !one.same_item_same_components(&decoded)
+        || horizon_items::item_nbt::item_to_nbt(&decoded) != encoded { return None; }
+    let Tag::Compound(mut fields) = raw.clone() else { return None; };
+    let Some(Tag::List(slots)) = fields.get_mut(&"slots".into()) else { return None; };
+    // The local path reprojects the page. An opaque saved item elsewhere
+    // must not be turned into a lossy live representation by this click.
+    for raw_slot in slots.iter() {
+        if matches!(raw_slot, Tag::Compound(map) if map.is_empty()) { continue; }
+        let decoded = horizon_items::item_nbt::item_from_nbt(raw_slot)?;
+        if horizon_items::item_nbt::item_to_nbt(&decoded) != *raw_slot { return None; }
+    }
+    let slot = slots.get_mut(index)?;
+    if !matches!(slot, Tag::Compound(map) if map.is_empty()) { return None; }
+    *slot = encoded;
+    let Some(Tag::IntArray(progress)) = fields.get_mut(&"progress".into()) else { return None; };
+    *progress.get_mut(index)? = 0;
+    let mut remainder = held.clone(); remainder.count -= 1;
+    Some((Tag::Compound(fields), one, remainder))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
