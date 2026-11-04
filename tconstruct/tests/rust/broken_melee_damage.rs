@@ -59,7 +59,7 @@ pub mod game {
 fn game()->game::Game<'static>{
     let mut held=Stack::new("tconstruct:sword",1);
     held.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_attack_damage",Tag::Float(8.0f32.to_bits())),("tic_max_damage",Tag::Int(100)),("tic_broken",Tag::Byte(0))])));
-    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0,chunks:Chunks{tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()]))])))}},marker:std::marker::PhantomData}
+    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0,chunks:Chunks{tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()])),("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])))}},marker:std::marker::PhantomData}
 }
 fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.inventory[0].as_mut().unwrap().data_mut().0 else{panic!()};v.insert(key.into(),value);}
 #[test] fn broken_removes_native_and_material_damage_and_repair_restores(){
@@ -126,15 +126,34 @@ fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.i
         assert_eq!(game::run(&g),ControlFlow::Break(12.0));
         assert_eq!(g.player.as_ref().unwrap().projection,0.0);
     }
-    g.world.chunks.tags=Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()]))])));
+    g.world.chunks.tags=Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()])),("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])));
     assert_eq!(game::run(&g),ControlFlow::Break(24.0));
     field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(12.0));
 }
 #[test] fn base_weapon_gate_does_not_disable_independent_percent_modifier() {
-    let mut g=game();g.world.chunks.tags=None;g.world.trait_level=1;
+    let mut g=game();g.world.chunks.tags=Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])));g.world.trait_level=1;
     // Existing percent-wear projection uses the remaining base 1, not the
     // removed saved tool damage 8; its independent 50% fixture still applies.
     assert_eq!(game::run(&g),ControlFlow::Break(1.5));
     field(&mut g,"tic_broken",Tag::Byte(1));g.world.trait_level=-1;
     assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+}
+
+#[test] fn conditional_wear_requires_melee_tag_independently_of_weapon_tag() {
+    let mut g=game();g.world.trait_level=1;
+    assert_eq!(game::run(&g),ControlFlow::Break(13.5));
+    // Valid weapon base remains even if a pack independently removes MELEE.
+    g.world.chunks.tags=Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()]))])));
+    g.world.trait_level=-1; // Resolver must not be called when ineligible.
+    assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    for tags in [None,Some(Err("unavailable".into())),Some(Ok(HashMap::new())),Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::new())])))] {
+        g.world.chunks.tags=tags;assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+    }
+    g.world.chunks.tags=Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])));
+    g.world.trait_level=1;assert_eq!(game::run(&g),ControlFlow::Break(1.5));
+    let p=g.player.as_mut().unwrap();p.additive=3.0;p.total=2.0;
+    assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    assert_eq!(g.player.as_ref().unwrap().projection,0.0);
+    field(&mut g,"tic_broken",Tag::Byte(1));g.world.trait_level=-1;
+    assert_eq!(game::run(&g),ControlFlow::Break(8.0));
 }

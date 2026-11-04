@@ -434,7 +434,36 @@ The actual-helper boundary tests cover missing/error/removed/restored tag maps,
 native modifier removal, player base/additive effects/total multipliers, broken
 state and an independent percent-wear fixture. Existing tests retain actual
 mainhand selection and fallbacks. The separate Raging harness continues to apply
-Raging with MELEE membership and no MELEE_WEAPON tag. The existing wear projection
-still lacks a separate MELEE gate; suppressing wear when MELEE itself is absent
-is a distinct remaining gap. No full generated-host build,
+Raging with MELEE membership and no MELEE_WEAPON tag. The subsequent wear-eligibility correction below adds its separate MELEE gate. No full generated-host build,
+gameplay, LAN or Windows validation was run.
+
+
+## Live MELEE eligibility for wear damage
+
+The existing Jagged/Stonebound damage projection now requires the actual mainhand
+to belong to live `tconstruct:modifiable/melee`. Pinned
+[`ToolAttackUtil.canPerformAttack`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/helper/ToolAttackUtil.java)
+requires MELEE and an unbroken tool before its conditional melee modifier path.
+Missing/error snapshots, missing tags or removed membership suppress wear-bonus
+resolution; saved damage metadata alone cannot establish eligibility.
+
+This is separate from the narrower MELEE_WEAPON gate for the saved base attribute.
+A MELEE item outside MELEE_WEAPON still receives the existing wear contribution
+on the remaining base; a weapon whose MELEE membership is removed retains its
+base attribute but not this conditional wear bonus. The clone's native-item
+subtraction, player effects, total-multiplier order and original-player immutability
+remain. Raging's separate RETURN path is unchanged.
+
+This projection has no target information, so its existing wear contribution can
+still apply to nonliving targets; this tag check does not establish source target
+eligibility. The `levels()` resolver supplies material trait levels, not validation
+of the active Jagged/Stonebound modifier definitions. Overrides or removal of those
+modifier definitions are not validated by this slice.
+
+The actual projection-helper boundary test checks independently varied tags,
+unknown/error/empty/restored maps, no trait resolution while ineligible, preserved
+player effects, and broken-state suppression. Existing cases retain mainhand and
+fallback coverage. The wear-formula and attribute host are doubles in this harness;
+source-ordered evaluation of all modifiers, NO_MELEE volatile state and whole
+attack rejection are not implemented by this slice. No full generated-host build,
 gameplay, LAN or Windows validation was run.
