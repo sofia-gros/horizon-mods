@@ -76,3 +76,13 @@ single-tank encoder, an unpaired UTF-16 surrogate in the old fluid ID rejects
 the update rather than being rewritten lossily. This may pause those machines.
 Other non-preserving transfer, destroy and client snapshot paths are not covered.
 The cached-type fixture is not a full host, world, save/reload or LAN test.
+
+For Smeltery/Foundry fuel draw and direct player fuel-tank interaction, the
+native tank compound is patched on a staged copy: unrelated top-level fields
+are retained as parsed NBT values, not necessarily identical bytes. They remain
+when the tank empties or another fluid is inserted, so their meaning may become
+inconsistent if they depended on the old fluid. Legacy `FluidName`, `Amount` and `Tag` aliases are dropped
+as in the former serializer. An invalid UTF-16 fluid ID blocks that candidate
+without consuming fuel or the held container. Other transfer, drop and old
+Forge formats remain outside this limited change. Host/world/save/LAN behavior
+is unverified.

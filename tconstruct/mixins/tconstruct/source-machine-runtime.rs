@@ -144,7 +144,8 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(tank_capacity) = super::tconstruct_source_smeltery_fuel::capacity(&name) else { continue; };
             if !ensure(game, at, &name) { continue; }
             let Some(kind) = kind(&name) else { continue; };
-            let Some(mut tank) = store::read(&game.world, at, kind).and_then(|tag| Tank::from_nbt(&tag, tank_capacity)) else { continue; };
+            let Some(raw_tank) = store::read(&game.world, at, kind) else { continue; };
+            let Some(mut tank) = Tank::from_nbt(&raw_tank, tank_capacity) else { continue; };
             let Some(fluid) = tank.fluid.as_deref() else { continue; };
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
@@ -158,8 +159,9 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                 });
             if !can_heat && !can_alloy { continue; }
             if tank.take(fuel.fluid.amount).is_none() { continue; }
+            let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { continue; };
             state.fuel = fuel.duration; state.fuel_quality = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
-            fuel_update = Some((at, kind, tank.to_nbt()));
+            fuel_update = Some((at, kind, updated_tank));
             break;
         }
     }
@@ -242,7 +244,8 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
     let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(block) else { return false; };
     let Some(kind) = kind(block) else { return false; };
     if !ensure(game, pos, block) { return false; }
-    let Some(mut tank) = store::read(&game.world, pos, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) else { return false; };
+    let Some(raw_tank) = store::read(&game.world, pos, kind) else { return false; };
+    let Some(mut tank) = Tank::from_nbt(&raw_tank, capacity) else { return false; };
     let Some(held) = game.held().cloned() else { return true; };
     if held.count == 0 { return false; }
     game.ensure_datapacks();
@@ -257,7 +260,8 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
         super::tconstruct_source_fluid_container::Direction::Auto,
         &|item| game.res.items().get(item).is_some(),
         &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
-    if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
+    let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { return true; };
+    if !store::write(&mut game.world, pos, kind, updated_tank) { return false; }
     if game.creative {
         // Preserve the held container in creative, but retain fluid removed
         // from the tank by giving the filled result to the player.

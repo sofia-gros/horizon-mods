@@ -31,3 +31,13 @@ use tconstruct_source_melter_state::{Melter,Tank};
  let good=Tag::compound([("fluid",Tag::String("test:😀".into())),("amount",Tag::Int(1))]);
  let tank=Tank::from_nbt(&good,4000).unwrap(); assert_eq!(tank.to_nbt_preserving(&good),Some(good));
 }
+
+#[test] fn fuel_update_keeps_extension_and_old_alias_removal() {
+ let mut tank=Tank::new(4000); assert!(tank.insert("minecraft:lava",1000));
+ let mut raw=tank.to_nbt(); if let Tag::Compound(f)=&mut raw {f.insert("future".into(),Tag::Int(7));f.insert("FluidName".into(),Tag::String("legacy".into()));f.insert("Amount".into(),Tag::Int(500));f.insert("Tag".into(),Tag::compound([("legacy",Tag::Int(1))]));}
+ assert!(tank.take(50).is_some()); let out=tank.to_nbt_preserving_fuel(&raw).unwrap();
+ assert_eq!(out.get("future"),Some(&Tag::Int(7))); assert_eq!(out.get("amount"),Some(&Tag::Int(950)));
+ for key in ["FluidName","Amount","Tag"] {assert!(out.get(key).is_none());}
+ let bad=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(1))]);
+ let decoded=Tank::from_nbt(&bad,4000).unwrap(); assert!(decoded.to_nbt_preserving_fuel(&bad).is_none());
+}
