@@ -579,6 +579,15 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         item["minecraft:use_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
         item["minecraft:crafting_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
     }
+    if let Some(item) = items.get_mut("tconstruct:jeweled_apple") {
+        // Source: 4 nutrition, saturation modifier 1.2, always edible;
+        // Haste I for 1200 ticks and Resistance I for 2400 ticks.
+        item["minecraft:food"] = serde_json::json!({"nutrition":4,"saturation":9.6,"can_always_eat":true});
+        item["minecraft:consumable"] = serde_json::json!({"animation":"eat","consume_seconds":1.6,
+            "has_consume_particles":true,"sound":"minecraft:entity.generic.eat","on_consume_effects":[
+            {"type":"minecraft:apply_effects","effects":[{"id":"minecraft:haste","duration":1200},
+            {"id":"minecraft:resistance","duration":2400}]}]});
+    }
     if let Some(item) = items.get_mut("tconstruct:meat_soup") {
         // Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
         item["minecraft:max_stack_size"] = serde_json::json!(1);

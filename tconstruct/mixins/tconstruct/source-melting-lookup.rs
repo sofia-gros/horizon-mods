@@ -654,6 +654,21 @@ impl Catalog<'_> {
 mod tests {
     use super::*;
     #[test]
+    fn jeweled_apple_cast_requires_registered_result_and_matching_fluid() {
+        let source = br#"{"type":"tconstruct:casting_table","cast":{"item":"minecraft:apple"},"cast_consumed":true,"cooling_time":118,"fluid":{"amount":200,"tag":"tconstruct:molten_diamond"},"result":"tconstruct:jeweled_apple"}"#.to_vec();
+        let recipes = BTreeMap::from([("tconstruct:tools/modifiers/jeweled_apple".into(), source)]);
+        let item_tags = HashMap::new();
+        let fluid_tags = HashMap::from([("tconstruct:molten_diamond".into(), HashSet::from(["tconstruct:molten_diamond".into()]))]);
+        let known_items = HashSet::from(["minecraft:apple".into(), "tconstruct:jeweled_apple".into()]);
+        let known_fluids = HashSet::from(["tconstruct:molten_diamond".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &known_items, known_fluids: &known_fluids };
+        let (_, recipe, result) = catalog.casting(false, Some("minecraft:apple"), "tconstruct:molten_diamond", &|_| true).unwrap();
+        assert_eq!((result.as_str(), recipe.fluid.amount, recipe.cooling_time, recipe.consumes_cast), ("tconstruct:jeweled_apple", 200, 118, true));
+        assert!(catalog.casting(true, Some("minecraft:apple"), "tconstruct:molten_diamond", &|_| true).is_none());
+        assert!(catalog.casting(false, None, "tconstruct:molten_diamond", &|_| true).is_none());
+        assert!(catalog.casting(false, Some("minecraft:apple"), "minecraft:water", &|_| true).is_none());
+    }
+    #[test]
     fn mighty_smelting_book_uses_the_source_table_recipe() {
         let source = br#"{"type":"tconstruct:casting_table","cast":{"item":"minecraft:book"},"cast_consumed":true,"cooling_time":89,"fluid":{"amount":250,"tag":"tconstruct:seared_stone"},"result":"tconstruct:mighty_smelting"}"#.to_vec();
         let recipes = BTreeMap::from([("tconstruct:common/mighty_smelting".into(), source)]);

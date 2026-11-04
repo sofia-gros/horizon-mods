@@ -111,6 +111,7 @@ shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'texture
 food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/jeweled_apple.png', food_sprite.with_name('jeweled_apple.png'))
 for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime', 'magma'):
     relative = Path('item/bottle') / (contents + '_contents.png')
     destination = mod_assets / 'textures' / relative
@@ -175,6 +176,7 @@ entries = [
     ('tconstruct:mighty_smelting', 'minecraft:book', 'Mighty Smelting'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:meat_soup', 'minecraft:mushroom_stew', 'Meat Soup'),
+    ('tconstruct:jeweled_apple', 'minecraft:apple', 'Jeweled Apple'),
     ('tconstruct:splash_bottle', 'minecraft:glass_bottle', 'Splash Bottle'),
     ('tconstruct:lingering_bottle', 'minecraft:glass_bottle', 'Lingering Bottle'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
@@ -317,6 +319,8 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/magma_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('splash_bottle', 'lingering_bottle'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/' + short.replace('_bottle', '_potion')}}
+    elif short == 'jeweled_apple':
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/food/jeweled_apple'}}
     elif short == 'meat_soup':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/food/meat_soup'}}
     elif short == 'venom_bottle':
@@ -382,6 +386,13 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
+    if short == 'jeweled_apple':
+        item['minecraft:food'] = {'nutrition': 4, 'saturation': 9.6, 'can_always_eat': True}
+        item['minecraft:consumable'] = {'animation': 'eat', 'consume_seconds': 1.6,
+            'has_consume_particles': True, 'sound': 'minecraft:entity.generic.eat',
+            'on_consume_effects': [{'type': 'minecraft:apply_effects', 'effects': [
+                {'id': 'minecraft:haste', 'duration': 1200},
+                {'id': 'minecraft:resistance', 'duration': 2400}]}]}
     if short == 'meat_soup':
         # Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
         item['minecraft:max_stack_size'] = 1
