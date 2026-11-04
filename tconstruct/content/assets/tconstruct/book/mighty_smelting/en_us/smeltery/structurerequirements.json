@@ -1,0 +1,20 @@
+{
+  "title": "Building the Smeltery",
+  "text": [
+    {
+      "text": "Build a rectangular floor of valid smeltery floor blocks, with walls around an empty interior. Glass cannot be used as the floor."
+    },
+    {
+      "text": "For a small start, surround a one-block interior with four wall blocks, place a valid floor block beneath it, and leave the top open.",
+      "paragraph": true
+    },
+    {
+      "text": "Place the controller and a seared tank in the walls. Fill the tank with a supported fluid fuel before melting. The interior may be enlarged to hold more material.",
+      "paragraph": true
+    },
+    {
+      "text": "This version has limits on valid structures. The original book\u2019s animated structure display is not available here.",
+      "paragraph": true
+    }
+  ]
+}

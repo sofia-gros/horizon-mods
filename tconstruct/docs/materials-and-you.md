@@ -96,3 +96,5 @@ pinned dataset contains many module-bearing
 modifiers, so this is not a complete registry and is not connected to display.
 Before production use, duplicate JSON object keys need rejection or verified
 compatibility with the source parser; serde_json currently uses the last key.
+
+Mighty Smelting's partial Smeltery chapter now includes four port-adapted text pages: features, a small structure example, controller operation and fluid-container operation. The chapter section names and order still follow pinned TConstruct `f4e77d43`, but these four page bodies are not verbatim source: the original diagram describes a different GUI, the original height limit differs from the current validator, and entity melting and some fluid-container paths remain incomplete. The source structure viewer, original GUI illustration, and other excluded pages are not implemented by this change. These pages and their layout have not been checked in game or over LAN.

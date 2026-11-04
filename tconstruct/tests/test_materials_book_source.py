@@ -92,6 +92,24 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertIn('smeltery.partial.notice', reader)
         self.assertIn('mighty_advice || mighty_smeltery', reader)
 
+    def test_mighty_smeltery_port_adaptations_are_readable(self):
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        entries = json.loads((root / 'sections/smeltery.json').read_text())
+        expected = [('features', 'features.json'), ('structurereq', 'structurerequirements.json'),
+                    ('sgui1', 'gui1.json'), ('sgui2', 'gui2.json')]
+        selected = [(e['name'], e['data'].removeprefix('smeltery/')) for e in entries if e['name'] in dict(expected)]
+        self.assertEqual(selected, expected)
+        for name, filename in expected:
+            page = json.loads((root / 'en_us/smeltery' / filename).read_text())
+            self.assertTrue(page['title'])
+            self.assertTrue(all(part.get('text') for part in page['text']))
+            self.assertNotIn('image', page)  # The source GUI diagram is not the port's UI.
+        index = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()
+        for name, _ in expected:
+            self.assertIn('"' + name + '"', index.split('pub(super) fn mighty_smeltery_page')[1].split('}')[0])
+        self.assertIn('entity melting', (root / 'en_us/smeltery/features.json').read_text())
+        self.assertIn('not available', (root / 'en_us/smeltery/structurerequirements.json').read_text())
+
     def test_mighty_tool_advice_is_source_faithful_and_explicitly_partial(self):
         import hashlib
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
