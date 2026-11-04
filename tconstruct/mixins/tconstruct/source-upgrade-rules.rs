@@ -509,7 +509,9 @@ pub fn apply_stats(
         fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
         fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
-        fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
+        // Maintained reads the conditional multiplier map, not Netherite’s
+        // multiply_base contribution to the stored velocity.
+        fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float(stats.velocity_raw[3].to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
         fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));

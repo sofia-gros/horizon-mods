@@ -83,8 +83,8 @@ fn maintained_rebuild_without_stacking_and_clear_after_part_swap() {
    tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
    // Existing projectile damage remains base 6 + (diamond .5 + ductile .25) * 3.
    assert!((projectile::projectile_bonus(&bow)-6.25).abs()<0.00001);
-   // Base 2 * netherite 1.1 + maintained .16 * (2 * 1.1).
-   assert!((projectile::projectile_stats(&bow).unwrap().0-2.552).abs()<0.00001);
+   // Base 2 * Netherite 1.1 + Maintained .16 * definition multiplier 2.
+   assert!((projectile::projectile_stats(&bow).unwrap().0-2.52).abs()<0.00001);
   }
   bow.damage=50;
   assert!((projectile::projectile_stats(&bow).unwrap().0-2.2).abs()<0.00001);
@@ -92,6 +92,21 @@ fn maintained_rebuild_without_stacking_and_clear_after_part_swap() {
   bow.damage=0;
   assert!((projectile::projectile_bonus(&bow)-5.5).abs()<0.00001);
   assert!((projectile::projectile_stats(&bow).unwrap().0-2.2).abs()<0.00001);
+ }
+}
+
+#[test]
+fn maintained_excludes_base_velocity_percent_from_conditional_bonus() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":2.0}}]}"#;
+ let mut stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ stats.velocity_raw[2]=0.5; // A base-stat percent must not scale the conditional bonus.
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(100))])));
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::from([("tconstruct:maintained".into(),1)]),false,false).unwrap();
+  // Base 1 * 1.5 * 2 plus .08 * 2, not .08 * 1.5 * 2.
+  assert!((projectile::projectile_stats(&bow).unwrap().0-3.16).abs()<1e-6);
  }
 }
 
