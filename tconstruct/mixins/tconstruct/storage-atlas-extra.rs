@@ -14,7 +14,7 @@ fn tconstruct_storage_atlas_extra(sprites: &mut Sprites, root: &Path, name: &str
             let Some(name) = name.to_str().and_then(|name| name.strip_suffix(".png")) else { continue; };
             if name.starts_with("fallback_") { sprites.insert(root, &format!("tconstruct:block/storage/{name}"))?; }
         }
-        for base in ["clear_glass", "clear_stained_glass", "soul_glass", "smeltery/seared_glass", "smeltery/soul_glass", "smeltery/tinted_glass", "foundry/glass", "foundry/soul_glass", "foundry/tinted_glass"] {
+        for base in ["clear_glass", "clear_tinted_glass", "clear_stained_glass", "soul_glass", "smeltery/seared_glass", "smeltery/soul_glass", "smeltery/tinted_glass", "foundry/glass", "foundry/soul_glass", "foundry/tinted_glass"] {
             if !root.join("assets/tconstruct/textures/block").join(base).is_dir() { continue; }
             for suffix in ["u", "d", "l", "r", "ud", "ul", "ur", "dl", "dr", "lr", "udl", "udr", "ulr", "dlr", "udlr"] {
                 sprites.insert(root, &format!("tconstruct:block/{base}/{suffix}"))?;

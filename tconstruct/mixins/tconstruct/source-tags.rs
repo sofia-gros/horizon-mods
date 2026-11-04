@@ -491,3 +491,22 @@ mod available_head_tests {
         assert!(!result.contains_key("forge:heads"));
     }
 }
+
+#[cfg(test)]
+mod tinted_glass_registry_tests {
+    use super::*;
+    use std::collections::{BTreeMap, HashSet};
+    #[test]
+    fn registered_source_glass_retains_forge_and_pack_semantics() {
+        let mut tags = BTreeMap::from([("forge:glass/tinted".to_owned(), vec![
+            br#"{"values":["minecraft:tinted_glass"]}"#.to_vec(),
+            br#"{"values":["tconstruct:clear_tinted_glass"]}"#.to_vec(),
+        ])]);
+        let mut registry: HashSet<String> = ["minecraft:tinted_glass".to_owned()].into_iter().collect();
+        assert!(!resolve_registry(&tags, &registry).unwrap().contains_key("forge:glass/tinted"));
+        registry.insert("tconstruct:clear_tinted_glass".into());
+        assert_eq!(resolve_registry(&tags, &registry).unwrap()["forge:glass/tinted"], registry);
+        tags.get_mut("forge:glass/tinted").unwrap().push(br#"{"replace":true,"values":["example:missing"]}"#.to_vec());
+        assert!(!resolve_registry(&tags, &registry).unwrap().contains_key("forge:glass/tinted"));
+    }
+}

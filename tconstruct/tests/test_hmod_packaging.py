@@ -18,6 +18,13 @@ class ContentPackageTest(unittest.TestCase):
             package(output)
             with zipfile.ZipFile(output) as packed:
                 names = set(packed.namelist())
+                # The MIT text travels with the content containing upstream pixels.
+                self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
+                                 (MOD / 'third_party/tconstruct/LICENSE').read_bytes())
+                for suffix in ('', '/d', '/dl', '/dlr', '/dr', '/l', '/lr', '/r',
+                               '/u', '/ud', '/udl', '/udlr', '/udr', '/ul', '/ulr', '/ur'):
+                    path = 'assets/tconstruct/textures/block/clear_tinted_glass' + suffix + '.png'
+                    self.assertEqual(packed.read(path), (MOD / 'content' / path).read_bytes(), path)
                 for path in ('assets/tconstruct/items/magma_bottle.json',
                              'assets/tconstruct/models/item/magma_bottle.json',
                              'assets/tconstruct/textures/item/bottle/magma_contents.png',
