@@ -384,3 +384,25 @@ including one-unit bitwise counterexamples, whole and partial boundaries,
 combined trait-equivalent amounts, both water variants, extreme stored amounts
 and missing/ineffective contexts. No host build, mining timing, gameplay or LAN
 validation is claimed.
+
+## Blasting power precision
+
+Blasting now widens the already-computed float exponent to double for the
+power operation and narrows its result to float before the cap, incremental
+level, mining multiplier, and speed addition. This matches the numeric types
+in pinned
+[`PostFixOperator.POWER`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/json/math/PostFixOperator.java)
+and the
+[Blasting formula](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/blasting.json).
+The subtraction and division forming the exponent remain float operations.
+The previous float-only power operation can round differently, including at
+resistance `7.024` (float bits `40e0c49c`): the old Linux result was `3ef1dae4`,
+while Java and the new path produce `3ef1dae3`.
+
+The lightweight harness executes the active helper, checks three fixed
+OpenJDK 25 power fixtures, and covers narrowing before later arithmetic,
+partial levels, cap, absent/nonfinite resistance, and ineffective tools.
+This aligns the operation types; it does not promise universal bit identity
+between Rust platform math libraries and Java Math.pow. The existing missing
+resistance fallback, context gating, and modifier ordering are unchanged.
+No full generated-host build, gameplay, LAN, or Windows validation was run.

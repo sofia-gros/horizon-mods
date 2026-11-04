@@ -64,7 +64,11 @@ pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u
             },
             Conditional::Blasting(amount) if effective => {
                 if let Some(resistance) = resistance.filter(|v| v.is_finite()) {
-                    speed += 3.0f32.powf((6.0 - resistance) / 1.5).min(10.0) * incremental_level(amount, 20) * mining_all;
+                    // PostFixOperator.POWER widens its float operands for
+                    // Math.pow, then narrows before subsequent float operators.
+                    let exponent = (6.0 - resistance) / 1.5;
+                    let power = 3.0f64.powf(f64::from(exponent)) as f32;
+                    speed += power.min(10.0) * incremental_level(amount, 20) * mining_all;
                 }
             },
             _ => {},
