@@ -446,7 +446,17 @@ pub fn apply_stats(
     for id in super::tconstruct_source_material_effects::ordered_modifier_ids(tool, levels) {
         match id.as_str() {
             "tconstruct:diamond" if (amount(tool, &id) > 0 || level(&id) > 0) && melee => damage_add += 0.5,
-            "tconstruct:sharpness" if melee => damage_add += 0.75 * (effective(tool, &id, 36) + level(&id).max(0) as f32),
+            "tconstruct:sharpness" if melee => {
+                let progress = amount(tool, &id);
+                let remainder = progress % 36;
+                // Source merges integer logical levels before its f32 partial correction.
+                let effective = level(&id).max(0).checked_add(progress / 36).and_then(|complete| {
+                    if remainder == 0 { Some(complete as f32) }
+                    else { complete.checked_add(1).map(|logical| logical as f32 + (remainder - 36) as f32 / 36.0f32) }
+                });
+                // Fail closed if the merged logical level cannot be represented.
+                if let Some(effective) = effective { damage_add += 0.75 * effective; }
+            },
             "tconstruct:pierce" if melee => damage_add += 0.5 * level(&id).max(0) as f32,
             "tconstruct:ductile" if melee => damage_multiplier *= 1.0 + 0.05 * level(&id).max(0) as f32,
             "tconstruct:solid" if melee => damage_multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,

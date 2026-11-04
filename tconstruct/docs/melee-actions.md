@@ -234,3 +234,28 @@ trait/progress removal, non-weapon gating, preservation of saved progress and
 foreign data, and unchanged attack damage. Existing cases cover combination
 with other stat modifiers. No full generated-host build, gameplay, LAN, or
 Windows validation was run.
+
+## Sharpness incremental-level precision
+
+The melee stat regeneration path now reconstructs Sharpness's logical level
+from fixed 36-unit progress, merges material trait levels, then applies the
+f32 partial-level correction before the 0.75 attack-damage addition. This follows
+pinned [`IncrementalModifierEntry.merge` and `scaleLevel`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java),
+the [Sharpness stat module](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/sharpness.json),
+and its [36-unit recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/upgrade/sharpness_from_shard.json).
+Direct progress division followed by trait addition can round differently.
+Unrepresentable merged logical levels supply no Sharpness bonus; this is a
+fail-closed host boundary, not emulation of Java integer overflow.
+
+Only this fixed-denominator Sharpness branch changes. Saved progress, trait
+lookup, modifier order, melee eligibility, surrounding base/add/percent/multiply
+arithmetic and the final clamp remain unchanged. Arbitrary datapack denominators,
+conditional damage, equipped attributes and projectile damage are outside scope.
+
+The actual `apply_stats` cached-library harness covers four bitwise old/new
+counterexamples (trait/progress 0/2, 1/255, 2/219, 3/183, base damage 1),
+whole/partial boundaries, negative and large inputs, overflow, repeated rebuilds,
+clearing progress/traits, non-melee gating, unchanged attack speed and preservation
+of progress and foreign data. The harness also imports the existing fluid-display
+module required by the latest main's fluid-container dependency. No full generated
+host build, gameplay, LAN or Windows validation was run.
