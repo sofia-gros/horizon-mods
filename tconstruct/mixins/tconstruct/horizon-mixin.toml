@@ -5058,3 +5058,9 @@ id = "source-faucet-tank"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_faucet_tank"
 source = "source-faucet-tank.rs"
+
+[[module]]
+id = "source-trait-tooltip"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_trait_tooltip"
+source = "source-trait-tooltip.rs"
