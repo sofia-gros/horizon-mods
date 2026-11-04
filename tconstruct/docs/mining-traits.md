@@ -266,12 +266,13 @@ host integration, save/reload and LAN remain unverified.
 
 ## Emerald trait modifier repair
 
-Station modifier-repair recipes now accept a resolved Emerald trait and use
-the ordered repair-factor calculation starting at 1.0, as the original
-Station recipe does. Emerald trait plus upgrade applies the factor once;
+Station modifier-repair recipes use the ordered known repair-factor
+calculation starting at 1.0, as the original Station recipe does, whether or
+not Emerald is present. Emerald trait plus upgrade applies the factor once;
 non-optional fixed traits are resolved by the existing trait reader. Ambiguous
 multiple upgrade ordering or invalid levels reject the operation before
-consumption. Casting part-swap remains separately limited as described below. Focused
+consumption, including non-Emerald tools that previously used a guessed order.
+Unknown or custom repair hooks are not implemented. Casting part-swap remains separately limited as described below. Focused
 arithmetic and static wiring tests cover this path; an actual Station plan,
 ingredient consumption, integrated host build, save/reload and LAN are unverified.
 

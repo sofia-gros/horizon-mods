@@ -789,3 +789,28 @@ fn material_repair_without_emerald_uses_per_item_source_order() {
  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1))]))])));
  assert_eq!(tconstruct_source_material_effects::ordered_known_repair_amount(&tool,&empty,&[],20.0),Some(30.0));
 }
+
+#[test]
+fn non_emerald_modifier_repair_factor_uses_resolved_order() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ let traits=BTreeMap::from([("tconstruct:dense".into(),7),("tconstruct:preserved".into(),2)]);
+ let order=vec!["tconstruct:dense".into(),"tconstruct:preserved".into()];
+ let factor=tconstruct_source_material_effects::ordered_known_repair_amount(&tool,&traits,&order,1.0).unwrap();
+ let expected=(1.0f32*(1.0+(-0.5 + -0.05*7.0)))*1.3;
+ assert_eq!(factor.to_bits(),expected.to_bits());
+ assert_eq!((100.0f32*factor) as u32,19);
+ let missing=vec!["tconstruct:dense".into()];
+ assert!(tconstruct_source_material_effects::ordered_known_repair_amount(&tool,&traits,&missing,1.0).is_none());
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:preserved",Tag::Int(1))]))])));
+ let combined=BTreeMap::from([("tconstruct:preserved".into(),1),("tconstruct:dense".into(),7)]);
+ let actual=tconstruct_source_material_effects::ordered_known_repair_amount(&tool,&combined,&order,1.0).unwrap();
+ assert_eq!(actual.to_bits(),((1.0f32*1.3)*(1.0+(-0.5 + -0.05*7.0))).to_bits());
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:preserved",Tag::Int(1)),("tconstruct:cultivated",Tag::Int(1))])),
+  ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:cultivated".into()),Tag::String("tconstruct:preserved".into())]))
+ ])));
+ let actual=tconstruct_source_material_effects::ordered_known_repair_amount(&tool,&combined,&order,1.0).unwrap();
+ assert_eq!(actual.to_bits(),(((1.0f32*1.5)*1.3)*(1.0+(-0.5 + -0.05*7.0))).to_bits());
+}
