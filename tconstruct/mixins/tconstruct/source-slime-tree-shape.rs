@@ -47,6 +47,11 @@ pub(crate) fn bonemeal_ready(stage: Option<&str>, loaded: impl FnOnce() -> bool)
     match stage { Some("0") => true, Some("1") => loaded(), _ => false }
 }
 
+/// Hanging propagules only age; planted stage-one propagules may place a tree.
+pub(crate) fn propagule_bonemeal_ready(hanging: bool, age: Option<u8>, stage: Option<&str>, loaded: impl FnOnce() -> bool) -> bool {
+    if hanging { age.is_some_and(|n| n < 4) } else { bonemeal_ready(stage, loaded) }
+}
+
 pub(crate) fn canopy(has_vines: bool) -> Vec<Operation> {
     let mut result = Vec::new();
     for layer in 0i32..4 {
@@ -98,6 +103,28 @@ mod tests {
         assert!(!bonemeal_ready(Some("1"), || false));
         assert!(bonemeal_ready(Some("1"), || true));
         assert!(!bonemeal_ready(None, || true));
+    }
+
+    #[test]
+    fn propagule_bonemeal_distinguishes_hanging_age_and_planted_stage() {
+        assert!(propagule_bonemeal_ready(true, Some(3), None, || panic!("hanging does not place a tree")));
+        assert!(!propagule_bonemeal_ready(true, Some(4), None, || true));
+        assert!(!propagule_bonemeal_ready(true, None, None, || true));
+        assert!(propagule_bonemeal_ready(false, None, Some("0"), || false));
+        assert!(!propagule_bonemeal_ready(false, None, Some("1"), || false));
+        assert!(propagule_bonemeal_ready(false, None, Some("1"), || true));
+    }
+
+    #[test]
+    fn propagule_radius_checks_same_chunks_as_original_grid() {
+        use std::collections::BTreeSet;
+        for x in -16i32..16 { for z in -16i32..16 {
+            let mut actual = BTreeSet::new();
+            assert!(chunks_loaded(x, z, 24, |a, b| { actual.insert((a.div_euclid(16), b.div_euclid(16))); true }));
+            let mut before = BTreeSet::new();
+            for dx in [-24, -8, 8, 24] { for dz in [-24, -8, 8, 24] { before.insert(((x+dx).div_euclid(16), (z+dz).div_euclid(16))); } }
+            assert_eq!(actual, before);
+        }}
     }
 
     #[test]

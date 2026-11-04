@@ -5053,3 +5053,14 @@ id = "source-part-material-id-host-tests"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_part_material_id_host_tests"
 source = "source-part-material-id-host-tests.rs"
+[[module]]
+id = "source-faucet-tank"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_faucet_tank"
+source = "source-faucet-tank.rs"
+
+[[module]]
+id = "source-trait-tooltip"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_trait_tooltip"
+source = "source-trait-tooltip.rs"
