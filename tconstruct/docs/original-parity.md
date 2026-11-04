@@ -999,5 +999,12 @@ Supported Copper Can tooltips use the pinned translated contents and empty-can
 help strings. Advanced tooltips include the original fluid ID; hidden tooltips
 and conservative rejection of malformed, tagged or unsupported can contents
 remain in place. The production helper and translation-key wiring are tested.
-The native bundle currently includes English source language data; other
-languages, actual GUI ordering, F3+H, resource packs and LAN remain unverified.
+Actual GUI ordering, F3+H, language switching, resource packs and LAN remain
+unverified.
+
+The native content package now includes the 19 non-English language files from
+the pinned source visual archive as well as its existing English overlay. This
+makes the available source translations accessible to the host language loader,
+including Copper Can tooltip strings. Package tests check source bytes and the
+English/Japanese keys; actual language switching, resource-pack precedence and
+other game UI coverage remain unverified.

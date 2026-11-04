@@ -93,9 +93,11 @@ def package(output):
                     sprite_aliases[kind].add(relative.removeprefix('textures/').removesuffix('.png'))
                 if relative.startswith('models/item/') and relative.endswith('.json'):
                     relative = 'tinkering/' + model_dir + '/' + PurePosixPath(relative).name
-                elif not relative.startswith(('textures/', 'tinkering/materials/')):
+                elif not relative.startswith(('textures/', 'tinkering/materials/', 'lang/')):
                     continue
                 name = 'assets/tconstruct/' + relative
+                # Keep the tracked en_us overlay (it also contains Horizon
+                # additions); source language files fill only missing paths.
                 if name not in files:
                     add(name, archive.read(info))
 
