@@ -11,3 +11,7 @@ For each slimewood, the pinned source's normal and stripped log-to-wood recipes 
 ## Slabs and stairs
 
 The four slimewood slab and stair recipes follow the pinned source. Three matching planks make six slabs; six matching planks make four stairs. Source and registration tests pass. Host recipe loading, actual crafting and placement, packaging, recipe-book presentation, save/reload and LAN remain unverified.
+
+## Buttons and pressure plates
+
+Each slimewood has the pinned-source recipes for buttons and pressure plates: one matching plank yields a button; two horizontally adjacent matching planks yield a pressure plate. Source, registration and collision checks pass. Runtime recipe loading, crafting and redstone behavior, packaging, recipe-book display, save/reload and LAN remain unverified.
