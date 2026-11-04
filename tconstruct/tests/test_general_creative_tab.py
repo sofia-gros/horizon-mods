@@ -15,7 +15,7 @@ class GeneralCreativeTab(unittest.TestCase):
     self.assertEqual(len(general),1)
     self.assertEqual(general[0]['title'], "Tinkers' General")
     self.assertEqual(general[0]['icon'],'{count:1,id:"tconstruct:materials_and_you"}')
-    expected=['blazing_bone','silky_cloth','seared_reinforcement']
+    expected=['blazing_bone','silky_cloth','seared_reinforcement','bacon']
     self.assertEqual(general[0]['items'],[f'{{count:1,id:"tconstruct:{n}"}}' for n in expected])
     for n in expected: self.assertIn(f'data/tconstruct/horizon/item/{n}.json',z.namelist())
   src=(MOD/'mixins/tconstruct/resource-tables.rs').read_text()

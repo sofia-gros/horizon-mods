@@ -106,7 +106,8 @@
     "items": [
       "{count:1,id:\"tconstruct:blazing_bone\"}",
       "{count:1,id:\"tconstruct:silky_cloth\"}",
-      "{count:1,id:\"tconstruct:seared_reinforcement\"}"
+      "{count:1,id:\"tconstruct:seared_reinforcement\"}",
+      "{count:1,id:\"tconstruct:bacon\"}"
     ]
   }
 ]
