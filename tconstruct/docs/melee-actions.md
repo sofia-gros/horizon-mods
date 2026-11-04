@@ -467,3 +467,32 @@ fallback coverage. The wear-formula and attribute host are doubles in this harne
 source-ordered evaluation of all modifiers, NO_MELEE volatile state and whole
 attack rejection are not implemented by this slice. No full generated-host build,
 gameplay, LAN or Windows validation was run.
+
+## Raging selects the melee mainhand
+
+The Raging RETURN contribution now reads `inventory[selected]`, matching the
+existing base-damage projection instead of `held()`'s temporary acting hand.
+Pinned [`EntityInteractionModifierHook.leftClickEntity`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/interaction/EntityInteractionModifierHook.java)
+uses the mainhand left-click interaction. This correction makes the helper robust
+when invoked inside an offhand use context; ordinary offhand melee reachability
+has **not** been demonstrated. The inspected host initializes `hand` to Main,
+restores it after `with_hand`, and invokes ordinary local and guest attacks without
+an offhand wrapper. Guest execution swaps player, inventory and selected slot, so
+the selected tool and health still belong to the same acting actor.
+
+The production trait resolver reads the supplied stack's material metadata and
+live snapshots on each call, rather than caching traits solely by item ID. The
+helper now consistently takes multiplier, saved upgrades, breakage and tag identity
+from that selected stack. Same-ID tools with different metadata cannot substitute
+an offhand Raging multiplier. Missing/out-of-range mainhand slots add no Raging.
+Living-target, spin, health, live MELEE, exact highest-definition, cooldown, wear
+and secondary-critical checks are otherwise unchanged. This does not change other
+host acting-hand consumers or claim complete melee parity.
+
+`TC_RAGING_HARNESS_DEPS=/workspace/shared/haste-wire-target/debug/deps python3 tconstruct/tests/test_raging_broken.py` exercises the actual helper with boundary
+doubles: acting-offhand same-ID metadata, saved upgrades, selected-slot changes,
+breakage, missing slots/player and guest-shaped health/selection, alongside the
+existing target/tag/definition tests. `raging_melee.rs` also retains real ItemStack,
+broken-state and wear-formula coverage. Actor switching and trait resolution are
+doubles in these tests; the host call-path/cache assessment is source inspection,
+not full gameplay or generated-host execution.
