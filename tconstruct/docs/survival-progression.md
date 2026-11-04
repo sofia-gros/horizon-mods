@@ -134,3 +134,7 @@ run, report each checkpoint as passed, failed or not run and attach screenshots
 from the tested binary. A failure should identify the exact recipe/menu/harvest
 step and inventory before and after; do not replace the missing input with a
 command-supplied item and report the route as passed.
+
+## Smooth basalt blast furnace
+
+The pinned TConstruct recipe also permits making a vanilla blast furnace with three smooth basalt beneath a furnace and five iron ingots. Source comparison tests cover the recipe data. Host recipe loading, crafting and recipe-book display, packaging, save/reload and LAN remain unverified.
