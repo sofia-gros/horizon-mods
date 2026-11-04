@@ -108,7 +108,7 @@ Level resolution, modifier amounts/operations, existing broken checks, modifier
 cleanup, armor wear and native item attributes are unchanged. Other modifier
 modules and external item classes are not implemented by this slice.
 
-Ten Rust boundary tests execute the actual helper against lightweight host
+Thirteen Rust boundary tests execute the actual helper against lightweight host
 doubles, covering all thirteen IDs in all four slots, unsupported items,
 relocation/repair, each of the seven supported effects in correct/wrong slots
 and on broken armor, and retained gravity. Two Python checks run the
@@ -134,7 +134,7 @@ normalize positive infinity; that downstream behavior is not changed or
 validated here. This is not general metadata sanitization. The actual-helper
 fixture checks each field independently and models clearing a previously
 installed modifier after its value becomes NaN, retaining the other stats
-and movement/gravity effects. The focused suite passes ten Rust tests and
+and movement/gravity effects. The focused suite passes thirteen Rust tests and
 two Python checks; the existing host-double limitations above still apply.
 
 ### Integer modifier amount precision
@@ -151,13 +151,40 @@ such as 0.1 and 0.05. The source converts integer effective levels to float,
 so levels above float's exact integer range also use that conversion.
 
 The current trait-plus-upgrade integer resolver, attribute operations and all
-slot/tag/broken gates are unchanged. Speedy is deliberately unchanged: its
-incremental effective level needs the source's logical-level/partial-progress
-evaluation order, not a simple conversion of `progress / 45` to float. This
-slice does not implement arbitrary datapack formulas or fractional effective
-levels for other modifiers.
+slot/tag/broken gates are unchanged. Speedy's incremental effective-level
+precision is handled separately below; it is not a simple conversion of
+`progress / 45` to float. Arbitrary datapack formulas and fractional effective
+levels for the other modifiers remain unsupported.
 
 The actual-helper fixture checks exact widened bits for all six modifiers and
 their applicable gravity effects at levels 1, 3 and 16,777,217, retaining the
-existing operations and gate regressions. Ten Rust tests and two Python checks
+existing operations and gate regressions. Thirteen Rust tests and two Python checks
 pass. Host integration and gameplay remain unverified.
+
+### Speedy incremental effective-level precision
+
+For the existing fixed-45 Speedy progress model, whole upgrade levels and
+resolved integer trait levels now merge before float conversion. At a partial
+level, the logical level includes the pending level, then uses the source
+`logical_level_as_f32 + (remainder - 45) / 45.0f32` calculation. At an exact
+whole-level boundary it converts the merged integer directly. Finally the
+modifier amount is `0.0f32 + 0.1f32 * effective_level`, widened to double with
+the existing multiply-total operation. This follows pinned
+[IncrementalModifierEntry](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java)
+and its integer-level merge and `scaleLevel` methods.
+
+The runtime adapter still interprets saved progress in units of 45; custom
+required amounts, arbitrary formulas and general malformed-metadata validation
+are not added. Existing negative-value normalization and missing/wrong-tag
+fallbacks remain unchanged. If the merged logical level cannot fit an i32,
+only Speedy is omitted rather than wrapping or panicking. This is an intentional
+fail-closed deviation from Java integer overflow, not an exactness claim for
+out-of-range logical levels. Slot/broken gating,
+the other modifiers and gravity remain unchanged.
+
+The actual-helper tests cover trait-only, upgrade-only and combined levels,
+progress 0/1/22/44/45/46/89/90, large integer levels, overflow and existing
+equipment gates. Bitwise counterexamples distinguish both the old double-only
+division and separately rounding trait/upgrade contributions. The focused suite
+passes thirteen Rust tests and two Python checks. Trait lookup and host lifecycle
+are still test doubles; no gameplay or save/load validation is claimed.

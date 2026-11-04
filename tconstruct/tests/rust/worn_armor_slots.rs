@@ -17,7 +17,7 @@ pub struct Chunks(Option<Result<Tags, ()>>);
 impl Chunks {
     #[allow(non_snake_case)] fn __horizon_mixins_tconstruct_resolved_item_tags(&self) -> &Option<Result<Tags, ()>> { &self.0 }
 }
-pub struct World { chunks: Chunks }
+pub struct World { chunks: Chunks, traits: BTreeMap<String,i32> }
 #[derive(Default)] pub struct Player { values: BTreeMap<(String, String), (f64, String)> }
 impl Player {
     fn set_modifier(&mut self, attribute: &str, id: &str, amount: f64, op: &str, enabled: bool) -> Result<(), ()> {
@@ -35,7 +35,7 @@ pub mod game {
     pub mod tconstruct_source_ranged_wear { pub fn is_broken(s: &super::Stack) -> bool { s.broken } }
     pub mod tconstruct_source_material_traits {
         pub struct Traits { pub levels: super::BTreeMap<String, i32> }
-        pub fn levels(_: &super::World, _: &super::Stack) -> Option<Traits> { None }
+        pub fn levels(world: &super::World, _: &super::Stack) -> Option<Traits> { Some(Traits { levels:world.traits.clone() }) }
     }
 }
 include!("../../mixins/tconstruct/material-armor-attributes.rs");
@@ -47,7 +47,7 @@ fn stack(id: &str) -> Stack {
     ].into()))), broken: false }
 }
 fn game() -> game::Game<'static> {
- game::Game {armor:[None,None,None,None],world:World {chunks:Chunks(None)},player:Some(Player::default()),applied_modifiers:vec![],marker:std::marker::PhantomData}
+ game::Game {armor:[None,None,None,None],world:World {chunks:Chunks(None),traits:BTreeMap::new()},player:Some(Player::default()),applied_modifiers:vec![],marker:std::marker::PhantomData}
 }
 fn apply(g:&mut game::Game<'_>) {
  // Model the existing apply_equipment clearing contract before calling the real helper.
@@ -113,7 +113,7 @@ fn apply(g:&mut game::Game<'_>) {
    g.armor[slot]=Some(item);apply(&mut g);
    let values=&g.player.as_ref().unwrap().values;
    let entry=values.iter().find(|((attr,_),_)|attr==&format!("minecraft:{attribute}"));
-   if slot==0 && !broken {let expected=if id=="speedy" {amount}else{f64::from(amount as f32)};assert_eq!(entry.map(|(_,value)|value),Some(&(expected,op.into())),"{id}");}
+   if slot==0 && !broken {let expected=f64::from(amount as f32);assert_eq!(entry.map(|(_,value)|value),Some(&(expected,op.into())),"{id}");}
    else {assert!(entry.is_none(),"{id} slot {slot} broken {broken}");}
    let gravity=values.keys().any(|(attr,_)|attr=="minecraft:gravity");
    assert_eq!(gravity,matches!(id,"vintage"|"heavy"|"solid"));
@@ -200,4 +200,56 @@ fn apply(g:&mut game::Game<'_>) {
  // Counterexamples to the former double-only calculations.
  assert_ne!(f64::from(0.1f32).to_bits(),0.1f64.to_bits());
  assert_ne!(f64::from(0.5f32*16_777_217i32 as f32).to_bits(),(0.5f64*16_777_217.0).to_bits());
+}
+
+#[test] fn speedy_merges_logical_levels_before_incremental_float_rounding() {
+ for trait_level in [0,1,3,16_777_217] {
+  for progress in [0,1,22,44,45,46,89,90] {
+   let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+   let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+   data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:speedy".into(),Tag::Int(progress))].into()));
+   g.world.traits.insert("tconstruct:speedy".into(),trait_level);
+   g.armor[0]=Some(item);apply(&mut g);
+   let remainder=progress%45;
+   let logical=trait_level+progress/45+i32::from(remainder!=0);
+   let effective=if remainder==0 {logical as f32}else{logical as f32+(remainder-45) as f32/45.0f32};
+   let expected=f64::from(0.0f32+0.1f32*effective);
+   let value=g.player.as_ref().unwrap().values.get(&("minecraft:movement_speed".into(),"tconstruct:speedy_movement/head".into()));
+   if effective>0.0 {assert_eq!(value,Some(&(expected,"add_multiplied_total".into())));}
+   else {assert!(value.is_none());}
+  }
+ }
+ let source=f64::from(0.1f32*(1.0f32+(-44.0f32/45.0)));
+ let naive_float=f64::from(0.1f32*(1.0f32/45.0));
+ assert_ne!(source.to_bits(),naive_float.to_bits());
+ assert_ne!(source.to_bits(),(0.1f64/45.0).to_bits());
+ let merged=16_777_218i32 as f32+(-44.0f32/45.0);
+ let separately_rounded=16_777_217i32 as f32+(1.0f32+(-44.0f32/45.0));
+ assert_ne!((0.1f32*merged).to_bits(),(0.1f32*separately_rounded).to_bits());
+}
+#[test] fn speedy_overflow_is_local_and_gates_remain_intact() {
+ for (trait_level,progress,slot,broken) in [(i32::MAX,45,0,false),(i32::MAX,1,0,false),(1,1,3,false),(1,1,0,true)] {
+  let mut g=game();let mut item=stack("tconstruct:plate_helmet");item.broken=broken;
+  let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+  data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:speedy".into(),Tag::Int(progress)),("tconstruct:vintage".into(),Tag::Int(1))].into()));
+  g.world.traits.insert("tconstruct:speedy".into(),trait_level);
+  g.armor[slot]=Some(item);apply(&mut g);
+  assert!(!g.applied_modifiers.iter().any(|(_,id)|id.starts_with("tconstruct:speedy_")));
+  assert!(g.applied_modifiers.iter().any(|(_,id)|id.starts_with("tconstruct:vintage_gravity/")));
+ }
+}
+#[test] fn speedy_existing_missing_malformed_and_negative_fallbacks_remain() {
+ for trait_level in [-1,0,1] {
+  for progress in [None,Some(Tag::Int(-1)),Some(Tag::Float(1.0f32.to_bits()))] {
+   let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+   let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+   if let Some(progress)=progress {
+    data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:speedy".into(),progress)].into()));
+   }
+   g.world.traits.insert("tconstruct:speedy".into(),trait_level);g.armor[0]=Some(item);apply(&mut g);
+   let value=g.player.as_ref().unwrap().values.get(&("minecraft:movement_speed".into(),"tconstruct:speedy_movement/head".into()));
+   if trait_level>0 {assert_eq!(value,Some(&(f64::from(0.1f32),"add_multiplied_total".into())));}
+   else {assert!(value.is_none());}
+  }
+ }
 }

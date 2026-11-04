@@ -70,9 +70,17 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         let speedy_progress = match data.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:speedy")) {
             Some(Tag::Int(progress)) => (*progress).max(0), _ => 0,
         };
-        let speedy = f64::from(speedy_trait) + f64::from(speedy_progress) / 45.0;
-        if attributes && speedy > 0.0 {
-            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:speedy_movement/{slot}"), 0.1 * speedy, "add_multiplied_total"));
+        // Source merges integer logical levels before constructing the partial
+        // level. scaleLevel adds a negative fraction to the rounded logical
+        // level, rather than dividing total progress directly.
+        let remainder = speedy_progress % 45;
+        let speedy = speedy_trait.checked_add(speedy_progress / 45).and_then(|complete| {
+            if remainder == 0 { Some(complete as f32) }
+            else { complete.checked_add(1).map(|logical| logical as f32 + (remainder - 45) as f32 / 45.0f32) }
+        });
+        // Unrepresentable merged logical levels fail closed for Speedy only.
+        if let Some(speedy) = speedy.filter(|level| attributes && *level > 0.0) {
+            values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:speedy_movement/{slot}"), f64::from(0.0f32 + 0.1f32 * speedy), "add_multiplied_total"));
         }
         let step_up = modifier_level("tconstruct:step_up");
         if attributes && step_up > 0 {
