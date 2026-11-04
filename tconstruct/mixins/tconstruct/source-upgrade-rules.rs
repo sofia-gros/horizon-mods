@@ -121,8 +121,12 @@ fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
     let bonus = |id: &str| amount(tool, id) + traits.get(id).copied().unwrap_or(0);
-    let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>();
-    let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>();
+    // Reverted's source modules grant one upgrade to wings, or two upgrades
+    // and minus one ability to every other tool, per modifier level.
+    let reverted = bonus("tconstruct:reverted");
+    let wings = &*tool.item == "tconstruct:slime_wings";
+    let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>() + reverted * if wings { 1 } else { 2 };
+    let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>() - if wings { 0 } else { reverted };
     let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot")
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
@@ -786,6 +790,23 @@ mod tests {
         assert!(super::provisional_upgrade_enabled("tconstruct:diamond"));
     }
     use super::*;
+
+    #[test]
+    fn reverted_slots_follow_source_wings_and_material_changes() {
+      let armor = ItemStack::new("tconstruct:slime_leggings", 1);
+      let wings = ItemStack::new("tconstruct:slime_wings", 1);
+      let plain = BTreeMap::new();
+      let blood = BTreeMap::from([("tconstruct:reverted".into(), 1)]);
+      assert_eq!(slot_state(&armor, &plain, 5, 1), (5, 1, 0));
+      assert_eq!(slot_state(&armor, &blood, 5, 1), (7, 0, 0));
+      assert_eq!(slot_state(&wings, &blood, 2, 1), (3, 1, 0));
+      assert_eq!(slot_state(&armor, &BTreeMap::from([("tconstruct:reverted".into(), 2)]), 5, 2), (9, 0, 0));
+      let mut occupied = armor.clone();
+      occupied.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::compound([("tconstruct:glowing", Tag::Int(1))]))])));
+      assert!(valid_slots(&occupied, &plain, 5, 1));
+      assert!(!valid_slots(&occupied, &blood, 5, 1));
+      assert!(valid_slots(&occupied, &plain, 5, 1));
+    }
 
     #[test]
     fn material_change_rechecks_used_slots_against_new_traits() {

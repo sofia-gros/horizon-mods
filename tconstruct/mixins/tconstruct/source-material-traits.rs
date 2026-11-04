@@ -102,6 +102,19 @@ pub fn ordered_levels_from_definition(
     Some((result, order))
 }
 
+// Reverted grants the hidden Pocket trait at fixed level 1 on slime leggings.
+// This is independent of Reverted's own level and is recomputed on rebuild.
+fn apply_reverted_trait(item: &str, levels: &mut BTreeMap<String, i32>, order: &mut Vec<String>) -> Option<()> {
+  if item == "tconstruct:slime_leggings" && levels.get("tconstruct:reverted").copied().unwrap_or(0) > 0 {
+    let pocket = levels.entry("tconstruct:pocket".into()).or_insert_with(|| {
+      order.push("tconstruct:pocket".into());
+      0
+    });
+    *pocket = pocket.checked_add(1)?;
+  }
+  Some(())
+}
+
 pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -> Option<Traits> {
     let Tag::List(ids) = tool
         .data()?
@@ -136,8 +149,9 @@ pub(super) fn levels(world: &super::tconstruct_world::World, tool: &ItemStack) -
         recipe.parts_override = None;
         if recipe.parts(definition)?.len() != identities.len() { return None; }
     }
-    let (resolved, order) =
+    let (mut resolved, mut order) =
         ordered_levels_from_definition(definition, &identities, |id| materials.get(id).cloned())?;
+    apply_reverted_trait(&tool.item, &mut resolved, &mut order)?;
     let mut stat_maps = Vec::new();
     for id in &identities {
         let (namespace, name) = id.split_once(':')?;
@@ -174,4 +188,18 @@ mod merged_level_tests {
         assert_eq!(merge_modifier_levels(1, -1), None);
         assert_eq!(merge_modifier_levels(i32::MAX, 1), None);
     }
+}
+
+#[cfg(test)]
+mod reverted_tests {
+  use super::*;
+  #[test]
+  fn pocket_is_fixed_and_only_on_reverted_leggings() {
+    for (item, reverted, expected) in [("tconstruct:slime_leggings", 0, 0), ("tconstruct:slime_leggings", 2, 1), ("tconstruct:slime_wings", 1, 0)] {
+      let mut levels = BTreeMap::from([("tconstruct:reverted".into(), reverted)]);
+      let mut order = vec!["tconstruct:reverted".into()];
+      apply_reverted_trait(item, &mut levels, &mut order).unwrap();
+      assert_eq!(levels.get("tconstruct:pocket").copied().unwrap_or(0), expected);
+    }
+  }
 }
