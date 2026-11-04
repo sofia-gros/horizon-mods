@@ -40,7 +40,7 @@ class ResourceOverlay(unittest.TestCase):
             world = next(tab for tab in tabs if tab['id'] == 'tconstruct:world')
             general = next(tab for tab in tabs if tab['id'] == 'tconstruct:general')
             self.assertEqual((general['page'], general['row'], general['column']), (1, 'TOP', 1))
-            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'obsidian_pane')])
+            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'obsidian_pane', 'cheese_ingot')])
             self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
             self.assertEqual(len(world['items']), 23)
             self.assertIn('{count:1,id:"tconstruct:earth_congealed_slime"}', world['items'])
