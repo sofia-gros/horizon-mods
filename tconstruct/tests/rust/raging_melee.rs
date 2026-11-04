@@ -14,6 +14,7 @@ mod game {
   use super::*;pub struct Levels{pub levels:BTreeMap<String,i32>,pub durability_multiplier:f32}
   pub fn levels(world:&World,_:&ItemStack)->Option<Levels>{Some(Levels{levels:world.levels.clone(),durability_multiplier:1.0})}
  }
+ pub mod tconstruct_source_ranged_wear { include!("../../mixins/tconstruct/source-ranged-wear.rs"); }
  pub mod tconstruct_source_station_stats { include!("../../mixins/tconstruct/source-station-stats.rs"); }
  pub mod tconstruct_source_material_effects { include!("../../mixins/tconstruct/source-material-effects.rs"); }
  include!("../../mixins/tconstruct/source-melee-damage-return.rs");
