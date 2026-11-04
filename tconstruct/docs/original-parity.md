@@ -788,3 +788,10 @@ crafting recipes. Each ingot or scrap yields nine corresponding nuggets; the
 reverse uses a TConstruct nugget in the center and eight nuggets from the
 corresponding extensible Forge tag. Source-data tests cover recipe and tag
 translation; live crafting, datapack tag changes and LAN remain unverified.
+
+The pinned amethyst bronze ingot, nugget and block conversions are available
+as native crafting recipes. The reverse recipes each return nine units; the
+compression recipes require the corresponding TConstruct item in the center
+and eight items from its extensible Forge tag. Source-data tests cover the
+translation and tag contents. Live crafting, datapack reload and LAN remain
+unverified.
