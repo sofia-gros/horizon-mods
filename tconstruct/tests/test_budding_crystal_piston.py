@@ -9,7 +9,7 @@ class BuddingCrystalPiston(unittest.TestCase):
         resource = (ROOT / 'mixins/tconstruct/resource-tables.rs').read_text()
         self.assertIn('name = "tconstruct_source_budding_piston"', manifest)
         self.assertLess(resource.index('super::tconstruct_source_budding_piston::apply'), resource.index('out.join("gameplay-facts.json.tmp")'))
-        self.assertIn('tconstruct-native-creative-v7', resource)
+        self.assertIn('tconstruct-native-creative-v8', resource)
         module = (ROOT / 'mixins/tconstruct/source-budding-piston.rs').read_text()
         harness = (ROOT / 'tests/condition-snapshot/src/lib.rs').read_text()
         self.assertNotIn('budding-piston-prepared-snapshot.json', module)

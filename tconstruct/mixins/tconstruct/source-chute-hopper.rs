@@ -156,7 +156,7 @@ pub(super) fn eject(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hopp
     let Some(facing) = game.containers().prop(state, "facing").and_then(dir_from_name) else { return Continue(()); };
     let target = offset(pos, facing);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
-    if matches!(&*name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") {
+    if matches!(&*name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") {
         game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
         return Break(casting_transfer(game, hopper, target, true));
     }
@@ -178,7 +178,7 @@ pub(super) fn suck(game: &mut crate::game::Game<'_>, pos: (i32, i32, i32), hoppe
     let Some(y) = pos.1.checked_add(1) else { return Continue(()); };
     let target = (pos.0, y, pos.2);
     let name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
-    if matches!(&*name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") {
+    if matches!(&*name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") {
         game.native_hopper_inventory_search([pos.0,pos.1,pos.2], Some([target.0,target.1,target.2]), None);
         return Break(casting_transfer(game, hopper, target, false));
     }

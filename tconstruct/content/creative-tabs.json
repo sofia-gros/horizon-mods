@@ -119,7 +119,8 @@
       "{count:1,id:\"tconstruct:soul_glass_pane\"}",
       "{count:1,id:\"tconstruct:gold_bars\"}",
       "{count:1,id:\"tconstruct:obsidian_pane\"}",
-      "{count:1,id:\"tconstruct:cheese_ingot\"}"
+      "{count:1,id:\"tconstruct:cheese_ingot\"}",
+      "{count:1,id:\"tconstruct:cheese_block\"}"
     ]
   }
 ]

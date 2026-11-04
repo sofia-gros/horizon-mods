@@ -1,0 +1,12 @@
+{
+  "title": "Blazing Blood",
+  "text": [
+    {
+      "text": "On the stock barter table, piglins can offer 1–4 Scorched Lanterns, each holding 50 mB of Blazing Blood. Transfer it to a compatible fuel tank."
+    },
+    {
+      "text": "Requires the original injector and stock table; even identical replacement tables disable it. Entity and Blaze Head melting are unavailable. Live play and LAN are unverified.",
+      "paragraph": true
+    }
+  ]
+}

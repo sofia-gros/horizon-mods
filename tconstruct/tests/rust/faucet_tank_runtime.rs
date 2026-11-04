@@ -168,3 +168,41 @@ fn fixture()->(Game<'static>,Pos,Pos,Pos) {
   if !is_casting_block("minecraft:air") {faucet.tick(&mut source,None);}assert!(!faucet.active);assert_eq!(faucet.pending.amount,0);
  }
 }
+
+#[test] fn lossy_source_id_does_not_reserve_or_change_any_state() {
+ let (mut game,pos,source,target)=fixture();
+ let raw=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(180)),("future",Tag::Int(7))]);
+ game.world.tags.insert((source,"tconstruct:fuel_tank".into()),raw);
+ let before=game.world.tags.clone();
+ assert_eq!(tconstruct_source_faucet_tank::activate(&mut game,pos,source,target,Faucet::new()),Some(false));
+ assert_eq!(game.world.tags,before);
+}
+#[test] fn lossy_reserved_packet_is_not_rewritten_when_stopping() {
+ let (mut game,pos,_source,_target)=fixture();
+ let pending=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(10))]);
+ let mut raw=Faucet::new().to_nbt(); if let Tag::Compound(fields)=&mut raw {fields.insert("active".into(),Tag::Byte(1));fields.insert("pending".into(),pending);}
+ game.world.tags.insert((pos,"tconstruct:faucet".into()),raw.clone()); let faucet=Faucet::from_nbt(&raw).unwrap();
+ assert!(!tconstruct_source_faucet_tank::stop(&mut game,pos,faucet));
+ assert_eq!(game.world.tags.get(&(pos,"tconstruct:faucet".into())),Some(&raw));
+}
+#[test] fn lossy_target_id_does_not_drain_the_valid_source() {
+ let (mut game,pos,source,target)=fixture();
+ let mut input=Tank::new(4000); assert!(input.insert("�",180));
+ game.world.tags.insert((source,"tconstruct:fuel_tank".into()),input.to_nbt());
+ let raw=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(10)),("future",Tag::Int(7))]);
+ game.world.tags.insert((target,"tconstruct:ingot_tank".into()),raw);
+ let before=game.world.tags.clone();
+ assert_eq!(tconstruct_source_faucet_tank::activate(&mut game,pos,source,target,Faucet::new()),Some(false));
+ assert_eq!(game.world.tags,before);
+}
+#[test] fn invalid_source_keeps_already_reserved_packet_waiting() {
+ let (mut game,pos,source,target)=fixture();
+ assert_eq!(tconstruct_source_faucet_tank::activate(&mut game,pos,source,target,Faucet::new()),Some(true));
+ let faucet=Faucet::from_nbt(game.world.tags.get(&(pos,"tconstruct:faucet".into())).unwrap()).unwrap();
+ assert!(faucet.pending.amount>0);
+ let invalid=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(10))]);
+ game.world.tags.insert((source,"tconstruct:fuel_tank".into()),invalid);
+ let before=game.world.tags.clone();
+ assert!(tconstruct_source_faucet_tank::tick(&mut game,pos,source,target,faucet));
+ assert_eq!(game.world.tags,before);
+}

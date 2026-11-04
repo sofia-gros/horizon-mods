@@ -83,7 +83,7 @@ fn tconstruct_machine_geometry(game: &crate::game::Game<'_>, camera: glam::DVec3
                 _ => continue,
             };
             let actual = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
-            if actual != block && !(id == "tconstruct:table" && actual == "tconstruct:scorched_table") { continue; }
+            if actual != block && !((id == "tconstruct:table" && actual == "tconstruct:scorched_table") || (id == "tconstruct:basin" && actual == "tconstruct:scorched_basin")) { continue; }
             let Some(casting) = raw.get(id.as_str()).and_then(crate::game::tconstruct_source_melter_state::Casting::from_nbt) else { continue; };
             if id == "tconstruct:table" {
                 tconstruct_fluid_geometry(game, camera, out, *pos, &casting.tank, [1.0, 15.0, 1.0, 15.0, 15.9, 15.0], false);

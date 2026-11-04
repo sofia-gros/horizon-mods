@@ -25,7 +25,7 @@ class CheeseIngot(unittest.TestCase):
             with zipfile.ZipFile(output) as z:
                 for path in ('data/tconstruct/horizon/item/cheese_ingot.json', 'assets/tconstruct/items/cheese_ingot.json', 'assets/tconstruct/models/item/cheese_ingot.json', 'assets/tconstruct/textures/item/materials/cheese_ingot.png'):
                     self.assertEqual(z.read(path), (ROOT/'content'/path).read_bytes())
-                self.assertNotIn('data/tconstruct/horizon/block/cheese_block.json', z.namelist())
+                self.assertIn('data/tconstruct/horizon/block/cheese_block.json', z.namelist())
             with zipfile.ZipFile(ROOT/'content/reference/tconstruct-recipes.zip') as z:
                 for kind,consumed in [('gold',False),('sand',True)]:
                     r=json.loads(z.read(f'data/tconstruct/recipes/smeltery/casting/cheese_ingot_{kind}_cast.json'))
