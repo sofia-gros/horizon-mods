@@ -377,8 +377,34 @@ convert a vanilla vine, preserving its faces. A failed write does not consume
 the seed; creative mode keeps it. This is an intentional safety difference
 from the original, which consumes after attempting the write.
 
-Natural acquisition from source loot injectors is not implemented. The
-server's target permission checks precede the item-use hook, but full host
+A bounded natural acquisition path adds the four pinned source slimy foliage
+injectors to the existing dungeon, Nether fortress, bastion bridge and End
+city chest pools. Dungeon supplies Earth and Sky saplings and seeds; fortress
+supplies Blood seeds, bastion bridge supplies a Blood sapling, and End city
+supplies Ender seeds and a sapling. Seed stacks contain 2–4. The source's
+`[loot] slimy_loot` config must be enabled; malformed or unavailable config
+fails closed. This port reads it when world tables are built or reloaded; the
+original marks the setting as requiring a world restart. The fixed injector
+data is packaged with the mod, and a changed
+or missing injector, a replaced chest table, or a table other than the exact
+verified 26.3 stock table is left untouched. A chest table listed by an enabled
+pack but unreadable is also treated as replaced; only that table is disabled. Datapack injection changes and
+other game versions are not generally supported.
+
+The original weighted pools are retained. In the 26.3 stock tables, at zero
+luck, the added entry weights are Dungeon saplings 3/154 and 7/154 per main
+roll, Dungeon seeds 3/135 and 7/135 per second-pool roll, fortress seeds 5/83,
+bastion sapling 1/2, and End city seeds 5/97 and sapling 3/97 per main roll.
+These are per-roll probabilities, not per-chest guarantees. At zero luck, the
+pinned 1.20.1 vanilla pools instead yield Dungeon saplings 3/139 and 7/139,
+Dungeon seeds 3/135 and 7/135, fortress seeds 5/78, bastion sapling 1/2,
+and End city seeds 5/93 and sapling 3/93 per relevant roll. Vanilla pool
+contents and random-number behavior differ between game versions. Limited
+fixtures exercised hmod packaging, the host resource overlay, DataPack/config
+selection and actual host loot rolls; full host builds, game-world generation,
+reload, interactions with other mods and LAN remain unverified.
+
+The server's target permission checks precede the item-use hook, but full host
 integration and game tests are still needed for protected targets, adventure
 mode, offhand, sounds, save/reload and LAN. Forge tool/action behavior is a
 separate limitation.

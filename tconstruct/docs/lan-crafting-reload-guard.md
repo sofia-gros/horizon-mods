@@ -20,3 +20,11 @@ unsupported macro. A scoped official plan and apply succeeded against the
 complete source trees of the two target crates, using a reduced workspace
 manifest and only these hooks. This is not a full-bundle plan or a host build;
 actual host injection, type checking, and runtime behavior remain unverified.
+
+A later diagnostic compiled the fixed-host `horizon-client` staged source with
+`rustc` using the prior offline Cargo dependency metadata and `opt-level=0`.
+This succeeded with the guard callsite, open/close/leave hooks, reload and pack
+RETURN wrappers, and generation invalidation body present. The diagnostic
+stage also contains an unrelated one-line Station UI type-inference workaround;
+it is a scoped, adjusted host probe, not an unmodified full-bundle Cargo build.
+Actual reload behavior, integrated game execution and LAN remain unverified.

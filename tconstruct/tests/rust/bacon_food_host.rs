@@ -31,3 +31,23 @@ fn host_catalog_reads_cheese_saturation_as_points() {
     let source_points = 3_f32 * 0.4_f32 * 2_f32;
     assert_eq!(info.food.unwrap().1.to_bits(), source_points.to_bits());
 }
+
+#[test]
+fn host_catalog_reads_jeweled_apple_food_and_effects() {
+    use horizon_items::items::{ConsumeEffect, ConsumeEffectSpec};
+    let source = PathBuf::from(std::env::var_os("BACON_MOD_ROOT").expect("BACON_MOD_ROOT"));
+    let native: serde_json::Value = serde_json::from_slice(&fs::read(source.join("content/data/tconstruct/horizon/item/jeweled_apple.json")).unwrap()).unwrap();
+    let dir = PathBuf::from(std::env::var_os("BACON_FIXTURE_ROOT").expect("BACON_FIXTURE_ROOT")).join("jeweled");
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(dir.join("items.json"), serde_json::to_vec(&serde_json::json!({"tconstruct:jeweled_apple":native["components"]})).unwrap()).unwrap();
+    let items = Items::catalog(&dir, &PackOverlay::NONE).unwrap();
+    let info = items.items.get("tconstruct:jeweled_apple").unwrap();
+    assert_eq!(info.food, Some((4, 9.6_f32)));
+    assert_eq!(info.food.unwrap().1.to_bits(), (4_f32 * 1.2_f32 * 2_f32).to_bits());
+    assert!(info.can_always_eat);
+    let consume = info.consumable.as_ref().unwrap();
+    assert_eq!(consume.effects, vec![ConsumeEffect::ApplyEffects { probability: 1.0, effects: vec![
+        ConsumeEffectSpec { id:"minecraft:haste".into(), duration:1200, amplifier:0 },
+        ConsumeEffectSpec { id:"minecraft:resistance".into(), duration:2400, amplifier:0 },
+    ]}]);
+}

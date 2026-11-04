@@ -1,0 +1,12 @@
+{
+  "title": "Moving Fluids",
+  "text": [
+    {
+      "text": "The fuel gauge shows fuel available to the foundry. Compatible held containers can interact with the fuel or main tank."
+    },
+    {
+      "text": "Container slots can fill or empty supported containers; use the direction control to change transfer mode. Some container types and fluid metadata remain unsupported, especially over LAN.",
+      "paragraph": true
+    }
+  ]
+}

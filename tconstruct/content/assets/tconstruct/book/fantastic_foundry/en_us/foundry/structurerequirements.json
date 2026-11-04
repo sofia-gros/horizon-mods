@@ -1,0 +1,16 @@
+{
+  "title": "Building the Foundry",
+  "text": [
+    {
+      "text": "Build a rectangular floor and walls using valid foundry blocks. Unlike a smeltery, the foundry also needs its floor perimeter and vertical corner columns."
+    },
+    {
+      "text": "Put the foundry controller and a scorched fuel tank in the walls. Fill the tank with a supported fluid fuel.",
+      "paragraph": true
+    },
+    {
+      "text": "The original structure viewer and some features are not available here.",
+      "paragraph": true
+    }
+  ]
+}

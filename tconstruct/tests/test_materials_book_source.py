@@ -24,6 +24,52 @@ class MaterialsBookSourceTest(unittest.TestCase):
         for chest in ('part_chest', 'tinkers_chest'):
             self.assertTrue((ARCHIVE / f'data/tconstruct/horizon/block/{chest}.json').is_file())
             self.assertTrue((ARCHIVE / f'data/tconstruct/recipe/{chest}.json').is_file())
+    def test_fantastic_foundry_is_a_limited_reachable_guide(self):
+        root = ARCHIVE / 'assets/tconstruct/book/fantastic_foundry'
+        index = json.loads((root / 'index.json').read_text())
+        self.assertEqual([entry['name'] for entry in index[:4]], ['intro', 'alloyer', 'foundry', 'blazing_blood'])
+        section = json.loads((root / 'sections/foundry.json').read_text())
+        selected = ['features', 'byproducts', 'structurereq', 'fgui1', 'fgui2', 'scorched_tanks']
+        self.assertEqual([entry['name'] for entry in section if entry['name'] in selected], selected)
+        for entry in section:
+            if entry.get('name') in selected:
+                page = json.loads((root / 'en_us' / entry['data']).read_text())
+                self.assertTrue(page['title'])
+                self.assertTrue(all(part.get('text') for part in page['text']))
+        tanks = json.loads((root / 'en_us/foundry/tanks.json').read_text())
+        text = ' '.join(part['text'] for part in tanks['text'])
+        self.assertIn('valid structure position', text)
+        self.assertIn('continue burning when the tank is empty', text)
+        self.assertNotIn('must contain a supported fuel for heating', text)
+        self.assertIn('4,000 mB', text)
+        self.assertIn('4,320 mB', text)
+        self.assertIn('not been verified', text)
+        self.assertEqual(next(entry for entry in section if entry['name'] == 'scorched_tanks')['type'], 'mantle:text')
+        byproducts = json.loads((root / 'en_us/foundry/byproducts.json').read_text())
+        summary = ' '.join(part['text'] for part in byproducts['text'])
+        self.assertIn('molten gold', summary)
+        self.assertIn('does not fit is lost', summary)
+        self.assertIn('not yet supported or verified', summary)
+        with zipfile.ZipFile(ARCHIVE / 'reference/tconstruct-recipes.zip') as recipes:
+            ore = json.loads(recipes.read('data/tconstruct/recipes/smeltery/melting/metal/copper/ore_singular.json'))
+        self.assertEqual(ore['result']['tag'], 'forge:molten_copper')
+        self.assertEqual(ore['byproducts'][0]['tag'], 'forge:molten_gold')
+        machine = (ROOT / 'mixins/tconstruct/source-smeltery-tank.rs').read_text()
+        self.assertIn('Any remainder is discarded', machine)
+
+        intro = json.loads((root / 'en_us/intro/intro.json').read_text())
+        self.assertIn('not included', intro['text'][-1]['text'])
+        self.assertEqual(json.loads((ARCHIVE / 'data/tconstruct/horizon/item/fantastic_foundry.json').read_text()), {'template': 'minecraft:book', 'max_stack_size': 1})
+        recipe = json.loads((ARCHIVE / 'data/tconstruct/recipe/fantastic_foundry.json').read_text())
+        self.assertEqual(set(recipe['ingredients']), {'minecraft:book', 'tconstruct:nether_grout'})
+        self.assertEqual(recipe['result']['id'], 'tconstruct:fantastic_foundry')
+        for name in ['fantastic_foundry_cover', 'fantastic_foundry_pages']:
+            self.assertTrue((ARCHIVE / 'assets/tconstruct/book/images/covers' / (name + '.png')).is_file())
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('foundry && !matches!(key, "intro" | "foundry")', reader)
+        for name in selected:
+            self.assertIn('"' + name + '"', reader)
+        self.assertIn('tconstruct:fantastic_foundry', (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text())
 
     def test_mighty_smelting_introduction_is_available_for_both_readers(self):
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'

@@ -5246,3 +5246,37 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use
 kind = "HEAD"
 helper = "source-cheese-start.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
+
+[[module]]
+id = "source-slimy-loot-client"
+file = "crates/horizon-client/src/game/functions.rs"
+name = "tconstruct_source_slimy_loot"
+source = "source-slimy-loot.rs"
+
+[[module]]
+id = "source-slimy-loot-world-module"
+file = "crates/horizon-world/src/loot.rs"
+name = "tconstruct_source_slimy_loot"
+source = "source-slimy-loot.rs"
+
+[[injection]]
+id = "source-slimy-loot-pack"
+target = "horizon_client::game::functions::content_overlay"
+kind = "RETURN"
+helper = "source-slimy-loot-pack.rs"
+bindings = [{ name = "files", ty = "Vec<(String, Vec<Vec<u8>>)>", value = "$value" }, { name = "world_root", ty = "&std::path::Path", value = "world_root" }, { name = "resources", ty = "&std::path::Path", value = "resources" }, { name = "vanilla_disabled", ty = "bool", value = "vanilla_disabled" }, { name = "enabled_features", ty = "&[String]", value = "enabled_features" }]
+
+[[injection]]
+id = "source-slimy-loot-native"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+priority = -1000000
+helper = "source-slimy-loot-native.rs"
+bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+[[injection]]
+id = "source-slimy-loot-world"
+target = "horizon_world::loot::overlay_map"
+kind = "RETURN"
+helper = "source-slimy-loot-world.rs"
+bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "overlay", ty = "&PackOverlay<'_>", value = "overlay" }, { name = "kind", ty = "&str", value = "kind" }, { name = "out", ty = "&mut std::collections::HashMap<String, serde_json::Value>", value = "&mut *out" }]

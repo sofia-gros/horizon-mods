@@ -22,7 +22,9 @@ class ScorchedBasinTests(unittest.TestCase):
                          'tconstruct:block/foundry/basin_covered')
         self.assertIn('tconstruct:scorched_basin',
                       (CONTENT / 'data/tconstruct/loot_table/blocks/scorched_basin.json').read_text())
-        self.assertFalse((CONTENT / 'data/tconstruct/recipe/scorched_basin.json').exists())
+        recipe = load('data/tconstruct/recipe/scorched_basin.json')
+        self.assertEqual(recipe['key']['G'], 'tconstruct:gold_platform')
+        self.assertEqual(recipe['result']['id'], 'tconstruct:scorched_basin')
 
     def test_machine_paths_and_require_cast(self):
         for file in ('source-machine-runtime.rs', 'source-machine-use.rs',
