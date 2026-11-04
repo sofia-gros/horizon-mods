@@ -258,6 +258,21 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             super::tconstruct_block_shapes::apply_soul_speed(&mut named.tag, &targets)?;
             std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
         }
+        // Cheese uses a full collision cube but slows walking and jumping.
+        if facts["defaults"]["tconstruct:cheese_block"].as_u64().is_some() {
+            let path = out.join("movement-properties.nbt");
+            let (mut named, _) = horizon_world::nbt::read_named(&std::fs::read(&path)?, horizon_world::nbt::Limits::tables())?;
+            super::tconstruct_block_shapes::apply_cheese_movement(&mut named.tag)?;
+            std::fs::write(path, horizon_world::nbt::write_named(&named, horizon_world::nbt::Limits::tables())?)?;
+        }
+        if facts["defaults"]["tconstruct:cheese_block"].as_u64().is_some() {
+            let path = out.join("block-behaviours.json");
+            let mut behaviors: serde_json::Value = serde_json::from_slice(&std::fs::read(&path)?)?;
+            super::tconstruct_block_shapes::apply_cheese_behavior(&mut behaviors)?;
+            let temp = out.join("block-behaviours.json.tmp");
+            std::fs::write(&temp, serde_json::to_vec(&behaviors)?)?;
+            std::fs::rename(temp, path)?;
+        }
         // FaceVisibility's existing render flags have no custom pane kind.
         // Reserve (same_block, bars_tag) for these source pane definitions;
         // the connected-pane-face hook interprets the pair and restores the
@@ -300,6 +315,10 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
                     row["can_occlude"] = serde_json::Value::Bool(false);
                 }
             }
+        }
+        if let Some(id) = facts["defaults"]["tconstruct:cheese_block"].as_u64().map(|id| id as usize) {
+            let row = gameplay["states"].as_array_mut().and_then(|rows| rows.get_mut(id)).ok_or("missing cheese gameplay row")?;
+            super::tconstruct_block_shapes::apply_cheese_lighting(row)?;
         }
         super::tconstruct_machine_prepare::apply(&facts, &mut gameplay, out)?;
         if let Some(stone) = facts["defaults"]["minecraft:stone"].as_u64().map(|id| id as usize) {
@@ -397,7 +416,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let marker = cache.join("tconstruct-startup-owner");
     let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
     // Invalidate only our owned cache when Creative preparation semantics change.
-    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v7");
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v8");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
@@ -412,7 +431,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     // An incomplete attempt has an owner marker but cannot match a real stamp.
     std::fs::write(&marker, b"incomplete")?;
     let modified = ["worldgen/biomes.json", "worldgen/blocks/cached-collision.nbt",
-        "cached-collision.nbt", "movement-properties.nbt", "render-definitions.json",
+        "cached-collision.nbt", "movement-properties.nbt", "block-behaviours.json", "render-definitions.json",
         "registries.json", "gameplay-facts.json", "items.json", "creative-inventory.json", "horizon-mod-craft-remainders.json", "assets/minecraft/textures/gui",
         "assets/minecraft/textures/block", "data/tconstruct/tags/block"];
     fn mirror(src: &Path, dst: &Path, rel: &Path, modified: &[&str]) -> std::io::Result<()> {
