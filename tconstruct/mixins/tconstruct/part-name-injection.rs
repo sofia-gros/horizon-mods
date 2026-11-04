@@ -13,7 +13,14 @@ fn tconstruct_part_name(
         if can {
             let name_visible = horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative);
             let index = usize::from(name_visible).min(value.len());
-            if let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack,
+            if let Some(tag) = crate::game::tconstruct_source_fluid_container::can_display_potion(stack,
+                &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) {
+                let name = crate::game::tconstruct_source_melter_render::fluid_name_tagged(game, "tconstruct:potion", Some(&tag), true);
+                value.insert(index, (horizon_client::text::Text::translate("item.tconstruct.copper_can.contents", &[horizon_client::text::Text::literal(name)]), 0xffaaaaaa));
+                if game.settings.file.bool("advancedItemTooltips") {
+                    value.insert(index + 1, (horizon_client::text::Text::translate("item.tconstruct.tank.fluid_id", &[horizon_client::text::Text::literal("tconstruct:potion")]), 0xff555555));
+                }
+            } else if let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack,
                 &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) {
                 let name = crate::game::tconstruct_source_melter_render::fluid_name(game, &fluid);
                 value.insert(index, (horizon_client::text::Text::translate("item.tconstruct.copper_can.contents", &[horizon_client::text::Text::literal(name)]), 0xffaaaaaa));

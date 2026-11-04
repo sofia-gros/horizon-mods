@@ -40,6 +40,15 @@ class CopperCanDisplayContract(unittest.TestCase):
         self.assertIn('Text::literal("tconstruct:potion")', tooltip)
         self.assertIn('if !hidden_tooltip', tooltip)
 
+    def test_copper_can_potion_tooltip_is_separate_from_icon(self):
+        root = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
+        tooltip = (root / 'part-name-injection.rs').read_text()
+        render = (root / 'render-copper-can.rs').read_text()
+        self.assertIn('can_display_potion(stack,', tooltip)
+        self.assertIn('fluid_name_tagged(game, "tconstruct:potion", Some(&tag), true)', tooltip)
+        self.assertNotIn('can_display_potion', render)
+        self.assertIn('can_display_fluid(stack,', render)
+
     def test_unit_return_hook_supplies_exactly_one_original_value(self):
         manifest = Path(__file__).resolve().parents[1] / 'mixins/tconstruct/horizon-mixin.toml'
         hooks = tomllib.loads(manifest.read_text())['injection']
