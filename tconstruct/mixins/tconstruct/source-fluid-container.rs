@@ -335,6 +335,17 @@ fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_sta
     }
 }
 
+/// Gate a new casting interaction before the lantern tank is rewritten.
+/// Other supported item types use their own component-preserving transfer paths.
+pub(super) fn casting_portable_rewrite_safe(stack: &ItemStack) -> bool {
+    if !matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { return true; }
+    let Some(tank) = lantern_tank(stack) else { return false; };
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tconstruct:tank")) {
+        None => true,
+        Some(raw) => tank.to_nbt() == *raw,
+    }
+}
+
 /// Read only supported, untagged portable tank contents for tooltip display.
 pub(super) fn tank_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<String> {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return None; }
@@ -731,6 +742,19 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn casting_lantern_rejects_unknown_and_lossy_tank_without_changing_stack() {
+        use horizon_world::nbt::{JavaString, Tag};
+        let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        assert!(casting_portable_rewrite_safe(&stack));
+        let invalid = Tag::compound([("fluid", Tag::String(JavaString(vec![0xd800]))), ("amount", Tag::Int(10))]);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", invalid.clone())])));
+        assert!(!casting_portable_rewrite_safe(&stack));
+        assert_eq!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tconstruct:tank"), Some(&invalid));
+        let extra = Tag::compound([("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int(10)), ("future", Tag::Int(1))]);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", extra)])));
+        assert!(!casting_portable_rewrite_safe(&stack));
+    }
     #[test]
     fn numeric_potion_colors_preserve_original_item_tags() {
         use horizon_world::nbt::Tag;
