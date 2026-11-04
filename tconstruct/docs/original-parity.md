@@ -917,3 +917,11 @@ datapack changes to the source fluid tags and refuses component-bearing inputs
 or tagged fluids. Emptying honey bottles remains unsupported because the
 source chooses its output from the fluid tag preference. Unit tests cover the
 transfer; integrated gameplay, save/reload and LAN remain unverified.
+
+The existing tank exchange can fill a bowl with 250 mB of the bundled
+untagged beetroot soup, mushroom stew or rabbit stew fluids, producing the
+corresponding vanilla food. Source and flowing IDs are recognized; the source
+fluid tag's datapack changes are not resolved by this static mapping. Emptying
+those foods remains unsupported because the source chooses an output via tag
+preference. Unit tests cover the bounded transfers; gameplay, save/reload and
+LAN remain unverified.

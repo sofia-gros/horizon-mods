@@ -524,10 +524,16 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
         "minecraft:wet_sponge".to_owned()
     } else if input.item.as_ref() == "minecraft:bowl" && direction != Direction::EmptyItem {
         let Some(fluid) = selected.map(str::to_owned).or_else(|| next.fluids.first().map(|fluid| fluid.id.clone())) else { return false; };
-        if !matches!(fluid.as_str(), "tconstruct:meat_soup" | "tconstruct:flowing_meat_soup")
-            || next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some())
-            || !known_fluid(&fluid) || !known_item("tconstruct:meat_soup") || !next.take(&fluid, 250) { return false; }
-        "tconstruct:meat_soup".to_owned()
+        let output = match fluid.as_str() {
+            "tconstruct:meat_soup" | "tconstruct:flowing_meat_soup" => "tconstruct:meat_soup",
+            "tconstruct:beetroot_soup" | "tconstruct:flowing_beetroot_soup" => "minecraft:beetroot_soup",
+            "tconstruct:mushroom_stew" | "tconstruct:flowing_mushroom_stew" => "minecraft:mushroom_stew",
+            "tconstruct:rabbit_stew" | "tconstruct:flowing_rabbit_stew" => "minecraft:rabbit_stew",
+            _ => return false,
+        };
+        if next.fluids.iter().any(|entry| entry.id == fluid && entry.tag.is_some())
+            || !known_fluid(&fluid) || !known_item(output) || !next.take(&fluid, 250) { return false; }
+        output.to_owned()
     } else if input.item.as_ref() == "tconstruct:meat_soup" && direction != Direction::FillItem {
         if !known_fluid("tconstruct:meat_soup") || !known_item("minecraft:bowl") || !next.insert("tconstruct:meat_soup", 250) { return false; }
         "minecraft:bowl".to_owned()
@@ -844,6 +850,72 @@ mod tests {
             let mut slots = [Some(ItemStack::new(item, 1)), None];
             let before = (tank.clone(), slots.clone());
             assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank, slots), before);
+        }
+    }
+    #[test]
+    fn vanilla_soup_bowl_filling_matches_bundled_fluid_ids() {
+        for (source, flowing, output) in [
+            ("tconstruct:beetroot_soup", "tconstruct:flowing_beetroot_soup", "minecraft:beetroot_soup"),
+            ("tconstruct:mushroom_stew", "tconstruct:flowing_mushroom_stew", "minecraft:mushroom_stew"),
+            ("tconstruct:rabbit_stew", "tconstruct:flowing_rabbit_stew", "minecraft:rabbit_stew"),
+        ] {
+            for fluid in [source, flowing] {
+                let mut tank = SmelteryTank::new(1250);
+                assert!(tank.insert("minecraft:lava", 1000));
+                assert!(tank.insert(fluid, 250));
+                let mut slots = [Some(ItemStack::new("minecraft:bowl", 2)), None];
+                assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some(fluid), &known, &known));
+                assert_eq!(tank.amount("minecraft:lava"), 1000);
+                assert_eq!(tank.amount(fluid), 0);
+                assert_eq!(slots[0].as_ref().unwrap().count, 1);
+                assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), output);
+                assert_eq!(slots[1].as_ref().unwrap().count, 1);
+            }
+        }
+    }
+    #[test]
+    fn vanilla_soup_filling_is_atomic_and_rejects_unsupported_inputs() {
+        use horizon_world::nbt::Tag;
+        for (fluid, output) in [("tconstruct:beetroot_soup", "minecraft:beetroot_soup"),
+            ("tconstruct:mushroom_stew", "minecraft:mushroom_stew"), ("tconstruct:rabbit_stew", "minecraft:rabbit_stew")] {
+            let mut tank = SmelteryTank::new(250);
+            assert!(tank.insert(fluid, 249));
+            let mut slots = [Some(ItemStack::new("minecraft:bowl", 1)), None];
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            assert!(tank.insert(fluid, 1));
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &|id| id != output, &known));
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &|_| false));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            slots[1] = Some(ItemStack::new("minecraft:stone", 1));
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank, slots), before);
+            let mut tagged = SmelteryTank::new(250);
+            assert!(tagged.insert_tagged(fluid, Some(&Tag::compound([("example", Tag::Int(1))])), 250));
+            let mut slots = [Some(ItemStack::new("minecraft:bowl", 1)), None];
+            let before = (tagged.clone(), slots.clone());
+            assert!(!transfer(&mut tagged, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tagged, slots), before);
+        }
+    }
+    #[test]
+    fn vanilla_soup_filling_supports_single_tank_but_not_emptying() {
+        for (fluid, output) in [("tconstruct:beetroot_soup", "minecraft:beetroot_soup"),
+            ("tconstruct:mushroom_stew", "minecraft:mushroom_stew"), ("tconstruct:rabbit_stew", "minecraft:rabbit_stew")] {
+            let mut tank = super::super::tconstruct_source_melter_state::Tank::new(250);
+            assert!(tank.insert(fluid, 250));
+            let mut slots = [Some(ItemStack::new("minecraft:bowl", 1)), None];
+            assert!(transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
+            assert_eq!(tank.amount, 0);
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), output);
+            slots = [slots[1].take(), None];
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer_single(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
             assert_eq!((tank, slots), before);
         }
     }
