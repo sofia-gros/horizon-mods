@@ -21,7 +21,7 @@ pub(super) fn mighty_advice_page(name: &str) -> bool {
 // Expose source pages whose described basics have an existing limited path.
 // Other pages include unsupported or unverified operations.
 pub(super) fn mighty_smeltery_page(name: &str) -> bool {
-    matches!(name, "features" | "controller" | "structurereq" | "alloying" | "sgui1" | "sgui2" | "seared_chute" | "seared_ladder" | "seared_glass")
+    matches!(name, "features" | "controller" | "structurereq" | "alloying" | "sgui1" | "sgui2" | "seared_tanks" | "seared_chute" | "seared_ladder" | "seared_glass")
 }
 
 // Never show source advice without the reader's partial-coverage notice.
@@ -87,7 +87,7 @@ mod tests {
     use super::{label, layout, mighty_advice_page, mighty_smeltery_page, mighty_advice_ready, mighty_material_tier, material_book_tier, puny_armor_order, puny_melee_material_tier, show_material_chapter};
     #[test]
     fn mighty_smeltery_only_exposes_selected_source_pages() {
-        for name in ["features", "controller", "structurereq", "alloying", "sgui1", "sgui2", "seared_chute", "seared_ladder", "seared_glass"] { assert!(mighty_smeltery_page(name)); }
+        for name in ["features", "controller", "structurereq", "alloying", "sgui1", "sgui2", "seared_tanks", "seared_chute", "seared_ladder", "seared_glass"] { assert!(mighty_smeltery_page(name)); }
         for name in ["structure", "seared_duct", "unknown"] {
             assert!(!mighty_smeltery_page(name));
         }
