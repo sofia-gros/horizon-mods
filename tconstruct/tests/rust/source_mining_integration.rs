@@ -472,3 +472,64 @@ fn flag_only_broken_harvest_is_rejected_at_head_and_return() {
     flint.damage=84;assert_eq!(broken_harvest(Some(&flint)),Continue(()));
     flint.damage=85;assert_eq!(broken_harvest(Some(&flint)),Break(false));
 }
+
+include!("../../mixins/tconstruct/broken-speed.rs");
+
+#[test]
+fn flag_only_broken_mining_speed_is_preserved_at_head_and_return() {
+    use std::ops::ControlFlow::{Break,Continue};
+    let items=Items::tags_only(std::path::Path::new("/tmp"),&horizon_world::loot::PackOverlay::NONE).unwrap();
+    let mut stack=ItemStack::new("tconstruct:pickaxe",1);
+    let data=|flag:Option<Tag>,max:Option<Tag>| {
+        let mut entries=vec![("tic_mining_traits",Tag::List(vec![]))];
+        if let Some(flag)=flag {entries.push(("tic_broken",flag));}
+        if let Some(max)=max {entries.push(("tic_max_damage",max));}
+        Tag::compound(entries)
+    };
+    let tool=Tag::compound([("rules",Tag::List(vec![Tag::compound([
+        ("blocks",Tag::String("minecraft:stone".into())),("speed",Tag::Float(7.0f32.to_bits())),
+    ])]))]);
+    for flag in [1,-1,127,-128] {
+        for max in [Some(Tag::Int(100)),Some(Tag::Int(0)),None,Some(Tag::String("100".into()))] {
+            stack.data_mut().set_other("minecraft:custom_data",Some(data(Some(Tag::Byte(flag)),max)));
+            for tool in [Some(tool.clone()),None] {
+                stack.data_mut().set_other("minecraft:tool",tool);
+                let before=stack.clone();
+                for damage in [0,99,100] {
+                    stack.damage=damage;
+                    assert_eq!(broken_speed(Some(&stack)),Break(0.3));
+                    for block in ["minecraft:stone","minecraft:dirt"] {
+                        for incoming in [0.3,1.0,7.0] {
+                            assert_eq!(tconstruct_material_mining_speed(incoming,Some(&stack),block,&items).to_bits(),0.3f32.to_bits());
+                        }
+                    }
+                }
+                stack.damage=before.damage;
+                assert!(stack.same_item_same_components(&before));
+            }
+            stack.damage=0;
+        }
+    }
+    stack.data_mut().set_other("minecraft:tool",Some(tool));
+    for flag in [None,Some(Tag::Byte(0)),Some(Tag::Int(1)),Some(Tag::String("true".into()))] {
+        stack.data_mut().set_other("minecraft:custom_data",Some(data(flag,Some(Tag::Int(100)))));
+        assert_eq!(broken_speed(Some(&stack)),Continue(()));
+        assert_eq!(tconstruct_material_mining_speed(0.3,Some(&stack),"minecraft:stone",&items),7.0);
+        assert_eq!(tconstruct_material_mining_speed(0.3,Some(&stack),"minecraft:dirt",&items),1.0);
+        stack.damage=100;
+        assert_eq!(broken_speed(Some(&stack)),Break(0.3));
+        // Existing damage-limit RETURN fallback still delegates a Tool-less clone.
+        let mut fallback=stack.clone();fallback.data_mut().set_other("minecraft:tool",None);
+        assert_eq!(tconstruct_material_mining_speed(0.3,Some(&stack),"minecraft:stone",&items),items.mining_speed(Some(&fallback),"minecraft:stone"));
+        stack.damage=0;
+    }
+    let mut vanilla=ItemStack::new("minecraft:iron_pickaxe",1);
+    vanilla.data_mut().set_other("minecraft:custom_data",Some(data(Some(Tag::Byte(1)),Some(Tag::Int(100)))));
+    for held in [None,Some(&vanilla)] {
+        assert_eq!(broken_speed(held),Continue(()));
+        assert_eq!(tconstruct_material_mining_speed(7.0,held,"minecraft:stone",&items),7.0);
+    }
+    let mut flint=ItemStack::new("tconstruct:flint_pickaxe",1);
+    flint.damage=84;assert_eq!(broken_speed(Some(&flint)),Continue(()));
+    flint.damage=85;assert_eq!(broken_speed(Some(&flint)),Break(0.3));
+}

@@ -528,3 +528,27 @@ matching and unmatched Tool rules, positive/negative flags, repaired/absent/
 wrong-typed flags, invalid maxima, damage boundaries, vanilla/absent held items,
 and the legacy flint fallback. No full generated-host build, gameplay, LAN,
 or Windows validation was run.
+
+## Broken-flag base mining speed
+
+The active mining-speed HEAD guard and material Tool RETURN projection now
+return `0.3` for TConstruct stacks whose `tic_broken` is a nonzero Byte, even
+when damage is below maximum. Pinned
+[`MiningSpeedToolHook.getDestroySpeed`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/mining/MiningSpeedToolHook.java)
+returns `0.3f` immediately for a broken tool, before effectiveness and mining
+stat evaluation. Guarding both entry points prevents a matching saved Tool
+rule from restoring normal speed after flag-only breakage.
+
+The guard uses the established retained-tool flag representation, including
+when maximum durability is absent or malformed. Clearing/removing the flag
+restores the existing speed logic. Wrong-typed flags, non-TConstruct items,
+material rules, the damage-limit Tool-less fallback, and the legacy 85-damage
+flint-pickaxe threshold remain unchanged. This changes base speed only, not
+later environment/armor multipliers or tool actions, and does not claim full
+broken-tool parity.
+
+The actual-helper integration harness covers both boundaries, positive/negative
+flags, matching/unmatched blocks, absent Tool, malformed/absent maximum, repair,
+wrong-typed flags, namespace boundaries, the existing damage fallback, and the
+legacy flint threshold. No full generated-host build, gameplay, LAN, or Windows
+validation was run.

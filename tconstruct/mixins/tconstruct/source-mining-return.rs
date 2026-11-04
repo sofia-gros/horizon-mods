@@ -3,6 +3,8 @@ fn tconstruct_material_mining_speed(speed: f32, held: Option<&ItemStack>, block:
     use horizon_world::nbt::Tag;
     let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return speed; };
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return speed; };
+    // Do not restore material Tool speed after flag-only broken cancellation.
+    if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return 0.3; }
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return speed; };
     if *max <= 0 || stack.damage >= *max as u32 {
         // Ask the host for its ordinary item-definition result on a temporary
