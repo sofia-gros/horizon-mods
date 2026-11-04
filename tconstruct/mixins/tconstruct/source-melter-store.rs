@@ -59,6 +59,13 @@ pub(super) fn clear_different(world: &mut World, pos: Pos, key: &str) {
     if matches!(old, Some(Tag::String(id)) if id.to_string_lossy() != key) { clear(world, pos); }
 }
 
+/// The exact outer block-entity source, for a pre-destruction safety check.
+pub(super) fn read_outer(world: &World, pos: Pos) -> Option<Tag> {
+    let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
+    let saved = chunk.saved.as_deref()?;
+    Some(saved.block_entity_sources.iter().find(|(at, _)| *at == pos)?.1.clone())
+}
+
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
     let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
     let saved = chunk.saved.as_deref()?;

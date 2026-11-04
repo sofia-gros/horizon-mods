@@ -1,0 +1,32 @@
+"""Static routing checks; real player/world behavior is not exercised."""
+from pathlib import Path
+import json, sys, unittest
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+from piggy_labels import WARNINGS, MACHINE_GUARD_MESSAGES, mark_unavailable
+ROOT = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
+class DestroyGuardWiring(unittest.TestCase):
+    def test_player_guard_precedes_existing_overwield_spend(self):
+        manifest = (ROOT / 'horizon-mixin.toml').read_text()
+        entry = manifest.split('id = "source-overwield-harvest-start"', 1)[1].split('[[', 1)[0]
+        self.assertIn('native_destroy_block', entry)
+        self.assertIn('AFTER_CALL', entry)
+        self.assertIn('dispatch_destroy_block', entry)
+        self.assertIn('name = "canceled", ty = "&mut bool"', entry)
+        helper = (ROOT / 'source-overwield-harvest-start.rs').read_text()
+        self.assertLess(helper.index('machine_destroy_guard::protect'), helper.index('tconstruct_overwield_harvest_start(game, *canceled)'))
+        self.assertIn('if !*canceled', helper)
+        self.assertIn('*canceled = true', helper)
+        self.assertIn('__horizon_mixins_tconstruct_smeltery_local_containers()', helper)
+        self.assertIn('__horizon_mixins_tconstruct_smeltery_guest_containers()', helper)
+        self.assertNotIn('tconstruct:seared_faucet', helper)
+        self.assertIn('if let Some(uuid) = game.lan_acting_uuid', helper)
+        self.assertIn('game.native_action_bar(uuid, message)', helper)
+        self.assertIn('game.titles.set_overlay(message, false)', helper)
+        self.assertLess(helper.index('if !*canceled'), helper.index('message.tconstruct.machine_break_guard'))
+    def test_all_source_languages_receive_feedback(self):
+        self.assertEqual(set(MACHINE_GUARD_MESSAGES), set(WARNINGS))
+        for locale in WARNINGS:
+            self.assertEqual(mark_unavailable({}, locale)['message.tconstruct.machine_break_guard'], MACHINE_GUARD_MESSAGES[locale])
+        language = json.loads((ROOT.parent.parent / 'content/assets/tconstruct/lang/en_us.json').read_text())
+        self.assertEqual(language['message.tconstruct.machine_break_guard'], MACHINE_GUARD_MESSAGES['en_us'])
+if __name__ == '__main__': unittest.main()

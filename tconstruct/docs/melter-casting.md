@@ -95,3 +95,20 @@ without pouring until the source is corrected or removed. Older casting table,
 basin and cannon routes and broken/replaced blocks are outside this guard.
 Fixture tests use mock world and atomic store behavior; host integration and
 LAN remain unverified.
+
+A player break of a Melter, Smeltery or Foundry controller is canceled when an
+existing readable machine source contains unknown or non-round-tripping
+metadata. This limited pre-drop check avoids clearing such data on that path;
+it can also block breaking noncanonical but harmless old state. A localized
+action-bar message reports the refusal to the acting player. It runs before
+Overwield's break accounting. Missing source records with a nonempty or unknown live inventory are also
+rejected; empty or absent live inventory without a saved source remains allowed.
+Serialized outer inventory items must round-trip. A saved source also requires
+a live chest projection: Melter slots must match exactly, and each live
+Smeltery slot must match the saved page at the known page offset. A nonempty
+projection with unknown offset is rejected; an empty unprojected view is only
+accepted when the saved inventory is also empty. Unsaved items or
+open local or guest container slots can therefore block removal. This does not guard explosions,
+pistons, commands, other block-replacement paths or already-lost data. The
+fixture uses cached host libraries and mock state; actual host, world, player,
+save/reload and LAN behavior remain unverified.
