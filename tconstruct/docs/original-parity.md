@@ -857,3 +857,8 @@ The pinned seared stone and paver slab and stairs crafting recipes are
 available for the already registered blocks. Source-data tests cover their
 patterns and output counts; live crafting, datapack reload and LAN remain
 unverified.
+
+The pinned scorched brick slab, stairs and fence crafting recipes are
+available for the already registered blocks. Source-data tests cover their
+patterns and output counts; live crafting, datapack reload and LAN remain
+unverified.
