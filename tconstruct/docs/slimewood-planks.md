@@ -19,3 +19,7 @@ Each slimewood has the pinned-source recipes for buttons and pressure plates: on
 ## Doors and trapdoors
 
 The four slimewood door and trapdoor recipes follow the pinned source. Six matching planks in a 2×3 pattern make three doors; six in a 3×2 pattern make two trapdoors. Source, registration and collision checks pass. Runtime recipe loading, crafting and placement, packaging, recipe-book presentation, save/reload and LAN remain unverified.
+
+## Fence gates
+
+The four slimewood fence-gate recipes follow the pinned source: four vanilla sticks and two matching planks make one gate. Source, registration and collision checks pass. Runtime recipe loading, crafting and placement, packaging, recipe-book presentation, save/reload and LAN remain unverified.
