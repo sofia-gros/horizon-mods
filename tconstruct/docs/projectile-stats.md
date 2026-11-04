@@ -386,3 +386,29 @@ inputs, repeated rebuilding, clearing progress/traits, non-bow gating, preserved
 foreign/progress data and unchanged draw speed/velocity. Existing tests cover
 combination with other ranged modifiers. No full generated-host build, gameplay,
 LAN or Windows validation was run.
+
+## Blindshot incremental-level precision
+
+The bow stat rebuild now reconstructs Blindshot's whole logical level from fixed
+10-unit progress, merges material trait levels, then applies the f32 partial
+correction before subtracting 0.1 per level from accuracy. This follows pinned
+[`IncrementalModifierEntry.merge` and `scaleLevel`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java),
+the [Blindshot stat module](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/blindshot.json)
+and its [10-unit recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/slotless/blindshot.json).
+For example, base accuracy 0.13 and progress 1 produce 0.11999998986721039 rather
+than 0.11999999731779099, both above the existing 0.1 floor. Unrepresentable merged
+logical levels supply no Blindshot penalty; this host guard does not emulate Java
+integer overflow.
+
+Only the Blindshot branch changes. Saved progress, trait lookup, modifier order,
+bow eligibility, surrounding stat algebra and final clamp remain unchanged.
+Arbitrary datapack denominators and other upgrades are outside scope. No projectile
+damage, firing-consumer or projectile-motion processing code changes; corrected
+accuracy can still propagate to spread.
+
+The actual `apply_stats` cached-library harness tests both bow IDs, two bitwise
+counterexamples (base/progress 0.13/1 and 0.15/4), full/partial 10-unit boundaries,
+the accuracy floor, negative/large/overflow inputs, repeated rebuilding, clearing
+progress/traits, non-bow gating, retained progress/foreign data and unchanged draw
+speed/velocity. No full generated-host build, gameplay, LAN or Windows validation
+was run.
