@@ -16,9 +16,16 @@ fn tconstruct_crossbow_use(
         if let (Some((velocity, spread)), Some(data)) = (game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at_airborne(stack, player.position.y as f32, game.world.shape.max_y(), airborne)).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)), stack.data()) {
             let count = data.charged.len();
             let power = 3.0;
+            // Source multishot repeats one ammo stack and marks its middle shot.
+            // Keep legacy indexing for mixed, rocket, or unknown host payloads.
+            let first = &data.charged[0];
+            let primary = if matches!(&*first.item, "minecraft:arrow" | "minecraft:tipped_arrow" | "minecraft:spectral_arrow")
+                && data.charged.iter().all(|ammo| ammo.same_item_same_components(first)) {
+                count / 2
+            } else { 0 };
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {
                 let angle = crate::game::tconstruct_projectile_stats::crossbow_angle(i, count);
-                (angle, power, i == 0)
+                (angle, power, i == primary)
             }).collect();
             let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
             let health = game.player.as_ref().map(|player| player.health.health());

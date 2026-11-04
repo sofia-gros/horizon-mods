@@ -300,3 +300,37 @@ behavior, native projectile damage, gameplay, LAN, and Windows remain outside
 this validation. Run the harness through `test_longbow_release_threshold.py`
 with `TC_LONGBOW_HARNESS_DEPS` pointing to compatible cached Horizon rlibs;
 no dependency build is performed.
+
+## Crossbow primary arrow position
+
+Homogeneous volleys of supported arrows now mark index `count / 2` as primary,
+matching pinned
+[`ModifiableCrossbowItem.fireCrossbow`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/item/ranged/ModifiableCrossbowItem.java).
+That is the center of an odd volley and the upper middle index of an even one.
+Shot order, angles, power, and all projectile damage calculations are unchanged.
+
+The correction applies only when every loaded slot has the same item and
+components and that item is a normal, tipped, or spectral arrow. Source ammo
+is one repeated ItemStack, not the host's arbitrary charged-item list. Mixed
+items/components, unknown ammunition, and any volley containing rockets keep
+the old original-index-zero primary behavior. Rockets remain excluded from
+the arrow context queue. In particular, this does not newly remove the primary
+from a mixed volley with a center rocket or promote an arrow when the first
+loaded slot is a rocket. Those payloads remain outside source parity.
+
+Primary currently controls the extra Glowing wear. That cost moves to the
+middle arrow for eligible volleys. The host applies ordinary wear after each
+projectile; source applies ordinary wear after the entire volley. A retained
+crossbow can therefore break before its middle arrow, and the existing broken
+wear guard can suppress the Glowing cost then. This ordering mismatch is not
+fixed here. The firing hook snapshots the full volley before dispatch and
+does not recalculate or cancel queued arrows on intermediate breakage.
+
+The isolated cached-library harness executes the actual crossbow-use helper
+with actor/dispatch boundary doubles. It checks counts one through five,
+matching and differing component payloads, mixed arrow types, center/first
+rockets, all rockets, unknown ammo, and broken/using/empty/missing-stat gates.
+A one-durability case checks the snapshotted queue, not live wear execution.
+Run `test_crossbow_primary.py` with `TC_CROSSBOW_HARNESS_DEPS` pointing to
+compatible cached Horizon rlibs. No dependency build, full generated-host
+build, live mid-volley wear, gameplay, LAN, or Windows validation was run.
