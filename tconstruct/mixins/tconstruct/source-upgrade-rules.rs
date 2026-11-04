@@ -501,7 +501,17 @@ pub fn apply_stats(
             let trait_level = level(&id).max(0) as f32;
             match id.as_str() {
                 "tconstruct:quick_charge" => draw_multiply *= 1.0 + 0.25 * (effective(tool, &id, 5) + trait_level),
-                "tconstruct:trueshot" => accuracy_add += 0.1 * (effective(tool, &id, 10) + trait_level),
+                "tconstruct:trueshot" => {
+                    let progress = amount(tool, &id);
+                    let remainder = progress % 10;
+                    // Merge logical levels before source f32 partial-level scaling.
+                    let effective = level(&id).max(0).checked_add(progress / 10).and_then(|complete| {
+                        if remainder == 0 { Some(complete as f32) }
+                        else { complete.checked_add(1).map(|logical| logical as f32 + (remainder - 10) as f32 / 10.0f32) }
+                    });
+                    // Unrepresentable logical levels supply no Trueshot bonus.
+                    if let Some(effective) = effective { accuracy_add += 0.1 * effective; }
+                },
                 "tconstruct:blindshot" => accuracy_add -= 0.1 * (effective(tool, &id, 10) + trait_level),
                 "tconstruct:emerald" if amount(tool, &id) > 0 || trait_level > 0.0 => accuracy_add += 0.1,
                 "tconstruct:netherite" if amount(tool, &id) > 0 || trait_level > 0.0 => velocity_multiply *= 1.1,

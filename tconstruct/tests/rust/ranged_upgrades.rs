@@ -908,3 +908,45 @@ fn sharpness_regeneration_merges_logical_levels_before_float_scaling() {
   assert_eq!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_damage"),Some(&Tag::Float(1.0f32.to_bits())));
  }
 }
+
+#[test]
+fn trueshot_regeneration_scales_merged_logical_levels_before_accuracy_addition() {
+ use horizon_items::items::ItemStack;use horizon_world::nbt::Tag;use std::collections::BTreeMap;
+ for base in [0.1f32,0.11,0.13,0.15,0.75] {
+  let def=format!(r#"{{"modules":[{{"type":"tconstruct:base_stats","stats":{{"tconstruct:accuracy":{base},"tconstruct:draw_speed":1,"tconstruct:velocity":1}}}}]}}"#);
+  let stats=tconstruct_source_station_stats::base_stats(def.as_bytes(),&[]).unwrap();
+  for (trait_level,progress) in [(0,1),(0,4),(0,0),(2,0),(2,9),(2,10),(2,11),(2,19),(2,20),(0,-1),(-1,1),(0,i32::MAX),(i32::MAX,1),(i32::MAX,10)] {
+   for item in ["tconstruct:longbow","tconstruct:crossbow"] {
+    let mut tool=ItemStack::new(item,1);
+    tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+     ("tic_upgrades",Tag::compound([("tconstruct:trueshot",Tag::Int(progress))])),
+     ("fixture:foreign",Tag::String("keep".into())),
+    ])));
+    let levels=BTreeMap::from([("tconstruct:trueshot".into(),trait_level)]);
+    let amount=progress.max(0);let remainder=amount%10;
+    let logical=trait_level.max(0).checked_add(amount/10).and_then(|n|n.checked_add(i32::from(remainder!=0)));
+    let effective=logical.map(|n|if remainder==0 {n as f32}else{n as f32+(remainder-10) as f32/10.0}).unwrap_or(0.0);
+    let expected=(base+0.1f32*effective).clamp(0.1,1.0);
+    for _ in 0..2 {
+     tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&levels,false,false).unwrap();
+     let custom=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+     assert_eq!(custom.get("tic_accuracy"),Some(&Tag::Float(expected.to_bits())));
+     assert_eq!(custom.get("fixture:foreign"),Some(&Tag::String("keep".into())));
+     assert_eq!(custom.get("tic_upgrades").and_then(|u|u.get("tconstruct:trueshot")),Some(&Tag::Int(progress)));
+     assert_eq!(custom.get("tic_draw_speed"),Some(&Tag::Float(1.0f32.to_bits())));
+     assert_eq!(custom.get("tic_velocity"),Some(&Tag::Float(1.0f32.to_bits())));
+    }
+    if trait_level==0 && (([0.1f32,0.11].contains(&base)&&progress==1)||([0.13f32,0.15].contains(&base)&&progress==4)) {
+     let old=(base+0.1f32*(progress as f32/10.0)).clamp(0.1,1.0);assert_ne!(expected.to_bits(),old.to_bits());
+    }
+    tool.item="tconstruct:sword".into();
+    tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&levels,false,false).unwrap();
+    assert_eq!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_accuracy"),Some(&Tag::Float(expected.to_bits())));
+    tool.item=item.into();
+    tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+    tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::new(),false,false).unwrap();
+    assert_eq!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_accuracy"),Some(&Tag::Float(base.to_bits())));
+   }
+  }
+ }
+}
