@@ -40,11 +40,19 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
                             let flat = factor * level as f32 * 2.5 * multiplier;
                             // Source flat Raging (priority 100) precedes the
                             // percent Jagged and Stonebound traits (priority 75).
-                            let jagged = traits.levels.get("tconstruct:jagged").copied().unwrap_or(0);
-                            let stonebound = traits.levels.get("tconstruct:stonebound").copied().unwrap_or(0);
-                            let adjusted = flat + crate::game::tconstruct_source_material_effects::wear_damage_bonus(
-                                flat, stack.damage, traits.durability_multiplier, jagged, stonebound,
-                            );
+                            let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|raw| raw.as_ref().ok());
+                            let wear_level = |id| {
+                                if crate::game::tconstruct_modifier_snapshot::known_melee_wear(raw, id) {
+                                    traits.levels.get(id).copied().unwrap_or(0)
+                                } else { 0 }
+                            };
+                            let jagged = wear_level("tconstruct:jagged");
+                            let stonebound = wear_level("tconstruct:stonebound");
+                            let adjusted = if jagged == 0 && stonebound == 0 { flat } else {
+                                flat + crate::game::tconstruct_source_material_effects::wear_damage_bonus(
+                                    flat, stack.damage, traits.durability_multiplier, jagged, stonebound,
+                                )
+                            };
                             amount += adjusted * (0.2 + scale * scale * 0.8);
                             magic |= adjusted > 0.0;
                         }

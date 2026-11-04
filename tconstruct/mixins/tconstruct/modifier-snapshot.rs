@@ -647,3 +647,145 @@ pub(super) const PINNED_RAGING: &[u8] = br#"{
 pub(super) fn known_raging_melee(source: Option<&[u8]>) -> bool {
     source == Some(PINNED_RAGING)
 }
+
+// Exact pinned MIT jagged definition; unknown modules/order fail closed.
+pub(super) const PINNED_JAGGED: &[u8] = br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:conditional_melee_damage",
+      "formula": [
+        "$lost",
+        "$max",
+        "/",
+        "sqrt",
+        "$level",
+        "*",
+        0.005,
+        "*",
+        1.0,
+        "+",
+        "$damage",
+        "*"
+      ],
+      "percent": true,
+      "variables": {
+        "lost": "tconstruct:tool_lost_durability",
+        "max": {
+          "type": "tconstruct:stat_multiplier",
+          "stat": "tconstruct:durability"
+        }
+      }
+    },
+    {
+      "type": "tconstruct:conditional_mining_speed",
+      "formula": [
+        "$lost",
+        "$max",
+        "/",
+        "sqrt",
+        "$level",
+        "*",
+        -0.01,
+        "*",
+        1.0,
+        "+",
+        "$speed",
+        "*"
+      ],
+      "percent": true,
+      "require_effective": true,
+      "variables": {
+        "lost": "tconstruct:tool_lost_durability",
+        "max": {
+          "type": "tconstruct:stat_multiplier",
+          "stat": "tconstruct:durability"
+        }
+      }
+    }
+  ]
+}"#;
+
+// Exact pinned MIT stonebound definition; unknown modules/order fail closed.
+pub(super) const PINNED_STONEBOUND: &[u8] = br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:conditional_mining_speed",
+      "formula": [
+        "$lost",
+        "$max",
+        "/",
+        "sqrt",
+        "$level",
+        "*",
+        0.01,
+        "*",
+        1.0,
+        "+",
+        "$speed",
+        "*"
+      ],
+      "percent": true,
+      "require_effective": true,
+      "variables": {
+        "lost": "tconstruct:tool_lost_durability",
+        "max": {
+          "type": "tconstruct:stat_multiplier",
+          "stat": "tconstruct:durability"
+        }
+      }
+    },
+    {
+      "type": "tconstruct:conditional_melee_damage",
+      "formula": [
+        "$lost",
+        "$max",
+        "/",
+        "sqrt",
+        "$level",
+        "*",
+        -0.005,
+        "*",
+        1.0,
+        "+",
+        "$damage",
+        "*"
+      ],
+      "percent": true,
+      "variables": {
+        "lost": "tconstruct:tool_lost_durability",
+        "max": {
+          "type": "tconstruct:stat_multiplier",
+          "stat": "tconstruct:durability"
+        }
+      }
+    }
+  ]
+}"#;
+
+/// Only supported stock melee wear formulas may use a resolved trait level.
+pub(super) fn known_melee_wear(snapshot: Option<&Raw>, id: &str) -> bool {
+    let (key, expected) = match id {
+        "tconstruct:jagged" => ("tconstruct:tinkering/modifiers/jagged", PINNED_JAGGED),
+        "tconstruct:stonebound" => ("tconstruct:tinkering/modifiers/stonebound", PINNED_STONEBOUND),
+        _ => return false,
+    };
+    snapshot.and_then(|raw| highest_definition(raw, key)) == Some(expected)
+}
+
+#[cfg(test)] mod melee_wear_definition_tests {
+    use super::*;
+    #[test] fn individual_stock_definitions_require_exact_highest_layer() {
+        for (id,bytes) in [("tconstruct:jagged",PINNED_JAGGED),("tconstruct:stonebound",PINNED_STONEBOUND)] {
+            let key=format!("tconstruct:tinkering/modifiers/{}",id.strip_prefix("tconstruct:").unwrap());
+            let mut raw=(BTreeMap::from([(key.clone(),vec![b"{}".to_vec(),bytes.to_vec()])]),BTreeMap::new());
+            assert!(known_melee_wear(Some(&raw),id));
+            raw.0.get_mut(&key).unwrap().push([bytes,b" "].concat());
+            assert!(!known_melee_wear(Some(&raw),id));
+            raw.0.clear();assert!(!known_melee_wear(Some(&raw),id));
+            assert!(!known_melee_wear(None,id));
+        }
+        assert!(!known_melee_wear(None,"tconstruct:raging"));
+    }
+}

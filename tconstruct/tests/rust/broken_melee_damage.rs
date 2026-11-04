@@ -5,6 +5,8 @@ extern crate self as horizon_items;
 pub mod items { pub type ItemStack=super::Stack; }
 use std::collections::{BTreeMap,HashMap,HashSet};
 use std::ops::ControlFlow;
+#[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
+#[path = "../../mixins/tconstruct/modifier-snapshot.rs"] mod tconstruct_modifier_snapshot;
 pub mod nbt {
     use super::BTreeMap;
     pub enum Tag { Float(u32), Int(i32), Byte(i8), Compound(BTreeMap<String,Tag>) }
@@ -34,10 +36,11 @@ impl Player {
     }
     fn attribute(&mut self,id:&str)->Result<f64,()>{assert_eq!(id,"minecraft:attack_damage");if self.fail_read{return Err(())}Ok(((self.base+self.native+self.additive+self.projection)*self.total).max(0.0))}
 }
-pub struct Chunks { tags:Option<Result<HashMap<String,HashSet<String>>,String>> }
-impl Chunks {fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<HashMap<String,HashSet<String>>,String>>{&self.tags}}
-pub struct World { trait_level:i32, chunks:Chunks }
+pub struct Chunks { raw:Option<Result<tconstruct_modifier_snapshot::Raw,String>>, tags:Option<Result<HashMap<String,HashSet<String>>,String>> }
+impl Chunks {fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<tconstruct_modifier_snapshot::Raw,String>>{&self.raw}fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<HashMap<String,HashSet<String>>,String>>{&self.tags}}
+pub struct World { stonebound_level:i32, trait_level:i32, chunks:Chunks }
 pub mod game {
+    pub(crate) use crate::tconstruct_modifier_snapshot;
     use super::*;
     pub struct Game<'a>{pub inventory:Vec<Option<Stack>>,pub selected:usize,pub offhand:Option<Stack>,pub acting_offhand:bool,pub attack_item:Option<String>,pub info:Option<ItemInfo>,pub player:Option<Player>,pub world:World,pub marker:std::marker::PhantomData<&'a ()>}
     impl Game<'_>{pub fn held(&self)->Option<&Stack>{if self.acting_offhand {self.offhand.as_ref()} else {self.inventory.get(self.selected).and_then(Option::as_ref)}}pub fn attack_item_info(&self)->Option<&ItemInfo>{self.info.as_ref()}}
@@ -47,11 +50,11 @@ pub mod game {
         pub struct Traits{pub levels:BTreeMap<String,i32>,pub durability_multiplier:f32}
         pub fn levels(world:&World,_:&Stack)->Option<Traits>{
             assert!(world.trait_level>=0,"broken stack must not resolve percent traits");
-            Some(Traits{levels:BTreeMap::from([("tconstruct:jagged".into(),world.trait_level)]),durability_multiplier:1.0})
+            Some(Traits{levels:BTreeMap::from([("tconstruct:jagged".into(),world.trait_level),("tconstruct:stonebound".into(),world.stonebound_level)]),durability_multiplier:1.0})
         }
     }
     pub mod tconstruct_source_material_effects {
-        pub fn wear_damage_bonus(damage:f32,_:u32,_:f32,jagged:i32,stonebound:i32)->f32{assert_eq!((jagged,stonebound),(1,0));damage*0.5}
+        pub fn wear_damage_bonus(damage:f32,_:u32,_:f32,jagged:i32,stonebound:i32)->f32{damage*(0.5*jagged as f32-0.25*stonebound as f32)}
     }
     include!("../../mixins/tconstruct/material-melee-bonus.rs");
     pub fn run(g:&Game<'_>)->ControlFlow<f32>{tconstruct_material_melee_bonus(g)}
@@ -59,7 +62,7 @@ pub mod game {
 fn game()->game::Game<'static>{
     let mut held=Stack::new("tconstruct:sword",1);
     held.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_attack_damage",Tag::Float(8.0f32.to_bits())),("tic_max_damage",Tag::Int(100)),("tic_broken",Tag::Byte(0))])));
-    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0,chunks:Chunks{tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()])),("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])))}},marker:std::marker::PhantomData}
+    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{stonebound_level:0,trait_level:0,chunks:Chunks{raw:Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/jagged".into(),vec![tconstruct_modifier_snapshot::PINNED_JAGGED.to_vec()])]),BTreeMap::new()))),tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee/weapon".into(),HashSet::from(["tconstruct:sword".into()])),("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])))}},marker:std::marker::PhantomData}
 }
 fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.inventory[0].as_mut().unwrap().data_mut().0 else{panic!()};v.insert(key.into(),value);}
 #[test] fn broken_removes_native_and_material_damage_and_repair_restores(){
@@ -156,4 +159,32 @@ fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.i
     assert_eq!(g.player.as_ref().unwrap().projection,0.0);
     field(&mut g,"tic_broken",Tag::Byte(1));g.world.trait_level=-1;
     assert_eq!(game::run(&g),ControlFlow::Break(8.0));
+}
+
+#[test] fn wear_definition_uses_highest_layer_and_fails_closed() {
+    let mut g=game();g.world.trait_level=1;
+    assert_eq!(game::run(&g),ControlFlow::Break(13.5));
+    let id="tconstruct:tinkering/modifiers/jagged";
+    let pinned=tconstruct_modifier_snapshot::PINNED_JAGGED;
+    for changed in [b"{}".to_vec(), [pinned,b" "].concat(), String::from_utf8(pinned.to_vec()).unwrap().replace("0.005","0.5").into_bytes()] {
+        g.world.chunks.raw=Some(Ok((BTreeMap::from([(id.into(),vec![pinned.to_vec(),changed])]),BTreeMap::new())));
+        assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    }
+    for raw in [None,Some(Err("unavailable".into())),Some(Ok((BTreeMap::new(),BTreeMap::new())))] {
+        g.world.chunks.raw=raw;assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    }
+    g.world.chunks.raw=Some(Ok((BTreeMap::from([(id.into(),vec![b"{}".to_vec(),pinned.to_vec()])]),BTreeMap::new())));
+    assert_eq!(game::run(&g),ControlFlow::Break(13.5));
+    assert_eq!(g.player.as_ref().unwrap().projection,0.0);
+}
+
+#[test] fn base_projection_gates_each_wear_effect_independently() {
+    let mut g=game();g.world.trait_level=1;g.world.stonebound_level=1;
+    let stone="tconstruct:tinkering/modifiers/stonebound";
+    g.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.insert(stone.into(),vec![tconstruct_modifier_snapshot::PINNED_STONEBOUND.to_vec()]);
+    assert_eq!(game::run(&g),ControlFlow::Break(11.25));
+    g.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.remove("tconstruct:tinkering/modifiers/jagged");
+    assert_eq!(game::run(&g),ControlFlow::Break(6.75));
+    g.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.get_mut(stone).unwrap().push(b"{}".to_vec());
+    assert_eq!(game::run(&g),ControlFlow::Break(9.0));
 }
