@@ -25,3 +25,5 @@ The ore, fluid selection, casting, wall repair and save/reload sequence was test
 Only the representative copper ore path has been tested end to end. Other ores, larger structures, automatic transfer and fluid containers need further work or testing. The machine models and collision are not yet a complete match for the original. Windows has not been tested.
 
 The Fantastic Foundry guide includes a partial Scorched Tanks text page. It lists the supported tank capacities and fuel requirement; the original showcase, other fluid handlers, in-game display and LAN remain unverified or unsupported.
+
+Shift-moving items from a player inventory into Smeltery or Foundry melting slots now fills empty slots one item at a time, leaving excess in the player inventory. This applies to local and guest quick-move paths; other click modes, existing oversized saved stacks, host integration, world and LAN behavior remain unverified.
