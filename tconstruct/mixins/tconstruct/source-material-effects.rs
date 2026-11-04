@@ -71,6 +71,18 @@ pub(super) fn limited_casting_repair_factor(traits: &std::collections::BTreeMap<
         * dense_repair_factor(level("tconstruct:dense")) * if emerald { 1.5 } else { 1.0 })
 }
 
+/// Extend only Emerald-trait casting to ordered known repair hooks. Unknown
+/// traits and ambiguous order remain closed before the transaction proceeds.
+pub(super) fn casting_repair_amount(stack: &horizon_items::items::ItemStack,
+    traits: &std::collections::BTreeMap<String, i32>, order: &[String], emerald_upgrade: bool, initial: f32) -> Option<f32> {
+    if traits.keys().any(|id| !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense" | "tconstruct:emerald")) { return None; }
+    if traits.get("tconstruct:emerald").copied().unwrap_or(0) > 0 {
+        ordered_emerald_repair_amount(stack, traits, order, initial)
+    } else {
+        Some(initial * limited_casting_repair_factor(traits, emerald_upgrade)?)
+    }
+}
+
 /// Dense repair follows the two level ranges in the original repair module.
 pub(super) fn dense_repair_factor(level: i32) -> f32 {
     match level {
