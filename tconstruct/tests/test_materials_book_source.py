@@ -85,6 +85,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         for name, path, item in [
             ('seared_ladder', 'smeltery/searedladder.json', 'tconstruct:seared_ladder'),
             ('seared_glass', 'smeltery/searedglass.json', 'tconstruct:seared_glass'),
+            ('tinted_glass', 'smeltery/tinted_glass.json', 'tconstruct:seared_tinted_glass'),
             ('seared_chute', 'smeltery/seared_chute.json', 'tconstruct:seared_chute'),
         ]:
             entry = next(page for page in section if page['name'] == name)
@@ -100,6 +101,22 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertIn('mighty_smeltery_page', reader)
         self.assertIn('smeltery.partial.notice', reader)
         self.assertIn('mighty_advice || mighty_smeltery', reader)
+
+    def test_mighty_tinted_glass_page_discloses_limits(self):
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        page = json.loads((root / 'en_us/smeltery/tinted_glass.json').read_text())
+        text = ' '.join(part['text'] for part in page['text'])
+        self.assertEqual(page['item'], 'tconstruct:seared_tinted_glass')
+        self.assertIn('ordinary crafting recipe is not yet available', text)
+        self.assertIn('not been verified', text)
+        block = json.loads((ARCHIVE / 'data/tconstruct/horizon/block/seared_tinted_glass.json').read_text())
+        self.assertEqual(block['template'], 'minecraft:tinted_glass')
+        with zipfile.ZipFile(ARCHIVE / 'reference/tconstruct-block-tags.zip') as tags:
+            wall = json.loads(tags.read('data/tconstruct/tags/blocks/smeltery/wall.json'))['values']
+            floor = json.loads(tags.read('data/tconstruct/tags/blocks/smeltery/floor.json'))['values']
+        self.assertIn('tconstruct:seared_tinted_glass', wall)
+        self.assertNotIn('tconstruct:seared_tinted_glass', floor)
+        self.assertFalse((ARCHIVE / 'data/tconstruct/recipe/seared_tinted_glass.json').exists())
 
     def test_mighty_smeltery_port_adaptations_are_readable(self):
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'

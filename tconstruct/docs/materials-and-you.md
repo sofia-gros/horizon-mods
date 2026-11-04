@@ -108,3 +108,5 @@ resource tests do not establish gameplay, previously held items, save/reload or
 LAN actor behavior, and this addition does not implement recipe unlocks.
 
 Mighty Smelting's partial Smeltery section now includes a port-adapted Seared Fuel Tanks page. It describes the supported tank capacity and limited transfer endpoints, and notes that the source item showcase is unavailable and potion, piston and dispenser behavior are not game-verified. The new page and LAN display are unverified in game.
+
+The Mighty Smelting partial Smeltery Basics section also includes Tinted Seared Glass. It describes the default wall/floor distinction and notes that normal crafting is not yet wired. Live display, light updates in existing worlds, and LAN remain unverified.
