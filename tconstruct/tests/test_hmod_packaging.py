@@ -32,6 +32,16 @@ class ContentPackageTest(unittest.TestCase):
                     self.assertIn(path, names)
                 self.assertNotIn('assets/tconstruct/runtime/block/tconstruct_fluid_powdered_snow.png.mcmeta', names)
                 self.assertIn('assets/tconstruct/runtime/block/tconstruct_fluid_fallback.png.mcmeta', names)
+                with zipfile.ZipFile(MOD / 'content/reference/tconstruct-part-visuals.zip') as source:
+                    languages = [name for name in source.namelist() if name.startswith('assets/tconstruct/lang/') and name.endswith('.json')]
+                    self.assertEqual(len(languages), 20)
+                    for name in languages:
+                        self.assertIn(name, names)
+                        expected = ((MOD / 'content/assets/tconstruct/lang/en_us.json').read_bytes()
+                                    if name.endswith('/en_us.json') else source.read(name))
+                        self.assertEqual(packed.read(name), expected, name)
+                    self.assertEqual(json.loads(packed.read('assets/tconstruct/lang/ja_jp.json'))['item.tconstruct.copper_can.contents'], '%s: 1インゴット分')
+                    self.assertEqual(json.loads(packed.read('assets/tconstruct/lang/en_us.json'))['item.tconstruct.copper_can.contents'], '%s: 1 ingot')
             self.assertLessEqual(len(names - {'horizon-mod.toml'}), 65_536)
             for kind in ('part', 'tool'):
                 with zipfile.ZipFile(MOD / 'content/reference' / f'tconstruct-{kind}-visuals.zip') as source:
