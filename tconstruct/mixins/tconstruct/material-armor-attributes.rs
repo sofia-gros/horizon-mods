@@ -15,7 +15,8 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             "tconstruct:travelers_boots" | "tconstruct:plate_boots" | "tconstruct:slime_boots" => Some("feet"),
             _ => None,
         };
-        if !broken && armor_slot == Some(slot) {
+        let attributes = !broken && armor_slot == Some(slot);
+        if attributes {
             for (key, attribute) in [("tic_armor", "minecraft:armor"), ("tic_armor_toughness", "minecraft:armor_toughness"), ("tic_knockback_resistance", "minecraft:knockback_resistance")] {
                 if let Some(Tag::Float(bits)) = data.get(key) {
                     values.push((attribute.to_owned(), format!("tconstruct:{key}/{slot}"), f64::from(f32::from_bits(*bits)), "add_value"));
@@ -32,12 +33,12 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         };
         let level = modifier_level("tconstruct:vintage");
         if level > 0 {
-            if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:vintage_movement/{slot}"), -0.1 * f64::from(level), "add_multiplied_total")); }
+            if attributes { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:vintage_movement/{slot}"), -0.1 * f64::from(level), "add_multiplied_total")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:vintage_gravity/{slot}"), 0.1 * f64::from(level), "add_multiplied_total"));
         }
         let heavy = modifier_level("tconstruct:heavy");
         if heavy > 0 {
-            if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:heavy_movement/{slot}"), -0.1 * f64::from(heavy), "add_multiplied_base")); }
+            if attributes { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:heavy_movement/{slot}"), -0.1 * f64::from(heavy), "add_multiplied_base")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:heavy_gravity/{slot}"), 0.05 * f64::from(heavy), "add_multiplied_total"));
         }
         let featherweight = modifier_level("tconstruct:featherweight");
@@ -45,16 +46,16 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             .and_then(|tags| tags.as_ref().ok())
             .and_then(|tags| tags.get("tconstruct:modifiable/armor"))
             .is_some_and(|items| items.contains(stack.item.as_ref()));
-        if !broken && armor && featherweight > 0 {
+        if attributes && armor && featherweight > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:featherweight_movement/{slot}"), 0.05 * f64::from(featherweight), "add_multiplied_base"));
         }
         let solid = modifier_level("tconstruct:solid");
         if solid > 0 {
-            if !broken { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:solid_movement/{slot}"), -0.1 * f64::from(solid), "add_multiplied_base")); }
+            if attributes { values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:solid_movement/{slot}"), -0.1 * f64::from(solid), "add_multiplied_base")); }
             values.push(("minecraft:gravity".to_owned(), format!("tconstruct:solid_gravity/{slot}"), 0.05 * f64::from(solid), "add_multiplied_total"));
         }
         let entwined = modifier_level("tconstruct:entwined");
-        if !broken && entwined > 0 {
+        if attributes && entwined > 0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:entwined_movement/{slot}"), 0.1 * f64::from(entwined), "add_multiplied_total"));
         }
         let speedy_trait = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:speedy").copied()).unwrap_or(0).max(0);
@@ -62,11 +63,11 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
             Some(Tag::Int(progress)) => (*progress).max(0), _ => 0,
         };
         let speedy = f64::from(speedy_trait) + f64::from(speedy_progress) / 45.0;
-        if !broken && speedy > 0.0 {
+        if attributes && speedy > 0.0 {
             values.push(("minecraft:movement_speed".to_owned(), format!("tconstruct:speedy_movement/{slot}"), 0.1 * speedy, "add_multiplied_total"));
         }
         let step_up = modifier_level("tconstruct:step_up");
-        if !broken && step_up > 0 {
+        if attributes && step_up > 0 {
             values.push(("minecraft:step_height".to_owned(), format!("tconstruct:step_up/{slot}"), 0.5 * f64::from(step_up), "add_value"));
         }
     }

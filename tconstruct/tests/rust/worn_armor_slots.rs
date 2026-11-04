@@ -81,16 +81,65 @@ fn apply(g:&mut game::Game<'_>) {
  g.armor[0]=g.armor[3].take();g.armor[0].as_mut().unwrap().broken=true;apply(&mut g);assert!(g.applied_modifiers.is_empty());
  g.armor[0].as_mut().unwrap().broken=false;apply(&mut g);assert_eq!(g.applied_modifiers.len(),3);
 }
-#[test] fn modifier_and_equipment_change_gravity_paths_are_unchanged() {
+#[test] fn wrong_slot_attributes_stop_but_equipment_change_gravity_remains() {
  for broken in [false,true] {
   let mut g=game();let mut item=stack("tconstruct:plate_helmet");item.broken=broken;
   let Some(Data(Tag::Compound(ref mut data)))=item.data else{panic!()};
   data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:vintage".into(),Tag::Int(1)),("tconstruct:step_up".into(),Tag::Int(1))].into()));
   g.armor[3]=Some(item);apply(&mut g);
   let values=&g.player.as_ref().unwrap().values;
-  assert_eq!(values.len(),if broken {1}else{3});
+  assert_eq!(values.len(),1);
   assert!(values.contains_key(&("minecraft:gravity".into(),"tconstruct:vintage_gravity/feet".into())));
-  assert_eq!(values.contains_key(&("minecraft:step_height".into(),"tconstruct:step_up/feet".into())),!broken);
+  assert!(!values.contains_key(&("minecraft:step_height".into(),"tconstruct:step_up/feet".into())));
   assert!(!values.keys().any(|(_,id)|id.starts_with("tconstruct:tic_")));
  }
+}
+
+#[test] fn each_supported_attribute_requires_correct_slot_and_intact_item() {
+ for (id,amount,attribute,op) in [
+  ("vintage",-0.1,"movement_speed","add_multiplied_total"),
+  ("heavy",-0.1,"movement_speed","add_multiplied_base"),
+  ("solid",-0.1,"movement_speed","add_multiplied_base"),
+  ("featherweight",0.05,"movement_speed","add_multiplied_base"),
+  ("entwined",0.1,"movement_speed","add_multiplied_total"),
+  ("speedy",0.1,"movement_speed","add_multiplied_total"),
+  ("step_up",0.5,"step_height","add_value"),
+ ] {
+  for slot in [0,3] {for broken in [false,true] {
+   let mut g=game();let mut item=stack("tconstruct:plate_helmet");item.broken=broken;
+   let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+   data.insert("tic_upgrades".into(),Tag::Compound([(format!("tconstruct:{id}"),Tag::Int(if id=="speedy" {45}else{1}))].into()));
+   g.world.chunks.0=Some(Ok(HashMap::from([("tconstruct:modifiable/armor".into(),HashSet::from(["tconstruct:plate_helmet".into()]))])));
+   g.armor[slot]=Some(item);apply(&mut g);
+   let values=&g.player.as_ref().unwrap().values;
+   let entry=values.iter().find(|((attr,_),_)|attr==&format!("minecraft:{attribute}"));
+   if slot==0 && !broken {assert_eq!(entry.map(|(_,value)|value),Some(&(amount,op.into())),"{id}");}
+   else {assert!(entry.is_none(),"{id} slot {slot} broken {broken}");}
+   let gravity=values.keys().any(|(attr,_)|attr=="minecraft:gravity");
+   assert_eq!(gravity,matches!(id,"vintage"|"heavy"|"solid"));
+  }}
+ }
+}
+#[test] fn moving_to_wrong_slot_clears_movement_and_step_but_keeps_gravity() {
+ let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+ let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+ data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:vintage".into(),Tag::Int(1)),("tconstruct:step_up".into(),Tag::Int(1))].into()));
+ g.armor[0]=Some(item);apply(&mut g);assert_eq!(g.applied_modifiers.len(),6);
+ g.armor[3]=g.armor[0].take();apply(&mut g);assert_eq!(g.applied_modifiers.len(),1);
+ assert_eq!(g.applied_modifiers[0],("minecraft:gravity".into(),"tconstruct:vintage_gravity/feet".into()));
+}
+#[test] fn unsupported_classes_and_missing_featherweight_tag_fail_closed() {
+ for id in ["tconstruct:plate_shield","tconstruct:sky_staff","tconstruct:future_helmet"] {
+  let mut g=game();let mut item=stack(id);
+  let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+  data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:vintage".into(),Tag::Int(1))].into()));
+  g.armor[0]=Some(item);apply(&mut g);
+  assert_eq!(g.applied_modifiers,vec![("minecraft:gravity".into(),"tconstruct:vintage_gravity/head".into())]);
+ }
+ let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+ let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+ data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:featherweight".into(),Tag::Int(1))].into()));
+ g.armor[0]=Some(item);apply(&mut g);
+ assert_eq!(g.applied_modifiers.len(),3);
+ assert!(!g.applied_modifiers.iter().any(|(attr,_)|attr=="minecraft:movement_speed"));
 }
