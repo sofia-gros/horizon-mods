@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "tconstruct:queens_slime_block",
+  "key": {
+    "#": "#forge:ingots/queens_slime",
+    "*": "tconstruct:queens_slime_ingot"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:queens_slime_block"
+  }
+}
