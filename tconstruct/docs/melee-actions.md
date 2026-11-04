@@ -399,8 +399,8 @@ saved-stat eligibility, broken predicate, percent-wear calculation and cloned
 attribute-map replacement remain. The player's actual map is not modified.
 Empty/out-of-range selection retains native fallback even when an offhand item
 exists. Local/guest use the host's actor-swapped inventory and selected index.
-Live MELEE_WEAPON/NO_MELEE eligibility for this damage projection is still outside
-this slice; it does not claim complete source attribute parity.
+The later base-eligibility slice below adds live MELEE_WEAPON gating. NO_MELEE
+remains unimplemented; complete source attribute parity is not claimed.
 
 `python3 tconstruct/tests/test_broken_melee_damage.py` executes the actual helper
 and broken predicate with selected/acting-hand and attribute boundary doubles.
@@ -408,3 +408,33 @@ Tests include same-ID different-stat offhand tools, independent breakage, wear
 traits, selected-slot changes, ID mismatch, missing/out-of-range mainhand and
 unchanged player projection. Existing tests retain potion/base/order and native
 fallback checks. No full generated-host build, gameplay, LAN or Windows test ran.
+
+
+## Base attack-damage weapon tag
+
+The saved base attack-damage contribution now requires live membership in
+`tconstruct:modifiable/melee/weapon`, matching the tag portion of pinned
+[`AttributesModifierHook.getHeldAttributeModifiers`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/behavior/AttributesModifierHook.java).
+The helper still selects the actual mainhand. Missing/error tag snapshots,
+missing tags and removed membership set only the saved base contribution to zero.
+The clone projection remains active to subtract the host's native item damage;
+falling through would reintroduce that modifier. Player base, additive effects
+and total-multiplier order remain intact, and the live player's map is unchanged.
+
+Independent effects are not disabled by this new tag gate. The existing
+Jagged/Stonebound projection still evaluates on its remaining base, while Raging
+retains its separate live MELEE and known-definition checks. Broken tools still
+suppress both their base and wear-trait contribution. Malformed-stat/player-error
+fallbacks, attribute algebra and other eligibility are unchanged. NO_MELEE is a
+source volatile flag without a current host representation and remains outside
+this slice; neither full modifier ordering nor complete attribute parity is
+claimed.
+
+The actual-helper boundary tests cover missing/error/removed/restored tag maps,
+native modifier removal, player base/additive effects/total multipliers, broken
+state and an independent percent-wear fixture. Existing tests retain actual
+mainhand selection and fallbacks. The separate Raging harness continues to apply
+Raging with MELEE membership and no MELEE_WEAPON tag. The existing wear projection
+still lacks a separate MELEE gate; suppressing wear when MELEE itself is absent
+is a distinct remaining gap. No full generated-host build,
+gameplay, LAN or Windows validation was run.
