@@ -931,3 +931,9 @@ flowing fluid IDs, consuming 250 mB through the existing tank transaction.
 The static mapping does not follow datapack tag changes and refuses tagged
 fluid. Unit tests cover both source and flowing IDs; integrated gameplay,
 save/reload and LAN remain unverified.
+
+Normal water-bottle filling now also accepts untagged `minecraft:flowing_water`
+as well as still water, consuming 500 mB through the existing transaction.
+This static mapping does not follow datapack changes to `mantle:water`.
+Unit tests cover both water IDs and failure boundaries; integrated gameplay,
+save/reload and LAN remain unverified.
