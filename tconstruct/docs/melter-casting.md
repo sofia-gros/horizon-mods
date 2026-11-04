@@ -14,6 +14,8 @@ Place an ingot cast on the table, use the faucet, and wait for the copper ingot 
 
 The copper sequence, saving and reloading, and shared input and casting in LAN have been checked on Linux. Other materials and Windows have not received the same game checks.
 
+Forge milk is supported as a machine-tank fluid for skull-melting lookup and milk bucket transfers. Milk-tag ingot casting now has a registered Cheese Ingot result; the source recipes are retained. Cheese Block is registered with 2×2 ingot conversions. Its source basin recipe requires the `forge:milk` tag; availability through the packaged source layers is under separate verification. With the native runtime active, players can eat the block in air, returning three ingots to the emptied hand or inventory. If a stacked block is eaten with insufficient inventory space, consumption is refused rather than dropping an item that another mod might cancel. Content alone leaves it inedible, preventing loss when the native hook is absent. Both foods restore hunger and saturation, but their source effect-removal behavior is not yet connected. Eating particles and sounds are not yet implemented; item stacks with custom components or damage and nonplayer eating are unsupported. Consumption and remainder are committed before advancement callbacks to avoid losing another item if a callback changes the hand. Full-inventory behavior and LAN remain unverified. Cheese Block uses source walk and jump factors, but its lighting and rendered inner planes are not yet verified in game. The original Forge milk sprite is staged for still and flowing milk. These paths have focused tests but have not been checked in game, persistence or LAN.
+
 The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; source animation metadata is now staged for fluid aliases, while the casting cooling fade remains unimplemented. Atlas animation and reload still need in-game verification.
 
 Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. The Faucet, Casting Basin and Casting Table use the original selection and collision shapes. A Linux game check covered all five Faucet directions, right-click targeting, the Basin and Table recesses, walking against one Faucet, and falling into the Basin and Table. The Melter screen still opened. Other machine shapes remain to be compared.
@@ -44,3 +46,52 @@ revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, including frame timing and
 interpolation. Powdered snow has no source animation metadata. Both the manual
 resource overlay and the content package stage metadata beside each alias.
 Tests check packaging and values, not visible animation or resource reload.
+
+### Smeltery machine metadata
+
+Writes through the shared metadata store preserve unknown top-level fields in
+the existing `tconstruct:smeltery` machine compound while replacing the
+owned fields according to the current operation, including clearing omitted
+optional `heat_codes`. For Smeltery and Foundry, unknown keys directly on the
+native tank compound are also retained. Legacy `FluidName`, `Amount` and `Tag`
+aliases omitted by a serialized update are not retained. Raw patch updates that
+explicitly include them keep them, as before, and may leave stale aliases. Fluid entry fields, slot payloads, other legacy Forge formats, and
+collisions with owned field names remain outside this protection. It cannot
+restore data already lost. A non-compound existing machine value rejects an update; malformed owned
+fields may still be normalized by their existing decoder. Client network
+snapshots retain replacement semantics rather than merging old fields. Cached-host-type
+fixture tests exercise the merge and the shared store; full host compilation,
+real world save/reload, all interactions, and LAN remain unverified.
+
+A tank containing a fluid ID with an unpaired UTF-16 surrogate cannot be
+rewritten through the lossy native decoder. Store updates are rejected unless
+the raw tank is unchanged. This preserves that identifier during those writes
+but can pause all machine ticks. Client LAN snapshot replacement bypasses this
+guard. Controller destruction is not protected and neither tank data nor
+inventory drops are guaranteed. Other malformed or unknown nested data is
+outside this check. Host integration and world/LAN behavior remain unverified.
+
+On the Melter tick's preserving save, and other callers of the preserving
+single-tank encoder, an unpaired UTF-16 surrogate in the old fluid ID rejects
+the update rather than being rewritten lossily. This may pause those machines.
+Other non-preserving transfer, destroy and client snapshot paths are not covered.
+The cached-type fixture is not a full host, world, save/reload or LAN test.
+
+For Smeltery/Foundry fuel draw and direct player fuel-tank interaction, the
+native tank compound is patched on a staged copy: unrelated top-level fields
+are retained as parsed NBT values, not necessarily identical bytes. They remain
+when the tank empties or another fluid is inserted, so their meaning may become
+inconsistent if they depended on the old fluid. Legacy `FluidName`, `Amount` and `Tag` aliases are dropped
+as in the former serializer. An invalid UTF-16 fluid ID blocks that candidate
+without consuming fuel or the held container. Other transfer, drop and old
+Forge formats remain outside this limited change. Host/world/save/LAN behavior
+is unverified.
+
+Faucet transfers between supported tanks refuse to patch a source, target or
+reserved packet whose fluid ID cannot be converted from UTF-16 without loss.
+Their staged writes leave fluid and packet data unchanged on this refusal. If
+an invalid source remains present, even an already reserved packet can wait
+without pouring until the source is corrected or removed. Older casting table,
+basin and cannon routes and broken/replaced blocks are outside this guard.
+Fixture tests use mock world and atomic store behavior; host integration and
+LAN remain unverified.

@@ -24,6 +24,48 @@ mod tests {
         Tag::compound([("x", coords(x)), ("y", coords([0.0, 0.9375])), ("z", coords([0.0625, 0.9375]))])
     }
     #[test]
+    fn cheese_lighting_is_idempotent_and_preserves_other_fields() {
+        let mut row = serde_json::json!({"dampening":0,"skylight_down":true,"emission":7});
+        apply_cheese_lighting(&mut row).unwrap();
+        assert_eq!(row, serde_json::json!({"dampening":1,"skylight_down":false,"emission":7}));
+        let before = row.clone();
+        apply_cheese_lighting(&mut row).unwrap();
+        assert_eq!(row, before);
+        let mut malformed = serde_json::json!({"dampening":0,"skylight_down":"bad"});
+        let before = malformed.clone();
+        assert!(apply_cheese_lighting(&mut malformed).is_err());
+        assert_eq!(malformed, before);
+    }
+    #[test]
+    fn cheese_behavior_changes_only_transparent_subclass() {
+        let mut table = serde_json::json!({"blocks":[{"name":"tconstruct:cheese_block","class":["TransparentBlock","HalfTransparentBlock","Block"]},{"name":"minecraft:glass","class":["TransparentBlock","HalfTransparentBlock","Block"]}]});
+        apply_cheese_behavior(&mut table).unwrap();
+        assert_eq!(table["blocks"][0]["class"], serde_json::json!(["HalfTransparentBlock","Block"]));
+        assert_eq!(table["blocks"][1]["class"], serde_json::json!(["TransparentBlock","HalfTransparentBlock","Block"]));
+        let before = table.clone();
+        apply_cheese_behavior(&mut table).unwrap();
+        assert_eq!(table, before);
+        let mut malformed = serde_json::json!({"blocks":[{"name":"tconstruct:cheese_block","class":["TransparentBlock"]}]});
+        let before = malformed.clone();
+        assert!(apply_cheese_behavior(&mut malformed).is_err());
+        assert_eq!(malformed, before);
+    }
+    #[test]
+    fn cheese_changes_only_factors_and_rejects_invalid_definitions() {
+        let row = |speed: f32, jump: f32| Tag::compound([("speedFactor", Tag::Float(speed.to_bits())), ("jumpFactor", Tag::Float(jump.to_bits()))]);
+        let mut table = Tag::compound([("blocks", Tag::compound([("tconstruct:cheese_block", row(1.0, 1.0)), ("minecraft:glass", row(1.0, 1.0))]))]);
+        apply_cheese_movement(&mut table).unwrap();
+        let blocks = table.get("blocks").unwrap();
+        let cheese = blocks.get("tconstruct:cheese_block").unwrap();
+        assert_eq!(cheese.get("speedFactor"), Some(&Tag::Float(0.4_f32.to_bits())));
+        assert_eq!(cheese.get("jumpFactor"), Some(&Tag::Float(0.5_f32.to_bits())));
+        assert_eq!(blocks.get("minecraft:glass"), Some(&row(1.0, 1.0)));
+        let mut malformed = Tag::compound([("blocks", Tag::compound([("tconstruct:cheese_block", Tag::compound([("speedFactor", Tag::Float(1.0_f32.to_bits()))]))]))]);
+        let before = malformed.clone();
+        assert!(apply_cheese_movement(&mut malformed).is_err());
+        assert_eq!(malformed, before);
+    }
+    #[test]
     fn sets_only_target_shapes_and_rejects_unmatched_geometry() {
         let mut table = Tag::compound([("cached_shapes", Tag::IntArray(vec![0, 1, 0])), ("shapes", Tag::List(vec![shape([0.0, 1.0]), shape([0.0625, 0.9375])]))]);
         apply_congealed_shape(&mut table, 1, &[2]).unwrap();
@@ -69,6 +111,36 @@ pub(super) fn apply_soul_speed(table: &mut Tag, targets: &[(&str, f32)]) -> Resu
         let Some(Tag::Float(bits)) = entry.get_mut("speedFactor") else { return Err("invalid speed factor"); };
         *bits = factor.to_bits();
     }
+    Ok(())
+}
+
+/// Apply source Cheese Block factors without changing any other movement entry.
+pub(super) fn apply_cheese_movement(table: &mut Tag) -> Result<(), &'static str> {
+    let entry = table.get_mut("blocks").and_then(|blocks| blocks.get_mut("tconstruct:cheese_block")).ok_or("missing cheese movement definition")?;
+    if !matches!(entry.get("speedFactor"), Some(Tag::Float(_))) || !matches!(entry.get("jumpFactor"), Some(Tag::Float(_))) { return Err("invalid cheese movement definition"); }
+    let Some(Tag::Float(speed)) = entry.get_mut("speedFactor") else { unreachable!() };
+    *speed = 0.4_f32.to_bits();
+    let Some(Tag::Float(jump)) = entry.get_mut("jumpFactor") else { unreachable!() };
+    *jump = 0.5_f32.to_bits();
+    Ok(())
+}
+
+/// Restore light attenuation inherited from source HalfTransparentBlock.
+pub(super) fn apply_cheese_lighting(row: &mut serde_json::Value) -> Result<(), &'static str> {
+    if !row.get("dampening").is_some_and(serde_json::Value::is_u64) || !row.get("skylight_down").is_some_and(serde_json::Value::is_boolean) { return Err("invalid cheese light facts"); }
+    row["dampening"] = serde_json::json!(1);
+    row["skylight_down"] = serde_json::json!(false);
+    Ok(())
+}
+
+/// Glass's TransparentBlock subclass has brighter shading than the source
+/// HalfTransparentBlock. Remove only that class from the cloned behavior.
+pub(super) fn apply_cheese_behavior(behaviors: &mut serde_json::Value) -> Result<(), &'static str> {
+    let blocks = behaviors.get_mut("blocks").and_then(serde_json::Value::as_array_mut).ok_or("missing block behaviors")?;
+    let row = blocks.iter_mut().find(|row| row.get("name").and_then(serde_json::Value::as_str) == Some("tconstruct:cheese_block")).ok_or("missing cheese behavior")?;
+    let classes = row.get_mut("class").and_then(serde_json::Value::as_array_mut).ok_or("invalid cheese class")?;
+    if !classes.iter().any(|c| c.as_str() == Some("HalfTransparentBlock")) || !classes.iter().any(|c| c.as_str() == Some("Block")) { return Err("unexpected cheese class"); }
+    classes.retain(|c| c.as_str() != Some("TransparentBlock"));
     Ok(())
 }
 

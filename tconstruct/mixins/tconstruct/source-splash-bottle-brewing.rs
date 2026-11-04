@@ -31,5 +31,29 @@ fn tconstruct_splash_bottle_brewing(mut value: crate::brewing::Brewing, items: &
             output: ItemStack::new(output, 1),
         });
     }
+    // The fixed source registers one recipe per slime type and one for magma.
+    for (reagent, output) in [
+        ("tconstruct:earth_congealed_slime", "tconstruct:earth_slime_bottle"),
+        ("tconstruct:sky_congealed_slime", "tconstruct:sky_slime_bottle"),
+        ("tconstruct:ender_congealed_slime", "tconstruct:ender_slime_bottle"),
+        ("tconstruct:ichor_congealed_slime", "tconstruct:ichor_slime_bottle"),
+        ("minecraft:magma_block", "tconstruct:magma_bottle"),
+    ] {
+        let input = "minecraft:glass_bottle";
+        if items.get(input).is_none() || items.get(reagent).is_none() || items.get(output).is_none() { continue; }
+        let id = format!("tconstruct:bottle_brewing/{}", output.rsplit(':').next().unwrap());
+        // Keep existing pack recipes and their order, including constrained
+        // alternatives. Refuse an ambiguous overlap instead of overriding it.
+        if value.recipes.iter().any(|recipe| recipe.id == id
+            || (recipe.input.items.contains(input) && recipe.reagent.items.contains(reagent))) { continue; }
+        value.inputs.insert(input.to_owned());
+        value.reagents.insert(reagent.to_owned());
+        value.recipes.push(crate::brewing::BrewingRecipe {
+            id,
+            input: crate::brewing::PotionIngredient { items: [input.to_owned()].into_iter().collect(), potions: None },
+            reagent: crate::brewing::PotionIngredient { items: [reagent.to_owned()].into_iter().collect(), potions: None },
+            output: ItemStack::new(output, 1),
+        });
+    }
     value
 }

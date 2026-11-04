@@ -167,6 +167,48 @@ fn tconstruct_part_name(
         if hydraulic_upgrade || hydraulic_trait {
             value.push((horizon_client::text::Text::literal("Hydraulic: underwater only; rain bonus unavailable"), horizon_client::hud::rgba(255, 170, 0, 255)));
         }
+        // Verified stock wear traits only. Other modifiers and overlapping
+        // upgrades need the complete source display/level registry.
+        let display_flag = match custom.and_then(|data| data.get("tic_display")) {
+            None => crate::game::tconstruct_source_trait_tooltip::DisplayFlag::Missing,
+            Some(horizon_world::nbt::Tag::Byte(n)) => crate::game::tconstruct_source_trait_tooltip::DisplayFlag::Byte(*n),
+            Some(_) => crate::game::tconstruct_source_trait_tooltip::DisplayFlag::Malformed,
+        };
+        let trait_display_flag_valid = crate::game::tconstruct_source_trait_tooltip::display_flag_valid(
+            display_flag, game.has_shift_down(), game.has_control_down());
+        if trait_display_flag_valid && game.options_advanced_tooltips() && tconstruct_source_config::client_modifier_ids() {
+            let snapshot = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()
+                .and_then(|raw| raw.as_ref().ok());
+            if let Some(traits) = crate::game::tconstruct_source_material_traits::levels(&game.world, stack) {
+                for id in &traits.order {
+                    let level = traits.levels.get(id).copied().unwrap_or(0);
+                    let upgrade = match upgrades {
+                        None => Some(0),
+                        Some(horizon_world::nbt::Tag::Compound(_)) => match upgrades.and_then(|tag| tag.get(id)) {
+                            None | Some(horizon_world::nbt::Tag::Int(0)) => Some(0),
+                            Some(horizon_world::nbt::Tag::Int(n)) if *n > 0 => Some(*n),
+                            _ => None,
+                        },
+                        _ => None,
+                    };
+                    if !crate::game::tconstruct_source_trait_tooltip::visible(id, level,
+                        crate::game::tconstruct_modifier_snapshot::known_melee_wear(snapshot, id), upgrade) { continue; }
+                    let Some(short) = id.strip_prefix("tconstruct:") else { continue; };
+                    let name_key = format!("modifier.tconstruct.{short}");
+                    let name = game.pack.names.display_get(&name_key).unwrap_or(name_key);
+                    let numeral_key = format!("roman_numeral.value.{level}");
+                    let numeral = game.pack.names.display_get(&numeral_key).unwrap_or_else(||
+                        crate::game::tconstruct_source_trait_tooltip::roman(level).unwrap_or("").to_owned());
+                    let template = game.pack.names.display_get("item.tconstruct.tool.id_format")
+                        .unwrap_or_else(|| "%s (%s)".to_owned());
+                    let text = horizon_client::text::format_translation(&template, &[
+                        horizon_client::text::Text::literal(format!("{name} {numeral}")),
+                        horizon_client::text::Text::literal(id.clone()),
+                    ]);
+                    value.push((text, horizon_client::hud::rgba(85, 85, 85, 255)));
+                }
+            }
+        }
         for (id, needed) in [("blasting", 20), ("hydraulic", 36), ("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };

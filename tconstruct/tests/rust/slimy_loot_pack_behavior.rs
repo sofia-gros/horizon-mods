@@ -263,13 +263,26 @@ mod integration {
             for bytes in [serde_json::to_vec(&original).unwrap(), b"{invalid".to_vec()] {
                 write(&p, &path, &bytes);
                 let files = load(&world, &res, false, vec![]);
-                assert!(enabled(&files, n));
+                assert!(!enabled(&files, n));
                 assert!(files.iter().any(|(k, _)| k == &format!("loot_table/{id}")));
                 let mut table = original.clone();
                 assert!(!proof::inject(id, &mut table, &files));
                 assert_eq!(table, original);
             }
-            std::fs::remove_file(p.join(path)).unwrap();
+            std::fs::remove_file(p.join(&path)).unwrap();
+            // A dangling symlink is listed by the real DataPack but cannot be
+            // read. It must not expose the vanilla fallback to this injector.
+            #[cfg(unix)] {
+                std::os::unix::fs::symlink("missing-replacement", p.join(&path)).unwrap();
+                let files = load(&world, &res, false, vec![]);
+                assert!(!enabled(&files, n));
+                assert!(proof::SPECS.iter().filter(|(_, other, _, _)| *other != n)
+                    .all(|(_, other, _, _)| enabled(&files, other)));
+                let mut table = original.clone();
+                assert!(!proof::inject(id, &mut table, &files));
+                assert_eq!(table, original);
+                std::fs::remove_file(p.join(&path)).unwrap();
+            }
             let files = load(&world, &res, false, vec![]);
             let mut table = original.clone();
             assert!(proof::inject(id, &mut table, &files));

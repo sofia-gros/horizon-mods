@@ -16,7 +16,7 @@ class ResourceOverlay(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
-            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:glass_bottle': {'minecraft:max_stack_size': 64}, 'minecraft:mushroom_stew': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
+            raw = {'minecraft:flint': {}, 'minecraft:brick': {}, 'minecraft:bone': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:glass_bottle': {'minecraft:max_stack_size': 64}, 'minecraft:mushroom_stew': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
                    'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
@@ -37,14 +37,37 @@ class ResourceOverlay(unittest.TestCase):
             tabs = json.loads((out / 'creative-inventory.json').read_text())['tabs']
             tools = next(tab for tab in tabs if tab['id'] == 'tconstruct:tools')
             blocks = next(tab for tab in tabs if tab['id'] == 'tconstruct:blocks')
+            world = next(tab for tab in tabs if tab['id'] == 'tconstruct:world')
+            general = next(tab for tab in tabs if tab['id'] == 'tconstruct:general')
+            self.assertEqual((general['page'], general['row'], general['column']), (1, 'TOP', 1))
+            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'obsidian_pane', 'cheese_ingot', 'cheese_block', 'jeweled_apple')])
+            self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
+            self.assertEqual(len(world['items']), 23)
+            self.assertIn('{count:1,id:"tconstruct:earth_congealed_slime"}', world['items'])
+            self.assertIn('{count:1,id:"tconstruct:sky_slime_ball"}', world['items'])
+            self.assertIn('{count:1,id:"tconstruct:necrotic_bone"}', world['items'])
+            self.assertIn('{count:1,id:"tconstruct:earth_slime_sapling"}', world['items'])
+            self.assertEqual((tools['row'], tools['column']), ('TOP', 5))
+            self.assertEqual((blocks['row'], blocks['column']), ('BOTTOM', 5))
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
+            registries = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
+            legacy = json.loads((SCRIPT.parent.parent / 'tests/fixtures/manual-overlay-legacy-ids.json').read_text())
+            self.assertEqual({name: registries[name]['protocol_id'] for name in legacy}, legacy)
+            self.assertGreater(registries['tconstruct:silky_cloth']['protocol_id'], max(legacy.values()))
+            self.assertEqual(registries['tconstruct:necrotic_bone']['protocol_id'], registries['tconstruct:silky_cloth']['protocol_id'] + 1)
             items = json.loads((out / 'items.json').read_text())
             for kind in ('splash', 'lingering'):
                 name = kind + '_bottle'
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], 64)
                 model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
                 self.assertEqual(model['textures']['layer0'], 'minecraft:item/' + kind + '_potion')
+            self.assertEqual(items['tconstruct:encyclopedia']['minecraft:max_stack_size'], 1)
+            self.assertTrue((out / 'assets/tconstruct/textures/item/encyclopedia.png').is_file())
+            # Bacon is supplied later by the existing content declaration,
+            # not appended here where it could renumber prepared item IDs.
+            self.assertNotIn('tconstruct:bacon', items)
+            self.assertNotIn('tconstruct:jeweled_apple', items)
             soup = items['tconstruct:meat_soup']
             self.assertEqual(soup['minecraft:max_stack_size'], 1)
             self.assertEqual(soup['minecraft:food'], {'nutrition': 8, 'saturation': 9.6})
@@ -53,6 +76,26 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(soup['minecraft:consumable']['animation'], 'drink')
             self.assertEqual((out / 'assets/tconstruct/textures/item/food/meat_soup.png').read_bytes(),
                              (Path(__file__).resolve().parents[1] / 'content/assets/tconstruct/textures/item/food/meat_soup.png').read_bytes())
+            self.assertEqual(items['tconstruct:silky_cloth']['minecraft:item_model'], 'tconstruct:silky_cloth')
+            self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/silky_cloth.json').read_text())['textures']['layer0'], 'tconstruct:item/materials/silky_cloth')
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/silky_cloth.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/silky_cloth.png').read_bytes())
+            self.assertEqual(items['tconstruct:necrotic_bone']['minecraft:item_model'], 'tconstruct:necrotic_bone')
+            model = json.loads((out / 'assets/tconstruct/models/item/necrotic_bone.json').read_text())
+            self.assertEqual(model['textures']['layer0'], 'tconstruct:item/materials/necrotic_bone')
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/necrotic_bone.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/necrotic_bone.png').read_bytes())
+            blazing = items['tconstruct:blazing_bone']
+            self.assertEqual(blazing['minecraft:item_model'], 'tconstruct:blazing_bone')
+            model = json.loads((out / 'assets/tconstruct/models/item/blazing_bone.json').read_text())
+            self.assertEqual(model['textures']['layer0'], 'tconstruct:item/materials/blazing_bone')
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/blazing_bone.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/blazing_bone.png').read_bytes())
+            seared = items['tconstruct:seared_reinforcement']
+            self.assertNotIn('minecraft:cooking_fuel', seared)
+            self.assertEqual(seared['minecraft:item_model'], 'tconstruct:seared_reinforcement')
+            model = json.loads((out / 'assets/tconstruct/models/item/seared_reinforcement.json').read_text())
+            self.assertEqual(model['textures']['layer0'], 'tconstruct:item/materials/reinforcement/seared')
+            source_seared = Path(__file__).resolve().parents[1] / 'content/assets/tconstruct/textures/item/materials/reinforcement/seared.png'
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/reinforcement/seared.png').read_bytes(), source_seared.read_bytes())
+            self.assertIn('tconstruct:seared_reinforcement', json.loads((out / 'command-registries.json').read_text())['items'])
             self.assertIn('tconstruct:emerald_reinforcement', items)
             source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png'
             self.assertEqual((out / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png').read_bytes(), source.read_bytes())
@@ -75,6 +118,12 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items['tconstruct:amethyst_bronze_ingot']['minecraft:max_stack_size'], 64)
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
                 self.assertEqual((out / 'assets/tconstruct/textures/item/amethyst_bronze_ingot.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
+            backpack = items['tconstruct:piggy_backpack']
+            self.assertEqual(backpack['minecraft:max_stack_size'], 16)
+            self.assertEqual(backpack['minecraft:equippable']['slot'], 'chest')
+            self.assertNotIn('minecraft:item_name', backpack)  # use locale-specific item translation
+            self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/piggy_backpack.json').read_text())['textures']['layer0'], 'tconstruct:item/gadgets/piggy_backpack')
+            self.assertTrue((out / 'assets/tconstruct/textures/item/gadgets/piggy_backpack.png').is_file())
             blood = items['tconstruct:blazing_blood_bucket']
             self.assertEqual(blood['minecraft:cooking_fuel'], {'burn_time': {'type': 'minecraft:div', 'left': 30000, 'right': {'type': 'minecraft:conditional', 'condition': 'minecraft:block/fast_cooking', 'on_false': 'minecraft:cooking/normal_burn_time_reduction_factor', 'on_true': 'minecraft:cooking/fast_burn_time_reduction_factor'}}, 'speed_multiplier': 'minecraft:cooking/speed_default'})
             self.assertNotIn('minecraft:cooking_fuel', items['tconstruct:molten_iron_bucket'])
@@ -162,6 +211,7 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items[names[-1]]['minecraft:max_damage'], 85)
             self.assertEqual(items[names[-1]]['minecraft:tool']['rules'][-1]['speed'], 3.5)
             self.assertEqual(len({ids[name]['protocol_id'] for name in names}), len(names))
+            self.assertEqual(ids['tconstruct:blazing_bone']['protocol_id'], ids['tconstruct:piggy_backpack']['protocol_id'] + 1)
             self.assertTrue((out / 'assets/tconstruct/textures').is_dir())
             self.assertFalse((out / 'assets/tconstruct/textures').is_symlink())
             self.assertTrue((out / 'assets/tconstruct/textures/item/tool/pickaxe/head_tconstruct_flint.png').is_file())
@@ -169,7 +219,13 @@ class ResourceOverlay(unittest.TestCase):
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-part-visuals.zip') as archive:
                 for code in ('en_us', 'ja_jp'):
                     name = f'assets/tconstruct/lang/{code}.json'
-                    self.assertEqual((out / name).read_bytes(), archive.read(name))
+                    actual = json.loads((out / name).read_bytes())
+                    expected = json.loads(archive.read(name))
+                    key = 'item.tconstruct.piggy_backpack'
+                    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+                    from piggy_labels import mark_unavailable
+                    expected = mark_unavailable(expected, code)
+                    self.assertEqual(actual, expected)
             self.assertTrue((out / 'assets/tconstruct/tinkering/source_part_models/pick_head.json').is_file())
             tool_model = json.loads((out / 'assets/tconstruct/tinkering/source_tool_models/pickaxe.json').read_text())
             self.assertEqual([part['index'] for part in tool_model['parts']], [1, 0, 2])
@@ -199,6 +255,10 @@ class ResourceOverlay(unittest.TestCase):
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_heating_structure.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/gui/heating_structure.png'))
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as melter_assets:
+                for suffix in ('.png', '.png.mcmeta'):
+                    self.assertEqual(
+                        (out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_milk' + suffix)).read_bytes(),
+                        (Path(__file__).resolve().parents[1] / 'assets/forge/textures/block' / ('milk_still' + suffix)).read_bytes())
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_melter.png').read_bytes(), melter_assets.read('assets/tconstruct/textures/gui/melter.png'))
                 fluids = json.loads(melter_assets.read('assets/tconstruct/melter-fluid-textures.json'))
                 self.assertIn('tconstruct:molten_copper', fluids)

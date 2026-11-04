@@ -18,7 +18,7 @@ pub(super) fn apply(facts: &serde_json::Value, gameplay: &mut serde_json::Value,
                 row["full_collision"] = serde_json::Value::Bool(false);
                 // These source blocks use noOcclusion and have a non-full
                 // shape. Do not inherit the full-cube template's light block.
-                if matches!(name, "tconstruct:tinker_station" | "tconstruct:part_builder" | "tconstruct:seared_basin") {
+                if matches!(name, "tconstruct:tinker_station" | "tconstruct:part_builder" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") {
                     row["dampening"] = serde_json::json!(0);
                 }
             }

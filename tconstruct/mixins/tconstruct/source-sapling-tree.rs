@@ -49,6 +49,9 @@ fn distances(level: &mut GameLevel<'_>, ticks: &mut Ticks, logs: &BTreeSet<[i32;
     }
     Some(())
 }
+pub(super) fn growth_chunks_loaded(level: &GameLevel<'_>, pos: BlockPos) -> bool {
+    shape::chunks_loaded(pos.x, pos.z, 10, |x, z| level.world.loaded(x, z))
+}
 fn grow(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, original: BlockStateId) -> Option<()> {
     let sky=name(level,original)? == "tconstruct:sky_slime_sapling";
     let (base, bound, trunk, leaves)=if sky {(5,4,"tconstruct:skyroot_log","tconstruct:sky_slime_leaves")} else {(4,3,"tconstruct:greenheart_log","tconstruct:earth_slime_leaves")};
@@ -61,9 +64,7 @@ fn grow(level: &mut GameLevel<'_>, ticks: &mut Ticks, pos: BlockPos, original: B
     if !shape::valid_site(pos.y,height,level.world.bottom_y(),level.world.top_y(),in_tag(level,soil,"tconstruct:slimy_soil")?) {return None;}
     // The canopy and distance propagation can reach ten horizontal blocks.
     // Do not read or modify an unloaded chunk through the runtime adapter.
-    for dx in [-10,10] { for dz in [-10,10] {
-        if !level.world.loaded(pos.x.checked_add(dx)?,pos.z.checked_add(dz)?) {return None;}
-    }}
+    if !growth_chunks_loaded(level, pos) { return None; }
     let trunk=level.registry.default_state(trunk)?;
     let leaves=level.registry.default_state(leaves)?;
     let air=level.registry.default_state("minecraft:air")?;

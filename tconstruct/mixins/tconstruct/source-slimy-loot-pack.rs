@@ -7,7 +7,7 @@ fn tconstruct_slimy_loot_pack(
 ) -> Vec<(String, Vec<Vec<u8>>)> {
     use self::tconstruct_source_slimy_loot as proof;
     let stack = pack_stack(world_root, resources, vanilla_disabled, enabled_features);
-    for (_, name, _, expected) in proof::SPECS {
+    for (id, name, _, expected) in proof::SPECS {
         let key = format!("{}{name}", proof::PREFIX);
         files.retain(|(path, _)| path != &key);
         let path = format!("data/tconstruct/mantle/loot_injectors/slimy_foliage_{name}.json");
@@ -25,10 +25,17 @@ fn tconstruct_slimy_loot_pack(
         if let Some(builtin) = &stack.builtin {
             inspect(&mut top, builtin);
         }
+        let table_path = format!("data/minecraft/loot_table/{}.json", id.strip_prefix("minecraft:").unwrap());
+        let mut custom_table = false;
         for pack in stack.enabled_packs() {
             inspect(&mut top, pack);
+            // Read before overlay assembly: a listed but unreadable replacement
+            // must not silently fall back to the stock table and receive loot.
+            custom_table |= pack.list("data/minecraft/loot_table/chests/")
+                .iter().any(|path| path == &table_path)
+                || pack.read(&table_path).is_some();
         }
-        let enabled = !vanilla_disabled
+        let enabled = !vanilla_disabled && !custom_table
             && top
                 .flatten()
                 .is_some_and(|data| proof::canonical(&data, expected));

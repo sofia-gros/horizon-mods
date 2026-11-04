@@ -16,6 +16,52 @@ class DirectoryArchive:
 PREFIX = 'assets/tconstruct/book/materials_and_you/'
 
 class MaterialsBookSourceTest(unittest.TestCase):
+    def test_tinkers_chest_recipe_page_discloses_world_tint_limit(self):
+        root = ARCHIVE / PREFIX / 'en_us/intro'
+        page = json.loads((root / 'tinkerschest_craft.json').read_text())
+        self.assertEqual(page['recipe'], 'tconstruct:tables/tinkers_chest')
+        self.assertIn('not shown on the placed block', page['description'][-1]['text'])
+        for chest in ('part_chest', 'tinkers_chest'):
+            self.assertTrue((ARCHIVE / f'data/tconstruct/horizon/block/{chest}.json').is_file())
+            self.assertTrue((ARCHIVE / f'data/tconstruct/recipe/{chest}.json').is_file())
+    def test_fantastic_foundry_is_a_limited_reachable_guide(self):
+        root = ARCHIVE / 'assets/tconstruct/book/fantastic_foundry'
+        index = json.loads((root / 'index.json').read_text())
+        self.assertEqual([entry['name'] for entry in index[:4]], ['intro', 'alloyer', 'foundry', 'blazing_blood'])
+        section = json.loads((root / 'sections/foundry.json').read_text())
+        selected = ['features', 'byproducts', 'structurereq', 'fgui1', 'fgui2']
+        self.assertEqual([entry['name'] for entry in section if entry['name'] in selected], selected)
+        for entry in section:
+            if entry.get('name') in selected:
+                page = json.loads((root / 'en_us' / entry['data']).read_text())
+                self.assertTrue(page['title'])
+                self.assertTrue(all(part.get('text') for part in page['text']))
+        byproducts = json.loads((root / 'en_us/foundry/byproducts.json').read_text())
+        summary = ' '.join(part['text'] for part in byproducts['text'])
+        self.assertIn('molten gold', summary)
+        self.assertIn('does not fit is lost', summary)
+        self.assertIn('not yet supported or verified', summary)
+        with zipfile.ZipFile(ARCHIVE / 'reference/tconstruct-recipes.zip') as recipes:
+            ore = json.loads(recipes.read('data/tconstruct/recipes/smeltery/melting/metal/copper/ore_singular.json'))
+        self.assertEqual(ore['result']['tag'], 'forge:molten_copper')
+        self.assertEqual(ore['byproducts'][0]['tag'], 'forge:molten_gold')
+        machine = (ROOT / 'mixins/tconstruct/source-smeltery-tank.rs').read_text()
+        self.assertIn('Any remainder is discarded', machine)
+
+        intro = json.loads((root / 'en_us/intro/intro.json').read_text())
+        self.assertIn('not included', intro['text'][-1]['text'])
+        self.assertEqual(json.loads((ARCHIVE / 'data/tconstruct/horizon/item/fantastic_foundry.json').read_text()), {'template': 'minecraft:book', 'max_stack_size': 1})
+        recipe = json.loads((ARCHIVE / 'data/tconstruct/recipe/fantastic_foundry.json').read_text())
+        self.assertEqual(set(recipe['ingredients']), {'minecraft:book', 'tconstruct:nether_grout'})
+        self.assertEqual(recipe['result']['id'], 'tconstruct:fantastic_foundry')
+        for name in ['fantastic_foundry_cover', 'fantastic_foundry_pages']:
+            self.assertTrue((ARCHIVE / 'assets/tconstruct/book/images/covers' / (name + '.png')).is_file())
+        reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        self.assertIn('foundry && !matches!(key, "intro" | "foundry")', reader)
+        for name in selected:
+            self.assertIn('"' + name + '"', reader)
+        self.assertIn('tconstruct:fantastic_foundry', (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text())
+
     def test_mighty_smelting_introduction_is_available_for_both_readers(self):
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
         index = json.loads((root / 'index.json').read_text())
@@ -62,20 +108,30 @@ class MaterialsBookSourceTest(unittest.TestCase):
         import hashlib
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
         for path, sha in {
-            'sections/smeltery.json': '0125b0c787d061e86d1e74c12d157fa9bd3d2f32',
             'en_us/smeltery/controller.json': '68bd1e57a4e61f1a22136fef66127645f8d4a287',
-            'en_us/smeltery/alloying.json': '49a047aca33345e2759712225b8741233df68733',
         }.items():
             data = (root / path).read_bytes()
             self.assertEqual(hashlib.sha1(f'blob {len(data)}\0'.encode() + data).hexdigest(), sha)
+        source = (ROOT / 'tests/fixtures/mighty_alloying_source.json').read_bytes()
+        self.assertEqual(hashlib.sha1(f'blob {len(source)}\0'.encode() + source).hexdigest(), '49a047aca33345e2759712225b8741233df68733')
+        adapted = json.loads((root / 'en_us/smeltery/alloying.json').read_text())
+        original = json.loads(source)
+        self.assertEqual(adapted['title'], original['title'])
+        self.assertEqual(adapted['text'][:len(original['text'])], original['text'])
         image = (ARCHIVE / 'assets/tconstruct/book/images/scontroller.png').read_bytes()
         self.assertEqual(hashlib.sha1(f'blob {len(image)}\0'.encode() + image).hexdigest(), 'f6876cde9a983114a3208992282474f4dc9d0d23')
         section = json.loads((root / 'sections/smeltery.json').read_text())
+        source_sections = (ROOT / 'tests/fixtures/mighty_smeltery_sections_source.json').read_bytes()
+        self.assertEqual(hashlib.sha1(f'blob {len(source_sections)}\0'.encode() + source_sections).hexdigest(), '0125b0c787d061e86d1e74c12d157fa9bd3d2f32')
+        expected_sections = json.loads(source_sections)
+        actual_without_extension = [page for page in section if page['name'] != 'blazing_blood_barter']
+        self.assertEqual(actual_without_extension, expected_sections)
         self.assertEqual([(page['name'], page['data']) for page in section if page['name'] in ('controller', 'alloying')],
                          [('controller', 'smeltery/controller.json'), ('alloying', 'smeltery/alloying.json')])
         for name, path, item in [
             ('seared_ladder', 'smeltery/searedladder.json', 'tconstruct:seared_ladder'),
             ('seared_glass', 'smeltery/searedglass.json', 'tconstruct:seared_glass'),
+            ('tinted_glass', 'smeltery/tinted_glass.json', 'tconstruct:seared_tinted_glass'),
             ('seared_chute', 'smeltery/seared_chute.json', 'tconstruct:seared_chute'),
         ]:
             entry = next(page for page in section if page['name'] == name)
@@ -91,6 +147,42 @@ class MaterialsBookSourceTest(unittest.TestCase):
         self.assertIn('mighty_smeltery_page', reader)
         self.assertIn('smeltery.partial.notice', reader)
         self.assertIn('mighty_advice || mighty_smeltery', reader)
+
+    def test_mighty_tinted_glass_page_discloses_limits(self):
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        page = json.loads((root / 'en_us/smeltery/tinted_glass.json').read_text())
+        text = ' '.join(part['text'] for part in page['text'])
+        self.assertEqual(page['item'], 'tconstruct:seared_tinted_glass')
+        self.assertIn('ordinary crafting recipe is not yet available', text)
+        self.assertIn('not been verified', text)
+        block = json.loads((ARCHIVE / 'data/tconstruct/horizon/block/seared_tinted_glass.json').read_text())
+        self.assertEqual(block['template'], 'minecraft:tinted_glass')
+        with zipfile.ZipFile(ARCHIVE / 'reference/tconstruct-block-tags.zip') as tags:
+            wall = json.loads(tags.read('data/tconstruct/tags/blocks/smeltery/wall.json'))['values']
+            floor = json.loads(tags.read('data/tconstruct/tags/blocks/smeltery/floor.json'))['values']
+        self.assertIn('tconstruct:seared_tinted_glass', wall)
+        self.assertNotIn('tconstruct:seared_tinted_glass', floor)
+        self.assertFalse((ARCHIVE / 'data/tconstruct/recipe/seared_tinted_glass.json').exists())
+
+    def test_mighty_smeltery_port_adaptations_are_readable(self):
+        root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
+        entries = json.loads((root / 'sections/smeltery.json').read_text())
+        expected = [('features', 'features.json'), ('structurereq', 'structurerequirements.json'),
+                    ('sgui1', 'gui1.json'), ('sgui2', 'gui2.json'), ('seared_tanks', 'tanks.json')]
+        selected = [(e['name'], e['data'].removeprefix('smeltery/')) for e in entries if e['name'] in dict(expected)]
+        self.assertEqual(selected, expected)
+        for name, filename in expected:
+            page = json.loads((root / 'en_us/smeltery' / filename).read_text())
+            self.assertTrue(page['title'])
+            self.assertTrue(all(part.get('text') for part in page['text']))
+            self.assertNotIn('image', page)  # The source GUI diagram is not the port's UI.
+        index = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()
+        for name, _ in expected:
+            self.assertIn('"' + name + '"', index.split('pub(super) fn mighty_smeltery_page')[1].split('}')[0])
+        self.assertIn('4,000 mB', (root / 'en_us/smeltery/tanks.json').read_text())
+        self.assertIn('not been verified in game', (root / 'en_us/smeltery/tanks.json').read_text())
+        self.assertIn('entity melting', (root / 'en_us/smeltery/features.json').read_text())
+        self.assertIn('not available', (root / 'en_us/smeltery/structurerequirements.json').read_text())
 
     def test_mighty_tool_advice_is_source_faithful_and_explicitly_partial(self):
         import hashlib
