@@ -408,3 +408,35 @@ fn raging_melee_multiplier_uses_global_and_emerald_not_base_stat_multipliers() {
  tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&trait_emerald,true,true).unwrap();
  assert_eq!(multiplier(&tool),2.5);
 }
+
+#[test]
+fn airborne_overwield_use_conditional_not_base_multipliers() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:draw_speed":0.25,"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:draw_speed":2.0,"tconstruct:velocity":3.0}}]}"#;
+ let mut stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ stats.draw_speed_raw[2]=0.5; stats.velocity_raw[2]=0.5;
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+   ("tic_max_damage",Tag::Int(100)),("tic_overslime",Tag::Int(1)),
+   ("tic_upgrades",Tag::compound([("tconstruct:netherite",Tag::Int(1)),("tconstruct:quick_charge",Tag::Int(5))]))
+  ])));
+  let levels=BTreeMap::from([("tconstruct:airborne".into(),1),("tconstruct:overwield".into(),1),("tconstruct:vintage".into(),1)]);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+  let custom=bow.data().unwrap().other("minecraft:custom_data").unwrap();
+  let value=|key| match custom.get(key) {Some(Tag::Float(bits))=>f32::from_bits(*bits),_=>panic!("missing {key}")};
+  assert!((value("tic_airborne_velocity_multiplier")-3.0).abs()<1e-6);
+  assert!((value("tic_overwield_velocity_multiplier")-3.0).abs()<1e-6);
+  assert!((value("tic_overwield_draw_multiplier")-1.8).abs()<1e-6);
+  assert_eq!(draw::draw_ticks(&bow),22);
+  let base=value("tic_velocity");
+  assert!((projectile::projectile_stats_at_airborne(&bow,64.0,320,true).unwrap().0-base-0.48).abs()<1e-5);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&levels,false,false).unwrap();
+  let custom=bow.data().unwrap().other("minecraft:custom_data").unwrap();
+  assert!(matches!(custom.get("tic_overwield_draw_multiplier"),Some(Tag::Float(bits)) if (f32::from_bits(*bits)-1.8).abs()<1e-6));
+  let without_vintage=BTreeMap::from([("tconstruct:airborne".into(),1),("tconstruct:overwield".into(),1)]);
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&without_vintage,false,false).unwrap();
+  let custom=bow.data().unwrap().other("minecraft:custom_data").unwrap();
+  assert!(matches!(custom.get("tic_overwield_draw_multiplier"),Some(Tag::Float(bits)) if (f32::from_bits(*bits)-2.0).abs()<1e-6));
+ }
+}

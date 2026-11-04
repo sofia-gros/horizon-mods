@@ -74,6 +74,9 @@ Dwarven's altitude adjustment. The single-player path uses the existing host
 climbable query, including its ladder and trapdoor rules; if the query fails,
 the bonus is not applied. The acting player's motion is used during a LAN turn;
 guest water, climbing and riding state still require runtime verification.
+The conditional velocity multiplier includes the tool definition, not
+Netherite’s base-only multiplier or a base-stat percent. Existing items need a
+supported material rebuild or regeneration to refresh the saved multiplier.
 The mining portion is tracked separately in [mining traits](mining-traits.md).
 
 Focused Rust checks use older host item and NBT libraries. A combined Linux
@@ -134,8 +137,10 @@ Overwield adds `0.06 * min(currentOverslime, level) * statMultiplier` to both
 projectile velocity and draw speed. The value is read from the tool at use time,
 so refill, depletion and material replacement change the next calculation. The
 velocity adjustment follows Dwarven's altitude adjustment, matching their source
-priorities. Crossbow Quick Charge and Vintage contribute to the stored draw
-multiplier; Netherite contributes to the velocity multiplier.
+priorities. Definition `multiply_stats` applies to both conditional bonuses.
+Vintage’s multiply-all also affects the draw bonus; Quick Charge and Netherite
+modify base draw and velocity only. Rebuild existing items to refresh these
+stored conditional multipliers.
 
 This implements the two ranged-stat modules in the [original Overwield
 definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).

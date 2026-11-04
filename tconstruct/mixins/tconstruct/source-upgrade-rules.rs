@@ -470,6 +470,7 @@ pub fn apply_stats(
     if melee_weapon { fields.insert("tic_attack_speed".into(), Tag::Float(speed.clamp(0.0, 1024.0).to_bits())); }
     if matches!(&*tool.item, "tconstruct:longbow" | "tconstruct:crossbow") {
         let [draw_base, mut draw_add, draw_percent, mut draw_multiply] = stats.draw_speed_raw;
+        let mut conditional_draw_multiplier = stats.draw_speed_raw[3];
         let [velocity_base, mut velocity_add, velocity_percent, mut velocity_multiply] = stats.velocity_raw;
         let [accuracy_base, mut accuracy_add, accuracy_percent, accuracy_multiply] = stats.accuracy_raw;
         let [projectile_base, mut projectile_add, projectile_percent, projectile_multiply] = stats.projectile_damage_raw;
@@ -489,7 +490,11 @@ pub fn apply_stats(
                 "tconstruct:crystalbound" => velocity_add += 0.1 * trait_level,
                 "tconstruct:spiny" => velocity_add += 0.1 * trait_level,
                 "tconstruct:entangled" if trait_level > 0.0 => draw_add += 0.15,
-                "tconstruct:vintage" => draw_multiply *= 1.0 - 0.1 * trait_level,
+                "tconstruct:vintage" => {
+                    let factor = 1.0 - 0.1 * trait_level;
+                    draw_multiply *= factor;
+                    conditional_draw_multiplier *= factor;
+                },
                 "tconstruct:ductile" => projectile_add += 0.25 * trait_level,
                 "tconstruct:solid" => projectile_add += 0.75 * trait_level,
                 "tconstruct:power" if amount(tool, &id) > 0 || trait_level > 0.0 => projectile_add += 0.5 + 0.5 * (effective(tool, &id, 72) + trait_level),
@@ -502,12 +507,12 @@ pub fn apply_stats(
         let accuracy = ((accuracy_base + accuracy_add) * (1.0 + accuracy_percent) * accuracy_multiply).clamp(0.1, 1.0);
         let projectile_damage = ((projectile_base + projectile_add) * (1.0 + projectile_percent) * projectile_multiply).clamp(0.0, 1024.0);
         fields.insert("tic_overwield_ranged".into(), Tag::Int(level("tconstruct:overwield").max(0)));
-        fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float(((1.0 + draw_percent) * draw_multiply).to_bits()));
-        fields.insert("tic_overwield_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
+        fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float(conditional_draw_multiplier.to_bits()));
+        fields.insert("tic_overwield_velocity_multiplier".into(), Tag::Float(stats.velocity_raw[3].to_bits()));
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));
         fields.insert("tic_velocity".into(), Tag::Float(velocity.to_bits()));
         fields.insert("tic_airborne".into(), Tag::Int(level("tconstruct:airborne").max(0)));
-        fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
+        fields.insert("tic_airborne_velocity_multiplier".into(), Tag::Float(stats.velocity_raw[3].to_bits()));
         fields.insert("tic_maintained".into(), Tag::Int(level("tconstruct:maintained").max(0)));
         // Maintained reads the conditional multiplier map, not Netherite’s
         // multiply_base contribution to the stored velocity.
@@ -601,7 +606,7 @@ mod tests {
         let levels = BTreeMap::from([("tconstruct:airborne".into(), 1), ("tconstruct:raging".into(), 2)]);
         apply_stats(&mut tool, &stats, &levels, false, false).unwrap();
         let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
-        assert!(matches!(custom.get("tic_airborne_velocity_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.2).abs() < 0.00001));
+        assert!(matches!(custom.get("tic_airborne_velocity_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.0).abs() < 0.00001));
         assert!(matches!(custom.get("tic_raging_projectile_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.25).abs() < 0.00001));
     }
 
