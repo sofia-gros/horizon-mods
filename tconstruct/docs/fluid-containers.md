@@ -49,3 +49,18 @@ During the Melter's server tick, the machine's unrecognized metadata and its int
 A faucet can move fluid from a Seared Melter or an existing Seared or Scorched fuel/ingot tank into another existing fuel/ingot tank below it. Activate the faucet to begin, and activate it again to stop after the current packet. The receiving tank must have room for the same fluid and metadata. A blocked or unreadable tank keeps the packet in the faucet until it can continue. A packet already reserved can still enter the tank if its source is removed. On this route, the first 10 mB is poured immediately when each packet starts, matching the pinned source; the older casting routes retain their existing timing.
 
 This route is limited to those built-in tanks and the Seared Melter. Smeltery drains, arbitrary external fluid handlers, redstone activation, and tank-to-casting-block routes are not added here. The transfer helper preserves unknown tank fields when it writes; the Melter tick also preserves its machine and internal-tank extension fields within the scope described above. This is not a guarantee for other operations or unknown slot data. Focused state and mock-world tests passed; live gameplay, save/reload in a real world, LAN, and integration with other faucet changes are not yet verified.
+
+For the older Melter-to-casting, casting-tank, and fluid-cannon Faucet routes,
+reservation and ticking now update only the Melter's nested tank fields. Other
+Melter fields and raw slot data are left unchanged by those writes. An
+unreadable recognized Melter waits, while an already reserved packet can still
+finish after its source is removed. This does not cover unrelated actions,
+malformed item decoding, or data written by the destination. The tank-only
+codec and wiring have focused tests; the legacy routes have not been exercised
+in a live world, save/reload, LAN, or a full host build.
+
+On the legacy Melter route, a Faucet holding a packet now waits if its target
+is a recognized Casting Table or Basin whose saved state cannot be read. If
+the target block is actually removed, the older route still stops and discards
+its packet. This distinction has focused state and wiring tests; live world,
+chunk-boundary and LAN behavior remain unverified.

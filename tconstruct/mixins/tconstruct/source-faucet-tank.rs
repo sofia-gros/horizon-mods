@@ -16,6 +16,14 @@ fn patch_tank(raw: &Tag, tank: &Tank) -> Option<Tag> {
     }
     Some(Tag::Compound(fields))
 }
+/// A faucet changes only the Melter's fluid tank. Preserve the entire raw
+/// machine compound, including unrecognized slot/item fields, verbatim.
+pub(super) fn patch_melter_tank(raw: &Tag, tank: &Tank) -> Option<Tag> {
+    let Tag::Compound(mut fields) = raw.clone() else { return None; };
+    let next = tank.to_nbt_preserving(fields.get(&"tank".into())?)?;
+    fields.insert("tank".into(), next);
+    Some(Tag::Compound(fields))
+}
 fn patch_faucet(raw: &Tag, faucet: &Faucet) -> Option<Tag> {
     let Tag::Compound(mut fields) = raw.clone() else { return None; };
     let pending = patch_tank(fields.get(&"pending".into())?, &faucet.pending)?;
@@ -29,10 +37,7 @@ impl Source {
     fn tank(&mut self) -> &mut Tank { match self { Self::Melter(m,_) => &mut m.tank, Self::Tank(_,t,_) => t } }
     fn data(&self) -> Option<(&'static str, Tag)> { match self {
         Self::Melter(m,raw) => {
-            let Tag::Compound(mut fields) = raw.clone() else { return None; };
-            let tank = patch_tank(fields.get(&"tank".into())?, &m.tank)?;
-            fields.insert("tank".into(), tank);
-            Some(("tconstruct:melter",Tag::Compound(fields)))
+            Some(("tconstruct:melter", patch_melter_tank(raw, &m.tank)?))
         }, Self::Tank(k,t,raw) => Some((*k,patch_tank(raw,t)?)) } }
 }
 fn name(game: &super::Game<'_>, at: Pos) -> String {

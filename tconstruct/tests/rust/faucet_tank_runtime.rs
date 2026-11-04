@@ -140,3 +140,31 @@ fn fixture()->(Game<'static>,Pos,Pos,Pos) {
  assert_eq!(saved.get("pending").unwrap().get("extension"),Some(&Tag::Int(32)));
  assert_eq!(Faucet::from_nbt(&saved).unwrap().pending.amount,0);
 }
+#[test] fn melter_tank_only_patch_preserves_opaque_machine_and_slots() {
+ use tconstruct_source_melter_state::Melter;
+ let mut state=Melter::new(); state.slots[0]=Some(horizon_items::items::ItemStack::new("minecraft:copper_ore", 1)); assert!(state.tank.insert("x:copper",180)); let mut raw=state.to_nbt();
+ if let Tag::Compound(fields)=&mut raw {
+  fields.insert("extension".into(),Tag::Int(123));
+  if let Some(Tag::List(slots))=fields.get_mut(&"slots".into()) { if let Tag::Compound(slot)=&mut slots[0] {slot.insert("opaque".into(),Tag::Int(7));} }
+  if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()) { tank.insert("extension".into(),Tag::Int(456)); }
+ }
+ assert!(Melter::from_nbt(&raw).is_some()); let original_slots=raw.get("slots").cloned(); assert_eq!(state.tank.take(90).as_deref(),Some("x:copper"));
+ let result=tconstruct_source_faucet_tank::patch_melter_tank(&raw,&state.tank).unwrap();
+ assert_eq!(result.get("extension"),Some(&Tag::Int(123)));assert_eq!(result.get("slots"),original_slots.as_ref());assert_eq!(result.get("tank").unwrap().get("extension"),Some(&Tag::Int(456)));assert_eq!(result.get("tank").unwrap().get("amount"),Some(&Tag::Int(90)));
+ let mut bad=raw.clone();if let Tag::Compound(fields)=&mut bad {fields.insert("tank".into(),Tag::Int(1));}assert!(tconstruct_source_faucet_tank::patch_melter_tank(&bad,&state.tank).is_none());
+}
+
+#[test] fn melter_patch_drains_tagged_fluid_to_zero_without_erasing_extensions() {
+ use tconstruct_source_melter_state::Melter;
+ let mut state=Melter::new();let fluid_tag=Tag::compound([("Potion",Tag::String("minecraft:water".into()))]);assert!(state.tank.insert_tagged("x:potion",Some(&fluid_tag),90));let mut raw=state.to_nbt();if let Tag::Compound(fields)=&mut raw {fields.insert("heat_codes".into(),Tag::IntArray(vec![7,8,9]));if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()) {tank.insert("extension".into(),Tag::Int(42));}}
+ assert_eq!(state.tank.take_tagged(Some(&fluid_tag),90).as_deref(),Some("x:potion"));let out=tconstruct_source_faucet_tank::patch_melter_tank(&raw,&state.tank).unwrap();assert_eq!(out.get("heat_codes"),raw.get("heat_codes"));let tank=out.get("tank").unwrap();assert_eq!(tank.get("amount"),Some(&Tag::Int(0)));assert_eq!(tank.get("extension"),Some(&Tag::Int(42)));assert!(tank.get("fluid").is_none());assert!(tank.get("fluid_tag").is_none());
+}
+#[test] fn unreadable_casting_target_waits_and_removed_target_keeps_existing_behavior() {
+ use tconstruct_source_melter_state::is_casting_block;
+ for name in ["tconstruct:seared_table","tconstruct:scorched_table","tconstruct:seared_basin"] {
+  let mut source=Tank::new(90); assert!(source.insert("x:copper",90)); let output=Tank::new(90); let mut faucet=Faucet::new();assert!(faucet.activate(&mut source,&output));
+  let before=faucet.to_nbt();if !is_casting_block(name) {faucet.tick(&mut source,None);}assert_eq!(faucet.to_nbt(),before);
+  let mut restored=Faucet::from_nbt(&faucet.to_nbt()).unwrap();let mut repaired=Tank::new(90);restored.tick(&mut source,Some(&mut repaired));assert_eq!((restored.pending.amount,repaired.amount),(80,10));
+  if !is_casting_block("minecraft:air") {faucet.tick(&mut source,None);}assert!(!faucet.active);assert_eq!(faucet.pending.amount,0);
+ }
+}
