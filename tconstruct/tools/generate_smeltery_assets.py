@@ -68,10 +68,15 @@ def generate(root=CONTENT):
         emit(assets / f'items/{block}.json', {'model': {'type': 'minecraft:model', 'model': f'tconstruct:item/{block}'}})
         template = ('minecraft:furnace' if block in ('smeltery_controller', 'foundry_controller') else
                     'minecraft:ladder' if block in ('seared_ladder', 'scorched_ladder') else
-                    'minecraft:glass' if block.endswith(('_tinted_glass', '_fuel_tank', '_fuel_gauge', '_ingot_tank', '_ingot_gauge')) else
+                    'minecraft:tinted_glass' if block.endswith('_tinted_glass') else
+                    'minecraft:glass' if block.endswith(('_fuel_tank', '_fuel_gauge', '_ingot_tank', '_ingot_gauge')) else
                     'minecraft:white_glazed_terracotta')
+        tinted = block.endswith('_tinted_glass')
+        scorched_tinted = block == 'scorched_tinted_glass'
         emit(root / f'data/tconstruct/horizon/block/{block}.json', {'template': template, 'properties': {
-            'hardness': 3.0, 'explosion_resistance': 9.0, 'requires_tool': True, 'sounds': 'minecraft:stone'}})
+            'hardness': 2.5 if scorched_tinted else 3.0,
+            'explosion_resistance': 8.0 if scorched_tinted else 9.0,
+            'requires_tool': True, 'sounds': 'minecraft:glass' if tinted else 'minecraft:stone'}})
         emit(root / f'data/tconstruct/loot_table/blocks/{block}.json', {
             'type': 'minecraft:block', 'pools': [{'condition': {'type': 'minecraft:survives_explosion'},
             'entries': [{'type': 'minecraft:item', 'name': f'tconstruct:{block}'}], 'rolls': 1}]})

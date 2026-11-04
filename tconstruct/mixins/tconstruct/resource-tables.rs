@@ -362,6 +362,7 @@ pub fn apply(out: &std::path::Path, content_path: &std::path::Path) -> Result<()
             row["block_entity"] = serde_json::Value::Bool(true);
         }
         super::tconstruct_pig_iron_piston::apply(&facts, &mut gameplay)?;
+        super::tconstruct_source_budding_piston::apply(&facts, &mut gameplay)?;
         let temp = out.join("gameplay-facts.json.tmp");
         std::fs::write(&temp, serde_json::to_vec(&gameplay)?)?;
         std::fs::rename(temp, path)?;
@@ -396,7 +397,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let marker = cache.join("tconstruct-startup-owner");
     let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
     // Invalidate only our owned cache when Creative preparation semantics change.
-    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v6");
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v7");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
@@ -653,7 +654,7 @@ fn take_tconstruct_creative_groups(inventory: &mut serde_json::Value) -> Result<
     let tabs = inventory.get_mut("tabs").and_then(serde_json::Value::as_array_mut).ok_or("missing Creative tabs")?;
     let mut groups = Vec::new();
     tabs.retain(|tab| {
-        if matches!(tab.get("id").and_then(serde_json::Value::as_str), Some("tconstruct:tools" | "tconstruct:blocks")) {
+        if matches!(tab.get("id").and_then(serde_json::Value::as_str), Some("tconstruct:tools" | "tconstruct:blocks" | "tconstruct:world" | "tconstruct:general")) {
             groups.push(tab.clone());
             false
         } else { true }

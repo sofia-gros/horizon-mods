@@ -21,3 +21,5 @@ Ductile's armor toughness contribution now uses the definition's additive-stat m
 ![Station part replacement after an upgrade](material-melee-followup.png)
 
 ![LAN cobalt tool upgrade](material-melee-lan.png)
+
+Advanced tooltips can show the ID and level of the stock Jagged and Stonebound material traits when their exact source definitions and material snapshot are available. Overlapping upgrades, other traits and unknown or changed definitions are omitted until their display rules are supported. This is a limited display path; exact styling, full modifier ordering, GUI behavior and LAN/reload have not been verified.

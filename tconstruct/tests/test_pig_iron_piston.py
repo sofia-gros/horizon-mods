@@ -12,7 +12,7 @@ class PigIronPistonWiring(unittest.TestCase):
         self.assertIn('name = "tconstruct_pig_iron_piston"', manifest)
         self.assertIn('super::tconstruct_pig_iron_piston::apply(&facts, &mut gameplay)?;', source)
         self.assertLess(source.index('super::tconstruct_pig_iron_piston::apply'), source.index('out.join("gameplay-facts.json.tmp")'))
-        self.assertIn('tconstruct-native-creative-v6', source)
+        self.assertIn('tconstruct-native-creative-v7', source)
         self.assertIn('tconstruct_resource_tables::apply(&out, &content_path)?', manual)
 
 if __name__ == '__main__':

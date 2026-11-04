@@ -64,6 +64,13 @@ source = "pig-iron-piston.rs"
 visibility = "pub"
 
 [[module]]
+id = "source-budding-piston"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_budding_piston"
+source = "source-budding-piston.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"
@@ -2233,6 +2240,18 @@ id = "source-melter-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_world"
 source = "source-melter-world.rs"
+
+[[module]]
+id = "source-smeltery-nbt-preserve"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_nbt_preserve"
+source = "source-smeltery-nbt-preserve.rs"
+
+[[module]]
+id = "source-smeltery-nbt-preserve-lib"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_smeltery_nbt_preserve"
+source = "source-smeltery-nbt-preserve.rs"
 
 [[module]]
 id = "source-melter-store"
@@ -4639,7 +4658,7 @@ id = "source-sapling-bonemeal-valid"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
 kind = "HEAD"
 helper = "source-sapling-bonemeal-valid.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
 
 [[injection]]
 id = "source-sapling-bonemeal-success"
@@ -5053,6 +5072,18 @@ id = "source-part-material-id-host-tests"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_part_material_id_host_tests"
 source = "source-part-material-id-host-tests.rs"
+[[module]]
+id = "source-faucet-tank"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_faucet_tank"
+source = "source-faucet-tank.rs"
+
+[[module]]
+id = "source-trait-tooltip"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_trait_tooltip"
+source = "source-trait-tooltip.rs"
+
 
 [[module]]
 id = "source-blazing-barter"

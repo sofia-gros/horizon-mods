@@ -37,6 +37,18 @@ impl Tank {
         value.insert("amount".into(), Tag::Int(self.amount as i32));
         Tag::Compound(value)
     }
+    /// Patch only owned fields; retain extension data when a machine mutates
+    /// a tank it has already decoded. Malformed raw state fails closed.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        Self::from_nbt(raw, self.capacity)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for key in ["fluid", "fluid_tag", "amount"] {
+            fields.remove(&key.into());
+            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+        }
+        Some(Tag::Compound(fields))
+    }
     pub(super) fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };
         if amount > capacity { return None; }
@@ -164,6 +176,20 @@ impl Melter {
             ("tank", self.tank.to_nbt()), ("phase", Tag::Int(self.phase as i32)),
             ("fuel", Tag::Long(self.fuel as i64)), ("fuel_quality", Tag::Long(self.fuel_quality as i64)), ("temperature", Tag::Long(self.temperature as i64)), ("rate", Tag::Long(self.rate as i64))])
     }
+    /// Preserve unrecognized machine and tank fields while updating the
+    /// state owned by the Melter tick. Inventory slot serialization remains
+    /// governed by the host item codec and is not an opaque-item migration.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        Self::from_nbt(raw)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let tank = self.tank.to_nbt_preserving(fields.get(&"tank".into())?)?;
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate"] {
+            fields.insert(key.into(), next.get(&key.into())?.clone());
+        }
+        fields.insert("tank".into(), tank);
+        Some(Tag::Compound(fields))
+    }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
         if slots.len() != 3 { return None; }
@@ -239,9 +265,9 @@ mod tests {
 /// A source faucet reserves up to one ingot and pours a nugget each tick.
 /// The in-flight fluid is kept separately so save/reload does not duplicate it.
 #[derive(Clone, Debug)]
-pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank }
+pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank, original: Option<Tag> }
 impl Faucet {
-    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90) } }
+    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90), original: None } }
     pub(super) fn activate(&mut self, input: &mut Tank, output: &Tank) -> bool {
         if self.active { self.stop_after_packet = true; return true; }
         self.stop_after_packet = false;
@@ -281,15 +307,31 @@ impl Faucet {
         }
     }
     pub(super) fn to_nbt(&self) -> Tag {
-        Tag::compound([("active", Tag::Byte(self.active as i8)), ("stop", Tag::Byte(self.stop_after_packet as i8)), ("pending", self.pending.to_nbt())])
+        let mut fields = match &self.original { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
+        let mut pending = match fields.get(&"pending".into()) { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
+        if let Tag::Compound(next) = self.pending.to_nbt() {
+            for key in ["fluid", "fluid_tag", "amount"] {
+                pending.remove(&key.into());
+                if let Some(value) = next.get(&key.into()) { pending.insert(key.into(), value.clone()); }
+            }
+        }
+        fields.insert("active".into(), Tag::Byte(self.active as i8));
+        fields.insert("stop".into(), Tag::Byte(self.stop_after_packet as i8));
+        fields.insert("pending".into(), Tag::Compound(pending));
+        Tag::Compound(fields)
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let boolean = |key| match tag.get(key)? { Tag::Byte(0) => Some(false), Tag::Byte(1) => Some(true), _ => None };
         let active = boolean("active")?; let stop_after_packet = boolean("stop")?;
         let pending = Tank::from_nbt(tag.get("pending")?, 90)?;
         if !active && (stop_after_packet || pending.amount != 0) { return None; }
-        Some(Self { active, stop_after_packet, pending })
+        Some(Self { active, stop_after_packet, pending, original: Some(tag.clone()) })
     }
+}
+
+/// Distinguish a recognized but unreadable casting from a removed target.
+pub(super) fn is_casting_block(name: &str) -> bool {
+    matches!(name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin")
 }
 
 #[cfg(test)]

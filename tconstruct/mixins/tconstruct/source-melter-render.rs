@@ -6,10 +6,13 @@ pub(super) fn sprite(fluid: &str) -> String {
 
 pub(super) fn fluid_name(game: &super::Game<'_>, fluid: &str) -> String {
     let fluid = super::tconstruct_source_fluid_display::display_id(fluid);
+    if fluid == "minecraft:milk" {
+        return game.pack.names.display_get("fluid_type.minecraft.milk").unwrap_or_else(|| "Milk".to_owned());
+    }
     let key = format!("fluid.{}", fluid.replace(':', "."));
     game.pack.names.display_get(&key).or_else(|| {
         fluid.strip_prefix("minecraft:").and_then(|id| game.pack.names.display_get(&format!("block.minecraft.{id}")))
-    }).unwrap_or_else(|| match fluid { "minecraft:lava" => "Lava".to_owned(), "minecraft:water" => "Water".to_owned(), _ => fluid.to_owned() })
+    }).unwrap_or_else(|| match fluid { "minecraft:lava" => "Lava".to_owned(), "minecraft:water" => "Water".to_owned(), "minecraft:milk" => "Milk".to_owned(), _ => fluid.to_owned() })
 }
 
 /// Resolve potion names only when the caller knows the fluid metadata is complete.
