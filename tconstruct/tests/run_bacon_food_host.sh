@@ -77,3 +77,9 @@ if ! grep -Fqx "$case" "$WORK/results.log"; then
     printf 'Required test did not pass: %s\n' "$case" >&2
     exit 1
 fi
+
+case='test host_catalog_reads_cheese_saturation_as_points ... ok'
+if ! grep -Fqx "$case" "$WORK/results.log"; then
+    printf "Required test did not pass: %s\n" "$case" >&2
+    exit 1
+fi

@@ -14,7 +14,7 @@ Place an ingot cast on the table, use the faucet, and wait for the copper ingot 
 
 The copper sequence, saving and reloading, and shared input and casting in LAN have been checked on Linux. Other materials and Windows have not received the same game checks.
 
-Forge milk is supported as a machine-tank fluid for skull-melting lookup and milk bucket transfers. Milk-tag casting additionally requires a registered result item: cheese items are not currently registered, so the original cheese recipes are not yet available. The original Forge milk sprite is staged for still and flowing milk. These paths have focused tests but have not been checked in game, persistence or LAN.
+Forge milk is supported as a machine-tank fluid for skull-melting lookup and milk bucket transfers. Milk-tag ingot casting now has a registered Cheese Ingot result; the source recipes are retained. Cheese Block remains unregistered, so basin cheese casting is unavailable. Cheese Ingot restores hunger and saturation, but its source effect-removal behavior is not yet connected. The original Forge milk sprite is staged for still and flowing milk. These paths have focused tests but have not been checked in game, persistence or LAN.
 
 The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; source animation metadata is now staged for fluid aliases, while the casting cooling fade remains unimplemented. Atlas animation and reload still need in-game verification.
 
