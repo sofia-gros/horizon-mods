@@ -383,3 +383,28 @@ acting offhand. Tests cover selection changes, offhand isolation, missing mainha
 unknown/removed/restored tags, independent Overwield, broken state and potions;
 existing tests cover changed player base, clamp and malformed-stat fallback.
 No full generated-host build, gameplay, LAN or Windows validation was run.
+
+## Mainhand attack-damage projection
+
+The material attack-damage projection now reads `inventory[selected]`, not the
+currently acting `held()` stack. Pinned
+[`AttributesModifierHook.getHeldAttributeModifiers`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/behavior/AttributesModifierHook.java)
+assigns base attack damage to MAINHAND. The host similarly sets `attack_item` from
+the selected inventory slot, while `held()` can refer to the offhand during an
+offhand action. Merely comparing item IDs could previously accept an offhand
+sword with different saved damage or broken state as the mainhand sword.
+
+Only stack selection changes. The existing `attack_item` ID consistency check,
+saved-stat eligibility, broken predicate, percent-wear calculation and cloned
+attribute-map replacement remain. The player's actual map is not modified.
+Empty/out-of-range selection retains native fallback even when an offhand item
+exists. Local/guest use the host's actor-swapped inventory and selected index.
+Live MELEE_WEAPON/NO_MELEE eligibility for this damage projection is still outside
+this slice; it does not claim complete source attribute parity.
+
+`python3 tconstruct/tests/test_broken_melee_damage.py` executes the actual helper
+and broken predicate with selected/acting-hand and attribute boundary doubles.
+Tests include same-ID different-stat offhand tools, independent breakage, wear
+traits, selected-slot changes, ID mismatch, missing/out-of-range mainhand and
+unchanged player projection. Existing tests retain potion/base/order and native
+fallback checks. No full generated-host build, gameplay, LAN or Windows test ran.
