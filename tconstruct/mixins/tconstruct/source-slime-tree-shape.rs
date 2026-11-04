@@ -25,6 +25,28 @@ pub(crate) fn valid_site(y: i32, height: i32, min_y: i32, max_y: i32, slimy_soil
         .is_some_and(|(minimum, top)| y >= minimum && top <= max_y)
 }
 
+/// Check every chunk intersecting the square read/write area, including
+/// intermediate chunks. Coordinates are block coordinates, also for negatives.
+pub(crate) fn chunks_loaded(x: i32, z: i32, radius: i32, mut loaded: impl FnMut(i32, i32) -> bool) -> bool {
+    if radius < 0 { return false; }
+    let Some((min_x, max_x, min_z, max_z)) = x.checked_sub(radius).zip(x.checked_add(radius))
+        .zip(z.checked_sub(radius).zip(z.checked_add(radius)))
+        .map(|((a, b), (c, d))| (a, b, c, d)) else { return false; };
+    for cx in min_x.div_euclid(16)..=max_x.div_euclid(16) {
+        for cz in min_z.div_euclid(16)..=max_z.div_euclid(16) {
+            let Some((bx, bz)) = cx.checked_mul(16).zip(cz.checked_mul(16)) else { return false; };
+            if !loaded(bx, bz) { return false; }
+        }
+    }
+    true
+}
+
+/// Stage zero advances without placing a tree; stage one needs the same
+/// loaded-area guard as growth, before bone meal is consumed.
+pub(crate) fn bonemeal_ready(stage: Option<&str>, loaded: impl FnOnce() -> bool) -> bool {
+    match stage { Some("0") => true, Some("1") => loaded(), _ => false }
+}
+
 pub(crate) fn canopy(has_vines: bool) -> Vec<Operation> {
     let mut result = Vec::new();
     for layer in 0i32..4 {
@@ -69,6 +91,28 @@ pub(crate) fn canopy(has_vines: bool) -> Vec<Operation> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bonemeal_checks_chunks_only_for_tree_placement() {
+        assert!(bonemeal_ready(Some("0"), || panic!("stage zero does not place a tree")));
+        assert!(!bonemeal_ready(Some("1"), || false));
+        assert!(bonemeal_ready(Some("1"), || true));
+        assert!(!bonemeal_ready(None, || true));
+    }
+
+    #[test]
+    fn all_intersecting_chunks_are_checked_including_negative_middle() {
+        use std::collections::BTreeSet;
+        for (x, z) in [(8, 8), (-8, -8), (0, 0)] {
+            let mut seen = BTreeSet::new();
+            assert!(chunks_loaded(x, z, 10, |a, b| { seen.insert((a.div_euclid(16), b.div_euclid(16))); true }));
+            let expected: BTreeSet<_> = ((x - 10)..=(x + 10)).flat_map(|a| ((z - 10)..=(z + 10)).map(move |b| (a.div_euclid(16), b.div_euclid(16)))).collect();
+            assert_eq!(seen, expected);
+        }
+        // Four corners of this 3x3 chunk area are loaded, but its center is not.
+        assert!(!chunks_loaded(8, 8, 10, |x, z| !(x == 0 && z == 0)));
+        assert!(!chunks_loaded(i32::MAX, 0, 10, |_, _| true));
+    }
 
     #[test]
     fn source_diamond_layers_and_air_tips_are_ordered() {
