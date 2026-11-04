@@ -11,8 +11,14 @@ fn tconstruct_material_attack_speed(game: &crate::game::Game<'_>) -> std::ops::C
         let handle = player.attributes.lookup(Some(&key))?;
         player.attributes.instance(&handle).ok().map(|value| value.base_value())
     }).unwrap_or(horizon_client::attack_strength::BASE_ATTACK_SPEED);
-    let value = base + (f64::from(f32::from_bits(*bits))
-        - horizon_client::attack_strength::BASE_ATTACK_SPEED);
+    // Broken source tools supply no held attribute modifier. Do not fall
+    // through to the host's static registry item modifier for this stack.
+    let item_modifier = if crate::game::tconstruct_source_ranged_wear::is_broken(stack) {
+        0.0
+    } else {
+        f64::from(f32::from_bits(*bits)) - horizon_client::attack_strength::BASE_ATTACK_SPEED
+    };
+    let value = base + item_modifier;
     let speed = game.potions.effects.modifiers().into_iter()
         .filter(|modifier| modifier.0 == "minecraft:attack_speed")
         .fold(value, |speed, modifier| speed * (1.0 + modifier.2))

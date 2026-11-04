@@ -91,12 +91,35 @@ This matches the held attack-speed modifier in pinned TConstruct
 [`AttributesModifierHook`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/behavior/AttributesModifierHook.java):
 `tool attack speed - 4` is an additive modifier, not a replacement for the
 player's base attribute. The change is limited to that base composition. It
-does not alter the existing item eligibility, broken-item behavior, held versus
-recorded attack-item selection, or support arbitrary external attribute
-modifiers.
+does not alter the existing item eligibility, held versus recorded attack-item
+selection, or support arbitrary external attribute modifiers. Broken-item
+handling is described below.
 
 A lightweight Rust boundary harness executes the actual helper and checks
 default/changed/zero/unavailable bases, potion ordering, clamps and native
 fallbacks. A Python assertion confirms the hook remains enabled. These checks
 do not compile the generated host or demonstrate in-game cooldowns, save/reload,
 LAN synchronization or Windows behavior; those remain unverified.
+
+
+## Broken material tool attack speed
+
+For a held TConstruct stack with a saved material attack-speed stat, the helper
+now suppresses the tool's speed modifier when the existing retained-durability
+predicate marks it broken: a nonzero `tic_broken` byte or damage at/above a
+positive `tic_max_damage`. It returns the player's current base with the existing
+potion factors and clamp. It does not fall through to the host's static item
+speed, which could reapply a tool modifier. Repairing the damage and clearing the
+broken flag restores the saved material speed on the next query.
+
+Pinned TConstruct's `AttributesModifierHook.getHeldAttributeModifiers` wraps its
+held modifiers in `!tool.isBroken()`. This slice fixes only attack speed for the
+existing material-stat path; broken melee damage, Raging suppression and wider
+melee eligibility remain separate. It does not rewrite stack damage, flags or
+the player's attributes.
+
+The expanded boundary harness includes the actual `source-ranged-wear.rs`
+predicate alongside the actual injected helper. Eleven Rust cases pass, covering
+break/repair, both broken indicators, custom and fallback bases, potion factors,
+clamps and existing native fallbacks. Generated-host compilation, gameplay,
+save/reload, LAN and Windows remain unverified.
