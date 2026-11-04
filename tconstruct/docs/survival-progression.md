@@ -198,8 +198,8 @@ lock, and runs with `--locked`.
 
 Blazing Bone is registered as a regular item for the source casting recipe:
 one tagged wither bone is consumed with 200 mB Blazing Blood and 120 cooling
-ticks. This does not provide the input or fluid: the stock Necrotic Bone and
-initial Blazing Blood acquisition remain separate work. A datapack supplying a
+ticks. This does not provide the input or fluid: the stock Necrotic Bone drop remains separate work. Stock piglin barter can
+provide limited initial Blazing Blood as described below. A datapack supplying a
 valid wither bone and Blazing Blood can use the existing fixed-recipe lookup.
 The source luminous item rendering is not reproduced. Host integration,
 in-game casting, material traits, saving, and LAN have not been verified.
