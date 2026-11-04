@@ -210,7 +210,7 @@ Silky Cloth is registered as a regular item. Its source table recipe consumes a
 cobweb with 90 mB molten rose gold and cools for 52 ticks; its source melting
 recipe returns 90 mB at 550 degrees in 52 ticks. This enables those existing
 recipe lookup paths when the required resources are supplied. The item's
-modifier applications and Creative General tab remain separate work. Native
+modifier applications remain separate work. Native
 registry IDs may change when items are added. Host integration, real casting
 and melting, save/reload, and LAN remain unverified.
 
@@ -221,8 +221,7 @@ manual resource paths. The bundled `forge:wither_bones` and
 `forge:bones/wither` definitions name this item; actual world tag resolution,
 material use and the Blazing Bone casting transaction remain unverified.
 The source wither skeleton loot and Severing drops are not implemented by this
-change, so ordinary survival acquisition remains unestablished. The item is not
-yet added to a General Creative tab. Host integration, saves and LAN are also
+change, so ordinary survival acquisition remains unestablished. The item appears in the partial World Creative tab. Host integration, saves and LAN are also
 unverified.
 
 Seared and Scorched Lamps can be crafted from a glowstone block surrounded by
@@ -232,8 +231,9 @@ the adapted recipe IDs; runtime unlocking remains unverified. Crafting and place
 worlds, and LAN remain unverified.
 
 The partial World Creative tab exposes cobalt ore and raw forms, Necrotic Bone,
-four source-visible saplings and leaves, and four source-visible slime grass
-seeds using the source World-tab ID and cobalt ore icon. Existing block and seed
+four source-visible saplings and leaves, four source-visible slime grass
+seeds, Earth/Sky/Ichor/Ender Congealed Slime and the three non-vanilla
+slimeballs using the source World-tab ID and cobalt ore icon. Existing block and seed
 entries in the Blocks tab are retained. Other World items and source ordering
 remain incomplete. This is Creative access only, not survival loot. Both native
 and manual preparation use paged placement; existing tab IDs are retained.
@@ -241,3 +241,78 @@ Actual screen, reload, other-mod combinations and LAN remain unverified.
 Manual Creative tab registration does not add these entries to the Search tab;
 native Search registration is present but has not been verified in a running
 client. Manual and native page positions may differ.
+
+The partial General Creative tab exposes registered Blazing Bone, Silky Cloth
+and Seared Reinforcement using the source General ID and Materials and You icon.
+Other General entries and source ordering remain incomplete. This provides
+Creative access only; it does not establish their survival acquisition or
+modifier effects. Manual Search does not include these entries; native Search,
+actual display, reload, other-mod combinations and LAN remain unverified.
+
+Four source furnace recipes convert Seared Cobble to Seared Stone, Seared Stone
+to Seared Paver, Seared Bricks to Seared Cracked Bricks, and Scorched Stone to
+Scorched Road. Each uses one direct item input, 200 ticks and 0.1 experience;
+recipe-book unlock definitions use the corresponding adapted native IDs.
+Actual furnace execution, recipe-book unlocks, saves and LAN remain unverified.
+
+The source's direct shapeless unpacking recipes yield four matching slimeballs
+from one Earth, Sky, Ichor or Ender Congealed Slime block. Earth yields vanilla
+slimeballs; the other three yield their named TConstruct slimeballs. The source
+recipe-book unlock conditions are adapted to the native recipe IDs. The inverse
+four-slimeball recipes use source tags and are separate work. Real crafting,
+recipe-book unlocks, save/reload and LAN remain unverified.
+
+Source-shaped 2×2 recipes turn four Seared Stone into four Seared Bricks, or
+four Polished Scorched Stone into four Scorched Bricks. The separate existing
+four brick-item to one block recipes remain available. Recipe-book unlocks use
+adapted native IDs. Actual crafting, unlocks, save/reload and LAN are unverified.
+
+## Blazing Blood via piglin barter
+
+For the exact stock Horizon 26.3 piglin barter table, this port adds the pinned source's
+Scorched Lantern entry to the existing weighted pool: weight 20, one to four
+lanterns, each holding 50 mB of Blazing Blood. Empty one into a fuel tank to
+supply the 1500 °C fuel needed for Netherite alloying. This is one possible
+first acquisition route; stock entity melting and Blaze Head melting are not
+implemented by this change.
+
+The material-specific Battlesign and tool-parts barter entries (weights 5 and
+8) are not implemented, so the total weight and resulting probabilities differ
+from the source: this subset selects the lantern with weight 20 out of 489,
+versus 20 out of 502 if all three source entries were added to the same host
+pool. The host's native loot callback also advances its random
+stream once when this entry is selected. A complete normalized table hash
+rejects any modified table, including named pools, extra pools and indirect
+entry modifiers. A world-pack or native replacement of the barter table is
+also rejected, even with identical vanilla bytes. Forge 1.20.1 only fires the
+loot-table-load event for built-in tables, not user-pack replacements.
+
+The pinned injector is explicitly bundled at
+`data/tconstruct/mantle/loot_injectors/piglin_bartering.json` in the content mod.
+Its effective highest-priority resource must match the pinned definition.
+Missing, disabled, unreadable, malformed and modified definitions fail closed;
+absence never implies the source default. Existing prepared roots must be
+regenerated with this content file. A later pack definition takes precedence
+over the bundled one, including an empty definition that disables it. Native
+injector contributions are unsupported and close the gate. Custom packs may
+therefore need their own implementation; this is not general Mantle injector
+support.
+
+The `tests/rust/blazing_barter_integration.rs` fixture exercises the staged
+host item loot evaluator, lantern fluid transfer and fuel lookup, with stubbed
+container capacity and a representative fuel recipe. A minimal content package
+containing the injector was read by the host's package/content loaders, written
+to its prepared overlay and read back by its built-in DataPack loader. The
+complete content package, full client build, actual gameplay, multiplayer and
+cross-mod interactions have not been validated.
+
+The pack gate was checked with the pinned source injector fixture and with
+extracted, transformed pack-loading code using the host DataPack/DataStore types.
+The world loot fixture checks both proof states and cache separation. This is
+not a full client build or proof of hook ordering with other native mods.
+
+The stock-table tests require `TCONSTRUCT_TEST_PIGLIN_BARTER_TABLE` to point to
+the installation's prepared
+`data/minecraft/loot_table/gameplay/piglin_bartering.json`. They fail rather than
+skip when that file is absent or differs from the pinned normalized hash;
+Minecraft's table is not redistributed as a test fixture.

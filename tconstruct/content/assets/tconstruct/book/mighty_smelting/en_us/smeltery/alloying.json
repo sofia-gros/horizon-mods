@@ -11,6 +11,14 @@
     {
       "text": "Some materials may need hotter fuels in order to alloy.",
       "paragraph": true
+    },
+    {
+      "text": "In the source recipes, lava provides 1,000°C, but the molten netherite alloy needs 1,250°C. Blazing Blood provides 1,500°C.",
+      "paragraph": true
+    },
+    {
+      "text": "A stock initial source of Blazing Blood has not yet been established in this version. Vanilla netherite crafting is a separate route.",
+      "paragraph": true
     }
   ]
 }

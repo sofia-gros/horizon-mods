@@ -21,7 +21,7 @@ try:
         root = base
     else:
         root = game.root / '.horizon-cache/tconstruct-startup'
-        expected = (root / 'horizon-mod-content.stamp').read_bytes() + b'\0tconstruct-native-creative-v6'
+        expected = (root / 'horizon-mod-content.stamp').read_bytes() + b'\0tconstruct-native-creative-v7'
         assert (root / 'tconstruct-startup-owner').read_bytes() == expected
     facts = json.loads((root / 'facts.json').read_text())
     gameplay = json.loads((root / 'gameplay-facts.json').read_text())['states']

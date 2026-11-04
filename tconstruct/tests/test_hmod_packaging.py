@@ -42,6 +42,10 @@ class ContentPackageTest(unittest.TestCase):
                 path = 'assets/tconstruct/textures/block/clear_tinted_glass.png'
                 self.assertEqual(packed.read(path), (MOD / 'content' / path).read_bytes())
                 self.assertFalse(any(name.startswith('assets/tconstruct/textures/block/clear_tinted_glass/') for name in names))
+                injector = 'data/tconstruct/mantle/loot_injectors/piglin_bartering.json'
+                self.assertIn(injector, names)
+                self.assertEqual(packed.read(injector),
+                                 (MOD / 'tests/fixtures/blazing_barter_source.json').read_bytes())
                 for path in ('assets/tconstruct/items/magma_bottle.json',
                              'assets/tconstruct/models/item/magma_bottle.json',
                              'assets/tconstruct/textures/item/bottle/magma_contents.png',
@@ -56,6 +60,10 @@ class ContentPackageTest(unittest.TestCase):
                     self.assertIn(path, names)
                 self.assertNotIn('assets/tconstruct/runtime/block/tconstruct_fluid_powdered_snow.png.mcmeta', names)
                 self.assertIn('assets/tconstruct/runtime/block/tconstruct_fluid_fallback.png.mcmeta', names)
+                for suffix in ('.png', '.png.mcmeta'):
+                    self.assertEqual(
+                        packed.read('assets/tconstruct/runtime/block/tconstruct_fluid_milk' + suffix),
+                        (MOD / 'assets/forge/textures/block' / ('milk_still' + suffix)).read_bytes())
                 with zipfile.ZipFile(MOD / 'content/reference/tconstruct-part-visuals.zip') as source:
                     languages = [name for name in source.namelist() if name.startswith('assets/tconstruct/lang/') and name.endswith('.json')]
                     self.assertEqual(len(languages), 20)

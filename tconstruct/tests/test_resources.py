@@ -38,8 +38,13 @@ class ResourceOverlay(unittest.TestCase):
             tools = next(tab for tab in tabs if tab['id'] == 'tconstruct:tools')
             blocks = next(tab for tab in tabs if tab['id'] == 'tconstruct:blocks')
             world = next(tab for tab in tabs if tab['id'] == 'tconstruct:world')
+            general = next(tab for tab in tabs if tab['id'] == 'tconstruct:general')
+            self.assertEqual((general['page'], general['row'], general['column']), (1, 'TOP', 1))
+            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'obsidian_pane', 'cheese_ingot')])
             self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
-            self.assertEqual(len(world['items']), 16)
+            self.assertEqual(len(world['items']), 23)
+            self.assertIn('{count:1,id:"tconstruct:earth_congealed_slime"}', world['items'])
+            self.assertIn('{count:1,id:"tconstruct:sky_slime_ball"}', world['items'])
             self.assertIn('{count:1,id:"tconstruct:necrotic_bone"}', world['items'])
             self.assertIn('{count:1,id:"tconstruct:earth_slime_sapling"}', world['items'])
             self.assertEqual((tools['row'], tools['column']), ('TOP', 5))
@@ -59,6 +64,9 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual(model['textures']['layer0'], 'minecraft:item/' + kind + '_potion')
             self.assertEqual(items['tconstruct:encyclopedia']['minecraft:max_stack_size'], 1)
             self.assertTrue((out / 'assets/tconstruct/textures/item/encyclopedia.png').is_file())
+            # Bacon is supplied later by the existing content declaration,
+            # not appended here where it could renumber prepared item IDs.
+            self.assertNotIn('tconstruct:bacon', items)
             soup = items['tconstruct:meat_soup']
             self.assertEqual(soup['minecraft:max_stack_size'], 1)
             self.assertEqual(soup['minecraft:food'], {'nutrition': 8, 'saturation': 9.6})
@@ -246,6 +254,10 @@ class ResourceOverlay(unittest.TestCase):
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_heating_structure.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/gui/heating_structure.png'))
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-melter-assets.zip') as melter_assets:
+                for suffix in ('.png', '.png.mcmeta'):
+                    self.assertEqual(
+                        (out / 'assets/minecraft/textures/block' / ('tconstruct_fluid_milk' + suffix)).read_bytes(),
+                        (Path(__file__).resolve().parents[1] / 'assets/forge/textures/block' / ('milk_still' + suffix)).read_bytes())
                 self.assertEqual((out / 'assets/minecraft/textures/gui/tconstruct_melter.png').read_bytes(), melter_assets.read('assets/tconstruct/textures/gui/melter.png'))
                 fluids = json.loads(melter_assets.read('assets/tconstruct/melter-fluid-textures.json'))
                 self.assertIn('tconstruct:molten_copper', fluids)

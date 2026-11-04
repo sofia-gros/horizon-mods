@@ -1,0 +1,8 @@
+{
+  "title": "Tinted Seared Glass",
+  "item": "tconstruct:seared_tinted_glass",
+  "text": [
+    {"text": "Tinted seared glass is transparent while blocking light. In the default smeltery rules it can form a wall, but not the floor.", "paragraph": true},
+    {"text": "Its ordinary crafting recipe is not yet available here. Light updates in existing worlds, the in-game appearance, and LAN behavior have not been verified.", "paragraph": true}
+  ]
+}

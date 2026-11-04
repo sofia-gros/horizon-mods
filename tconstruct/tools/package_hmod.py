@@ -73,6 +73,12 @@ def package(output):
             if fluid in animations:
                 add(runtime + 'block/tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta', json.dumps(animations[fluid]).encode())
 
+    # Exact Forge milk sprite and animation, matching the desktop overlay.
+    # Source: MinecraftForge 243490d78001917c7e6ee6e94b45ef98776aa36f.
+    for suffix in ('.png', '.png.mcmeta'):
+        add(runtime + 'block/tconstruct_fluid_milk' + suffix,
+            (MOD / 'assets/forge/textures/block' / ('milk_still' + suffix)).read_bytes())
+
     # The source visual archives are owned by the mod and do not contain the
     # player's Minecraft textures. Retain Forge models in the paths read by
     # our renderer instead of asking the vanilla model loader to interpret them.

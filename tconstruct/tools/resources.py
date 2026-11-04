@@ -100,6 +100,11 @@ with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tc
         (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png')).write_bytes(source_melter.read('assets/tconstruct/' + texture))
         if fluid in animations:
             (block_textures / ('tconstruct_fluid_' + fluid.removeprefix('tconstruct:') + '.png.mcmeta')).write_text(json.dumps(animations[fluid]))
+# Forge 1.20.1 milk uses its own still sprite, without a tint. Retain the
+# source pixels and animation from MinecraftForge 243490d78001917c7e6ee6e94b45ef98776aa36f.
+for suffix in ('.png', '.png.mcmeta'):
+    (block_textures / ('tconstruct_fluid_milk' + suffix)).write_bytes(
+        (repository / 'assets/forge/textures/block' / ('milk_still' + suffix)).read_bytes())
 # Original Part Builder pattern sprites: staged in the GUI atlas namespace.
 pattern_source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/gui/patterns'
 pattern_dest = gui / 'tconstruct_patterns'

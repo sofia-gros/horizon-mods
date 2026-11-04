@@ -6,6 +6,8 @@ Open the original cover and turn two-page spreads with the arrows or book contro
 
 The Tools chapter now includes the source's General, Ranged and Information group labels as navigable pages in its index. General and Ranged are shown when their respective source tags load at least one tool; Information leads into repair, part swapping, material swapping and recycling. This is a navigation adaptation of the source grouping, not a claim that every documented tool behavior is implemented. Representative General, Ranged and Information navigation and history were verified in a Linux creative fixture; a LAN guest also opened General and returned. Empty-tag behavior was source-checked but not exercised in game.
 
+The Part Swapping page notes that armor casting swaps are limited: some materials, some damaged equipment and some modifiers are not handled. Station part swapping is a separate path. This note does not claim all other swaps work, and actual casting, save/reload and LAN are unverified.
+
 The following differences from Mantle's original reader remain:
 
 - Illustrated material panels use the source colors, part icons, stats, traits and available material actions. Long material stat groups continue onto additional pages; exact parity with the original panel and every material is not established. Some tool properties and long image descriptions continue onto later pages, and long index entries use shortened excerpts.
@@ -108,3 +110,7 @@ resource tests do not establish gameplay, previously held items, save/reload or
 LAN actor behavior, and this addition does not implement recipe unlocks.
 
 Mighty Smelting's partial Smeltery section now includes a port-adapted Seared Fuel Tanks page. It describes the supported tank capacity and limited transfer endpoints, and notes that the source item showcase is unavailable and potion, piston and dispenser behavior are not game-verified. The new page and LAN display are unverified in game.
+
+The Mighty Smelting partial Smeltery Basics section also includes Tinted Seared Glass. It describes the default wall/floor distinction and notes that normal crafting is not yet wired. Live display, light updates in existing worlds, and LAN remain unverified.
+
+The Mighty Smelting Alloying page explains the source temperatures for lava, Blazing Blood and the molten netherite alloy. It notes that the stock initial Blazing Blood source is not yet established; vanilla netherite crafting remains separate. The guide display and actual progression remain unverified.

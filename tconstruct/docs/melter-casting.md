@@ -14,6 +14,8 @@ Place an ingot cast on the table, use the faucet, and wait for the copper ingot 
 
 The copper sequence, saving and reloading, and shared input and casting in LAN have been checked on Linux. Other materials and Windows have not received the same game checks.
 
+Forge milk is supported as a machine-tank fluid for skull-melting lookup and milk bucket transfers. Milk-tag ingot casting now has a registered Cheese Ingot result; the source recipes are retained. Cheese Block remains unregistered, so basin cheese casting is unavailable. Cheese Ingot restores hunger and saturation, but its source effect-removal behavior is not yet connected. The original Forge milk sprite is staged for still and flowing milk. These paths have focused tests but have not been checked in game, persistence or LAN.
+
 The implementation uses the original recipes, the original Melter ore-rate defaults and the source fluid textures where available. Fluids without a retained source texture use a generic visible texture; source animation metadata is now staged for fluid aliases, while the casting cooling fade remains unimplemented. Atlas animation and reload still need in-game verification.
 
 Fluid-container interactions, redstone control and specialized recipe types remain separate work. For a tested small alloy setup, see [Smeltery and alloys](smeltery.md). The [Foundry](foundry.md) can also recover a byproduct from copper ore. The Faucet, Casting Basin and Casting Table use the original selection and collision shapes. A Linux game check covered all five Faucet directions, right-click targeting, the Basin and Table recesses, walking against one Faucet, and falling into the Basin and Table. The Melter screen still opened. Other machine shapes remain to be compared.
@@ -44,3 +46,27 @@ revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, including frame timing and
 interpolation. Powdered snow has no source animation metadata. Both the manual
 resource overlay and the content package stage metadata beside each alias.
 Tests check packaging and values, not visible animation or resource reload.
+
+### Smeltery machine metadata
+
+Writes through the shared metadata store preserve unknown top-level fields in
+the existing `tconstruct:smeltery` machine compound while replacing the
+owned fields according to the current operation, including clearing omitted
+optional `heat_codes`. For Smeltery and Foundry, unknown keys directly on the
+native tank compound are also retained. Legacy `FluidName`, `Amount` and `Tag`
+aliases omitted by a serialized update are not retained. Raw patch updates that
+explicitly include them keep them, as before, and may leave stale aliases. Fluid entry fields, slot payloads, other legacy Forge formats, and
+collisions with owned field names remain outside this protection. It cannot
+restore data already lost. A non-compound existing machine value rejects an update; malformed owned
+fields may still be normalized by their existing decoder. Client network
+snapshots retain replacement semantics rather than merging old fields. Cached-host-type
+fixture tests exercise the merge and the shared store; full host compilation,
+real world save/reload, all interactions, and LAN remain unverified.
+
+A tank containing a fluid ID with an unpaired UTF-16 surrogate cannot be
+rewritten through the lossy native decoder. Store updates are rejected unless
+the raw tank is unchanged. This preserves that identifier during those writes
+but can pause all machine ticks. Client LAN snapshot replacement bypasses this
+guard. Controller destruction is not protected and neither tank data nor
+inventory drops are guaranteed. Other malformed or unknown nested data is
+outside this check. Host integration and world/LAN behavior remain unverified.
