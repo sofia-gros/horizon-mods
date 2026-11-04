@@ -866,3 +866,8 @@ unverified.
 The pinned scorched road slab and stairs crafting recipes are available for
 the already registered blocks. Source-data tests cover their patterns and
 output counts; live crafting, datapack reload and LAN remain unverified.
+
+The pinned seared and scorched soul-glass and pane crafting recipes are
+available for registered blocks. Source-data tests cover their patterns and
+output counts. The base soul-glass acquisition path, live crafting, datapack
+reload and LAN remain unverified.
