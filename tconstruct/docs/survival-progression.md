@@ -260,3 +260,8 @@ slimeballs; the other three yield their named TConstruct slimeballs. The source
 recipe-book unlock conditions are adapted to the native recipe IDs. The inverse
 four-slimeball recipes use source tags and are separate work. Real crafting,
 recipe-book unlocks, save/reload and LAN remain unverified.
+
+Source-shaped 2×2 recipes turn four Seared Stone into four Seared Bricks, or
+four Polished Scorched Stone into four Scorched Bricks. The separate existing
+four brick-item to one block recipes remain available. Recipe-book unlocks use
+adapted native IDs. Actual crafting, unlocks, save/reload and LAN are unverified.
