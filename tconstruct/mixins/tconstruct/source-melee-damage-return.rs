@@ -23,6 +23,10 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
                     // Only the pinned module set/order is implemented here. Unknown
                     // or removed definitions must not inherit this fixed effect.
                     let level = (|| {
+                        // Source canPerformAttack requires the live MELEE tag.
+                        // A saved multiplier is not evidence of current eligibility.
+                        let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+                        if !tags.get("tconstruct:modifiable/melee")?.contains(&*stack.item) { return None; }
                         let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
                         let source = crate::game::tconstruct_modifier_snapshot::highest_definition(raw, "tconstruct:tinkering/modifiers/raging");
                         if !crate::game::tconstruct_modifier_snapshot::known_raging_melee(source) { return None; }

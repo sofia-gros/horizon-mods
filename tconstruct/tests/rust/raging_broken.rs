@@ -3,7 +3,7 @@
 extern crate self as horizon_world;
 extern crate self as horizon_items;
 pub mod items { pub type ItemStack = super::Stack; }
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 #[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
 #[path = "../../mixins/tconstruct/modifier-snapshot.rs"] mod tconstruct_modifier_snapshot;
 pub mod nbt {
@@ -29,8 +29,8 @@ impl Stack {
 pub struct Health(f32);
 impl Health { fn health(&self) -> f32 { self.0 } }
 pub struct Player { auto_spin_attack_dmg: f32, health: Health }
-pub struct Chunks(HashSet<Option<u32>>, Option<Result<tconstruct_modifier_snapshot::Raw,String>>);
-impl Chunks { fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<tconstruct_modifier_snapshot::Raw,String>> { &self.1 } #[allow(non_snake_case)] fn __horizon_mixins_tconstruct_melee_active(&self) -> &HashSet<Option<u32>> { &self.0 } }
+pub struct Chunks(HashSet<Option<u32>>, Option<Result<tconstruct_modifier_snapshot::Raw,String>>, Option<Result<HashMap<String,HashSet<String>>,String>>);
+impl Chunks { fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<HashMap<String,HashSet<String>>,String>> { &self.2 } fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<tconstruct_modifier_snapshot::Raw,String>> { &self.1 } #[allow(non_snake_case)] fn __horizon_mixins_tconstruct_melee_active(&self) -> &HashSet<Option<u32>> { &self.0 } }
 pub struct World { chunks: Chunks, level: Option<i32> }
 pub mod game {
     use super::*;
@@ -65,7 +65,7 @@ fn game() -> game::Game<'static> {
     stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
         ("tic_max_damage",Tag::Int(100)), ("tic_broken",Tag::Byte(0)), ("tic_raging_melee_multiplier",Tag::Float(1.0f32.to_bits())),
     ])));
-    game::Game { player:Some(Player { auto_spin_attack_dmg:0.0,health:Health(1.0) }), stack:Some(stack), world:World { chunks:Chunks(HashSet::new(),Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()])]),BTreeMap::new())))),level:Some(1) }, lan_acting:None, marker:std::marker::PhantomData }
+    game::Game { player:Some(Player { auto_spin_attack_dmg:0.0,health:Health(1.0) }), stack:Some(stack), world:World { chunks:Chunks(HashSet::new(),Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()])]),BTreeMap::new()))),Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])))),level:Some(1) }, lan_acting:None, marker:std::marker::PhantomData }
 }
 fn field(g: &mut game::Game<'_>, key: &str, value: Tag) {
     let Tag::Compound(fields)=&mut g.stack.as_mut().unwrap().data_mut().0 else { panic!() };
@@ -123,4 +123,22 @@ const BASE:(f32,f32,bool,bool)=(4.0,1.0,false,false);
     }
     g.world.chunks.1=Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![b"{}".to_vec(),pinned.to_vec()])]),BTreeMap::new())));
     assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,11.5);
+}
+
+#[test] fn raging_requires_live_melee_membership_without_suppressing_base_damage() {
+    let mut g=game();field(&mut g,"tic_upgrades",Tag::compound([("tconstruct:raging",Tag::Int(2))]));
+    let base=(4.0,1.0,false,false);
+    assert_eq!(game::run(base,&mut g,true).0,11.5);
+    for tags in [None,Some(Err("unavailable".into())),Some(Ok(HashMap::new())),Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::new())])))] {
+        g.world.chunks.2=tags;
+        assert_eq!(game::run(base,&mut g,true),base);
+        // Stale multiplier and saved upgrade remain, but cannot grant eligibility.
+        assert!(g.stack.as_ref().unwrap().data().unwrap().other("minecraft:custom_data").unwrap().get("tic_raging_melee_multiplier").is_some());
+    }
+    g.world.chunks.2=Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])));
+    assert_eq!(game::run(base,&mut g,true).0,11.5);
+    g.stack.as_mut().unwrap().item="tconstruct:longbow".into();
+    assert_eq!(game::run(base,&mut g,true),base);
+    g.world.chunks.2.as_mut().unwrap().as_mut().unwrap().get_mut("tconstruct:modifiable/melee").unwrap().insert("tconstruct:longbow".into());
+    assert_eq!(game::run(base,&mut g,true).0,11.5);
 }
