@@ -203,3 +203,13 @@ initial Blazing Blood acquisition remain separate work. A datapack supplying a
 valid wither bone and Blazing Blood can use the existing fixed-recipe lookup.
 The source luminous item rendering is not reproduced. Host integration,
 in-game casting, material traits, saving, and LAN have not been verified.
+
+## Silky Cloth casting result
+
+Silky Cloth is registered as a regular item. Its source table recipe consumes a
+cobweb with 90 mB molten rose gold and cools for 52 ticks; its source melting
+recipe returns 90 mB at 550 degrees in 52 ticks. This enables those existing
+recipe lookup paths when the required resources are supplied. The item's
+modifier applications and Creative General tab remain separate work. Native
+registry IDs may change when items are added. Host integration, real casting
+and melting, save/reload, and LAN remain unverified.
