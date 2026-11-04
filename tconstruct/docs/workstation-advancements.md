@@ -16,3 +16,10 @@ before adding the definitions: on reopening with them, both criteria completed,
 and their timestamps survived another save/reload. These are resource-overlay
 fixture checks, not a packaged main build or a survival acquisition test.
 Further original workstation progression and recipe-book unlocks remain open.
+
+The Travelers' Gear advancement uses the source's four distinct inventory
+criteria and the existing Tinker Station parent. The host icon uses `id` and
+its current advancement Display reads only the item ID, not the source NBT
+used for a material preview. Source trigger logic and requirements are retained;
+gameplay, already-held gear, persistence and LAN actor attribution are not
+verified. No recipe-book reward is added.
