@@ -55,20 +55,48 @@ pub(super) fn color_tagged(fluid: &str, tag: Option<&horizon_world::nbt::Tag>) -
     color(fluid)
 }
 
-/// Color for an already validated Copper Can potion tag. Source base potions
-/// without extra effects match the host registry's 1.20.1 color values; effect
-/// mixtures are deliberately not approximated here.
+/// Source 1.20.1 PotionUtils uses float32 weighted sums, not the host's
+/// integer average. Refuse oversized or unsupported effect lists.
 pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
     use horizon_world::nbt::Tag;
     if matches!(tag.get("CustomPotionColor"), Some(Tag::Int(_))) {
         return Some(color_tagged("tconstruct:potion", Some(tag)));
     }
-    if tag.get("CustomPotionEffects").is_some() { return None; }
-    let Tag::String(id) = tag.get("Potion")? else { return None; };
-    let id = id.to_string_lossy();
+    let (id, _, _) = super::tconstruct_source_fluid_container::potion_tag(tag, true)?;
     super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag))?;
-    let rgb = horizon_client_core::potions::potion_color(Some(&id));
-    Some(0xff00_0000 | (rgb & 0xff) << 16 | (rgb & 0xff00) | (rgb >> 16 & 0xff))
+    let base = horizon_client_core::potions::potion(&id)?;
+    let custom = match tag.get("CustomPotionEffects") {
+        None => &[][..],
+        Some(Tag::List(effects)) if effects.len() <= 64 => effects.as_slice(),
+        _ => return None,
+    };
+    let total_effects = base.effects.len() + custom.len();
+    if total_effects == 0 { return Some(0xffc65d38); }
+    let (mut r, mut g, mut b, mut total) = (0.0f32, 0.0f32, 0.0f32, 0i32);
+    let mut add = |effect: &str, amplifier: i32, visible: bool| -> Option<()> {
+        if visible {
+            let color = horizon_client_core::potions::effect(effect)?.color;
+            let weight = amplifier.max(0) + 1;
+            r += (weight * ((color >> 16 & 255) as i32)) as f32 / 255.0f32;
+            g += (weight * ((color >> 8 & 255) as i32)) as f32 / 255.0f32;
+            b += (weight * ((color & 255) as i32)) as f32 / 255.0f32;
+            total += weight;
+        }
+        Some(())
+    };
+    for &(effect, _, amplifier) in base.effects { add(effect, amplifier, true)?; }
+    for effect in custom {
+        let Tag::Byte(id) = effect.get("Id")? else { return None; };
+        let effect_id = *super::tconstruct_source_fluid_container::EFFECT_IDS.get((*id as usize).checked_sub(1)?)?;
+        let amplifier = match effect.get("Amplifier") { None => 0, Some(Tag::Byte(value)) => i32::from(*value).max(0), _ => return None };
+        let visible = match effect.get("ShowParticles") { None | Some(Tag::Byte(1)) => true, Some(Tag::Byte(0)) => false, _ => return None };
+        add(effect_id, amplifier, visible)?;
+    }
+    if total == 0 { return Some(0xff000000); }
+    let (r, g, b) = ((r / total as f32 * 255.0f32) as u32,
+                     (g / total as f32 * 255.0f32) as u32,
+                     (b / total as f32 * 255.0f32) as u32);
+    Some(0xff00_0000 | b << 16 | g << 8 | r)
 }
 
 /// Source GuiMeltingModule progress strip: sprite x and visible height.
@@ -274,6 +302,69 @@ mod fluid_light_tests {
             assert_eq!(super::can_potion_color(&tag), Some(expected), "{id}");
         }
     }
+    // Source-order 1.20.1-labelled decompiled oracle at commit 315a03ea;
+    // these do not replace an official jar or integrated rendering test.
+    #[test] fn source_custom_potion_effect_mixtures() {
+        use horizon_world::nbt::Tag;
+        for (name, tag, expected) in [
+            ("empty_custom_list", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![]))]), 0xffc65d38),
+            ("nonempty_all_hidden", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(0))])]))]), 0xff000000),
+            ("default_amplifier_visibility", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1))])]))]), 0xffffeb33),
+            ("negative_amplifier", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(-1))])]))]), 0xffffeb33),
+            ("minimum_amplifier", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(-128))])]))]), 0xffffeb33),
+            ("f32_rounding_diff", Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))])]))]), 0xffffea33),
+            ("zero_duration_still_colored", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Duration", Tag::Int(0)), ("ShowIcon", Tag::Byte(0)), ("Ambient", Tag::Byte(1))])]))]), 0xffffeb33),
+            ("negative_duration_still_colored", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Duration", Tag::Int(-100))])]))]), 0xffffeb33),
+            ("hidden_effect_not_mixed", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("HiddenEffect", Tag::compound([("Id", Tag::Byte(2)), ("Amplifier", Tag::Byte(127))]))])]))]), 0xffffeb33),
+            ("hidden_main_with_visible_child", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(0)), ("HiddenEffect", Tag::compound([("Id", Tag::Byte(2)), ("ShowParticles", Tag::Byte(1))]))])]))]), 0xff000000),
+            ("turtle_with_speed", Tag::compound([("Potion", Tag::String("minecraft:turtle_master".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))])]))]), 0xfff0ad67),
+            ("strong_turtle_with_poison", Tag::compound([("Potion", Tag::String("minecraft:strong_turtle_master".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(19)), ("Amplifier", Tag::Byte(127))])]))]), 0xff6ca087),
+            ("sixty_four_speed_effects", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(127))]); 64]))]), 0xffffeb32),
+            ("effect_speed", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1))])]))]), 0xffffeb33),
+            ("effect_slowness", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(2))])]))]), 0xffe0af8b),
+            ("effect_haste", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(3))])]))]), 0xff43c0d9),
+            ("effect_mining_fatigue", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(4))])]))]), 0xff17424a),
+            ("effect_strength", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(5))])]))]), 0xff00c7ff),
+            ("effect_instant_health", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(6))])]))]), 0xff2324f8),
+            ("effect_instant_damage", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(7))])]))]), 0xff6a65a9),
+            ("effect_jump_boost", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(8))])]))]), 0xff84fffd),
+            ("effect_nausea", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(9))])]))]), 0xff4a1d55),
+            ("effect_regeneration", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(10))])]))]), 0xffab5ccd),
+            ("effect_resistance", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(11))])]))]), 0xfff04691),
+            ("effect_fire_resistance", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(12))])]))]), 0xff0099ff),
+            ("effect_water_breathing", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(13))])]))]), 0xffc0da98),
+            ("effect_invisibility", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(14))])]))]), 0xfff6f6f6),
+            ("effect_blindness", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(15))])]))]), 0xff231f1f),
+            ("effect_night_vision", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(16))])]))]), 0xff66ffc2),
+            ("effect_hunger", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(17))])]))]), 0xff537658),
+            ("effect_weakness", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(18))])]))]), 0xff484d48),
+            ("effect_poison", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(19))])]))]), 0xff63a387),
+            ("effect_wither", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(20))])]))]), 0xff566173),
+            ("effect_health_boost", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(21))])]))]), 0xff237df8),
+            ("effect_absorption", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(22))])]))]), 0xffa55225),
+            ("effect_saturation", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(23))])]))]), 0xff2324f8),
+            ("effect_glowing", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(24))])]))]), 0xff61a094),
+            ("effect_levitation", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(25))])]))]), 0xffffffce),
+            ("effect_luck", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(26))])]))]), 0xff06c159),
+            ("effect_unluck", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(27))])]))]), 0xff4da4c0),
+            ("effect_slow_falling", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(28))])]))]), 0xffb9cff3),
+            ("effect_conduit_power", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(29))])]))]), 0xffd1c21d),
+            ("effect_dolphins_grace", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(30))])]))]), 0xffbea388),
+            ("effect_bad_omen", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(31))])]))]), 0xff38610b),
+            ("effect_hero_of_the_village", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(32))])]))]), 0xff44ff44),
+            ("effect_darkness", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(33))])]))]), 0xff212729),
+            ("override_custom_mix", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))]), Tag::compound([("Id", Tag::Byte(2)), ("Amplifier", Tag::Byte(127))])])), ("CustomPotionColor", Tag::Int(1193046))]), 0xff563412),
+            ("override_all_hidden", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(0)), ("Amplifier", Tag::Byte(4))]), Tag::compound([("Id", Tag::Byte(2)), ("Amplifier", Tag::Byte(127))])])), ("CustomPotionColor", Tag::Int(0))]), 0xff000000),
+            ("override_negative", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))]), Tag::compound([("Id", Tag::Byte(2)), ("Amplifier", Tag::Byte(127))])])), ("CustomPotionColor", Tag::Int(-1))]), 0xffffffff),
+            ("override_int_min", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))]), Tag::compound([("Id", Tag::Byte(2)), ("Amplifier", Tag::Byte(127))])])), ("CustomPotionColor", Tag::Int(-2147483648))]), 0xff000000),
+            ("override_high_bits", Tag::compound([("Potion", Tag::String("minecraft:water".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("ShowParticles", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))]), Tag::compound([("Id", Tag::Byte(2)), ("Amplifier", Tag::Byte(127))])])), ("CustomPotionColor", Tag::Int(16909060))]), 0xff040302),
+        ] {
+            assert_eq!(super::can_potion_color(&tag), Some(expected), "{name}");
+        }
+        let oversized = Tag::compound([("Potion", Tag::String("minecraft:water".into())),
+            ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1))]); 65]))]);
+        assert_eq!(super::can_potion_color(&oversized), None);
+    }
     #[test] fn copper_can_potion_base_colors_and_extra_effect_boundary() {
         use horizon_world::nbt::Tag;
         for (id, expected) in [("minecraft:water", 0xffc65d38), ("minecraft:swiftness", 0xffffeb33), ("minecraft:turtle_master", 0xffe6828d)] {
@@ -281,7 +372,7 @@ mod fluid_light_tests {
             assert_eq!(super::can_potion_color(&tag), Some(expected), "{id}");
         }
         let effects = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![]))]);
-        assert_eq!(super::can_potion_color(&effects), None);
+        assert_eq!(super::can_potion_color(&effects), Some(0xffffeb33));
         let explicit = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![])), ("CustomPotionColor", Tag::Int(0x123456))]);
         assert_eq!(super::can_potion_color(&explicit), Some(0xff563412));
         let unknown = Tag::compound([("Potion", Tag::String("example:unknown".into()))]);

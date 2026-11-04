@@ -1033,14 +1033,22 @@ remain unverified.
 Copper Can potion icons now render when supported potion metadata includes an
 explicit `CustomPotionColor`, using the source still texture and exact color.
 Known base potions without custom effects also use their source-equivalent
-color. Potions with extra effects and no explicit color remain hidden because
-source effect-mixing is not yet implemented. Data and transfer behavior are
+color. Supported extra effects use source float32 mixing; unsupported or oversized
+lists remain hidden. Data and transfer behavior are
 unchanged. Focused validation and wiring tests cover this subset; integrated
 rendering, resource packs, save/reload and LAN remain unverified.
 
 Copper Can icons now include recognized base potions without custom effects.
 The 42 base color results were compared with 1.20.1-labelled decompiled source
 [315a03ea](https://github.com/mahtomedi/minecraft/tree/315a03ea8861509b550cc06a7ca6b28853d2459c),
-not an official-jar probe. Custom effect mixes remain omitted unless an
-explicit color is supplied.
+not an official-jar probe. Supported custom effect mixes are described below.
 Integrated rendering, resource packs, save/reload and LAN remain unverified.
+
+Copper Can icons now support validated source-era custom potion effects using
+source-order float32 color mixing and visibility rules. Empty effect lists use
+the base color; a nonempty combined effect list with none visible is black. Unsupported
+metadata and lists over 64 effects without an explicit color remain hidden;
+explicit colors still take priority. The 1.20.1 oracle is version-labelled
+decompiled source, not an official jar probe. Integrated rendering, resource packs and LAN are unverified.
+The supported source effect IDs are the existing vanilla Byte IDs 1–33;
+Forge extended IDs and other NBT types remain outside this path.
