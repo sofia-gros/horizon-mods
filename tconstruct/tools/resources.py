@@ -117,6 +117,7 @@ food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/encyclopedia.png', mod_assets / 'textures/item/encyclopedia.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/blazing_bone.png', mod_assets / 'textures/item/materials/blazing_bone.png')
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/silky_cloth.png', mod_assets / 'textures/item/materials/silky_cloth.png')
 piggy_sprite = mod_assets / 'textures/item/gadgets/piggy_backpack.png'
 piggy_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/gadgets/piggy_backpack.png', piggy_sprite)
@@ -319,6 +320,7 @@ for part in ('helmet', 'chestplate', 'leggings', 'boots'):
 # Keep main's last item before the new entry to preserve all legacy IDs.
 entries.append(('tconstruct:piggy_backpack', 'minecraft:flint', 'Piggybackpack (mob carrying unavailable)'))
 entries.append(('tconstruct:blazing_bone', 'minecraft:bone', 'Blazing Bone'))
+entries.append(('tconstruct:silky_cloth', 'minecraft:flint', 'Silky Cloth'))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
@@ -345,6 +347,8 @@ for name, template, title in entries:
     elif short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
         contents = 'ichor' if short == 'ichor_slime_bottle' else short.removesuffix('_bottle')
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/' + contents + '_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short == 'silky_cloth':
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/silky_cloth'}}
     elif short == 'blazing_bone':
         native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'tconstruct:item/materials/blazing_bone'}}
     elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement'):

@@ -80,6 +80,19 @@ mod tconstruct_source_smeltery_fuel {
   assert!(c.casting(true,Some("example:wither_bone"),"tconstruct:blazing_blood",&|_|true).is_none());
   assert!(c.casting(false,None,"tconstruct:blazing_blood",&|_|true).is_none());
  }
+ #[test] fn silky_cloth_source_casting_and_melting_roundtrip() {
+  let recipes=BTreeMap::from([
+   ("tconstruct:tools/modifiers/silky_cloth".into(),include_bytes!("../fixtures/silky_cloth_casting.json").to_vec()),
+   ("tconstruct:smeltery/melting/metal/rose_gold/silky_cloth".into(),include_bytes!("../fixtures/silky_cloth_melting.json").to_vec())]);
+  let tags=HashMap::new();let fluids=HashMap::from([("forge:molten_rose_gold".into(),HashSet::from(["tconstruct:molten_rose_gold".into()]))]);
+  let items=HashSet::from(["minecraft:cobweb".into(),"tconstruct:silky_cloth".into()]);let known_fluids=HashSet::from(["tconstruct:molten_rose_gold".into()]);
+  let c=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&tags,fluid_tags:&fluids,known_items:&items,known_fluids:&known_fluids};
+  let (_,r,out)=c.casting(false,Some("minecraft:cobweb"),"tconstruct:molten_rose_gold",&|_|true).unwrap();
+  assert_eq!((r.fluid.amount,r.cooling_time,r.consumes_cast,out.as_str()),(90,52,true,"tconstruct:silky_cloth"));
+  assert!(c.casting(true,Some("minecraft:cobweb"),"tconstruct:molten_rose_gold",&|_|true).is_none());
+  let (_,r,out)=c.melting("tconstruct:silky_cloth",&|_|true).unwrap();
+  assert_eq!((r.output.amount,r.temperature,r.time,out.as_str()),(90,550,52,"tconstruct:molten_rose_gold"));
+ }
  #[test] fn invalid_and_different_amount_alternatives_fail_closed() {
   use tconstruct_source_melting_recipes::CastingRecipe;
   let recipe=include_str!("../fixtures/seared_reinforcement.json"); let mut value:serde_json::Value=serde_json::from_str(recipe).unwrap();

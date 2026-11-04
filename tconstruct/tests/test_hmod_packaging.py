@@ -23,6 +23,9 @@ class ContentPackageTest(unittest.TestCase):
                 for path in ('assets/tconstruct/items/blazing_bone.json', 'assets/tconstruct/models/item/blazing_bone.json', 'assets/tconstruct/textures/item/materials/blazing_bone.png', 'data/tconstruct/horizon/item/blazing_bone.json'):
                     actual, expected = packed.read(path), (MOD / 'content' / path).read_bytes()
                     self.assertEqual(json.loads(actual), json.loads(expected)) if path.endswith('.json') else self.assertEqual(actual, expected)
+                for path in ('assets/tconstruct/items/silky_cloth.json', 'assets/tconstruct/models/item/silky_cloth.json', 'assets/tconstruct/textures/item/materials/silky_cloth.png', 'data/tconstruct/horizon/item/silky_cloth.json'):
+                    actual, expected = packed.read(path), (MOD / 'content' / path).read_bytes()
+                    self.assertEqual(json.loads(actual), json.loads(expected)) if path.endswith('.json') else self.assertEqual(actual, expected)
                 # The MIT text travels with the content containing upstream pixels.
                 self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
                                  (MOD / 'third_party/tconstruct/LICENSE').read_bytes())
