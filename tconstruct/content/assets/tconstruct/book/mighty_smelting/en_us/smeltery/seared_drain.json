@@ -1,0 +1,14 @@
+{
+  "title": "Seared Drain",
+  "item": "tconstruct:seared_drain",
+  "text": [
+    {
+      "text": "The drain connects a faucet to a Smeltery for fluid output. Supported fluid containers can also transfer fluid through a drain.",
+      "paragraph": true
+    },
+    {
+      "text": "Channel and external-pipe connections, and the fluid shown on the drain, are not yet fully supported.",
+      "paragraph": true
+    }
+  ]
+}
