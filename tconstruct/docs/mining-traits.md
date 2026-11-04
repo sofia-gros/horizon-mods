@@ -433,3 +433,28 @@ This remains limited to the supported fixed-45 progress representation; it
 does not add arbitrary incremental denominators, datapack interpretation, or
 change the separate equipment Haste attribute path. No full generated-host
 build, gameplay, LAN, or Windows validation was run.
+
+## Chest Haste incremental-level precision
+
+The existing chest Haste mining multiplier now reconstructs fixed-45 upgrade
+progress and merges whole material trait levels before applying the float
+partial-level correction. This follows pinned
+[`IncrementalModifierEntry.merge` and `scaleLevel`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java),
+whose effective level feeds the
+[Haste attribute formula](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/haste.json).
+Unrepresentable merged integer levels now provide no Haste bonus. Existing
+negative/malformed progress handling and durability-limit gating are retained.
+
+This slice corrects only effective-level rounding. The existing single-chest
+float multiplier and final float speed multiplication remain unchanged; they
+do not emulate the source double attribute evaluation or its 0-to-100 clamp.
+Other equipment slots, source attribute stacking, and broken-flag-only gating
+remain outside this change. End-to-end bit-exact source speed is not claimed.
+
+The cached-library integration harness executes the actual chest helper with
+four old-versus-new bitwise counterexamples, complete/partial level boundaries,
+negative/malformed/large inputs, overflow, and durability gates. A real wire
+encode/decode/matching test supplies the trait level to the same helper and
+checks local/remote arithmetic, stale-frame fallback, and repair. This is a
+boundary integration test, not a LAN or full actor-context simulation. No
+full generated-host build, gameplay, LAN, or Windows validation was run.

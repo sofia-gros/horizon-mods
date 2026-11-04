@@ -31,7 +31,16 @@ pub(super) fn haste_armor_multiplier_with_trait(custom: &Tag, damage: u32, trait
     let amount = match custom.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:haste")) {
         Some(Tag::Int(amount)) => (*amount).max(0), _ => 0,
     };
-    1.0 + 0.1 * (amount as f32 / 45.0 + trait_level.max(0) as f32)
+    // IncrementalModifierEntry merges whole logical levels before applying
+    // scaleLevel's float correction; direct division rounds differently.
+    let remainder = amount % 45;
+    let level = trait_level.max(0).checked_add(amount / 45).and_then(|complete| {
+        if remainder == 0 { Some(complete as f32) }
+        else { complete.checked_add(1).map(|logical| logical as f32 + (remainder - 45) as f32 / 45.0f32) }
+    });
+    // Overflowing logical levels provide no Haste bonus. Keep the existing
+    // single-chest float multiplier pipeline; this is not attribute emulation.
+    1.0 + 0.1 * level.unwrap_or(0.0)
 }
 
 #[cfg(test)]
