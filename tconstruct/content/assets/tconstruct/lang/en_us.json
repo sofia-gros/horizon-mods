@@ -32,6 +32,7 @@
   "block.tconstruct.gold_bars": "Gold Bars",
   "block.tconstruct.gold_bars.tooltip": "Acts as a empty cast in casting tables",
   "block.tconstruct.gold_platform": "Gold Platform",
+  "item.tconstruct.gold_platform": "Gold Platform (placement unavailable)",
   "block.tconstruct.gold_platform.tooltip": "Acts as a empty cast in casting basins",
   "block.tconstruct.iron_platform": "Iron Platform",
   "block.tconstruct.cobalt_platform": "Cobalt Platform",

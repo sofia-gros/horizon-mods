@@ -1,0 +1,1 @@
+{"type":"minecraft:crafting_shaped","category":"misc","pattern":["#.#",". .","#.#"],"key":{"#":"#forge:ingots/gold",".":"#forge:nuggets/gold"},"result":{"id":"tconstruct:gold_platform","count":4}}
