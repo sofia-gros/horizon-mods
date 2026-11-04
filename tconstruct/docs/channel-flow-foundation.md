@@ -24,3 +24,19 @@ Run the standalone model tests with:
 rustc --edition=2021 --test tconstruct/tests/rust/channel_flow_plan.rs -o /tmp/channel-flow-tests
 /tmp/channel-flow-tests
 ```
+
+## Unconnected native state codec
+
+The Channel state codec stores a native-format 40 mB tank and a non-negative
+`locked` amount no greater than its fluid amount. Its patch operation retains
+unrelated outer and nested tank fields, the fluid metadata compound and the
+source `is_flowing` field as opaque NBT. It rejects malformed values and
+legacy Forge `FluidName`/`Amount`/`Tag` spellings, including mixed layouts, and fluid IDs that cannot be represented
+losslessly as UTF-8; it does not migrate or interpret Forge saves. Unknown extension fields are
+preserved as data, but their semantics are not understood. No world read,
+write, block entity registration, transfer, chunk unload or destruction is
+connected. Save/load, old-world compatibility and LAN remain unverified.
+The eventual caller must validate the fluid resource-location syntax and its
+presence in the current world's registry. It must also ensure an extension has
+not assigned different meaning to the owned `tank`, `fluid`, `fluid_tag`,
+`amount`, or `locked` keys; this codec cannot distinguish a same-name collision.
