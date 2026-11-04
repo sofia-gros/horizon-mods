@@ -15,7 +15,10 @@ fn copper_can_contents_gui(
     } else { return; };
     let sprite_id = crate::game::tconstruct_source_melter_render::sprite(&fluid);
     let Some(sprite) = game.gui.atlas.sprites.get(&sprite_id).copied() else { return; };
-    let color = crate::game::tconstruct_source_melter_render::color_tagged(&fluid, tag.as_ref());
+    let color = if let Some(tag) = tag.as_ref() {
+        let Some(color) = crate::game::tconstruct_source_melter_render::can_potion_color(tag) else { return; };
+        color
+    } else { crate::game::tconstruct_source_melter_render::color(&fluid) };
     // Opaque row spans of the MIT copper_can_fluid.png (16 x 16).
     // Crop the existing still sprite, preserving the base icon outside its mask.
     for (left, top, width) in [(6., 3., 4.), (5., 4., 6.), (5., 5., 6.), (6., 6., 4.)] {

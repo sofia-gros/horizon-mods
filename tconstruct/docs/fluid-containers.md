@@ -30,8 +30,8 @@ the source help text. The overlay crops existing Horizon still sprites to the
 upstream MIT mask; missing sprites leave the original icon unchanged.
 
 For supported potion tags with an explicit `CustomPotionColor` integer, the
-icon also uses that color. Potion colors derived from effects are not yet
-rendered. Malformed or unknown data, opaque wire patches, explicit item-model
+icon also uses that color. Known base potions without extra effects use their
+source-equivalent colors; colors for added effect mixes are not yet rendered. Malformed or unknown data, opaque wire patches, explicit item-model
 overrides and unsupported tags remain hidden. This display does not change
 container transfer behavior. World/hand/dropped-item contents rendering is
 not implemented. In-game visuals, resource-pack transformations and LAN behavior

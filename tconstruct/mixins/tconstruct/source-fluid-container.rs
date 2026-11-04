@@ -109,11 +109,12 @@ pub(super) fn can_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> boo
     known_potion_tag(tag?)
 }
 
-/// A custom potion color overrides effect-derived color in the source model.
-/// Other potion icons remain unsupported until their effects can be colored.
+/// Known base potions and explicit colors can be rendered exactly. Custom
+/// effects without an explicit color need the source effect-mixing algorithm.
 pub(super) fn can_display_potion_icon(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<horizon_world::nbt::Tag> {
     let tag = can_display_potion(stack, known)?;
-    matches!(tag.get("CustomPotionColor"), Some(horizon_world::nbt::Tag::Int(_))).then_some(tag)
+    (matches!(tag.get("CustomPotionColor"), Some(horizon_world::nbt::Tag::Int(_)))
+        || tag.get("CustomPotionEffects").is_none()).then_some(tag)
 }
 
 /// Empty cans have source help text; malformed or opaque stacks stay hidden.
@@ -680,8 +681,11 @@ mod tests {
         }
         filled.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
         assert_eq!(can_display_potion_icon(&filled, &known), None);
-        for tag in [Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]),
-            Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::String("red".into()))]),
+        let base = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        assert_eq!(can_display_potion_icon(&can_set_tagged(&empty, Some("tconstruct:potion"), Some(&base)).unwrap(), &known), Some(base));
+        let effects = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1))])]))]);
+        assert_eq!(can_display_potion_icon(&can_set_tagged(&empty, Some("tconstruct:potion"), Some(&effects)).unwrap(), &known), None);
+        for tag in [Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::String("red".into()))]),
             Tag::compound([("Potion", Tag::String("example:unknown".into())), ("CustomPotionColor", Tag::Int(0x123456))])] {
             let filled = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
             assert_eq!(can_display_potion_icon(&filled, &known), None);
