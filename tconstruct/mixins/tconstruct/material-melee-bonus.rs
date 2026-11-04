@@ -39,12 +39,14 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
         .is_some_and(|items| items.contains(&*stack.item));
     let trait_bonus = (!broken && melee).then(|| crate::game::tconstruct_source_material_traits::levels(&game.world, stack)).flatten()
         .map(|traits| {
-            let jagged = traits.levels.get("tconstruct:jagged").copied().unwrap_or(0);
-            let stonebound = traits
-                .levels
-                .get("tconstruct:stonebound")
-                .copied()
-                .unwrap_or(0);
+            let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|raw| raw.as_ref().ok());
+            let wear_level = |id| {
+                if crate::game::tconstruct_modifier_snapshot::known_melee_wear(raw, id) {
+                    traits.levels.get(id).copied().unwrap_or(0)
+                } else { 0 }
+            };
+            let jagged = wear_level("tconstruct:jagged");
+            let stonebound = wear_level("tconstruct:stonebound");
             if jagged == 0 && stonebound == 0 {
                 return 0.0;
             }

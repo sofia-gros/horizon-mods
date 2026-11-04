@@ -6,7 +6,7 @@ mod game {
  pub struct Health(pub f32); impl Health {pub fn health(&self)->f32{self.0}}
  pub struct Player {pub auto_spin_attack_dmg:f32,pub health:Health}
  pub struct Chunks {pub active:HashSet<Option<i32>>,pub raw:Option<Result<tconstruct_modifier_snapshot::Raw,String>>,pub tags:Option<Result<HashMap<String,HashSet<String>>,String>>}
- impl Default for Chunks {fn default()->Self{Self{tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:pickaxe".into()]))]))),active:HashSet::new(),raw:Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()])]),BTreeMap::new())))}}}
+ impl Default for Chunks {fn default()->Self{Self{tags:Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:pickaxe".into()]))]))),active:HashSet::new(),raw:Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()]),("tconstruct:tinkering/modifiers/jagged".into(),vec![tconstruct_modifier_snapshot::PINNED_JAGGED.to_vec()]),("tconstruct:tinkering/modifiers/stonebound".into(),vec![tconstruct_modifier_snapshot::PINNED_STONEBOUND.to_vec()])]),BTreeMap::new())))}}}
  impl Chunks {pub fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<HashMap<String,HashSet<String>>,String>>{&self.tags}pub fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<tconstruct_modifier_snapshot::Raw,String>>{&self.raw}pub fn __horizon_mixins_tconstruct_melee_active(&self)->&HashSet<Option<i32>>{&self.active}}
  #[derive(Default)] pub struct World {pub chunks:Chunks,pub levels:BTreeMap<String,i32>}
  pub struct Game<'a>{pub player:Option<Player>,pub lan_acting:Option<i32>,pub world:World,pub inventory:Vec<Option<ItemStack>>,pub selected:usize,pub marker:std::marker::PhantomData<&'a ()>}
@@ -46,5 +46,17 @@ mod game {
   game.inventory[game.selected].as_mut().unwrap().damage=100;assert_eq!(run(&mut game,true),2.0);
   game.inventory[game.selected].as_mut().unwrap().damage=25;game.player.as_mut().unwrap().health.0=6.0;game.world.levels.insert("tconstruct:jagged".into(),1);
   assert!((run(&mut game,true)-3.28125).abs()<0.0001);
+  // Each known wear definition is gated independently; Raging itself survives.
+  game.world.levels.insert("tconstruct:stonebound".into(),1);
+  let jagged="tconstruct:tinkering/modifiers/jagged";
+  let stonebound="tconstruct:tinkering/modifiers/stonebound";
+  game.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.get_mut(jagged).unwrap().push(b"{}".to_vec());
+  assert_eq!(run(&mut game,true),3.21875);
+  game.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.get_mut(jagged).unwrap().push(tconstruct_modifier_snapshot::PINNED_JAGGED.to_vec());
+  game.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.remove(stonebound);
+  assert_eq!(run(&mut game,true),3.28125);
+  game.world.chunks.raw.as_mut().unwrap().as_mut().unwrap().0.remove(jagged);
+  assert_eq!(run(&mut game,true),3.25);
+
  }
 }

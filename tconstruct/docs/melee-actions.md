@@ -456,9 +456,9 @@ remain. Raging's separate RETURN path is unchanged.
 
 This projection has no target information, so its existing wear contribution can
 still apply to nonliving targets; this tag check does not establish source target
-eligibility. The `levels()` resolver supplies material trait levels, not validation
-of the active Jagged/Stonebound modifier definitions. Overrides or removal of those
-modifier definitions are not validated by this slice.
+eligibility. The `levels()` resolver supplies material trait levels, not modifier-definition
+validation. The subsequent definition guard below now validates the supported
+Jagged/Stonebound definitions separately.
 
 The actual projection-helper boundary test checks independently varied tags,
 unknown/error/empty/restored maps, no trait resolution while ineligible, preserved
@@ -496,3 +496,33 @@ existing target/tag/definition tests. `raging_melee.rs` also retains real ItemSt
 broken-state and wear-formula coverage. Actor switching and trait resolution are
 doubles in these tests; the host call-path/cache assessment is source inspection,
 not full gameplay or generated-host execution.
+
+
+## Melee wear definition overrides
+
+Both the base damage projection and the wear applied to Raging's flat addition
+now independently require the highest-priority Jagged and Stonebound definitions
+to exactly match their pinned stock bytes. Sources are
+[`jagged.json`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/jagged.json)
+and [`stonebound.json`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/stonebound.json).
+These define the conditional percent melee formulas currently implemented here.
+A changed, missing, unreadable or unknown definition suppresses only that wear
+effect; the other known wear effect, base damage and independently validated Raging
+remain eligible. Removing a highest override restores a valid lower stock layer;
+a later stock layer supersedes an earlier unknown layer. Semantic JSON equivalence
+is deliberately not interpreted: even whitespace-only changes fail closed.
+
+This is bounded support, not execution of arbitrary replacement modules. The
+existing trait-level source, modifier order/formulas, live tags, broken state,
+mainhand selection and target limitations are unchanged. Mining and other modifier
+consumers are outside this slice. The existing raw resource snapshot/module is
+reused; no manifest or resource-loader change is needed.
+
+Run `TC_MELEE_HARNESS_DEPS=/workspace/shared/haste-wire-target/debug/deps python3 tconstruct/tests/test_broken_melee_damage.py`
+with compatible cached serde_json dependencies. Its actual helper/snapshot tests
+cover individual definitions, pack priority, coefficient and whitespace overrides,
+missing/error snapshots, independent effects and unchanged player projection.
+The real ItemStack/wear-formula `raging_melee.rs` harness also proves that suppressing
+either wear effect preserves the other and Raging itself. The ordinary Raging
+boundary harness remains covered. Host attributes/trait resolution are doubles;
+no full build, gameplay, LAN or Windows test was run.
