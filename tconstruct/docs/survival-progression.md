@@ -142,3 +142,7 @@ The pinned TConstruct recipe also permits making a vanilla blast furnace with th
 ## Steel shard cooking
 
 The pinned source provides smelting and blasting recipes from one Steel Shard to one Steel Nugget, with base times of 50 and 25 ticks respectively and 0.2 experience. Steel Cluster loot contains the shard. Source and registration tests pass; actual acquisition, furnace use, packaging, recipe-book display, save/reload and LAN remain unverified.
+
+## Steel storage conversions
+
+The pinned source's Steel Nugget, Ingot and Block conversions are registered, using additive Forge steel tags. Shaped compression requires the corresponding TConstruct item in the center and eight tagged items around it; unpacking a block or ingot yields nine ingots or nuggets. Source and registration tests pass. The host's existing Forge namespace ownership and `remove` limitations apply. Actual crafting, resource loading, packaging, recipe-book display, save/reload and LAN remain unverified.
