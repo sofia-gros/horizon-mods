@@ -109,12 +109,9 @@ pub(super) fn can_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> boo
     known_potion_tag(tag?)
 }
 
-/// Known base potions and explicit colors can be rendered exactly. Custom
-/// effects without an explicit color need the source effect-mixing algorithm.
+/// Only validated potion tags are exposed to the conservative icon renderer.
 pub(super) fn can_display_potion_icon(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<horizon_world::nbt::Tag> {
-    let tag = can_display_potion(stack, known)?;
-    (matches!(tag.get("CustomPotionColor"), Some(horizon_world::nbt::Tag::Int(_)))
-        || tag.get("CustomPotionEffects").is_none()).then_some(tag)
+    can_display_potion(stack, known)
 }
 
 /// Empty cans have source help text; malformed or opaque stacks stay hidden.
@@ -205,7 +202,7 @@ pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) 
 // Effect IDs changed from numeric bytes to namespaced IDs after 1.20.1.
 // Only the source-era vanilla IDs and fields with unchanged NBT types are
 // translated; unsupported effects stay in the original stack/tank.
-const EFFECT_IDS: [&str; 33] = [
+pub(super) const EFFECT_IDS: [&str; 33] = [
     "minecraft:speed", "minecraft:slowness", "minecraft:haste", "minecraft:mining_fatigue",
     "minecraft:strength", "minecraft:instant_health", "minecraft:instant_damage", "minecraft:jump_boost",
     "minecraft:nausea", "minecraft:regeneration", "minecraft:resistance", "minecraft:fire_resistance",
@@ -684,7 +681,7 @@ mod tests {
         let base = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
         assert_eq!(can_display_potion_icon(&can_set_tagged(&empty, Some("tconstruct:potion"), Some(&base)).unwrap(), &known), Some(base));
         let effects = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1))])]))]);
-        assert_eq!(can_display_potion_icon(&can_set_tagged(&empty, Some("tconstruct:potion"), Some(&effects)).unwrap(), &known), None);
+        assert_eq!(can_display_potion_icon(&can_set_tagged(&empty, Some("tconstruct:potion"), Some(&effects)).unwrap(), &known), Some(effects));
         for tag in [Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::String("red".into()))]),
             Tag::compound([("Potion", Tag::String("example:unknown".into())), ("CustomPotionColor", Tag::Int(0x123456))])] {
             let filled = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
