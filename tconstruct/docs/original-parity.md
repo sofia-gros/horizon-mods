@@ -837,3 +837,8 @@ native crafting recipes. Each reverse recipe returns nine units; compression
 requires the corresponding TConstruct item at the center and eight items
 from its extensible Forge tag. Source-data tests cover the translation and tag
 contents. Live crafting, datapack reload and LAN remain unverified.
+
+The pinned seared and scorched glass-pane crafting recipes now each convert six
+matching glass blocks into sixteen panes. Both glass and pane blocks were
+already registered. Source-data tests cover the translated recipes; live
+crafting, datapack reload and LAN remain unverified.
