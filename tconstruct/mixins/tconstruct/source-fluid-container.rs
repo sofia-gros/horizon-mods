@@ -360,6 +360,9 @@ pub(super) fn quick_input_with_color(slots: &mut [Option<ItemStack>; 2], stack: 
     true
 }
 pub(super) fn filled_bucket(fluid: &str) -> Option<String> {
+    // Only the pinned source/flowing pairs share a bucket supplier. This is
+    // an output lookup; the caller still consumes the exact input fluid ID.
+    let fluid = super::tconstruct_source_fluid_display::display_id(fluid);
     match fluid {
         "minecraft:water" => Some("minecraft:water_bucket".into()),
         "minecraft:lava" => Some("minecraft:lava_bucket".into()),
@@ -1051,6 +1054,52 @@ mod tests {
         let before = (unknown.clone(), input.clone());
         assert!(!transfer(&mut unknown, &mut input, Direction::Auto, &known, &|_| false));
         assert_eq!((unknown, input), before);
+    }
+    #[test]
+    fn flowing_bucket_filling_preserves_fluid_identity_and_failures() {
+        use horizon_world::nbt::Tag;
+        for (fluid, bucket) in [("minecraft:flowing_water", "minecraft:water_bucket"),
+            ("minecraft:flowing_lava", "minecraft:lava_bucket"),
+            ("tconstruct:flowing_molten_copper", "tconstruct:molten_copper_bucket")] {
+            let mut tank = SmelteryTank::new(2000);
+            assert!(tank.insert("minecraft:water", 500));
+            assert!(tank.insert(fluid, 1000));
+            let mut slots = [Some(ItemStack::new("minecraft:bucket", 2)), None];
+            assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some(fluid), &known, &known));
+            assert_eq!(tank.amount(fluid), 0);
+            assert_eq!(tank.amount("minecraft:water"), 500);
+            assert_eq!(slots[0].as_ref().unwrap().count, 1);
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), bucket);
+            let mut single = super::super::tconstruct_source_melter_state::Tank::new(1000);
+            assert!(single.insert(fluid, 1000));
+            let mut one = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+            assert!(transfer_single(&mut single, &mut one, Direction::FillItem, &known, &known));
+            assert_eq!(single.amount, 0);
+            assert_eq!(one[1].as_ref().unwrap().item.as_ref(), bucket);
+            let mut tank = SmelteryTank::new(1000); assert!(tank.insert(fluid, 999));
+            let mut slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            assert!(tank.insert(fluid, 1));
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &|id| id != bucket, &known));
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &|_| false));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            slots[1] = Some(ItemStack::new("minecraft:stone", 1));
+            let blocked = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank, slots), blocked);
+            let mut tank = SmelteryTank::new(1000);
+            let tag = Tag::compound([("variant", Tag::Int(1))]);
+            assert!(tank.insert_tagged(fluid, Some(&tag), 1000));
+            let mut slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank, slots), before);
+        }
+        assert_eq!(filled_bucket("tconstruct:flowing_unknown"), None);
+        assert_eq!(filled_bucket("other:flowing_water"), None);
     }
     #[test]
     fn copper_can_moves_one_ingot_and_retains_other_stack_items() {

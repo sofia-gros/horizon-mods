@@ -1,6 +1,8 @@
 from pathlib import Path
 import json
 import re
+import zipfile
+import tomllib
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
@@ -12,7 +14,11 @@ class FlowingVanillaDisplay(unittest.TestCase):
         flowing = {fluid for fluid in fluids if fluid.startswith('tconstruct:flowing_')}
         self.assertEqual(len(flowing), 70)
         self.assertEqual(set(pairs), flowing)
+        with zipfile.ZipFile(ROOT.parents[1] / 'content/reference/tconstruct-fluid-buckets.zip') as archive:
+            buckets = json.loads(archive.read('manifest.json'))['buckets']
         for fluid, still in pairs.items():
+            bucket = still.removeprefix('tconstruct:') + '_bucket'
+            self.assertEqual(buckets[bucket]['fluid'], still)
             self.assertEqual(still, fluid.replace('flowing_', '', 1))
             self.assertIn(still, fluids)
 
@@ -25,9 +31,13 @@ class FlowingVanillaDisplay(unittest.TestCase):
         self.assertEqual(render.count('match super::tconstruct_source_fluid_display::display_id(fluid)'), 2)
         self.assertIn('let display_fluid = super::tconstruct_source_fluid_display::display_id(&fluid);', gauge)
         self.assertIn('if fluid == "tconstruct:potion"', gauge)
-        self.assertIn('source = "source-fluid-display.rs"', manifest)
-        for file in ('source-fluid-container.rs', 'source-smeltery-tank.rs'):
-            self.assertNotIn('tconstruct_source_fluid_display', (ROOT / file).read_text())
+        modules = tomllib.loads(manifest)['module']
+        locations = {m['file'] for m in modules if m['name'] == 'tconstruct_source_fluid_display'}
+        self.assertEqual(locations, {'crates/horizon-client/src/game.rs', 'crates/horizon-client/src/client_lib.rs'})
+        container = (ROOT / 'source-fluid-container.rs').read_text()
+        self.assertEqual(container.count('tconstruct_source_fluid_display::display_id(fluid)'), 1)
+        self.assertIn('if !known_fluid(&fluid) || !known_item(&bucket) || !next.take(&fluid, 1000)', container)
+        self.assertNotIn('tconstruct_source_fluid_display', (ROOT / 'source-smeltery-tank.rs').read_text())
 
 if __name__ == '__main__':
     unittest.main()

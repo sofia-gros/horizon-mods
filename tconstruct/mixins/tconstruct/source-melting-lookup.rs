@@ -814,6 +814,22 @@ mod tests {
         assert!(catalog.bucket_filling("minecraft:water", &|_| true).is_none());
     }
     #[test]
+    fn table_filling_uses_flowing_fluid_identity_and_shared_bucket() {
+        let recipes = [("bucket".into(), br#"{"type":"tconstruct:table_filling","container":"minecraft:bucket","fluid_amount":1000}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let fluid_tags = HashMap::new();
+        let items = ["minecraft:bucket".into(), "minecraft:water_bucket".into(), "tconstruct:molten_copper_bucket".into()].into_iter().collect();
+        let fluids = ["minecraft:flowing_water".into(), "minecraft:flowing_lava".into(), "tconstruct:flowing_molten_copper".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        for (fluid, bucket) in [("minecraft:flowing_water", "minecraft:water_bucket"), ("tconstruct:flowing_molten_copper", "tconstruct:molten_copper_bucket")] {
+            let (_, recipe, output) = catalog.bucket_filling(fluid, &|_| true).unwrap();
+            assert_eq!(recipe.fluid.id, fluid);
+            assert_eq!((recipe.fluid.amount, recipe.cooling_time, recipe.consumes_cast), (1000, 5, true));
+            assert_eq!(output, bucket);
+        }
+        assert!(catalog.bucket_filling("minecraft:flowing_lava", &|_| true).is_none());
+        assert!(catalog.bucket_filling("tconstruct:flowing_unknown", &|_| true).is_none());
+    }
+    #[test]
     fn table_filling_maps_powdered_snow_to_vanilla_bucket() {
         let recipes = [("bucket".into(), br#"{"type":"tconstruct:table_filling","container":"minecraft:bucket","fluid_amount":1000}"#.to_vec())].into_iter().collect();
         let item_tags = HashMap::new(); let fluid_tags = HashMap::new();

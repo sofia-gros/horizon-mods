@@ -2447,6 +2447,12 @@ name = "tconstruct_source_fluid_display"
 source = "source-fluid-display.rs"
 
 [[module]]
+id = "server-fluid-display"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_fluid_display"
+source = "source-fluid-display.rs"
+
+[[module]]
 id = "source-melter-render"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_render"
