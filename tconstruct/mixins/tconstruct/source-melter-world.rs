@@ -467,7 +467,6 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 if definition_json.get("modules")?.as_array()?.iter().any(|module|
                     module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:traits")) { return None; }
                 let traits = super::tconstruct_source_material_traits::levels(world, &output)?;
-                let emerald_upgrade = matches!(custom.get("tic_upgrades").and_then(|v| v.get("tconstruct:emerald")), Some(Tag::Int(1)));
                 let kind = super::tconstruct_source_station_stats::part_kind(parts.get(index)?)?;
                 let durability = if matches!(kind, "head" | "limb" | "slime" | "skull") || kind.starts_with("plating_") {
                     let id = next.get(index)?;
@@ -480,7 +479,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 let swap = super::tconstruct_source_melting_recipes::PartSwapCastingRecipe::parse(recipes.get(&id)?, &|_| true)?;
                 let initial = durability as f32 * (swap.item_cost as f32 / 3.0);
                 let repair = super::tconstruct_source_material_effects::casting_repair_amount(
-                    &output, &traits.levels, &traits.order, emerald_upgrade, initial,
+                    &output, &traits.levels, &traits.order, initial,
                 )?.max(0.0) as u32;
                 super::tconstruct_tx::fixed_set_damage(&mut output, stack.damage.saturating_sub(repair));
             }

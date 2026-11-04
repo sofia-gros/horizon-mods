@@ -71,12 +71,23 @@ pub(super) fn limited_casting_repair_factor(traits: &std::collections::BTreeMap<
         * dense_repair_factor(level("tconstruct:dense")) * if emerald { 1.5 } else { 1.0 })
 }
 
-/// Extend only Emerald-trait casting to ordered known repair hooks. Unknown
-/// traits and ambiguous order remain closed before the transaction proceeds.
+/// Ordered known repair hooks for supported casting part swaps. Unknown traits
+/// and ambiguous order remain closed before the transaction proceeds.
 pub(super) fn casting_repair_amount(stack: &horizon_items::items::ItemStack,
-    traits: &std::collections::BTreeMap<String, i32>, order: &[String], emerald_upgrade: bool, initial: f32) -> Option<f32> {
+    traits: &std::collections::BTreeMap<String, i32>, order: &[String], initial: f32) -> Option<f32> {
+    use horizon_world::nbt::Tag;
+    if !initial.is_finite() { return None; }
+    let upgrades = stack.data()?.other("minecraft:custom_data")?.get("tic_upgrades");
+    if upgrades.is_some_and(|tag| !matches!(tag, Tag::Compound(_))) { return None; }
+    let emerald_upgrade = match upgrades.and_then(|u| u.get("tconstruct:emerald")) {
+        None | Some(Tag::Int(0)) => false, Some(Tag::Int(level)) if *level > 0 => true, _ => return None,
+    };
     if traits.keys().any(|id| !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense" | "tconstruct:emerald")) { return None; }
-    if traits.get("tconstruct:emerald").copied().unwrap_or(0) > 0 {
+    let level = |id: &str| traits.get(id).copied().unwrap_or(0);
+    let emerald = emerald_upgrade || level("tconstruct:emerald") > 0;
+    let active = [level("tconstruct:preserved") > 0, level("tconstruct:cultivated") > 0,
+        level("tconstruct:dense") > 0, emerald].into_iter().filter(|v| *v).count();
+    if level("tconstruct:emerald") > 0 || active > 1 {
         ordered_emerald_repair_amount(stack, traits, order, initial)
     } else {
         Some(initial * limited_casting_repair_factor(traits, emerald_upgrade)?)

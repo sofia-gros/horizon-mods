@@ -8,6 +8,6 @@ class EmeraldCastingRepairWiring(unittest.TestCase):
         self.assertIn('rebuild_material_swap(world, definition, stack, &next, 0, true',text)
         self.assertIn('if !composite && stack.damage != 0',text)
         self.assertIn('casting_repair_amount(',text)
-        self.assertIn('&output, &traits.levels, &traits.order, emerald_upgrade, initial,',text)
+        self.assertIn('&output, &traits.levels, &traits.order, initial,',text)
         self.assertIn('durability as f32 * (swap.item_cost as f32 / 3.0)',text)
 if __name__=='__main__': unittest.main()
