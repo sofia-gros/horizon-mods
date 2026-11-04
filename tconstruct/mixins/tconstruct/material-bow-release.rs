@@ -15,8 +15,10 @@ fn tconstruct_bow_release(
         let mut dispatch_ticks = adjusted;
         let airborne = crate::game::tconstruct_projectile_airborne::airborne(game);
         if let Some((velocity, spread)) = game.player.as_ref().and_then(|player| crate::game::tconstruct_projectile_stats::projectile_stats_at_airborne(stack, player.position.y as f32, game.world.shape.max_y(), airborne)).or_else(|| crate::game::tconstruct_projectile_stats::projectile_stats(stack)) {
-            let power = crate::game::tconstruct_projectile_stats::bow_charge(ticks, draw_ticks) * 3.0;
-            if power * velocity < 0.3 { return Break(()); }
+            let charge = crate::game::tconstruct_projectile_stats::bow_charge(ticks, draw_ticks);
+            // Source compares charge * velocity before the host's 3x launch scale.
+            if charge * velocity < 0.1 { return Break(()); }
+            let power = charge * 3.0;
             dispatch_ticks = adjusted.max(3);
             let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, stack);
             let health = game.player.as_ref().map(|player| player.health.health());
