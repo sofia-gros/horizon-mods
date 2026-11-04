@@ -150,3 +150,37 @@ Actor and trait inputs and the unrelated percent-trait helper are boundary
 doubles. The guest-shaped case is not a LAN test. The enabled RETURN hook is
 also checked; generated-host compilation, gameplay, saving, LAN and Windows
 remain unverified.
+
+## Broken material melee-damage projection
+
+The existing matched-item melee projection now sets both saved material damage
+and its Jagged/Stonebound wear bonus to zero when the shared retained-durability
+predicate marks the held tool broken. It still subtracts the host registry's
+current native item damage inside a cloned attribute map, rather than falling
+through to the native tool damage. Player base damage, additive effects and
+multipliers remain in the same attribute evaluation. Repairing the damage and
+clearing the broken flag restores the saved material contribution on the next
+query. Neither the real attribute map nor the stack is modified.
+
+This follows the `!tool.isBroken()` guard around the held attack-damage modifier
+in pinned
+[`AttributesModifierHook`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/behavior/AttributesModifierHook.java).
+The slice retains the existing requirement that held item ID equals the host's
+recorded attack-item ID and that a saved floating-point `tic_attack_damage`
+exists. Mismatches and unavailable projection state retain their existing native
+fallback. It does not implement source-wide attack cancellation or expand
+item eligibility, attribute override support, or conditional damage ordering.
+Pinned Horizon `0c7b5b61` updates equipment before recording `attack_item` in
+`game/hand.rs::tick_hand`; this change uses the existing projection boundary
+rather than adding an equipment refresh hook.
+The projection retains its existing assumption that the native item contribution
+in the player map matches `attack_item_info().attack_damage`. Custom stack-level
+or external replacements for that native modifier are not validated here.
+
+The lightweight harness executes the real projection helper and broken-state
+predicate. Seven Rust cases pass, covering flag-only and damage-limit breakage,
+repair, base/additive/multiplier preservation, changed native item damage,
+unchanged mismatch/error fallbacks and suppression of wear traits. Attribute
+map and trait behavior are boundary doubles; this is not a generated-host or
+LAN test. Generated-host compilation, gameplay, save/reload, LAN and Windows
+remain unverified.

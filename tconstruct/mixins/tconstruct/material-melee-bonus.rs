@@ -20,8 +20,12 @@ fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::Co
     let native = game
         .attack_item_info()
         .map_or(0.0, |item| item.attack_damage);
-    let damage = f32::from_bits(*bits);
-    let trait_bonus = crate::game::tconstruct_source_material_traits::levels(&game.world, stack)
+    // Source broken tools provide no held attack-damage modifier. Keep the
+    // projection so the host's static item damage is removed rather than
+    // falling through and reintroducing it. Percent wear traits also stop.
+    let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
+    let damage = if broken { 0.0 } else { f32::from_bits(*bits) };
+    let trait_bonus = (!broken).then(|| crate::game::tconstruct_source_material_traits::levels(&game.world, stack)).flatten()
         .map(|traits| {
             let jagged = traits.levels.get("tconstruct:jagged").copied().unwrap_or(0);
             let stonebound = traits

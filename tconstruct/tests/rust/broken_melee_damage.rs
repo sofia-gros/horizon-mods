@@ -1,0 +1,94 @@
+// The real projection helper and broken predicate, with host attribute/trait
+// boundary doubles. The model keeps additive effects before total multipliers.
+extern crate self as horizon_world;
+extern crate self as horizon_items;
+pub mod items { pub type ItemStack=super::Stack; }
+use std::collections::BTreeMap;
+use std::ops::ControlFlow;
+pub mod nbt {
+    use super::BTreeMap;
+    pub enum Tag { Float(u32), Int(i32), Byte(i8), Compound(BTreeMap<String,Tag>) }
+    impl Tag {
+        pub fn get(&self,k:&str)->Option<&Self>{match self {Self::Compound(v)=>v.get(k),_=>None}}
+        pub fn compound<const N:usize>(v:[(&str,Tag);N])->Self{Self::Compound(v.into_iter().map(|(k,v)|(k.into(),v)).collect())}
+    }
+}
+use nbt::Tag;
+pub struct Data(Tag);
+impl Data {
+    fn other(&self,k:&str)->Option<&Tag>{(k=="minecraft:custom_data").then_some(&self.0)}
+    fn set_other(&mut self,k:&str,v:Option<Tag>){assert_eq!(k,"minecraft:custom_data");self.0=v.unwrap();}
+}
+pub struct Stack { item:String,damage:u32,data:Option<Data> }
+impl Stack {
+    fn new(item:&str,_:u32)->Self{Self{item:item.into(),damage:0,data:None}}
+    fn data(&self)->Option<&Data>{self.data.as_ref()}
+    fn data_mut(&mut self)->&mut Data{self.data.get_or_insert_with(||Data(Tag::Compound(BTreeMap::new())))}
+}
+pub struct ItemInfo { attack_damage:f32 }
+#[derive(Clone)] pub struct Player { base:f64,native:f64,additive:f64,total:f64,projection:f64,fail_set:bool,fail_read:bool }
+impl Player {
+    fn set_modifier(&mut self,attribute:&str,id:&str,value:f64,op:&str,enabled:bool)->Result<(),()>{
+        assert_eq!((attribute,id,op,enabled),("minecraft:attack_damage","tconstruct:material_attack_projection","add_value",true));
+        if self.fail_set{return Err(())}self.projection=value;Ok(())
+    }
+    fn attribute(&mut self,id:&str)->Result<f64,()>{assert_eq!(id,"minecraft:attack_damage");if self.fail_read{return Err(())}Ok(((self.base+self.native+self.additive+self.projection)*self.total).max(0.0))}
+}
+pub struct World { trait_level:i32 }
+pub mod game {
+    use super::*;
+    pub struct Game<'a>{pub held:Option<Stack>,pub attack_item:Option<String>,pub info:Option<ItemInfo>,pub player:Option<Player>,pub world:World,pub marker:std::marker::PhantomData<&'a ()>}
+    impl Game<'_>{pub fn held(&self)->Option<&Stack>{self.held.as_ref()}pub fn attack_item_info(&self)->Option<&ItemInfo>{self.info.as_ref()}}
+    pub mod tconstruct_source_ranged_wear { include!("../../mixins/tconstruct/source-ranged-wear.rs"); }
+    pub mod tconstruct_source_material_traits {
+        use super::*;
+        pub struct Traits{pub levels:BTreeMap<String,i32>,pub durability_multiplier:f32}
+        pub fn levels(world:&World,_:&Stack)->Option<Traits>{
+            assert!(world.trait_level>=0,"broken stack must not resolve percent traits");
+            Some(Traits{levels:BTreeMap::from([("tconstruct:jagged".into(),world.trait_level)]),durability_multiplier:1.0})
+        }
+    }
+    pub mod tconstruct_source_material_effects {
+        pub fn wear_damage_bonus(damage:f32,_:u32,_:f32,jagged:i32,stonebound:i32)->f32{assert_eq!((jagged,stonebound),(1,0));damage*0.5}
+    }
+    include!("../../mixins/tconstruct/material-melee-bonus.rs");
+    pub fn run(g:&Game<'_>)->ControlFlow<f32>{tconstruct_material_melee_bonus(g)}
+}
+fn game()->game::Game<'static>{
+    let mut held=Stack::new("tconstruct:sword",1);
+    held.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_attack_damage",Tag::Float(8.0f32.to_bits())),("tic_max_damage",Tag::Int(100)),("tic_broken",Tag::Byte(0))])));
+    game::Game{held:Some(held),attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0},marker:std::marker::PhantomData}
+}
+fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.held.as_mut().unwrap().data_mut().0 else{panic!()};v.insert(key.into(),value);}
+#[test] fn broken_removes_native_and_material_damage_and_repair_restores(){
+    let mut g=game();assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+    field(&mut g,"tic_broken",Tag::Byte(0));g.held.as_mut().unwrap().damage=100;assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+    g.held.as_mut().unwrap().damage=99;assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    assert_eq!(g.player.as_ref().unwrap().projection,0.0);assert_eq!(g.held.as_ref().unwrap().damage,99);
+}
+#[test] fn broken_preserves_player_base_effects_and_multiplier_order(){
+    let mut g=game();field(&mut g,"tic_broken",Tag::Byte(-1));
+    let p=g.player.as_mut().unwrap();p.base=5.0;p.additive=3.0;p.total=1.5;
+    assert_eq!(game::run(&g),ControlFlow::Break(12.0));
+    g.player.as_mut().unwrap().additive=-2.0;assert_eq!(game::run(&g),ControlFlow::Break(4.5));
+    assert_eq!(g.player.as_ref().unwrap().projection,0.0);
+}
+#[test] fn percent_wear_traits_are_skipped_only_when_broken(){
+    let mut g=game();g.world.trait_level=1;assert_eq!(game::run(&g),ControlFlow::Break(13.5));
+    field(&mut g,"tic_broken",Tag::Byte(1));g.world.trait_level=-1;
+    assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+}
+#[test] fn selection_and_native_fallback_guards_stay_unchanged(){
+    let mut g=game();field(&mut g,"tic_broken",Tag::Byte(1));g.attack_item=Some("tconstruct:pickaxe".into());assert_eq!(game::run(&g),ControlFlow::Continue(()));
+    g.attack_item=Some("tconstruct:sword".into());field(&mut g,"tic_attack_damage",Tag::Int(8));assert_eq!(game::run(&g),ControlFlow::Continue(()));
+    let mut g=game();g.player=None;assert_eq!(game::run(&g),ControlFlow::Continue(()));
+    let mut g=game();g.player.as_mut().unwrap().fail_set=true;assert_eq!(game::run(&g),ControlFlow::Continue(()));
+    let mut g=game();g.player.as_mut().unwrap().fail_read=true;assert_eq!(game::run(&g),ControlFlow::Continue(()));
+}
+#[test] fn current_native_item_damage_is_removed_not_a_fixed_constant(){
+    let mut g=game();g.info.as_mut().unwrap().attack_damage=7.0;g.player.as_mut().unwrap().native=7.0;
+    assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+    g.info=None;g.player.as_mut().unwrap().native=0.0;assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+}
