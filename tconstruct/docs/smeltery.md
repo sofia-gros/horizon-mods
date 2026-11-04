@@ -27,3 +27,7 @@ A Faucet can move untagged fluid from a formed Smeltery or Foundry Drain into bu
 ### Built-in tank to Casting Tank
 
 An untagged fluid from a built-in fuel or ingot tank can travel through a Faucet into a Casting Tank. The route stages source, output and Faucet data together, processes a supported container after fluid arrives, and updates the live slots only after the staged write succeeds. It rejects noncanonical saved tank data or live-slot mismatches; old Casting Tank and Cannon tick paths now also wait rather than overwrite noncanonical data when the source or target changes. Tagged fluid, generic handlers, full host build, live world, save/reload and LAN remain unverified. The route test uses real state/NBT types but a mocked world and container transfer, so it does not establish actual bucket integration or disk/network atomicity.
+
+### Built-in tank to Fluid Cannon
+
+A Faucet can supply a Fluid Cannon from a built-in fuel or ingot tank. This bounded route checks the saved source, Faucet and Cannon against the current machine state, then stages their changes together and updates the comparator. Cannon items remain unchanged. Unknown or noncanonical saves and tagged fluids wait; generic handlers remain unsupported. The real game, host-wide build, LAN and disk/network atomicity remain unverified. The source-state fixture uses a mocked world and store and does not verify Cannon firing.
