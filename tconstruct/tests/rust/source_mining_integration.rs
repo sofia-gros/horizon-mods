@@ -134,3 +134,45 @@ fn netherite_and_haste_rebuild_mining_speed_without_stacking() {
         assert!((f32::from_bits(*speed) - 10.0).abs() < 0.0001);
     }
 }
+
+#[test]
+fn conditional_mining_multiplier_respects_emerald_trait_and_modifier_order() {
+ let definition=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:mining_speed":0.3}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(definition,&[]).unwrap();
+ let run=|order:&[&str], upgraded:bool| {
+  let mut stack=ItemStack::new("tconstruct:pickaxe",1);
+  let upgrades=if upgraded {Tag::compound([("tconstruct:emerald",Tag::Int(1))])} else {Tag::compound(Vec::<(&str,Tag)>::new())};
+  stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+   ("tic_max_damage",Tag::Int(100)),("tic_upgrades",upgrades),
+   ("tic_trait_order",Tag::List(order.iter().map(|id|Tag::String((*id).into())).collect()))
+  ])));
+  let levels=BTreeMap::from([("tconstruct:vintage".into(),1),("tconstruct:emerald".into(),1)]);
+  tconstruct_source_mining_stack::apply(&mut stack,&stats,&levels,&[],true).unwrap();
+  let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+  match custom.get("tic_mining_all") {Some(Tag::Float(bits))=>f32::from_bits(*bits),_=>panic!("missing multiplier")}
+ };
+ let first=(0.3f32*1.25)*0.9; let second=(0.3f32*0.9)*1.25;
+ assert_ne!(first.to_bits(),second.to_bits());
+ assert_eq!(run(&["tconstruct:emerald","tconstruct:vintage"],false).to_bits(),first.to_bits());
+ assert_eq!(run(&["tconstruct:vintage","tconstruct:emerald"],false).to_bits(),second.to_bits());
+ // An upgrade precedes traits and combines with Emerald trait only once.
+ assert_eq!(run(&["tconstruct:vintage"],true).to_bits(),first.to_bits());
+}
+
+#[test]
+fn emerald_trait_scales_maintained_and_rebuild_removes_bonus() {
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ let mut stack=ItemStack::new("tconstruct:pickaxe",1);
+ stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(100))])));
+ let order=vec!["tconstruct:maintained".to_owned()];
+ let with_emerald=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:maintained".into(),1)]);
+ tconstruct_source_mining_stack::apply(&mut stack,&stats,&with_emerald,&order,true).unwrap();
+ tconstruct_source_mining_stack::apply(&mut stack,&stats,&with_emerald,&order,true).unwrap();
+ let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+ assert!((tconstruct_source_mining_rules::conditional(custom,0,4.0,1.0,None,true,false,Some(false)).unwrap()-11.5).abs()<1e-6);
+ let without_emerald=BTreeMap::from([("tconstruct:maintained".into(),1)]);
+ tconstruct_source_mining_stack::apply(&mut stack,&stats,&without_emerald,&order,true).unwrap();
+ let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
+ assert!((tconstruct_source_mining_rules::conditional(custom,0,4.0,1.0,None,true,false,Some(false)).unwrap()-10.0).abs()<1e-6);
+}

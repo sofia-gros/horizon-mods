@@ -195,3 +195,16 @@ consuming ingredients or rewriting the data. Text warnings are currently English
 Focused tests cover the formula, partial progress, actor data wiring, salvage,
 and ingredient/remainder planning. They do not verify an actual Station
 transaction, local/LAN mining, weather, save/reload or the full host build.
+
+## Conditional mining multiplier order
+
+The saved conditional mining multiplier includes Emerald whether supplied by
+an upgrade or a resolved material/fixed trait. Emerald's conditional factor
+and Vintage's multiply-all factor are applied in saved modifier order after the
+tool definition's global factor. This preserves source floating-point rounding
+when both are present. Material regeneration replaces the saved value; existing
+items need a supported rebuild to acquire the correction. This is limited to
+the existing conditional mining path, not complete Emerald behavior for every
+possible datapack trait. Focused tests cover both trait orders and an installed
+Emerald upgrade. Integrated host build, real mining, save/reload and LAN remain
+unverified.
