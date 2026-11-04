@@ -138,3 +138,7 @@ command-supplied item and report the route as passed.
 ## Smooth basalt blast furnace
 
 The pinned TConstruct recipe also permits making a vanilla blast furnace with three smooth basalt beneath a furnace and five iron ingots. Source comparison tests cover the recipe data. Host recipe loading, crafting and recipe-book display, packaging, save/reload and LAN remain unverified.
+
+## Steel shard cooking
+
+The pinned source provides smelting and blasting recipes from one Steel Shard to one Steel Nugget, with base times of 50 and 25 ticks respectively and 0.2 experience. Steel Cluster loot contains the shard. Source and registration tests pass; actual acquisition, furnace use, packaging, recipe-book display, save/reload and LAN remain unverified.
