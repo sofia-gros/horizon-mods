@@ -62,3 +62,11 @@ fields may still be normalized by their existing decoder. Client network
 snapshots retain replacement semantics rather than merging old fields. Cached-host-type
 fixture tests exercise the merge and the shared store; full host compilation,
 real world save/reload, all interactions, and LAN remain unverified.
+
+A tank containing a fluid ID with an unpaired UTF-16 surrogate cannot be
+rewritten through the lossy native decoder. Store updates are rejected unless
+the raw tank is unchanged. This preserves that identifier during those writes
+but can pause all machine ticks. Client LAN snapshot replacement bypasses this
+guard. Controller destruction is not protected and neither tank data nor
+inventory drops are guaranteed. Other malformed or unknown nested data is
+outside this check. Host integration and world/LAN behavior remain unverified.

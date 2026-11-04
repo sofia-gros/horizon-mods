@@ -108,6 +108,21 @@ mod tests {
         assert_eq!(sources, before);
     }
     #[test]
+    fn smeltery_lossy_tank_id_cannot_be_rewritten() {
+        let pos = (3, 70, 1); let mut sources = Vec::new();
+        let bad = Tag::String(horizon_world::nbt::JavaString(vec![0xd800]));
+        let row = Tag::compound([("id", bad), ("amount", Tag::Long(1))]);
+        let tank = Tag::compound([("capacity", Tag::Long(100)), ("fluids", Tag::List(vec![row]))]);
+        let first = Tag::compound([("tank", tank.clone()), ("fuel", Tag::Long(10))]);
+        assert!(set_metadata(&mut sources, pos, "tconstruct:smeltery", first));
+        let same_tank = Tag::compound([("tank", tank), ("fuel", Tag::Long(9))]);
+        assert!(set_metadata(&mut sources, pos, "tconstruct:smeltery", same_tank));
+        let before = sources.clone();
+        let changed = Tag::compound([("tank", Tag::compound([("capacity", Tag::Long(100)), ("fluids", Tag::List(vec![]))]))]);
+        assert!(!set_metadata(&mut sources, pos, "tconstruct:smeltery", changed));
+        assert_eq!(sources, before);
+    }
+    #[test]
     fn client_snapshot_drops_omitted_view_fields() {
         let pos = (3, 70, 1); let mut sources = Vec::new();
         let old = Tag::compound([("heat_start", Tag::Int(2)), ("heat_page", Tag::IntArray(vec![9])), ("slot_count", Tag::Int(10)), ("future", Tag::Int(42))]);

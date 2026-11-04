@@ -12,7 +12,14 @@ pub(super) fn merge_top(previous: &Tag, updated: &Tag) -> Option<Tag> {
     }
     for (key, value) in next { merged.insert(key.clone(), value.clone()); }
     if let Some(old_tank) = old.get(&"tank".into()) {
-        let (Tag::Compound(old_fields), Tag::Compound(new_fields)) = (old_tank, next.get(&"tank".into())?) else { return None; };
+        let new_tank = next.get(&"tank".into())?;
+        let (Tag::Compound(old_fields), Tag::Compound(new_fields)) = (old_tank, new_tank) else { return None; };
+        // An unpaired UTF-16 surrogate would be changed by the existing
+        // lossy tank decoder. Permit only an exact raw tank passthrough.
+        if let Some(Tag::List(rows)) = old_fields.get(&"fluids".into()) {
+            let lossy = rows.iter().any(|row| matches!(row.get("id"), Some(Tag::String(id)) if id.to_string().is_err()));
+            if lossy && old_tank != new_tank { return None; }
+        }
         let mut tank = old_fields.clone();
         // Do not retain stale legacy aliases beside the current native fields.
         // Earlier writes replaced the tank wholesale and removed these keys.
@@ -68,6 +75,18 @@ pub(super) fn merge_top(previous: &Tag, updated: &Tag) -> Option<Tag> {
         assert_eq!(tank.get("future"), Some(&Tag::Int(42)));
         let raw_patch = Tag::compound([("tank", old_tank.clone())]);
         assert_eq!(merge_top(&previous, &raw_patch).unwrap().get("tank"), Some(&old_tank));
+    }
+    #[test] fn lossy_fluid_id_requires_unchanged_raw_tank() {
+        let bad = Tag::String(horizon_world::nbt::JavaString(vec![0xd800]));
+        let row = Tag::compound([("id", bad), ("amount", Tag::Long(1))]);
+        let old_tank = Tag::compound([("capacity", Tag::Long(100)), ("fluids", Tag::List(vec![row]))]);
+        let old = Tag::compound([("tank", old_tank.clone()), ("fuel", Tag::Long(10))]);
+        let passthrough = Tag::compound([("tank", old_tank.clone()), ("fuel", Tag::Long(9))]);
+        assert!(merge_top(&old, &passthrough).is_some());
+        let replaced = Tag::compound([("capacity", Tag::Long(100)), ("fluids", Tag::List(vec![Tag::compound([("id", Tag::String("�".into())), ("amount", Tag::Long(1))])]))]);
+        assert!(merge_top(&old, &Tag::compound([("tank", replaced)])).is_none());
+        let valid = Tag::compound([("capacity", Tag::Long(100)), ("fluids", Tag::List(vec![Tag::compound([("id", Tag::String("test:😀".into())), ("amount", Tag::Long(1))])]))]);
+        assert!(merge_top(&Tag::compound([("tank", valid.clone())]), &Tag::compound([("tank", valid)])).is_some());
     }
     #[test] fn malformed_or_missing_updated_tank_is_refused() {
         let old = Tag::compound([("tank", Tag::compound([("capacity", Tag::Long(100))]))]);
