@@ -30,7 +30,7 @@ color. Advanced tooltips show the original fluid ID. Empty cans show
 the source help text. The overlay crops existing Horizon still sprites to the
 upstream MIT mask; missing sprites leave the original icon unchanged.
 
-For supported potion tags with an explicit `CustomPotionColor` Byte, Short, Int or Long, the
+For supported potion tags with an explicit numeric `CustomPotionColor`, the
 icon also uses that color. Known base potions without extra effects use their
 source-equivalent colors. Supported added effect mixes use the source float32
 calculation; unsupported or oversized lists remain hidden. Malformed or unknown data, opaque wire patches, explicit item-model
