@@ -13,6 +13,16 @@ class CopperCanDisplayContract(unittest.TestCase):
         self.assertIn('tconstruct_source_melter_render::sprite(&fluid)', render)
         self.assertIn('tconstruct_source_melter_render::fluid_name(game, &fluid)', tooltip)
 
+    def test_copper_can_uses_source_translation_and_advanced_id(self):
+        root = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
+        tooltip = (root / 'part-name-injection.rs').read_text()
+        for key in ('item.tconstruct.copper_can.contents', 'item.tconstruct.copper_can.tooltip', 'item.tconstruct.tank.fluid_id'):
+            self.assertIn('Text::translate("' + key + '"', tooltip)
+        self.assertIn('game.settings.file.bool("advancedItemTooltips")', tooltip)
+        self.assertIn('Text::literal(fluid)', tooltip)
+        self.assertIn('can_display_empty(stack)', tooltip)
+        self.assertNotIn('format!("{name}: 90 mB")', tooltip)
+
     def test_unit_return_hook_supplies_exactly_one_original_value(self):
         manifest = Path(__file__).resolve().parents[1] / 'mixins/tconstruct/horizon-mixin.toml'
         hooks = tomllib.loads(manifest.read_text())['injection']
