@@ -45,6 +45,8 @@ class ResourceOverlay(unittest.TestCase):
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], 64)
                 model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
                 self.assertEqual(model['textures']['layer0'], 'minecraft:item/' + kind + '_potion')
+            self.assertEqual(items['tconstruct:encyclopedia']['minecraft:max_stack_size'], 1)
+            self.assertTrue((out / 'assets/tconstruct/textures/item/encyclopedia.png').is_file())
             soup = items['tconstruct:meat_soup']
             self.assertEqual(soup['minecraft:max_stack_size'], 1)
             self.assertEqual(soup['minecraft:food'], {'nutrition': 8, 'saturation': 9.6})
