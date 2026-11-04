@@ -1025,8 +1025,8 @@ packs, save/reload and LAN remain unverified.
 
 Copper Can tooltips now resolve known potion names using the same conservative
 complete-tag validation as portable tanks. Their original fluid tag and
-advanced ID are unchanged. Icon color support is described below; empty,
-unknown or malformed potion metadata remains hidden. Focused
+advanced ID are unchanged. Icon color support and the tagless empty-potion
+case are described below; unknown or malformed potion metadata remains hidden. Focused
 helper and wiring checks cover this slice; integrated GUI, save/reload and LAN
 remain unverified.
 
@@ -1059,3 +1059,10 @@ snapshots and missing or unsupported metadata retain the prior conservative
 color, including the existing explicit-color behavior. Focused color and wiring
 tests cover this boundary; actual GUI, placed machines, resource packs and LAN
 remain unverified.
+
+A complete Copper Can or portable tank item containing `tconstruct:potion`
+with no fluid tag now displays the source empty-potion name. The Copper Can
+also uses the source default potion tint in its GUI icon. This does not infer
+anything from guest machine snapshots or from malformed/opaque item data.
+Focused helper and wiring tests cover this narrow case; integrated GUI,
+resource packs, save/reload and LAN remain unverified.

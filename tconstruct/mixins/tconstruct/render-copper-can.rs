@@ -10,6 +10,8 @@ fn copper_can_contents_gui(
     let known = |id: &str| context.is_some_and(|(fluids, _)| fluids.contains(id));
     let (fluid, tag) = if let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack, &known) {
         (fluid, None)
+    } else if crate::game::tconstruct_source_fluid_container::can_display_empty_potion(stack, &known) {
+        ("tconstruct:potion".to_owned(), None)
     } else if let Some(tag) = crate::game::tconstruct_source_fluid_container::can_display_potion_icon(stack, &known) {
         ("tconstruct:potion".to_owned(), Some(tag))
     } else { return; };

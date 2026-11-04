@@ -50,6 +50,15 @@ class CopperCanDisplayContract(unittest.TestCase):
         self.assertIn('can_display_potion_icon(stack, &known)', render)
         self.assertIn('can_display_fluid(stack,', render)
 
+    def test_untagged_empty_potion_is_a_fluid_not_an_empty_can(self):
+        root = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
+        tooltip = (root / 'part-name-injection.rs').read_text()
+        render = (root / 'render-copper-can.rs').read_text()
+        self.assertIn('can_display_empty_potion(stack,', tooltip)
+        self.assertIn('tank_display_empty_potion(stack,', tooltip)
+        self.assertEqual(tooltip.count('fluid_name_tagged(game, "tconstruct:potion", None, true)'), 2)
+        self.assertIn('can_display_empty_potion(stack, &known)', render)
+
     def test_unit_return_hook_supplies_exactly_one_original_value(self):
         manifest = Path(__file__).resolve().parents[1] / 'mixins/tconstruct/horizon-mixin.toml'
         hooks = tomllib.loads(manifest.read_text())['injection']
