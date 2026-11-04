@@ -100,6 +100,12 @@ pub(super) fn can_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool
     Some(fluid)
 }
 
+/// Empty cans have source help text; malformed or opaque stacks stay hidden.
+pub(super) fn can_display_empty(stack: &ItemStack) -> bool {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return false; }
+    matches!(can_contents(stack), Some((None, None)))
+}
+
 pub(super) fn can_set_fluid(stack: &ItemStack, fluid: Option<&str>) -> Option<ItemStack> {
     can_set_tagged(stack, fluid, None)
 }
@@ -619,6 +625,11 @@ mod tests {
         use horizon_world::nbt::Tag;
         let empty = ItemStack::new("tconstruct:copper_can", 8);
         assert_eq!(can_display_fluid(&empty, &known), None);
+        assert!(can_display_empty(&empty));
+        let mut custom_empty = empty.clone();
+        custom_empty.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:can".into())));
+        assert!(!can_display_empty(&custom_empty));
+        assert!(!can_display_empty(&ItemStack::new("minecraft:stone", 1)));
         for fluid in ["minecraft:flowing_water", "minecraft:flowing_lava"] {
             let filled = can_set_fluid(&empty, Some(fluid)).unwrap();
             let before = filled.clone();
@@ -635,6 +646,7 @@ mod tests {
         let mut filled = can_set_fluid(&empty, Some("minecraft:water")).unwrap();
         filled.count = 8;
         let before = filled.clone();
+        assert!(!can_display_empty(&filled));
         assert_eq!(can_display_fluid(&filled, &known).as_deref(), Some("minecraft:water"));
         assert_eq!(filled, before);
         assert_eq!(can_display_fluid(&filled, &|_| false), None);

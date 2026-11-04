@@ -994,3 +994,10 @@ The shared fluid renderer now applies Forge's default FluidStack water tint
 The Copper Can uses the same shared tint. This is the fixed stack color, not the
 biome-dependent world-fluid color. Focused color tests are included; integrated
 rendering, resource packs and LAN remain unverified.
+
+Supported Copper Can tooltips use the pinned translated contents and empty-can
+help strings. Advanced tooltips include the original fluid ID; hidden tooltips
+and conservative rejection of malformed, tagged or unsupported can contents
+remain in place. The production helper and translation-key wiring are tested.
+The native bundle currently includes English source language data; other
+languages, actual GUI ordering, F3+H, resource packs and LAN remain unverified.

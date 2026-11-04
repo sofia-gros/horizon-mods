@@ -9,12 +9,20 @@ fn tconstruct_part_name(
     if !hidden_can {
         let context = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok());
-        if let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack,
-            &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) {
-            let name = crate::game::tconstruct_source_melter_render::fluid_name(game, &fluid);
+        let can = &*stack.item == "tconstruct:copper_can";
+        if can {
             let name_visible = horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative);
             let index = usize::from(name_visible).min(value.len());
-            value.insert(index, (horizon_client::text::Text::literal(format!("{name}: 90 mB")), 0xffaaaaaa));
+            if let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack,
+                &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) {
+                let name = crate::game::tconstruct_source_melter_render::fluid_name(game, &fluid);
+                value.insert(index, (horizon_client::text::Text::translate("item.tconstruct.copper_can.contents", &[horizon_client::text::Text::literal(name)]), 0xffaaaaaa));
+                if game.settings.file.bool("advancedItemTooltips") {
+                    value.insert(index + 1, (horizon_client::text::Text::translate("item.tconstruct.tank.fluid_id", &[horizon_client::text::Text::literal(fluid)]), 0xff555555));
+                }
+            } else if crate::game::tconstruct_source_fluid_container::can_display_empty(stack) {
+                value.insert(index, (horizon_client::text::Text::translate("item.tconstruct.copper_can.tooltip", &[]), 0xffaaaaaa));
+            }
         }
     }
     if &*stack.item == "tconstruct:modifier_crystal" && stack.custom_name().is_none() && stack.item_name().is_none()
