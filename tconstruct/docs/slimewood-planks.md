@@ -15,3 +15,7 @@ The four slimewood slab and stair recipes follow the pinned source. Three matchi
 ## Buttons and pressure plates
 
 Each slimewood has the pinned-source recipes for buttons and pressure plates: one matching plank yields a button; two horizontally adjacent matching planks yield a pressure plate. Source, registration and collision checks pass. Runtime recipe loading, crafting and redstone behavior, packaging, recipe-book display, save/reload and LAN remain unverified.
+
+## Doors and trapdoors
+
+The four slimewood door and trapdoor recipes follow the pinned source. Six matching planks in a 2×3 pattern make three doors; six in a 3×2 pattern make two trapdoors. Source, registration and collision checks pass. Runtime recipe loading, crafting and placement, packaging, recipe-book presentation, save/reload and LAN remain unverified.
