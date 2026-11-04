@@ -40,6 +40,9 @@ impl Tank {
     /// Patch only owned fields; retain extension data when a machine mutates
     /// a tank it has already decoded. Malformed raw state fails closed.
     pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        // The existing decoder is lossy; do not turn an invalid UTF-16 ID
+        // into a different identifier while patching this tank.
+        if let Some(Tag::String(id)) = raw.get("fluid") { id.to_string().ok()?; }
         Self::from_nbt(raw, self.capacity)?;
         let Tag::Compound(mut fields) = raw.clone() else { return None; };
         let Tag::Compound(next) = self.to_nbt() else { return None; };

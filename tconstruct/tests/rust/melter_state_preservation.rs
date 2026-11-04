@@ -19,3 +19,15 @@ use tconstruct_source_melter_state::{Melter,Tank};
  assert_eq!(saved.get("extension"),Some(&Tag::String("keep".into()))); assert_eq!(Tank::from_nbt(&saved,4000).unwrap().amount,50);
  assert!(tank.to_nbt_preserving(&Tag::Int(1)).is_none());
 }
+
+#[test] fn lossy_identifier_cannot_be_rewritten_by_preserving_save() {
+ let bad=Tag::compound([("fluid",Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),("amount",Tag::Int(10)),("extension",Tag::Int(7))]);
+ let tank=Tank::from_nbt(&bad,4000).unwrap(); let before=bad.clone();
+ assert!(tank.to_nbt_preserving(&bad).is_none()); assert_eq!(bad,before);
+ let mut melter=Melter::new(); assert!(melter.tank.insert("minecraft:water",10));
+ let mut machine=melter.to_nbt();
+ if let Tag::Compound(fields)=&mut machine { fields.insert("tank".into(),bad); }
+ let decoded=Melter::from_nbt(&machine).unwrap(); assert!(decoded.to_nbt_preserving(&machine).is_none());
+ let good=Tag::compound([("fluid",Tag::String("test:😀".into())),("amount",Tag::Int(1))]);
+ let tank=Tank::from_nbt(&good,4000).unwrap(); assert_eq!(tank.to_nbt_preserving(&good),Some(good));
+}
