@@ -176,7 +176,7 @@ pub(super) fn accepts_with_color(stack: &ItemStack, known_fluid: &impl Fn(&str) 
     if matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
         return lantern_tank(stack).is_some();
     }
-    stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || stack.item.as_ref() == "minecraft:glass_bottle" || stack.item.as_ref() == "minecraft:bowl" || stack.item.as_ref() == "minecraft:sponge" || (stack.item.as_ref() == "tconstruct:meat_soup" && known_fluid("tconstruct:meat_soup")) || bottle_fluid(&stack.item).is_some_and(known_fluid))
+    stack.count > 0 && stack.damage == 0 && stack.extra.is_none() && (is_bucket(stack, known_fluid) || matches!(stack.item.as_ref(), "minecraft:glass_bottle" | "tconstruct:splash_bottle" | "tconstruct:lingering_bottle") || stack.item.as_ref() == "minecraft:bowl" || stack.item.as_ref() == "minecraft:sponge" || (stack.item.as_ref() == "tconstruct:meat_soup" && known_fluid("tconstruct:meat_soup")) || bottle_fluid(&stack.item).is_some_and(known_fluid))
 }
 // Effect IDs changed from numeric bytes to namespaced IDs after 1.20.1.
 // Only the source-era vanilla IDs and fields with unchanged NBT types are
@@ -314,7 +314,7 @@ pub(super) fn click_with_color(slots: &mut [Option<ItemStack>; 2], carried: &mut
         return true;
     };
     if index != 0 || !accepts_with_color(&held, known_fluid, allow_color) { *carried = Some(held); return false; }
-    let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "minecraft:bowl" | "minecraft:sponge" | "minecraft:glass_bottle") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "minecraft:bowl" | "minecraft:sponge" | "minecraft:glass_bottle" | "tconstruct:splash_bottle" | "tconstruct:lingering_bottle") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     match slots[index].as_mut() {
         None => {
             let count = if right { 1 } else { held.count.min(max) };
@@ -340,7 +340,7 @@ pub(super) fn quick_input_with_color(slots: &mut [Option<ItemStack>; 2], stack: 
     known_fluid: &impl Fn(&str) -> bool, allow_color: bool) -> bool {
     let Some(held) = stack.as_mut() else { return false; };
     if !accepts_with_color(held, known_fluid, allow_color) { return false; }
-    let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "minecraft:bowl" | "minecraft:sponge" | "minecraft:glass_bottle") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
+    let max = if matches!(&*held.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" | "minecraft:bowl" | "minecraft:sponge" | "minecraft:glass_bottle" | "tconstruct:splash_bottle" | "tconstruct:lingering_bottle") { 64 } else if held.item.as_ref() == "tconstruct:copper_can" || held.item.as_ref() == "minecraft:bucket" || bottle_fluid(&held.item).is_some() { 16 } else { 1 };
     let amount = match slots[0].as_mut() {
         None => {
             let amount = held.count.min(max);
@@ -485,10 +485,25 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
         slots[0] = (remaining.count > 0).then_some(remaining); slots[1] = Some(output); *tank = next;
         return true;
     }
-    // Mantle's standard glass-bottle transfers fill a base potion from the
-    // potion fluid or a water potion from water. Other potion tags remain
-    // rejected until the host can represent them without dropping fields.
-    if input.item.as_ref() == "minecraft:glass_bottle" && input.extra.is_none() && direction != Direction::EmptyItem {
+    // The two built-in empty special bottles are supported only while their
+    // resolved source tags select exactly one kind. Other tag members are not
+    // inferred here; missing or overlapping tag context fails closed.
+    let potion_output = match input.item.as_ref() {
+        "minecraft:glass_bottle" => Some("minecraft:potion"),
+        "tconstruct:splash_bottle" | "tconstruct:lingering_bottle" => {
+            let Some(tags) = item_tags else { return false; };
+            let in_tag = |key: &str| tags.get(key).is_some_and(|values| values.contains(input.item.as_ref()));
+            match (in_tag("forge:bottles/splash"), in_tag("forge:bottles/lingering")) {
+                (true, false) => Some("minecraft:splash_potion"),
+                (false, true) => Some("minecraft:lingering_potion"),
+                _ => return false,
+            }
+        },
+        _ => None,
+    };
+    // Mantle's bottle transfers fill a base potion from potion fluid or a
+    // water potion from water. Unsupported metadata remains rejected.
+    if let Some(output) = potion_output.filter(|_| input.extra.is_none() && direction != Direction::EmptyItem) {
         use horizon_world::nbt::Tag;
         let entry = if let Some(id) = selected {
             let mut choices = tank.fluids.iter().filter(|fluid| fluid.id == id);
@@ -507,10 +522,10 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
             let (fluid, tag) = (entry.id.clone(), entry.tag.clone());
             let amount = if is_water { 500 } else { 250 };
             let mut next = tank.clone();
-            if !known_item("minecraft:potion") || !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
+            if !known_item(output) || !known_fluid(&fluid) || !next.take_tagged(&fluid, tag.as_ref(), amount) { return false; }
             let mut remaining = input.clone(); remaining.count -= 1;
             slots[0] = (remaining.count > 0).then_some(remaining);
-            slots[1] = Some(potion_stack("minecraft:potion", &potion, color, custom_effects)); *tank = next;
+            slots[1] = Some(potion_stack(output, &potion, color, custom_effects)); *tank = next;
             return true;
         }
     }
@@ -705,6 +720,88 @@ mod tests {
     }
     use super::*;
     fn known(_: &str) -> bool { true }
+    #[test]
+    fn special_empty_bottles_fill_water_and_potion_from_resolved_tags() {
+        use std::collections::{HashMap, HashSet};
+        use horizon_world::nbt::Tag;
+        let tags: HashMap<String, HashSet<String>> = [
+            ("forge:bottles/splash".into(), ["tconstruct:splash_bottle".into()].into_iter().collect()),
+            ("forge:bottles/lingering".into(), ["tconstruct:lingering_bottle".into()].into_iter().collect()),
+        ].into_iter().collect();
+        for (input, output) in [("tconstruct:splash_bottle", "minecraft:splash_potion"), ("tconstruct:lingering_bottle", "minecraft:lingering_potion")] {
+            for fluid in ["minecraft:water", "minecraft:flowing_water"] {
+                let mut tank = SmelteryTank::new(1500);
+                assert!(tank.insert("minecraft:lava", 1000)); assert!(tank.insert(fluid, 500));
+                let mut slots = [Some(ItemStack::new(input, 2)), None];
+                assert!(transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, Some(fluid), &known, &known, Some(&tags)));
+                assert_eq!(tank.amount("minecraft:lava"), 1000);
+                assert_eq!(tank.amount(fluid), 0);
+                assert_eq!(slots[0].as_ref().unwrap().count, 1);
+                assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), output);
+                assert_eq!(potion_data(slots[1].as_ref().unwrap(), false).unwrap().0, "minecraft:water");
+            }
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+            let mut tank = super::super::tconstruct_source_melter_state::Tank::new(250);
+            assert!(tank.insert_tagged("tconstruct:potion", Some(&tag), 250));
+            let mut slots = [Some(ItemStack::new(input, 1)), None];
+            assert!(transfer_single_with_tags(&mut tank, &mut slots, Direction::Auto, &known, &known, Some(&tags)));
+            assert_eq!(tank.amount, 0);
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), output);
+            assert_eq!(potion_data(slots[1].as_ref().unwrap(), false).unwrap().0, "minecraft:swiftness");
+        }
+    }
+    #[test]
+    fn special_empty_bottle_fill_fails_closed_without_losing_state() {
+        use std::collections::{HashMap, HashSet};
+        use horizon_world::nbt::Tag;
+        let good: HashMap<String, HashSet<String>> = [("forge:bottles/splash".into(), ["tconstruct:splash_bottle".into()].into_iter().collect())].into_iter().collect();
+        let overlap: HashMap<String, HashSet<String>> = [("forge:bottles/splash".into(), ["tconstruct:splash_bottle".into()].into_iter().collect()), ("forge:bottles/lingering".into(), ["tconstruct:splash_bottle".into()].into_iter().collect())].into_iter().collect();
+        let empty = HashMap::new();
+        let reassigned: HashMap<String, HashSet<String>> = [("forge:bottles/lingering".into(), ["tconstruct:splash_bottle".into()].into_iter().collect())].into_iter().collect();
+        let mut reassigned_tank = SmelteryTank::new(500); assert!(reassigned_tank.insert("minecraft:water", 500));
+        let mut reassigned_slots = [Some(ItemStack::new("tconstruct:splash_bottle", 1)), None];
+        assert!(transfer_selected_with_tags(&mut reassigned_tank, &mut reassigned_slots, Direction::FillItem, None, &known, &known, Some(&reassigned)));
+        assert_eq!(reassigned_slots[1].as_ref().unwrap().item.as_ref(), "minecraft:lingering_potion");
+        let mut tank = SmelteryTank::new(500); assert!(tank.insert("minecraft:water", 499));
+        let mut slots = [Some(ItemStack::new("tconstruct:splash_bottle", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, None, &known, &known, Some(&good)));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(tank.insert("minecraft:water", 1));
+        let before = (tank.clone(), slots.clone());
+        for tags in [None, Some(&empty), Some(&overlap)] {
+            assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, None, &known, &known, tags));
+            assert_eq!((tank.clone(), slots.clone()), before);
+        }
+        assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::EmptyItem, None, &known, &known, Some(&good)));
+        assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, None, &|id| id != "minecraft:splash_potion", &known, Some(&good)));
+        assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, None, &known, &|_| false, Some(&good)));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        slots[1] = Some(ItemStack::new("minecraft:stone", 1));
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, None, &known, &known, Some(&good)));
+        assert_eq!((tank, slots), before);
+        let colored = Tag::compound([("Potion", Tag::String("minecraft:healing".into())), ("CustomPotionColor", Tag::Int(0x123456))]);
+        let mut tank = SmelteryTank::new(250); assert!(tank.insert_tagged("tconstruct:potion", Some(&colored), 250));
+        let mut slots = [Some(ItemStack::new("tconstruct:splash_bottle", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected_with_tags(&mut tank, &mut slots, Direction::FillItem, None, &known, &known, Some(&good)));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(transfer_selected_with_color(&mut tank, &mut slots, Direction::FillItem, None, &known, &known, Some(&good), true));
+        assert_eq!(potion_data(slots[1].as_ref().unwrap(), true).unwrap().1, Some(0x123456));
+    }
+    #[test]
+    fn special_empty_bottles_accept_full_stacks() {
+        for item in ["tconstruct:splash_bottle", "tconstruct:lingering_bottle"] {
+            for quick in [false, true] {
+                let mut slots = [None, None]; let mut held = Some(ItemStack::new(item, 64));
+                if quick { assert!(quick_input(&mut slots, &mut held, &known)); }
+                else { assert!(click(&mut slots, &mut held, 0, false, &known)); }
+                assert_eq!(slots[0].as_ref().unwrap().count, 64);
+                assert!(held.is_none());
+            }
+        }
+    }
     #[test]
     fn water_bottle_filling_accepts_source_and_flowing_water() {
         for fluid in ["minecraft:water", "minecraft:flowing_water"] {
