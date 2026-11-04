@@ -83,6 +83,22 @@ pub(super) fn part_kind(id: &str) -> Option<&'static str> {
         _ => return None,
     })
 }
+/// MaterialSwappingRecipe: integer repairable stat, cost multiplication, then /3f.
+/// Only the built-in part stats currently accepted by Station are supported.
+pub(super) fn part_swap_repair_base(stats: &std::collections::BTreeMap<String, Map<String, Value>>, kind: &str, cost: i32) -> Option<f32> {
+    if cost < 0 { return None; }
+    if cost == 0 { return Some(0.0); }
+    if !matches!(kind, "head" | "limb" | "plating_helmet" | "plating_chestplate" | "plating_leggings" | "plating_boots") {
+        return Some(0.0);
+    }
+    let value = stats.get(&format!("tconstruct:{kind}"))?.get("durability")?.as_f64()?;
+    if !value.is_finite() || value < 1.0 || value > i32::MAX as f64 { return None; }
+    let durability = value as i32;
+    // Source multiplies two ints before assigning to float. Refuse overflow.
+    let initial = cost.checked_mul(durability)? as f32 / 3.0;
+    initial.is_finite().then_some(initial)
+}
+
 impl Accumulator {
     fn new(base: f32) -> Self {
         Self {
