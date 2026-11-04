@@ -426,12 +426,6 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
     let custom = original.data()?.other("minecraft:custom_data")?;
     let upgrades = custom.get("tic_upgrades");
     if upgrades.is_some_and(|value| !matches!(value, Tag::Compound(_))) { return None; }
-    let mut repair_traits = traits.levels.clone();
-    for id in ["tconstruct:cultivated", "tconstruct:preserved", "tconstruct:dense"] {
-        let level = match upgrades.and_then(|value| value.get(id)) { Some(Tag::Int(value)) if *value >= 0 => *value, None => 0, _ => return None };
-        let entry = repair_traits.entry(id.to_owned()).or_default();
-        *entry = entry.checked_add(level)?;
-    }
     let definitions = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
     let (namespace, name) = original.item.split_once(':')?;
     let definition: serde_json::Value = serde_json::from_slice(definitions.get(&format!("{namespace}:tinkering/tool_definitions/{}", super::tconstruct_source_station_stats::definition_name(namespace, name)))?.last()?).ok()?;
@@ -488,12 +482,10 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
         let upgrade = match upgrades.and_then(|upgrades| upgrades.get(modifier)) { Some(Tag::Int(level)) if *level >= 0 => *level, None => 0, _ => return None };
         let level = traits.levels.get(modifier).copied().unwrap_or(0).checked_add(upgrade)?;
         let raw = level.checked_mul(per_level)?;
-        let factor = if traits.levels.get("tconstruct:emerald").copied().unwrap_or(0) > 0 {
-            match super::tconstruct_source_material_effects::ordered_known_repair_amount(original, &traits.levels, &traits.order, 1.0) {
-                Some(factor) => factor,
-                None => { *reason = Some("Cannot repair: modifier order or levels are unknown".into()); return None; }
-            }
-        } else { station_repair_factor(original, Some(&repair_traits)) };
+        let factor = match super::tconstruct_source_material_effects::ordered_known_repair_amount(original, &traits.levels, &traits.order, 1.0) {
+            Some(factor) => factor,
+            None => { *reason = Some("Cannot repair: modifier order or levels are unknown".into()); return None; }
+        };
         if raw <= 0 || !factor.is_finite() || factor <= 0.0 { continue; }
         let per_item = ((raw as f32 * factor) as i32).max(0) as u32;
         if per_item == 0 { continue; }

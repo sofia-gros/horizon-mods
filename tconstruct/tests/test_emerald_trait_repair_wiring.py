@@ -7,6 +7,6 @@ class EmeraldTraitRepairWiring(unittest.TestCase):
         text = (ROOT / 'mixins/tconstruct/source-station-world.rs').read_text()
         self.assertIn('let amount = if let Some(traits) = traits.as_ref()', text)
         self.assertIn('ordered_known_repair_amount(&tool, &traits.levels, &traits.order, per_item)', text)
-        self.assertIn('ordered_known_repair_amount(original, &traits.levels, &traits.order, 1.0)', text)
+        self.assertIn('let factor = match super::tconstruct_source_material_effects::ordered_known_repair_amount(original, &traits.levels, &traits.order, 1.0)', text)
         self.assertNotIn('traits.levels.get("tconstruct:emerald").copied().unwrap_or(0) > 0 { return None; }', text)
 if __name__ == '__main__': unittest.main()
