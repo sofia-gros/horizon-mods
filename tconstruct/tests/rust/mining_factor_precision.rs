@@ -61,3 +61,39 @@ fn source_factor(loss:u32,multiplier:f32,level:i32,coefficient:f32)->f32 {
   }
  }
 }
+
+fn source_incremental(amount:i32,needed:i32)->f32 {
+ let amount=amount.max(0);let remainder=amount%needed;
+ let logical=amount/needed+i32::from(remainder!=0);
+ if remainder==0 {logical as f32}else{logical as f32+(remainder-needed) as f32/needed as f32}
+}
+#[test] fn hydraulic_partial_levels_follow_source_logical_rounding() {
+ for amount in [-1,0,1,18,35,36,37,71,72,73,36*3+1,i32::MAX] {
+  for aqua in [false,true] {
+   let level=source_incremental(amount,36);
+   let expected=(0.04f32*if aqua {8.0}else{40.0})*level;
+   let actual=conditional_speed_with_water(0.0,0,100,1.0,0.04,&[Conditional::Hydraulic(amount)],None,true,false,None,Some(aqua));
+   assert_eq!(actual.to_bits(),expected.to_bits());
+  }
+ }
+ let actual=conditional_speed_with_water(0.0,0,100,1.0,0.04,&[Conditional::Hydraulic(1)],None,true,false,None,Some(false));
+ assert_ne!(actual.to_bits(),((0.04f32*40.0)*(1.0f32/36.0)).to_bits());
+}
+#[test] fn blasting_partial_levels_follow_source_logical_rounding() {
+ for amount in [-1,0,1,10,19,20,21,39,40,41,20*3+1,i32::MAX] {
+  let expected=(1.0f32*source_incremental(amount,20))*0.3;
+  let actual=conditional_speed_with_water(0.0,0,100,1.0,0.3,&[Conditional::Blasting(amount)],None,true,false,Some(6.0),None);
+  assert_eq!(actual.to_bits(),expected.to_bits());
+ }
+ let actual=conditional_speed_with_water(0.0,0,100,1.0,0.3,&[Conditional::Blasting(1)],None,true,false,Some(6.0),None);
+ assert_ne!(actual.to_bits(),((1.0f32/20.0)*0.3).to_bits());
+}
+#[test] fn incremental_mining_context_gates_are_unchanged() {
+ for effective in [false,true] {
+  let both=[Conditional::Hydraulic(1),Conditional::Blasting(1)];
+  assert_eq!(conditional_speed_with_water(3.0,0,100,1.0,1.0,&both,None,effective,false,None,None),3.0);
+  if !effective {
+   assert_eq!(conditional_speed_with_water(3.0,0,100,1.0,1.0,&both,None,effective,false,Some(6.0),Some(false)),3.0);
+  }
+ }
+}

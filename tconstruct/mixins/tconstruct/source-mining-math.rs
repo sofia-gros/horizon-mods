@@ -13,6 +13,16 @@ pub(super) fn base_speed_unclamped(base: f32, add_scale: f32, lightweight: i32, 
         * (1.0 - 0.1 * vintage.max(0) as f32)
 }
 
+// Snapshots store whole trait levels and upgrade progress in fixed units.
+// Match IncrementalModifierEntry.scaleLevel after reconstructing logical level.
+fn incremental_level(amount: i32, needed: i32) -> f32 {
+    let amount = amount.max(0);
+    let whole = amount / needed;
+    let remainder = amount % needed;
+    if remainder == 0 { whole as f32 }
+    else { (whole + 1) as f32 + (remainder - needed) as f32 / needed as f32 }
+}
+
 /// Source priority: maintained (100) before percent traits (75), stable within a priority.
 pub(super) fn conditional_speed(speed: f32, loss: u32, maximum: u32, durability_all: f32,
     mining_all: f32, modifiers: &[Conditional]) -> f32 {
@@ -49,12 +59,12 @@ pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u
             Conditional::Crumbling(level) if tool_not_required => speed += level.max(0) as f32 * mining_all,
             Conditional::Hydraulic(amount) if effective => {
                 if let Some(aqua) = water {
-                    speed += (mining_all * if aqua { 8.0 } else { 40.0 }) * (amount.max(0) as f32 / 36.0);
+                    speed += (mining_all * if aqua { 8.0 } else { 40.0 }) * incremental_level(amount, 36);
                 }
             },
             Conditional::Blasting(amount) if effective => {
                 if let Some(resistance) = resistance.filter(|v| v.is_finite()) {
-                    speed += 3.0f32.powf((6.0 - resistance) / 1.5).min(10.0) * (amount.max(0) as f32 / 20.0) * mining_all;
+                    speed += 3.0f32.powf((6.0 - resistance) / 1.5).min(10.0) * incremental_level(amount, 20) * mining_all;
                 }
             },
             _ => {},
@@ -90,8 +100,8 @@ mod tests {
     #[test]
     fn hydraulic_uses_source_float_operation_order() {
         let amount = 1;
-        let multiplier = 0.04f32;
-        let level = amount as f32 / 36.0;
+        let multiplier = 0.03f32;
+        let level = 1.0f32 + (amount - 36) as f32 / 36.0;
         let actual = conditional_speed_with_water(0.0, 0, 100, 1.0, multiplier, &[Conditional::Hydraulic(amount)], None, true, false, None, Some(false));
         let source_order = (multiplier * 40.0) * level;
         let reordered = (40.0 * level) * multiplier;

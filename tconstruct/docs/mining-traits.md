@@ -354,3 +354,33 @@ supported modifier definitions, change overslime consumption, or verify
 gameplay timing. The actual-helper harness now passes 15 Rust tests, including
 a bitwise counterexample and broad/narrow, depleted, capped and ineffective
 cases; its two Python checks pass. No full host build or gameplay test was run.
+
+### Hydraulic and Blasting incremental precision
+
+The shared mining helper now reconstructs source incremental effective levels
+from the existing merged snapshot amount. Hydraulic uses 36 units per level;
+Blasting uses 20. Whole levels convert directly to float. Partial levels use
+`(whole + 1) as f32 + (remainder - needed) as f32 / needed as f32`, matching
+pinned
+[IncrementalModifierEntry.scaleLevel](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java).
+The existing producer already combines integer trait levels and upgrade
+progress before the snapshot is evaluated; no trait level is added again.
+The corrected level enters the existing
+[Hydraulic](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/hydraulic.json)
+and
+[Blasting](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/blasting.json)
+formula operations without reordering their multipliers.
+
+Fixed denominators, the producer's saturating integer snapshot encoding,
+negative-amount normalization, effective-block checks, supported water/Aqua
+Affinity and resistance contexts, modifier ordering and final speed clamp
+remain unchanged. Saturation can lose original combined levels at extreme
+values; this slice does not claim source parity beyond that existing encoding.
+Custom required amounts/formulas and Hydraulic rain behavior remain outside
+this change.
+
+The real-helper harness passes eighteen Rust tests and two Python checks,
+including one-unit bitwise counterexamples, whole and partial boundaries,
+combined trait-equivalent amounts, both water variants, extreme stored amounts
+and missing/ineffective contexts. No host build, mining timing, gameplay or LAN
+validation is claimed.
