@@ -207,6 +207,24 @@ mod tests {
         assert!((projectile_stats_at_airborne(&stack, 256.0, 320, false).unwrap().0 - 0.25).abs() < 1e-6);
     }
     #[test]
+    fn high_altitude_penalizes_airborne_before_overwield() {
+        for id in ["tconstruct:longbow", "tconstruct:crossbow"] {
+            let mut stack = bow(id, 1.0, 1.0);
+            stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_velocity", Tag::Float(1.0f32.to_bits())),
+                ("tic_accuracy", Tag::Float(1.0f32.to_bits())),
+                ("tic_airborne", Tag::Int(1)),
+                ("tic_airborne_velocity_multiplier", Tag::Float(2.0f32.to_bits())),
+                ("tic_dwarven", Tag::Int(1)),
+                ("tic_dwarven_velocity_multiplier", Tag::Float(2.0f32.to_bits())),
+                ("tic_overwield_ranged", Tag::Int(1)), ("tic_overslime", Tag::Int(1)),
+                ("tic_overwield_velocity_multiplier", Tag::Float(2.0f32.to_bits())),
+            ])));
+            // (1 + 0.1 * 2) * 0.25 + 0.06 * 2
+            assert!((projectile_stats_at_airborne(&stack, 256.0, 320, true).unwrap().0 - 0.42).abs() < 1e-6);
+        }
+    }
+    #[test]
     fn diamond_damage_comes_from_the_firing_stack() {
         let mut stack = bow("tconstruct:crossbow", 1.0, 1.0);
         assert_eq!(projectile_bonus(&stack), 0.0);

@@ -236,3 +236,15 @@ as Soft, are not implemented by this change. Rebuild or regenerate existing
 bows to refresh their saved multiplier. Focused tests cover both launchers, a nonzero base percent,
 both effects separately and stacked, repeated rebuild and trait removal.
 Integrated host build, actual shots, save/reload and LAN remain unverified.
+
+### Dwarven ranged multiplier correction
+
+Dwarven's below-sea-level velocity addition uses the global conditional
+velocity multiplier, including the tool definition's `multiply_stats` but
+excluding base-stat percent and Netherite's base-only multiplier. The high
+altitude penalty remains a multiplier on the already accumulated velocity.
+Existing bows need a supported material rebuild or regeneration to refresh the
+stored conditional multiplier. Focused tests cover both launchers, depth,
+high altitude, repeated rebuilding and trait removal. Integrated host build,
+actual firing, save/reload and LAN remain unverified. This does not change
+Dwarven mining behavior.

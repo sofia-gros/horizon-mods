@@ -518,7 +518,9 @@ pub fn apply_stats(
         // multiply_base contribution to the stored velocity.
         fields.insert("tic_maintained_velocity_multiplier".into(), Tag::Float(stats.velocity_raw[3].to_bits()));
         fields.insert("tic_dwarven".into(), Tag::Int(level("tconstruct:dwarven").max(0)));
-        fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float(velocity_scale.to_bits()));
+        // Dwarven reads the same global conditional multiplier as the
+        // other firing-time velocity traits.
+        fields.insert("tic_dwarven_velocity_multiplier".into(), Tag::Float(stats.velocity_raw[3].to_bits()));
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
         fields.insert("tic_raging".into(), Tag::Int(level("tconstruct:raging").max(0)));
         fields.insert("tic_ambush_projectile".into(), Tag::Int(level("tconstruct:ambush").max(0)));
@@ -1040,7 +1042,7 @@ mod tests {
         let custom = bow.data().unwrap().other("minecraft:custom_data").unwrap();
         assert!(matches!(custom.get("tic_dwarven"), Some(Tag::Int(1))));
         let Some(Tag::Float(multiplier)) = custom.get("tic_dwarven_velocity_multiplier") else { panic!() };
-        assert!((f32::from_bits(*multiplier) - stats.velocity_add_multiplier).abs() < 0.00001);
+        assert!((f32::from_bits(*multiplier) - stats.velocity_raw[3]).abs() < 0.00001);
         apply_stats(&mut bow, &stats, &BTreeMap::new(), false, false).unwrap();
         assert!(matches!(bow.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_dwarven"), Some(Tag::Int(0))));
     }
