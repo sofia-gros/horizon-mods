@@ -56,6 +56,10 @@ class ContentPackageTest(unittest.TestCase):
                     self.assertIn(path, names)
                 self.assertNotIn('assets/tconstruct/runtime/block/tconstruct_fluid_powdered_snow.png.mcmeta', names)
                 self.assertIn('assets/tconstruct/runtime/block/tconstruct_fluid_fallback.png.mcmeta', names)
+                for suffix in ('.png', '.png.mcmeta'):
+                    self.assertEqual(
+                        packed.read('assets/tconstruct/runtime/block/tconstruct_fluid_milk' + suffix),
+                        (MOD / 'assets/forge/textures/block' / ('milk_still' + suffix)).read_bytes())
                 with zipfile.ZipFile(MOD / 'content/reference/tconstruct-part-visuals.zip') as source:
                     languages = [name for name in source.namelist() if name.startswith('assets/tconstruct/lang/') and name.endswith('.json')]
                     self.assertEqual(len(languages), 20)
