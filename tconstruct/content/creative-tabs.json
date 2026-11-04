@@ -107,7 +107,18 @@
       "{count:1,id:\"tconstruct:blazing_bone\"}",
       "{count:1,id:\"tconstruct:silky_cloth\"}",
       "{count:1,id:\"tconstruct:seared_reinforcement\"}",
-      "{count:1,id:\"tconstruct:bacon\"}"
+      "{count:1,id:\"tconstruct:bacon\"}",
+      "{count:1,id:\"tconstruct:materials_and_you\"}",
+      "{count:1,id:\"tconstruct:puny_smelting\"}",
+      "{count:1,id:\"tconstruct:mighty_smelting\"}",
+      "{count:1,id:\"tconstruct:encyclopedia\"}",
+      "{count:1,id:\"tconstruct:clear_glass\"}",
+      "{count:1,id:\"tconstruct:clear_tinted_glass\"}",
+      "{count:1,id:\"tconstruct:soul_glass\"}",
+      "{count:1,id:\"tconstruct:clear_glass_pane\"}",
+      "{count:1,id:\"tconstruct:soul_glass_pane\"}",
+      "{count:1,id:\"tconstruct:gold_bars\"}",
+      "{count:1,id:\"tconstruct:obsidian_pane\"}"
     ]
   }
 ]
