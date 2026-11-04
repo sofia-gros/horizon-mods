@@ -984,8 +984,9 @@ fn smeltery_to_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
     if faucet.to_nbt() != raw_faucet { return Some(false); }
     let mut fluid = selected_smeltery_fluid(&smeltery).unwrap_or_else(|| Tank::new(0));
-    // Keep tagged fluids out until all involved network and container routes are verified.
-    if fluid.tag.is_some() || faucet.pending.tag.is_some() || output.tag.is_some() { return Some(false); }
+    if (game.remote.is_some() || game.lan.is_some() || game.lan_acting_uuid.is_some())
+        && (!faucet_network_tag_safe(&fluid) || !faucet_network_tag_safe(&output) || !faucet_network_tag_safe(&faucet.pending)) { return Some(false); }
+    if !faucet_supported_potion_tag(&fluid) || !faucet_supported_potion_tag(&output) || !faucet_supported_potion_tag(&faucet.pending) { return Some(false); }
     let before = fluid.clone();
     if starting && !faucet.activate(&mut fluid, &output) { return Some(true); }
     let needs_packet = !starting && faucet.pending.amount == 0;
@@ -1056,6 +1057,13 @@ fn faucet_network_tag_safe(tank: &Tank) -> bool {
         && super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag)).is_some()
 }
 
+fn faucet_supported_potion_tag(tank: &Tank) -> bool {
+    let Some(tag) = tank.tag.as_ref() else { return true; };
+    tank.fluid.as_deref() == Some("tconstruct:potion")
+        && super::tconstruct_source_fluid_container::potion_tag(tag, true).is_some()
+        && super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag)).is_some()
+}
+
 fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
     let source_name = game.res.facts().get(game.world.block(source.0,source.1,source.2)).name.clone();
@@ -1079,13 +1087,7 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
         && (!faucet_network_tag_safe(input.tank()) || !faucet_network_tag_safe(&output.tank) || !faucet_network_tag_safe(&faucet.pending)) { return Some(false); }
     // The bounded local route currently supports registered vanilla potion
     // tags only; unrecognized fluid metadata waits rather than being coerced.
-    for tank in [&*input.tank(), &output.tank, &faucet.pending] {
-        if let Some(tag) = tank.tag.as_ref() {
-            if tank.fluid.as_deref() != Some("tconstruct:potion")
-                || super::tconstruct_source_fluid_container::potion_tag(tag, true).is_none()
-                || super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag)).is_none() { return Some(false); }
-        }
-    }
+    if !faucet_supported_potion_tag(input.tank()) || !faucet_supported_potion_tag(&output.tank) || !faucet_supported_potion_tag(&faucet.pending) { return Some(false); }
     if starting && !faucet.activate(input.tank(), &output.tank) { return Some(true); }
     let before_strength = output.comparator();
     let before_tank = output.tank.to_nbt();
