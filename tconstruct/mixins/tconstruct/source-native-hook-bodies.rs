@@ -101,7 +101,21 @@ pub(super) fn tconstruct_slimy_grass_tick(level: &mut GameLevel<'_>, ticks: &mut
         let Some(default) = level.registry.default_state(&format!("tconstruct:{foliage}_{kind}_slime_grass")) else { continue; };
         let Some(y) = y.checked_add(1) else { continue; };
         let top = level.block_state(BlockPos::new(x,y,z));
-        if !valid(level, default, at, false) || matches!(behaviors.fluid(top).kind(), horizon_world::fluid::FluidKind::Water | horizon_world::fluid::FluidKind::FlowingWater) { continue; }
+        if !valid(level, default, at, false) { continue; }
+        // The live source tag snapshot is world-scoped. If it is unavailable
+        // or unresolved, do not spread speculatively.
+        let tags = level.world.chunks.__horizon_mixins_tconstruct_resolved_fluid_tags()
+            .as_ref().and_then(|result| result.as_ref().ok());
+        let id = behaviors.fluid(top).kind().name();
+        let is_water = super::tconstruct_source_tags::resolved_member(tags, "minecraft:water", id)
+            .or_else(|| {
+                let raw = level.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot().as_ref()?;
+                let known = horizon_world::fluid::FluidKind::ALL.into_iter()
+                    .map(|kind| kind.name().to_owned()).collect();
+                super::tconstruct_source_tags::local_tag_member(raw, &known, "minecraft:water", id)
+            });
+        let Some(is_water) = is_water else { continue; };
+        if is_water { continue; }
         let snowy = level.registry.state(top).is_some_and(|s| s.name == "minecraft:snow");
         let Some(mut next) = level.registry.state(default).cloned() else { continue; };
         let Some(property) = next.properties.get_mut("snowy") else { continue; };
