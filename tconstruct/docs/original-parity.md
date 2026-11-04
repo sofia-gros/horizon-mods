@@ -925,3 +925,9 @@ fluid tag's datapack changes are not resolved by this static mapping. Emptying
 those foods remains unsupported because the source chooses an output via tag
 preference. Unit tests cover the bounded transfers; gameplay, save/reload and
 LAN remain unverified.
+
+Magma and the four slime bottle fills also recognize the pinned source tags'
+flowing fluid IDs, consuming 250 mB through the existing tank transaction.
+The static mapping does not follow datapack tag changes and refuses tagged
+fluid. Unit tests cover both source and flowing IDs; integrated gameplay,
+save/reload and LAN remain unverified.
