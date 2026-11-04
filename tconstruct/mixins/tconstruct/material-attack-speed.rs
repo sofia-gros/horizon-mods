@@ -1,7 +1,8 @@
 fn tconstruct_material_attack_speed(game: &crate::game::Game<'_>) -> std::ops::ControlFlow<f64> {
     use horizon_world::nbt::Tag;
     use std::ops::ControlFlow::{Break, Continue};
-    let Some(stack) = game.held().filter(|stack| stack.item.starts_with("tconstruct:")) else { return Continue(()); };
+    // This method evaluates mainhand attributes even while the offhand acts.
+    let Some(stack) = game.inventory.get(game.selected).and_then(Option::as_ref).filter(|stack| stack.item.starts_with("tconstruct:")) else { return Continue(()); };
     let Some(Tag::Float(bits)) = stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_attack_speed")) else { return Continue(()); };
     // The source tool stat includes the default base of four; its held
     // attribute modifier is stat - 4, added to the player's current base.
@@ -14,14 +15,18 @@ fn tconstruct_material_attack_speed(game: &crate::game::Game<'_>) -> std::ops::C
     // Broken source tools supply no held attribute modifier. Do not fall
     // through to the host's static registry item modifier for this stack.
     let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
-    let item_modifier = if broken {
+    let melee_weapon = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()
+        .and_then(|tags| tags.as_ref().ok())
+        .and_then(|tags| tags.get("tconstruct:modifiable/melee/weapon"))
+        .is_some_and(|items| items.contains(&*stack.item));
+    let item_modifier = if broken || !melee_weapon {
         0.0
     } else {
         f64::from(f32::from_bits(*bits)) - horizon_client::attack_strength::BASE_ATTACK_SPEED
     };
     // Source Overwield is a live mainhand multiply_total attribute, not a
     // permanent tool-stat boost. Re-read overslime and merged levels each call.
-    let overwield = if broken || game.hand != horizon_client::first_person::Hand::Main { 0.0 } else {
+    let overwield = if broken { 0.0 } else {
         stack.data().and_then(|data| data.other("minecraft:custom_data"))
             .and_then(|custom| match custom.get("tic_overslime") { Some(Tag::Int(n)) if *n > 0 => Some(*n), _ => None })
             .and_then(|amount| {

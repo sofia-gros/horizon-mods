@@ -269,8 +269,8 @@ to f64 for the attribute multiplication. Each query reads current overslime and
 uses the existing live material/tool-definition trait resolver plus checked
 upgrade-level merge, so slime spending/refilling or definition changes do not
 require an equipment refresh or stat rebuild. Broken tools supply no bonus.
-The acting hand must explicitly be Main: the host's `held()` can otherwise refer
-to an offhand stack. The highest-priority Overwield modifier resource must exactly
+The queried stack must be the actual mainhand item. The later mainhand correction
+below reads the selected inventory slot even while the offhand is acting. The highest-priority Overwield modifier resource must exactly
 match the pinned definition bytes. Missing, unreadable or changed definitions
 (including slot/coefficient changes and whitespace-only overrides) disable the
 new bonus until a general modifier interpreter can support them.
@@ -289,7 +289,7 @@ outside scope, so bit-exact parity of every attribute combination is not claimed
 helper with lightweight host and trait-resolution boundary doubles, plus the
 actual modifier-snapshot highest-priority resolver and pinned-definition guard. It
 covers live slime and trait/upgrade changes, unchanged base/potions, broken/repair
-transitions, clamp, malformed/overflow cases, offhand suppression, missing/error
+transitions, clamp, malformed/overflow cases, offhand-item exclusion, missing/error
 snapshots and high-priority definition overrides. The trait lookup and upgrade
 merger themselves are the existing production functions, not new implementations;
 this boundary harness does not exercise real resource reload or inventory routing. No full generated-host build, gameplay, LAN or Windows validation was run.
@@ -352,3 +352,34 @@ Existing tests retain broken/living/spin/health and definition-override coverage
 the cached `raging_melee.rs` harness retains the actual wear-bonus integration.
 Resolved tag maps are boundary inputs, not a real resource reload or network
 simulation. No full generated-host build, gameplay, LAN or Windows test was run.
+
+
+## Mainhand base attack-speed eligibility
+
+The attack-speed projection now reads the selected inventory slot, as the host's
+`tick_hand` does when setting `attack_item`, instead of `held()` (which follows
+the currently acting hand). Offhand actions therefore cannot substitute their
+saved stat for the actual mainhand. Local and guest execution share the swapped
+actor inventory/selected slot; this change adds no separate actor cache.
+
+The base tool modifier `saved_speed - 4` additionally requires live membership in
+`tconstruct:modifiable/melee/weapon`. Missing/error snapshots, a missing tag or
+removed membership suppress only this base modifier and preserve player base,
+potion factors and final clamp. Overwield is an independent ATTRIBUTES effect:
+it still applies to an eligible intact actual-mainhand stack even if the base
+MELEE_WEAPON condition is false. Empty/non-TConstruct/malformed-stat mainhand
+still uses the existing native fallback.
+
+Pinned [`AttributesModifierHook.getHeldAttributeModifiers`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/behavior/AttributesModifierHook.java)
+requires MAINHAND and `EntityInteractionModifierHook.isMeleeWeapon` for base stats,
+then separately invokes modifier attributes. This slice implements mainhand and
+the live tag only. The source's additional NO_MELEE predicate reads volatile
+`tconstruct:no_melee`, set by stock Blunted's VolatileFlagModule. The host has no
+corresponding volatile-data/Blunted projection; no invented saved flag is read.
+NO_MELEE remains unimplemented, so full source eligibility parity is not claimed.
+
+The actual-helper boundary harness now models selected inventory and a separate
+acting offhand. Tests cover selection changes, offhand isolation, missing mainhand,
+unknown/removed/restored tags, independent Overwield, broken state and potions;
+existing tests cover changed player base, clamp and malformed-stat fallback.
+No full generated-host build, gameplay, LAN or Windows validation was run.
