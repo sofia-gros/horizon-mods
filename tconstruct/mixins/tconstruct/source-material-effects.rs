@@ -60,6 +60,18 @@ pub(super) fn ordered_emerald_repair_amount(stack: &horizon_items::items::ItemSt
     Some(amount)
 }
 
+/// Supported casting part-swap repair hooks. More than one active factor is
+/// refused until the casting path supports full source hook ordering.
+pub(super) fn limited_casting_repair_factor(traits: &std::collections::BTreeMap<String, i32>, emerald_upgrade: bool) -> Option<f32> {
+    if traits.keys().any(|id| !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense" | "tconstruct:emerald")) { return None; }
+    let level = |id: &str| traits.get(id).copied().unwrap_or(0);
+    let emerald = emerald_upgrade || level("tconstruct:emerald") > 0;
+    if [level("tconstruct:preserved") > 0, level("tconstruct:cultivated") > 0,
+        level("tconstruct:dense") > 0, emerald].into_iter().filter(|v| *v).count() > 1 { return None; }
+    Some(repair_factor(level("tconstruct:cultivated"), level("tconstruct:preserved"))
+        * dense_repair_factor(level("tconstruct:dense")) * if emerald { 1.5 } else { 1.0 })
+}
+
 /// Dense repair follows the two level ranges in the original repair module.
 pub(super) fn dense_repair_factor(level: i32) -> f32 {
     match level {

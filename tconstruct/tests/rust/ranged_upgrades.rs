@@ -682,3 +682,22 @@ fn emerald_modifier_repair_uses_factor_then_truncates_per_item() {
  let needed=25u32; let consumed=needed.div_ceil(per_item); let repaired=needed.min(consumed*per_item);
  assert_eq!((consumed,repaired),(3,25));
 }
+
+#[test]
+fn emerald_casting_repair_trait_is_flat_and_mixed_hooks_remain_closed() {
+ use std::collections::BTreeMap;
+ let factor=tconstruct_source_material_effects::limited_casting_repair_factor;
+ let emerald=BTreeMap::from([("tconstruct:emerald".into(),2)]);
+ assert_eq!(factor(&emerald,false),Some(1.5));
+ assert_eq!(factor(&emerald,true),Some(1.5));
+ assert_eq!(factor(&BTreeMap::new(),true),Some(1.5));
+ assert_eq!(factor(&BTreeMap::new(),false),Some(1.0));
+ let mixed=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:dense".into(),1)]);
+ assert_eq!(factor(&mixed,false),None);
+ let unknown=BTreeMap::from([("test:unknown".into(),1)]);
+ assert_eq!(factor(&unknown,false),None);
+ // Source first scales material durability by item-cost / three, then applies
+ // the one permitted repair hook and truncates the result.
+ let repair=(101.0f32*(2.0/3.0)*factor(&emerald,true).unwrap()) as u32;
+ assert_eq!(repair,101);
+}
