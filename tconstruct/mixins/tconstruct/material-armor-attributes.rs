@@ -19,7 +19,12 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         if attributes {
             for (key, attribute) in [("tic_armor", "minecraft:armor"), ("tic_armor_toughness", "minecraft:armor_toughness"), ("tic_knockback_resistance", "minecraft:knockback_resistance")] {
                 if let Some(Tag::Float(bits)) = data.get(key) {
-                    values.push((attribute.to_owned(), format!("tconstruct:{key}/{slot}"), f64::from(f32::from_bits(*bits)), "add_value"));
+                    let amount = f32::from_bits(*bits);
+                    // Pinned base armor stats contribute only when positive.
+                    // This also excludes NaN, without changing +infinity policy.
+                    if amount > 0.0 {
+                        values.push((attribute.to_owned(), format!("tconstruct:{key}/{slot}"), f64::from(amount), "add_value"));
+                    }
                 }
             }
         }

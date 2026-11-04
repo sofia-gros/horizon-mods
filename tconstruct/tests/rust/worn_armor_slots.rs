@@ -143,3 +143,29 @@ fn apply(g:&mut game::Game<'_>) {
  assert_eq!(g.applied_modifiers.len(),3);
  assert!(!g.applied_modifiers.iter().any(|(attr,_)|attr=="minecraft:movement_speed"));
 }
+
+#[test] fn base_defense_stats_require_positive_saved_floats_individually() {
+ for (key,attr) in [("tic_armor","armor"),("tic_armor_toughness","armor_toughness"),("tic_knockback_resistance","knockback_resistance")] {
+  for amount in [0.0f32,-0.0,-1.0,f32::NEG_INFINITY,f32::NAN,f32::from_bits(1),0.25,f32::INFINITY] {
+   let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+   let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+   data.insert(key.into(),Tag::Float(amount.to_bits()));g.armor[0]=Some(item);apply(&mut g);
+   let modifier=g.player.as_ref().unwrap().values.get(&(format!("minecraft:{attr}"),format!("tconstruct:{key}/head")));
+   if amount>0.0 {assert_eq!(modifier,Some(&(f64::from(amount),"add_value".into())));}
+   else {assert!(modifier.is_none(),"{key} {amount:?}");}
+   assert_eq!(g.applied_modifiers.len(),if amount>0.0 {3}else{2});
+  }
+ }
+}
+#[test] fn invalidated_base_stat_is_removed_and_other_modifiers_preserved() {
+ let mut g=game();let mut item=stack("tconstruct:plate_helmet");
+ let Some(Data(Tag::Compound(ref mut data)))=item.data else {panic!()};
+ data.insert("tic_upgrades".into(),Tag::Compound([("tconstruct:vintage".into(),Tag::Int(1))].into()));
+ g.armor[0]=Some(item);apply(&mut g);assert_eq!(g.applied_modifiers.len(),5);
+ let Some(Data(Tag::Compound(ref mut data)))=g.armor[0].as_mut().unwrap().data else {panic!()};
+ data.insert("tic_armor".into(),Tag::Float(f32::NAN.to_bits()));
+ apply(&mut g);assert_eq!(g.applied_modifiers.len(),4);
+ assert!(!g.applied_modifiers.iter().any(|(_,id)|id=="tconstruct:tic_armor/head"));
+ assert!(g.applied_modifiers.iter().any(|(_,id)|id=="tconstruct:vintage_movement/head"));
+ assert!(g.applied_modifiers.iter().any(|(_,id)|id=="tconstruct:vintage_gravity/head"));
+}
