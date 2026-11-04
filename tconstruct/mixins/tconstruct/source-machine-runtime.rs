@@ -26,7 +26,7 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
         "tconstruct:seared_heater" => Some("tconstruct:heater"),
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => Some("tconstruct:faucet"),
         "tconstruct:seared_table" | "tconstruct:scorched_table" => Some("tconstruct:table"),
-        "tconstruct:seared_basin" => Some("tconstruct:basin"),
+        "tconstruct:seared_basin" | "tconstruct:scorched_basin" => Some("tconstruct:basin"),
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => Some("tconstruct:smeltery"),
         "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" => Some("tconstruct:fuel_tank"),
         "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => Some("tconstruct:ingot_tank"),
@@ -644,11 +644,11 @@ pub(super) fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static s
 }
 
 // Empty-cast items stand in for an absent recipe cast, but remain physically
-// in the slot. Scorched tables require a physical cast even for those recipes.
+// in the slot. Scorched casting blocks require a physical cast even for those recipes.
 fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Casting, tank: &Tank)
     -> Option<(String, super::tconstruct_source_melting_recipes::CastingRecipe, horizon_items::items::ItemStack)> {
     let block = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
-    if block == "tconstruct:scorched_table" && casting.input.is_none() { return None; }
+    if matches!(block, "tconstruct:scorched_table" | "tconstruct:scorched_basin") && casting.input.is_none() { return None; }
     let mut input = casting.input.as_ref();
     if let Some(stack) = input {
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
@@ -852,7 +852,7 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
         if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return false; }
         return store::write_many(&mut game.world, &[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
-    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") { return true; }
+    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") { return true; }
     if !ensure(game, target, &target_name) { return false; }
     let Some((kind, mut casting)) = casting_at(game, target) else { return false; };
     if casting.recipe.is_none() {
@@ -955,7 +955,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
         if !faucet.activate(&mut melter.tank, &state.tank) { return true; }
         return store::write_many(&mut game.world, &[(source,"tconstruct:melter",match super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_melter, &melter.tank) { Some(tag) => tag, None => return false }),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
-    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") { return true; }
+    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") { return true; }
     if !ensure(game, source, &source_name) || !ensure(game, target, &target_name) { return false; }
     let Some(raw_melter) = store::read(&game.world, source, "tconstruct:melter") else { return false; };
     let Some(mut melter) = Melter::from_nbt(&raw_melter) else { return false; };

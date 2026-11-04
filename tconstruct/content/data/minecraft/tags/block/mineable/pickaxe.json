@@ -88,6 +88,7 @@
     "tconstruct:cobalt_cluster",
     "tconstruct:knightmetal_cluster",
     "tconstruct:pig_iron_block",
-    "tconstruct:knightmetal_block"
+    "tconstruct:knightmetal_block",
+    "tconstruct:scorched_basin"
   ]
 }

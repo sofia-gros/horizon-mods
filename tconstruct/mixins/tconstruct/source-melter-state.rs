@@ -341,7 +341,7 @@ impl Faucet {
 
 /// Distinguish a recognized but unreadable casting from a removed target.
 pub(super) fn is_casting_block(name: &str) -> bool {
-    matches!(name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin")
+    matches!(name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin")
 }
 
 /// A resumed casting may only rewrite the exact saved snapshots it decoded.
@@ -446,7 +446,7 @@ mod faucet_tests {
     }
     #[test]
     fn unreadable_casting_preserves_packet_while_removed_block_discards_it() {
-        for name in ["tconstruct:seared_table", "tconstruct:scorched_table", "tconstruct:seared_basin"] {
+        for name in ["tconstruct:seared_table", "tconstruct:scorched_table", "tconstruct:seared_basin", "tconstruct:scorched_basin"] {
             let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
             let output = Tank::new(90); let mut faucet = Faucet::new();
             assert!(faucet.activate(&mut source, &output));
