@@ -1052,3 +1052,10 @@ explicit colors still take priority. The 1.20.1 oracle is version-labelled
 decompiled source, not an official jar probe. Integrated rendering, resource packs and LAN are unverified.
 The supported source effect IDs are the existing vanilla Byte IDs 1–33;
 Forge extended IDs and other NBT types remain outside this path.
+
+Local machine GUI and world-fluid rendering now use the validated source potion
+color when the machine retains complete recognized potion metadata. Guest
+snapshots and missing or unsupported metadata retain the prior conservative
+color, including the existing explicit-color behavior. Focused color and wiring
+tests cover this boundary; actual GUI, placed machines, resource packs and LAN
+remain unverified.
