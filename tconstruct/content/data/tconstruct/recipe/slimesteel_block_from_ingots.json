@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "tconstruct:slimesteel_block",
+  "key": {
+    "#": "#forge:ingots/slimesteel",
+    "*": "tconstruct:slimesteel_ingot"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:slimesteel_block"
+  }
+}
