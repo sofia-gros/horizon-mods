@@ -37,8 +37,8 @@ impl Player {
 pub struct World { trait_level:i32 }
 pub mod game {
     use super::*;
-    pub struct Game<'a>{pub held:Option<Stack>,pub attack_item:Option<String>,pub info:Option<ItemInfo>,pub player:Option<Player>,pub world:World,pub marker:std::marker::PhantomData<&'a ()>}
-    impl Game<'_>{pub fn held(&self)->Option<&Stack>{self.held.as_ref()}pub fn attack_item_info(&self)->Option<&ItemInfo>{self.info.as_ref()}}
+    pub struct Game<'a>{pub inventory:Vec<Option<Stack>>,pub selected:usize,pub offhand:Option<Stack>,pub acting_offhand:bool,pub attack_item:Option<String>,pub info:Option<ItemInfo>,pub player:Option<Player>,pub world:World,pub marker:std::marker::PhantomData<&'a ()>}
+    impl Game<'_>{pub fn held(&self)->Option<&Stack>{if self.acting_offhand {self.offhand.as_ref()} else {self.inventory.get(self.selected).and_then(Option::as_ref)}}pub fn attack_item_info(&self)->Option<&ItemInfo>{self.info.as_ref()}}
     pub mod tconstruct_source_ranged_wear { include!("../../mixins/tconstruct/source-ranged-wear.rs"); }
     pub mod tconstruct_source_material_traits {
         use super::*;
@@ -57,15 +57,15 @@ pub mod game {
 fn game()->game::Game<'static>{
     let mut held=Stack::new("tconstruct:sword",1);
     held.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_attack_damage",Tag::Float(8.0f32.to_bits())),("tic_max_damage",Tag::Int(100)),("tic_broken",Tag::Byte(0))])));
-    game::Game{held:Some(held),attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0},marker:std::marker::PhantomData}
+    game::Game{inventory:vec![Some(held)],selected:0,offhand:None,acting_offhand:false,attack_item:Some("tconstruct:sword".into()),info:Some(ItemInfo{attack_damage:3.0}),player:Some(Player{base:1.0,native:3.0,additive:0.0,total:1.0,projection:0.0,fail_set:false,fail_read:false}),world:World{trait_level:0},marker:std::marker::PhantomData}
 }
-fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.held.as_mut().unwrap().data_mut().0 else{panic!()};v.insert(key.into(),value);}
+fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.inventory[0].as_mut().unwrap().data_mut().0 else{panic!()};v.insert(key.into(),value);}
 #[test] fn broken_removes_native_and_material_damage_and_repair_restores(){
     let mut g=game();assert_eq!(game::run(&g),ControlFlow::Break(9.0));
     field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(1.0));
-    field(&mut g,"tic_broken",Tag::Byte(0));g.held.as_mut().unwrap().damage=100;assert_eq!(game::run(&g),ControlFlow::Break(1.0));
-    g.held.as_mut().unwrap().damage=99;assert_eq!(game::run(&g),ControlFlow::Break(9.0));
-    assert_eq!(g.player.as_ref().unwrap().projection,0.0);assert_eq!(g.held.as_ref().unwrap().damage,99);
+    field(&mut g,"tic_broken",Tag::Byte(0));g.inventory[0].as_mut().unwrap().damage=100;assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+    g.inventory[0].as_mut().unwrap().damage=99;assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    assert_eq!(g.player.as_ref().unwrap().projection,0.0);assert_eq!(g.inventory[0].as_ref().unwrap().damage,99);
 }
 #[test] fn broken_preserves_player_base_effects_and_multiplier_order(){
     let mut g=game();field(&mut g,"tic_broken",Tag::Byte(-1));
@@ -91,4 +91,27 @@ fn field(g:&mut game::Game<'_>,key:&str,value:Tag){let Tag::Compound(v)=&mut g.h
     assert_eq!(game::run(&g),ControlFlow::Break(9.0));
     field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(1.0));
     g.info=None;g.player.as_mut().unwrap().native=0.0;assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+}
+
+#[test] fn acting_offhand_cannot_replace_mainhand_damage_or_broken_state() {
+    let mut g=game();let mut other=game();field(&mut other,"tic_attack_damage",Tag::Float(40.0f32.to_bits()));
+    g.offhand=other.inventory.remove(0);g.acting_offhand=true;
+    assert_eq!(g.held().unwrap().item,"tconstruct:sword");
+    assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    let Tag::Compound(v)=&mut g.offhand.as_mut().unwrap().data_mut().0 else{panic!()};v.insert("tic_broken".into(),Tag::Byte(1));
+    assert_eq!(game::run(&g),ControlFlow::Break(9.0));
+    field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run(&g),ControlFlow::Break(1.0));
+    field(&mut g,"tic_broken",Tag::Byte(0));g.world.trait_level=1;
+    assert_eq!(game::run(&g),ControlFlow::Break(13.5));
+    assert_eq!(g.player.as_ref().unwrap().projection,0.0);
+}
+#[test] fn changing_selected_mainhand_preserves_id_and_missing_stack_fallbacks() {
+    let mut g=game();g.acting_offhand=true;g.offhand=game().inventory.remove(0);
+    let mut next=game();field(&mut next,"tic_attack_damage",Tag::Float(12.0f32.to_bits()));
+    g.inventory.push(next.inventory.remove(0));g.selected=1;
+    assert_eq!(game::run(&g),ControlFlow::Break(13.0));
+    g.inventory[1].as_mut().unwrap().item="tconstruct:pickaxe".into();
+    assert_eq!(game::run(&g),ControlFlow::Continue(()));
+    g.inventory[1]=None;assert_eq!(game::run(&g),ControlFlow::Continue(()));
+    g.selected=usize::MAX;assert_eq!(game::run(&g),ControlFlow::Continue(()));
 }
