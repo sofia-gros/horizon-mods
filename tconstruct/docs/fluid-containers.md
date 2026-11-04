@@ -42,3 +42,8 @@ remain unverified for these additions.
 The GUI fluid overlay is drawn after the base icon and can cover enchantment
 glint in its fluid pixels. Automated tests do not exercise live injection,
 icon composition, tooltip presentation or LAN synchronization.
+### Faucet to a tank (candidate)
+
+A faucet can move fluid from a Seared Melter or an existing Seared or Scorched fuel/ingot tank into another existing fuel/ingot tank below it. Activate the faucet to begin, and activate it again to stop after the current packet. The receiving tank must have room for the same fluid and metadata. A blocked or unreadable tank keeps the packet in the faucet until it can continue. A packet already reserved can still enter the tank if its source is removed. On this route, the first 10 mB is poured immediately when each packet starts, matching the pinned source; the older casting routes retain their existing timing.
+
+This route is limited to those built-in tanks and the Seared Melter. Smeltery drains, arbitrary external fluid handlers, redstone activation, and tank-to-casting-block routes are not added here. The transfer helper preserves unknown tank fields when it writes. The existing Melter tick can independently rewrite Melter and tank metadata, so this is not a guarantee that every extension field survives ordinary Melter operation. Focused state and mock-world tests passed; live gameplay, save/reload in a real world, LAN, and integration with other faucet changes are not yet verified.

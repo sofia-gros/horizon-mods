@@ -239,9 +239,9 @@ mod tests {
 /// A source faucet reserves up to one ingot and pours a nugget each tick.
 /// The in-flight fluid is kept separately so save/reload does not duplicate it.
 #[derive(Clone, Debug)]
-pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank }
+pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank, original: Option<Tag> }
 impl Faucet {
-    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90) } }
+    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90), original: None } }
     pub(super) fn activate(&mut self, input: &mut Tank, output: &Tank) -> bool {
         if self.active { self.stop_after_packet = true; return true; }
         self.stop_after_packet = false;
@@ -281,14 +281,25 @@ impl Faucet {
         }
     }
     pub(super) fn to_nbt(&self) -> Tag {
-        Tag::compound([("active", Tag::Byte(self.active as i8)), ("stop", Tag::Byte(self.stop_after_packet as i8)), ("pending", self.pending.to_nbt())])
+        let mut fields = match &self.original { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
+        let mut pending = match fields.get(&"pending".into()) { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
+        if let Tag::Compound(next) = self.pending.to_nbt() {
+            for key in ["fluid", "fluid_tag", "amount"] {
+                pending.remove(&key.into());
+                if let Some(value) = next.get(&key.into()) { pending.insert(key.into(), value.clone()); }
+            }
+        }
+        fields.insert("active".into(), Tag::Byte(self.active as i8));
+        fields.insert("stop".into(), Tag::Byte(self.stop_after_packet as i8));
+        fields.insert("pending".into(), Tag::Compound(pending));
+        Tag::Compound(fields)
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let boolean = |key| match tag.get(key)? { Tag::Byte(0) => Some(false), Tag::Byte(1) => Some(true), _ => None };
         let active = boolean("active")?; let stop_after_packet = boolean("stop")?;
         let pending = Tank::from_nbt(tag.get("pending")?, 90)?;
         if !active && (stop_after_packet || pending.amount != 0) { return None; }
-        Some(Self { active, stop_after_packet, pending })
+        Some(Self { active, stop_after_packet, pending, original: Some(tag.clone()) })
     }
 }
 
