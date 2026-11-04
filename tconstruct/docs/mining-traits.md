@@ -448,8 +448,8 @@ negative/malformed progress handling and durability-limit gating are retained.
 This slice corrects only effective-level rounding. The existing single-chest
 float multiplier and final float speed multiplication remain unchanged; they
 do not emulate the source double attribute evaluation or its 0-to-100 clamp.
-Other equipment slots, source attribute stacking, and broken-flag-only gating
-remain outside this change. End-to-end bit-exact source speed is not claimed.
+Other equipment slots and source attribute stacking remain outside this
+change. End-to-end bit-exact source speed is not claimed.
 
 The cached-library integration harness executes the actual chest helper with
 four old-versus-new bitwise counterexamples, complete/partial level boundaries,
@@ -458,3 +458,23 @@ encode/decode/matching test supplies the trait level to the same helper and
 checks local/remote arithmetic, stale-frame fallback, and repair. This is a
 boundary integration test, not a LAN or full actor-context simulation. No
 full generated-host build, gameplay, LAN, or Windows validation was run.
+
+## Chest Haste broken-flag guard
+
+Chest Haste now contributes no multiplier when saved `tic_broken` is a nonzero
+Byte, even if damage is still below the saved maximum. This matches the
+`!tool.isBroken()` guard around armor modifier attributes in pinned
+[`ModifiableArmorItem.getAttributeModifiers`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/item/armor/ModifiableArmorItem.java)
+and uses the same flag representation as the existing retained-tool broken
+predicate. Clearing or removing that flag restores the prior calculation only
+when the existing maximum/damage checks also permit it. Wrong-typed flag values
+retain the existing unflagged behavior. Neither the stack nor snapshots change.
+
+The actual-helper integration tests cover positive/negative nonzero Bytes,
+zero/absent/wrong-typed flags, partial upgrade plus trait and upgrade-only
+cases, maximum/damage gates, and non-mutation. A real wire roundtrip verifies
+that flag-only breakage suppresses both trait and upgrade bonuses and that
+repair invalidates the old matching frame before a fresh frame restores the
+bonus. Source/tag/actor lookup, incremental arithmetic, float output pipeline,
+and chest-only scope are unchanged. No full generated-host build, gameplay,
+LAN, or Windows validation was run.
