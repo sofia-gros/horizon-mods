@@ -1,0 +1,12 @@
+{
+  "title": "Using the Foundry",
+  "text": [
+    {
+      "text": "Open the controller and place meltable items in the input slots. Larger foundries may need scrolling through the slots."
+    },
+    {
+      "text": "Click a fluid in the main tank to select it for pouring.",
+      "paragraph": true
+    }
+  ]
+}

@@ -14,6 +14,7 @@ fn book_id(pages: &[Text]) -> Option<&'static str> {
     if title.starts_with("Materials & You\n") { Some("materials") }
     else if title.starts_with("Puny Smelting\n") { Some("puny") }
     else if title.starts_with("Mighty Smelting\n") { Some("mighty") }
+    else if title.starts_with("Fantastic Foundry\n") { Some("foundry") }
     else { None }
 }
 
@@ -82,10 +83,13 @@ mod tests {
         let root = |title: &str| Text::styled(format!("{title}\n\n"), Style { insertion: Some(ROOT.into()), ..Default::default() });
         let puny = vec![root("Puny Smelting")];
         let mighty = vec![root("Mighty Smelting")];
+        let foundry = vec![root("Fantastic Foundry")];
         let reply = encode_reply(42, &puny).unwrap();
         assert!(decode_reply(42, &puny, &reply).is_some());
         assert!(decode_reply(43, &puny, &reply).is_none());
         assert!(decode_reply(42, &mighty, &reply).is_none());
+        assert!(decode_reply(42, &foundry, &reply).is_none());
+        assert!(decode_reply(42, &foundry, &encode_reply(42, &foundry).unwrap()).is_some());
         assert!(decode_reply(42, &puny, &[0; 7]).is_none());
     }
     #[test]

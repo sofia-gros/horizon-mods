@@ -96,3 +96,5 @@ pinned dataset contains many module-bearing
 modifiers, so this is not a complete registry and is not connected to display.
 Before production use, duplicate JSON object keys need rejection or verified
 compatibility with the source parser; serde_json currently uses the last key.
+
+Fantastic Foundry now has a limited English reader entry and the source book-and-nether-grout crafting recipe. Its cover and opening text derive from TConstruct `f4e77d43`; the four Foundry basics pages are port adaptations, not the original GUI diagram or complete source book. They describe the rectangular structure, frame, supported fuel and basic controller operation. The alloyer, blazing blood, material and armor chapters, dynamic pages, structure viewer and many machine features remain omitted or incomplete. The item, crafting, page layout, direct interactions, and guest synchronization have not been checked in game. Host/guest may still differ when the existing book transfer limits are exceeded.
