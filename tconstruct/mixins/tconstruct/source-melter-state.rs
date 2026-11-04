@@ -52,6 +52,13 @@ impl Tank {
         }
         Some(Tag::Compound(fields))
     }
+    /// Patch a normal fuel tank while retaining unrelated native extension data.
+    /// Legacy Forge aliases were discarded by the old fuel-tank serializer.
+    pub(super) fn to_nbt_preserving_fuel(&self, raw: &Tag) -> Option<Tag> {
+        let Tag::Compound(mut fields) = self.to_nbt_preserving(raw)? else { return None; };
+        for key in ["FluidName", "Amount", "Tag"] { fields.remove(&key.into()); }
+        Some(Tag::Compound(fields))
+    }
     pub(super) fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };
         if amount > capacity { return None; }
