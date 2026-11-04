@@ -360,3 +360,29 @@ caller helpers: saturated Crossbow charge duration, Longbow rejection after only
 and dispatch boundaries are doubles; this is not a real multi-year hold or a
 full generated-host/gameplay/LAN validation. Run with compatible cached Horizon
 rlibs via `TC_LONGBOW_HARNESS_DEPS=/path/to/deps python3 tconstruct/tests/test_longbow_release_threshold.py`.
+
+## Trueshot incremental-level precision
+
+The bow stat rebuild now reconstructs Trueshot's whole logical level from fixed
+10-unit progress, merges material trait levels, then applies the f32 partial
+correction before adding 0.1 per level to accuracy. This follows pinned
+[`IncrementalModifierEntry.merge` and `scaleLevel`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java),
+the [Trueshot stat module](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/trueshot.json)
+and its [10-unit recipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tools/modifiers/upgrade/trueshot.json).
+For example, base accuracy 0.1 and progress 1 now produce 0.11000000685453415
+instead of 0.10999999940395355. The final accuracy clamp does not hide that case.
+An unrepresentable merged logical level supplies no Trueshot bonus; this is a
+fail-closed host boundary rather than Java integer-overflow emulation.
+
+Only the Trueshot branch changes. Fixed progress storage, trait lookup, modifier
+ordering, bow eligibility, surrounding stat algebra, accuracy clamp and other
+upgrades remain unchanged. This does not implement arbitrary datapack denominators
+or change projectile-damage, firing-consumer or projectile-motion processing code.
+The corrected saved accuracy can still propagate to projectile spread.
+
+The actual `apply_stats` cached-library harness exercises both bow IDs, four
+bitwise counterexamples, full/partial 10-unit boundaries, negative/large/overflow
+inputs, repeated rebuilding, clearing progress/traits, non-bow gating, preserved
+foreign/progress data and unchanged draw speed/velocity. Existing tests cover
+combination with other ranged modifiers. No full generated-host build, gameplay,
+LAN or Windows validation was run.
