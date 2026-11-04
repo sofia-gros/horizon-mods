@@ -313,3 +313,28 @@ The source applies repair hooks to the rebuilt tool in modifier order (pinned
 `PartSwapCastingRecipe.java`, lines 159–178). This is a focused code-level
 candidate; integrated build, gameplay, datapack-supplied upgrades, persistence,
 and LAN remain unverified. Composite swaps do not repair and are unchanged.
+
+## Jagged and Stonebound mining factor precision
+
+The shared active mining helper now follows the pinned per-factor float
+operation order: `sqrt(lost / durability_multiplier) * level * coefficient + 1`.
+Jagged's mining coefficient is `-0.01`, and Stonebound's is `0.01`. Previously
+the coefficient was multiplied before the level, which changes f32 rounding.
+The factors still multiply the current speed sequentially in the supplied
+modifier order. See pinned
+[Jagged](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/jagged.json)
+and
+[Stonebound](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/stonebound.json).
+
+This slice preserves the existing effective-block gate, nonnegative levels,
+invalid-durability floor, final nonnegative speed clamp and modifier resolver.
+It does not add support for custom modifier formulas, change upgrade/trait
+resolution, or resolve the separately documented Crumbling/Stonebound gameplay
+difference. It changes no melee arithmetic.
+
+A dependency-free harness executes the actual shared mining and Dwarven helpers:
+13 Rust tests pass, including bitwise counterexamples for Jagged (lost 1,
+multiplier 0.1, level 5) and Stonebound (lost 2, multiplier 3, level 5), supplied
+order, effectiveness, zero wear and invalid-durability behavior. Two Python tests
+run the harness and check the shared module/rule wiring. Full generated-host
+compilation, in-game mining timing, save/reload, LAN and Windows remain unverified.
