@@ -396,7 +396,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let marker = cache.join("tconstruct-startup-owner");
     let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
     // Invalidate only our owned cache when Creative preparation semantics change.
-    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v5");
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v6");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
@@ -412,7 +412,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     std::fs::write(&marker, b"incomplete")?;
     let modified = ["worldgen/biomes.json", "worldgen/blocks/cached-collision.nbt",
         "cached-collision.nbt", "movement-properties.nbt", "render-definitions.json",
-        "registries.json", "gameplay-facts.json", "items.json", "creative-inventory.json", "assets/minecraft/textures/gui",
+        "registries.json", "gameplay-facts.json", "items.json", "creative-inventory.json", "horizon-mod-craft-remainders.json", "assets/minecraft/textures/gui",
         "assets/minecraft/textures/block", "data/tconstruct/tags/block"];
     fn mirror(src: &Path, dst: &Path, rel: &Path, modified: &[&str]) -> std::io::Result<()> {
         std::fs::create_dir_all(dst)?;
@@ -596,6 +596,17 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             {"id":"minecraft:poison","duration":250}]}]});
         item["minecraft:max_stack_size"] = serde_json::json!(16);
         item["minecraft:use_remainder"] = serde_json::json!({"id":"minecraft:glass_bottle"});
+    }
+    if let Some(item) = items.get_mut("tconstruct:blazing_blood_bucket") {
+        // Pinned FluidEvents.onFurnaceFuel; Mantle bucket properties return a bucket.
+        item["minecraft:cooking_fuel"] = serde_json::json!({"burn_time":{"type":"minecraft:div","left":30000,"right":{"type":"minecraft:conditional","condition":"minecraft:block/fast_cooking","on_false":"minecraft:cooking/normal_burn_time_reduction_factor","on_true":"minecraft:cooking/fast_burn_time_reduction_factor"}},"speed_multiplier":"minecraft:cooking/speed_default"});
+        let remainders_path = cache.join("horizon-mod-craft-remainders.json");
+        let mut remainders: serde_json::Value = if remainders_path.is_file() {
+            serde_json::from_slice(&std::fs::read(&remainders_path)?)?
+        } else { serde_json::json!({}) };
+        let entries = remainders.as_object_mut().ok_or("invalid crafting remainder table")?;
+        entries.insert("tconstruct:blazing_blood_bucket".into(), serde_json::json!("minecraft:bucket"));
+        std::fs::write(remainders_path, serde_json::to_vec(&remainders)?)?;
     }
     std::fs::write(item_path, serde_json::to_vec(&items)?)?;
     let creative_path = cache.join("creative-inventory.json");

@@ -35,7 +35,7 @@ if (src / 'assets/tconstruct').exists():
     p.error('source already contains a tconstruct asset namespace')
 out.mkdir(parents=True)
 for path in src.iterdir():
-    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'creative-inventory.json', 'assets'}:
+    if path.name not in {'items.json', 'registries.json', 'command-registries.json', 'creative-inventory.json', 'horizon-mod-craft-remainders.json', 'assets'}:
         link_or_copy(path, out / path.name)
 # Keep the source notices in the generated resource distribution as well.
 licenses = out / 'THIRD_PARTY_LICENSES'
@@ -269,6 +269,10 @@ for short in MATERIAL_MODELS:
 with zipfile.ZipFile(repository / 'content/reference/tconstruct-fluid-buckets.zip') as archive:
     bucket_manifest = json.loads(archive.read('manifest.json'))['buckets']
     bucket_names = set(bucket_manifest)
+    remainder_path = src / 'horizon-mod-craft-remainders.json'
+    remainders = json.loads(remainder_path.read_text()) if remainder_path.is_file() else {}
+    remainders['tconstruct:blazing_blood_bucket'] = 'minecraft:bucket'
+    (out / 'horizon-mod-craft-remainders.json').write_text(json.dumps(remainders))
     for short, definition in sorted(bucket_manifest.items()):
         if not short.replace('_', '').isalnum() or definition['fluid'] != 'tconstruct:' + short.removesuffix('_bucket'):
             raise ValueError('Invalid fluid bucket definition: ' + short)
@@ -304,6 +308,9 @@ for name, template, title in entries:
     short = name.split(':')[1]
     item['minecraft:item_model'] = name
     (mod_assets / 'items' / (short + '.json')).write_text(json.dumps({'model': {'type':'minecraft:model','model':'tconstruct:item/' + short}}))
+    if short == 'blazing_blood_bucket':
+        # FluidEvents.onFurnaceFuel and Mantle RegistrationHelper.BUCKET_PROPS.
+        item['minecraft:cooking_fuel'] = {'burn_time': {'type': 'minecraft:div', 'left': 30000, 'right': {'type': 'minecraft:conditional', 'condition': 'minecraft:block/fast_cooking', 'on_false': 'minecraft:cooking/normal_burn_time_reduction_factor', 'on_true': 'minecraft:cooking/fast_burn_time_reduction_factor'}}, 'speed_multiplier': 'minecraft:cooking/speed_default'}
     if short in bucket_names:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
     elif short == 'magma_bottle':

@@ -953,3 +953,12 @@ snow with supported tanks and is the output of the source bucket-filling table
 path. Unit tests cover the atomic transfer, selection and failure boundaries,
 and the catalog result. Component-bearing buckets and tagged fluids remain
 refused; integrated gameplay, save/reload and LAN remain unverified.
+
+Blazing Blood buckets now have the pinned `FluidEvents.onFurnaceFuel` burn time of
+30,000 ticks for a normal furnace, with the host fast-cooking equivalent of
+15,000 ticks at double speed for a blast furnace or smoker. Their source Mantle
+bucket crafting remainder is registered as an empty vanilla bucket. Both manual
+resource overlays and startup resource preparation preserve other remainder
+entries. The host furnace reads that remainder when fuel is consumed. Resource
+overlay tests cover the registered values and preservation; integrated furnace,
+blast furnace, smoker, save/reload and LAN behavior have not been verified.
