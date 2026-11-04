@@ -814,6 +814,17 @@ mod tests {
         assert!(catalog.bucket_filling("minecraft:water", &|_| true).is_none());
     }
     #[test]
+    fn table_filling_maps_powdered_snow_to_vanilla_bucket() {
+        let recipes = [("bucket".into(), br#"{"type":"tconstruct:table_filling","container":"minecraft:bucket","fluid_amount":1000}"#.to_vec())].into_iter().collect();
+        let item_tags = HashMap::new(); let fluid_tags = HashMap::new();
+        let items = ["minecraft:bucket".into(), "minecraft:powder_snow_bucket".into()].into_iter().collect();
+        let fluids = ["tconstruct:powdered_snow".into()].into_iter().collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        let (_, recipe, output) = catalog.bucket_filling("tconstruct:powdered_snow", &|_| true).unwrap();
+        assert_eq!((recipe.fluid.amount, recipe.cooling_time, recipe.consumes_cast), (1000, 5, true));
+        assert_eq!(output, "minecraft:powder_snow_bucket");
+    }
+    #[test]
     fn alloy_catalyst_requires_fluid_but_does_not_consume_it() {
         let recipes = [("obsidian".into(), br#"{"type":"tconstruct:alloy","inputs":[{"fluid":"minecraft:water","amount":250,"catalyst":true},{"fluid":"minecraft:lava","amount":100}],"result":{"fluid":"tconstruct:molten_obsidian","amount":100},"temperature":1000}"#.to_vec())].into_iter().collect();
         let item_tags = HashMap::new(); let items = HashSet::new(); let tags = HashMap::new();

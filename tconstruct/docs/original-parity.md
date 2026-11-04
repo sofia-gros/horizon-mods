@@ -947,3 +947,9 @@ item tags, unsupported metadata and dynamic fluid-tag changes remain outside
 this bounded path. Manual resource preparation also registers both empty
 bottles. Unit tests cover selection and failure boundaries; brewing acquisition,
 integrated gameplay, save/reload and LAN remain unverified.
+
+The vanilla Powder Snow Bucket now exchanges 1,000 mB of TConstruct powdered
+snow with supported tanks and is the output of the source bucket-filling table
+path. Unit tests cover the atomic transfer, selection and failure boundaries,
+and the catalog result. Component-bearing buckets and tagged fluids remain
+refused; integrated gameplay, save/reload and LAN remain unverified.
