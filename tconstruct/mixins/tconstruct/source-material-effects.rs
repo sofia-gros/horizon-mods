@@ -3,6 +3,63 @@ pub(super) fn repair_factor(cultivated: i32, preserved: i32) -> f32 {
     (1.0 + cultivated as f32 * 0.5) * (1.0 + preserved as f32 * 0.15)
 }
 
+/// Apply known Station material-repair hooks to the per-item amount in source
+/// modifier order. Ambiguous upgrade or trait order fails before consumption.
+pub(super) fn ordered_emerald_repair_amount(stack: &horizon_items::items::ItemStack,
+    traits: &std::collections::BTreeMap<String, i32>, trait_order: &[String], initial: f32) -> Option<f32> {
+    use horizon_world::nbt::Tag;
+    const IDS: [&str; 4] = ["tconstruct:emerald", "tconstruct:cultivated", "tconstruct:preserved", "tconstruct:dense"];
+    let custom = stack.data()?.other("minecraft:custom_data")?;
+    let upgrades = custom.get("tic_upgrades");
+    if upgrades.is_some_and(|tag| !matches!(tag, Tag::Compound(_))) || !initial.is_finite() { return None; }
+    let mut active = Vec::new();
+    let mut values = std::collections::BTreeMap::new();
+    for id in IDS {
+        let upgrade = match upgrades.and_then(|u| u.get(id)) { None => 0, Some(Tag::Int(level)) if *level >= 0 => *level, _ => return None };
+        let trait_level = traits.get(id).copied().unwrap_or(0);
+        if trait_level < 0 { return None; }
+        let level = trait_level.checked_add(upgrade)?;
+        if upgrade > 0 { active.push(id); }
+        values.insert(id, level);
+    }
+    let mut order: Vec<&str> = Vec::new();
+    if active.len() == 1 { order.push(active[0]); }
+    else if active.len() > 1 {
+        let Some(Tag::List(saved)) = custom.get("tic_upgrade_order") else { return None; };
+        for tag in saved {
+            let Tag::String(id) = tag else { return None; };
+            let id = id.to_string_lossy();
+            if let Some(&known) = active.iter().find(|known| **known == id.as_str()) {
+                if order.contains(&known) { return None; }
+                order.push(known);
+            }
+        }
+        if order.len() != active.len() { return None; }
+    }
+    for id in trait_order {
+        if let Some(&known) = IDS.iter().find(|known| **known == id.as_str()) {
+            if traits.get(known).copied().unwrap_or(0) > 0 && !order.contains(&known) { order.push(known); }
+        }
+    }
+    if IDS.iter().any(|id| traits.get(*id).copied().unwrap_or(0) > 0 && !order.contains(id)) { return None; }
+    let mut amount = initial;
+    for id in order {
+        let level = values[id];
+        let multiplier = match id {
+            "tconstruct:emerald" if level > 0 => 1.5,
+            "tconstruct:cultivated" => 1.0 + 0.5 * level as f32,
+            "tconstruct:preserved" => 1.0 + 0.15 * level as f32,
+            "tconstruct:dense" if level >= 6 => 1.0 + (-0.5 + -0.05 * level as f32),
+            "tconstruct:dense" => dense_repair_factor(level),
+            _ => 1.0,
+        };
+        amount *= multiplier;
+        if !amount.is_finite() { return None; }
+        if amount <= 0.0 { return Some(0.0); }
+    }
+    Some(amount)
+}
+
 /// Dense repair follows the two level ranges in the original repair module.
 pub(super) fn dense_repair_factor(level: i32) -> f32 {
     match level {

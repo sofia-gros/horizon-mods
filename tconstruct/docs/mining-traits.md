@@ -249,3 +249,16 @@ Previously saved tools need a supported rebuild or regeneration. Focused Rust
 tests cover tier selection and tag gating; a static test checks both rebuild
 entry points. The host integration build, real mining, save/reload and LAN are
 unverified.
+
+## Emerald trait Station material repair
+
+For a resolved Emerald trait, the existing Station material-repair path now
+applies the source 1.5 repair factor once even if Emerald is also an upgrade.
+Known Cultivated, Preserved and Dense factors are applied to each per-item
+repair amount in resolved modifier order. Ambiguous upgrade order and invalid
+or overflowing supported levels are rejected before consumption. Other
+material-repair cases retain the existing calculation. Modifier-repair and
+casting part-swap paths keep their conservative Emerald-trait exclusions.
+Focused tests cover both factor orders and trait/upgrade deduplication; a static
+test checks the Station wiring. Actual repair plans and ingredient counts,
+host integration, save/reload and LAN remain unverified.
