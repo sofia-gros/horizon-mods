@@ -247,3 +247,9 @@ Other General entries and source ordering remain incomplete. This provides
 Creative access only; it does not establish their survival acquisition or
 modifier effects. Manual Search does not include these entries; native Search,
 actual display, reload, other-mod combinations and LAN remain unverified.
+
+Four source furnace recipes convert Seared Cobble to Seared Stone, Seared Stone
+to Seared Paver, Seared Bricks to Seared Cracked Bricks, and Scorched Stone to
+Scorched Road. Each uses one direct item input, 200 ticks and 0.1 experience;
+recipe-book unlock definitions use the corresponding adapted native IDs.
+Actual furnace execution, recipe-book unlocks, saves and LAN remain unverified.
