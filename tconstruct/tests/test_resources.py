@@ -16,7 +16,7 @@ class ResourceOverlay(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
-            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
+            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:mushroom_stew': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
                    'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
@@ -39,6 +39,14 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             items = json.loads((out / 'items.json').read_text())
+            soup = items['tconstruct:meat_soup']
+            self.assertEqual(soup['minecraft:max_stack_size'], 1)
+            self.assertEqual(soup['minecraft:food'], {'nutrition': 8, 'saturation': 9.6})
+            for component in ('minecraft:use_remainder', 'minecraft:crafting_remainder'):
+                self.assertEqual(soup[component], {'id': 'minecraft:bowl'})
+            self.assertEqual(soup['minecraft:consumable']['animation'], 'drink')
+            self.assertEqual((out / 'assets/tconstruct/textures/item/food/meat_soup.png').read_bytes(),
+                             (Path(__file__).resolve().parents[1] / 'content/assets/tconstruct/textures/item/food/meat_soup.png').read_bytes())
             self.assertIn('tconstruct:emerald_reinforcement', items)
             source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png'
             self.assertEqual((out / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png').read_bytes(), source.read_bytes())

@@ -108,6 +108,9 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
+food_sprite.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
 for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime', 'magma'):
     relative = Path('item/bottle') / (contents + '_contents.png')
     destination = mod_assets / 'textures' / relative
@@ -171,6 +174,7 @@ entries = [
     ('tconstruct:puny_smelting', 'minecraft:book', 'Puny Smelting'),
     ('tconstruct:mighty_smelting', 'minecraft:book', 'Mighty Smelting'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
+    ('tconstruct:meat_soup', 'minecraft:mushroom_stew', 'Meat Soup'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
     ('tconstruct:wood_binding', 'minecraft:flint', 'Wooden Tool Binding'),
     ('tconstruct:wood_handle', 'minecraft:flint', 'Wooden Tool Handle'),
@@ -302,6 +306,8 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
     elif short == 'magma_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/magma_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short == 'meat_soup':
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/food/meat_soup'}}
     elif short == 'venom_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/venom_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
@@ -365,6 +371,14 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
+    if short == 'meat_soup':
+        # Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
+        item['minecraft:max_stack_size'] = 1
+        item['minecraft:food'] = {'nutrition': 8, 'saturation': 9.6}
+        item['minecraft:consumable'] = {'animation': 'drink', 'consume_seconds': 1.6,
+            'has_consume_particles': False, 'sound': 'minecraft:entity.generic.drink'}
+        item['minecraft:use_remainder'] = {'id': 'minecraft:bowl'}
+        item['minecraft:crafting_remainder'] = {'id': 'minecraft:bowl'}
     if short == 'venom_bottle':
         # TinkerFood.VENOM_BOTTLE and ContainerFoodItem (1.20.1): no
         # nutrition, always drinkable, 32 ticks, strength and poison.
