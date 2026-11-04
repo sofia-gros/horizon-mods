@@ -452,7 +452,18 @@ pub fn apply_stats(
             "tconstruct:solid" if melee => damage_multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,
             "tconstruct:netherite" if melee && (amount(tool, &id) > 0 || level(&id) > 0) => damage_multiplier *= 1.2,
             "tconstruct:lightweight" if melee_weapon => speed_multiplier *= 1.0 + 0.08 * level(&id).max(0) as f32,
-            "tconstruct:swiftstrike" if melee_weapon => speed_multiplier *= 1.0 + 0.05 * (effective(tool, &id, 72) + level(&id).max(0) as f32),
+            "tconstruct:swiftstrike" if melee_weapon => {
+                let progress = amount(tool, &id);
+                let remainder = progress % 72;
+                // Merge logical levels before IncrementalModifierEntry.scaleLevel;
+                // dividing total progress or adding traits afterward changes f32.
+                let effective = level(&id).max(0).checked_add(progress / 72).and_then(|complete| {
+                    if remainder == 0 { Some(complete as f32) }
+                    else { complete.checked_add(1).map(|logical| logical as f32 + (remainder - 72) as f32 / 72.0f32) }
+                });
+                // An unrepresentable merged level supplies no Swiftstrike bonus.
+                if let Some(effective) = effective { speed_multiplier *= 1.0 + 0.05 * effective; }
+            },
             "tconstruct:vintage" if melee_weapon => speed_multiplier *= 1.0 - 0.1 * level(&id).max(0) as f32,
             _ => {},
         }

@@ -211,3 +211,26 @@ counterexamples for both coefficients (Jagged: lost 8, multiplier 3, level 5;
 Stonebound: lost 2, multiplier 3, level 5). It also checks zero wear, inactive
 traits and the deliberately unchanged outer combination. Seventeen Rust tests
 and two Python checks pass. No full host build or gameplay validation was run.
+
+## Swiftstrike incremental-level precision
+
+The melee-weapon stat regeneration path now reconstructs Swiftstrike's whole
+logical level from fixed 72-unit progress, merges the material trait level,
+then applies the float partial-level correction. This follows pinned
+[`IncrementalModifierEntry.merge` and `scaleLevel`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java)
+and the
+[Swiftstrike attack-speed module](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/swiftstrike.json).
+Dividing total progress by 72 and adding traits afterward can round differently.
+An unrepresentable merged logical level now supplies no Swiftstrike bonus.
+
+The correction is limited to this active Swiftstrike branch. The saved progress,
+trait lookup, modifier order, base-stat algebra, final clamp, melee-weapon gate,
+and unrelated upgrades remain unchanged. It does not add arbitrary incremental
+denominators or change equipped attribute evaluation or projectile damage.
+
+The cached-library regeneration harness checks four bitwise counterexamples,
+whole/partial boundaries, negative/large/overflow inputs, repeated rebuilds,
+trait/progress removal, non-weapon gating, preservation of saved progress and
+foreign data, and unchanged attack damage. Existing cases cover combination
+with other stat modifiers. No full generated-host build, gameplay, LAN, or
+Windows validation was run.

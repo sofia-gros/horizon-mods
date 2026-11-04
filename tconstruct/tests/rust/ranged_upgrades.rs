@@ -837,3 +837,38 @@ fn casting_repair_uses_ordered_non_emerald_upgrades() {
  ])));
  assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).is_none());
 }
+
+#[test]
+fn swiftstrike_regeneration_merges_logical_levels_before_float_scaling() {
+ use horizon_items::items::ItemStack;use horizon_world::nbt::Tag;use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":4,"tconstruct:attack_speed":1}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ for (trait_level,progress) in [(0,84),(1,12),(2,75),(3,150),(0,0),(2,0),(2,71),(2,72),(2,73),(2,143),(2,144),(0,-1),(-1,12),(0,i32::MAX),(i32::MAX,1),(i32::MAX,72)] {
+  let mut tool=ItemStack::new("tconstruct:sword",1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+   ("tic_upgrades",Tag::compound([("tconstruct:swiftstrike",Tag::Int(progress))])),
+   ("fixture:foreign",Tag::String("keep".into())),
+  ])));
+  let levels=BTreeMap::from([("tconstruct:swiftstrike".into(),trait_level)]);
+  let amount=progress.max(0);let remainder=amount%72;
+  let logical=trait_level.max(0).checked_add(amount/72).and_then(|n|n.checked_add(i32::from(remainder!=0)));
+  let effective=logical.map(|n|if remainder==0 {n as f32}else{n as f32+(remainder-72) as f32/72.0}).unwrap_or(0.0);
+  let expected=(1.0f32+0.05f32*effective).clamp(0.0,1024.0);
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&levels,true,true).unwrap();
+   let custom=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+   assert_eq!(custom.get("tic_attack_speed"),Some(&Tag::Float(expected.to_bits())));
+   assert_eq!(custom.get("fixture:foreign"),Some(&Tag::String("keep".into())));
+   assert_eq!(custom.get("tic_upgrades").and_then(|u|u.get("tconstruct:swiftstrike")),Some(&Tag::Int(progress)));
+   assert_eq!(custom.get("tic_attack_damage"),Some(&Tag::Float(4.0f32.to_bits())));
+  }
+  if [(0,84),(1,12),(2,75),(3,150)].contains(&(trait_level,progress)) {
+   let old=1.0f32+0.05f32*(progress as f32/72.0+trait_level as f32);assert_ne!(expected.to_bits(),old.to_bits());
+  }
+  tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&levels,true,false).unwrap();
+  assert_eq!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_speed"),Some(&Tag::Float(expected.to_bits())));
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::new(),true,true).unwrap();
+  assert_eq!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_speed"),Some(&Tag::Float(1.0f32.to_bits())));
+ }
+}
