@@ -36,3 +36,12 @@ the advancement tree; the host may still show a toast or chat announcement.
 The source icon's material-preview NBT is omitted because the host icon accepts
 only an item ID. Actual inventory events, progress persistence, icon and LAN
 behavior remain unverified in a running world.
+
+The source Slimesuit goal records four separate inventory criteria: Slime
+Helmet, Slimy Chestplate, Slime Leggings and Slime Boots. Acquisitions may occur
+at different times. Its Sky Island parent is not registered, so this goal is
+not laid out in the advancement tree; the host may still show a toast or chat
+announcement. Its icon's material-preview NBT is omitted because the host icon
+accepts an item ID only. This does not claim full equipment behavior or ordinary
+acquisition. Actual inventory events, persistence, display and LAN are unverified
+in a running world.
