@@ -70,6 +70,32 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
         hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &current));
         return Break(Vec::new());
     }
+    // Keep vanilla's authority checks before this bounded custom mutation.
+    if packet.input == 0 && packet.button == 0 && (2..54).contains(&packet.slot)
+        && matches!(menu.slots, crate::lan::menu::Slots::Block(at) if at == pos)
+        && !hub.guests[gi].spectator() && menu.slots.still_valid(world, &hub.guests[gi], menu.pos)
+        && hub.guests.iter().filter(|guest| guest.menu.as_ref().is_some_and(|other| other.pos == Some(pos))).count() == 1
+        && !world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().contains_key(&pos) {
+        if let Some(index) = crate::tconstruct_source_smeltery_layout::melting_index(state.slots.len(), offset, packet.slot as usize) {
+            if let Some(held) = hub.guests[gi].carried.clone().filter(|held| held.count > 1 && held.data().is_none_or(|data| data.wire.patch().is_none())
+                && horizon_items::bundle::Contents::of(rules.items(), held).is_none()) {
+                if state.slots[index].is_none() {
+                    let expected = crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    if !crate::tconstruct_source_smeltery_page::sent_page_matches(&menu.sent, &expected) {
+                        hub.send_menu_content(gi, expected);
+                        return Break(Vec::new());
+                    }
+                    if let Some((next, one, rest)) = crate::tconstruct_source_smeltery_page::prepare_single_insert(&tag, index, &held) {
+                        if crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", next) {
+                            state.slots[index] = Some(one); state.progress[index] = 0; hub.guests[gi].carried = Some(rest);
+                        }
+                    }
+                    hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
+                    return Break(Vec::new());
+                }
+            }
+        }
+    }
     if packet.input == 1 {
         let mut inventory = hub.guests[gi].inventory.clone();
         let before_slots = state.slots.clone();
