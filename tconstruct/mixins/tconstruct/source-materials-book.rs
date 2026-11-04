@@ -331,12 +331,14 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         "tconstruct:fantastic_foundry" => ("assets/tconstruct/book/fantastic_foundry/", "Fantastic Foundry"),
         "tconstruct:puny_smelting" => ("assets/tconstruct/book/puny_smelting/", "Puny Smelting"),
         "tconstruct:mighty_smelting" => ("assets/tconstruct/book/mighty_smelting/", "Mighty Smelting"),
+        "tconstruct:encyclopedia" => ("assets/tconstruct/book/encyclopedia/", "Encyclopedia"),
         "tconstruct:materials_and_you" => ("assets/tconstruct/book/materials_and_you/", "Materials & You"),
         _ => return None,
     };
     let foundry = book == "tconstruct:fantastic_foundry";
     let puny = book == "tconstruct:puny_smelting";
     let mighty = book == "tconstruct:mighty_smelting";
+    let encyclopedia = book == "tconstruct:encyclopedia";
     let index: serde_json::Value = serde_json::from_str(&read(path, &format!("{root}index.json"))?).ok()?;
     let language = read(path, &format!("{root}en_us/language.lang"))?;
     let labels: std::collections::HashMap<_,_> = language.lines().filter_map(|line| line.split_once('=')).collect();
@@ -345,6 +347,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
     let mut chapters: Vec<(String, Vec<Text>)> = Vec::new();
     for chapter in index.as_array()? {
         let key = chapter.get("name").and_then(|x| x.as_str())?;
+        // Only the source introduction is supported for the Encyclopedia.
+        if encyclopedia && key != "intro" { continue; }
+        if encyclopedia && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
         if foundry && !matches!(key, "intro" | "foundry") { continue; }
         // Mighty exposes selected source material chapters and the partial advice section.
         let mighty_advice = mighty && key == "tools";
@@ -630,8 +635,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             }
         }
         if !chapter_pages.is_empty() {
-            if mighty_advice || mighty_smeltery {
-                let (title_key, note_key) = if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
+            if mighty_advice || mighty_smeltery || encyclopedia {
+                let (title_key, note_key) = if encyclopedia { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
                 if let (Some(title), Some(note)) = (labels.get(title_key), labels.get(note_key)) {
                     let notices = split_styled(game, &Text::literal(*note), 182.0, 15).into_iter().map(|part| {
                         let mut notice = Text::styled(*title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
@@ -712,7 +717,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
     let book = &*stack.item;
-    if !matches!(book, "tconstruct:fantastic_foundry" | "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:materials_and_you") { return false; }
+    if !matches!(book, "tconstruct:fantastic_foundry" | "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:encyclopedia" | "tconstruct:materials_and_you") { return false; }
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.clone();
         let Some(pages) = source_pages(game, &path, book) else { return false; };

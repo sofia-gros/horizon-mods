@@ -618,6 +618,21 @@ impl CompositeFluidRecipe {
 }
 
 impl CastingRecipe {
+    /// Resolve a simple source compound fluid ingredient for the actual input.
+    /// Equal amounts avoid guessing the source's overlapping unequal-amount
+    /// behavior. All alternatives must parse before any can match.
+    pub(super) fn parse_for_fluid(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool,
+        matches: &impl Fn(&FluidSpec) -> bool) -> Option<Self> {
+        let mut value: Value = serde_json::from_slice(bytes).ok()?;
+        let Some(alternatives) = value.get("fluid")?.as_array() else { return Self::parse(bytes, conditions); };
+        if alternatives.len() < 2 { return None; }
+        let parsed = alternatives.iter().map(FluidSpec::parse).collect::<Option<Vec<_>>>()?;
+        if parsed.iter().any(|part| part.amount != parsed[0].amount) { return None; }
+        let index = parsed.iter().position(matches)?;
+        let selected = alternatives[index].clone();
+        value.as_object_mut()?.insert("fluid".into(), selected);
+        Self::parse(&serde_json::to_vec(&value).ok()?, conditions)
+    }
     pub(super) fn parse(bytes: &[u8], conditions: &impl Fn(&[Value]) -> bool) -> Option<Self> {
         let v: Value = serde_json::from_slice(bytes).ok()?;
         let (basin, retextured) = match v.get("type")?.as_str()? {

@@ -2,19 +2,19 @@
 
 > **Provisional build:** Some effects and operations described below are unavailable or under verification. Earlier test results refer to their stated revisions; see [current limitations](provisional.md).
 
-Connected glass joins its texture to matching neighboring blocks. You can find clear, colored, seared, and scorched glass and panes in the **Tinkers' Construct Blocks** Creative tab.
+Clear, colored, seared, and scorched glass and panes are available in the **Tinkers' Construct Blocks** Creative tab. Connected world-face textures and stained world-face tint are currently unavailable in this build; see the integration limitation below.
 
 ![Clear glass joined next to colored and seared glass](connected-glass.png)
 
-*The two clear blocks on the right join into one surface. Different glass types keep their own borders.*
+*Earlier implementation: the two clear blocks on the right joined into one surface. The current build does not implement connected world-face textures.*
 
-Place panes next to each other to make a window. Their shape changes with their neighbors, and stacked panes keep the exposed edge when their connections differ.
+Panes are intended to change shape with their neighbors and keep exposed edges where stacked connections differ. These behaviors require verification on the current build.
 
 ![A pane edge visible beside a narrower pane above it](connected-pane.png)
 
-*The lower pane has an arm that the pane above it does not; its exposed top remains visible.*
+*Earlier implementation: the lower pane has an arm that the pane above it does not, so its exposed top remains visible.*
 
-Soul Glass can be walked through and slows movement. On Linux, representative glass and panes have been checked for Creative acquisition, placement, connected appearance, pane shapes, breaking, saving, and LAN synchronization. The full set has not been tested individually. Soul Glass's special view-blocking behavior and Windows play have not been verified.
+Soul Glass can be walked through and slows movement. Earlier Linux gameplay checks applied to a prior implementation, not the current build. Connected appearance, pane shapes, breaking, saving, LAN synchronization, Soul Glass view-blocking behavior, and Windows play need verification on the current build.
 
 Smeltery behavior, material-dependent anvils, and custom storage are separate work. See the [block guide](block-registration.md) for the rest of the registered building blocks.
 
@@ -33,3 +33,9 @@ For each of the 16 colors, the pinned source recipe makes 16 matching stained Cl
 ## Direct pane dyeing
 
 The pinned source also dyes eight uncolored Clear Glass Panes with a matching tagged dye into eight colored panes. All 16 colors are represented. Source and registration tests pass; existing Forge namespace ownership and `remove` limitations apply. Actual acquisition, crafting, recipe-book display, save/reload and LAN remain unverified.
+
+## Current rendering integration limit
+
+The source sprites are added to the atlas and pane face visibility has a hook, but no active mesh hook selects connected sprites or applies stained world-face tint. The older `connected-mesh-face.rs` helper is not registered and must not be enabled unchanged: it replaces the face path and does not preserve the pinned host's current Fusion and OptiFine picks, shader lighting, ambient occlusion, overlays, and quad routing.
+
+At Horizon `0c7b5b61` and Mixins `ddd9700`, a narrow `MODIFY_VARIABLE` hook on the face's original tile or tint fails planning with `E_INVALID_BINDING: destructured function parameters are unsupported`: `Mesher::face` has the parameter `(id, state): (u32, &Info)`. A compatible host or Mixins hook must expose the face context without replacing the full renderer. Any replacement needs tests for source connection and pane predicates, tint, host rendering behavior, other mods, and in-game verification.

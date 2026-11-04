@@ -26,7 +26,7 @@ pub(super) fn kind(block: &str) -> Option<&'static str> {
         "tconstruct:seared_heater" => Some("tconstruct:heater"),
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => Some("tconstruct:faucet"),
         "tconstruct:seared_table" | "tconstruct:scorched_table" => Some("tconstruct:table"),
-        "tconstruct:seared_basin" => Some("tconstruct:basin"),
+        "tconstruct:seared_basin" | "tconstruct:scorched_basin" => Some("tconstruct:basin"),
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => Some("tconstruct:smeltery"),
         "tconstruct:seared_fuel_tank" | "tconstruct:seared_fuel_gauge" | "tconstruct:scorched_fuel_tank" | "tconstruct:scorched_fuel_gauge" => Some("tconstruct:fuel_tank"),
         "tconstruct:seared_ingot_tank" | "tconstruct:seared_ingot_gauge" | "tconstruct:scorched_ingot_tank" | "tconstruct:scorched_ingot_gauge" => Some("tconstruct:ingot_tank"),
@@ -144,7 +144,8 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(tank_capacity) = super::tconstruct_source_smeltery_fuel::capacity(&name) else { continue; };
             if !ensure(game, at, &name) { continue; }
             let Some(kind) = kind(&name) else { continue; };
-            let Some(mut tank) = store::read(&game.world, at, kind).and_then(|tag| Tank::from_nbt(&tag, tank_capacity)) else { continue; };
+            let Some(raw_tank) = store::read(&game.world, at, kind) else { continue; };
+            let Some(mut tank) = Tank::from_nbt(&raw_tank, tank_capacity) else { continue; };
             let Some(fluid) = tank.fluid.as_deref() else { continue; };
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
@@ -158,8 +159,9 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                 });
             if !can_heat && !can_alloy { continue; }
             if tank.take(fuel.fluid.amount).is_none() { continue; }
+            let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { continue; };
             state.fuel = fuel.duration; state.fuel_quality = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
-            fuel_update = Some((at, kind, tank.to_nbt()));
+            fuel_update = Some((at, kind, updated_tank));
             break;
         }
     }
@@ -242,7 +244,8 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
     let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(block) else { return false; };
     let Some(kind) = kind(block) else { return false; };
     if !ensure(game, pos, block) { return false; }
-    let Some(mut tank) = store::read(&game.world, pos, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) else { return false; };
+    let Some(raw_tank) = store::read(&game.world, pos, kind) else { return false; };
+    let Some(mut tank) = Tank::from_nbt(&raw_tank, capacity) else { return false; };
     let Some(held) = game.held().cloned() else { return true; };
     if held.count == 0 { return false; }
     game.ensure_datapacks();
@@ -257,7 +260,8 @@ pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &s
         super::tconstruct_source_fluid_container::Direction::Auto,
         &|item| game.res.items().get(item).is_some(),
         &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
-    if !store::write(&mut game.world, pos, kind, tank.to_nbt()) { return false; }
+    let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { return true; };
+    if !store::write(&mut game.world, pos, kind, updated_tank) { return false; }
     if game.creative {
         // Preserve the held container in creative, but retain fluid removed
         // from the tank by giving the filled result to the player.
@@ -553,7 +557,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     let mut fluid_update = None;
     if melter.phase == 0 && melter.fuel == 0 {
         if let Some((capacity, kind)) = liquid_kind {
-            if let Some(mut tank) = store::read(&game.world, below, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) {
+            if let Some(raw_tank) = store::read(&game.world, below, kind) {
+              if let Some(mut tank) = Tank::from_nbt(&raw_tank, capacity) {
                 if let Some(fluid) = tank.fluid.as_deref() {
                     if let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) {
                         let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
@@ -561,10 +566,12 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                         if can_heat && tank.take(fuel.fluid.amount).is_some() {
                             melter.fuel = fuel.duration; melter.fuel_quality = fuel.duration;
                             melter.temperature = fuel.temperature; melter.rate = fuel.rate;
-                            fluid_update = Some((below, kind, tank.to_nbt()));
+                            let Some(next_tank) = tank.to_nbt_preserving(&raw_tank) else { return; };
+                            fluid_update = Some((below, kind, next_tank));
                         }
                     }
                 }
+              }
             }
         }
     }
@@ -595,7 +602,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
             super::tconstruct_source_melter_render::encode_heat(recipe, melter.temperature, melter.progress[index])
         }).collect()))
     } else { saved.get("heat_codes").cloned() };
-    let mut melter_tag = melter.to_nbt();
+    let Some(mut melter_tag) = melter.to_nbt_preserving(&saved) else { return; };
     let liquid_temperature = liquid_kind.and_then(|(capacity, kind)| store::read(&game.world, below, kind)
         .and_then(|tag| Tank::from_nbt(&tag, capacity)))
         .and_then(|tank| tank.fluid.and_then(|fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, &fluid, u32::MAX)))
@@ -637,11 +644,11 @@ pub(super) fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static s
 }
 
 // Empty-cast items stand in for an absent recipe cast, but remain physically
-// in the slot. Scorched tables require a physical cast even for those recipes.
+// in the slot. Scorched casting blocks require a physical cast even for those recipes.
 fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Casting, tank: &Tank)
     -> Option<(String, super::tconstruct_source_melting_recipes::CastingRecipe, horizon_items::items::ItemStack)> {
     let block = &*game.res.facts().get(game.world.block(pos.0, pos.1, pos.2)).name;
-    if block == "tconstruct:scorched_table" && casting.input.is_none() { return None; }
+    if matches!(block, "tconstruct:scorched_table" | "tconstruct:scorched_basin") && casting.input.is_none() { return None; }
     let mut input = casting.input.as_ref();
     if let Some(stack) = input {
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
@@ -672,8 +679,56 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             }
             game.give_or_drop(excess);
         }
-        return true;
     }
+    // Container transfer precedes item swaps, but cooling locks the table.
+    if casting.timer > 0 { return true; }
+    // An opaque portable item cannot be transferred, but still follows the
+    // existing item-slot interaction when the casting tank is empty.
+    if let Some(stack) = game.held().cloned().filter(|stack| stack.count > 0
+        && super::tconstruct_source_fluid_container::casting_portable_rewrite_safe(stack)) {
+        game.ensure_datapacks();
+        let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
+            .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
+        let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
+            .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
+                .map(|(id, items)| (id.clone(), items.clone())).collect());
+        let allow_color = game.lan.is_none() && game.lan_acting_uuid.is_none();
+        let known_item = |item: &str| game.res.items().get(item).is_some();
+        let known_fluid = |fluid: &str| fluids.contains(fluid);
+        let mut next = casting.clone();
+        if next.recipe.is_none() {
+            // Discover the offered fluid before choosing the recipe capacity.
+            let mut offered = Tank::new(u32::MAX);
+            let mut probe = [Some(stack.clone()), None];
+            if super::tconstruct_source_fluid_container::transfer_single_with_color(&mut offered, &mut probe,
+                super::tconstruct_source_fluid_container::Direction::EmptyItem, &known_item, &known_fluid, tags.as_ref(), allow_color) {
+                if let Some((id, recipe, result)) = casting_recipe_at(game, pos, kind, &next, &offered) {
+                    next.prepare(&id, recipe.fluid.amount, recipe.cooling_time, result, recipe.consumes_cast, recipe.switch_slots);
+                }
+            }
+        }
+        let before = next.tank.amount;
+        let mut slots = [Some(stack), None];
+        if next.recipe.is_some() && super::tconstruct_source_fluid_container::transfer_single_with_color(&mut next.tank, &mut slots,
+            super::tconstruct_source_fluid_container::Direction::Auto, &known_item, &known_fluid, tags.as_ref(), allow_color) {
+            if next.tank.amount == 0 {
+                next.tank = Tank::new(0); next.timer = 0; next.recipe = None; next.result = None;
+                next.cooling_time = 0; next.consumes_cast = false; next.switch_slots = false;
+            }
+            // This newly supported path must not discard extensions or lossy
+            // strings when replacing the existing casting compound.
+            if !store::read(&game.world, pos, kind).is_some_and(|raw| casting.roundtrips(&raw)) { return true; }
+            if !store::write(&mut game.world, pos, kind, next.to_nbt()) { return false; }
+            if game.creative {
+                if next.tank.amount < before { if let Some(result) = slots[1].take() { game.give_or_drop(result); } }
+            } else if let Some(rest) = slots[0].take() {
+                *game.held_mut() = Some(rest);
+                if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+            } else { *game.held_mut() = slots[1].take(); }
+            return true;
+        }
+    }
+    if casting.tank.amount != 0 || casting.recipe.is_some() { return true; }
     let held = game.held().cloned();
     let mut taken = None;
     let mut remaining = None;
@@ -797,7 +852,7 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
         if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return false; }
         return store::write_many(&mut game.world, &[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
-    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") { return true; }
+    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") { return true; }
     if !ensure(game, target, &target_name) { return false; }
     let Some((kind, mut casting)) = casting_at(game, target) else { return false; };
     if casting.recipe.is_none() {
@@ -807,6 +862,16 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
     if !faucet.activate(&mut fluid, &casting.tank) { return true; }
     if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return false; }
     store::write_many(&mut game.world, &[(controller, "tconstruct:smeltery", smeltery.to_nbt()), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())])
+}
+
+// A casting handler resolves a fresh recipe whenever fluid next arrives,
+// including a packet already held by an active Faucet. A player can drain or
+// finish the previous casting before that packet has reached the table.
+fn prepare_faucet_casting(game: &super::Game<'_>, target: Pos, kind: &str, casting: &mut Casting, faucet: &Faucet, input: &Tank) {
+    let Some(offered) = super::tconstruct_source_melter_state::casting_faucet_offer(casting, faucet, input) else { return; };
+    if let Some((id, recipe, result)) = casting_recipe_at(game, target, kind, casting, offered) {
+        casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, result, recipe.consumes_cast, recipe.switch_slots);
+    }
 }
 
 fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) {
@@ -838,7 +903,23 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
         }
         return;
     }
-    let Some((kind, mut casting)) = casting_at(game, target) else { return; };
+    // Even when no recipe matches, a pending packet must not be serialized
+    // through a lossy ID while this recognized casting target is present.
+    let target_name = &*game.res.facts().get(game.world.block(target.0, target.1, target.2)).name;
+    if super::tconstruct_source_melter_state::is_casting_block(target_name)
+        && !store::read(&game.world, pos, "tconstruct:faucet").is_some_and(|raw| faucet.to_nbt() == raw) { return; }
+    let Some((kind, mut casting)) = casting_at(game, target) else {
+        let name = &*game.res.facts().get(game.world.block(target.0, target.1, target.2)).name;
+        if super::tconstruct_source_melter_state::is_casting_block(name) { return; }
+        faucet.tick(&mut fluid, None);
+        let _ = store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
+        return;
+    };
+    let before_casting = casting.clone();
+    prepare_faucet_casting(game, target, kind, &mut casting, &faucet, &fluid);
+    if before_casting.recipe.is_none() && casting.recipe.is_some()
+        && !store::read(&game.world, target, kind).zip(store::read(&game.world, pos, "tconstruct:faucet"))
+            .is_some_and(|(casting_raw, faucet_raw)| super::tconstruct_source_melter_state::safe_casting_resume(&before_casting, &casting_raw, &faucet, &faucet_raw)) { return; }
     faucet.tick(&mut fluid, Some(&mut casting.tank));
     if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return; }
     let _ = store::write_many(&mut game.world, &[(controller, "tconstruct:smeltery", smeltery.to_nbt()), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())]);
@@ -848,12 +929,10 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
 /// liquid leaves the melter; all three entity edits are staged together.
 pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     if !ensure(game, pos, block) { return false; }
-    let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
-    if faucet.active {
-        faucet.stop_after_packet = true;
-        return store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
-    }
+    let Some(faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
+    if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
+    if let Some(handled) = super::tconstruct_source_faucet_tank::activate(game, pos, source, target, faucet.clone()) { return handled; }
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
     if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") {
         return activate_smeltery_faucet(game, pos, source, target, faucet);
@@ -862,21 +941,24 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let target_name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
     if &*target_name == "tconstruct:seared_fluid_cannon" {
         if !ensure(game,source,&source_name) || !ensure(game,target,&target_name) { return false; }
-        let Some(mut melter) = store::read(&game.world,source,"tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag)) else { return false; };
+        let Some(raw_melter) = store::read(&game.world,source,"tconstruct:melter") else { return false; };
+        let Some(mut melter) = Melter::from_nbt(&raw_melter) else { return false; };
         let Some(state) = cannon_at(game,target) else { return false; };
         if !faucet.activate(&mut melter.tank,&state.tank) { return true; }
-        return store::write_many(&mut game.world,&[(source,"tconstruct:melter",melter.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+        return store::write_many(&mut game.world,&[(source,"tconstruct:melter",match super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_melter, &melter.tank) { Some(tag) => tag, None => return false }),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
     if &*target_name == "tconstruct:seared_casting_tank" {
         if !ensure(game, source, &source_name) || !ensure(game, target, &target_name) { return false; }
-        let Some(mut melter) = store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag)) else { return false; };
+        let Some(raw_melter) = store::read(&game.world, source, "tconstruct:melter") else { return false; };
+        let Some(mut melter) = Melter::from_nbt(&raw_melter) else { return false; };
         let Some(state) = casting_tank_at(game, target) else { return false; };
         if !faucet.activate(&mut melter.tank, &state.tank) { return true; }
-        return store::write_many(&mut game.world, &[(source,"tconstruct:melter",melter.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+        return store::write_many(&mut game.world, &[(source,"tconstruct:melter",match super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_melter, &melter.tank) { Some(tag) => tag, None => return false }),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
-    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") { return true; }
+    if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") { return true; }
     if !ensure(game, source, &source_name) || !ensure(game, target, &target_name) { return false; }
-    let Some(mut melter) = store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag)) else { return false; };
+    let Some(raw_melter) = store::read(&game.world, source, "tconstruct:melter") else { return false; };
+    let Some(mut melter) = Melter::from_nbt(&raw_melter) else { return false; };
     let Some((casting_kind, mut casting)) = casting_at(game, target) else { return false; };
     if melter.tank.fluid.is_none() { return true; }
     if casting.recipe.is_none() {
@@ -884,7 +966,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
         if !casting.prepare(&id, recipe.fluid.amount, recipe.cooling_time, output, recipe.consumes_cast, recipe.switch_slots) { return true; }
     }
     if !faucet.activate(&mut melter.tank, &casting.tank) { return true; }
-    store::write_many(&mut game.world, &[(source, "tconstruct:melter", melter.to_nbt()), (target, casting_kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())])
+    store::write_many(&mut game.world, &[(source, "tconstruct:melter", match super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_melter, &melter.tank) { Some(tag) => tag, None => return false }), (target, casting_kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())])
 }
 
 pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
@@ -893,22 +975,29 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
+    if super::tconstruct_source_faucet_tank::tick(game, pos, source, target, faucet.clone()) { return; }
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
     if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") {
         tick_smeltery_faucet(game, pos, source, target, faucet);
         return;
     }
-    let mut melter = (&*source_name == "tconstruct:seared_melter").then(||
-        store::read(&game.world, source, "tconstruct:melter").and_then(|tag| Melter::from_nbt(&tag))).flatten();
+    let mut melter = if &*source_name == "tconstruct:seared_melter" {
+        // An unreadable recognized source is not a removed source. Wait rather
+        // than consuming a reserved packet against an uncertain machine.
+        if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return; }
+        let Some(raw) = store::read(&game.world, source, "tconstruct:melter") else { return; };
+        let Some(state) = Melter::from_nbt(&raw) else { return; };
+        Some((state, raw))
+    } else { None };
     let mut empty = Tank::new(0);
-    let input = melter.as_mut().map_or(&mut empty, |melter| &mut melter.tank);
+    let input = melter.as_mut().map_or(&mut empty, |(melter, _)| &mut melter.tank);
     if &*game.res.facts().get(game.world.block(target.0,target.1,target.2)).name == "tconstruct:seared_fluid_cannon" {
         let Some(mut state) = cannon_at(game,target) else { return; };
         let previous_strength = state.comparator();
         faucet.tick(input,Some(&mut state.tank));
         if !state.lossless() { return; }
         let mut updates = vec![(target,"tconstruct:fluid_cannon",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())];
-        if let Some(melter) = melter { updates.push((source,"tconstruct:melter",melter.to_nbt())); }
+        if let Some((melter, raw)) = melter { let Some(tag) = super::tconstruct_source_faucet_tank::patch_melter_tank(&raw, &melter.tank) else { return; }; updates.push((source,"tconstruct:melter",tag)); }
         if store::write_many(&mut game.world,&updates) {
             notify_casting_comparator(game, target, previous_strength, state.comparator());
         }
@@ -922,7 +1011,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
         if state.tank.to_nbt() != previous_tank { let _ = process_casting_tank(game, &mut state); }
         if !state.lossless() { return; }
         let mut updates = vec![(target,"tconstruct:casting_tank",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())];
-        if let Some(melter) = melter { updates.push((source,"tconstruct:melter",melter.to_nbt())); }
+        if let Some((melter, raw)) = melter { let Some(tag) = super::tconstruct_source_faucet_tank::patch_melter_tank(&raw, &melter.tank) else { return; }; updates.push((source,"tconstruct:melter",tag)); }
         if store::write_many(&mut game.world, &updates) {
             let strength = state.comparator();
             if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone(); }
@@ -930,14 +1019,26 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
         }
         return;
     }
+    // Even when no recipe matches, a pending packet must not be serialized
+    // through a lossy ID while this recognized casting target is present.
+    let target_name = &*game.res.facts().get(game.world.block(target.0, target.1, target.2)).name;
+    if super::tconstruct_source_melter_state::is_casting_block(target_name)
+        && !store::read(&game.world, pos, "tconstruct:faucet").is_some_and(|raw| faucet.to_nbt() == raw) { return; }
     let Some((kind, mut casting)) = casting_at(game, target) else {
+        let name = &*game.res.facts().get(game.world.block(target.0, target.1, target.2)).name;
+        if super::tconstruct_source_melter_state::is_casting_block(name) { return; }
         faucet.tick(input, None);
         let _ = store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
         return;
     };
+    let before_casting = casting.clone();
+    prepare_faucet_casting(game, target, kind, &mut casting, &faucet, input);
+    if before_casting.recipe.is_none() && casting.recipe.is_some()
+        && !store::read(&game.world, target, kind).zip(store::read(&game.world, pos, "tconstruct:faucet"))
+            .is_some_and(|(casting_raw, faucet_raw)| super::tconstruct_source_melter_state::safe_casting_resume(&before_casting, &casting_raw, &faucet, &faucet_raw)) { return; }
     faucet.tick(input, Some(&mut casting.tank));
     let mut updates = vec![(target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())];
-    if let Some(melter) = melter { updates.push((source, "tconstruct:melter", melter.to_nbt())); }
+    if let Some((melter, raw)) = melter { let Some(tag) = super::tconstruct_source_faucet_tank::patch_melter_tank(&raw, &melter.tank) else { return; }; updates.push((source, "tconstruct:melter", tag)); }
     let _ = store::write_many(&mut game.world, &updates);
 }
 

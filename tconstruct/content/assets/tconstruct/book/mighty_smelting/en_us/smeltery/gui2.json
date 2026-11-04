@@ -1,0 +1,16 @@
+{
+  "title": "Moving Fluids",
+  "text": [
+    {
+      "text": "The fuel gauge shows the fuel available to the smeltery. A compatible held fluid container can interact with the fuel or main tank."
+    },
+    {
+      "text": "The container slots can fill or empty supported containers. Use the direction control to change the transfer mode; the resulting container moves to the output slot.",
+      "paragraph": true
+    },
+    {
+      "text": "Container types and fluid metadata are not all supported yet, especially over LAN.",
+      "paragraph": true
+    }
+  ]
+}

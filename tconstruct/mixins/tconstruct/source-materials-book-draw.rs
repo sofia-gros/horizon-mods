@@ -5,9 +5,10 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
     let atlas = &game.gui.atlas;
     let puny = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Puny Smelting\n"));
     let mighty = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Mighty Smelting\n"));
+    let encyclopedia = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Encyclopedia\n"));
     let foundry = pages.first().and_then(|p| p.spans.first()).is_some_and(|s| s.text.starts_with("Fantastic Foundry\n"));
-    let cover_sprite = if foundry { "gui/tconstruct_book_covers_fantastic_foundry_cover" } else if puny { "gui/tconstruct_book_covers_puny_smelting_cover" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_cover" } else { "gui/tconstruct_book_covers_materials_and_you_cover" };
-    let pages_sprite = if foundry { "gui/tconstruct_book_covers_fantastic_foundry_pages" } else if puny { "gui/tconstruct_book_covers_puny_smelting_pages" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_pages" } else { "gui/tconstruct_book_covers_materials_and_you_pages" };
+    let cover_sprite = if foundry { "gui/tconstruct_book_covers_fantastic_foundry_cover" } else if puny { "gui/tconstruct_book_covers_puny_smelting_cover" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_cover" } else if encyclopedia { "gui/tconstruct_book_covers_encyclopedia_cover" } else { "gui/tconstruct_book_covers_materials_and_you_cover" };
+    let pages_sprite = if foundry { "gui/tconstruct_book_covers_fantastic_foundry_pages" } else if puny { "gui/tconstruct_book_covers_puny_smelting_pages" } else if mighty { "gui/tconstruct_book_covers_mighty_smelting_pages" } else if encyclopedia { "gui/tconstruct_book_covers_encyclopedia_pages" } else { "gui/tconstruct_book_covers_materials_and_you_pages" };
     let center = batch.width / 2.0;
     let top = (batch.height / 2.0 - 100.0).floor();
     let cover = *page == usize::MAX;

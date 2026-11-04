@@ -64,6 +64,13 @@ source = "pig-iron-piston.rs"
 visibility = "pub"
 
 [[module]]
+id = "source-budding-piston"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_budding_piston"
+source = "source-budding-piston.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"
@@ -2233,6 +2240,18 @@ id = "source-melter-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_melter_world"
 source = "source-melter-world.rs"
+
+[[module]]
+id = "source-smeltery-nbt-preserve"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_smeltery_nbt_preserve"
+source = "source-smeltery-nbt-preserve.rs"
+
+[[module]]
+id = "source-smeltery-nbt-preserve-lib"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_smeltery_nbt_preserve"
+source = "source-smeltery-nbt-preserve.rs"
 
 [[module]]
 id = "source-melter-store"
@@ -4639,7 +4658,7 @@ id = "source-sapling-bonemeal-valid"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
 kind = "HEAD"
 helper = "source-sapling-bonemeal-valid.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
 
 [[injection]]
 id = "source-sapling-bonemeal-success"
@@ -5053,3 +5072,114 @@ id = "source-part-material-id-host-tests"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_part_material_id_host_tests"
 source = "source-part-material-id-host-tests.rs"
+[[module]]
+id = "source-faucet-tank"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_faucet_tank"
+source = "source-faucet-tank.rs"
+
+[[module]]
+id = "source-trait-tooltip"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_trait_tooltip"
+source = "source-trait-tooltip.rs"
+
+
+[[module]]
+id = "source-blazing-barter"
+file = "crates/horizon-world/src/loot.rs"
+name = "tconstruct_source_blazing_barter"
+source = "source-blazing-barter.rs"
+
+[[module]]
+id = "source-blazing-barter-pack-client"
+file = "crates/horizon-client/src/game/functions.rs"
+name = "tconstruct_source_blazing_barter_pack"
+source = "source-blazing-barter-pack.rs"
+
+[[module]]
+id = "source-blazing-barter-pack-world"
+file = "crates/horizon-world/src/loot.rs"
+name = "tconstruct_source_blazing_barter_pack"
+source = "source-blazing-barter-pack.rs"
+
+[[injection]]
+id = "source-blazing-barter-pack-start"
+target = "horizon_client::game::functions::content_overlay"
+kind = "RETURN"
+helper = "source-blazing-barter-pack-start.rs"
+bindings = [
+  { name = "files", ty = "Vec<(String, Vec<Vec<u8>>)>", value = "$value" },
+  { name = "world_root", ty = "&std::path::Path", value = "world_root" },
+  { name = "resources", ty = "&std::path::Path", value = "resources" },
+  { name = "vanilla_disabled", ty = "bool", value = "vanilla_disabled" },
+  { name = "enabled_features", ty = "&[String]", value = "enabled_features" },
+]
+
+[[injection]]
+id = "source-blazing-barter-pack-loot"
+target = "horizon_world::loot::overlay_map"
+kind = "RETURN"
+helper = "source-blazing-barter-pack-loot.rs"
+bindings = [
+  { name = "_value", ty = "()", value = "$value" },
+  { name = "overlay", ty = "&PackOverlay<'_>", value = "overlay" },
+  { name = "kind", ty = "&str", value = "kind" },
+  { name = "out", ty = "&mut std::collections::HashMap<String, serde_json::Value>", value = "&mut *out" },
+]
+
+[[injection]]
+id = "source-blazing-barter-pack-native"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+priority = -1000000
+helper = "source-blazing-barter-pack-native.rs"
+bindings = [
+  { name = "_value", ty = "()", value = "$value" },
+  { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" },
+]
+
+[[injection]]
+id = "source-blazing-barter-function"
+target = "horizon_world::loot::native_loot_function"
+kind = "AFTER_CALL"
+selector = "crate::native_load_hooks::loot_function"
+require = 1
+ordinal = 0
+result = "()"
+helper = "source-blazing-barter-function.rs"
+bindings = [{ name = "kind", ty = "&str", value = "kind" }, { name = "data", ty = "&serde_json::Value", value = "data" }, { name = "stack", ty = "&mut LootStack", value = "&mut *stack" }]
+
+[[module]]
+id = "source-cheese-remainder"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_cheese_remainder"
+source = "source-cheese-remainder.rs"
+
+[[injection]]
+id = "source-cheese-duration"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_duration"
+kind = "HEAD"
+helper = "source-cheese-duration.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }]
+
+[[injection]]
+id = "source-cheese-animation"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_animation"
+kind = "HEAD"
+helper = "source-cheese-animation.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "animation", ty = "&mut horizon_world::consumable::UseAnimation", value = "&mut *animation" }]
+
+[[injection]]
+id = "source-cheese-finish"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "source-cheese-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+[[injection]]
+id = "source-cheese-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
+kind = "HEAD"
+helper = "source-cheese-start.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
