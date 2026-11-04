@@ -311,6 +311,19 @@ pub(super) fn tank_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> boo
     Some(fluid)
 }
 
+/// Potion metadata is complete in a portable item; only known, representable
+/// source tags are used to resolve its display name.
+pub(super) fn tank_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<horizon_world::nbt::Tag> {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return None; }
+    let tank = lantern_tank(stack)?;
+    if tank.amount == 0 || tank.fluid.as_deref() != Some("tconstruct:potion") { return None; }
+    let tag = tank.tag?;
+    let (potion, _, _) = potion_tag(&tag, true)?;
+    if potion == "empty" { return None; }
+    super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(&tag))?;
+    Some(tag)
+}
+
 /// A normal left/right click on either temporary slot. The output never
 /// accepts inserted items; all changes are staged in caller-owned copies.
 pub(super) fn click(slots: &mut [Option<ItemStack>; 2], carried: &mut Option<ItemStack>, index: usize,
@@ -630,6 +643,31 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn portable_potion_tooltip_requires_complete_known_metadata() {
+        use horizon_world::nbt::Tag;
+        let mut stack = ItemStack::new("tconstruct:seared_fuel_tank", 2);
+        let make = |tag: Tag| Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("tconstruct:potion".into())), ("amount", Tag::Int(250)), ("fluid_tag", tag)]))]);
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(0x123456))]);
+        stack.data_mut().set_other("minecraft:custom_data", Some(make(tag.clone())));
+        let before = stack.clone();
+        assert_eq!(tank_display_potion(&stack, &known), Some(tag));
+        assert_eq!(stack, before);
+        for potion in ["minecraft:long_swiftness", "minecraft:strong_swiftness"] {
+            let tag = Tag::compound([("Potion", Tag::String(potion.into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Duration", Tag::Int(100))])]))]);
+            stack.data_mut().set_other("minecraft:custom_data", Some(make(tag.clone())));
+            assert_eq!(tank_display_potion(&stack, &known), Some(tag));
+        }
+        stack = before.clone();
+        assert_eq!(tank_display_potion(&stack, &|_| false), None);
+        let mut custom = stack.clone();
+        custom.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
+        assert_eq!(tank_display_potion(&custom, &known), None);
+        for bad in [Tag::Int(1), Tag::Compound(Default::default()), Tag::compound([("Potion", Tag::String("example:unknown".into()))]), Tag::compound([("Potion", Tag::String("minecraft:empty".into()))]), Tag::compound([("Potion", Tag::String("empty".into()))]), Tag::compound([("Potion", Tag::Int(1))])] {
+            stack.data_mut().set_other("minecraft:custom_data", Some(make(bad)));
+            assert_eq!(tank_display_potion(&stack, &known), None);
+        }
+    }
     #[test]
     fn portable_tank_tooltip_view_is_read_only_and_conservative() {
         use horizon_world::nbt::Tag;

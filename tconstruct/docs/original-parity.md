@@ -1010,8 +1010,15 @@ English/Japanese keys; actual language switching, resource-pack precedence and
 other game UI coverage remain unverified.
 
 Supported filled portable tanks now show their fluid name and, with advanced
-tooltips, the original fluid ID. The read-only view rejects tagged, unknown,
-malformed and unsupported data. Source amount/unit information is not yet
+tooltips, the original fluid ID. The read-only view rejects unknown, malformed
+and unsupported data; supported potion tags are described below. Source amount/unit information is not yet
 shown: its Mantle resource-pack and tag-dependent formatter remains open.
 Focused helper and wiring tests cover this slice; actual GUI, F3+H, save/reload
 and LAN are unverified.
+
+Portable tank tooltips also resolve source potion names when their complete
+item metadata contains a recognized vanilla potion and supported source fields.
+Advanced tooltips retain `tconstruct:potion` as the fluid ID. Unsupported or
+malformed potion metadata remains hidden; fluid quantity and units remain open.
+Focused helper and wiring checks cover this slice; integrated GUI, language
+packs, save/reload and LAN remain unverified.
