@@ -42,6 +42,10 @@ class ContentPackageTest(unittest.TestCase):
                 path = 'assets/tconstruct/textures/block/clear_tinted_glass.png'
                 self.assertEqual(packed.read(path), (MOD / 'content' / path).read_bytes())
                 self.assertFalse(any(name.startswith('assets/tconstruct/textures/block/clear_tinted_glass/') for name in names))
+                injector = 'data/tconstruct/mantle/loot_injectors/piglin_bartering.json'
+                self.assertIn(injector, names)
+                self.assertEqual(packed.read(injector),
+                                 (MOD / 'tests/fixtures/blazing_barter_source.json').read_bytes())
                 for path in ('assets/tconstruct/items/magma_bottle.json',
                              'assets/tconstruct/models/item/magma_bottle.json',
                              'assets/tconstruct/textures/item/bottle/magma_contents.png',

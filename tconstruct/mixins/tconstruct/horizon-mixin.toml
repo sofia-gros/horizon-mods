@@ -5083,3 +5083,69 @@ id = "source-trait-tooltip"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_trait_tooltip"
 source = "source-trait-tooltip.rs"
+
+
+[[module]]
+id = "source-blazing-barter"
+file = "crates/horizon-world/src/loot.rs"
+name = "tconstruct_source_blazing_barter"
+source = "source-blazing-barter.rs"
+
+[[module]]
+id = "source-blazing-barter-pack-client"
+file = "crates/horizon-client/src/game/functions.rs"
+name = "tconstruct_source_blazing_barter_pack"
+source = "source-blazing-barter-pack.rs"
+
+[[module]]
+id = "source-blazing-barter-pack-world"
+file = "crates/horizon-world/src/loot.rs"
+name = "tconstruct_source_blazing_barter_pack"
+source = "source-blazing-barter-pack.rs"
+
+[[injection]]
+id = "source-blazing-barter-pack-start"
+target = "horizon_client::game::functions::content_overlay"
+kind = "RETURN"
+helper = "source-blazing-barter-pack-start.rs"
+bindings = [
+  { name = "files", ty = "Vec<(String, Vec<Vec<u8>>)>", value = "$value" },
+  { name = "world_root", ty = "&std::path::Path", value = "world_root" },
+  { name = "resources", ty = "&std::path::Path", value = "resources" },
+  { name = "vanilla_disabled", ty = "bool", value = "vanilla_disabled" },
+  { name = "enabled_features", ty = "&[String]", value = "enabled_features" },
+]
+
+[[injection]]
+id = "source-blazing-barter-pack-loot"
+target = "horizon_world::loot::overlay_map"
+kind = "RETURN"
+helper = "source-blazing-barter-pack-loot.rs"
+bindings = [
+  { name = "_value", ty = "()", value = "$value" },
+  { name = "overlay", ty = "&PackOverlay<'_>", value = "overlay" },
+  { name = "kind", ty = "&str", value = "kind" },
+  { name = "out", ty = "&mut std::collections::HashMap<String, serde_json::Value>", value = "&mut *out" },
+]
+
+[[injection]]
+id = "source-blazing-barter-pack-native"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+priority = -1000000
+helper = "source-blazing-barter-pack-native.rs"
+bindings = [
+  { name = "_value", ty = "()", value = "$value" },
+  { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" },
+]
+
+[[injection]]
+id = "source-blazing-barter-function"
+target = "horizon_world::loot::native_loot_function"
+kind = "AFTER_CALL"
+selector = "crate::native_load_hooks::loot_function"
+require = 1
+ordinal = 0
+result = "()"
+helper = "source-blazing-barter-function.rs"
+bindings = [{ name = "kind", ty = "&str", value = "kind" }, { name = "data", ty = "&serde_json::Value", value = "data" }, { name = "stack", ty = "&mut LootStack", value = "&mut *stack" }]
