@@ -3,6 +3,8 @@ fn tconstruct_material_correct_for_drops(correct: bool, held: Option<&ItemStack>
     use horizon_world::nbt::Tag;
     let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return correct; };
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return correct; };
+    // A RETURN projection must not restore drops canceled for flag-only breakage.
+    if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return false; }
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return correct; };
     if *max <= 0 { return correct; }
     if stack.damage >= *max as u32 { return false; }

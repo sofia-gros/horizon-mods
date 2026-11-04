@@ -420,3 +420,55 @@ fn conditional_mining_flag_only_breakage_skips_supported_hooks() {
         assert_eq!(airborne_multiplier(&repaired,100,false),1.0);
     }
 }
+
+include!("../../mixins/tconstruct/broken-harvest.rs");
+
+#[test]
+fn flag_only_broken_harvest_is_rejected_at_head_and_return() {
+    use std::ops::ControlFlow::{Break,Continue};
+    let items=Items::tags_only(std::path::Path::new("/tmp"),&horizon_world::loot::PackOverlay::NONE).unwrap();
+    let mut stack=ItemStack::new("tconstruct:pickaxe",1);
+    let data=|flag:Option<Tag>,max:Option<Tag>| {
+        let mut entries=Vec::new();
+        if let Some(flag)=flag {entries.push(("tic_broken",flag));}
+        if let Some(max)=max {entries.push(("tic_max_damage",max));}
+        Tag::compound(entries)
+    };
+    let tool=Tag::compound([("rules",Tag::List(vec![Tag::compound([
+        ("blocks",Tag::String("minecraft:stone".into())),("correct_for_drops",Tag::Byte(1)),
+    ])]))]);
+    stack.data_mut().set_other("minecraft:tool",Some(tool));
+    for flag in [1,-1,127,-128] {
+        for max in [Some(Tag::Int(100)),Some(Tag::Int(0)),None,Some(Tag::String("100".into()))] {
+            stack.data_mut().set_other("minecraft:custom_data",Some(data(Some(Tag::Byte(flag)),max)));
+            let before=stack.clone();
+            assert_eq!(broken_harvest(Some(&stack)),Break(false));
+            for incoming in [false,true] {
+                assert!(!tconstruct_material_correct_for_drops(incoming,Some(&stack),"minecraft:stone",&items));
+            }
+            assert!(stack.same_item_same_components(&before));
+            assert_eq!(stack.damage,before.damage);
+        }
+    }
+    for flag in [None,Some(Tag::Byte(0)),Some(Tag::Int(1)),Some(Tag::String("true".into()))] {
+        stack.data_mut().set_other("minecraft:custom_data",Some(data(flag,Some(Tag::Int(100)))));
+        stack.damage=99;
+        assert_eq!(broken_harvest(Some(&stack)),Continue(()));
+        assert!(tconstruct_material_correct_for_drops(false,Some(&stack),"minecraft:stone",&items));
+        assert!(!tconstruct_material_correct_for_drops(true,Some(&stack),"minecraft:dirt",&items));
+        stack.damage=100;
+        assert_eq!(broken_harvest(Some(&stack)),Break(false));
+        assert!(!tconstruct_material_correct_for_drops(true,Some(&stack),"minecraft:stone",&items));
+        stack.damage=0;
+    }
+    // Namespace and absent-stack boundaries stay unchanged.
+    let mut vanilla=ItemStack::new("minecraft:iron_pickaxe",1);
+    vanilla.data_mut().set_other("minecraft:custom_data",Some(data(Some(Tag::Byte(1)),Some(Tag::Int(100)))));
+    for held in [None,Some(&vanilla)] {
+        assert_eq!(broken_harvest(held),Continue(()));
+        assert!(tconstruct_material_correct_for_drops(true,held,"minecraft:stone",&items));
+    }
+    let mut flint=ItemStack::new("tconstruct:flint_pickaxe",1);
+    flint.damage=84;assert_eq!(broken_harvest(Some(&flint)),Continue(()));
+    flint.damage=85;assert_eq!(broken_harvest(Some(&flint)),Break(false));
+}

@@ -503,3 +503,28 @@ conditional mining modifiers and separately tests Airborne. It covers positive
 and negative nonzero flags, ineffective-tool cases, retained durability gates,
 repair, non-mutation, and preservation of the separate armor multiplication.
 No full generated-host build, gameplay, LAN, or Windows validation was run.
+
+## Broken-flag harvest eligibility
+
+The active harvest HEAD guard and source-tier RETURN projection now reject
+TConstruct stacks with a nonzero Byte `tic_broken`, even below their durability
+limit. Pinned
+[`ModifiableItem.isCorrectToolForDrops`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/item/ModifiableItem.java)
+delegates to
+[`IsEffectiveToolHook.isEffective`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/definition/module/mining/IsEffectiveToolHook.java),
+which requires an unbroken tool. Guarding both entry points prevents a matching
+saved Tool rule from restoring drops after flag-only breakage.
+
+The guard uses the established retained-tool flag representation, including
+when maximum durability is absent or malformed. Clearing/removing the flag
+restores existing eligibility checks, not unconditional harvest permission.
+Wrong-typed flags, non-TConstruct items, damage-limit checks, material-tier
+rules, and the legacy 85-damage flint-pickaxe fallback are unchanged. No stack
+or world state is mutated. Base mining speed and other tool actions remain
+outside this slice, so full broken-tool parity is not claimed.
+
+The cached-library integration harness executes both actual helpers against
+matching and unmatched Tool rules, positive/negative flags, repaired/absent/
+wrong-typed flags, invalid maxima, damage boundaries, vanilla/absent held items,
+and the legacy flint fallback. No full generated-host build, gameplay, LAN,
+or Windows validation was run.
