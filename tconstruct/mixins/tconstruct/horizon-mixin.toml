@@ -4639,7 +4639,7 @@ id = "source-sapling-bonemeal-valid"
 target = "horizon_client::game::native_hooks::GameLevel<'_>::native_is_valid_bonemeal_target"
 kind = "HEAD"
 helper = "source-sapling-bonemeal-valid.rs"
-bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
+bindings = [{ name = "level", ty = "&GameLevel<'_>", value = "self" }, { name = "pos", ty = "BlockPos", value = "pos" }, { name = "state", ty = "BlockStateId", value = "state" }, { name = "valid", ty = "&mut Option<bool>", value = "&mut *valid" }]
 
 [[injection]]
 id = "source-sapling-bonemeal-success"

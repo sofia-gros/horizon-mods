@@ -116,7 +116,8 @@ source Earth 4+0..2 height and Sky 5+0..3 height with its one-in-ten doubling;
 planted Sky trees do not have the island tree's vines. It checks the source
 slimy-soil and leaves tags, only replaces air or leaves, and declines a tree
 at an unloaded chunk boundary rather than writing to ungenerated chunks. That
-loaded-area guard is a conservative runtime limitation.
+loaded-area guard checks every intersecting chunk, including middle chunks,
+and is a conservative runtime limitation.
 
 The target Mixins plan, type compatibility, normal and bone-meal growth, RNG
 order, blocked placement, cross-chunk behavior, soil survival, original leaf

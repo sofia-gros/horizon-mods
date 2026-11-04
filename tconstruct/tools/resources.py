@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from piggy_labels import mark_unavailable
 """Create a separate, disposable resource overlay for the prototype."""
 import argparse, copy, hashlib, json, shutil, sys, zipfile
 from pathlib import Path
@@ -108,9 +109,16 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+seared_reinforcement_sprite = mod_assets / 'textures/item/materials/reinforcement/seared.png'
+seared_reinforcement_sprite.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/reinforcement/seared.png', seared_reinforcement_sprite)
 food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/encyclopedia.png', mod_assets / 'textures/item/encyclopedia.png')
+piggy_sprite = mod_assets / 'textures/item/gadgets/piggy_backpack.png'
+piggy_sprite.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/gadgets/piggy_backpack.png', piggy_sprite)
 for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime', 'magma'):
     relative = Path('item/bottle') / (contents + '_contents.png')
     destination = mod_assets / 'textures' / relative
@@ -158,6 +166,11 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-part-visuals.zip
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             raise ValueError(f'part visual output exists: {destination}')
+        if relative.startswith('lang/'):
+            language = json.loads(payload)
+            code = Path(relative).stem
+            language = mark_unavailable(language, code)
+            payload = json.dumps(language, ensure_ascii=False).encode('utf-8')
         destination.write_bytes(payload)
         if relative.startswith('textures/') and relative.endswith('.png'):
             sprite = relative.removeprefix('textures/').removesuffix('.png')
@@ -173,6 +186,7 @@ entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
     ('tconstruct:puny_smelting', 'minecraft:book', 'Puny Smelting'),
     ('tconstruct:mighty_smelting', 'minecraft:book', 'Mighty Smelting'),
+    ('tconstruct:encyclopedia', 'minecraft:book', 'Encyclopedia'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:meat_soup', 'minecraft:mushroom_stew', 'Meat Soup'),
     ('tconstruct:splash_bottle', 'minecraft:glass_bottle', 'Splash Bottle'),
@@ -232,6 +246,7 @@ entries = [
     ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
     ('tconstruct:emerald_reinforcement', 'minecraft:flint', 'Emerald Reinforcement'),
     ('tconstruct:slimesteel_reinforcement', 'minecraft:flint', 'Slimesteel Reinforcement'),
+    ('tconstruct:seared_reinforcement', 'minecraft:brick', 'Seared Reinforcement'),
     ('tconstruct:seared_brick', 'minecraft:flint', 'Seared Brick'),
     ('tconstruct:scorched_brick', 'minecraft:flint', 'Scorched Brick'),
 ]
@@ -300,6 +315,8 @@ for name in casts:
 for part in ('helmet', 'chestplate', 'leggings', 'boots'):
     short = part + '_plating_dummy'
     entries.append(('tconstruct:' + short, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+# Append after every existing declaration to preserve legacy protocol IDs.
+entries.append(('tconstruct:piggy_backpack', 'minecraft:flint', 'Piggybackpack (mob carrying unavailable)'))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
@@ -313,6 +330,8 @@ for name, template, title in entries:
         item['minecraft:cooking_fuel'] = {'burn_time': {'type': 'minecraft:div', 'left': 30000, 'right': {'type': 'minecraft:conditional', 'condition': 'minecraft:block/fast_cooking', 'on_false': 'minecraft:cooking/normal_burn_time_reduction_factor', 'on_true': 'minecraft:cooking/fast_burn_time_reduction_factor'}}, 'speed_multiplier': 'minecraft:cooking/speed_default'}
     if short in bucket_names:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
+    elif short == 'piggy_backpack':
+        native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'tconstruct:item/gadgets/piggy_backpack'}}
     elif short == 'magma_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/magma_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('splash_bottle', 'lingering_bottle'):
@@ -324,7 +343,7 @@ for name, template, title in entries:
     elif short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
         contents = 'ichor' if short == 'ichor_slime_bottle' else short.removesuffix('_bottle')
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/' + contents + '_contents', 'layer1': 'minecraft:item/potion'}}
-    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement'):
+    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
     elif short in ('steel_ingot', 'slimesteel_ingot', 'rose_gold_ingot', 'pig_iron_ingot', 'cinderslime_ingot', 'queens_slime_ingot', 'manyullyn_ingot', 'hepatizon_ingot', 'soulsteel_ingot', 'knightmetal_ingot', 'knightslime_ingot'):
         texture = 'pigiron_ingot' if short == 'pig_iron_ingot' else short
@@ -366,6 +385,11 @@ for name, template, title in entries:
         layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
         native_model = {'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}
     (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps(native_model))
+    if short == 'piggy_backpack':
+        # Let the normal translation-key path choose the localized warning.
+        item.pop('minecraft:item_name', None)
+        item['minecraft:max_stack_size'] = 16
+        item['minecraft:equippable'] = {'slot': 'chest', 'equip_sound': 'minecraft:item.armor.equip_generic'}
     if short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
@@ -382,6 +406,8 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
+    if short == 'encyclopedia':
+        item['minecraft:max_stack_size'] = 1
     if short == 'meat_soup':
         # Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
         item['minecraft:max_stack_size'] = 1

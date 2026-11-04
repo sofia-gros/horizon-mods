@@ -92,3 +92,7 @@ from Tinkers' Construct at [f4e77d43](https://github.com/SlimeKnights/TinkersCon
 Copyright (c) 2022 SlimeKnights; MIT license, see
 `tconstruct/third_party/tconstruct/LICENSE`. The content package carries this
 license at `assets/tconstruct/licenses/tconstruct.txt`.
+
+The Piggybackpack item texture is from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/textures/item/gadgets).
+Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.

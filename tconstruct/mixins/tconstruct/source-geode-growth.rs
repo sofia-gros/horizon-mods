@@ -5,7 +5,14 @@ pub(super) const DIRECTIONS: [([i32; 3], &str); 6] = [
     ([-1, 0, 0], "west"), ([1, 0, 0], "east"),
 ];
 
-pub(super) fn next(source: &str, neighbour: &str, air: bool, source_water: bool) -> Option<String> {
+// BuddingAmethystBlock.canClusterGrowAtState accepts air or a water block
+// whose fluid amount is eight, including full falling water. Waterlogging the
+// result is a separate source-fluid-type decision in the caller.
+pub(super) fn can_start(air: bool, water_block: bool, fluid_full: bool) -> bool {
+    air || (water_block && fluid_full)
+}
+
+pub(super) fn next(source: &str, neighbour: &str, air: bool, full_water: bool) -> Option<String> {
     let kind = match source {
         "tconstruct:budding_sky_slime_crystal" => "sky",
         "tconstruct:budding_earth_slime_crystal" => "earth",
@@ -14,7 +21,7 @@ pub(super) fn next(source: &str, neighbour: &str, air: bool, source_water: bool)
         _ => return None,
     };
     let prefix = "tconstruct:";
-    if air || source_water { return Some(format!("{prefix}small_{kind}_slime_crystal_bud")); }
+    if air || full_water { return Some(format!("{prefix}small_{kind}_slime_crystal_bud")); }
     for (from, to) in [("small", "medium"), ("medium", "large"), ("large", "cluster")] {
         if neighbour == format!("{prefix}{from}_{kind}_slime_crystal_bud") {
             return Some(if to == "cluster" { format!("{prefix}{kind}_slime_crystal_cluster") }
@@ -40,6 +47,14 @@ mod tests {
             assert_eq!(next(&source, "minecraft:water", false, true), Some(small));
             assert_eq!(next(&source, "minecraft:stone", false, false), None);
         }
+    }
+    #[test]
+    fn initial_growth_requires_air_or_full_water_block() {
+        assert!(can_start(true, false, false));
+        assert!(can_start(false, true, true)); // source or full flowing water
+        assert!(!can_start(false, true, false)); // shallow flowing water
+        assert!(!can_start(false, false, true)); // full fluid in another block
+        assert!(!can_start(false, false, false));
     }
     #[test]
     fn rejects_other_crystal_types_and_unknown_sources() {

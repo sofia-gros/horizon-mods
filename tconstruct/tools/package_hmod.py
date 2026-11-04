@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from piggy_labels import mark_unavailable
 """Package tracked content and original source layers as a Horizon content mod.
 
 This deliberately never reads the player's prepared Minecraft resource root.
@@ -99,7 +100,12 @@ def package(output):
                 # Keep the tracked en_us overlay (it also contains Horizon
                 # additions); source language files fill only missing paths.
                 if name not in files:
-                    add(name, archive.read(info))
+                    payload = archive.read(info)
+                    if relative.startswith('lang/'):
+                        language = json.loads(payload)
+                        language = mark_unavailable(language, PurePosixPath(relative).stem)
+                        payload = json.dumps(language, ensure_ascii=False).encode('utf-8')
+                    add(name, payload)
 
     # Derive declarations from the same source lists as the desktop overlay.
     # Horizon resolves each vanilla template on the player's own installation.

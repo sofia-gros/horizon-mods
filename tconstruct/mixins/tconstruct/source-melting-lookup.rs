@@ -551,7 +551,7 @@ impl Catalog<'_> {
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, CastingRecipe, String)> = None;
         for (id, bytes) in self.recipes {
-            let Some(recipe) = CastingRecipe::parse(bytes, conditions) else { continue; };
+            let Some(recipe) = CastingRecipe::parse_for_fluid(bytes, conditions, &|spec| self.matches_fluid(spec, fluid)) else { continue; };
             if recipe.basin != basin || !self.matches_fluid(&recipe.fluid, fluid) { continue; }
             let matched = match (&recipe.cast, input) {
                 (None, None) => true,
