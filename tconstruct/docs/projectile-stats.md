@@ -225,3 +225,14 @@ The source distinction is in [StatBoostModule](https://github.com/SlimeKnights/T
 [MeleeFormula](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/json/variable/melee/MeleeFormula.java).
 Focused tests cover multiplier selection and rebuilding; integrated host,
 actual combat, material replacement, and local/LAN behavior remain unverified.
+
+### Raging and Ambush projectile multiplier correction
+
+The firing-time Raging and Ambush bonuses use the source global conditional
+projectile-damage multiplier, including the tool definition's `multiply_stats`
+factor. A base-stat percent affects base projectile damage, but not these flat
+conditional additions. Other modifiers that change the global multiplier, such
+as Soft, are not implemented by this change. Rebuild or regenerate existing
+bows to refresh their saved multiplier. Focused tests cover both launchers, a nonzero base percent,
+both effects separately and stacked, repeated rebuild and trait removal.
+Integrated host build, actual shots, save/reload and LAN remain unverified.

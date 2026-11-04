@@ -440,3 +440,30 @@ fn airborne_overwield_use_conditional_not_base_multipliers() {
   assert!(matches!(custom.get("tic_overwield_draw_multiplier"),Some(Tag::Float(bits)) if (f32::from_bits(*bits)-2.0).abs()<1e-6));
  }
 }
+
+#[test]
+fn raging_and_ambush_projectile_exclude_base_percent_from_conditional_multiplier() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:projectile_damage":2.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:projectile_damage":2.0}}]}"#;
+ let mut stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ stats.projectile_damage_raw[2]=0.5;
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  let traits=BTreeMap::from([("tconstruct:raging".into(),2),("tconstruct:ambush".into(),2)]);
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&traits,false,false).unwrap();
+   let base=projectile::projectile_bonus(&bow);
+   assert_eq!(base,4.0); // 2 * 1.5 * 2, minus the host's base 2.
+   assert!((projectile::projectile_bonus_at(&bow,Some(6.0),Some(20.0))-base-2.0).abs()<1e-6);
+   assert!((projectile::projectile_bonus_at(&bow,Some(20.0),Some(20.0))-base-2.0).abs()<1e-6);
+   assert!((projectile::projectile_bonus_at(&bow,Some(6.0),Some(6.0))-base-4.0).abs()<1e-6);
+  }
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::new(),false,false).unwrap();
+  assert_eq!(projectile::projectile_bonus_at(&bow,Some(6.0),Some(6.0)),projectile::projectile_bonus(&bow));
+  let mut changed_stats=stats; changed_stats.projectile_damage_raw[3]=3.0;
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&changed_stats,&traits,false,false).unwrap();
+  let base=projectile::projectile_bonus(&bow);
+  assert!((projectile::projectile_bonus_at(&bow,Some(6.0),Some(6.0))-base-6.0).abs()<1e-6);
+ }
+}

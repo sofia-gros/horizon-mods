@@ -522,7 +522,9 @@ pub fn apply_stats(
         fields.insert("tic_accuracy".into(), Tag::Float(accuracy.to_bits()));
         fields.insert("tic_raging".into(), Tag::Int(level("tconstruct:raging").max(0)));
         fields.insert("tic_ambush_projectile".into(), Tag::Int(level("tconstruct:ambush").max(0)));
-        fields.insert("tic_raging_projectile_multiplier".into(), Tag::Float(((1.0 + projectile_percent) * projectile_multiply).to_bits()));
+        // Raging and Ambush read the global conditional multiplier map,
+        // not base-stat percentages.
+        fields.insert("tic_raging_projectile_multiplier".into(), Tag::Float(projectile_multiply.to_bits()));
         fields.insert("tic_projectile_damage".into(), Tag::Float(projectile_damage.to_bits()));
         fields.insert("tic_crystalbound_angle".into(), Tag::Int(crystal as i32));
     }
@@ -607,7 +609,7 @@ mod tests {
         apply_stats(&mut tool, &stats, &levels, false, false).unwrap();
         let custom = tool.data().unwrap().other("minecraft:custom_data").unwrap();
         assert!(matches!(custom.get("tic_airborne_velocity_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.0).abs() < 0.00001));
-        assert!(matches!(custom.get("tic_raging_projectile_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.25).abs() < 0.00001));
+        assert!(matches!(custom.get("tic_raging_projectile_multiplier"), Some(Tag::Float(v)) if (f32::from_bits(*v) - 1.0).abs() < 0.00001));
     }
 
     #[test]
