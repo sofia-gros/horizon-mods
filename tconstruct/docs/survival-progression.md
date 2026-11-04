@@ -253,3 +253,10 @@ to Seared Paver, Seared Bricks to Seared Cracked Bricks, and Scorched Stone to
 Scorched Road. Each uses one direct item input, 200 ticks and 0.1 experience;
 recipe-book unlock definitions use the corresponding adapted native IDs.
 Actual furnace execution, recipe-book unlocks, saves and LAN remain unverified.
+
+The source's direct shapeless unpacking recipes yield four matching slimeballs
+from one Earth, Sky, Ichor or Ender Congealed Slime block. Earth yields vanilla
+slimeballs; the other three yield their named TConstruct slimeballs. The source
+recipe-book unlock conditions are adapted to the native recipe IDs. The inverse
+four-slimeball recipes use source tags and are separate work. Real crafting,
+recipe-book unlocks, save/reload and LAN remain unverified.
