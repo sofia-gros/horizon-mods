@@ -29,13 +29,25 @@ class MaterialsBookSourceTest(unittest.TestCase):
         index = json.loads((root / 'index.json').read_text())
         self.assertEqual([entry['name'] for entry in index[:4]], ['intro', 'alloyer', 'foundry', 'blazing_blood'])
         section = json.loads((root / 'sections/foundry.json').read_text())
-        selected = ['features', 'structurereq', 'fgui1', 'fgui2']
+        selected = ['features', 'byproducts', 'structurereq', 'fgui1', 'fgui2']
         self.assertEqual([entry['name'] for entry in section if entry['name'] in selected], selected)
         for entry in section:
             if entry.get('name') in selected:
                 page = json.loads((root / 'en_us' / entry['data']).read_text())
                 self.assertTrue(page['title'])
                 self.assertTrue(all(part.get('text') for part in page['text']))
+        byproducts = json.loads((root / 'en_us/foundry/byproducts.json').read_text())
+        summary = ' '.join(part['text'] for part in byproducts['text'])
+        self.assertIn('molten gold', summary)
+        self.assertIn('does not fit is lost', summary)
+        self.assertIn('not yet supported or verified', summary)
+        with zipfile.ZipFile(ARCHIVE / 'reference/tconstruct-recipes.zip') as recipes:
+            ore = json.loads(recipes.read('data/tconstruct/recipes/smeltery/melting/metal/copper/ore_singular.json'))
+        self.assertEqual(ore['result']['tag'], 'forge:molten_copper')
+        self.assertEqual(ore['byproducts'][0]['tag'], 'forge:molten_gold')
+        machine = (ROOT / 'mixins/tconstruct/source-smeltery-tank.rs').read_text()
+        self.assertIn('Any remainder is discarded', machine)
+
         intro = json.loads((root / 'en_us/intro/intro.json').read_text())
         self.assertIn('not included', intro['text'][-1]['text'])
         self.assertEqual(json.loads((ARCHIVE / 'data/tconstruct/horizon/item/fantastic_foundry.json').read_text()), {'template': 'minecraft:book', 'max_stack_size': 1})

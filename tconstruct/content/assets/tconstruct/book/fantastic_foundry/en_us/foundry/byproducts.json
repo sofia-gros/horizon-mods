@@ -1,0 +1,16 @@
+{
+  "title": "Byproducts",
+  "text": [
+    {
+      "text": "A Foundry can recover extra fluids from some melting recipes. For example, the default copper ore recipe produces molten gold as a byproduct as well as molten copper."
+    },
+    {
+      "text": "Leave enough space in the tank: the Foundry waits for the main output to fit, but any byproduct that does not fit is lost. Recipe and yield settings may change the amounts.",
+      "paragraph": true
+    },
+    {
+      "text": "Some recipes, fluid transfers and machine behavior are not yet supported or verified in this version.",
+      "paragraph": true
+    }
+  ]
+}
