@@ -886,3 +886,8 @@ The pinned seared and scorched ladder crafting recipes are available with
 source-matched extensible item tags for their block ingredients. The tests
 compare both recipes and tags to the source and check bundled block
 registrations; live crafting, datapack reload and LAN remain unverified.
+
+The pinned crafting recipes for seared fancy bricks, chiseled scorched bricks
+and polished scorched stone are available for their registered blocks.
+Source-data tests cover inputs, patterns and counts; live crafting, datapack
+reload and LAN remain unverified.
