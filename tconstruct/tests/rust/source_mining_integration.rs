@@ -255,3 +255,63 @@ fn haste_mining_merges_logical_levels_before_float_scaling() {
         assert_eq!(rules[0].get("speed"),Some(&Tag::Float(0.1f32.to_bits())));
     }
 }
+
+#[path = "../../mixins/tconstruct/source-haste-wire.rs"] mod tconstruct_source_haste_wire;
+
+#[test]
+fn chest_haste_incremental_precision_and_existing_gates() {
+    use tconstruct_source_mining_rules::haste_armor_multiplier_with_trait as multiplier;
+    let custom = |progress| Tag::compound([
+        ("tic_max_damage",Tag::Int(100)),
+        ("tic_upgrades",Tag::compound([("tconstruct:haste",progress)])),
+    ]);
+    for (traits,progress) in [(0,30),(1,96),(2,14),(3,6),(0,0),(2,0),(2,44),(2,45),(2,46),(2,89),(2,90),(2,91),(-1,30),(2,-1),(0,i32::MAX),(i32::MAX,1),(i32::MAX,45)] {
+        let amount=progress.max(0); let remainder=amount%45;
+        let logical=traits.max(0).checked_add(amount/45).and_then(|n|n.checked_add(i32::from(remainder!=0)));
+        let level=logical.map(|n|if remainder==0 {n as f32}else{n as f32+(remainder-45) as f32/45.0}).unwrap_or(0.0);
+        let expected=1.0f32+0.1f32*level;
+        let data=custom(Tag::Int(progress));
+        assert_eq!(multiplier(&data,99,traits).to_bits(),expected.to_bits());
+        assert_eq!(multiplier(&data,100,traits),1.0);
+        assert_eq!(multiplier(&data,u32::MAX,traits),1.0);
+        if [(0,30),(1,96),(2,14),(3,6)].contains(&(traits,progress)) {
+            let old=1.0f32+0.1*(progress as f32/45.0+traits as f32);
+            assert_ne!(expected.to_bits(),old.to_bits());
+        }
+    }
+    for data in [Tag::compound(Vec::<(&str,Tag)>::new()),Tag::compound([("tic_max_damage",Tag::Int(0))]),Tag::compound([("tic_max_damage",Tag::Int(-1))]),Tag::compound([("tic_max_damage",Tag::Float(100.0f32.to_bits()))])] {
+        assert_eq!(multiplier(&data,0,2),1.0);
+    }
+    for data in [custom(Tag::String("bad".into())),Tag::compound([("tic_max_damage",Tag::Int(100))])] {
+        assert_eq!(multiplier(&data,0,2).to_bits(),1.2f32.to_bits());
+    }
+}
+
+#[test]
+fn chest_haste_wire_trait_and_local_trait_use_identical_level_math() {
+    use tconstruct_source_haste_wire::{encode,decode,matching_level};
+    use tconstruct_source_mining_rules::{haste_armor_multiplier_with_trait,finish_mining_speed};
+    let mut chest=ItemStack::new("tconstruct:plate_chestplate",1);
+    chest.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+        ("tic_max_damage",Tag::Int(100)),
+        ("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(14))])),
+    ])));
+    let snapshot=decode(&encode(Some((&chest,2)))).unwrap();
+    let evaluate=|chest:&ItemStack,level|haste_armor_multiplier_with_trait(chest.data().unwrap().other("minecraft:custom_data").unwrap(),chest.damage,level);
+    let local=evaluate(&chest,2);
+    let remote=evaluate(&chest,matching_level(Some(&snapshot),Some(&chest)).unwrap_or(0));
+    assert_eq!(local.to_bits(),remote.to_bits());
+    assert_eq!(finish_mining_speed(7.0,remote).to_bits(),(7.0f32*local).to_bits());
+    // Missing/stale authoritative frames keep the existing upgrade-only fallback.
+    assert_eq!(matching_level(None,Some(&chest)),None);
+    chest.damage=1;
+    assert_eq!(matching_level(Some(&snapshot),Some(&chest)),None);
+    let fallback=evaluate(&chest,matching_level(Some(&snapshot),Some(&chest)).unwrap_or(0));
+    let upgrade_only=1.0f32+0.1f32*(1.0f32+(14-45) as f32/45.0);
+    assert_eq!(fallback.to_bits(),upgrade_only.to_bits());
+    assert_ne!(fallback.to_bits(),local.to_bits());
+    chest.damage=100;
+    assert_eq!(evaluate(&chest,2),1.0);
+    chest.damage=0;
+    assert_eq!(evaluate(&chest,2).to_bits(),local.to_bits());
+}
