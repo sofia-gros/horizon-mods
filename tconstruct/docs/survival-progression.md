@@ -150,3 +150,7 @@ The pinned source's Steel Nugget, Ingot and Block conversions are registered, us
 ## Knightmetal shard cooking
 
 The pinned source smelts or blasts an item in `forge:raw_nuggets/knightmetal` into one Knightmetal Nugget, with base times of 50 or 25 ticks and 0.2 experience. The additive tag includes Knightmetal Shard and an optional Twilight Forest armor shard. Knightmetal Cluster loot contains the native shard. Normal host content preparation filters an unavailable optional item; directly copying the raw tag into an already-prepared root bypasses that filtering. Source and registration checks pass. Existing Forge namespace ownership and native `remove` limitations apply; third-party integration, actual acquisition, cooking, packaging, recipe-book display, save/reload and LAN remain unverified.
+
+## Knightmetal storage conversions
+
+The pinned source's Knightmetal Nugget, Ingot and Block conversions are registered, using additive Forge knightmetal tags. Shaped compression requires the corresponding TConstruct item in the center and eight tagged items around it; unpacking a block or ingot yields nine ingots or nuggets. Source and registration tests pass. Existing Forge namespace ownership and `remove` limitations apply. Actual crafting, resource loading, packaging, recipe-book display, save/reload and LAN remain unverified.
