@@ -18,6 +18,8 @@ class ContentPackageTest(unittest.TestCase):
             package(output)
             with zipfile.ZipFile(output) as packed:
                 names = set(packed.namelist())
+                guide = 'assets/tconstruct/book/materials_and_you/en_us/intro/tinkerschest_craft.json'
+                self.assertEqual(packed.read(guide), (MOD / 'content' / guide).read_bytes())
                 # The MIT text travels with the content containing upstream pixels.
                 self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
                                  (MOD / 'third_party/tconstruct/LICENSE').read_bytes())

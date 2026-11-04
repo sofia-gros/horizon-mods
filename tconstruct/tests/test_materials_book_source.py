@@ -16,6 +16,15 @@ class DirectoryArchive:
 PREFIX = 'assets/tconstruct/book/materials_and_you/'
 
 class MaterialsBookSourceTest(unittest.TestCase):
+    def test_tinkers_chest_recipe_page_discloses_world_tint_limit(self):
+        root = ARCHIVE / PREFIX / 'en_us/intro'
+        page = json.loads((root / 'tinkerschest_craft.json').read_text())
+        self.assertEqual(page['recipe'], 'tconstruct:tables/tinkers_chest')
+        self.assertIn('not shown on the placed block', page['description'][-1]['text'])
+        for chest in ('part_chest', 'tinkers_chest'):
+            self.assertTrue((ARCHIVE / f'data/tconstruct/horizon/block/{chest}.json').is_file())
+            self.assertTrue((ARCHIVE / f'data/tconstruct/recipe/{chest}.json').is_file())
+
     def test_mighty_smelting_introduction_is_available_for_both_readers(self):
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
         index = json.loads((root / 'index.json').read_text())
