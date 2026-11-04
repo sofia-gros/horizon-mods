@@ -981,3 +981,10 @@ flowing water and lava, using the same sprite, name and default water tint as
 their still forms. It preserves the stored ID and continues to omit tagged,
 unknown or unsupported model data. The helper and display wiring are tested;
 actual icon/tooltip appearance, resource packs and LAN remain unverified.
+
+Empty buckets in supported tank slots and the table-filling catalog now map the
+pinned vanilla water/lava and TConstruct flowing variants to their shared source
+bucket. The selected flowing ID itself is consumed, not replaced in storage.
+Registered fluid and bucket checks, 1,000 mB, and existing rejection of tagged
+fluids remain in place. Focused transaction and catalog tests cover these paths;
+integrated game, casting visuals, datapacks and LAN remain unverified.

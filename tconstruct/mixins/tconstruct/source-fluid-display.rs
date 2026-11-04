@@ -1,5 +1,5 @@
 // Pinned flowing fluids share their source fluid's visual attributes and name.
-// Keep this display-only: tank contents and transfer identities remain unchanged.
+// Used for display and pinned bucket lookup only; tank identities remain unchanged.
 pub(super) fn display_id(fluid: &str) -> &str {
     match fluid {
         "minecraft:flowing_water" => "minecraft:water",
