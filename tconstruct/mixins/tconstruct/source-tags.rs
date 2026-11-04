@@ -254,6 +254,30 @@ pub(super) fn resolve_registry(
     Ok(resolved)
 }
 
+/// Query a fully resolved world snapshot. Missing or failed tags must not be
+/// guessed from the built-in registry, since datapacks may replace their values.
+pub(super) fn resolved_member(
+    tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    tag: &str, id: &str,
+) -> Option<bool> {
+    Some(tags?.get(tag)?.contains(id))
+}
+
+/// Resolve one tag independently of errors in unrelated tag graphs.
+pub(super) fn local_tag_member(
+    tags: &BTreeMap<String, Vec<Vec<u8>>>,
+    registry: &std::collections::HashSet<String>,
+    tag: &str, id: &str,
+) -> Option<bool> {
+    // An absent or wholly malformed root tag is not a reliable negative.
+    let files = tags.get(tag)?;
+    if !files.iter().any(|file| parse_file(file).is_some()) { return None; }
+    // Prove negative membership without requiring unrelated registry entries.
+    // A reachable matching entry is only a possibility, so resolve normally.
+    if definitely_absent(tag, id, tags).ok()? { return Some(false); }
+    Some(resolve_tag(tag, tags, registry).ok()?.iter().any(|value| value == id))
+}
+
 /// MaterialManager uses the same TagLoader, but with material identifiers
 /// rather than items and the tinkering/tags/materials resource directory.
 #[allow(dead_code)]
@@ -273,6 +297,58 @@ pub(super) fn resolve_material_registry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn resolved_water_membership_is_world_scoped_and_unknown_fails_closed() {
+        use std::collections::{HashMap, HashSet};
+        let first = HashMap::from([("minecraft:water".to_owned(),
+            HashSet::from(["minecraft:water".to_owned(), "minecraft:flowing_water".to_owned()]))]);
+        let second = HashMap::from([("minecraft:water".to_owned(),
+            HashSet::from(["minecraft:lava".to_owned()]))]);
+        assert_eq!(resolved_member(Some(&first), "minecraft:water", "minecraft:water"), Some(true));
+        assert_eq!(resolved_member(Some(&first), "minecraft:water", "minecraft:lava"), Some(false));
+        assert_eq!(resolved_member(Some(&second), "minecraft:water", "minecraft:water"), Some(false));
+        assert_eq!(resolved_member(Some(&second), "minecraft:water", "minecraft:lava"), Some(true));
+        assert_eq!(resolved_member(None, "minecraft:water", "minecraft:water"), None);
+        assert_eq!(resolved_member(Some(&HashMap::new()), "minecraft:water", "minecraft:water"), None);
+
+        let raw = std::collections::BTreeMap::from([("minecraft:water".to_owned(), vec![
+            br#"{"values":["minecraft:water","minecraft:flowing_water"]}"#.to_vec(),
+            br#"{"replace":true,"values":["minecraft:lava"]}"#.to_vec(),
+        ])]);
+        let registry = HashSet::from(["minecraft:water".to_owned(),
+            "minecraft:flowing_water".to_owned(), "minecraft:lava".to_owned()]);
+        let resolved = resolve_registry(&raw, &registry).unwrap();
+        assert_eq!(resolved_member(Some(&resolved), "minecraft:water", "minecraft:water"), Some(false));
+        assert_eq!(resolved_member(Some(&resolved), "minecraft:water", "minecraft:lava"), Some(true));
+
+        let mut raw_with_unrelated_cycle = raw.clone();
+        raw_with_unrelated_cycle.insert("test:cycle".to_owned(), vec![br##"{"values":["#test:cycle"]}"##.to_vec()]);
+        let mut registry_with_empty = registry.clone();
+        registry_with_empty.insert("minecraft:empty".to_owned());
+        assert!(resolve_registry(&raw_with_unrelated_cycle, &registry_with_empty).is_err());
+        // The adapter's fast path has no global map after the unrelated
+        // cycle; its local fallback must still permit an air target.
+        let air_result = resolved_member(None, "minecraft:water", "minecraft:empty")
+            .or_else(|| local_tag_member(&raw_with_unrelated_cycle, &registry_with_empty, "minecraft:water", "minecraft:empty"));
+        assert_eq!(air_result, Some(false));
+        assert_eq!(local_tag_member(&raw_with_unrelated_cycle, &registry_with_empty, "minecraft:water", "minecraft:lava"), Some(true));
+        let mut bad_water = raw.clone();
+        bad_water.insert("minecraft:water".to_owned(), vec![br##"{"values":["#minecraft:water"]}"##.to_vec()]);
+        assert_eq!(local_tag_member(&bad_water, &registry_with_empty, "minecraft:water", "minecraft:empty"), None);
+        assert_eq!(local_tag_member(&std::collections::BTreeMap::new(), &registry_with_empty, "minecraft:water", "minecraft:empty"), None);
+        let malformed = std::collections::BTreeMap::from([("minecraft:water".to_owned(), vec![b"not-json".to_vec()])]);
+        assert_eq!(local_tag_member(&malformed, &registry_with_empty, "minecraft:water", "minecraft:empty"), None);
+        let unknown_required = std::collections::BTreeMap::from([("minecraft:water".to_owned(), vec![
+            br#"{"values":["minecraft:water","example:unregistered_water"]}"#.to_vec()
+        ])]);
+        assert!(resolve_tag("minecraft:water", &unknown_required, &registry_with_empty).is_err());
+        // Air and other proven non-members still permit propagation, while
+        // a reachable water entry is not guessed from an invalid tag.
+        assert_eq!(local_tag_member(&unknown_required, &registry_with_empty, "minecraft:water", "minecraft:empty"), Some(false));
+        assert_eq!(local_tag_member(&unknown_required, &registry_with_empty, "minecraft:water", "minecraft:lava"), Some(false));
+        assert_eq!(local_tag_member(&unknown_required, &registry_with_empty, "minecraft:water", "minecraft:water"), None);
+    }
+
     #[test]
     fn missing_platform_does_not_block_unrelated_basin_input() {
         let tags = BTreeMap::from([("tconstruct:casts/empty/basin".into(),
