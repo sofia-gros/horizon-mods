@@ -128,7 +128,10 @@ pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
             (!native).then(|| super::tconstruct_source_smeltery_fuel::potion_fluid_name(tank.tag.as_ref())).flatten()
                 .unwrap_or_else(|| "fluid.tconstruct.potion".into())
         } else if namespace == "minecraft" { format!("block.minecraft.{name}") } else { format!("fluid.{namespace}.{name}") };
-        let contents = Text::translate("gui.mantle.fluid.format", &[Text::literal(comma(tank.amount)), capacity, Text::translate(&key, &[])]);
+        let fluid_text = if display_fluid == "minecraft:milk" {
+            Text::literal(super::tconstruct_source_melter_render::fluid_name(game, display_fluid))
+        } else { Text::translate(&key, &[]) };
+        let contents = Text::translate("gui.mantle.fluid.format", &[Text::literal(comma(tank.amount)), capacity, fluid_text]);
         Text::translate("gui.mantle.fluid.contents", &[contents])
     } else { Text::translate("gui.mantle.fluid.capacity", &[capacity]) };
     if let Some(uuid) = game.lan_acting_uuid { let _ = game.native_action_bar(uuid, text); }

@@ -1093,8 +1093,13 @@ original floating-point bits; local complete machine color uses the converted
 tint, and guest fallback and transfer parsing remain unchanged. Integrated
 GUI, save/reload, resource packs and LAN are not verified.
 
+Bacon retains the source food nutrition 4 and saturation modifier 0.6, which translates to 4.8 saturation points in the current host. It is listed in the partial General creative tab. The Windows preparation flow reads its existing content declaration after the manual overlay; final prepared resources have not been verified. The source Tasty bacon loot injection and normal acquisition remain unverified; actual eating, saves and LAN remain unverified.
 ### Direct casting container interaction
 
 Casting Tables and Basins try supported held fluid containers before their item-swap path. The staged interaction discovers the offered fluid, selects a matching casting recipe and its capacity, and commits the tank before changing the held stack. A partially filled casting can be drained before cooling starts; emptying it resets the pending recipe. The existing supported-container and metadata restrictions still apply. Static wiring checks cover ordering and persistence; host compilation and in-game, multiplayer, and full container interoperability remain unverified.
 
 An active Faucet now rechecks the pending packet against a fresh casting after its target is emptied or completes early. A blocked, mismatched, or recognized but unreadable casting target retains the pending fluid; a confirmed removed target clears it under the existing Faucet behavior. Unit tests exercise the production state transitions with a stub recipe selector. The world recipe lookup and host integration remain unverified.
+
+The newly supported container transfer and Faucet resume only commit when the saved casting compound round-trips exactly; resume also requires the saved Faucet to round-trip. Unknown fields, noncanonical values, stale saved slots, or non-reversible fluid IDs may therefore leave those new interactions unavailable rather than discard data. This is not a general repair of existing casting/Faucet update or destruction paths. The regression fixtures use production state transitions and a stub recipe; they do not exercise the real host world or its atomic persistence.
+
+A casting-target Faucet tick also waits before recipe selection when the stored Faucet does not round-trip, including a non-matching malformed pending ID. This prevents its rewrite but can stall that packet until repaired. The new held-container transfer skips lantern tank data that cannot round-trip, leaving the existing empty-table item-slot interaction available. Other target types and pre-existing container operations are outside these checks.

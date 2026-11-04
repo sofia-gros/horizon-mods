@@ -16,3 +16,58 @@ before adding the definitions: on reopening with them, both criteria completed,
 and their timestamps survived another save/reload. These are resource-overlay
 fixture checks, not a packaged main build or a survival acquisition test.
 Further original workstation progression and recipe-book unlocks remain open.
+
+The Travelers' Gear advancement uses the source's four distinct inventory
+criteria and the existing Tinker Station parent. The host icon uses `id` and
+its current advancement Display reads only the item ID, not the source NBT
+used for a material preview. Source trigger logic and requirements are retained;
+gameplay, already-held gear, persistence and LAN actor attribution are not
+verified. No recipe-book reward is added.
+
+The source Tinkers' Anvil goal is intended to be recorded when either the Tinker's Anvil or Scorched Anvil enters the inventory. Its source parent, the Smeltery-open advancement, is not yet connected, so this goal is not placed in the advancement tree until that parent exists. The host may nevertheless show a toast or chat announcement when its criterion completes. The source goal has no reward. Actual acquisition, progress persistence, toast and LAN behavior have not been verified in a running world.
+
+The source Tool Forge challenge has eight separate inventory criteria, one for each listed large or ranged tool; progress can accumulate across separate acquisitions. It is a child of the Tinkers' Anvil goal and has no reward. The Smeltery-open ancestor remains unavailable, so this branch is not laid out in the advancement tree; the host may still issue toast or chat notifications on completion. The source icon's display-only material NBT is omitted because the host advancement icon supports an item ID only. This records item acquisition, not whether each tool's behavior or ordinary acquisition is complete. Actual inventory events, icon, persistence and LAN are unverified.
+
+The source Ancient Tools challenge records four separate inventory criteria:
+Melting Pan, War Pick, Battlesign and Swasher. They may be obtained at different
+times; this does not implement their ordinary loot sources or tool behaviors.
+Its Tinkers' Gadgetry parent is not registered yet, so it is not laid out in
+the advancement tree; the host may still show a toast or chat announcement.
+The source icon's material-preview NBT is omitted because the host icon accepts
+only an item ID. Actual inventory events, progress persistence, icon and LAN
+behavior remain unverified in a running world.
+
+The source Slimesuit goal records four separate inventory criteria: Slime
+Helmet, Slimy Chestplate, Slime Leggings and Slime Boots. Acquisitions may occur
+at different times. Its Sky Island parent is not registered, so this goal is
+not laid out in the advancement tree; the host may still show a toast or chat
+announcement. Its icon's material-preview NBT is omitted because the host icon
+accepts an item ID only. This does not claim full equipment behavior or ordinary
+acquisition. Actual inventory events, persistence, display and LAN are unverified
+in a running world.
+
+The source Tool Smith challenge records seven separate inventory criteria:
+Pickaxe, Mattock, Pickadze, Hand Axe, Kama, Dagger and Sword. Acquisitions may
+occur at different times. Its Tinker Tool parent is not registered, so this
+challenge is not laid out in the advancement tree; the host may still show a
+toast or chat announcement. Its icon's material-preview NBT is omitted because
+the host icon accepts an item ID only. This does not claim complete tool behavior
+or ordinary acquisition. Actual inventory events, persistence, display and LAN
+are unverified in a running world.
+
+The source Plate Armor goal records four separate inventory criteria: Plate
+Helmet, Chestplate, Leggings and Boots. Acquisitions may occur at different
+times. Its Foundry Blaze parent is not registered, so this goal is not laid
+out in the advancement tree; the host may still show a toast or chat
+announcement. Its icon's material-preview NBT is omitted because the host icon
+accepts an item ID only. This does not claim full equipment behavior or ordinary
+acquisition. Actual inventory events, persistence, display and LAN are unverified
+in a running world.
+
+The source Cast Collector goal records the 24 named reusable casts as separate
+inventory criteria; all are required and acquisitions may occur at different
+times. Its Gold Casting parent is not registered, so this goal is not laid out
+in the advancement tree; the host may still show a toast or chat announcement.
+The package declares all 24 item IDs, but this does not establish every cast's
+ordinary acquisition. Actual inventory events, persistence, display and LAN are
+unverified in a running world.

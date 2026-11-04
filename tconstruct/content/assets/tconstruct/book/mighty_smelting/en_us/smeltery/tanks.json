@@ -1,0 +1,16 @@
+{
+  "title": "Seared Fuel Tanks",
+  "text": [
+    {
+      "text": "Seared Fuel Tanks and Fuel Gauges can hold 4,000 mB of fluid. A compatible fuel tank in the smeltery wall supplies fuel for melting."
+    },
+    {
+      "text": "Supported held containers and faucets can transfer fluid to compatible tanks. The available endpoints and fluid metadata are limited in this version.",
+      "paragraph": true
+    },
+    {
+      "text": "The original tank item showcase is not available here. Potion handling, pistons and dispensers have not been verified in game.",
+      "paragraph": true
+    }
+  ]
+}

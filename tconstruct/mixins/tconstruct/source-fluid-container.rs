@@ -22,6 +22,7 @@ fn bucket_fluid(item: &str) -> Option<String> {
     match item {
         "minecraft:water_bucket" => Some("minecraft:water".into()),
         "minecraft:lava_bucket" => Some("minecraft:lava".into()),
+        "minecraft:milk_bucket" => Some("minecraft:milk".into()),
         "minecraft:powder_snow_bucket" => Some("tconstruct:powdered_snow".into()),
         _ => item.strip_prefix("tconstruct:")?.strip_suffix("_bucket").filter(|id| !id.is_empty()).map(|id| format!("tconstruct:{id}")),
     }
@@ -96,7 +97,7 @@ pub(super) fn can_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool
     let (fluid, tag) = can_contents(stack)?;
     let fluid = fluid?;
     if tag.is_some() || fluid == "tconstruct:potion" || !known(&fluid)
-        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava") || fluid.starts_with("tconstruct:")) { return None; }
+        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava" | "minecraft:milk" | "minecraft:flowing_milk") || fluid.starts_with("tconstruct:")) { return None; }
     Some(fluid)
 }
 
@@ -334,13 +335,24 @@ fn lantern_tank(stack: &ItemStack) -> Option<super::tconstruct_source_melter_sta
     }
 }
 
+/// Gate a new casting interaction before the lantern tank is rewritten.
+/// Other supported item types use their own component-preserving transfer paths.
+pub(super) fn casting_portable_rewrite_safe(stack: &ItemStack) -> bool {
+    if !matches!(&*stack.item, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { return true; }
+    let Some(tank) = lantern_tank(stack) else { return false; };
+    match stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|data| data.get("tconstruct:tank")) {
+        None => true,
+        Some(raw) => tank.to_nbt() == *raw,
+    }
+}
+
 /// Read only supported, untagged portable tank contents for tooltip display.
 pub(super) fn tank_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<String> {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return None; }
     let tank = lantern_tank(stack)?;
     let fluid = tank.fluid?;
     if tank.amount == 0 || tank.tag.is_some() || fluid == "tconstruct:potion" || !known(&fluid)
-        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava") || fluid.starts_with("tconstruct:")) { return None; }
+        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava" | "minecraft:milk" | "minecraft:flowing_milk") || fluid.starts_with("tconstruct:")) { return None; }
     Some(fluid)
 }
 
@@ -481,6 +493,7 @@ pub(super) fn filled_bucket(fluid: &str) -> Option<String> {
     match fluid {
         "minecraft:water" => Some("minecraft:water_bucket".into()),
         "minecraft:lava" => Some("minecraft:lava_bucket".into()),
+        "minecraft:milk" => Some("minecraft:milk_bucket".into()),
         "tconstruct:powdered_snow" => Some("minecraft:powder_snow_bucket".into()),
         _ => fluid.strip_prefix("tconstruct:").filter(|id| !id.is_empty() && !id.starts_with("flowing_"))
             .map(|id| format!("tconstruct:{id}_bucket")),
@@ -730,6 +743,19 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 #[cfg(test)]
 mod tests {
     #[test]
+    fn casting_lantern_rejects_unknown_and_lossy_tank_without_changing_stack() {
+        use horizon_world::nbt::{JavaString, Tag};
+        let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
+        assert!(casting_portable_rewrite_safe(&stack));
+        let invalid = Tag::compound([("fluid", Tag::String(JavaString(vec![0xd800]))), ("amount", Tag::Int(10))]);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", invalid.clone())])));
+        assert!(!casting_portable_rewrite_safe(&stack));
+        assert_eq!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tconstruct:tank"), Some(&invalid));
+        let extra = Tag::compound([("fluid", Tag::String("minecraft:water".into())), ("amount", Tag::Int(10)), ("future", Tag::Int(1))]);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", extra)])));
+        assert!(!casting_portable_rewrite_safe(&stack));
+    }
+    #[test]
     fn numeric_potion_colors_preserve_original_item_tags() {
         use horizon_world::nbt::Tag;
         let can = ItemStack::new("tconstruct:copper_can", 1);
@@ -938,7 +964,7 @@ mod tests {
             assert_eq!(tank_display_fluid(&tagged, &known), None);
         }
         assert_eq!(tank_display_fluid(&ItemStack::new("minecraft:stone", 1), &known), None);
-        for fluid in ["minecraft:empty", "minecraft:milk", "other:fluid", "tconstruct:potion"] {
+        for fluid in ["minecraft:empty", "other:fluid", "tconstruct:potion"] {
             let mut stack = ItemStack::new("tconstruct:seared_lantern", 1);
             stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String(fluid.into())), ("amount", Tag::Int(1))]))])));
             assert_eq!(tank_display_fluid(&stack, &known), None, "{fluid}");
@@ -1395,10 +1421,45 @@ mod tests {
         assert_eq!((unknown, input), before);
     }
     #[test]
+    fn milk_can_and_tank_views_require_known_untagged_contents() {
+        use horizon_world::nbt::Tag;
+        for fluid in ["minecraft:milk", "minecraft:flowing_milk"] {
+            let empty = ItemStack::new("tconstruct:copper_can", 1);
+            let can = can_set_fluid(&empty, Some(fluid)).unwrap();
+            assert_eq!(can_display_fluid(&can, &known).as_deref(), Some(fluid));
+            assert_eq!(can_display_fluid(&can, &|_| false), None);
+            let tag = Tag::compound([("variant", Tag::Int(1))]);
+            assert_eq!(can_display_fluid(&can_set_tagged(&empty, Some(fluid), Some(&tag)).unwrap(), &known), None);
+            let mut tank = ItemStack::new("tconstruct:seared_lantern", 1);
+            tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String(fluid.into())), ("amount", Tag::Int(1))]))])));
+            assert_eq!(tank_display_fluid(&tank, &known).as_deref(), Some(fluid));
+            assert_eq!(tank_display_fluid(&tank, &|_| false), None);
+            tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String(fluid.into())), ("amount", Tag::Int(1)), ("fluid_tag", tag)]))])));
+            assert_eq!(tank_display_fluid(&tank, &known), None);
+        }
+    }
+    #[test]
+    fn milk_bucket_empty_and_fill_are_atomic() {
+        let mut tank = SmelteryTank::new(1000);
+        let mut slots = [Some(ItemStack::new("minecraft:milk_bucket", 1)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:milk"), 1000);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:bucket");
+        let mut slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+        assert!(transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!(tank.total(), 0);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:milk_bucket");
+        let mut slots = [Some(ItemStack::new("minecraft:milk_bucket", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &|_| false));
+        assert_eq!((tank, slots), before);
+    }
+    #[test]
     fn flowing_bucket_filling_preserves_fluid_identity_and_failures() {
         use horizon_world::nbt::Tag;
         for (fluid, bucket) in [("minecraft:flowing_water", "minecraft:water_bucket"),
             ("minecraft:flowing_lava", "minecraft:lava_bucket"),
+            ("minecraft:flowing_milk", "minecraft:milk_bucket"),
             ("tconstruct:flowing_molten_copper", "tconstruct:molten_copper_bucket")] {
             let mut tank = SmelteryTank::new(2000);
             assert!(tank.insert("minecraft:water", 500));

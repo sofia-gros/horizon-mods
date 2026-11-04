@@ -15,6 +15,9 @@ class CastingContainerWiring(unittest.TestCase):
         self.assertIn('next.recipe = None; next.result = None', body)
         self.assertLess(body.index('store::write(&mut game.world, pos, kind, next.to_nbt())'), body.index('*game.held_mut() = Some(rest)'))
         self.assertIn('if game.creative', body)
+        self.assertLess(body.index('casting_portable_rewrite_safe(stack)'), body.index('transfer_single_with_color'))
+        self.assertIn('let held = game.held().cloned();', body)
+        self.assertLess(body.index('casting.roundtrips(&raw)'), body.index('store::write(&mut game.world, pos, kind, next.to_nbt())'))
 
     def test_both_faucet_sources_reinitialize_the_casting_before_pouring(self):
         source = (ROOT / 'source-machine-runtime.rs').read_text()
@@ -22,6 +25,8 @@ class CastingContainerWiring(unittest.TestCase):
         melter = source.split('pub(super) fn tick_faucet(', 1)[1].split('pub(super) fn tick_casting(', 1)[0]
         for body in (smeltery, melter):
             self.assertLess(body.index('prepare_faucet_casting('), body.rindex('faucet.tick('))
+            self.assertLess(body.index('safe_casting_resume('), body.rindex('faucet.tick('))
+            self.assertLess(body.index('faucet.to_nbt() == raw'), body.index('prepare_faucet_casting('))
         self.assertIn('casting_faucet_offer(casting, faucet, input)', source)
         self.assertIn('faucet.tick(&mut fluid, None)', smeltery)
         self.assertIn('faucet.tick(input, None)', melter)
