@@ -23,5 +23,5 @@ class WorldCreativeTab(unittest.TestCase):
      self.assertTrue(any(f'data/tconstruct/horizon/{kind}/{n}.json' in z.namelist() for kind in ('block','item')), n)
     self.assertIn('data/tconstruct/horizon/item/necrotic_bone.json',z.namelist())
   src=(MOD/'mixins/tconstruct/resource-tables.rs').read_text()
-  self.assertIn('Some("tconstruct:tools" | "tconstruct:blocks" | "tconstruct:world")',src)
+  self.assertIn('Some("tconstruct:tools" | "tconstruct:blocks" | "tconstruct:world" | "tconstruct:general")',src)
 if __name__ == '__main__': unittest.main()

@@ -87,5 +87,19 @@
       "{count:1,id:\"tconstruct:blood_slime_grass_seeds\"}",
       "{count:1,id:\"tconstruct:ender_slime_grass_seeds\"}"
     ]
+  },
+  {
+    "id": "tconstruct:general",
+    "title": "Tinkers' General",
+    "icon": "{count:1,id:\"tconstruct:materials_and_you\"}",
+    "row": "TOP",
+    "column": 0,
+    "page": 1,
+    "auto_place": true,
+    "items": [
+      "{count:1,id:\"tconstruct:blazing_bone\"}",
+      "{count:1,id:\"tconstruct:silky_cloth\"}",
+      "{count:1,id:\"tconstruct:seared_reinforcement\"}"
+    ]
   }
 ]
