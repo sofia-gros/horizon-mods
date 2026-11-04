@@ -530,3 +530,60 @@ fn diamond_trait_does_not_write_melee_stats_without_melee_tag() {
  tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&BTreeMap::from([("tconstruct:diamond".into(),1)]),false,false).unwrap();
  assert!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_damage").is_none());
 }
+
+#[test]
+fn gem_traits_apply_durability_and_armor_once() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100.0,"tconstruct:armor":2.0,"tconstruct:armor_toughness":1.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ let traits=BTreeMap::from([("tconstruct:diamond".into(),2),("tconstruct:emerald".into(),2)]);
+ for armor in [false,true] {
+  let mut tool=ItemStack::new(if armor {"tconstruct:plate_chestplate"} else {"tconstruct:pickaxe"},1);
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut tool,&stats,&traits,armor,armor).unwrap();
+   let c=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+   assert!(matches!(c.get("tic_max_damage"),Some(Tag::Int(n)) if *n == if armor {525} else {900}));
+   assert!(matches!(tool.data().unwrap().other("minecraft:max_damage"),Some(Tag::Int(n)) if *n == if armor {525} else {900}));
+   if armor {
+    assert!(matches!(c.get("tic_armor"),Some(Tag::Float(n)) if f32::from_bits(*n)==3.0));
+    assert!(matches!(c.get("tic_armor_toughness"),Some(Tag::Float(n)) if f32::from_bits(*n)==2.0));
+    assert!(matches!(c.get("tconstruct:diamond_armor"),Some(Tag::Byte(1))));
+   }
+  }
+  let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone(); let Tag::Compound(ref mut fields)=custom else {panic!()};
+  fields.insert("tic_upgrades".into(),Tag::compound([("tconstruct:diamond",Tag::Int(1)),("tconstruct:emerald",Tag::Int(1))]));
+  tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+  tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut tool,&stats,&traits,armor,armor).unwrap();
+  assert!(matches!(tool.data().unwrap().other("minecraft:max_damage"),Some(Tag::Int(n)) if *n == if armor {525} else {900}));
+  if armor {
+   tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut tool,&stats,&traits,true,false).unwrap();
+   assert!(tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tconstruct:diamond_armor").is_none());
+  }
+ }
+}
+
+#[test]
+fn gem_trait_removal_after_base_reset_clears_armor_flags() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100.0,"tconstruct:armor":2.0,"tconstruct:armor_toughness":1.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap(); let mut tool=ItemStack::new("tconstruct:plate_chestplate",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ let emerald=BTreeMap::from([("tconstruct:emerald".into(),1)]);
+ tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut tool,&stats,&emerald,true,true).unwrap();
+ assert!(matches!(tool.data().unwrap().other("minecraft:max_damage"),Some(Tag::Int(150))));
+ let both=BTreeMap::from([("tconstruct:diamond".into(),1),("tconstruct:emerald".into(),1)]);
+ tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut tool,&stats,&both,true,true).unwrap();
+ // The assembly path first resets these fields from the base definition.
+ let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+ let Tag::Compound(ref mut fields)=custom else {panic!()}; fields.insert("tic_max_damage".into(),Tag::Int(100));
+ tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+ tool.data_mut().set_other("minecraft:max_damage",Some(Tag::Int(100)));
+ tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut tool,&stats,&BTreeMap::new(),true,true).unwrap();
+ let c=tool.data().unwrap().other("minecraft:custom_data").unwrap();
+ assert!(matches!(c.get("tic_max_damage"),Some(Tag::Int(100))));
+ assert!(matches!(tool.data().unwrap().other("minecraft:max_damage"),Some(Tag::Int(100))));
+ assert!(matches!(c.get("tic_armor"),Some(Tag::Float(v)) if f32::from_bits(*v)==2.0));
+ assert!(matches!(c.get("tic_armor_toughness"),Some(Tag::Float(v)) if f32::from_bits(*v)==1.0));
+ assert!(c.get("tconstruct:diamond_armor").is_none()); assert!(c.get("tic_attack_conditional_multiplier").is_none());
+}

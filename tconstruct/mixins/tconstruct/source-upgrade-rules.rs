@@ -379,9 +379,10 @@ pub(super) fn plan_with_traits(
 /// Regenerate gem durability and armor from baseline, never from a previous upgrade result.
 pub fn apply_gem_durability_and_armor(tool: &mut ItemStack, stats: &super::tconstruct_source_station_stats::BaseStats,
     levels: &BTreeMap<String, i32>, armor: bool, worn_armor: bool) -> Option<()> {
-    let diamond = amount(tool, "tconstruct:diamond") > 0;
-    let emerald = amount(tool, "tconstruct:emerald") > 0;
-    let netherite = amount(tool, "tconstruct:netherite") > 0 || levels.get("tconstruct:netherite").copied().unwrap_or(0) > 0;
+    let has_modifier = |id: &str| amount(tool, id) > 0 || levels.get(id).copied().unwrap_or(0) > 0;
+    let diamond = has_modifier("tconstruct:diamond");
+    let emerald = has_modifier("tconstruct:emerald");
+    let netherite = has_modifier("tconstruct:netherite");
     let forming = levels.get("tconstruct:forming").copied().unwrap_or(0).max(0) as f32;
     let heavy = levels.get("tconstruct:heavy").copied().unwrap_or(0).max(0) as f32;
     let wool = levels.get("tconstruct:knockback_resistance").copied().unwrap_or(0).max(0) as f32;
