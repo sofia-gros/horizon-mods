@@ -908,3 +908,12 @@ to the source fluid tag; component-bearing inputs are refused. Unit tests cover
 transfer and item data. The source general Creative tab is not implemented;
 actual food consumption, crafting remainder, saved inventory, integrated tank
 interactions and LAN remain unverified.
+
+The existing tank exchange can fill a glass bottle with 250 mB of untagged
+bundled honey, or wet a sponge with 250 mB of untagged vanilla water; both
+source and flowing IDs are recognized. Glass bottles and sponges can stack to
+64 in the input slot, including shift moves. This bounded mapping does not follow
+datapack changes to the source fluid tags and refuses component-bearing inputs
+or tagged fluids. Emptying honey bottles remains unsupported because the
+source chooses its output from the fluid tag preference. Unit tests cover the
+transfer; integrated gameplay, save/reload and LAN remain unverified.
