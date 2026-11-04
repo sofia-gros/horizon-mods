@@ -248,3 +248,35 @@ stored conditional multiplier. Focused tests cover both launchers, depth,
 high altitude, repeated rebuilding and trait removal. Integrated host build,
 actual firing, save/reload and LAN remain unverified. This does not change
 Dwarven mining behavior.
+
+## Preserve fractional conditional projectile damage
+
+The release-time conditional damage helper now starts from the original saved
+`tic_projectile_damage` float rather than narrowing its native-arrow damage
+delta and adding two back. It applies the existing Raging/Ambush float additions
+in their existing order, then widens the final float to double before subtracting
+two for the native arrow adapter. This prevents inactive conditions from changing
+ordinary fractional stats such as 0.1 or 0.3. Missing/nonfinite saved-stat fallback,
+missing health handling, condition predicates and final clamps are unchanged.
+
+Pinned TConstruct's `ModifiableBowItem` and `ModifiableCrossbowItem` calculate
+conditional projectile damage as a float before passing that result to the
+arrow's double base damage. The conditional modules remain those in the pinned
+[`Raging`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/raging.json)
+and [`Ambush`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/ambush.json)
+definitions. This change fixes those conversion boundaries, not other modifier
+semantics or arbitrary ammunition behavior.
+
+The current adapter still adds a double delta to the arrow's native base damage.
+Exact reconstruction is verified only for tested representable values on base-2
+arrows. Extremely tiny values such as `1e-30f32` and the smallest positive float
+subnormal still become zero through the `2 + delta` interface. Custom arrows
+with a different native base also retain their existing ordering difference.
+Neither limitation is resolved by this slice.
+
+The focused harness runs the actual projectile helpers against cached Horizon
+item/world libraries: 17 tests pass, including inactive fractional stats,
+conditional float additions, native base-2 reconstruction, Diamond fallback,
+invalid context, clamps and an explicit regression documenting the tiny-value
+limit. This is not a generated-host build or gameplay test. In-game bow/crossbow
+shots, save/reload, LAN and Windows remain unverified.

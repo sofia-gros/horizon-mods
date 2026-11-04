@@ -104,10 +104,13 @@ pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>, maximu
         }
         _ => false,
     };
-    let mut value = base as f32 + 2.0;
+    // Conditional modules operate on the original float stat, not a narrowed
+    // native-arrow damage delta. Subtracting two before narrowing loses bits.
+    let mut value = stat(stack, "tic_projectile_damage").filter(|value| value.is_finite())
+        .map(|value| value.max(0.0)).unwrap_or((base + 2.0) as f32);
     if ambush_first { value += ambush_bonus; value += raging_bonus; }
     else { value += raging_bonus; value += ambush_bonus; }
-    (value.clamp(0.0, 1024.0) - 2.0) as f64
+    f64::from(value.clamp(0.0, 1024.0)) - 2.0
 }
 
 /// Pinned RestrictAngleModule rounds the horizontal direction after launch.
