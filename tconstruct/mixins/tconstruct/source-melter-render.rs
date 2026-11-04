@@ -22,9 +22,11 @@ pub(super) fn fluid_name_tagged(game: &super::Game<'_>, fluid: &str, tag: Option
     fluid_name(game, fluid)
 }
 
-// Generated from the source FluidTextureProvider ARGB colors.
+// Source FluidTextureProvider colors plus Forge's default vanilla water tint.
 pub(super) fn color(fluid: &str) -> u32 {
     match super::tconstruct_source_fluid_display::display_id(fluid) {
+        // Forge FluidStack water tint: ARGB 0xff3f76e4, packed as ABGR.
+        "minecraft:water" => 0xffe4763f,
         "tconstruct:beetroot_soup" => 0xff0d1684,
         "tconstruct:meat_soup" => 0xff353ee0,
         "tconstruct:molten_bendalloy" => 0xffc1d2d6,
@@ -222,5 +224,9 @@ mod fluid_light_tests {
         assert_eq!(fluid_light(0xff, "minecraft:flowing_lava"), fluid_light(0xff, "minecraft:lava"));
         assert_eq!(fluid_light(0x00, "tconstruct:flowing_molten_copper"), fluid_light(0x00, "tconstruct:molten_copper"));
         assert_eq!(super::color("tconstruct:flowing_molten_clay"), super::color("tconstruct:molten_clay"));
+        assert_eq!(super::color("minecraft:water"), 0xffe4763f);
+        assert_eq!(super::color("minecraft:flowing_water"), 0xffe4763f);
+        assert_eq!(super::color_tagged("minecraft:water", None), 0xffe4763f);
+        assert_eq!(super::color("minecraft:lava"), u32::MAX);
     }
 }

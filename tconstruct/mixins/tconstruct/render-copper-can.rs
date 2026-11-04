@@ -11,9 +11,8 @@ fn copper_can_contents_gui(
         &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) else { return; };
     let sprite_id = crate::game::tconstruct_source_melter_render::sprite(&fluid);
     let Some(sprite) = game.gui.atlas.sprites.get(&sprite_id).copied() else { return; };
-    // Horizon default water RGB 0x3f76e4, packed as HUD ABGR.
-    let color = if crate::game::tconstruct_source_fluid_display::display_id(&fluid) == "minecraft:water" { 0xffe4763f }
-        else { crate::game::tconstruct_source_melter_render::color(&fluid) };
+    // The shared tint includes Forge's default water FluidStack color.
+    let color = crate::game::tconstruct_source_melter_render::color(&fluid);
     // Opaque row spans of the MIT copper_can_fluid.png (16 x 16).
     // Crop the existing still sprite, preserving the base icon outside its mask.
     for (left, top, width) in [(6., 3., 4.), (5., 4., 6.), (5., 5., 6.), (6., 6., 4.)] {
