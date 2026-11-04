@@ -1,0 +1,1 @@
+{"template":"minecraft:mushroom_stew","max_stack_size":1,"components":{"minecraft:food":{"nutrition":8,"saturation":9.6},"minecraft:consumable":{"animation":"drink","consume_seconds":1.6,"has_consume_particles":false,"sound":"minecraft:entity.generic.drink"},"minecraft:use_remainder":{"id":"minecraft:bowl"}},"crafting_remainder":"minecraft:bowl"}

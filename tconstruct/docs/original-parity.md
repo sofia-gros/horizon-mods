@@ -899,3 +899,12 @@ fluid, blocked output, missing registration and tagged venom. The pinned
 source uses the `tconstruct:venom` fluid tag; datapack changes to that tag, including additions, removals and replacement,
 are not resolved by this static mapping. Unit tests cover the
 bounded transfer; integrated gameplay, save/reload and LAN remain unverified.
+
+A Meat Soup item is registered with the pinned sprite, food values, drink
+animation and bowl remainder. The existing tank exchange can fill a bowl from
+250 mB of either untagged bundled meat-soup fluid or empty one soup into
+250 mB of still meat soup. This static mapping does not follow datapack changes
+to the source fluid tag; component-bearing inputs are refused. Unit tests cover
+transfer and item data. The source general Creative tab is not implemented;
+actual food consumption, crafting remainder, saved inventory, integrated tank
+interactions and LAN remain unverified.
