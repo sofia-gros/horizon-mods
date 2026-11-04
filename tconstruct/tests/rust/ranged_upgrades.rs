@@ -467,3 +467,27 @@ fn raging_and_ambush_projectile_exclude_base_percent_from_conditional_multiplier
   assert!((projectile::projectile_bonus_at(&bow,Some(6.0),Some(6.0))-base-6.0).abs()<1e-6);
  }
 }
+
+#[test]
+fn dwarven_velocity_depth_bonus_uses_conditional_multiplier() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:velocity":1.0,"tconstruct:accuracy":1.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:velocity":3.0}}]}"#;
+ let mut stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ stats.velocity_raw[2]=0.5;
+ for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+  let mut bow=ItemStack::new(id,1);
+  bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+   ("tic_upgrades",Tag::compound([("tconstruct:netherite",Tag::Int(1))]))
+  ])));
+  let traits=BTreeMap::from([("tconstruct:dwarven".into(),2)]);
+  for _ in 0..2 {
+   tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&traits,false,false).unwrap();
+   let base=projectile::projectile_stats(&bow).unwrap().0;
+   assert!((base-4.95).abs()<1e-5);
+   assert!((projectile::projectile_stats_at(&bow,0.0,320).unwrap().0-base-0.3).abs()<1e-5);
+   assert!((projectile::projectile_stats_at(&bow,256.0,320).unwrap().0-base*0.25).abs()<1e-5);
+  }
+  tconstruct_source_upgrade_rules::apply_stats(&mut bow,&stats,&BTreeMap::new(),false,false).unwrap();
+  assert_eq!(projectile::projectile_stats_at(&bow,0.0,320).unwrap().0,projectile::projectile_stats(&bow).unwrap().0);
+ }
+}
