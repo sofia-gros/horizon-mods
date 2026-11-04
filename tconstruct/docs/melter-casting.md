@@ -52,10 +52,12 @@ Tests check packaging and values, not visible animation or resource reload.
 Writes through the shared metadata store preserve unknown top-level fields in
 the existing `tconstruct:smeltery` machine compound while replacing the
 owned fields according to the current operation, including clearing omitted
-optional `heat_codes`. This covers the store used by both
-Smeltery and Foundry, not nested tank or fluid entries, slot payloads, old Forge
-formats, or collisions with owned field names. It cannot restore data already
-lost. A non-compound existing machine value rejects an update; malformed owned
+optional `heat_codes`. For Smeltery and Foundry, unknown keys directly on the
+native tank compound are also retained. Legacy `FluidName`, `Amount` and `Tag`
+aliases omitted by a serialized update are not retained. Raw patch updates that
+explicitly include them keep them, as before, and may leave stale aliases. Fluid entry fields, slot payloads, other legacy Forge formats, and
+collisions with owned field names remain outside this protection. It cannot
+restore data already lost. A non-compound existing machine value rejects an update; malformed owned
 fields may still be normalized by their existing decoder. Client network
 snapshots retain replacement semantics rather than merging old fields. Cached-host-type
 fixture tests exercise the merge and the shared store; full host compilation,
