@@ -203,3 +203,55 @@ fn diamond_trait_does_not_change_nonharvest_tool() {
  tconstruct_source_mining_stack::apply(&mut tool,&stats,&BTreeMap::from([("tconstruct:diamond".into(),1)]),&[],false).unwrap();
  assert_eq!(tool.data().unwrap().other("minecraft:custom_data"),Some(&custom));
 }
+
+#[test]
+fn haste_mining_merges_logical_levels_before_float_scaling() {
+    let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":0.1}}]}"#;
+    let stats = tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+    let mut items = Items::tags_only(std::path::Path::new("/tmp"), &horizon_world::loot::PackOverlay::NONE).unwrap();
+    items.block_tags.insert("minecraft:mineable/pickaxe".into(), HashSet::from(["minecraft:stone".into()]));
+    for (trait_level, amount) in [(0,1),(1,3),(2,6),(0,0),(2,0),(2,44),(2,45),(2,46),(2,89),(2,90),(2,91),(0,-1),(-1,1),(0,i32::MAX),(i32::MAX,1),(i32::MAX,45)] {
+        let mut stack = ItemStack::new("tconstruct:pickaxe",1);
+        let custom = Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(amount))])),
+            ("fixture:foreign",Tag::String("preserve".into())),
+            ("tic_max_damage",Tag::Int(100)),
+        ]);
+        let tool = Tag::compound([("rules",Tag::List(vec![Tag::compound([
+            ("blocks",Tag::String("#minecraft:mineable/pickaxe".into())),
+            ("speed",Tag::Float(0.1f32.to_bits())),
+        ])]))]);
+        stack.data_mut().set_other("minecraft:custom_data",Some(custom.clone()));
+        stack.data_mut().set_other("minecraft:tool",Some(tool.clone()));
+        let traits = BTreeMap::from([("tconstruct:haste".to_owned(),trait_level)]);
+        tconstruct_source_mining_stack::apply(&mut stack,&stats,&traits,&[],false).unwrap();
+        assert_eq!(stack.data().unwrap().other("minecraft:custom_data"),Some(&custom));
+        assert_eq!(stack.data().unwrap().other("minecraft:tool"),Some(&tool));
+        let progress = amount.max(0);
+        let remainder = progress % 45;
+        let logical = trait_level.max(0).checked_add(progress / 45).and_then(|whole| whole.checked_add(i32::from(remainder != 0)));
+        let effective = logical.map(|logical| if remainder == 0 {logical as f32} else {logical as f32 + (remainder - 45) as f32 / 45.0}).unwrap_or(0.0);
+        let expected = (0.1f32 + 4.0 * effective).clamp(0.1,2048.0);
+        for _ in 0..2 {
+            tconstruct_source_mining_stack::apply(&mut stack,&stats,&traits,&[],true).unwrap();
+            let data = stack.data().unwrap();
+            let custom = data.other("minecraft:custom_data").unwrap();
+            assert_eq!(custom.get("fixture:foreign"),Some(&Tag::String("preserve".into())));
+            assert_eq!(custom.get("tic_upgrades").and_then(|u|u.get("tconstruct:haste")),Some(&Tag::Int(amount)));
+            assert_eq!(custom.get("tic_mining_tool"),data.other("minecraft:tool"));
+            let Some(Tag::List(rules)) = data.other("minecraft:tool").and_then(|t|t.get("rules")) else {panic!("rules")};
+            assert_eq!(rules[0].get("speed"),Some(&Tag::Float(expected.to_bits())));
+            assert_eq!(tconstruct_material_mining_speed(1.0,Some(&stack),"minecraft:stone",&items).to_bits(),expected.max(1.0).to_bits());
+            assert_eq!(tconstruct_material_mining_speed(1.0,Some(&stack),"minecraft:dirt",&items),1.0);
+        }
+        if [(0,1),(1,3),(2,6)].contains(&(trait_level,amount)) {
+            let old = 0.1f32 + 4.0 * (amount as f32 / 45.0 + trait_level as f32);
+            assert_ne!(expected.to_bits(),old.to_bits());
+        }
+        // Removing progress and traits rebuilds from source, not the last result.
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_max_damage",Tag::Int(100))])));
+        tconstruct_source_mining_stack::apply(&mut stack,&stats,&BTreeMap::new(),&[],true).unwrap();
+        let Some(Tag::List(rules)) = stack.data().unwrap().other("minecraft:tool").and_then(|t|t.get("rules")) else {panic!("rules")};
+        assert_eq!(rules[0].get("speed"),Some(&Tag::Float(0.1f32.to_bits())));
+    }
+}

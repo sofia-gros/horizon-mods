@@ -8,12 +8,20 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     if !harvest { return Some(()); }
     let level = |id: &str| levels.get(id).copied().unwrap_or(0);
     let vintage = level("tconstruct:vintage");
-    let haste = match stack.data().and_then(|data| data.other("minecraft:custom_data"))
+    let haste_progress = match stack.data().and_then(|data| data.other("minecraft:custom_data"))
         .and_then(|custom| custom.get("tic_upgrades"))
         .and_then(|upgrades| upgrades.get("tconstruct:haste")) {
-        Some(Tag::Int(amount)) => (*amount).max(0) as f32 / 45.0,
-        _ => 0.0,
+        Some(Tag::Int(amount)) => (*amount).max(0),
+        _ => 0,
     };
+    // Merge source logical levels before scaleLevel's float correction. Dividing
+    // progress directly, or adding traits after scaling, changes float rounding.
+    let remainder = haste_progress % 45;
+    let haste = level("tconstruct:haste").max(0).checked_add(haste_progress / 45).and_then(|complete| {
+        if remainder == 0 { Some(complete as f32) }
+        else { complete.checked_add(1).map(|logical| logical as f32 + (remainder - 45) as f32 / 45.0f32) }
+    });
+    // Invalid unrepresentable merged levels suppress only Haste's contribution.
     let has_gem = |id| matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get(id)), Some(Tag::Int(v)) if *v > 0);
     let diamond = has_gem("tconstruct:diamond") || level("tconstruct:diamond") > 0;
     let emerald = has_gem("tconstruct:emerald") || level("tconstruct:emerald") > 0;
@@ -25,7 +33,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     for id in super::tconstruct_source_material_effects::ordered_modifier_ids(stack, levels) {
         match id.as_str() {
             "tconstruct:diamond" if diamond => add += 2.0,
-            "tconstruct:haste" => add += 4.0 * (haste + level(&id).max(0) as f32),
+            "tconstruct:haste" => add += 4.0 * haste.unwrap_or(0.0),
             "tconstruct:entangled" if level(&id) > 0 => add += 6.0,
             "tconstruct:lightweight" => multiplier *= 1.0 + 0.08 * level(&id).max(0) as f32,
             "tconstruct:heavy" => multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,
