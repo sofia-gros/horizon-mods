@@ -43,11 +43,11 @@ fn filled_bottle(fluid: &str) -> Option<&'static str> {
     match fluid {
         "tconstruct:honey" | "tconstruct:flowing_honey" => Some("minecraft:honey_bottle"),
         "tconstruct:venom" | "tconstruct:flowing_venom" => Some("tconstruct:venom_bottle"),
-        "tconstruct:magma" => Some("tconstruct:magma_bottle"),
-        "tconstruct:earth_slime" => Some("tconstruct:earth_slime_bottle"),
-        "tconstruct:sky_slime" => Some("tconstruct:sky_slime_bottle"),
-        "tconstruct:ichor" => Some("tconstruct:ichor_slime_bottle"),
-        "tconstruct:ender_slime" => Some("tconstruct:ender_slime_bottle"),
+        "tconstruct:magma" | "tconstruct:flowing_magma" => Some("tconstruct:magma_bottle"),
+        "tconstruct:earth_slime" | "tconstruct:flowing_earth_slime" => Some("tconstruct:earth_slime_bottle"),
+        "tconstruct:sky_slime" | "tconstruct:flowing_sky_slime" => Some("tconstruct:sky_slime_bottle"),
+        "tconstruct:ichor" | "tconstruct:flowing_ichor" => Some("tconstruct:ichor_slime_bottle"),
+        "tconstruct:ender_slime" | "tconstruct:flowing_ender_slime" => Some("tconstruct:ender_slime_bottle"),
         _ => None,
     }
 }
@@ -705,6 +705,66 @@ mod tests {
     }
     use super::*;
     fn known(_: &str) -> bool { true }
+    #[test]
+    fn source_bottle_fills_accept_still_and_flowing_fluids() {
+        for (source, flowing, output) in [
+            ("tconstruct:magma", "tconstruct:flowing_magma", "tconstruct:magma_bottle"),
+            ("tconstruct:earth_slime", "tconstruct:flowing_earth_slime", "tconstruct:earth_slime_bottle"),
+            ("tconstruct:sky_slime", "tconstruct:flowing_sky_slime", "tconstruct:sky_slime_bottle"),
+            ("tconstruct:ichor", "tconstruct:flowing_ichor", "tconstruct:ichor_slime_bottle"),
+            ("tconstruct:ender_slime", "tconstruct:flowing_ender_slime", "tconstruct:ender_slime_bottle"),
+        ] {
+            for fluid in [source, flowing] {
+                let mut tank = SmelteryTank::new(1250);
+                assert!(tank.insert("minecraft:lava", 1000));
+                assert!(tank.insert(fluid, 250));
+                let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 2)), None];
+                assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some(fluid), &known, &known));
+                assert_eq!(tank.amount("minecraft:lava"), 1000);
+                assert_eq!(tank.amount(fluid), 0);
+                assert_eq!(slots[0].as_ref().unwrap().count, 1);
+                assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), output);
+            }
+            let mut tank = super::super::tconstruct_source_melter_state::Tank::new(250);
+            assert!(tank.insert(flowing, 250));
+            let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), None];
+            assert!(transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
+            assert_eq!(tank.amount, 0);
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), output);
+        }
+    }
+    #[test]
+    fn flowing_bottle_fills_fail_without_mutation() {
+        use horizon_world::nbt::Tag;
+        for (fluid, output) in [("tconstruct:flowing_magma", "tconstruct:magma_bottle"),
+            ("tconstruct:flowing_earth_slime", "tconstruct:earth_slime_bottle"),
+            ("tconstruct:flowing_sky_slime", "tconstruct:sky_slime_bottle"),
+            ("tconstruct:flowing_ichor", "tconstruct:ichor_slime_bottle"),
+            ("tconstruct:flowing_ender_slime", "tconstruct:ender_slime_bottle")] {
+            let mut tank = SmelteryTank::new(250);
+            assert!(tank.insert(fluid, 249));
+            let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), None];
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            assert!(tank.insert(fluid, 1));
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &|id| id != output, &known));
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &|_| false));
+            assert_eq!((tank.clone(), slots.clone()), before);
+            slots[1] = Some(ItemStack::new("minecraft:stone", 1));
+            let before = (tank.clone(), slots.clone());
+            assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tank, slots), before);
+            let mut tagged = SmelteryTank::new(250);
+            assert!(tagged.insert_tagged(fluid, Some(&Tag::compound([("example", Tag::Int(1))])), 250));
+            let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), None];
+            let before = (tagged.clone(), slots.clone());
+            assert!(!transfer(&mut tagged, &mut slots, Direction::FillItem, &known, &known));
+            assert_eq!((tagged, slots), before);
+        }
+    }
     #[test]
     fn slime_bottle_transfer_is_atomic_and_uses_250_mb() {
         let mut tank = SmelteryTank::new(300);
