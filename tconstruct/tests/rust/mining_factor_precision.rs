@@ -97,3 +97,39 @@ fn source_incremental(amount:i32,needed:i32)->f32 {
   }
  }
 }
+
+fn blasting(speed:f32,amount:i32,multiplier:f32,resistance:Option<f32>,effective:bool)->f32 {
+ conditional_speed_with_water(speed,0,100,1.0,multiplier,&[Conditional::Blasting(amount)],None,effective,false,resistance,None)
+}
+#[test] fn blasting_power_matches_pinned_java_fixtures() {
+ // Float bits captured from (float)Math.pow(3.0f,(6.0f-r)/1.5f)
+ // on OpenJDK 25. These inputs distinguish the former Linux powf path.
+ for (resistance,expected) in [(0x40e0c49c,0x3ef1dae3),(0x40e95810,0x3ec6c049),(0x414ad0e5,0x3bf6923b)] {
+  let actual=blasting(0.0,20,1.0,Some(f32::from_bits(resistance)),true);
+  assert_eq!(actual.to_bits(),expected);
+ }
+}
+#[test] fn blasting_power_narrows_before_following_float_operations() {
+ for resistance in [3.0,4.123,7.024,7.292,12.676,100.0] {
+  for amount in [1,19,20,21,40] {
+   let exponent=(6.0f32-resistance)/1.5;
+   let power=3.0f64.powf(f64::from(exponent)) as f32;
+   let expected=((power.min(10.0)*source_incremental(amount,20))*0.3)+0.01;
+   assert_eq!(blasting(0.01,amount,0.3,Some(resistance),true).to_bits(),expected.to_bits());
+  }
+ }
+}
+#[test] fn blasting_power_cap_and_context_gates_are_preserved() {
+ for resistance in [-100.0,0.0,1.0] {
+  assert_eq!(blasting(2.0,20,1.0,Some(resistance),true),12.0);
+ }
+ assert_eq!(blasting(2.0,20,1.0,Some(6.0),true),3.0);
+ assert_eq!(blasting(2.0,20,1.0,Some(f32::MAX),true),2.0);
+ for resistance in [None,Some(f32::NAN),Some(f32::INFINITY),Some(f32::NEG_INFINITY)] {
+  assert_eq!(blasting(2.0,20,1.0,resistance,true),2.0);
+ }
+ for amount in [-1,0,1,20] {
+  assert_eq!(blasting(2.0,amount,1.0,Some(7.024),false),2.0);
+ }
+ for amount in [-1,0] {assert_eq!(blasting(2.0,amount,1.0,Some(7.024),true),2.0);}
+}
