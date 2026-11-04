@@ -370,6 +370,7 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
         }
     }
     let traits = super::tconstruct_source_material_traits::levels(world, &tool);
+    let emerald_traits = traits.as_ref().filter(|traits| traits.levels.get("tconstruct:emerald").copied().unwrap_or(0) > 0);
     let repair_factor = station_repair_factor(&tool, traits.as_ref().map(|traits| &traits.levels));
     let mut remaining = i32::try_from(tool.damage).ok()?;
     let mut consumed = vec![(0, 1)];
@@ -388,7 +389,16 @@ fn repair_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Op
         let stringy = traits.as_ref().and_then(|traits| traits.levels.get("tconstruct:stringy").copied()).unwrap_or(0);
         let durability = stat_durability.max(fixed_durability).max(super::tconstruct_source_material_effects::stringy_repair(&material.material, stringy));
         if durability <= 0.0 { continue; }
-        let amount = durability * material.value as f32 * repair_factor / (3.0 * material.needed as f32);
+        let amount = if let Some(traits) = emerald_traits {
+            // Source scaleRepair evaluates before each modifier hook.
+            let per_item = material.value as f32 * durability / 3.0 / material.needed as f32;
+            match super::tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool, &traits.levels, &traits.order, per_item) {
+                Some(amount) => amount,
+                None => { *reason = Some("Cannot repair: modifier order or levels are unknown".into()); return None; }
+            }
+        } else {
+            durability * material.value as f32 * repair_factor / (3.0 * material.needed as f32)
+        };
         let (count, repaired) = super::tconstruct_tx::repair_from_slot(remaining, i32::try_from(stack.count).ok()?, amount);
         if count > 0 { consumed.push((index, count as u32)); remaining = (remaining - repaired).max(0); }
     }

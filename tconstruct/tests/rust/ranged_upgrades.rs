@@ -606,3 +606,64 @@ fn resolved_gem_traits_set_harvest_tier_floors_without_lowering() {
  assert_eq!(choose(None,none,Some(&netherite)),None);
  assert_eq!(tconstruct_source_station_stats::gem_tier_with_traits(Some("stone"),none,Some(&diamond),false),Some("stone"));
 }
+
+#[test]
+fn emerald_repair_factor_follows_source_modifier_order() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let levels=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:cultivated".into(),1),("tconstruct:preserved".into(),2),("tconstruct:dense".into(),3)]);
+ let run=|order:&[&str],upgrade:bool| {
+  let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+  let upgrades=if upgrade {Tag::compound([("tconstruct:emerald",Tag::Int(1))])} else {Tag::compound(Vec::<(&str,Tag)>::new())};
+  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+   ("tic_upgrades",upgrades), ("tic_trait_order",Tag::List(order.iter().map(|id|Tag::String((*id).into())).collect()))
+  ])));
+  tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&levels,&order.iter().map(|id|(*id).to_owned()).collect::<Vec<_>>(),1.0).unwrap()
+ };
+ let ids=["tconstruct:emerald","tconstruct:cultivated","tconstruct:preserved","tconstruct:dense"];
+ let reverse=["tconstruct:dense","tconstruct:preserved","tconstruct:cultivated","tconstruct:emerald"];
+ let first=(((1.0f32*1.5)*1.5)*1.3)*(1.0-0.025*3.0*8.0);
+ let last=(((1.0f32*(1.0-0.025*3.0*8.0))*1.3)*1.5)*1.5;
+ assert_ne!(first.to_bits(),last.to_bits());
+ assert_eq!(run(&ids,false).to_bits(),first.to_bits());
+ assert_eq!(run(&reverse,false).to_bits(),last.to_bits());
+ assert_eq!(run(&ids,true).to_bits(),first.to_bits());
+ // Dense >=6 uses the source fallback's 1 + (flat + per-level),
+ // which can round differently from algebraically equivalent subtraction.
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ for level in 7..=9 {
+  let high=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:dense".into(),level)]);
+  let expected=(1.0f32*(1.0+(-0.5 + -0.05*level as f32)))*1.5;
+  assert_eq!(tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&high,&["tconstruct:dense".into(),"tconstruct:emerald".into()],1.0).unwrap().to_bits(),expected.to_bits());
+ }
+ // As the Station does, replace a stale saved order with resolved order.
+ tconstruct_source_material_effects::store_trait_order(&mut tool,&reverse.iter().map(|id|(*id).to_owned()).collect::<Vec<_>>()).unwrap();
+ tconstruct_source_material_effects::store_trait_order(&mut tool,&ids.iter().map(|id|(*id).to_owned()).collect::<Vec<_>>()).unwrap();
+ assert_eq!(tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&levels,&ids.iter().map(|id|(*id).to_owned()).collect::<Vec<_>>(),1.0).unwrap().to_bits(),first.to_bits());
+}
+
+#[test]
+fn emerald_material_repair_uses_per_item_amount_and_rejects_ambiguous_order() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let traits=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:dense".into(),7)]);
+ let order=vec!["tconstruct:emerald".into(),"tconstruct:dense".into()];
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:dense",Tag::Int(0))])),
+  ("tic_upgrade_order",Tag::List(vec![Tag::String("tconstruct:dense".into())]))
+ ])));
+ // A stale zero-level upgrade must not move Dense ahead of fresh trait order.
+ let actual=tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&traits,&order,100.0).unwrap();
+ let expected=(100.0f32*1.5)*(1.0+(-0.5 + -0.05*7.0));
+ assert_eq!(actual.to_bits(),expected.to_bits());
+ // Source ceil(needed / per-item) crosses the two-to-three-item boundary.
+ assert_eq!((45.0f32 / actual).ceil() as u32,3);
+ let ambiguous=Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1)),("tconstruct:preserved",Tag::Int(1))]))
+ ]);
+ tool.data_mut().set_other("minecraft:custom_data",Some(ambiguous));
+ assert!(tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&traits,&order,100.0).is_none());
+ let missing_trait_order=vec!["tconstruct:emerald".into()];
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ assert!(tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&traits,&missing_trait_order,100.0).is_none());
+}
