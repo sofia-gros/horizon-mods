@@ -5,9 +5,15 @@ fn tconstruct_bow_release(
     hand_changed: bool,
 ) -> std::ops::ControlFlow<()> {
     use std::ops::ControlFlow::{Break, Continue};
+    // release_used_item receives a clone after the host clears game.using.
+    // Keep that clone's snapshot for this release, clear all live inventory copies.
+    if matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:crossbow") {
+        crate::game::tconstruct_source_momentum_ranged_use::clear(game);
+    }
     if &*stack.item != "tconstruct:longbow" {
         return Continue(());
     }
+    if !hand_changed && !game.use_item_stopped(stack, ticks) { return Break(()); }
     if !hand_changed && !crate::game::tconstruct_source_ranged_wear::is_broken(stack) {
         let draw_ticks = crate::game::tconstruct_ranged_draw::draw_ticks(stack);
         let adjusted = crate::game::tconstruct_ranged_draw::vanilla_charge_ticks(ticks, draw_ticks);
@@ -25,7 +31,7 @@ fn tconstruct_bow_release(
             let maximum = if crate::game::tconstruct_projectile_stats::ambush_level(stack) > 0 {
                 game.player.as_mut().and_then(|player| player.attribute("minecraft:max_health").ok()).map(|value| value as f32)
             } else { None };
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, vec![(0.0, power, true)], true, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, health, maximum), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, vec![(0.0, power, true)], true, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, health, maximum), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing, crate::game::tconstruct_ranged_draw::momentum_level(stack) > 0));
         }
         game.release_bow(stack, dispatch_ticks);
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);

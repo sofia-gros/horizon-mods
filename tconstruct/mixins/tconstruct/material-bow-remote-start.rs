@@ -19,6 +19,6 @@ fn tconstruct_remote_bow_start(
         Decision::Pass => Continue(()),
         Decision::Reject => Break(false),
         Decision::Handled => Break(true),
-        Decision::Start => Break(game.start_using_item()),
+        Decision::Start => Break(crate::game::tconstruct_source_momentum_ranged_use::start(game)),
     }
 }

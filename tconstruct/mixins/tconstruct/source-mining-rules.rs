@@ -180,6 +180,10 @@ pub(super) fn conditional_with_resistance(custom: &Tag, damage: u32, speed: f32,
 }
 
 pub(super) fn conditional_with_water(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>, resistance: Option<f32>, water: Option<bool>) -> Option<f32> {
+    conditional_with_momentum(custom, damage, speed, potion_multiplier, position, effective, tool_not_required, broad, resistance, water, 0)
+}
+
+pub(super) fn conditional_with_momentum(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>, resistance: Option<f32>, water: Option<bool>, momentum_effect: i32) -> Option<f32> {
     // Source skips all tool break-speed modifier hooks while broken.
     if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return None; }
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
@@ -197,6 +201,7 @@ pub(super) fn conditional_with_water(custom: &Tag, damage: u32, speed: f32, poti
             "tconstruct:crumbling" => Conditional::Crumbling(*level),
             "tconstruct:blasting" => Conditional::Blasting(*level),
             "tconstruct:hydraulic" => Conditional::Hydraulic(*level),
+            "tconstruct:momentum" => Conditional::Momentum(*level, momentum_effect),
             "tconstruct:overwield" if broad.is_some() => Conditional::Overwield(*level, match custom.get("tic_overslime") { Some(Tag::Int(amount)) => *amount, _ => 0 }, broad.unwrap()),
             _ => continue,
         };

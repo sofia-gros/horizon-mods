@@ -18,11 +18,9 @@ fn tconstruct_crossbow_use(
             let power = 3.0;
             // Source multishot repeats one ammo stack and marks its middle shot.
             // Keep legacy indexing for mixed, rocket, or unknown host payloads.
-            let first = &data.charged[0];
-            let primary = if matches!(&*first.item, "minecraft:arrow" | "minecraft:tipped_arrow" | "minecraft:spectral_arrow")
-                && data.charged.iter().all(|ammo| ammo.same_item_same_components(first)) {
-                count / 2
-            } else { 0 };
+            let source_primary = crate::game::tconstruct_ranged_draw::arrow_primary(&data.charged);
+            let primary = source_primary.unwrap_or(0);
+            let momentum = source_primary.is_some() && crate::game::tconstruct_ranged_draw::momentum_level(stack) > 0;
             let shots = data.charged.iter().enumerate().filter(|(_, s)| &*s.item != "minecraft:firework_rocket").map(|(i, _)| {
                 let angle = crate::game::tconstruct_projectile_stats::crossbow_angle(i, count);
                 (angle, power, i == primary)
@@ -32,12 +30,12 @@ fn tconstruct_crossbow_use(
             let maximum = if crate::game::tconstruct_projectile_stats::ambush_level(stack) > 0 {
                 game.player.as_mut().and_then(|player| player.attribute("minecraft:max_health").ok()).map(|value| value as f32)
             } else { None };
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, health, maximum), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, health, maximum), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing, momentum));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);
     } else if game.creative || game.projectile_slot("minecraft:crossbow").is_some() {
-        game.start_using_item();
+        crate::game::tconstruct_source_momentum_ranged_use::start(game);
     }
     Break(true)
 }

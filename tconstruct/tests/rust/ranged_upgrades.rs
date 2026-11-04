@@ -1004,3 +1004,17 @@ fn raging_is_not_installable_by_current_normal_or_crystal_recipe_planner() {
   assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(input)],5).is_none());
  }
 }
+
+#[test]
+fn hepatizon_momentum_is_retained_in_ranged_snapshot() {
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    use std::collections::BTreeMap;
+    let def = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:draw_speed":1.0}}]}"#;
+    let stats = tconstruct_source_station_stats::base_stats(def, &[]).unwrap();
+    let mut bow = ItemStack::new("tconstruct:longbow", 1);
+    bow.data_mut().set_other("minecraft:custom_data", Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+    tconstruct_source_upgrade_rules::apply_stats(&mut bow, &stats, &BTreeMap::from([("tconstruct:momentum".into(), 2)]), false, false).unwrap();
+    assert_eq!(draw::momentum_level(&bow), 2);
+    assert_eq!(draw::fresh_draw_ticks(&bow, 10), 14);
+}

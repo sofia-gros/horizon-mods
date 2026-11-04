@@ -558,3 +558,22 @@ fn chest_haste_caps_supported_attribute_after_level_merge_and_before_speed() {
         }
     }
 }
+
+#[test]
+fn momentum_is_stored_and_uses_actor_effect_in_priority_order() {
+    let definition = br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}}]}"#;
+    let stats = tconstruct_source_station_stats::base_stats(definition, &[]).unwrap();
+    let mut stack = ItemStack::new("tconstruct:pickaxe", 1);
+    stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_max_damage", Tag::Int(100))])));
+    let momentum = "tconstruct:momentum".to_owned();
+    let overwield = "tconstruct:overwield".to_owned();
+    let levels = BTreeMap::from([(momentum.clone(), 1), (overwield.clone(), 1)]);
+    tconstruct_source_mining_stack::apply(&mut stack, &stats, &levels, &[momentum, overwield], true).unwrap();
+    let mut custom = stack.data().unwrap().other("minecraft:custom_data").unwrap().clone();
+    if let Tag::Compound(fields) = &mut custom { fields.insert("tic_overslime".into(), Tag::Int(1)); }
+    let apply = |effective, effect| tconstruct_source_mining_rules::conditional_with_momentum(
+        &custom, 0, 4.0, 1.0, None, effective, false, Some(false), None, None, effect);
+    assert!((apply(true, 10).unwrap() - 6.0).abs() < 0.00001);
+    assert_eq!(apply(false, 10), None);
+    assert!((apply(true, 0).unwrap() - 4.8).abs() < 0.00001);
+}

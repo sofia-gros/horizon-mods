@@ -1,6 +1,6 @@
 // Original stat boosts and effective-block conditional mining modifiers.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Blasting(i32), Hydraulic(i32), Overwield(i32, i32, bool) }
+pub(super) enum Conditional { Jagged(i32), Stonebound(i32), Maintained(i32), Dwarven(i32), Crumbling(i32), Blasting(i32), Hydraulic(i32), Overwield(i32, i32, bool), Momentum(i32, i32) }
 
 pub(super) fn base_speed(base: f32, add_scale: f32, lightweight: i32, heavy: i32, vintage: i32, entangled: bool) -> f32 {
     base_speed_unclamped(base, add_scale, lightweight, heavy, vintage, entangled).clamp(0.1, 2048.0)
@@ -85,6 +85,7 @@ pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u
         match *modifier {
             Conditional::Jagged(level) if effective => speed *= 1.0 + (wear * level.max(0) as f32) * -0.01,
             Conditional::Stonebound(level) if effective => speed *= 1.0 + (wear * level.max(0) as f32) * 0.01,
+            Conditional::Momentum(level, effect) if effective => speed *= 1.0 + (level.max(0) as f32 * effect.max(0) as f32) / 40.0,
             Conditional::Overwield(level, overslime, broad) if effective => {
                 let cost = if broad { 5 } else { 1 };
                 let used = overslime.max(0).min(level.max(0).saturating_mul(cost));
@@ -174,5 +175,18 @@ mod tests {
         let mixed_stone = conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Stonebound(1), Conditional::Maintained(1)]);
         assert!((mixed_stone - 7.35).abs() < 0.0001);
         assert_eq!(mixed_stone, conditional_speed(4.0, 25, 100, 1.0, 1.0, &[Conditional::Maintained(1), Conditional::Stonebound(1)]));
+    }
+}
+
+#[cfg(test)]
+mod momentum_tests {
+    use super::*;
+    #[test]
+    fn momentum_follows_order_and_only_applies_to_effective_blocks() {
+        let mods = [Conditional::Momentum(2, 10), Conditional::Overwield(1, 1, false)];
+        let speed = conditional_speed_for(4.0, 0, 100, 1.0, 1.0, &mods, None, true, false);
+        assert!((speed - 7.2).abs() < 0.00001);
+        assert_eq!(conditional_speed_for(4.0, 0, 100, 1.0, 1.0, &mods, None, false, false), 4.0);
+        assert_eq!(conditional_speed_for(4.0, 0, 100, 1.0, 1.0, &[Conditional::Momentum(1, 0)], None, true, false), 4.0);
     }
 }
