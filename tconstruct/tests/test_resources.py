@@ -37,6 +37,11 @@ class ResourceOverlay(unittest.TestCase):
             tabs = json.loads((out / 'creative-inventory.json').read_text())['tabs']
             tools = next(tab for tab in tabs if tab['id'] == 'tconstruct:tools')
             blocks = next(tab for tab in tabs if tab['id'] == 'tconstruct:blocks')
+            world = next(tab for tab in tabs if tab['id'] == 'tconstruct:world')
+            self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
+            self.assertEqual(world['items'], ['{count:1,id:"tconstruct:necrotic_bone"}'])
+            self.assertEqual((tools['row'], tools['column']), ('TOP', 5))
+            self.assertEqual((blocks['row'], blocks['column']), ('BOTTOM', 5))
             self.assertEqual(tools['items'][0], '{count:1,id:"tconstruct:flint_and_brick"}')
             self.assertIn('{count:1,id:"tconstruct:seared_bricks"}', blocks['items'])
             registries = json.loads((out / 'registries.json').read_text())['minecraft:item']['entries']
