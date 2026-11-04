@@ -259,3 +259,37 @@ clearing progress/traits, non-melee gating, unchanged attack speed and preservat
 of progress and foreign data. The harness also imports the existing fluid-display
 module required by the latest main's fluid-container dependency. No full generated
 host build, gameplay, LAN or Windows validation was run.
+
+## Live Overwield mainhand attack speed
+
+The existing material mainhand attack-speed hook now includes pinned
+[Overwield's attribute module](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json):
+`min(overslime, level) * 0.15f` as a multiply-total amount. The f32 amount is widened
+to f64 for the attribute multiplication. Each query reads current overslime and
+uses the existing live material/tool-definition trait resolver plus checked
+upgrade-level merge, so slime spending/refilling or definition changes do not
+require an equipment refresh or stat rebuild. Broken tools supply no bonus.
+The acting hand must explicitly be Main: the host's `held()` can otherwise refer
+to an offhand stack. The highest-priority Overwield modifier resource must exactly
+match the pinned definition bytes. Missing, unreadable or changed definitions
+(including slot/coefficient changes and whitespace-only overrides) disable the
+new bonus until a general modifier interpreter can support them.
+Missing/malformed/nonpositive slime, failed trait resolution, malformed upgrades
+or unrepresentable merged levels supply no bonus.
+
+This is bounded to stacks already handled by the material attack-speed projection
+(TConstruct item with a saved float attack-speed stat). It does not broaden that
+eligibility, add an offhand attribute, or implement the source melee-capacity drain.
+The existing player-base/tool modifier, potion-factor order and final clamp remain;
+Overwield's factor is applied after those potion factors and before clamping.
+General attribute-map ordering and arbitrary other equipment modifiers remain
+outside scope, so bit-exact parity of every attribute combination is not claimed.
+
+`TC_ATTACK_SPEED_HARNESS_DEPS=/path/to/cached/deps python3 tconstruct/tests/test_material_attack_speed.py` runs the actual injected
+helper with lightweight host and trait-resolution boundary doubles, plus the
+actual modifier-snapshot highest-priority resolver and pinned-definition guard. It
+covers live slime and trait/upgrade changes, unchanged base/potions, broken/repair
+transitions, clamp, malformed/overflow cases, offhand suppression, missing/error
+snapshots and high-priority definition overrides. The trait lookup and upgrade
+merger themselves are the existing production functions, not new implementations;
+this boundary harness does not exercise real resource reload or inventory routing. No full generated-host build, gameplay, LAN or Windows validation was run.
