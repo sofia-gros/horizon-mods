@@ -55,6 +55,15 @@ pub(super) fn color_tagged(fluid: &str, tag: Option<&horizon_world::nbt::Tag>) -
     color(fluid)
 }
 
+/// Only locally complete machine metadata can resolve potion effects. Remote
+/// snapshots may omit fields, so they retain the previous conservative tint.
+pub(super) fn color_with_complete(fluid: &str, tag: Option<&horizon_world::nbt::Tag>, metadata_complete: bool) -> u32 {
+    if fluid == "tconstruct:potion" && metadata_complete {
+        if let Some(color) = tag.and_then(can_potion_color) { return color; }
+    }
+    color_tagged(fluid, tag)
+}
+
 /// Source 1.20.1 PotionUtils uses float32 weighted sums, not the host's
 /// integer average. Refuse oversized or unsupported effect lists.
 pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
@@ -304,6 +313,21 @@ mod fluid_light_tests {
     }
     // Source-order 1.20.1-labelled decompiled oracle at commit 315a03ea;
     // these do not replace an official jar or integrated rendering test.
+    #[test] fn potion_machine_color_requires_complete_metadata() {
+        use horizon_world::nbt::Tag;
+        let base = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        assert_eq!(super::color_with_complete("tconstruct:potion", Some(&base), true), 0xffffeb33);
+        assert_eq!(super::color_with_complete("tconstruct:potion", Some(&base), false), 0xfff800f8);
+        let mixed = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(4))])]))]);
+        assert_eq!(super::color_with_complete("tconstruct:potion", Some(&mixed), true), 0xffffea33);
+        assert_eq!(super::color_with_complete("tconstruct:potion", Some(&mixed), false), 0xfff800f8);
+        assert_eq!(super::color_with_complete("tconstruct:potion", None, true), 0xfff800f8);
+        let explicit = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(0x123456))]);
+        assert_eq!(super::color_with_complete("tconstruct:potion", Some(&explicit), false), 0xff563412);
+        let unknown = Tag::compound([("Potion", Tag::String("example:unknown".into()))]);
+        assert_eq!(super::color_with_complete("tconstruct:potion", Some(&unknown), true), 0xfff800f8);
+        assert_eq!(super::color_with_complete("minecraft:water", None, true), 0xffe4763f);
+    }
     #[test] fn source_custom_potion_effect_mixtures() {
         use horizon_world::nbt::Tag;
         for (name, tag, expected) in [

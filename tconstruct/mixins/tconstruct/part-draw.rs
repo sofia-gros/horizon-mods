@@ -37,11 +37,12 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         if let Some(sprite) = atlas.sprites.get(&sprite).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                             let height = (36u64 * u64::from(tank.amount) / u64::from(tank.capacity.max(1))).min(36) as f32;
                             let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                            let color = crate::game::tconstruct_source_melter_render::color_with_complete(fluid, tank.tag.as_ref(), game.remote.is_none());
                             let mut y = 0.0;
                             while y < height {
                                 let h = (height - y).min(16.0); let mut part = sprite;
                                 part.u1 = part.u0 + 12.0 * du; part.v1 = part.v0 + h * dv;
-                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, crate::game::tconstruct_source_melter_render::color_tagged(fluid, tank.tag.as_ref()));
+                                batch.rect_uv(ox + 153.0, oy + 68.0 - y - h, 12.0, h, part, color);
                                 y += h;
                             }
                         }
@@ -56,6 +57,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                 if let Some(sprite) = atlas.sprites.get(&sprite_name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                     let height = (52.0 * melter.tank.amount as f32 / melter.tank.capacity as f32).clamp(0.0, 52.0);
                     let (du, dv) = ((sprite.u1 - sprite.u0) / sprite.w as f32, (sprite.v1 - sprite.v0) / sprite.h as f32);
+                    let color = crate::game::tconstruct_source_melter_render::color_with_complete(fluid, melter.tank.tag.as_ref(), game.remote.is_none());
                     let mut y = 0.0;
                     while y < height {
                         let h = (height - y).min(16.0);
@@ -63,7 +65,7 @@ fn draw_tconstruct_station(game: &crate::game::Game<'_>, batch: &mut horizon_cli
                         while x < 52.0 {
                             let w = (52.0_f32 - x).min(16.0);
                             let mut part = sprite; part.u1 = part.u0 + w * du; part.v1 = part.v0 + h * dv;
-                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, crate::game::tconstruct_source_melter_render::color_tagged(fluid, melter.tank.tag.as_ref()));
+                            batch.rect_uv(ox + 90.0 + x, oy + 68.0 - y - h, w, h, part, color);
                             x += w;
                         }
                         y += h;

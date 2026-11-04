@@ -86,11 +86,12 @@ pub(super) fn draw(game: &Game<'_>, batch: &mut HudBatch, ox: f32, oy: f32) {
             let name = crate::game::tconstruct_source_melter_render::sprite(&fluid.id);
             if let Some(sprite) = atlas.sprites.get(&name).or_else(|| atlas.sprites.get("block/tconstruct_fluid_fallback")).copied() {
                 let (du,dv)=((sprite.u1-sprite.u0)/sprite.w as f32,(sprite.v1-sprite.v0)/sprite.h as f32);
+                let color = super::tconstruct_source_melter_render::color_with_complete(&fluid.id, fluid.tag.as_ref(), game.remote.is_none());
                 let mut yy=0.0;
                 while yy<height { let h=(height-yy).min(16.0); let mut x=0.0;
                     while x<106.0 { let w=(106.0f32-x).min(16.0); let mut part=sprite;
                         part.u1=part.u0+w*du; part.v1=part.v0+h*dv;
-                        batch.rect_uv(ox+8.0+x,oy+122.0-y-yy-h,w,h,part,super::tconstruct_source_melter_render::color_tagged(&fluid.id, fluid.tag.as_ref())); x+=w;
+                        batch.rect_uv(ox+8.0+x,oy+122.0-y-yy-h,w,h,part,color); x+=w;
                     } yy+=h;
                 }
             }
