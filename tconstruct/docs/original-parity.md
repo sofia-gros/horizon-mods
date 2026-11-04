@@ -988,3 +988,9 @@ bucket. The selected flowing ID itself is consumed, not replaced in storage.
 Registered fluid and bucket checks, 1,000 mB, and existing rejection of tagged
 fluids remain in place. Focused transaction and catalog tests cover these paths;
 integrated game, casting visuals, datapacks and LAN remain unverified.
+
+The shared fluid renderer now applies Forge's default FluidStack water tint
+(ARGB `0xff3f76e4`) to still and flowing water in supported tank and GUI paths.
+The Copper Can uses the same shared tint. This is the fixed stack color, not the
+biome-dependent world-fluid color. Focused color tests are included; integrated
+rendering, resource packs and LAN remain unverified.
