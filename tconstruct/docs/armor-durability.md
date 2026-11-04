@@ -108,7 +108,7 @@ Level resolution, modifier amounts/operations, existing broken checks, modifier
 cleanup, armor wear and native item attributes are unchanged. Other modifier
 modules and external item classes are not implemented by this slice.
 
-Seven Rust boundary tests execute the actual helper against lightweight host
+Nine Rust boundary tests execute the actual helper against lightweight host
 doubles, covering all thirteen IDs in all four slots, unsupported items,
 relocation/repair, each of the seven supported effects in correct/wrong slots
 and on broken armor, and retained gravity. Two Python checks run the
@@ -116,3 +116,23 @@ harness and verify the enabled hook. The fixture models the host's existing
 modifier cleanup and doubles broken-state/trait resolution; it does not verify
 the actual host lifecycle. Full host compilation, gameplay, commands, save/load
 and LAN remain unverified.
+
+### Positive base defense stats
+
+The three saved base defense values now follow the source's individual
+`value > 0` checks before adding an attribute modifier. Zero, negative values,
+negative infinity and NaN contribute no base modifier; positive finite values,
+positive subnormals and positive infinity remain eligible at this boundary.
+This intentionally mirrors the comparison rather than adding an unrelated
+finite-value filter. Pinned FloatToolStat.read and StatsNBT.readFromNBT retain
+numeric values without clamping, while ModifiableArmorItem performs these
+positivity checks.
+
+Existing accepted metadata types, correct-slot/broken eligibility and all
+modifier/gravity effects are unchanged. The host may separately reject or
+normalize positive infinity; that downstream behavior is not changed or
+validated here. This is not general metadata sanitization. The actual-helper
+fixture checks each field independently and models clearing a previously
+installed modifier after its value becomes NaN, retaining the other stats
+and movement/gravity effects. The focused suite passes nine Rust tests and
+two Python checks; the existing host-double limitations above still apply.
