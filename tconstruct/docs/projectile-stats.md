@@ -435,3 +435,29 @@ verify the clamped spread reaches the dispatch context. Shared reader tests cove
 subnormal, ordinary and extreme finite values, range boundaries, invalid values,
 unchanged velocity and retained metadata. Actor/world/dispatch boundaries remain
 doubles; no full generated-host build, gameplay, LAN or Windows test was run.
+
+## Fallback velocity bounds
+
+The actor-independent firing-stat fallback now clamps its final velocity to
+0..1024, matching pinned
+[`ToolStats.VELOCITY`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/stat/ToolStats.java)
+and the final clamp in
+[`ConditionalStatModifierHook.getModifiedStat`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/build/ConditionalStatModifierHook.java).
+The actor-aware path already had this bound. A shared private reader now retains
+the intermediate value so actor-dependent effects still finish before clamping:
+for example, saved velocity 2000 with Dwarven's full altitude penalty stays 500,
+not 256 from incorrectly clamping to 1024 first. Without an actor, saved 2000
+now supplies 1024 to either bow's dispatch context.
+
+The fallback clamp runs after its existing Maintained adjustment. Existing
+finite/nonnegative saved-velocity validation, accuracy, trait evaluation, saved
+metadata and projectile-damage functions remain unchanged. This corrects the
+output boundary only; it does not claim complete parity for missing-actor
+conditional evaluation or malformed metadata.
+
+The cached Longbow and Crossbow harnesses exercise actual firing helpers without
+an actor, checking clamped context velocity and unchanged saved values. Shared
+reader tests cover zero/ordinary/upper/extreme finite values, Maintained values
+crossing both bounds and Dwarven ordering. Host actor/world/dispatch boundaries
+are doubles. No full generated-host build, gameplay, LAN or Windows validation
+was run.
