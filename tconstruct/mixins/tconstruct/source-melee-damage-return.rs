@@ -20,7 +20,14 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
                     // their damage is below the maximum (for example after loading).
                     let intact = matches!(custom.get("tic_max_damage"), Some(Tag::Int(max)) if *max > 0)
                         && !crate::game::tconstruct_source_ranged_wear::is_broken(stack);
-                    let level = traits.levels.get("tconstruct:raging").copied().unwrap_or(0).max(0);
+                    // Only the pinned module set/order is implemented here. Unknown
+                    // or removed definitions must not inherit this fixed effect.
+                    let level = (|| {
+                        let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
+                        let source = crate::game::tconstruct_modifier_snapshot::highest_definition(raw, "tconstruct:tinkering/modifiers/raging");
+                        if !crate::game::tconstruct_modifier_snapshot::known_raging_melee(source) { return None; }
+                        crate::game::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:raging")
+                    })().unwrap_or(0);
                     if let Some(Tag::Float(bits)) = custom.get("tic_raging_melee_multiplier") {
                         let multiplier = f32::from_bits(*bits);
                         if intact && level > 0 && multiplier.is_finite() && player.health.health().is_finite() {

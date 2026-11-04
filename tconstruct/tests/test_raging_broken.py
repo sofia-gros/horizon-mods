@@ -1,4 +1,5 @@
 """Run the actual Raging damage helper with the actual broken predicate."""
+import os
 import pathlib
 import shutil
 import subprocess
@@ -11,9 +12,15 @@ class RagingBroken(unittest.TestCase):
     def test_actual_damage_helper(self):
         if not shutil.which('rustc'):
             self.skipTest('rustc is required for the Raging boundary harness')
+        directory = os.environ.get('TC_RAGING_HARNESS_DEPS')
+        if not directory:
+            self.skipTest('set TC_RAGING_HARNESS_DEPS to compatible cached serde_json rlibs')
+        deps = pathlib.Path(directory)
+        libraries = list(deps.glob('libserde_json-*.rlib'))
+        self.assertEqual(len(libraries), 1)
         with tempfile.TemporaryDirectory() as tmp:
             binary = pathlib.Path(tmp) / 'raging'
-            subprocess.run(['rustc', '--edition=2021', '--test', str(ROOT / 'tests/rust/raging_broken.rs'), '-o', str(binary)], check=True)
+            subprocess.run(['rustc', '--edition=2021', '--test', str(ROOT / 'tests/rust/raging_broken.rs'), '-L', f'dependency={deps}', '--extern', f'serde_json={libraries[0]}', '-C', 'debuginfo=0', '-C', 'strip=debuginfo', '-o', str(binary)], check=True)
             subprocess.run([str(binary)], check=True)
 
     def test_return_hook_is_enabled(self):

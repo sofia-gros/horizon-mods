@@ -582,3 +582,68 @@ pub(super) const PINNED_OVERWIELD: &[u8] = br#"{
 pub(super) fn known_overwield_attribute(source: Option<&[u8]>) -> bool {
     source == Some(PINNED_OVERWIELD)
 }
+
+// Exact pinned MIT Raging definition; changed formulas/order remain unknown.
+pub(super) const PINNED_RAGING: &[u8] = br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:conditional_melee_damage",
+      "formula": [
+        11.0,
+        "$health",
+        "-",
+        10.0,
+        "/",
+        "percent_clamp",
+        "$level",
+        "*",
+        2.5,
+        "*",
+        "$multiplier",
+        "*",
+        "$damage",
+        "+"
+      ],
+      "percent": false,
+      "variables": {
+        "health": {
+          "type": "tconstruct:entity",
+          "entity_type": "tconstruct:health",
+          "fallback": 0.0,
+          "which": "attacker"
+        }
+      }
+    },
+    {
+      "type": "tconstruct:conditional_stat",
+      "formula": [
+        11.0,
+        "$health",
+        "-",
+        10.0,
+        "/",
+        "percent_clamp",
+        "$level",
+        "*",
+        "$multiplier",
+        "*",
+        "$value",
+        "+"
+      ],
+      "percent": false,
+      "stat": "tconstruct:projectile_damage",
+      "variables": {
+        "health": {
+          "type": "tconstruct:entity",
+          "entity_type": "tconstruct:health",
+          "fallback": 0.0
+        }
+      }
+    }
+  ]
+}"#;
+
+pub(super) fn known_raging_melee(source: Option<&[u8]>) -> bool {
+    source == Some(PINNED_RAGING)
+}

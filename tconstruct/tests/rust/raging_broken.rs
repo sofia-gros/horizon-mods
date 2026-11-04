@@ -4,6 +4,8 @@ extern crate self as horizon_world;
 extern crate self as horizon_items;
 pub mod items { pub type ItemStack = super::Stack; }
 use std::collections::{BTreeMap, HashSet};
+#[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
+#[path = "../../mixins/tconstruct/modifier-snapshot.rs"] mod tconstruct_modifier_snapshot;
 pub mod nbt {
     use super::BTreeMap;
     pub enum Tag { Float(u32), Int(i32), Byte(i8), Compound(BTreeMap<String,Tag>) }
@@ -27,11 +29,12 @@ impl Stack {
 pub struct Health(f32);
 impl Health { fn health(&self) -> f32 { self.0 } }
 pub struct Player { auto_spin_attack_dmg: f32, health: Health }
-pub struct Chunks(HashSet<Option<u32>>);
-impl Chunks { #[allow(non_snake_case)] fn __horizon_mixins_tconstruct_melee_active(&self) -> &HashSet<Option<u32>> { &self.0 } }
+pub struct Chunks(HashSet<Option<u32>>, Option<Result<tconstruct_modifier_snapshot::Raw,String>>);
+impl Chunks { fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<tconstruct_modifier_snapshot::Raw,String>> { &self.1 } #[allow(non_snake_case)] fn __horizon_mixins_tconstruct_melee_active(&self) -> &HashSet<Option<u32>> { &self.0 } }
 pub struct World { chunks: Chunks, level: Option<i32> }
 pub mod game {
     use super::*;
+    pub(crate) use crate::tconstruct_modifier_snapshot;
     pub struct Game<'a> { pub player: Option<Player>, pub stack: Option<Stack>, pub world: World, pub lan_acting: Option<u32>, pub marker: std::marker::PhantomData<&'a ()> }
     impl Game<'_> {
         pub fn held(&self) -> Option<&Stack> { self.stack.as_ref() }
@@ -42,6 +45,11 @@ pub mod game {
         use super::*;
         pub struct Traits { pub levels: BTreeMap<String,i32>, pub durability_multiplier: f32 }
         pub fn levels(world: &World, _: &Stack) -> Option<Traits> { Some(Traits { levels:BTreeMap::from([("tconstruct:raging".into(),world.level?)]), durability_multiplier:1.0 }) }
+        pub fn level_with_upgrade(stack: &Stack, traits: &Traits, id: &str) -> Option<i32> {
+            let saved=stack.data()?.other("minecraft:custom_data")?.get("tic_upgrades");
+            let upgrade=match saved {None=>0,Some(tag @ Tag::Compound(_))=>match tag.get(id) {None=>0,Some(Tag::Int(n)) if *n>=0=>*n,_=>return None},_=>return None};
+            let level=traits.levels.get(id).copied().unwrap_or(0); if level<0 {return None;} level.checked_add(upgrade)
+        }
     }
     pub mod tconstruct_source_material_effects {
         pub fn wear_damage_bonus(_: f32, _: u32, _: f32, jagged: i32, stonebound: i32) -> f32 {
@@ -57,7 +65,7 @@ fn game() -> game::Game<'static> {
     stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
         ("tic_max_damage",Tag::Int(100)), ("tic_broken",Tag::Byte(0)), ("tic_raging_melee_multiplier",Tag::Float(1.0f32.to_bits())),
     ])));
-    game::Game { player:Some(Player { auto_spin_attack_dmg:0.0,health:Health(1.0) }), stack:Some(stack), world:World { chunks:Chunks(HashSet::new()),level:Some(1) }, lan_acting:None, marker:std::marker::PhantomData }
+    game::Game { player:Some(Player { auto_spin_attack_dmg:0.0,health:Health(1.0) }), stack:Some(stack), world:World { chunks:Chunks(HashSet::new(),Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()])]),BTreeMap::new())))),level:Some(1) }, lan_acting:None, marker:std::marker::PhantomData }
 }
 fn field(g: &mut game::Game<'_>, key: &str, value: Tag) {
     let Tag::Compound(fields)=&mut g.stack.as_mut().unwrap().data_mut().0 else { panic!() };
@@ -91,4 +99,28 @@ const BASE:(f32,f32,bool,bool)=(4.0,1.0,false,false);
     g.world.chunks.0.insert(None);
     // The unrelated secondary-AOE critical adjustment still runs.
     assert_eq!(game::run(input,&mut g,true),(6.5,0.25,false,true));
+}
+
+#[test] fn saved_raging_merges_once_and_rejects_invalid_inputs() {
+    for (trait_level,upgrade,expected) in [(0,2,9.0),(1,2,11.5),(2,0,9.0),(i32::MAX,1,4.0),(-1,2,4.0),(1,-1,4.0)] {
+        let mut g=game();g.world.level=Some(trait_level);
+        field(&mut g,"tic_upgrades",Tag::compound([("tconstruct:raging",Tag::Int(upgrade))]));
+        for _ in 0..2 {assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,expected);}
+        field(&mut g,"tic_broken",Tag::Byte(1));assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,4.0);
+    }
+    let mut g=game();field(&mut g,"tic_upgrades",Tag::Int(2));assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,4.0);
+    field(&mut g,"tic_upgrades",Tag::compound([("tconstruct:raging",Tag::Float(2.0f32.to_bits()))]));assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,4.0);
+}
+#[test] fn raging_uses_only_exact_highest_definition() {
+    let mut g=game();field(&mut g,"tic_upgrades",Tag::compound([("tconstruct:raging",Tag::Int(2))]));
+    let pinned=tconstruct_modifier_snapshot::PINNED_RAGING;
+    for changed in [b"{}".to_vec(),String::from_utf8(pinned.to_vec()).unwrap().replace("2.5","5.0").into_bytes(),[pinned,b" "].concat()] {
+        g.world.chunks.1=Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![pinned.to_vec(),changed])]),BTreeMap::new())));
+        assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,4.0);
+    }
+    for raw in [None,Some(Err("unreadable".into())),Some(Ok((BTreeMap::new(),BTreeMap::new())))] {
+        g.world.chunks.1=raw;assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,4.0);
+    }
+    g.world.chunks.1=Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![b"{}".to_vec(),pinned.to_vec()])]),BTreeMap::new())));
+    assert_eq!(game::run((4.0,1.0,false,false),&mut g,true).0,11.5);
 }

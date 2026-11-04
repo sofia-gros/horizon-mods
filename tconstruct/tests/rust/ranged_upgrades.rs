@@ -992,3 +992,15 @@ fn blindshot_regeneration_scales_merged_logical_levels_before_accuracy_subtracti
   }
  }
 }
+
+#[test]
+fn raging_is_not_installable_by_current_normal_or_crystal_recipe_planner() {
+ use horizon_items::items::ItemStack;use horizon_world::nbt::Tag;use std::collections::{BTreeMap,HashMap,HashSet};
+ let recipes=BTreeMap::from([("raging".into(),br#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"item":"minecraft:dirt"}],"result":"tconstruct:raging","slots":{"upgrades":1},"tools":{"tag":"tconstruct:modifiable/melee"}}"#.to_vec())]);
+ let tags=HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))]);
+ let mut tool=ItemStack::new("tconstruct:sword",1);tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ let mut crystal=ItemStack::new("tconstruct:modifier_crystal",1);crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String("tconstruct:raging".into()))])));
+ for input in [ItemStack::new("minecraft:dirt",1),crystal] {
+  assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(input)],5).is_none());
+ }
+}
