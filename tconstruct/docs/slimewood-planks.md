@@ -23,3 +23,9 @@ The four slimewood door and trapdoor recipes follow the pinned source. Six match
 ## Fence gates
 
 The four slimewood fence-gate recipes follow the pinned source: four vanilla sticks and two matching planks make one gate. Source, registration and collision checks pass. Runtime recipe loading, crafting and placement, packaging, recipe-book presentation, save/reload and LAN remain unverified.
+
+## Fences and wooden rods
+
+The four slimewood fence recipes follow the pinned source: four matching planks and two items from `forge:rods/wooden` make three fences. The native Forge tag adds the Forge 47.4.0 default stick without replacing other entries. Source, registration, collision and package-content checks pass.
+
+The host currently prevents two content mods from owning the Forge namespace, and its native tag loader does not implement Forge's `remove` field. Full cross-mod or datapack override parity is therefore not established. Actual host recipe loading, crafting, placement, tag reload, recipe-book presentation, save/reload and LAN remain unverified.
