@@ -26,6 +26,8 @@ pub(super) fn haste_armor_multiplier(custom: &Tag, damage: u32) -> f32 {
 }
 
 pub(super) fn haste_armor_multiplier_with_trait(custom: &Tag, damage: u32, trait_level: i32) -> f32 {
+    // Broken armor supplies no source attributes, including flag-only breakage.
+    if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return 1.0; }
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return 1.0; };
     if *max <= 0 || damage >= *max as u32 { return 1.0; }
     let amount = match custom.get("tic_upgrades").and_then(|upgrades| upgrades.get("tconstruct:haste")) {

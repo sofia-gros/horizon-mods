@@ -315,3 +315,57 @@ fn chest_haste_wire_trait_and_local_trait_use_identical_level_math() {
     chest.damage=0;
     assert_eq!(evaluate(&chest,2).to_bits(),local.to_bits());
 }
+
+#[test]
+fn chest_haste_flag_only_breakage_and_repair_preserve_other_gates() {
+    use tconstruct_source_mining_rules::haste_armor_multiplier_with_trait as multiplier;
+    let custom=|flag:Option<Tag>,max:Tag| {
+        let mut entries=vec![("tic_max_damage",max),("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(14))]))];
+        if let Some(flag)=flag {entries.push(("tic_broken",flag));}
+        Tag::compound(entries)
+    };
+    let intact=custom(None,Tag::Int(100));
+    for traits in [0,2] {
+        let expected=multiplier(&intact,0,traits);
+        assert!(expected>1.0);
+        for flag in [1,-1,127,-128] {
+            let broken=custom(Some(Tag::Byte(flag)),Tag::Int(100));
+            let before=broken.clone();
+            for damage in [0,99,100,u32::MAX] {assert_eq!(multiplier(&broken,damage,traits),1.0);}
+            assert_eq!(broken,before);
+        }
+        // Only the established Byte representation marks this custom flag broken.
+        for flag in [None,Some(Tag::Byte(0)),Some(Tag::Int(1)),Some(Tag::String("true".into()))] {
+            let repaired=custom(flag,Tag::Int(100));
+            assert_eq!(multiplier(&repaired,0,traits).to_bits(),expected.to_bits());
+            assert_eq!(multiplier(&repaired,99,traits).to_bits(),expected.to_bits());
+            assert_eq!(multiplier(&repaired,100,traits),1.0);
+        }
+        for max in [Tag::Int(0),Tag::Int(-1),Tag::String("100".into())] {
+            assert_eq!(multiplier(&custom(Some(Tag::Byte(0)),max),0,traits),1.0);
+        }
+    }
+}
+
+#[test]
+fn chest_haste_wire_broken_flag_suppresses_upgrade_and_trait() {
+    use tconstruct_source_haste_wire::{encode,decode,matching_level};
+    use tconstruct_source_mining_rules::haste_armor_multiplier_with_trait;
+    let mut chest=ItemStack::new("tconstruct:plate_chestplate",1);
+    let custom=|flag|Tag::compound([
+        ("tic_max_damage",Tag::Int(100)),("tic_broken",Tag::Byte(flag)),
+        ("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(14))])),
+    ]);
+    chest.data_mut().set_other("minecraft:custom_data",Some(custom(1)));
+    let snapshot=decode(&encode(Some((&chest,2)))).unwrap();
+    assert_eq!(matching_level(Some(&snapshot),Some(&chest)),Some(2));
+    let evaluate=|item:&ItemStack,traits|haste_armor_multiplier_with_trait(item.data().unwrap().other("minecraft:custom_data").unwrap(),item.damage,traits);
+    assert_eq!(evaluate(&chest,2),1.0);
+    assert_eq!(evaluate(&snapshot.0,snapshot.1),1.0);
+    assert_eq!(evaluate(&chest,matching_level(None,Some(&chest)).unwrap_or(0)),1.0);
+    chest.data_mut().set_other("minecraft:custom_data",Some(custom(0)));
+    assert_eq!(matching_level(Some(&snapshot),Some(&chest)),None);
+    let repaired=decode(&encode(Some((&chest,2)))).unwrap();
+    assert_eq!(matching_level(Some(&repaired),Some(&chest)),Some(2));
+    assert!(evaluate(&chest,repaired.1)>1.0);
+}
