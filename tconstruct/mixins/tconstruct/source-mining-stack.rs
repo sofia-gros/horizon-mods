@@ -15,7 +15,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
         _ => 0.0,
     };
     let has_gem = |id| matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get(id)), Some(Tag::Int(v)) if *v > 0);
-    let diamond = has_gem("tconstruct:diamond");
+    let diamond = has_gem("tconstruct:diamond") || level("tconstruct:diamond") > 0;
     let emerald = has_gem("tconstruct:emerald") || level("tconstruct:emerald") > 0;
     let netherite = has_gem("tconstruct:netherite") || level("tconstruct:netherite") > 0;
     let mut add = stats.mining_speed_add_raw;

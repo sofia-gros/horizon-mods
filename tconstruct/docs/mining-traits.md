@@ -208,3 +208,17 @@ the existing conditional mining path, not complete Emerald behavior for every
 possible datapack trait. Focused tests cover both trait orders and an installed
 Emerald upgrade. Integrated host build, real mining, save/reload and LAN remain
 unverified.
+
+## Diamond trait stat additions
+
+A resolved Diamond material or fixed trait now contributes the same flat
+mining (+2), melee (+0.5) and projectile (+0.5) base-stat additions as an
+installed Diamond upgrade on supported tools. The flat source modules run once
+when trait and upgrade are both present, regardless of trait level; rebuilding
+or removing the trait recalculates rather than stacking. This change covers only
+these three stat paths. Diamond trait durability, armor, harvest tier, other
+modules, full datapack support and existing-item migration remain separate;
+existing items need a supported rebuild or regeneration for the stat change.
+Focused tests cover the three paths, both bows, trait plus upgrade, repeated
+rebuild and removal. Integrated host build, actual mining/combat, save/reload
+and LAN remain unverified.

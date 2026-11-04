@@ -176,3 +176,30 @@ fn emerald_trait_scales_maintained_and_rebuild_removes_bonus() {
  let custom=stack.data().unwrap().other("minecraft:custom_data").unwrap();
  assert!((tconstruct_source_mining_rules::conditional(custom,0,4.0,1.0,None,true,false,Some(false)).unwrap()-10.0).abs()<1e-6);
 }
+
+#[test]
+fn diamond_trait_mining_speed_is_flat_and_rebuilt_once() {
+ let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:mining_speed":4.0}},{"type":"tconstruct:multiply_stats","multipliers":{"tconstruct:mining_speed":2.0}}]}"#;
+ let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ tool.data_mut().set_other("minecraft:tool",Some(Tag::compound([("rules",Tag::List(vec![Tag::compound([("speed",Tag::Float(1.0f32.to_bits()))])]))])));
+ let traits=BTreeMap::from([("tconstruct:diamond".into(),2)]);
+ let speed=|tool:&ItemStack| {let t=tool.data().unwrap().other("minecraft:tool").unwrap(); let Some(Tag::List(rules))=t.get("rules") else {panic!()}; match rules[0].get("speed"){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!()}};
+ for _ in 0..2 {tconstruct_source_mining_stack::apply(&mut tool,&stats,&traits,&[],true).unwrap(); assert_eq!(speed(&tool),12.0);}
+ let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone(); let Tag::Compound(ref mut fields)=custom else {panic!()};
+ fields.insert("tic_upgrades".into(),Tag::compound([("tconstruct:diamond",Tag::Int(1))])); tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+ tconstruct_source_mining_stack::apply(&mut tool,&stats,&traits,&[],true).unwrap(); assert_eq!(speed(&tool),12.0);
+ let mut custom=tool.data().unwrap().other("minecraft:custom_data").unwrap().clone(); let Tag::Compound(ref mut fields)=custom else {panic!()}; fields.remove(&"tic_upgrades".into()); tool.data_mut().set_other("minecraft:custom_data",Some(custom));
+ tconstruct_source_mining_stack::apply(&mut tool,&stats,&BTreeMap::new(),&[],true).unwrap(); assert_eq!(speed(&tool),8.0);
+}
+
+#[test]
+fn diamond_trait_does_not_change_nonharvest_tool() {
+ let stats=tconstruct_source_station_stats::base_stats(br#"{"modules":[]}"#,&[]).unwrap();
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ let custom=Tag::compound([("fixture",Tag::Int(7))]);
+ tool.data_mut().set_other("minecraft:custom_data",Some(custom.clone()));
+ tconstruct_source_mining_stack::apply(&mut tool,&stats,&BTreeMap::from([("tconstruct:diamond".into(),1)]),&[],false).unwrap();
+ assert_eq!(tool.data().unwrap().other("minecraft:custom_data"),Some(&custom));
+}

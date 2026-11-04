@@ -444,7 +444,7 @@ pub fn apply_stats(
     let mut speed_multiplier = stats.attack_speed_multiplier_unit;
     for id in super::tconstruct_source_material_effects::ordered_modifier_ids(tool, levels) {
         match id.as_str() {
-            "tconstruct:diamond" if amount(tool, &id) > 0 && melee => damage_add += 0.5,
+            "tconstruct:diamond" if (amount(tool, &id) > 0 || level(&id) > 0) && melee => damage_add += 0.5,
             "tconstruct:sharpness" if melee => damage_add += 0.75 * (effective(tool, &id, 36) + level(&id).max(0) as f32),
             "tconstruct:pierce" if melee => damage_add += 0.5 * level(&id).max(0) as f32,
             "tconstruct:ductile" if melee => damage_multiplier *= 1.0 + 0.05 * level(&id).max(0) as f32,
@@ -483,7 +483,7 @@ pub fn apply_stats(
                 "tconstruct:blindshot" => accuracy_add -= 0.1 * (effective(tool, &id, 10) + trait_level),
                 "tconstruct:emerald" if amount(tool, &id) > 0 || trait_level > 0.0 => accuracy_add += 0.1,
                 "tconstruct:netherite" if amount(tool, &id) > 0 || trait_level > 0.0 => velocity_multiply *= 1.1,
-                "tconstruct:diamond" if amount(tool, &id) > 0 => projectile_add += 0.5,
+                "tconstruct:diamond" if amount(tool, &id) > 0 || trait_level > 0.0 => projectile_add += 0.5,
                 "tconstruct:lightweight" => { draw_add += 0.03 * trait_level; velocity_add += 0.03 * trait_level; },
                 "tconstruct:featherweight" => { draw_add += 0.05 * trait_level; accuracy_add += 0.05 * trait_level; },
                 "tconstruct:heavy" => accuracy_add += 0.1 * trait_level,
