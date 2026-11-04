@@ -1,0 +1,16 @@
+{
+  "title": "Smeltery Features",
+  "text": [
+    {
+      "text": "A smeltery can melt several items, store more than one molten fluid, and combine suitable fluids into alloys."
+    },
+    {
+      "text": "A larger interior increases capacity. Fuel and available recipes affect what you can melt or alloy.",
+      "paragraph": true
+    },
+    {
+      "text": "Some original features, including entity melting, are incomplete in this version.",
+      "paragraph": true
+    }
+  ]
+}

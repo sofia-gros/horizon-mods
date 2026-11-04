@@ -1,0 +1,12 @@
+{
+  "title": "Using the Smeltery",
+  "text": [
+    {
+      "text": "Open the controller and place items in the melting slots. The number of slots depends on the smeltery size; scroll through them when necessary."
+    },
+    {
+      "text": "Molten fluids appear in the main tank. Click a fluid to move it to the bottom and select it for pouring.",
+      "paragraph": true
+    }
+  ]
+}
