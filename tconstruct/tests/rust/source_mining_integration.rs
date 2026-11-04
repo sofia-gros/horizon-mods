@@ -269,7 +269,7 @@ fn chest_haste_incremental_precision_and_existing_gates() {
         let amount=progress.max(0); let remainder=amount%45;
         let logical=traits.max(0).checked_add(amount/45).and_then(|n|n.checked_add(i32::from(remainder!=0)));
         let level=logical.map(|n|if remainder==0 {n as f32}else{n as f32+(remainder-45) as f32/45.0}).unwrap_or(0.0);
-        let expected=1.0f32+0.1f32*level;
+        let expected=(1.0f32+0.1f32*level).clamp(0.0,100.0);
         let data=custom(Tag::Int(progress));
         assert_eq!(multiplier(&data,99,traits).to_bits(),expected.to_bits());
         assert_eq!(multiplier(&data,100,traits),1.0);
@@ -532,4 +532,29 @@ fn flag_only_broken_mining_speed_is_preserved_at_head_and_return() {
     let mut flint=ItemStack::new("tconstruct:flint_pickaxe",1);
     flint.damage=84;assert_eq!(broken_speed(Some(&flint)),Continue(()));
     flint.damage=85;assert_eq!(broken_speed(Some(&flint)),Break(0.3));
+}
+
+#[test]
+fn chest_haste_caps_supported_attribute_after_level_merge_and_before_speed() {
+    use tconstruct_source_mining_rules::{haste_armor_multiplier_with_trait as multiplier,finish_mining_speed};
+    use tconstruct_source_haste_wire::{encode,decode,matching_level};
+    for (traits,progress) in [(0,0),(989,44),(990,0),(990,1),(991,0),(1000,45),(0,44549),(0,44550),(0,44551),(0,i32::MAX),(i32::MAX,1)] {
+        let mut chest=ItemStack::new("tconstruct:plate_chestplate",1);
+        chest.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_max_damage",Tag::Int(100)),("tic_upgrades",Tag::compound([("tconstruct:haste",Tag::Int(progress))])),
+        ])));
+        let custom=chest.data().unwrap().other("minecraft:custom_data").unwrap();
+        let result=multiplier(custom,0,traits);
+        let amount=progress.max(0);let remainder=amount%45;
+        let logical=traits.checked_add(amount/45).and_then(|n|n.checked_add(i32::from(remainder!=0)));
+        let level=logical.map(|n|if remainder==0{n as f32}else{n as f32+(remainder-45) as f32/45.0}).unwrap_or(0.0);
+        assert_eq!(result.to_bits(),(1.0f32+0.1f32*level).clamp(0.0,100.0).to_bits());
+        assert!((1.0..=100.0).contains(&result));
+        assert_eq!(finish_mining_speed(7.0,result),7.0*result);
+        assert_eq!(multiplier(custom,100,traits),1.0);
+        if traits<=32767 {
+            let snapshot=decode(&encode(Some((&chest,traits)))).unwrap();
+            assert_eq!(multiplier(custom,0,matching_level(Some(&snapshot),Some(&chest)).unwrap()).to_bits(),result.to_bits());
+        }
+    }
 }

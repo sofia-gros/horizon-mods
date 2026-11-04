@@ -42,7 +42,8 @@ pub(super) fn haste_armor_multiplier_with_trait(custom: &Tag, damage: u32, trait
     });
     // Overflowing logical levels provide no Haste bonus. Keep the existing
     // single-chest float multiplier pipeline; this is not attribute emulation.
-    1.0 + 0.1 * level.unwrap_or(0.0)
+    // Mantle registerMultiplier bounds this source attribute to 0..100.
+    (1.0 + 0.1 * level.unwrap_or(0.0)).clamp(0.0, 100.0)
 }
 
 #[cfg(test)]
