@@ -161,6 +161,8 @@ The pinned source recipe casts one Seared Reinforcement on a Casting Table
 from one consumed Pattern and 250 mB of either Seared Stone or Scorched Stone,
 with an 89-tick cooling time. The result item and the original item model and
 texture are packaged. Its neutral brick template does not add furnace fuel.
+The manual Windows resource overlay also registers this item using the neutral
+brick template and copies its source model texture.
 The ordinary casting catalog now resolves simple arrays of at least two fluid
 alternatives when every entry is supported and has the same amount. Unsupported
 or different-amount alternatives fail closed; tagged fluid metadata handling

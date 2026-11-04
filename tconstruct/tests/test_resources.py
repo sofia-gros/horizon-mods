@@ -16,7 +16,7 @@ class ResourceOverlay(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             src, out = Path(tmp) / 'src', Path(tmp) / 'out'
             src.mkdir()
-            raw = {'minecraft:flint': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:glass_bottle': {'minecraft:max_stack_size': 64}, 'minecraft:mushroom_stew': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
+            raw = {'minecraft:flint': {}, 'minecraft:brick': {}, 'minecraft:stick': {}, 'minecraft:paper': {}, 'minecraft:book': {}, 'minecraft:honey_bottle': {}, 'minecraft:glass_bottle': {'minecraft:max_stack_size': 64}, 'minecraft:mushroom_stew': {}, 'minecraft:copper_ingot': {'minecraft:max_stack_size': 64}, 'minecraft:water_bucket': {'minecraft:max_stack_size': 1},
                    'minecraft:stone_pickaxe': {'minecraft:tool': {'rules': [{}, {'speed': 4}]}},
                    'minecraft:stone_axe': {'minecraft:weapon': {'item_damage_per_attack': 2}, 'minecraft:tool': {'rules': []}}, 'minecraft:stone_shovel': {}, 'minecraft:stone_hoe': {'minecraft:tool': {'rules': []}}}
             raw['minecraft:stick']['minecraft:cooking_fuel'] = {'burn_time': 100}
@@ -53,6 +53,14 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(soup['minecraft:consumable']['animation'], 'drink')
             self.assertEqual((out / 'assets/tconstruct/textures/item/food/meat_soup.png').read_bytes(),
                              (Path(__file__).resolve().parents[1] / 'content/assets/tconstruct/textures/item/food/meat_soup.png').read_bytes())
+            seared = items['tconstruct:seared_reinforcement']
+            self.assertNotIn('minecraft:cooking_fuel', seared)
+            self.assertEqual(seared['minecraft:item_model'], 'tconstruct:seared_reinforcement')
+            model = json.loads((out / 'assets/tconstruct/models/item/seared_reinforcement.json').read_text())
+            self.assertEqual(model['textures']['layer0'], 'tconstruct:item/materials/reinforcement/seared')
+            source_seared = Path(__file__).resolve().parents[1] / 'content/assets/tconstruct/textures/item/materials/reinforcement/seared.png'
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/reinforcement/seared.png').read_bytes(), source_seared.read_bytes())
+            self.assertIn('tconstruct:seared_reinforcement', json.loads((out / 'command-registries.json').read_text())['items'])
             self.assertIn('tconstruct:emerald_reinforcement', items)
             source = Path(__file__).resolve().parents[1] / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png'
             self.assertEqual((out / 'assets/tconstruct/textures/item/materials/reinforcement/emerald.png').read_bytes(), source.read_bytes())
