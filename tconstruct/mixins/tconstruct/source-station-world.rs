@@ -424,7 +424,6 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
     let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     if !tags.get("tconstruct:modifiable/durability")?.contains(original.item.as_ref()) { return None; }
     let traits = super::tconstruct_source_material_traits::levels(world, original)?;
-    if traits.levels.get("tconstruct:emerald").copied().unwrap_or(0) > 0 { return None; }
     let custom = original.data()?.other("minecraft:custom_data")?;
     let upgrades = custom.get("tic_upgrades");
     if upgrades.is_some_and(|value| !matches!(value, Tag::Compound(_))) { return None; }
@@ -470,7 +469,7 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
             for entry in entries {
                 let Some(id) = entry.get("name").and_then(serde_json::Value::as_str) else { known = false; break; };
                 if id != modifier && !matches!(id, "tconstruct:cultivated" | "tconstruct:preserved" | "tconstruct:dense" | "tconstruct:emerald") { continue; }
-                if id == "tconstruct:emerald" || !matches!(entry.get("optional"), None | Some(serde_json::Value::Bool(false))) { known = false; break; }
+                if !matches!(entry.get("optional"), None | Some(serde_json::Value::Bool(false))) { known = false; break; }
                 let value = match entry.get("level") { None => Some(1), Some(value) => value.as_i64().and_then(|value| i32::try_from(value).ok()).filter(|value| *value > 0) };
                 if value.is_none() { known = false; break; }
                 // The trait resolver already included this fixed trait exactly once.
@@ -490,7 +489,12 @@ fn modifier_repair_plan(world: &super::tconstruct_world::World, slots: &[Option<
         let upgrade = match upgrades.and_then(|upgrades| upgrades.get(modifier)) { Some(Tag::Int(level)) if *level >= 0 => *level, None => 0, _ => return None };
         let level = traits.levels.get(modifier).copied().unwrap_or(0).checked_add(upgrade)?;
         let raw = level.checked_mul(per_level)?;
-        let factor = station_repair_factor(original, Some(&repair_traits));
+        let factor = if traits.levels.get("tconstruct:emerald").copied().unwrap_or(0) > 0 {
+            match super::tconstruct_source_material_effects::ordered_emerald_repair_amount(original, &traits.levels, &traits.order, 1.0) {
+                Some(factor) => factor,
+                None => { *reason = Some("Cannot repair: modifier order or levels are unknown".into()); return None; }
+            }
+        } else { station_repair_factor(original, Some(&repair_traits)) };
         if raw <= 0 || !factor.is_finite() || factor <= 0.0 { continue; }
         let per_item = ((raw as f32 * factor) as i32).max(0) as u32;
         if per_item == 0 { continue; }

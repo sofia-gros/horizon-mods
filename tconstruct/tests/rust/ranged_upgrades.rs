@@ -667,3 +667,18 @@ fn emerald_material_repair_uses_per_item_amount_and_rejects_ambiguous_order() {
  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
  assert!(tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&traits,&missing_trait_order,100.0).is_none());
 }
+
+#[test]
+fn emerald_modifier_repair_uses_factor_then_truncates_per_item() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1))]))])));
+ let traits=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:preserved".into(),1)]);
+ let order=vec!["tconstruct:preserved".into(),"tconstruct:emerald".into()];
+ let factor=tconstruct_source_material_effects::ordered_emerald_repair_amount(&tool,&traits,&order,1.0).unwrap();
+ assert_eq!(factor.to_bits(),(1.5f32*1.15).to_bits());
+ let per_item=(7.0f32*factor) as u32;
+ assert_eq!(per_item,12);
+ let needed=25u32; let consumed=needed.div_ceil(per_item); let repaired=needed.min(consumed*per_item);
+ assert_eq!((consumed,repaired),(3,25));
+}

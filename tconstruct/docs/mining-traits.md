@@ -257,8 +257,19 @@ applies the source 1.5 repair factor once even if Emerald is also an upgrade.
 Known Cultivated, Preserved and Dense factors are applied to each per-item
 repair amount in resolved modifier order. Ambiguous upgrade order and invalid
 or overflowing supported levels are rejected before consumption. Other
-material-repair cases retain the existing calculation. Modifier-repair and
-casting part-swap paths keep their conservative Emerald-trait exclusions.
+material-repair cases retain the existing calculation. Casting part-swap
+keeps its conservative Emerald-trait exclusion.
 Focused tests cover both factor orders and trait/upgrade deduplication; a static
 test checks the Station wiring. Actual repair plans and ingredient counts,
 host integration, save/reload and LAN remain unverified.
+
+## Emerald trait modifier repair
+
+Station modifier-repair recipes now accept a resolved Emerald trait and use
+the ordered repair-factor calculation starting at 1.0, as the original
+Station recipe does. Emerald trait plus upgrade applies the factor once;
+non-optional fixed traits are resolved by the existing trait reader. Ambiguous
+multiple upgrade ordering or invalid levels reject the operation before
+consumption. Casting part-swap retains its Emerald-trait exclusion. Focused
+arithmetic and static wiring tests cover this path; an actual Station plan,
+ingredient consumption, integrated host build, save/reload and LAN are unverified.
