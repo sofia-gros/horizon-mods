@@ -3,10 +3,10 @@ fn tconstruct_part_name(
     game: &crate::game::Game<'_>,
     stack: &horizon_client::items::ItemStack,
 ) -> Vec<(horizon_client::text::Text, u32)> {
-    let hidden_can = stack.data().and_then(|data| data.other("minecraft:tooltip_display"))
+    let hidden_tooltip = stack.data().and_then(|data| data.other("minecraft:tooltip_display"))
         .and_then(|display| display.get("hide_tooltip"))
         .is_some_and(|tag| matches!(tag, horizon_world::nbt::Tag::Byte(n) if *n != 0));
-    if !hidden_can {
+    if !hidden_tooltip {
         let context = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok());
         let can = &*stack.item == "tconstruct:copper_can";
@@ -22,6 +22,15 @@ fn tconstruct_part_name(
                 }
             } else if crate::game::tconstruct_source_fluid_container::can_display_empty(stack) {
                 value.insert(index, (horizon_client::text::Text::translate("item.tconstruct.copper_can.tooltip", &[]), 0xffaaaaaa));
+            }
+        } else if let Some(fluid) = crate::game::tconstruct_source_fluid_container::tank_display_fluid(stack,
+            &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) {
+            let name_visible = horizon_client::item_tooltip::TooltipDisplay::for_stack(stack).name_visible(game.screen == Screen::Creative);
+            let index = usize::from(name_visible).min(value.len());
+            let name = crate::game::tconstruct_source_melter_render::fluid_name(game, &fluid);
+            value.insert(index, (horizon_client::text::Text::literal(name), 0xffaaaaaa));
+            if game.settings.file.bool("advancedItemTooltips") {
+                value.insert(index + 1, (horizon_client::text::Text::translate("item.tconstruct.tank.fluid_id", &[horizon_client::text::Text::literal(fluid)]), 0xff555555));
             }
         }
     }

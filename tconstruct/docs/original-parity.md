@@ -1008,3 +1008,10 @@ makes the available source translations accessible to the host language loader,
 including Copper Can tooltip strings. Package tests check source bytes and the
 English/Japanese keys; actual language switching, resource-pack precedence and
 other game UI coverage remain unverified.
+
+Supported filled portable tanks now show their fluid name and, with advanced
+tooltips, the original fluid ID. The read-only view rejects tagged, unknown,
+malformed and unsupported data. Source amount/unit information is not yet
+shown: its Mantle resource-pack and tag-dependent formatter remains open.
+Focused helper and wiring tests cover this slice; actual GUI, F3+H, save/reload
+and LAN are unverified.
