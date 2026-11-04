@@ -114,10 +114,23 @@ pub(super) fn can_display_potion_icon(stack: &ItemStack, known: &impl Fn(&str) -
     can_display_potion(stack, known)
 }
 
-/// An explicit potion fluid with no fluid tag is the source's empty potion.
+/// A source empty Potion has no tag, an empty compound, or only an explicit
+/// empty Potion ID. Other fields may alter color and are not guessed here.
+fn empty_potion_tag(tag: Option<&horizon_world::nbt::Tag>) -> bool {
+    use horizon_world::nbt::Tag;
+    match tag {
+        None => true,
+        Some(Tag::Compound(fields)) if fields.is_empty() => true,
+        Some(Tag::Compound(fields)) if fields.len() == 1 =>
+            matches!(fields.get(&"Potion".into()), Some(Tag::String(id)) if matches!(id.to_string_lossy().as_str(), "empty" | "minecraft:empty")),
+        _ => false,
+    }
+}
+
+/// An explicit potion fluid with a recognized empty tag is source empty potion.
 pub(super) fn can_display_empty_potion(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> bool {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return false; }
-    matches!(can_contents(stack), Some((Some(fluid), None)) if fluid == "tconstruct:potion")
+    matches!(can_contents(stack), Some((Some(fluid), tag)) if fluid == "tconstruct:potion" && empty_potion_tag(tag.as_ref()))
 }
 
 /// Empty cans have source help text; malformed or opaque stacks stay hidden.
@@ -343,7 +356,7 @@ pub(super) fn tank_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> bo
 /// The same source empty-potion case for complete portable tank items.
 pub(super) fn tank_display_empty_potion(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> bool {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return false; }
-    lantern_tank(stack).is_some_and(|tank| tank.amount > 0 && tank.fluid.as_deref() == Some("tconstruct:potion") && tank.tag.is_none())
+    lantern_tank(stack).is_some_and(|tank| tank.amount > 0 && tank.fluid.as_deref() == Some("tconstruct:potion") && empty_potion_tag(tank.tag.as_ref()))
 }
 
 fn known_potion_tag(tag: horizon_world::nbt::Tag) -> Option<horizon_world::nbt::Tag> {
@@ -673,7 +686,7 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 #[cfg(test)]
 mod tests {
     #[test]
-    fn empty_potion_item_views_require_explicit_untagged_fluid() {
+    fn empty_potion_item_views_require_recognized_empty_tag() {
         use horizon_world::nbt::Tag;
         let can = can_set_fluid(&ItemStack::new("tconstruct:copper_can", 8), Some("tconstruct:potion")).unwrap();
         let before = can.clone();
@@ -683,8 +696,16 @@ mod tests {
         assert_eq!(can, before);
         let mut custom = can.clone(); custom.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
         assert!(!can_display_empty_potion(&custom, &known));
-        let tagged = can_set_tagged(&can, Some("tconstruct:potion"), Some(&Tag::Compound(Default::default()))).unwrap();
-        assert!(!can_display_empty_potion(&tagged, &known));
+        for tag in [Tag::Compound(Default::default()), Tag::compound([("Potion", Tag::String("empty".into()))]), Tag::compound([("Potion", Tag::String("minecraft:empty".into()))])] {
+            let tagged = can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap();
+            let before = tagged.clone();
+            assert!(can_display_empty_potion(&tagged, &known));
+            assert_eq!(tagged, before);
+        }
+        for tag in [Tag::compound([("Potion", Tag::String("example:unknown".into()))]), Tag::compound([("Potion", Tag::String("".into()))]), Tag::compound([("CustomPotionColor", Tag::Int(123))]), Tag::compound([("Potion", Tag::String("empty".into())), ("CustomPotionColor", Tag::Int(123))]), Tag::compound([("Potion", Tag::String("empty".into())), ("CustomPotionEffects", Tag::List(vec![]))]), Tag::compound([("other", Tag::Int(1))])] {
+            let tagged = can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap();
+            assert!(!can_display_empty_potion(&tagged, &known));
+        }
         for item in ["tconstruct:seared_fuel_tank", "tconstruct:scorched_lantern", "tconstruct:seared_fluid_cannon"] {
             let mut tank = ItemStack::new(item, 2);
             tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("tconstruct:potion".into())), ("amount", Tag::Int(1))]))])));
@@ -692,6 +713,10 @@ mod tests {
             assert!(tank_display_empty_potion(&tank, &known));
             assert!(!tank_display_empty_potion(&tank, &|_| false));
             assert_eq!(tank, before);
+            for tag in [Tag::Compound(Default::default()), Tag::compound([("Potion", Tag::String("empty".into()))]), Tag::compound([("Potion", Tag::String("minecraft:empty".into()))])] {
+                tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("tconstruct:potion".into())), ("amount", Tag::Int(1)), ("fluid_tag", tag)]))])));
+                assert!(tank_display_empty_potion(&tank, &known));
+            }
         }
         assert!(!tank_display_empty_potion(&ItemStack::new("minecraft:stone", 1), &known));
     }
