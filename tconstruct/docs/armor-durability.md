@@ -78,3 +78,35 @@ Verify each slime armor scale, material replacement, Overcast/Overforced,
 global durability multiplier, capacity clamping, existing shield contents and
 save/reload. Armor wear and Overslime writeback remain subject to the separately
 documented provisional hook limitations.
+
+## Base defense stats require the armor's own slot
+
+The worn-armor attribute helper now grants saved armor, toughness and knockback
+resistance only in the pinned stock item's own equipment slot. Pinned
+[ModifiableArmorItem](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/item/armor/ModifiableArmorItem.java#L289-L326)
+rejects other slots before contributing those stats. This matters when commands
+or inventory mutations place, for example, a helmet in the feet slot.
+
+The mapping covers the thirteen armor registrations in pinned
+[TinkerTools](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/TinkerTools.java#L239-L247):
+four Traveler's pieces, four Plate pieces, Slime Helmet/Leggings/Boots,
+Slimy Chestplate and Slime Wings. It uses exact IDs rather than a suffix,
+mutable tag or equippable-component proxy. Shields, staffs, unknown classes
+and external armor therefore receive no base defense stats from this worn
+adapter. Datapacks cannot reassign these pinned class slots through item
+components; external/new armor class support remains unimplemented.
+
+Only the three base defense stats change. Modifier effects, including existing
+wrong-slot movement and step-height attributes, remain unchanged and are a
+separate parity gap. Gravity effects use the source's separate equipment-change
+hook and intentionally remain unchanged, including on broken armor. Existing
+broken checks, modifier cleanup, armor wear and native item attributes are not
+changed by this slice.
+
+Four Rust boundary tests execute the actual helper against lightweight host
+doubles, covering all thirteen IDs in all four slots, unsupported items,
+relocation/repair and unchanged modifier effects. Two Python checks run the
+harness and verify the enabled hook. The fixture models the host's existing
+modifier cleanup and doubles broken-state/trait resolution; it does not verify
+the actual host lifecycle. Full host compilation, gameplay, commands, save/load
+and LAN remain unverified.
