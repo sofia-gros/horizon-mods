@@ -712,7 +712,7 @@ fn enrich_creative_groups(out: &std::path::Path, original_pack: &std::path::Path
                                 let (namespace, path) = id.split_once(':')?;
                                 std::fs::read(original_pack.join(format!("data/{namespace}/{path}.json"))).ok().map(|bytes| vec![bytes])
                             });
-                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None, traits.as_ref().map(|(levels, _)| levels)) {
+                            if let Some(mut stack) = crate::tconstruct_source_station_world::assemble_with_stats(&definition, item, &ids, &maps, None, traits.as_ref().map(|(levels, _)| levels), harvest.iter().any(|id| id == item)) {
                                 if let (Some((traits, order)), Some(stats)) = (traits, crate::tconstruct_source_station_stats::base_stats(&definition, &maps)) {
                                     if crate::tconstruct_source_material_effects::store_trait_order(&mut stack, &order).is_none() { continue; }
                                     if crate::tconstruct_source_material_effects::apply_stat_traits(&mut stack, &stats, &traits).is_none() { continue; }

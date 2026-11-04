@@ -216,8 +216,8 @@ mining (+2), melee (+0.5) and projectile (+0.5) base-stat additions as an
 installed Diamond upgrade on supported tools. The flat source modules run once
 when trait and upgrade are both present, regardless of trait level; rebuilding
 or removing the trait recalculates rather than stacking. This change covers only
-these three stat paths. Diamond trait harvest tier, other modules, full
-datapack support and existing-item migration remain separate;
+these three stat paths. Other Diamond modules, full datapack support and
+existing-item migration remain separate;
 existing items need a supported rebuild or regeneration for the stat change.
 Focused tests cover the three paths, both bows, trait plus upgrade, repeated
 rebuild and removal. Integrated host build, actual mining/combat, save/reload
@@ -232,7 +232,20 @@ upgrades for gem durability and armor stats. Diamond adds 500 base durability
 its 1.5 base durability multiplier and adds one armor toughness. A trait plus
 an upgrade contributes each flat module only once. The assembly pipeline
 rebuilds from the base before applying modifiers; previously saved items need
-a supported rebuild or regeneration. Harvest tier, repair and full datapack
-behavior remain separate. Focused tests cover non-armor and worn armor,
+a supported rebuild or regeneration. Repair and full datapack behavior remain separate. Focused tests cover non-armor and worn armor,
 non-unit trait levels, both sources together, repeated application and a
 simulated base reset followed by trait removal. Integrated host build, actual equipment, save/reload and LAN remain unverified.
+
+## Gem trait harvest tiers
+
+For supported harvest-tagged tools, Station and Creative rebuilds now include
+resolved Diamond, Emerald and Netherite traits when choosing the existing
+material-derived harvest-tier floor. The highest supported floor wins, and a
+trait plus the same upgrade does not lower or duplicate it. Removing a trait
+on an ordinary head-based tool rebuilds its rules from the remaining materials
+and modifiers. If traits cannot be resolved, the existing upgrade-only fallback
+remains; no-head Netherite and full datapack tier ordering remain separate.
+Previously saved tools need a supported rebuild or regeneration. Focused Rust
+tests cover tier selection and tag gating; a static test checks both rebuild
+entry points. The host integration build, real mining, save/reload and LAN are
+unverified.

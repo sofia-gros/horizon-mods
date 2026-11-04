@@ -587,3 +587,22 @@ fn gem_trait_removal_after_base_reset_clears_armor_flags() {
  assert!(matches!(c.get("tic_armor_toughness"),Some(Tag::Float(v)) if f32::from_bits(*v)==1.0));
  assert!(c.get("tconstruct:diamond_armor").is_none()); assert!(c.get("tic_attack_conditional_multiplier").is_none());
 }
+
+#[test]
+fn resolved_gem_traits_set_harvest_tier_floors_without_lowering() {
+ use std::collections::BTreeMap;
+ let choose=|base,upgrades,traits| tconstruct_source_station_stats::gem_tier_with_traits(base,upgrades,traits,true);
+ let diamond=BTreeMap::from([("tconstruct:diamond".into(),1)]);
+ let emerald=BTreeMap::from([("tconstruct:emerald".into(),1)]);
+ let netherite=BTreeMap::from([("tconstruct:netherite".into(),1)]);
+ let none=[false,false,false]; let empty=BTreeMap::new();
+ assert_eq!(choose(Some("stone"),none,Some(&emerald)),Some("iron"));
+ assert_eq!(choose(Some("stone"),none,Some(&diamond)),Some("diamond"));
+ assert_eq!(choose(Some("diamond"),none,Some(&emerald)),Some("diamond"));
+ assert_eq!(choose(Some("stone"),none,Some(&netherite)),Some("netherite"));
+ assert_eq!(choose(Some("stone"),[true,false,false],Some(&diamond)),Some("diamond"));
+ assert_eq!(choose(Some("stone"),none,Some(&empty)),Some("stone"));
+ assert_eq!(choose(Some("stone"),[false,true,false],None),Some("iron"));
+ assert_eq!(choose(None,none,Some(&netherite)),None);
+ assert_eq!(tconstruct_source_station_stats::gem_tier_with_traits(Some("stone"),none,Some(&diamond),false),Some("stone"));
+}
