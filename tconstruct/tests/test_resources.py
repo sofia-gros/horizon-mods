@@ -85,6 +85,12 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items['tconstruct:amethyst_bronze_ingot']['minecraft:max_stack_size'], 64)
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
                 self.assertEqual((out / 'assets/tconstruct/textures/item/amethyst_bronze_ingot.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
+            backpack = items['tconstruct:piggy_backpack']
+            self.assertEqual(backpack['minecraft:max_stack_size'], 16)
+            self.assertEqual(backpack['minecraft:equippable']['slot'], 'chest')
+            self.assertNotIn('minecraft:item_name', backpack)  # use locale-specific item translation
+            self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/piggy_backpack.json').read_text())['textures']['layer0'], 'tconstruct:item/gadgets/piggy_backpack')
+            self.assertTrue((out / 'assets/tconstruct/textures/item/gadgets/piggy_backpack.png').is_file())
             blood = items['tconstruct:blazing_blood_bucket']
             self.assertEqual(blood['minecraft:cooking_fuel'], {'burn_time': {'type': 'minecraft:div', 'left': 30000, 'right': {'type': 'minecraft:conditional', 'condition': 'minecraft:block/fast_cooking', 'on_false': 'minecraft:cooking/normal_burn_time_reduction_factor', 'on_true': 'minecraft:cooking/fast_burn_time_reduction_factor'}}, 'speed_multiplier': 'minecraft:cooking/speed_default'})
             self.assertNotIn('minecraft:cooking_fuel', items['tconstruct:molten_iron_bucket'])
@@ -172,6 +178,7 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items[names[-1]]['minecraft:max_damage'], 85)
             self.assertEqual(items[names[-1]]['minecraft:tool']['rules'][-1]['speed'], 3.5)
             self.assertEqual(len({ids[name]['protocol_id'] for name in names}), len(names))
+            self.assertEqual(ids['tconstruct:piggy_backpack']['protocol_id'], max(entry['protocol_id'] for entry in ids.values()))
             self.assertTrue((out / 'assets/tconstruct/textures').is_dir())
             self.assertFalse((out / 'assets/tconstruct/textures').is_symlink())
             self.assertTrue((out / 'assets/tconstruct/textures/item/tool/pickaxe/head_tconstruct_flint.png').is_file())
@@ -179,7 +186,13 @@ class ResourceOverlay(unittest.TestCase):
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-part-visuals.zip') as archive:
                 for code in ('en_us', 'ja_jp'):
                     name = f'assets/tconstruct/lang/{code}.json'
-                    self.assertEqual((out / name).read_bytes(), archive.read(name))
+                    actual = json.loads((out / name).read_bytes())
+                    expected = json.loads(archive.read(name))
+                    key = 'item.tconstruct.piggy_backpack'
+                    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
+                    from piggy_labels import mark_unavailable
+                    expected = mark_unavailable(expected, code)
+                    self.assertEqual(actual, expected)
             self.assertTrue((out / 'assets/tconstruct/tinkering/source_part_models/pick_head.json').is_file())
             tool_model = json.loads((out / 'assets/tconstruct/tinkering/source_tool_models/pickaxe.json').read_text())
             self.assertEqual([part['index'] for part in tool_model['parts']], [1, 0, 2])

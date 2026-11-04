@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from piggy_labels import mark_unavailable
 """Create a separate, disposable resource overlay for the prototype."""
 import argparse, copy, hashlib, json, shutil, sys, zipfile
 from pathlib import Path
@@ -115,6 +116,9 @@ food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/encyclopedia.png', mod_assets / 'textures/item/encyclopedia.png')
+piggy_sprite = mod_assets / 'textures/item/gadgets/piggy_backpack.png'
+piggy_sprite.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/gadgets/piggy_backpack.png', piggy_sprite)
 for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime', 'magma'):
     relative = Path('item/bottle') / (contents + '_contents.png')
     destination = mod_assets / 'textures' / relative
@@ -162,6 +166,11 @@ with zipfile.ZipFile(repository / 'content/reference/tconstruct-part-visuals.zip
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
             raise ValueError(f'part visual output exists: {destination}')
+        if relative.startswith('lang/'):
+            language = json.loads(payload)
+            code = Path(relative).stem
+            language = mark_unavailable(language, code)
+            payload = json.dumps(language, ensure_ascii=False).encode('utf-8')
         destination.write_bytes(payload)
         if relative.startswith('textures/') and relative.endswith('.png'):
             sprite = relative.removeprefix('textures/').removesuffix('.png')
@@ -306,6 +315,8 @@ for name in casts:
 for part in ('helmet', 'chestplate', 'leggings', 'boots'):
     short = part + '_plating_dummy'
     entries.append(('tconstruct:' + short, 'minecraft:flint', source_names['item.tconstruct.' + short]))
+# Append after every existing declaration to preserve legacy protocol IDs.
+entries.append(('tconstruct:piggy_backpack', 'minecraft:flint', 'Piggybackpack (mob carrying unavailable)'))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
@@ -319,6 +330,8 @@ for name, template, title in entries:
         item['minecraft:cooking_fuel'] = {'burn_time': {'type': 'minecraft:div', 'left': 30000, 'right': {'type': 'minecraft:conditional', 'condition': 'minecraft:block/fast_cooking', 'on_false': 'minecraft:cooking/normal_burn_time_reduction_factor', 'on_true': 'minecraft:cooking/fast_burn_time_reduction_factor'}}, 'speed_multiplier': 'minecraft:cooking/speed_default'}
     if short in bucket_names:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
+    elif short == 'piggy_backpack':
+        native_model = {'parent': 'minecraft:item/handheld', 'textures': {'layer0': 'tconstruct:item/gadgets/piggy_backpack'}}
     elif short == 'magma_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/magma_contents', 'layer1': 'minecraft:item/potion'}}
     elif short in ('splash_bottle', 'lingering_bottle'):
@@ -372,6 +385,11 @@ for name, template, title in entries:
         layers = ['pickaxe_handle', 'pickaxe_head', 'pickaxe_binding'] if short in ('flint_pickaxe', 'pickaxe') else [short]
         native_model = {'parent': 'minecraft:item/handheld' if short in ('flint_pickaxe', 'pickaxe') else 'minecraft:item/generated', 'textures': {f'layer{i}': 'tconstruct:item/' + layer for i, layer in enumerate(layers)}}
     (mod_assets / 'models/item' / (short + '.json')).write_text(json.dumps(native_model))
+    if short == 'piggy_backpack':
+        # Let the normal translation-key path choose the localized warning.
+        item.pop('minecraft:item_name', None)
+        item['minecraft:max_stack_size'] = 16
+        item['minecraft:equippable'] = {'slot': 'chest', 'equip_sound': 'minecraft:item.armor.equip_generic'}
     if short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}

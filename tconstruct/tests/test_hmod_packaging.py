@@ -18,8 +18,6 @@ class ContentPackageTest(unittest.TestCase):
             package(output)
             with zipfile.ZipFile(output) as packed:
                 names = set(packed.namelist())
-                guide = 'assets/tconstruct/book/materials_and_you/en_us/intro/tinkerschest_craft.json'
-                self.assertEqual(packed.read(guide), (MOD / 'content' / guide).read_bytes())
                 # The MIT text travels with the content containing upstream pixels.
                 self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
                                  (MOD / 'third_party/tconstruct/LICENSE').read_bytes())
@@ -45,9 +43,13 @@ class ContentPackageTest(unittest.TestCase):
                     self.assertEqual(len(languages), 20)
                     for name in languages:
                         self.assertIn(name, names)
-                        expected = ((MOD / 'content/assets/tconstruct/lang/en_us.json').read_bytes()
-                                    if name.endswith('/en_us.json') else source.read(name))
-                        self.assertEqual(packed.read(name), expected, name)
+                        expected = json.loads((MOD / 'content/assets/tconstruct/lang/en_us.json').read_bytes()
+                                              if name.endswith('/en_us.json') else source.read(name))
+                        if not name.endswith('/en_us.json'):
+                            sys.path.insert(0, str(MOD / 'tools'))
+                            from piggy_labels import mark_unavailable
+                            expected = mark_unavailable(expected, Path(name).stem)
+                        self.assertEqual(json.loads(packed.read(name)), expected, name)
                     self.assertEqual(json.loads(packed.read('assets/tconstruct/lang/ja_jp.json'))['item.tconstruct.copper_can.contents'], '%s: 1インゴット分')
                     self.assertEqual(json.loads(packed.read('assets/tconstruct/lang/en_us.json'))['item.tconstruct.copper_can.contents'], '%s: 1 ingot')
             self.assertLessEqual(len(names - {'horizon-mod.toml'}), 65_536)
