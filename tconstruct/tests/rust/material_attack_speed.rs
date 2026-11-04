@@ -5,6 +5,9 @@ extern crate self as horizon_items;
 pub mod items { pub type ItemStack = super::Stack; }
 use std::collections::BTreeMap;
 use std::ops::ControlFlow;
+#[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
+#[path = "../../mixins/tconstruct/modifier-snapshot.rs"] mod tconstruct_modifier_snapshot;
+pub mod first_person { #[derive(PartialEq)] pub enum Hand { Main, Off } }
 pub mod attack_strength { pub const BASE_ATTACK_SPEED: f64 = 4.0; }
 pub mod nbt {
     use super::BTreeMap;
@@ -39,15 +42,35 @@ impl Effects { fn modifiers(&self) -> Vec<(&'static str, &'static str, f64)> { s
 pub struct Potions { effects: Effects }
 pub mod game {
     use super::*;
+    pub(crate) use crate::tconstruct_modifier_snapshot;
+    pub struct Chunks { pub raw: Option<Result<tconstruct_modifier_snapshot::Raw,String>> }
+    impl Chunks { pub fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<tconstruct_modifier_snapshot::Raw,String>> { &self.raw } }
+    pub struct World { pub chunks: Chunks, pub level: Option<i32> }
     pub mod tconstruct_source_ranged_wear { include!("../../mixins/tconstruct/source-ranged-wear.rs"); }
-    pub struct Game<'a> { pub held: Option<Stack>, pub player: Option<Player>, pub potions: Potions, pub marker: std::marker::PhantomData<&'a ()> }
+    // Resource/trait-resolution boundary double; the production helper uses
+    // the existing live world definition resolver and checked upgrade merger.
+    pub mod tconstruct_source_material_traits {
+        use super::*;
+        pub struct Traits(pub i32);
+        pub fn levels(world: &World, _: &Stack) -> Option<Traits> { world.level.map(Traits) }
+        pub fn level_with_upgrade(stack: &Stack, traits: &Traits, id: &str) -> Option<i32> {
+            let saved=stack.data()?.other("minecraft:custom_data")?.get("tic_upgrades");
+            let upgrade=match saved {
+                None=>0,
+                Some(tag @ Tag::Compound(_))=>match tag.get(id) {None=>0,Some(Tag::Int(n)) if *n>=0=>*n,_=>return None},
+                _=>return None,
+            };
+            if traits.0<0 {return None;} traits.0.checked_add(upgrade)
+        }
+    }
+    pub struct Game<'a> { pub world: World, pub hand: first_person::Hand, pub held: Option<Stack>, pub player: Option<Player>, pub potions: Potions, pub marker: std::marker::PhantomData<&'a ()> }
     impl Game<'_> { pub fn held(&self) -> Option<&Stack> { self.held.as_ref() } }
     include!("../../mixins/tconstruct/material-attack-speed.rs");
     pub fn run(game: &Game<'_>) -> ControlFlow<f64> { tconstruct_material_attack_speed(game) }
 }
 use game::run as tconstruct_material_attack_speed;
 fn game(base: f64, speed: f32) -> game::Game<'static> {
-    game::Game { held: Some(Stack { damage:0, item: "tconstruct:sword".into(), data: Some(Data(Tag::Compound(BTreeMap::from([("tic_attack_speed".into(), Tag::Float(speed.to_bits()))])))) }),
+    game::Game { world: game::World { level: Some(0), chunks: game::Chunks { raw: Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/overwield".into(),vec![tconstruct_modifier_snapshot::PINNED_OVERWIELD.to_vec()])]),BTreeMap::new()))) } }, hand: first_person::Hand::Main, held: Some(Stack { damage:0, item: "tconstruct:sword".into(), data: Some(Data(Tag::Compound(BTreeMap::from([("tic_attack_speed".into(), Tag::Float(speed.to_bits()))])))) }),
         player: Some(Player { attributes: Attributes { value: Some(Attribute(base)), valid_handle: true } }), potions: Potions { effects: Effects::default() }, marker: std::marker::PhantomData }
 }
 fn result(g: &game::Game<'_>) -> f64 { match tconstruct_material_attack_speed(g) { ControlFlow::Break(v) => v, _ => panic!("missing replacement") } }
@@ -120,4 +143,57 @@ fn durability(g: &mut game::Game<'_>, maximum: i32, damage: u32, broken: i8) {
     let Tag::Compound(fields)=&mut g.held.as_mut().unwrap().data_mut().0 else { panic!() };
     fields.remove("tic_attack_speed");
     assert_eq!(tconstruct_material_attack_speed(&g),ControlFlow::Continue(()));
+}
+
+fn overslime(g: &mut game::Game<'_>, amount: Tag, upgrade: Tag) {
+    let Tag::Compound(fields)=&mut g.held.as_mut().unwrap().data_mut().0 else {panic!()};
+    fields.insert("tic_overslime".into(),amount);
+    fields.insert("tic_upgrades".into(),Tag::compound([("tconstruct:overwield",upgrade)]));
+}
+#[test] fn overwield_reads_live_slime_and_merged_level_without_rebuilding() {
+    let mut g=game(6.0,2.0);g.world.level=Some(2);
+    for (slime,level) in [(0,0),(1,1),(2,2),(3,3),(99,3)] {
+        overslime(&mut g,Tag::Int(slime),Tag::Int(1));
+        assert_eq!(result(&g),4.0*(1.0+f64::from(level as f32*0.15f32)));
+    }
+    g.world.level=Some(0);overslime(&mut g,Tag::Int(3),Tag::Int(1));
+    assert_eq!(result(&g),4.0*(1.0+f64::from(0.15f32)));
+    g.world.level=None;assert_eq!(result(&g),4.0);
+}
+#[test] fn overwield_keeps_potions_base_broken_gates_and_clamp() {
+    let mut g=game(6.0,2.0);g.world.level=Some(2);overslime(&mut g,Tag::Int(2),Tag::Int(0));
+    g.potions.effects.0=vec![("minecraft:attack_speed","haste",0.2),("minecraft:movement_speed","other",10.0)];
+    assert_eq!(result(&g),4.0*1.2*(1.0+f64::from(0.3f32)));
+    durability(&mut g,100,100,0);assert_eq!(result(&g),6.0*1.2);
+    durability(&mut g,100,0,1);assert_eq!(result(&g),6.0*1.2);
+    durability(&mut g,100,0,0);assert_eq!(result(&g),4.0*1.2*(1.0+f64::from(0.3f32)));
+    g.player.as_mut().unwrap().attributes.value=Some(Attribute(2048.0));assert_eq!(result(&g),1024.0);
+}
+#[test] fn overwield_malformed_negative_or_overflow_levels_supply_no_bonus() {
+    let mut g=game(4.0,2.0);g.world.level=Some(1);
+    for value in [Tag::Int(0),Tag::Int(-1),Tag::Float(1.0f32.to_bits()),Tag::Byte(1)] {
+        overslime(&mut g,value,Tag::Int(1));assert_eq!(result(&g),2.0);
+    }
+    for value in [Tag::Int(-1),Tag::Float(1.0f32.to_bits()),Tag::Int(i32::MAX)] {
+        overslime(&mut g,Tag::Int(10),value);assert_eq!(result(&g),2.0);
+    }
+    g.world.level=Some(-1);overslime(&mut g,Tag::Int(10),Tag::Int(0));assert_eq!(result(&g),2.0);
+}
+
+#[test] fn overwield_requires_exact_highest_definition_and_mainhand() {
+    let mut g=game(4.0,2.0);g.world.level=Some(2);overslime(&mut g,Tag::Int(2),Tag::Int(0));
+    let boosted=result(&g);assert!(boosted>2.0);
+    // held() is the acting stack, including while the host acts with its offhand.
+    g.hand=first_person::Hand::Off;assert_eq!(result(&g),2.0);
+    g.hand=first_person::Hand::Main;assert_eq!(result(&g),boosted);
+    let pinned=tconstruct_modifier_snapshot::PINNED_OVERWIELD;
+    for changed in [b"{}".to_vec(),String::from_utf8(pinned.to_vec()).unwrap().replace("0.15","0.25").into_bytes(),String::from_utf8(pinned.to_vec()).unwrap().replace("mainhand","offhand").into_bytes(),[pinned,b" "].concat()] {
+        g.world.chunks.raw=Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/overwield".into(),vec![pinned.to_vec(),changed])]),BTreeMap::new())));
+        assert_eq!(result(&g),2.0);
+    }
+    for raw in [None,Some(Err("unreadable".into())),Some(Ok((BTreeMap::new(),BTreeMap::new())))] {
+        g.world.chunks.raw=raw;assert_eq!(result(&g),2.0);
+    }
+    g.world.chunks.raw=Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/overwield".into(),vec![b"{}".to_vec(),pinned.to_vec()])]),BTreeMap::new())));
+    assert_eq!(result(&g),boosted);
 }
