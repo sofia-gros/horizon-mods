@@ -328,12 +328,14 @@ fn recipe_graphic(game: &Game<'_>, id: &str, grid_size: &str) -> Option<serde_js
 
 pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) -> Option<Vec<Text>> {
     let (root, book_title) = match book {
+        "tconstruct:fantastic_foundry" => ("assets/tconstruct/book/fantastic_foundry/", "Fantastic Foundry"),
         "tconstruct:puny_smelting" => ("assets/tconstruct/book/puny_smelting/", "Puny Smelting"),
         "tconstruct:mighty_smelting" => ("assets/tconstruct/book/mighty_smelting/", "Mighty Smelting"),
         "tconstruct:encyclopedia" => ("assets/tconstruct/book/encyclopedia/", "Encyclopedia"),
         "tconstruct:materials_and_you" => ("assets/tconstruct/book/materials_and_you/", "Materials & You"),
         _ => return None,
     };
+    let foundry = book == "tconstruct:fantastic_foundry";
     let puny = book == "tconstruct:puny_smelting";
     let mighty = book == "tconstruct:mighty_smelting";
     let encyclopedia = book == "tconstruct:encyclopedia";
@@ -348,6 +350,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         // Only the source introduction is supported for the Encyclopedia.
         if encyclopedia && key != "intro" { continue; }
         if encyclopedia && !super::tconstruct_materials_book_index::mighty_advice_ready([labels.get("intro").copied(), labels.get("intro.partial.notice_title").copied(), labels.get("intro.partial.notice").copied()]) { continue; }
+        if foundry && !matches!(key, "intro" | "foundry") { continue; }
         // Mighty exposes selected source material chapters and the partial advice section.
         let mighty_advice = mighty && key == "tools";
         let mighty_smeltery = mighty && key == "smeltery";
@@ -506,6 +509,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
+            if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "structurereq" | "fgui1" | "fgui2")) { continue; }
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
             if mighty_smeltery && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_smeltery_page) { continue; }
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
@@ -713,7 +717,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
 
 pub(super) fn open(game: &mut Game<'_>, stack: &ItemStack, remote: bool) -> bool {
     let book = &*stack.item;
-    if !matches!(book, "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:encyclopedia" | "tconstruct:materials_and_you") { return false; }
+    if !matches!(book, "tconstruct:fantastic_foundry" | "tconstruct:puny_smelting" | "tconstruct:mighty_smelting" | "tconstruct:encyclopedia" | "tconstruct:materials_and_you") { return false; }
     if remote || game.lan_acting.is_none() {
         let path = game.options.resources.clone();
         let Some(pages) = source_pages(game, &path, book) else { return false; };
