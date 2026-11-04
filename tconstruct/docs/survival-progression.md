@@ -231,8 +231,10 @@ self-drop loot are unchanged. Source-style recipe-book unlock advancements use
 the adapted recipe IDs; runtime unlocking remains unverified. Crafting and placement in a running host, saved
 worlds, and LAN remain unverified.
 
-The partial World Creative tab exposes the registered Necrotic Bone using the
-source World-tab ID and cobalt ore icon. Other World items and source ordering
+The partial World Creative tab exposes cobalt ore and raw forms, Necrotic Bone,
+four source-visible saplings and leaves, and four source-visible slime grass
+seeds using the source World-tab ID and cobalt ore icon. Existing block and seed
+entries in the Blocks tab are retained. Other World items and source ordering
 remain incomplete. This is Creative access only, not survival loot. Both native
 and manual preparation use paged placement; existing tab IDs are retained.
 Actual screen, reload, other-mod combinations and LAN remain unverified.
