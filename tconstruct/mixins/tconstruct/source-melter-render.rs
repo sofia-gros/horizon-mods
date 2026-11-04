@@ -314,6 +314,79 @@ mod fluid_light_tests {
     }
     // Source-order 1.20.1-labelled decompiled oracle at commit 315a03ea;
     // these do not replace an official jar or integrated rendering test.
+    // OpenJDK 21 evaluation of 1.20.1-labelled decompiled Mth.floor at
+    // commit 315a03ea, not an official-jar probe. Retain source boundary bits.
+    #[test] fn floating_color_source_boundary_oracle() {
+        use horizon_world::nbt::Tag;
+        for (value, integer, color) in [
+            (Tag::Float(0x00000000u32), 0i32, 0xff000000u32),
+            (Tag::Float(0x80000000u32), 0i32, 0xff000000u32),
+            (Tag::Float(0x00000001u32), 0i32, 0xff000000u32),
+            (Tag::Float(0x80000001u32), -1i32, 0xffffffffu32),
+            (Tag::Float(0x3e800000u32), 0i32, 0xff000000u32),
+            (Tag::Float(0xbe800000u32), -1i32, 0xffffffffu32),
+            (Tag::Float(0x3fc00000u32), 1i32, 0xff010000u32),
+            (Tag::Float(0xbfc00000u32), -2i32, 0xfffeffffu32),
+            (Tag::Float(0x4affffffu32), 8388607i32, 0xffffff7fu32),
+            (Tag::Float(0x4b000000u32), 8388608i32, 0xff000080u32),
+            (Tag::Float(0x4b7fffffu32), 16777215i32, 0xffffffffu32),
+            (Tag::Float(0x4b800000u32), 16777216i32, 0xff000000u32),
+            (Tag::Float(0x4effffffu32), 2147483520i32, 0xff80ffffu32),
+            (Tag::Float(0x4f000000u32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0x4f000001u32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0xceffffffu32), -2147483520i32, 0xff800000u32),
+            (Tag::Float(0xcf000000u32), -2147483648i32, 0xff000000u32),
+            (Tag::Float(0xcf000001u32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0x7f7fffffu32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0xff7fffffu32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0x7f800000u32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0xff800000u32), 2147483647i32, 0xffffffffu32),
+            (Tag::Float(0x7fc00000u32), 0i32, 0xff000000u32),
+            (Tag::Float(0xffc00000u32), 0i32, 0xff000000u32),
+            (Tag::Float(0x7f800001u32), 0i32, 0xff000000u32),
+            (Tag::Double(0x0000000000000000u64), 0i32, 0xff000000u32),
+            (Tag::Double(0x8000000000000000u64), 0i32, 0xff000000u32),
+            (Tag::Double(0x0000000000000001u64), 0i32, 0xff000000u32),
+            (Tag::Double(0x8000000000000001u64), -1i32, 0xffffffffu32),
+            (Tag::Double(0x3fd0000000000000u64), 0i32, 0xff000000u32),
+            (Tag::Double(0xbfd0000000000000u64), -1i32, 0xffffffffu32),
+            (Tag::Double(0x3ff8000000000000u64), 1i32, 0xff010000u32),
+            (Tag::Double(0xbff8000000000000u64), -2i32, 0xfffeffffu32),
+            (Tag::Double(0x416fffffe0000000u64), 16777215i32, 0xffffffffu32),
+            (Tag::Double(0x4170000000000000u64), 16777216i32, 0xff000000u32),
+            (Tag::Double(0x41dfffffffc00000u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x41dfffffffe00000u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x41dfffffffffffffu64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x41e0000000000000u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x41e0000000000001u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0xc1dfffffffffffffu64), -2147483648i32, 0xff000000u32),
+            (Tag::Double(0xc1e0000000000000u64), -2147483648i32, 0xff000000u32),
+            (Tag::Double(0xc1e0000000000001u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x7fefffffffffffffu64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0xffefffffffffffffu64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x7ff0000000000000u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0xfff0000000000000u64), 2147483647i32, 0xffffffffu32),
+            (Tag::Double(0x7ff8000000000000u64), 0i32, 0xff000000u32),
+            (Tag::Double(0xfff8000000000000u64), 0i32, 0xff000000u32),
+            (Tag::Double(0x7ff0000000000001u64), 0i32, 0xff000000u32),
+        ] {
+            let tag = Tag::compound([("CustomPotionColor", value)]);
+            assert_eq!(super::super::tconstruct_source_fluid_container::display_potion_color(&tag), Some(integer));
+            assert_eq!(super::can_potion_color(&tag), Some(color));
+        }
+    }
+    #[test] fn floating_nbt_potion_colors_and_guest_boundary() {
+        use horizon_world::nbt::Tag;
+        for (value, expected) in [(Tag::Float((-1.25f32).to_bits()), 0xfffeffff),
+            (Tag::Double(1193046.75f64.to_bits()), 0xff563412),
+            (Tag::Double(f64::NEG_INFINITY.to_bits()), 0xffffffff),
+            (Tag::Float(f32::NAN.to_bits()), 0xff000000)] {
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", value)]);
+            assert_eq!(super::can_potion_color(&tag), Some(expected));
+            assert_eq!(super::color_with_complete("tconstruct:potion", Some(&tag), true), expected);
+            assert_eq!(super::color_with_complete("tconstruct:potion", Some(&tag), false), 0xfff800f8);
+        }
+    }
     #[test] fn integer_nbt_potion_colors_use_source_narrowing() {
         use horizon_world::nbt::Tag;
         for (value, expected) in [(Tag::Byte(-128), 0xff80ffff), (Tag::Byte(127), 0xff7f0000),

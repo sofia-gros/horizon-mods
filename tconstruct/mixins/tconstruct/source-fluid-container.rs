@@ -359,8 +359,8 @@ pub(super) fn tank_display_empty_potion(stack: &ItemStack, known: &impl Fn(&str)
     lantern_tank(stack).is_some_and(|tank| tank.amount > 0 && tank.fluid.as_deref() == Some("tconstruct:potion") && empty_potion_tag(tank.tag.as_ref()))
 }
 
-/// Integer NBT color forms accepted by source CompoundTag.getInt. Float and
-/// Double require separate source-floor boundary handling and remain unsupported.
+/// Source CompoundTag.getInt on each numeric NBT type. Float/Double use the
+/// source Mth.floor order: Java saturating cast, comparison, then wrapping decrement.
 pub(super) fn display_potion_color(tag: &horizon_world::nbt::Tag) -> Option<i32> {
     use horizon_world::nbt::Tag;
     match tag.get("CustomPotionColor")? {
@@ -368,6 +368,16 @@ pub(super) fn display_potion_color(tag: &horizon_world::nbt::Tag) -> Option<i32>
         Tag::Short(value) => Some(i32::from(*value)),
         Tag::Int(value) => Some(*value),
         Tag::Long(value) => Some(*value as i32),
+        Tag::Float(bits) => {
+            let value = f32::from_bits(*bits);
+            let integer = value as i32;
+            Some(if value < integer as f32 { integer.wrapping_sub(1) } else { integer })
+        }
+        Tag::Double(bits) => {
+            let value = f64::from_bits(*bits);
+            let integer = value as i32;
+            Some(if value < integer as f64 { integer.wrapping_sub(1) } else { integer })
+        }
         _ => None,
     }
 }
@@ -724,7 +734,9 @@ mod tests {
         use horizon_world::nbt::Tag;
         let can = ItemStack::new("tconstruct:copper_can", 1);
         for color in [Tag::Byte(-128), Tag::Byte(127), Tag::Short(-32768),
-            Tag::Short(32767), Tag::Long(0x1234_5678_9abc_def0), Tag::Long(-1)] {
+            Tag::Short(32767), Tag::Long(0x1234_5678_9abc_def0), Tag::Long(-1),
+            Tag::Float((-1.25f32).to_bits()), Tag::Float(f32::NAN.to_bits()),
+            Tag::Double((-1.25f64).to_bits()), Tag::Double(f64::NEG_INFINITY.to_bits())] {
             for potion in [None, Some("empty"), Some("minecraft:empty"), Some("minecraft:swiftness")] {
                 let mut fields = vec![("CustomPotionColor", color.clone())];
                 if let Some(id) = potion { fields.push(("Potion", Tag::String(id.into()))); }
@@ -738,9 +750,30 @@ mod tests {
                 if potion == Some("minecraft:swiftness") { assert!(potion_tag(&tag, true).is_none()); }
             }
         }
-        for color in [Tag::Float(1.0f32.to_bits()), Tag::Double(1.0f64.to_bits()), Tag::String("red".into())] {
+        for color in [Tag::String("red".into())] {
             let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", color)]);
             assert_eq!(can_display_potion(&can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap(), &known), None);
+        }
+    }
+    // Expected values follow 1.20.1 FloatTag/DoubleTag -> Mth.floor, including
+    // Java saturation, float comparison rounding, and wrapping integer subtraction.
+    #[test]
+    fn floating_potion_colors_match_source_floor_boundaries() {
+        use horizon_world::nbt::Tag;
+        for (value, expected) in [
+            (Tag::Float(1.75f32.to_bits()), 1), (Tag::Float((-1.25f32).to_bits()), -2),
+            (Tag::Float(f32::NAN.to_bits()), 0), (Tag::Float(f32::INFINITY.to_bits()), i32::MAX),
+            (Tag::Float(f32::NEG_INFINITY.to_bits()), i32::MAX),
+            (Tag::Float((-2147483904.0f32).to_bits()), i32::MAX),
+            (Tag::Float(2147483648.0f32.to_bits()), i32::MAX),
+            (Tag::Double(1.75f64.to_bits()), 1), (Tag::Double((-1.25f64).to_bits()), -2),
+            (Tag::Double(f64::NAN.to_bits()), 0), (Tag::Double(f64::INFINITY.to_bits()), i32::MAX),
+            (Tag::Double(f64::NEG_INFINITY.to_bits()), i32::MAX),
+            (Tag::Double((-2147483648.5f64).to_bits()), i32::MAX),
+            (Tag::Double(2147483648.0f64.to_bits()), i32::MAX),
+        ] {
+            let tag = Tag::compound([("CustomPotionColor", value)]);
+            assert_eq!(display_potion_color(&tag), Some(expected));
         }
     }
     #[test]
