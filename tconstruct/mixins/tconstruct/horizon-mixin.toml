@@ -5149,3 +5149,37 @@ ordinal = 0
 result = "()"
 helper = "source-blazing-barter-function.rs"
 bindings = [{ name = "kind", ty = "&str", value = "kind" }, { name = "data", ty = "&serde_json::Value", value = "data" }, { name = "stack", ty = "&mut LootStack", value = "&mut *stack" }]
+
+[[module]]
+id = "source-cheese-remainder"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_cheese_remainder"
+source = "source-cheese-remainder.rs"
+
+[[injection]]
+id = "source-cheese-duration"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_duration"
+kind = "HEAD"
+helper = "source-cheese-duration.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "duration", ty = "&mut i32", value = "&mut *duration" }]
+
+[[injection]]
+id = "source-cheese-animation"
+target = "horizon_client::game::native_hooks::Game<'_>::native_use_animation"
+kind = "HEAD"
+helper = "source-cheese-animation.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "animation", ty = "&mut horizon_world::consumable::UseAnimation", value = "&mut *animation" }]
+
+[[injection]]
+id = "source-cheese-finish"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_finish"
+kind = "HEAD"
+helper = "source-cheese-finish.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "result", ty = "&mut Option<horizon_client::items::ItemStack>", value = "&mut *result" }]
+
+[[injection]]
+id = "source-cheese-start"
+target = "horizon_client::game::native_hooks::Game<'_>::native_living_entity_use_item_start"
+kind = "HEAD"
+helper = "source-cheese-start.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "stack", ty = "&horizon_client::items::ItemStack", value = "stack" }, { name = "entity", ty = "Option<i32>", value = "entity" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]

@@ -1,4 +1,4 @@
-"""Partial Cheese Block registration; eating is deliberately unsupported."""
+"""Cheese Block registration; standalone content stays non-edible."""
 import hashlib,json,sys,tempfile,unittest,zipfile
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -10,7 +10,7 @@ class CheeseBlock(unittest.TestCase):
  def test_registration_assets_and_conversions(self):
   decl=json.loads((ROOT/'content/data/tconstruct/horizon/block/cheese_block.json').read_text())
   self.assertEqual(decl['template'],'minecraft:glass')
-  self.assertNotIn('minecraft:food',decl.get('components',{}))
+  self.assertNotIn('minecraft:food',decl.get('components',{})); self.assertNotIn('minecraft:consumable',decl.get('components',{}))
   self.assertEqual(decl['properties'],{'hardness':1.5,'explosion_resistance':3.0,'requires_tool':False,'sounds':'minecraft:honey_block','map_color':18})
   for path,sha in [('blockstates/cheese_block.json','b561dc7ba02c77149a67bf013490f71b5ce601ee'),('models/block/storage/cheese.json','d60da4bdc72535a9ddaf2d5f2fa66968ffcbfc36'),('textures/block/storage/cheese_block_inner.png','7c655f5c77b13928c576c03889684a1c70104cc2'),('textures/block/storage/cheese_block_outer.png','e2ade6ada593ea5898278357889e50dd98b6641b')]:
    self.assertEqual(blob((ROOT/'content/assets/tconstruct'/path).read_bytes()),sha)
