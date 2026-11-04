@@ -478,3 +478,28 @@ repair invalidates the old matching frame before a fresh frame restores the
 bonus. Source/tag/actor lookup, incremental arithmetic, float output pipeline,
 and chest-only scope are unchanged. No full generated-host build, gameplay,
 LAN, or Windows validation was run.
+
+## Conditional mining broken-flag guard
+
+The supported conditional tool mining hooks and Airborne now ignore tools
+whose saved `tic_broken` is a nonzero Byte, even when damage remains below the
+saved maximum. Pinned
+[`ToolEvents.onBreakSpeed`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/logic/ToolEvents.java)
+skips all tool BREAK_SPEED modifiers when `tool.isBroken()`. Airborne is a
+[BREAK_SPEED modifier](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/airborne.json),
+so its separate multiplier entry point needs the same guard.
+
+This uses the existing retained-tool flag representation, leaves all maximum,
+damage, effectiveness, context, and modifier-order checks intact, and does not
+change stack data. Clearing or removing the flag restores the prior hook
+calculation when the remaining gates permit it. Wrong-typed flags retain the
+existing unflagged behavior. The caller retains its incoming speed and still
+applies an independent armor multiplier. Base Tool speed projection, harvest
+eligibility, and source-wide broken-tool cancellation are outside this slice;
+this is not complete broken mining parity.
+
+The actual-helper integration harness activates each of the eight supported
+conditional mining modifiers and separately tests Airborne. It covers positive
+and negative nonzero flags, ineffective-tool cases, retained durability gates,
+repair, non-mutation, and preservation of the separate armor multiplication.
+No full generated-host build, gameplay, LAN, or Windows validation was run.

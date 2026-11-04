@@ -369,3 +369,54 @@ fn chest_haste_wire_broken_flag_suppresses_upgrade_and_trait() {
     assert_eq!(matching_level(Some(&repaired),Some(&chest)),Some(2));
     assert!(evaluate(&chest,repaired.1)>1.0);
 }
+
+#[test]
+fn conditional_mining_flag_only_breakage_skips_supported_hooks() {
+    use tconstruct_source_mining_rules::{conditional_with_water,airborne_multiplier,finish_mining_speed};
+    let custom=|id:&str,level,flag:Option<Tag>| {
+        let mut entries=vec![
+            ("tic_max_damage",Tag::Int(100)),("tic_overslime",Tag::Int(10)),
+            ("tic_mining_traits",Tag::List(vec![Tag::compound([("id",Tag::String(id.into())),("level",Tag::Int(level))])])),
+        ];
+        if let Some(flag)=flag {entries.push(("tic_broken",flag));}
+        Tag::compound(entries)
+    };
+    let run=|data:&Tag,damage,effective,not_required|conditional_with_water(data,damage,4.0,1.0,Some((0,320)),effective,not_required,Some(false),Some(3.0),Some(false));
+    for (id,level) in [("tconstruct:jagged",1),("tconstruct:stonebound",1),("tconstruct:maintained",1),("tconstruct:dwarven",1),("tconstruct:crumbling",1),("tconstruct:blasting",20),("tconstruct:hydraulic",36),("tconstruct:overwield",1)] {
+        let intact=custom(id,level,None);
+        let expected=run(&intact,25,true,true).unwrap();
+        assert_ne!(expected,4.0,"fixture must activate {id}");
+        for flag in [1,-1,127,-128] {
+            let broken=custom(id,level,Some(Tag::Byte(flag)));let before=broken.clone();
+            for damage in [0,25,99,100] {
+                for (effective,not_required) in [(true,true),(true,false),(false,true),(false,false)] {
+                    assert_eq!(run(&broken,damage,effective,not_required),None);
+                }
+            }
+            assert_eq!(broken,before);
+            // The production caller retains host speed when the hook is absent.
+            // Separate armor multiplication must not be suppressed by this tool.
+            assert_eq!(finish_mining_speed(run(&broken,25,true,true).unwrap_or(4.0),1.2),4.0f32*1.2);
+        }
+        for flag in [None,Some(Tag::Byte(0)),Some(Tag::Int(1)),Some(Tag::String("true".into()))] {
+            let repaired=custom(id,level,flag);
+            assert_eq!(run(&repaired,25,true,true).unwrap().to_bits(),expected.to_bits());
+            assert_eq!(run(&repaired,100,true,true),None);
+            assert_eq!(run(&repaired,25,false,false),None);
+        }
+    }
+    // Airborne has its own post-hook entry point and also works on ineffective tools.
+    let intact=custom("tconstruct:airborne",1,None);
+    assert_eq!(airborne_multiplier(&intact,25,false),5.0);
+    for flag in [1,-1,127,-128] {
+        let broken=custom("tconstruct:airborne",1,Some(Tag::Byte(flag)));
+        assert_eq!(airborne_multiplier(&broken,25,false),1.0);
+        assert_eq!(airborne_multiplier(&broken,25,true),1.0);
+    }
+    for flag in [None,Some(Tag::Byte(0)),Some(Tag::Int(1))] {
+        let repaired=custom("tconstruct:airborne",1,flag);
+        assert_eq!(airborne_multiplier(&repaired,25,false),5.0);
+        assert_eq!(airborne_multiplier(&repaired,25,true),1.0);
+        assert_eq!(airborne_multiplier(&repaired,100,false),1.0);
+    }
+}

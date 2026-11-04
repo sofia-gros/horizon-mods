@@ -74,6 +74,7 @@ mod haste_tests {
 // Airborne's percent module runs after flat mining bonuses and does not
 // require an effective tool. A broken tool cannot apply modifiers.
 pub(super) fn airborne_multiplier(custom: &Tag, damage: u32, on_ground: bool) -> f32 {
+    if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return 1.0; }
     if on_ground { return 1.0; }
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return 1.0; };
     if *max <= 0 || damage >= *max as u32 { return 1.0; }
@@ -178,6 +179,8 @@ pub(super) fn conditional_with_resistance(custom: &Tag, damage: u32, speed: f32,
 }
 
 pub(super) fn conditional_with_water(custom: &Tag, damage: u32, speed: f32, potion_multiplier: f32, position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, broad: Option<bool>, resistance: Option<f32>, water: Option<bool>) -> Option<f32> {
+    // Source skips all tool break-speed modifier hooks while broken.
+    if matches!(custom.get("tic_broken"), Some(Tag::Byte(value)) if *value != 0) { return None; }
     let Some(Tag::Int(max)) = custom.get("tic_max_damage") else { return None; };
     if *max <= 0 || damage >= *max as u32 { return None; }
     let Some(Tag::List(modifiers)) = custom.get("tic_mining_traits") else { return None; };
