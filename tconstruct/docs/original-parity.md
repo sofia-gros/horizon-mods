@@ -1092,3 +1092,5 @@ conversion, including its boundary behavior. Portable views preserve the
 original floating-point bits; local complete machine color uses the converted
 tint, and guest fallback and transfer parsing remain unchanged. Integrated
 GUI, save/reload, resource packs and LAN are not verified.
+
+Bacon retains the source food nutrition 4 and saturation modifier 0.6, which translates to 4.8 saturation points in the current host. It is listed in the partial General creative tab. The Windows preparation flow reads its existing content declaration after the manual overlay; final prepared resources have not been verified. The source Tasty bacon loot injection and normal acquisition remain unverified; actual eating, saves and LAN remain unverified.
