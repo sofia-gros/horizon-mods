@@ -154,3 +154,40 @@ The pinned source smelts or blasts an item in `forge:raw_nuggets/knightmetal` in
 ## Knightmetal storage conversions
 
 The pinned source's Knightmetal Nugget, Ingot and Block conversions are registered, using additive Forge knightmetal tags. Shaped compression requires the corresponding TConstruct item in the center and eight tagged items around it; unpacking a block or ingot yields nine ingots or nuggets. Source and registration tests pass. Existing Forge namespace ownership and `remove` limitations apply. Actual crafting, resource loading, packaging, recipe-book display, save/reload and LAN remain unverified.
+
+## Seared Reinforcement casting
+
+The pinned source recipe casts one Seared Reinforcement on a Casting Table
+from one consumed Pattern and 250 mB of either Seared Stone or Scorched Stone,
+with an 89-tick cooling time. The result item and the original item model and
+texture are packaged. Its neutral brick template does not add furnace fuel.
+The ordinary casting catalog now resolves simple arrays of at least two fluid
+alternatives when every entry is supported and has the same amount. Unsupported
+or different-amount alternatives fail closed; tagged fluid metadata handling
+and other casting serializers are unchanged. In the fixed recipe archive this
+is the only ordinary casting recipe using a fluid array, though compatible
+custom datapacks can also use this subset.
+
+Targeted parser, catalog and casting-state fixtures exercise both fluids,
+rejected alternatives, pattern consumption and the cooling boundary. The
+hmod and host resource-overlay checks include the result item and original
+TConstruct MIT license. Full host compilation, real-world crafting, datapack
+reload, modifier application, visual rendering and LAN remain unverified.
+
+To reproduce the Rust fixture, use a local checkout or staged workspace of the
+pinned Horizon host with its Cargo dependencies already cached. The runner
+requires a clean tracked host checkout at revision `0c7b5b61` and rejects
+resolved package versions, sources or checksums absent from that host's lockfile:
+
+```sh
+CARGO_HOME=/path/to/cached-cargo HORIZON_HOST=/path/to/horizon \
+  tconstruct/tests/run_seared_reinforcement_rust.sh
+```
+
+Set `CARGO_HOME` to the Cargo home holding the pinned host's downloaded crates
+and registry index. If it is omitted, Cargo uses its normal default. Set
+`CARGO_TARGET_DIR` to reuse compiled artifacts. The runner is offline, so a
+missing dependency or index entry must be populated separately; it does not
+build or test the complete game. Its temporary manifest starts from the pinned
+host lock, verifies every resolved version, source and checksum against that
+lock, and runs with `--locked`.
