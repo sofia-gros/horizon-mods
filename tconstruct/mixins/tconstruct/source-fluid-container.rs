@@ -41,6 +41,7 @@ fn bottle_fluid(item: &str) -> Option<&'static str> {
 }
 fn filled_bottle(fluid: &str) -> Option<&'static str> {
     match fluid {
+        "tconstruct:venom" | "tconstruct:flowing_venom" => Some("tconstruct:venom_bottle"),
         "tconstruct:magma" => Some("tconstruct:magma_bottle"),
         "tconstruct:earth_slime" => Some("tconstruct:earth_slime_bottle"),
         "tconstruct:sky_slime" => Some("tconstruct:sky_slime_bottle"),
@@ -751,6 +752,58 @@ mod tests {
         assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
         assert_eq!(tank.amount("minecraft:lava"), 90);
         assert_eq!(can_fluid(slots[1].as_ref().unwrap()), Some(None));
+    }
+    #[test]
+    fn glass_bottle_fills_with_venom_atomically() {
+        let mut tank = SmelteryTank::new(1500);
+        assert!(tank.insert("minecraft:lava", 1000));
+        assert!(tank.insert("tconstruct:venom", 249));
+        let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 2)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:venom"), &known, &known));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(tank.insert("tconstruct:venom", 1));
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer_selected(&mut tank, &mut slots, Direction::EmptyItem, Some("tconstruct:venom"), &known, &known));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(!transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:venom"), &|id| id != "tconstruct:venom_bottle", &known));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(!transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:venom"), &known, &|_| false));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:venom"), &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(tank.amount("tconstruct:venom"), 0);
+        assert_eq!(slots[0].as_ref().unwrap().count, 1);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "tconstruct:venom_bottle");
+    }
+    #[test]
+    fn venom_fill_accepts_both_pinned_fluid_ids_and_single_tank() {
+        for fluid in ["tconstruct:venom", "tconstruct:flowing_venom"] {
+            let mut tank = super::super::tconstruct_source_melter_state::Tank::new(250);
+            assert!(tank.insert(fluid, 250));
+            let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), None];
+            assert!(transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
+            assert_eq!(tank.amount, 0);
+            assert!(slots[0].is_none());
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "tconstruct:venom_bottle");
+        }
+    }
+    #[test]
+    fn venom_fill_refuses_tagged_fluid_and_blocked_output() {
+        use horizon_world::nbt::Tag;
+        let mut tank = SmelteryTank::new(250);
+        let tag = Tag::compound([("example", Tag::Int(1))]);
+        assert!(tank.insert_tagged("tconstruct:venom", Some(&tag), 250));
+        let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!((tank, slots), before);
+        let mut tank = SmelteryTank::new(250);
+        assert!(tank.insert("tconstruct:venom", 250));
+        let mut slots = [Some(ItemStack::new("minecraft:glass_bottle", 1)), Some(ItemStack::new("minecraft:stone", 1))];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!((tank, slots), before);
     }
     #[test]
     fn venom_bottle_returns_glass_only_after_full_transfer() {
