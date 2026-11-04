@@ -37,7 +37,9 @@ pub(super) fn conditional_speed_for_resistance(speed: f32, loss: u32, maximum: u
 /// `water` is Some(aqua_affinity) only when the actor's eyes are in water.
 pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u32, durability_all: f32,
     mining_all: f32, modifiers: &[Conditional], position: Option<(i32, i32)>, effective: bool, tool_not_required: bool, resistance: Option<f32>, water: Option<bool>) -> f32 {
-    let wear = (loss as f32 / durability_all.max(f32::MIN_POSITIVE)).sqrt() * 0.01;
+    // Preserve the existing invalid-durability floor; source factor evaluation
+    // multiplies the square root by level before the signed coefficient.
+    let wear = (loss as f32 / durability_all.max(f32::MIN_POSITIVE)).sqrt();
     let half = maximum as f32 * 0.5;
     let remaining = maximum.saturating_sub(loss) as f32;
     let maintained = if half > 0.0 { ((remaining - half) / half).clamp(0.0, 1.0) } else { 0.0 };
@@ -67,8 +69,8 @@ pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u
     }
     for modifier in modifiers {
         match *modifier {
-            Conditional::Jagged(level) if effective => speed *= 1.0 - wear * level.max(0) as f32,
-            Conditional::Stonebound(level) if effective => speed *= 1.0 + wear * level.max(0) as f32,
+            Conditional::Jagged(level) if effective => speed *= 1.0 + (wear * level.max(0) as f32) * -0.01,
+            Conditional::Stonebound(level) if effective => speed *= 1.0 + (wear * level.max(0) as f32) * 0.01,
             Conditional::Overwield(level, overslime, broad) if effective => {
                 let cost = if broad { 5 } else { 1 };
                 let used = overslime.max(0).min(level.max(0).saturating_mul(cost));
