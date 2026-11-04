@@ -701,3 +701,20 @@ fn emerald_casting_repair_trait_is_flat_and_mixed_hooks_remain_closed() {
  let repair=(101.0f32*(2.0/3.0)*factor(&emerald,true).unwrap()) as u32;
  assert_eq!(repair,101);
 }
+
+#[test]
+fn dense_repair_high_levels_keep_source_rounding_at_cast_boundary() {
+ use std::collections::BTreeMap;
+ for level in 6..=10 {
+  let expected=(1.0f32+(-0.5 + -0.05*level as f32)).max(0.0);
+  assert_eq!(tconstruct_source_material_effects::dense_repair_factor(level).to_bits(),expected.to_bits());
+  let traits=BTreeMap::from([("tconstruct:dense".into(),level)]);
+  assert_eq!(tconstruct_source_material_effects::limited_casting_repair_factor(&traits,false).unwrap().to_bits(),expected.to_bits());
+ }
+ assert_eq!(tconstruct_source_material_effects::dense_repair_factor(11),0.0);
+ assert_eq!(tconstruct_source_material_effects::dense_repair_factor(i32::MAX),0.0);
+ let seven=tconstruct_source_material_effects::limited_casting_repair_factor(&BTreeMap::from([("tconstruct:dense".into(),7)]),false).unwrap();
+ let eight=tconstruct_source_material_effects::limited_casting_repair_factor(&BTreeMap::from([("tconstruct:dense".into(),8)]),false).unwrap();
+ assert_eq!((20.0f32*seven) as u32,2);
+ assert_eq!((10.0f32*eight) as u32,1);
+}

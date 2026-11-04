@@ -49,7 +49,6 @@ pub(super) fn ordered_emerald_repair_amount(stack: &horizon_items::items::ItemSt
             "tconstruct:emerald" if level > 0 => 1.5,
             "tconstruct:cultivated" => 1.0 + 0.5 * level as f32,
             "tconstruct:preserved" => 1.0 + 0.15 * level as f32,
-            "tconstruct:dense" if level >= 6 => 1.0 + (-0.5 + -0.05 * level as f32),
             "tconstruct:dense" => dense_repair_factor(level),
             _ => 1.0,
         };
@@ -77,7 +76,9 @@ pub(super) fn dense_repair_factor(level: i32) -> f32 {
     match level {
         i32::MIN..=0 => 1.0,
         1..=5 => 1.0 - 0.025 * level as f32 * (11 - level) as f32,
-        _ => (0.5 - 0.05 * level as f32).max(0.0),
+        // Source fallback evaluates 1 + (flat + per-level), not the
+        // algebraically equivalent 0.5 - 0.05 * level; f32 rounding differs.
+        _ => (1.0 + (-0.5 + -0.05 * level as f32)).max(0.0),
     }
 }
 

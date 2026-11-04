@@ -284,3 +284,13 @@ unknown traits, broken tools and combinations with another active repair factor.
 The tool is rebuilt and validated before the existing transaction proceeds.
 Focused factor and static wiring tests cover this narrow path; actual casting,
 fluid/input consumption, host integration, save/reload and LAN remain unverified.
+
+## Dense repair rounding at high levels
+
+Dense repair levels 6 and above now use the source float evaluation order,
+`1 + (-0.5 + -0.05 * level)`, before applying the factor. This affects the
+existing Station and limited casting repair calculations. At level 7 and an
+initial repair amount of 20, source truncation yields 2 rather than 3; level 8
+and amount 10 yields 1 rather than 0. Mixed-factor Station ordering and casting
+restrictions are unchanged. Focused tests cover the factor and arithmetic;
+actual repair transactions, host integration, save/reload and LAN are unverified.
