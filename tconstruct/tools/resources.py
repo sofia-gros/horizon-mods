@@ -108,6 +108,9 @@ for path in sorted(pattern_source.glob('*.png')):
 mod_assets = assets / 'tconstruct'
 mod_assets.mkdir()
 shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'textures')
+seared_reinforcement_sprite = mod_assets / 'textures/item/materials/reinforcement/seared.png'
+seared_reinforcement_sprite.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/reinforcement/seared.png', seared_reinforcement_sprite)
 food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
@@ -234,6 +237,7 @@ entries = [
     ('tconstruct:modifier_crystal', 'minecraft:flint', 'Modifier Crystal'),
     ('tconstruct:emerald_reinforcement', 'minecraft:flint', 'Emerald Reinforcement'),
     ('tconstruct:slimesteel_reinforcement', 'minecraft:flint', 'Slimesteel Reinforcement'),
+    ('tconstruct:seared_reinforcement', 'minecraft:brick', 'Seared Reinforcement'),
     ('tconstruct:seared_brick', 'minecraft:flint', 'Seared Brick'),
     ('tconstruct:scorched_brick', 'minecraft:flint', 'Scorched Brick'),
 ]
@@ -326,7 +330,7 @@ for name, template, title in entries:
     elif short in ('earth_slime_bottle', 'sky_slime_bottle', 'ichor_slime_bottle', 'ender_slime_bottle'):
         contents = 'ichor' if short == 'ichor_slime_bottle' else short.removesuffix('_bottle')
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/' + contents + '_contents', 'layer1': 'minecraft:item/potion'}}
-    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement'):
+    elif short in ('emerald_reinforcement', 'slimesteel_reinforcement', 'seared_reinforcement'):
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/materials/reinforcement/' + short.removesuffix('_reinforcement')}}
     elif short in ('steel_ingot', 'slimesteel_ingot', 'rose_gold_ingot', 'pig_iron_ingot', 'cinderslime_ingot', 'queens_slime_ingot', 'manyullyn_ingot', 'hepatizon_ingot', 'soulsteel_ingot', 'knightmetal_ingot', 'knightslime_ingot'):
         texture = 'pigiron_ingot' if short == 'pig_iron_ingot' else short
