@@ -1,0 +1,12 @@
+{
+  "title": "Foundry Basics",
+  "text": [
+    {
+      "text": "A foundry melts items and can hold multiple molten fluids without alloying them together."
+    },
+    {
+      "text": "A larger structure increases storage capacity. Some recipes can produce byproducts, but supported fuels, recipes and outputs are limited in this version.",
+      "paragraph": true
+    }
+  ]
+}

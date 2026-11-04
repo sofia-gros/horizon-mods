@@ -116,7 +116,8 @@ source Earth 4+0..2 height and Sky 5+0..3 height with its one-in-ten doubling;
 planted Sky trees do not have the island tree's vines. It checks the source
 slimy-soil and leaves tags, only replaces air or leaves, and declines a tree
 at an unloaded chunk boundary rather than writing to ungenerated chunks. That
-loaded-area guard is a conservative runtime limitation.
+loaded-area guard checks every intersecting chunk, including middle chunks,
+and is a conservative runtime limitation.
 
 The target Mixins plan, type compatibility, normal and bone-meal growth, RNG
 order, blocked placement, cross-chunk behavior, soil survival, original leaf
@@ -222,6 +223,8 @@ bone-meal success chance. This candidate connects stage-1 growth to the Ender
 tree placement code; it retains the water at the sapling position and restores
 the sapling if placement fails. Growth is deferred when the surrounding
 chunks are not loaded, which is a conservative difference from the source.
+Planted stage-1 propagules refuse bone meal at that boundary so it is not
+consumed without a growth attempt; hanging propagule aging is unchanged.
 Exact waterlogging, placement,
 leaf drop predicates, hook ordering, game behavior, persistence and LAN require
 validation. Dedicated-server coverage and normal Ender tree acquisition are
@@ -398,3 +401,10 @@ The four slime dirt types have their pinned-source blast-furnace recipes: one
 Earth, Sky, Ichor or Ender slime dirt yields its matching crystal with a base cooking time of 400 ticks
 and 0.2 experience. The host may alter cooking time based on fuel speed. These are data declarations and source-comparison tests;
 resource preparation, in-game furnace use, save/reload and LAN remain unverified.
+
+Blood and Ichor Slime Fern now drop themselves on ordinary break, with the
+source explosion-survival condition. The other slime ferns and all five tall
+grasses retain their shears condition. This is a loot-table correction only;
+live breaking, explosions, resource-pack overrides, save/reload, and LAN have
+not been tested. Forge's extensible shearing actions are not equivalent to
+Horizon 0c7b5b61's vanilla-shears-only condition for the other eight plants.

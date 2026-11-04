@@ -14,6 +14,14 @@ class PotionGaugeNames(unittest.TestCase):
         self.assertIn('unwrap_or_else(|| "fluid.tconstruct.potion".into())', gauge)
         self.assertIn('Text::translate(&key, &[])', gauge)
 
+    def test_milk_uses_the_shared_display_name_with_fallback(self):
+        gauge = (ROOT / 'source-gauge.rs').read_text()
+        self.assertIn('display_fluid == "minecraft:milk"', gauge)
+        self.assertIn('tconstruct_source_melter_render::fluid_name(game, display_fluid)', gauge)
+        render = (ROOT / 'source-melter-render.rs').read_text()
+        self.assertIn('fluid_type.minecraft.milk', render)
+        self.assertIn('unwrap_or_else(|| "Milk".to_owned())', render)
+
     def test_host_harness_module_is_in_ci(self):
         workflow = (ROOT.parents[2] / '.github' / 'workflows' / 'mixins.yml').read_text()
         self.assertIn('tconstruct_source_smeltery_fuel::tests', workflow)

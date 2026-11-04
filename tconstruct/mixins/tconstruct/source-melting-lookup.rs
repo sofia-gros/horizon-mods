@@ -551,7 +551,7 @@ impl Catalog<'_> {
         let in_tag = |tag: &str, id: &str| self.item_tags.get(tag).is_some_and(|values| values.contains(id));
         let mut found: Option<(String, CastingRecipe, String)> = None;
         for (id, bytes) in self.recipes {
-            let Some(recipe) = CastingRecipe::parse(bytes, conditions) else { continue; };
+            let Some(recipe) = CastingRecipe::parse_for_fluid(bytes, conditions, &|spec| self.matches_fluid(spec, fluid)) else { continue; };
             if recipe.basin != basin || !self.matches_fluid(&recipe.fluid, fluid) { continue; }
             let matched = match (&recipe.cast, input) {
                 (None, None) => true,
@@ -667,6 +667,9 @@ mod tests {
         assert!(catalog.casting(true, Some("minecraft:apple"), "tconstruct:molten_diamond", &|_| true).is_none());
         assert!(catalog.casting(false, None, "tconstruct:molten_diamond", &|_| true).is_none());
         assert!(catalog.casting(false, Some("minecraft:apple"), "minecraft:water", &|_| true).is_none());
+        let missing_result = HashSet::from(["minecraft:apple".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &missing_result, known_fluids: &known_fluids };
+        assert!(catalog.casting(false, Some("minecraft:apple"), "tconstruct:molten_diamond", &|_| true).is_none());
     }
     #[test]
     fn mighty_smelting_book_uses_the_source_table_recipe() {
@@ -949,12 +952,12 @@ mod tests {
 /// Resolve the source pack's tank-fluid tags without registering flowing
 /// world fluids. These IDs describe contents held by the melter; world-fluid
 /// placement remains separate. Only source TConstruct IDs and the native
-/// water/lava families are admitted; unrelated mods are not assumed present.
+/// water/lava and Forge milk families are admitted; unrelated mods are not assumed present.
 pub(super) fn tank_fluid_tags(
     raw: &BTreeMap<String, Vec<Vec<u8>>>,
     source_fluids: &HashSet<String>,
 ) -> Result<(HashSet<String>, HashMap<String, HashSet<String>>), String> {
-    let mut fluids: HashSet<String> = ["minecraft:empty", "minecraft:water", "minecraft:flowing_water", "minecraft:lava", "minecraft:flowing_lava"]
+    let mut fluids: HashSet<String> = ["minecraft:empty", "minecraft:water", "minecraft:flowing_water", "minecraft:lava", "minecraft:flowing_lava", "minecraft:milk", "minecraft:flowing_milk"]
         .into_iter().map(str::to_owned).collect();
     // Only IDs from the retained upstream catalog are virtual tank contents;
     // a datapack tag cannot invent a registered fluid by itself.
@@ -966,6 +969,27 @@ pub(super) fn tank_fluid_tags(
 #[cfg(test)]
 mod fluid_tag_tests {
     use super::*;
+    #[test]
+    fn forge_milk_tags_enable_head_melting_and_cheese_casting() {
+        // Pinned Forge 47.4.0 milk tag and TConstruct f4e77d43 recipes.
+        let raw = [("forge:milk".into(), vec![br#"{"values":[{"id":"minecraft:milk","required":false},{"id":"minecraft:flowing_milk","required":false}]}"#.to_vec()])].into_iter().collect();
+        let (fluids, tags) = tank_fluid_tags(&raw, &HashSet::new()).unwrap();
+        assert_eq!(tags["forge:milk"], HashSet::from(["minecraft:milk".into(), "minecraft:flowing_milk".into()]));
+        let recipes = [
+            ("head".into(), br#"{"type":"tconstruct:melting","ingredient":[{"item":"minecraft:skeleton_skull"},{"item":"minecraft:wither_skeleton_skull"},{"item":"tconstruct:stray_head"}],"result":{"amount":250,"fluid":"minecraft:milk"},"temperature":0,"time":47}"#.to_vec()),
+            ("cheese".into(), br#"{"type":"tconstruct:casting_basin","cooling_time":6000,"fluid":{"amount":1000,"tag":"forge:milk"},"result":"tconstruct:cheese_block"}"#.to_vec()),
+        ].into_iter().collect();
+        let item_tags = HashMap::new();
+        let items = HashSet::from(["minecraft:skeleton_skull".into(), "tconstruct:cheese_block".into()]);
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids };
+        let (_, melt, fluid) = catalog.melting("minecraft:skeleton_skull", &|_| true).unwrap();
+        assert_eq!((fluid.as_str(), melt.output.amount), ("minecraft:milk", 250));
+        for fluid in ["minecraft:milk", "minecraft:flowing_milk"] {
+            let (_, recipe, result) = catalog.casting(true, None, fluid, &|_| true).unwrap();
+            assert_eq!((result.as_str(), recipe.fluid.amount), ("tconstruct:cheese_block", 1000));
+        }
+        assert!(catalog.casting(true, None, "other:milk", &|_| true).is_none());
+    }
     #[test]
     fn resolves_source_copper_without_assuming_other_mod_fluids() {
         let raw = [

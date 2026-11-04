@@ -37,6 +37,28 @@ impl Tank {
         value.insert("amount".into(), Tag::Int(self.amount as i32));
         Tag::Compound(value)
     }
+    /// Patch only owned fields; retain extension data when a machine mutates
+    /// a tank it has already decoded. Malformed raw state fails closed.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        // The existing decoder is lossy; do not turn an invalid UTF-16 ID
+        // into a different identifier while patching this tank.
+        if let Some(Tag::String(id)) = raw.get("fluid") { id.to_string().ok()?; }
+        Self::from_nbt(raw, self.capacity)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for key in ["fluid", "fluid_tag", "amount"] {
+            fields.remove(&key.into());
+            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+        }
+        Some(Tag::Compound(fields))
+    }
+    /// Patch a normal fuel tank while retaining unrelated native extension data.
+    /// Legacy Forge aliases were discarded by the old fuel-tank serializer.
+    pub(super) fn to_nbt_preserving_fuel(&self, raw: &Tag) -> Option<Tag> {
+        let Tag::Compound(mut fields) = self.to_nbt_preserving(raw)? else { return None; };
+        for key in ["FluidName", "Amount", "Tag"] { fields.remove(&key.into()); }
+        Some(Tag::Compound(fields))
+    }
     pub(super) fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };
         if amount > capacity { return None; }
@@ -164,6 +186,20 @@ impl Melter {
             ("tank", self.tank.to_nbt()), ("phase", Tag::Int(self.phase as i32)),
             ("fuel", Tag::Long(self.fuel as i64)), ("fuel_quality", Tag::Long(self.fuel_quality as i64)), ("temperature", Tag::Long(self.temperature as i64)), ("rate", Tag::Long(self.rate as i64))])
     }
+    /// Preserve unrecognized machine and tank fields while updating the
+    /// state owned by the Melter tick. Inventory slot serialization remains
+    /// governed by the host item codec and is not an opaque-item migration.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        Self::from_nbt(raw)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let tank = self.tank.to_nbt_preserving(fields.get(&"tank".into())?)?;
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate"] {
+            fields.insert(key.into(), next.get(&key.into())?.clone());
+        }
+        fields.insert("tank".into(), tank);
+        Some(Tag::Compound(fields))
+    }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
         if slots.len() != 3 { return None; }
@@ -239,9 +275,9 @@ mod tests {
 /// A source faucet reserves up to one ingot and pours a nugget each tick.
 /// The in-flight fluid is kept separately so save/reload does not duplicate it.
 #[derive(Clone, Debug)]
-pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank }
+pub(super) struct Faucet { pub active: bool, pub stop_after_packet: bool, pub pending: Tank, original: Option<Tag> }
 impl Faucet {
-    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90) } }
+    pub(super) fn new() -> Self { Self { active: false, stop_after_packet: false, pending: Tank::new(90), original: None } }
     pub(super) fn activate(&mut self, input: &mut Tank, output: &Tank) -> bool {
         if self.active { self.stop_after_packet = true; return true; }
         self.stop_after_packet = false;
@@ -281,20 +317,151 @@ impl Faucet {
         }
     }
     pub(super) fn to_nbt(&self) -> Tag {
-        Tag::compound([("active", Tag::Byte(self.active as i8)), ("stop", Tag::Byte(self.stop_after_packet as i8)), ("pending", self.pending.to_nbt())])
+        let mut fields = match &self.original { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
+        let mut pending = match fields.get(&"pending".into()) { Some(Tag::Compound(fields)) => fields.clone(), _ => Compound::new() };
+        if let Tag::Compound(next) = self.pending.to_nbt() {
+            for key in ["fluid", "fluid_tag", "amount"] {
+                pending.remove(&key.into());
+                if let Some(value) = next.get(&key.into()) { pending.insert(key.into(), value.clone()); }
+            }
+        }
+        fields.insert("active".into(), Tag::Byte(self.active as i8));
+        fields.insert("stop".into(), Tag::Byte(self.stop_after_packet as i8));
+        fields.insert("pending".into(), Tag::Compound(pending));
+        Tag::Compound(fields)
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let boolean = |key| match tag.get(key)? { Tag::Byte(0) => Some(false), Tag::Byte(1) => Some(true), _ => None };
         let active = boolean("active")?; let stop_after_packet = boolean("stop")?;
         let pending = Tank::from_nbt(tag.get("pending")?, 90)?;
         if !active && (stop_after_packet || pending.amount != 0) { return None; }
-        Some(Self { active, stop_after_packet, pending })
+        Some(Self { active, stop_after_packet, pending, original: Some(tag.clone()) })
     }
+}
+
+/// Distinguish a recognized but unreadable casting from a removed target.
+pub(super) fn is_casting_block(name: &str) -> bool {
+    matches!(name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin")
+}
+
+/// A resumed casting may only rewrite the exact saved snapshots it decoded.
+pub(super) fn safe_casting_resume(casting: &Casting, casting_raw: &Tag, faucet: &Faucet, faucet_raw: &Tag) -> bool {
+    casting.roundtrips(casting_raw) && faucet.to_nbt() == *faucet_raw
+}
+
+/// Pending packets win over a new source when initializing a casting.
+pub(super) fn casting_faucet_offer<'a>(casting: &Casting, faucet: &'a Faucet, input: &'a Tank) -> Option<&'a Tank> {
+    if casting.recipe.is_some() { return None; }
+    let offered = if faucet.pending.amount > 0 { &faucet.pending }
+        else if !faucet.stop_after_packet { input } else { return None; };
+    (offered.amount > 0).then_some(offered)
 }
 
 #[cfg(test)]
 mod faucet_tests {
     use super::*;
+    // A bounded recipe stub stands in for the world recipe lookup. All tank,
+    // faucet, casting and offer transitions below use the production types.
+    fn prepare_copper(casting: &mut Casting, faucet: &Faucet, input: &Tank) -> bool {
+        let Some(offered) = casting_faucet_offer(casting, faucet, input) else { return false; };
+        if offered.fluid.as_deref() != Some("tconstruct:molten_copper") { return false; }
+        casting.prepare("test:copper", 90, 1, ItemStack::new("minecraft:copper_ingot", 1), false, false)
+    }
+    #[test]
+    fn malformed_pending_packet_rejects_resume_without_mutating_snapshots() {
+        let casting = Casting::new(); let saved_casting = casting.to_nbt();
+        let mut raw = Faucet::new().to_nbt();
+        if let Tag::Compound(fields) = &mut raw {
+            fields.insert("active".into(), Tag::Byte(1));
+            fields.insert("pending".into(), Tag::compound([
+                ("fluid", Tag::String(horizon_world::nbt::JavaString(vec![0xd800]))),
+                ("amount", Tag::Int(10)),
+            ]));
+        }
+        let before = raw.clone(); let faucet = Faucet::from_nbt(&raw).unwrap();
+        let mut committed_casting = saved_casting.clone();
+        let mut committed_faucet = raw.clone();
+        let mut staged_casting = casting.clone(); let mut staged_faucet = faucet.clone();
+        let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+        if safe_casting_resume(&casting, &saved_casting, &faucet, &raw) {
+            let _ = prepare_copper(&mut staged_casting, &staged_faucet, &source);
+            staged_faucet.tick(&mut source, Some(&mut staged_casting.tank));
+            committed_casting = staged_casting.to_nbt(); committed_faucet = staged_faucet.to_nbt();
+        }
+        assert_eq!(committed_faucet, before); assert_eq!(committed_casting, saved_casting);
+        assert_eq!(source.amount, 90);
+        // An unmatched packet must also fail before the legacy tick path.
+        // The invalid ID cannot match the copper stub and must remain raw.
+        assert!(!prepare_copper(&mut staged_casting, &faucet, &source));
+        assert_ne!(faucet.to_nbt(), raw);
+        assert_eq!(committed_faucet, raw);
+    }
+    #[test]
+    fn drained_casting_restarts_for_pending_packet_and_conserves_fluid() {
+        let mut source = Tank::new(180); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut casting = Casting::new(); let mut faucet = Faucet::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        assert!(faucet.activate(&mut source, &casting.tank));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!((casting.tank.amount, faucet.pending.amount), (10, 80));
+        assert!(casting.tank.take(10).is_some()); casting = Casting::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        for _ in 0..8 { faucet.tick(&mut source, Some(&mut casting.tank)); }
+        assert_eq!((source.amount, faucet.pending.amount, casting.tank.amount), (0, 0, 80));
+    }
+    #[test]
+    fn completed_casting_waits_for_output_then_resumes_pending() {
+        let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut casting = Casting::new(); let mut faucet = Faucet::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        assert!(faucet.activate(&mut source, &casting.tank));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert!(casting.tank.insert("tconstruct:molten_copper", 80));
+        assert!(casting.tick(true));
+        assert!(!prepare_copper(&mut casting, &faucet, &source));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!(faucet.pending.amount, 80);
+        casting.output = None;
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!((faucet.pending.amount, casting.tank.amount), (70, 10));
+    }
+    #[test]
+    fn pending_identity_wins_and_destroyed_output_discards_pending() {
+        let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut casting = Casting::new(); let mut faucet = Faucet::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        assert!(faucet.activate(&mut source, &casting.tank));
+        assert!(source.insert("tconstruct:molten_iron", 90));
+        casting = Casting::new();
+        assert_eq!(casting_faucet_offer(&casting, &faucet, &source).unwrap().fluid.as_deref(), Some("tconstruct:molten_copper"));
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        // A different fluid already in the table blocks the reserved packet.
+        assert!(casting.tank.insert("tconstruct:molten_iron", 10));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!((faucet.pending.amount, casting.tank.amount), (90, 10));
+        faucet.tick(&mut source, None);
+        assert!(!faucet.active); assert_eq!(faucet.pending.amount, 0);
+        assert_eq!(source.amount, 90);
+    }
+    #[test]
+    fn unreadable_casting_preserves_packet_while_removed_block_discards_it() {
+        for name in ["tconstruct:seared_table", "tconstruct:scorched_table", "tconstruct:seared_basin", "tconstruct:scorched_basin"] {
+            let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+            let output = Tank::new(90); let mut faucet = Faucet::new();
+            assert!(faucet.activate(&mut source, &output));
+            // The runtime leaves an unreadable recognized target untouched.
+            if !is_casting_block(name) { faucet.tick(&mut source, None); }
+            assert!(faucet.active); assert_eq!(faucet.pending.amount, 90);
+            let mut restored = Faucet::from_nbt(&faucet.to_nbt()).unwrap();
+            let mut repaired = Tank::new(90);
+            restored.tick(&mut source, Some(&mut repaired));
+            assert_eq!((restored.pending.amount, repaired.amount), (80, 10));
+            // A known non-casting block means the output handler was removed.
+            if !is_casting_block("minecraft:air") { faucet.tick(&mut source, None); }
+            assert!(!faucet.active); assert_eq!(faucet.pending.amount, 0);
+        }
+    }
     #[test]
     fn faucet_reserves_and_pours_without_overfill_or_duplicate_after_save() {
         let mut source = Tank::new(2160); assert!(source.insert("tconstruct:molten_copper", 180));
@@ -378,6 +545,10 @@ pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemSta
     Some(Tag::Compound(fields))
 }
 impl Casting {
+    /// The existing serializer replaces the compound. Do not introduce a new
+    /// interaction when that rewrite would discard or normalize saved data.
+    pub(super) fn roundtrips(&self, raw: &Tag) -> bool { self.to_nbt() == *raw }
+
     pub(super) fn new() -> Self {
         Self { input: None, output: None, tank: Tank::new(0), timer: 0, recipe: None, result: None,
             cooling_time: 0, consumes_cast: false, switch_slots: false, redstone: false }
@@ -482,6 +653,21 @@ impl Casting {
 #[cfg(test)]
 mod casting_tests {
     use super::*;
+    #[test]
+    fn casting_roundtrip_rejects_unknown_and_lossy_saved_data() {
+        let casting = Casting::new(); let raw = casting.to_nbt();
+        assert!(casting.roundtrips(&raw));
+        let mut future = raw.clone();
+        if let Tag::Compound(fields) = &mut future { fields.insert("future".into(), Tag::Int(9)); }
+        assert!(!Casting::from_nbt(&future).unwrap().roundtrips(&future));
+        let mut invalid = raw;
+        if let Tag::Compound(fields) = &mut invalid {
+            fields.insert("recipe".into(), Tag::String(horizon_world::nbt::JavaString(vec![0xd800])));
+            fields.insert("result".into(), item_to_nbt(&ItemStack::new("minecraft:stone", 1)));
+            fields.insert("cooling".into(), Tag::Long(1)); fields.insert("capacity".into(), Tag::Long(90));
+        }
+        assert!(!Casting::from_nbt(&invalid).unwrap().roundtrips(&invalid));
+    }
     #[test]
     fn slimeskull_result_survives_partial_fill_reload_and_revalidation() {
         let mut c = Casting::new(); c.input = Some(ItemStack::new("minecraft:skeleton_skull", 1));

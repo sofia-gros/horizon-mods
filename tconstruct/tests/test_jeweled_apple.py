@@ -3,9 +3,12 @@ import hashlib
 import json
 from pathlib import Path
 import unittest
+import tempfile, sys
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'tools'))
+from package_hmod import package
 
 class JeweledApple(unittest.TestCase):
     def test_cast_and_components(self):
@@ -28,5 +31,15 @@ class JeweledApple(unittest.TestCase):
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-fluid-tags.zip') as z:
             tag = json.loads(z.read('data/tconstruct/tags/fluids/molten_diamond.json'))
         self.assertIn('tconstruct:molten_diamond', tag['values'])
+
+    def test_package_declaration_and_general_tab(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            output=Path(tmp)/'mod.hmod'; package(output)
+            with zipfile.ZipFile(output) as z:
+                for path in ('data/tconstruct/horizon/item/jeweled_apple.json','assets/tconstruct/items/jeweled_apple.json','assets/tconstruct/models/item/jeweled_apple.json','assets/tconstruct/textures/item/food/jeweled_apple.png'):
+                    self.assertEqual(z.read(path),(ROOT/'content'/path).read_bytes())
+                tabs=json.loads(z.read(next(n for n in z.namelist() if n.endswith('/creative-tabs.json'))))
+                general=next(x for x in tabs if x['id']=='tconstruct:general')
+                self.assertIn('{count:1,id:"tconstruct:jeweled_apple"}',general['items'])
 
 if __name__ == '__main__': unittest.main()

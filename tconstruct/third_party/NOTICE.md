@@ -92,3 +92,20 @@ from Tinkers' Construct at [f4e77d43](https://github.com/SlimeKnights/TinkersCon
 Copyright (c) 2022 SlimeKnights; MIT license, see
 `tconstruct/third_party/tconstruct/LICENSE`. The content package carries this
 license at `assets/tconstruct/licenses/tconstruct.txt`.
+
+The Piggybackpack item texture is from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/textures/item/gadgets).
+Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The milk still texture and animation are unmodified copies of
+[MinecraftForge at 243490d78001917c7e6ee6e94b45ef98776aa36f](https://github.com/MinecraftForge/MinecraftForge/tree/243490d78001917c7e6ee6e94b45ef98776aa36f/src/main/resources/assets/forge/textures/block)
+(`milk_still.png` and `milk_still.png.mcmeta`). See the Forge LGPL-2.1 license
+in `tconstruct/third_party/forge/LICENSE`.
+
+The Cheese Ingot texture and item model are copied from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct).
+Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The Cheese Block model, blockstate and textures are copied from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct).
+Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.

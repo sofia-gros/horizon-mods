@@ -50,7 +50,7 @@ fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizo
         }
         level.world.chunks.__horizon_mixins_tconstruct_smeltery_owners_mut().retain(|_, owner| *owner != controller);
     }
-    if matches!(&*name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin") {
+    if matches!(&*name, "tconstruct:seared_melter" | "tconstruct:seared_heater" | "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" | "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") {
         crate::game::tconstruct_source_melter_store::clear(level.world, (pos.x, pos.y, pos.z));
     }
 }

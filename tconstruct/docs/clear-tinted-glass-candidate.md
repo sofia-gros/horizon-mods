@@ -9,3 +9,11 @@ A pre-existing local host binary prepared a resource tree successfully and produ
 The base texture matches the GitHub blob ID at the pinned `f4e77d43f39ba1047bf93ae816b7e1beaab514c2` revision. An earlier package containing all 16 textures was inspected, including its byte-identical TConstruct MIT license. The reduced candidate has also passed a package test for the base texture, absence of connected variants, and included MIT license. It has not been run in the host; packaging does not establish integrated compilation, light blocking, or live rendering.
 
 The vanilla tinted-glass template is intended to provide light blocking. Template selection alone does not prove propagation or shading in this host. No modifications to connected-texture or atlas helpers are needed for this partial registration and casting-data candidate.
+
+The Seared and Scorched tinted glass registrations also use the vanilla tinted-glass template, with the pinned source hardness, resistance, glass sound, tool requirement, and existing self-drop loot. This follows the pinned source behavior that blocks sky and block light. The generator and committed declarations are checked together. Integrated host light propagation, block rendering, save/reload, and LAN have not been tested. Connected-face rendering remains separate.
+
+Existing worlds may retain previously saved light in chunks already marked lit.
+The pinned host can reuse saved light without automatically recalculating it
+when a block template changes. The correction therefore may require relighting;
+a reliable migration procedure and live verification remain open. Scorched's
+source map color also remains unmatched by the tinted-glass template.

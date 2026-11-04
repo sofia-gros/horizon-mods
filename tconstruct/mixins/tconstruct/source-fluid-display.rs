@@ -4,6 +4,7 @@ pub(super) fn display_id(fluid: &str) -> &str {
     match fluid {
         "minecraft:flowing_water" => "minecraft:water",
         "minecraft:flowing_lava" => "minecraft:lava",
+        "minecraft:flowing_milk" => "minecraft:milk",
         "tconstruct:flowing_beetroot_soup" => "tconstruct:beetroot_soup",
         "tconstruct:flowing_blazing_blood" => "tconstruct:blazing_blood",
         "tconstruct:flowing_earth_slime" => "tconstruct:earth_slime",
@@ -83,6 +84,8 @@ pub(super) fn sprite(fluid: &str) -> String {
     match fluid {
         "minecraft:lava" => "block/lava_still".to_owned(),
         "minecraft:water" => "block/water_still".to_owned(),
+        // Forge 47.4.0 milk artwork is staged under our atlas key.
+        "minecraft:milk" => "block/tconstruct_fluid_milk".to_owned(),
         _ => format!("block/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or("")),
     }
 }
@@ -95,6 +98,7 @@ mod tests {
         for (flowing, still, texture) in [
             ("minecraft:flowing_water", "minecraft:water", "block/water_still"),
             ("minecraft:flowing_lava", "minecraft:lava", "block/lava_still"),
+            ("minecraft:flowing_milk", "minecraft:milk", "block/tconstruct_fluid_milk"),
         ] {
             assert_eq!(display_id(flowing), still);
             assert_eq!(sprite(flowing), texture);
