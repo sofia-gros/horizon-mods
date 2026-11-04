@@ -42,3 +42,5 @@ remain unverified for these additions.
 The GUI fluid overlay is drawn after the base icon and can cover enchantment
 glint in its fluid pixels. Automated tests do not exercise live injection,
 icon composition, tooltip presentation or LAN synchronization.
+
+During the Melter's server tick, the machine's unrecognized metadata and its internal tank's unrecognized fields are retained when its owned state changes. The same applies to the built-in liquid fuel tank when fuel is drawn. This does not establish preservation for every other machine action, arbitrary item metadata, foreign block entities, or older Forge saves; those paths need separate validation. The change has focused codec tests, but world save/reload, gameplay, LAN and full host integration remain unverified.
