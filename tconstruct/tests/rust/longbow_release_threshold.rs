@@ -74,3 +74,48 @@ fn bow(velocity:Option<f32>,broken:bool)->ItemStack {
     let _ = tconstruct_bow_release(&mut game,&bow(None,false),1,false);
     assert_eq!(game.dispatched.len(),1);assert_eq!(game.dispatched[0].0,1);assert!(game.dispatched[0].1.is_none());
 }
+
+include!("../../mixins/tconstruct/material-crossbow-charge.rs");
+#[test]
+fn extreme_draw_speed_reaches_both_active_bow_callers() {
+    for (speed, expected) in [(0.0,i32::MAX as u32),(f32::from_bits(1),i32::MAX as u32),(1.0,20),(1.5,14),(1024.0,1),(f32::NAN,1),(-1.0,i32::MAX as u32)] {
+        let mut stack=bow(Some(1.0),false);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_draw_speed",Tag::Float(speed.to_bits())),
+            ("tic_velocity",Tag::Float(1.0f32.to_bits())),
+            ("tic_accuracy",Tag::Float(1.0f32.to_bits())),
+        ])));
+        assert_eq!(draw::draw_ticks(&stack),expected);
+        let mut game=game::Game::new();
+        let _=tconstruct_bow_release(&mut game,&stack,expected,false);
+        assert_eq!(game.dispatched.len(),1);
+        assert_eq!(game.dispatched[0].0,20);
+        assert_eq!(game.dispatched[0].1.as_ref().unwrap().2[0].1.to_bits(),3.0f32.to_bits());
+        if expected==i32::MAX as u32 {
+            let mut early=game::Game::new();
+            let _=tconstruct_bow_release(&mut early,&stack,20,false);
+            assert!(early.dispatched.is_empty());
+            assert_eq!(draw::vanilla_charge_ticks(expected,expected),20);
+        }
+        stack.item="tconstruct:crossbow".into();
+        assert_eq!(tconstruct_crossbow_charge(&stack),std::ops::ControlFlow::Break(expected));
+        stack.item="minecraft:crossbow".into();
+        assert_eq!(tconstruct_crossbow_charge(&stack),std::ops::ControlFlow::Continue(()));
+    }
+}
+
+#[test]
+fn draw_saturation_preserves_saved_stat_fallback_and_overwield_bonus() {
+    let mut stack=ItemStack::new("tconstruct:crossbow",1);
+    assert_eq!(draw::draw_ticks(&stack),20);
+    for value in [Tag::Int(0),Tag::String("bad".into())] {
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_draw_speed",value)])));
+        assert_eq!(draw::draw_ticks(&stack),20);
+    }
+    stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+        ("tic_draw_speed",Tag::Float(0.0f32.to_bits())),
+        ("tic_overwield_ranged",Tag::Int(1)),("tic_overslime",Tag::Int(1)),
+        ("tic_overwield_draw_multiplier",Tag::Float(1.0f32.to_bits())),
+    ])));
+    assert_eq!(draw::draw_ticks(&stack),334);
+}

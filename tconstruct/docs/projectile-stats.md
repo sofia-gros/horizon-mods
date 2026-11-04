@@ -334,3 +334,29 @@ A one-durability case checks the snapshotted queue, not live wear execution.
 Run `test_crossbow_primary.py` with `TC_CROSSBOW_HARNESS_DEPS` pointing to
 compatible cached Horizon rlibs. No dependency build, full generated-host
 build, live mid-volley wear, gameplay, LAN, or Windows validation was run.
+
+## Draw-time signed saturation
+
+For Longbow release and Crossbow charging, the existing draw-speed helper now
+narrows the rounded-up duration to signed i32 before returning the host's u32.
+Pinned [`GeneralInteractionModifierHook.getDrawtime`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/interaction/GeneralInteractionModifierHook.java)
+uses `(int)Math.ceil(20f * speedFactor / drawSpeed)`. At the supported speed factor
+1, zero or sufficiently small positive speed therefore saturates at 2147483647,
+not the previous unsigned 4294967295. The upper bound is enforced by integer
+conversion, not an f32 clamp: representing i32::MAX as f32 rounds up to 2147483648.
+
+The existing host minimum of one tick remains deliberate. In particular NaN
+still yields one tick, although Java's NaN-to-int result is zero. Saved-speed
+clamping, malformed/missing-stat fallback, Overwield addition, ordinary rounding,
+and unsigned elapsed/vanilla-charge conversion remain unchanged. This does not
+claim parity for every malformed input or implement additional conditional draw
+modifiers. No projectile damage or projectile-consumer code is changed.
+
+The cached `longbow_release_threshold.rs` harness checks zero, subnormal/minimum
+normal speeds, the signed-limit boundary and its next f32 neighbor, ordinary
+speeds, NaN/infinities, saved-data fallback and Overwield. It executes both actual
+caller helpers: saturated Crossbow charge duration, Longbow rejection after only
+20 ticks and full-charge dispatch after the saturated duration. Host actor/world
+and dispatch boundaries are doubles; this is not a real multi-year hold or a
+full generated-host/gameplay/LAN validation. Run with compatible cached Horizon
+rlibs via `TC_LONGBOW_HARNESS_DEPS=/path/to/deps python3 tconstruct/tests/test_longbow_release_threshold.py`.

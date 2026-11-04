@@ -2,7 +2,9 @@ use horizon_client::items::ItemStack;
 use horizon_world::nbt::Tag;
 
 fn ticks_for_speed(speed: f32) -> u32 {
-    (20.0 / speed).ceil().max(1.0) as u32
+    // Java getDrawtime narrows Math.ceil to signed int before host conversion.
+    // Clamp after narrowing: i32::MAX as f32 rounds up to 2^31.
+    ((20.0 / speed).ceil() as i32).max(1) as u32
 }
 
 pub(crate) fn draw_ticks(stack: &ItemStack) -> u32 {
@@ -39,5 +41,22 @@ mod tests {
         assert_eq!(vanilla_charge_ticks(14, 14), 20);
         assert_eq!(vanilla_charge_ticks(7, 14), 10);
         assert_eq!(vanilla_charge_ticks(0, 14), 0);
+    }
+}
+
+#[cfg(test)]
+mod saturation_tests {
+    use super::*;
+    #[test]
+    fn signed_draw_time_saturation_precedes_unsigned_host_conversion() {
+        let boundary = 20.0f32 / 2147483648.0f32;
+        for speed in [0.0, -0.0, f32::from_bits(1), f32::MIN_POSITIVE, boundary] {
+            assert_eq!(ticks_for_speed(speed), if speed.is_sign_negative() { 1 } else { i32::MAX as u32 });
+        }
+        assert_eq!(ticks_for_speed(f32::from_bits(boundary.to_bits()+1)), 2147483392);
+        for speed in [f32::NAN, f32::INFINITY, -1.0, f32::NEG_INFINITY] {
+            assert_eq!(ticks_for_speed(speed), 1); // Existing host minimum, not source NaN=0.
+        }
+        assert_eq!(ticks_for_speed(1024.0), 1);
     }
 }
