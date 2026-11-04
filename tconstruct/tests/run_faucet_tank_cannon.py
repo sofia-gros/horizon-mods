@@ -2,7 +2,7 @@
 """Test production transfer route; host state is real, world mocked."""
 import os,pathlib,subprocess,tempfile
 root=pathlib.Path(__file__).resolve().parents[1];host=pathlib.Path(os.environ['HORIZON_HOST']).resolve()
-s=(root/'mixins/tconstruct/source-machine-runtime.rs').read_text();route=s[s.index('fn tank_to_cannon('):s.index('fn tank_to_casting_tank(')]
+s=(root/'mixins/tconstruct/source-machine-runtime.rs').read_text();route=s[s.index('fn tank_to_cannon('):s.index('fn faucet_network_tag_safe(')]
 t=(root/'tests/rust/faucet_tank_cannon_fixture.rs').read_text().replace('__MIXINS__',str(root/'mixins/tconstruct')).replace('// __PRODUCTION_ROUTE__',route)
 with tempfile.TemporaryDirectory(prefix='faucet-portable-') as tmp:
  p=pathlib.Path(tmp);(p/'src').mkdir();(p/'src/lib.rs').write_text(t);(p/'Cargo.toml').write_text('[package]\nname="faucet-cannon-fixture"\nversion="0.1.0"\nedition="2024"\n[dependencies]\nhorizon-items={path="%s"}\nhorizon-world={path="%s"}\n'%(host/'crates/horizon-items',host/'crates/horizon-world'))

@@ -293,8 +293,8 @@ pub(super) fn potion_tag(tag: &horizon_world::nbt::Tag, allow_color: bool) -> Op
     use horizon_world::nbt::Tag;
     let Tag::Compound(fields) = tag else { return None; };
     let Tag::String(potion) = fields.get(&"Potion".into())? else { return None; };
-    let potion = potion.to_string_lossy();
-    if potion.is_empty() || potion == "minecraft:empty" { return None; }
+    let potion = potion.to_string().ok()?;
+    if potion.is_empty() || matches!(potion.as_str(), "empty" | "minecraft:empty") { return None; }
     let color = match fields.get(&"CustomPotionColor".into()) {
         None => None,
         Some(Tag::Int(color)) if allow_color => Some(*color),
