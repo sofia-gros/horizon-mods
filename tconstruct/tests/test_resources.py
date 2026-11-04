@@ -24,6 +24,7 @@ class ResourceOverlay(unittest.TestCase):
             creative = {'tabs': [{'id': 'minecraft:hotbar', 'type': 'HOTBAR', 'row': 'TOP', 'column': 5}]}
             (src / 'creative-inventory.json').write_text(json.dumps(creative))
             (src / 'items.json').write_text(json.dumps(raw))
+            (src / 'horizon-mod-craft-remainders.json').write_text(json.dumps({'example:item': 'minecraft:bowl'}))
             (src / 'command-registries.json').write_text(json.dumps({'items': list(raw), 'by_registry': {'minecraft:item': {'ids': list(raw), 'tags': []}}}))
             (src / 'registries.json').write_text(json.dumps({'minecraft:item': {'entries': {'minecraft:air': {'protocol_id': 0}}}}))
             (src / 'assets/minecraft/textures/gui').mkdir(parents=True)
@@ -74,6 +75,16 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items['tconstruct:amethyst_bronze_ingot']['minecraft:max_stack_size'], 64)
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-smeltery-assets.zip') as smeltery_assets:
                 self.assertEqual((out / 'assets/tconstruct/textures/item/amethyst_bronze_ingot.png').read_bytes(), smeltery_assets.read('assets/tconstruct/textures/item/materials/amethyst_bronze_ingot.png'))
+            blood = items['tconstruct:blazing_blood_bucket']
+            self.assertEqual(blood['minecraft:cooking_fuel'], {'burn_time': {'type': 'minecraft:div', 'left': 30000, 'right': {'type': 'minecraft:conditional', 'condition': 'minecraft:block/fast_cooking', 'on_false': 'minecraft:cooking/normal_burn_time_reduction_factor', 'on_true': 'minecraft:cooking/fast_burn_time_reduction_factor'}}, 'speed_multiplier': 'minecraft:cooking/speed_default'})
+            self.assertNotIn('minecraft:cooking_fuel', items['tconstruct:molten_iron_bucket'])
+            self.assertEqual(json.loads((out / 'horizon-mod-craft-remainders.json').read_text()),
+                             {'example:item': 'minecraft:bowl', 'tconstruct:blazing_blood_bucket': 'minecraft:bucket'})
+            self.assertEqual(json.loads((src / 'horizon-mod-craft-remainders.json').read_text()), {'example:item': 'minecraft:bowl'})
+            startup = (Path(__file__).resolve().parents[1] / 'mixins/tconstruct/resource-tables.rs').read_text()
+            self.assertIn('"left":30000', startup)
+            self.assertIn('"minecraft:cooking/speed_default"', startup)
+            self.assertIn('entries.insert("tconstruct:blazing_blood_bucket".into(), serde_json::json!("minecraft:bucket"))', startup)
             with zipfile.ZipFile(Path(__file__).resolve().parents[1] / 'content/reference/tconstruct-fluid-buckets.zip') as buckets:
                 for name, definition in json.loads(buckets.read('manifest.json'))['buckets'].items():
                     self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], 1)
