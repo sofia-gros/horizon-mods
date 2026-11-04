@@ -159,8 +159,12 @@ pub(super) fn wear_damage_bonus(
     jagged: i32,
     stonebound: i32,
 ) -> f32 {
-    let wear = (lost as f32 / durability_multiplier).sqrt() * 0.005;
-    damage * ((1.0 + jagged as f32 * wear) * (1.0 - stonebound as f32 * wear) - 1.0)
+    let wear = (lost as f32 / durability_multiplier).sqrt();
+    // Pinned formulas multiply sqrt(lost / max) by level before the signed
+    // coefficient. Reassociating those float operations changes the factor.
+    let jagged_factor = 1.0 + (wear * jagged as f32) * 0.005;
+    let stonebound_factor = 1.0 + (wear * stonebound as f32) * -0.005;
+    damage * (jagged_factor * stonebound_factor - 1.0)
 }
 
 /// Apply the supported source stat traits to an assembled or Creative stack.

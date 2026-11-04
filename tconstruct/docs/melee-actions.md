@@ -184,3 +184,30 @@ unchanged mismatch/error fallbacks and suppression of wear traits. Attribute
 map and trait behavior are boundary doubles; this is not a generated-host or
 LAN test. Generated-host compilation, gameplay, save/reload, LAN and Windows
 remain unverified.
+
+## Jagged and Stonebound factor precision
+
+The active wear-damage helper now evaluates each supported trait's factor in
+the pinned formula order: divide lost durability by the durability multiplier,
+take the float square root, multiply by level, multiply by the signed
+coefficient, then add one. Jagged uses `0.005`; Stonebound uses `-0.005`.
+Previously the coefficient was multiplied before the level, changing f32
+rounding. The source definitions are
+[Jagged](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/jagged.json)
+and
+[Stonebound](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/stonebound.json).
+
+This is a per-factor arithmetic correction, not complete conditional melee
+parity. The existing combined-factor algebra, bonus subtraction/readdition,
+trait-only level resolution, fixed combined-trait order and pre-attribute
+projection remain unchanged. In particular, this does not implement installed
+upgrade-level merging, arbitrary datapack modifier formulas, living-target
+gating, or source-ordered application to the full current attack damage.
+The surrounding arithmetic can still round differently from the source, so
+end-to-end bit-exact damage is not claimed.
+
+The cached-library harness executes the actual helper and includes bitwise
+counterexamples for both coefficients (Jagged: lost 8, multiplier 3, level 5;
+Stonebound: lost 2, multiplier 3, level 5). It also checks zero wear, inactive
+traits and the deliberately unchanged outer combination. Seventeen Rust tests
+and two Python checks pass. No full host build or gameplay validation was run.
