@@ -293,3 +293,39 @@ transitions, clamp, malformed/overflow cases, offhand suppression, missing/error
 snapshots and high-priority definition overrides. The trait lookup and upgrade
 merger themselves are the existing production functions, not new implementations;
 this boundary harness does not exercise real resource reload or inventory routing. No full generated-host build, gameplay, LAN or Windows validation was run.
+
+## Saved Raging upgrade levels
+
+The existing living-target Raging RETURN hook now uses the checked
+`level_with_upgrade` merge instead of reading only the resolved material trait.
+Trait levels and saved integer `tic_upgrades["tconstruct:raging"]` are counted
+once; negative, malformed or overflowing inputs supply no Raging bonus. Existing
+broken-tool, living-target, spin, health, multiplier and cooldown gates remain.
+The flat Raging contribution still precedes the existing Jagged/Stonebound wear
+adjustment. No other modifier ordering or projectile-damage path is changed.
+
+This is a saved-data compatibility correction, not a new obtainable upgrade.
+The pinned tree has no Raging installation recipe; its ordinary source is the
+[Pewter material trait](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/materials/traits/pewter.json).
+The current recipe planner rejects Raging even in a supplied modifier recipe,
+including a matching modifier crystal. The added level therefore matters for
+externally generated or existing saved metadata; this does not enable recipe
+installation, extraction or crystal acquisition.
+
+Both trait-only and merged Raging now require the highest-priority modifier
+resource to exactly match the pinned
+[Raging definition](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/raging.json).
+A missing/unreadable snapshot, deletion or any definition override (including
+formula, priority, module order or whitespace changes) disables this fixed effect.
+This is deliberately stricter than the prior trait-only path, which did not
+validate overrides. It does not implement general datapack modifier evaluation.
+
+`TC_RAGING_HARNESS_DEPS=/path/to/cached/deps python3 tconstruct/tests/test_raging_broken.py`
+executes the actual damage hook, broken predicate and modifier-snapshot resolver.
+Host/trait resolution and the checked merger are boundary doubles in that harness.
+Tests cover trait-only/upgrade-only/merged levels, repeated calls without double
+application, malformed/overflow cases, broken state and highest-priority changed,
+missing or restored definitions. The cached `raging_melee.rs` harness retains the
+actual wear-bonus helper and checks the existing Raging-before-Jagged result;
+`ranged_upgrades.rs` exercises the actual planner's ingredient/crystal rejection.
+No full generated-host build, gameplay, LAN or Windows validation was run.
