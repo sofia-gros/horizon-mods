@@ -223,6 +223,8 @@ bone-meal success chance. This candidate connects stage-1 growth to the Ender
 tree placement code; it retains the water at the sapling position and restores
 the sapling if placement fails. Growth is deferred when the surrounding
 chunks are not loaded, which is a conservative difference from the source.
+Planted stage-1 propagules refuse bone meal at that boundary so it is not
+consumed without a growth attempt; hanging propagule aging is unchanged.
 Exact waterlogging, placement,
 leaf drop predicates, hook ordering, game behavior, persistence and LAN require
 validation. Dedicated-server coverage and normal Ender tree acquisition are
