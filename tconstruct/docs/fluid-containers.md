@@ -25,7 +25,8 @@ Bucket icons use the first frame of the original TConstruct fluid sprites and th
 Filled Copper Cans show a fluid overlay in inventory-style GUI icons and a
 translated fluid-name/one-ingot tooltip when their untagged fluid is known to
 the current world. Supported potion tags also provide the source potion name
-in the tooltip. Advanced tooltips show the original fluid ID. Empty cans show
+in the tooltip. Tagless potion fluid uses the empty-potion name and default
+color. Advanced tooltips show the original fluid ID. Empty cans show
 the source help text. The overlay crops existing Horizon still sprites to the
 upstream MIT mask; missing sprites leave the original icon unchanged.
 

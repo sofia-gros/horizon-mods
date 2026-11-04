@@ -114,6 +114,12 @@ pub(super) fn can_display_potion_icon(stack: &ItemStack, known: &impl Fn(&str) -
     can_display_potion(stack, known)
 }
 
+/// An explicit potion fluid with no fluid tag is the source's empty potion.
+pub(super) fn can_display_empty_potion(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> bool {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return false; }
+    matches!(can_contents(stack), Some((Some(fluid), None)) if fluid == "tconstruct:potion")
+}
+
 /// Empty cans have source help text; malformed or opaque stacks stay hidden.
 pub(super) fn can_display_empty(stack: &ItemStack) -> bool {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return false; }
@@ -332,6 +338,12 @@ pub(super) fn tank_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> bo
     let tank = lantern_tank(stack)?;
     if tank.amount == 0 || tank.fluid.as_deref() != Some("tconstruct:potion") { return None; }
     known_potion_tag(tank.tag?)
+}
+
+/// The same source empty-potion case for complete portable tank items.
+pub(super) fn tank_display_empty_potion(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> bool {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return false; }
+    lantern_tank(stack).is_some_and(|tank| tank.amount > 0 && tank.fluid.as_deref() == Some("tconstruct:potion") && tank.tag.is_none())
 }
 
 fn known_potion_tag(tag: horizon_world::nbt::Tag) -> Option<horizon_world::nbt::Tag> {
@@ -660,6 +672,29 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn empty_potion_item_views_require_explicit_untagged_fluid() {
+        use horizon_world::nbt::Tag;
+        let can = can_set_fluid(&ItemStack::new("tconstruct:copper_can", 8), Some("tconstruct:potion")).unwrap();
+        let before = can.clone();
+        assert!(can_display_empty_potion(&can, &known));
+        assert!(!can_display_empty(&can));
+        assert!(!can_display_empty_potion(&can, &|_| false));
+        assert_eq!(can, before);
+        let mut custom = can.clone(); custom.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
+        assert!(!can_display_empty_potion(&custom, &known));
+        let tagged = can_set_tagged(&can, Some("tconstruct:potion"), Some(&Tag::Compound(Default::default()))).unwrap();
+        assert!(!can_display_empty_potion(&tagged, &known));
+        for item in ["tconstruct:seared_fuel_tank", "tconstruct:scorched_lantern", "tconstruct:seared_fluid_cannon"] {
+            let mut tank = ItemStack::new(item, 2);
+            tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("tconstruct:potion".into())), ("amount", Tag::Int(1))]))])));
+            let before = tank.clone();
+            assert!(tank_display_empty_potion(&tank, &known));
+            assert!(!tank_display_empty_potion(&tank, &|_| false));
+            assert_eq!(tank, before);
+        }
+        assert!(!tank_display_empty_potion(&ItemStack::new("minecraft:stone", 1), &known));
+    }
     #[test]
     fn copper_can_potion_icon_requires_explicit_color() {
         use horizon_world::nbt::Tag;
