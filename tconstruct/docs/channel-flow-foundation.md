@@ -40,3 +40,20 @@ The eventual caller must validate the fluid resource-location syntax and its
 presence in the current world's registry. It must also ensure an extension has
 not assigned different meaning to the owned `tank`, `fluid`, `fluid_tag`,
 `amount`, or `locked` keys; this codec cannot distinguish a same-name collision.
+
+## Unconnected Channel-to-Channel staging
+
+A separate pure staging function models transfers only between decoded native
+Channel snapshots. It rejects source/destination aliases, validates IDs and
+metadata for equality, adds received fluid to the destination lock, retains
+unrelated NBT and returns before/after values for all supplied sinks, including
+blocked ones. A connected side with no supplied sink still counts in the source
+split. It does not read or write a world and is not registered or reachable by
+players. The caller must independently validate both block and side identities,
+resource IDs against the current registry, owned-key extension semantics and
+all loaded chunks. At commit it must recheck every source, destination and
+connection, including positions without a sink, and atomically apply the whole
+set on the authority. It must also guarantee at most one successful stage per
+Channel per game tick: this function tracks no tick ID and a repeated call
+after lock release can transfer again. No external capability, Forge save, concurrent tick,
+destruction, real host, save/load or LAN behavior is established here.
