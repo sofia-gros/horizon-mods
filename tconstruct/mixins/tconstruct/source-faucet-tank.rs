@@ -8,6 +8,9 @@ use horizon_world::nbt::Tag;
 /// Preserve extension fields from the original tank compound while replacing
 /// only the fields the tank codec owns (including removing emptied fields).
 fn patch_tank(raw: &Tag, tank: &Tank) -> Option<Tag> {
+    // This path owns only a parsed tank view; never rewrite an ID that was
+    // decoded lossily, including a faucet's reserved pending packet.
+    if let Some(Tag::String(id)) = raw.get("fluid") { id.to_string().ok()?; }
     let Tag::Compound(mut fields) = raw.clone() else { return None; };
     let Tag::Compound(next) = tank.to_nbt() else { return None; };
     for key in ["fluid", "fluid_tag", "amount"] {
