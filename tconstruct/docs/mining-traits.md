@@ -301,3 +301,15 @@ initial repair amount of 20, source truncation yields 2 rather than 3; level 8
 and amount 10 yields 1 rather than 0. Mixed-factor Station ordering and casting
 restrictions are unchanged. Focused tests cover the factor and arithmetic;
 actual repair transactions, host integration, save/reload and LAN are unverified.
+
+### Casting repair upgrade ordering
+
+Ordinary material part-swap casting now uses the same ordered known repair
+hooks as Station repair, including Cultivated, Preserved, Dense and Emerald
+when supplied as upgrades as well as supported material traits. Multiple
+active upgrades require an unambiguous saved upgrade order; malformed levels,
+missing order, and unsupported traits reject the candidate before consumption.
+The source applies repair hooks to the rebuilt tool in modifier order (pinned
+`PartSwapCastingRecipe.java`, lines 159–178). This is a focused code-level
+candidate; integrated build, gameplay, datapack-supplied upgrades, persistence,
+and LAN remain unverified. Composite swaps do not repair and are unchanged.
