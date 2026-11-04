@@ -74,7 +74,9 @@ pub(super) fn assemble(world: &super::tconstruct_world::World, definition: &[u8]
     let tank_traits = super::tconstruct_source_material_traits::levels_from_definition(
         definition, identities, |id| materials.get(id).cloned(),
     );
-    let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original, tank_traits.as_ref())?;
+    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
+    let mut output = assemble_with_stats(definition, item, identities, &stat_maps, original, tank_traits.as_ref(), has_tag("tconstruct:modifiable/harvest"))?;
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let mut levels = std::collections::BTreeMap::new();
     let mut order = Vec::new();
@@ -86,8 +88,6 @@ pub(super) fn assemble(world: &super::tconstruct_world::World, definition: &[u8]
         super::tconstruct_source_material_effects::apply_stat_traits(&mut output, &stats, &levels)?;
     }
     if !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &levels) { return None; }
-    let tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
-    let has_tag = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(item));
     super::tconstruct_source_upgrade_rules::apply_gem_durability_and_armor(&mut output, &stats, &levels, has_tag("tconstruct:modifiable/armor"), has_tag("tconstruct:modifiable/armor/worn"))?;
     super::tconstruct_source_upgrade_rules::apply_stats(&mut output, &stats, &levels,
         has_tag("tconstruct:modifiable/melee"), has_tag("tconstruct:modifiable/melee/weapon"))?;
@@ -99,14 +99,17 @@ pub(super) fn assemble(world: &super::tconstruct_world::World, definition: &[u8]
 }
 
 /// Build supported tools from resolved source stats, shared by the station and Creative.
-pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>, tank_traits: Option<&std::collections::BTreeMap<String, i32>>) -> Option<ItemStack> {
+pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String], stat_maps: &[serde_json::Map<String, serde_json::Value>], original: Option<&ItemStack>, tank_traits: Option<&std::collections::BTreeMap<String, i32>>, harvest: bool) -> Option<ItemStack> {
     let stats = super::tconstruct_source_station_stats::base_stats(definition, &stat_maps)?;
     let durability = stats.durability as i32;
     if durability < 1 { return None; }
     let original_upgrades = original.and_then(|s| s.data()).and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
     let has_upgrade = |id| matches!(original_upgrades.and_then(|u| u.get(id)), Some(Tag::Int(v)) if *v > 0);
-    let tier = super::tconstruct_source_station_stats::gem_tier(super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?, has_upgrade("tconstruct:diamond"), has_upgrade("tconstruct:emerald"));
-    let tier = if has_upgrade("tconstruct:netherite") && tier.is_some() { Some("netherite") } else { tier };
+    let tier = super::tconstruct_source_station_stats::gem_tier_with_traits(
+        super::tconstruct_source_station_stats::mining_tier(definition, stat_maps)?,
+        [has_upgrade("tconstruct:diamond"), has_upgrade("tconstruct:emerald"), has_upgrade("tconstruct:netherite")],
+        tank_traits, harvest,
+    );
     let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
     let mut rules = Vec::new();
     let source_effective = definition_json.get("modules")?.as_array()?.iter().find(|module|

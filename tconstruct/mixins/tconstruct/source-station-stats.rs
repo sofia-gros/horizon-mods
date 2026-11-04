@@ -220,6 +220,19 @@ pub(super) fn gem_tier(tier: Option<&'static str>, diamond: bool, emerald: bool)
     else { Some(current) }
 }
 
+/// Combine installed upgrades and resolved material/fixed traits for source
+/// gem harvest-tier floors. Unresolved traits retain the existing upgrade-only
+/// fallback; callers must not infer that missing data is a complete registry.
+pub(super) fn gem_tier_with_traits(tier: Option<&'static str>, upgrades: [bool; 3],
+    traits: Option<&std::collections::BTreeMap<String, i32>>, harvest: bool) -> Option<&'static str> {
+    let has = |id: &str, upgrade: bool| upgrade || (harvest && traits.and_then(|v| v.get(id)).is_some_and(|level| *level > 0));
+    let diamond = has("tconstruct:diamond", upgrades[0]);
+    let emerald = has("tconstruct:emerald", upgrades[1]);
+    let netherite = has("tconstruct:netherite", upgrades[2]);
+    let tier = gem_tier(tier, diamond, emerald);
+    if netherite && tier.is_some() { Some("netherite") } else { tier }
+}
+
 /// Compute the supported shared material-derived numeric base. `materials` contains the
 /// already merged source stats object for each ordered part material.
 pub fn base_stats(definition: &[u8], materials: &[Map<String, Value>]) -> Option<BaseStats> {
