@@ -871,3 +871,13 @@ The pinned seared and scorched soul-glass and pane crafting recipes are
 available for registered blocks. Source-data tests cover their patterns and
 output counts. The base soul-glass acquisition path, live crafting, datapack
 reload and LAN remain unverified.
+
+The existing source machine catalog resolves the pinned Soul Glass acquisition
+chain in a controlled registry/tag fixture: Soul Sand or Soul Soil melts into
+1,000 mB of liquid soul at temperature 400 and source time 69; an empty basin
+casts 1,000 mB into Soul Glass in 154 cooling ticks, while an empty table casts
+250 mB into a pane in 77. The test loads the full bundled recipe archive and
+checks wrong inputs and a missing fluid tag. The machine scales melting
+progress by its fuel rate, so source time 69 is not a fixed wall-clock duration.
+The fixture does not establish actual registry/tag preparation, fuel and
+capacity handling, inventory/fluid conservation, gameplay or LAN behavior.
