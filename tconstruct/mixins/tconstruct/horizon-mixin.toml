@@ -64,6 +64,13 @@ source = "pig-iron-piston.rs"
 visibility = "pub"
 
 [[module]]
+id = "source-budding-piston"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_budding_piston"
+source = "source-budding-piston.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"
