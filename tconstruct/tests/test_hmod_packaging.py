@@ -21,10 +21,9 @@ class ContentPackageTest(unittest.TestCase):
                 # The MIT text travels with the content containing upstream pixels.
                 self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
                                  (MOD / 'third_party/tconstruct/LICENSE').read_bytes())
-                for suffix in ('', '/d', '/dl', '/dlr', '/dr', '/l', '/lr', '/r',
-                               '/u', '/ud', '/udl', '/udlr', '/udr', '/ul', '/ulr', '/ur'):
-                    path = 'assets/tconstruct/textures/block/clear_tinted_glass' + suffix + '.png'
-                    self.assertEqual(packed.read(path), (MOD / 'content' / path).read_bytes(), path)
+                path = 'assets/tconstruct/textures/block/clear_tinted_glass.png'
+                self.assertEqual(packed.read(path), (MOD / 'content' / path).read_bytes())
+                self.assertFalse(any(name.startswith('assets/tconstruct/textures/block/clear_tinted_glass/') for name in names))
                 for path in ('assets/tconstruct/items/magma_bottle.json',
                              'assets/tconstruct/models/item/magma_bottle.json',
                              'assets/tconstruct/textures/item/bottle/magma_contents.png',
