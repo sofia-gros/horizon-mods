@@ -975,3 +975,9 @@ paths. The fixed aliases do not change tank identity, transfer behavior or
 unrecognized IDs. Focused tests and the pinned inventory check cover this
 mapping; actual rendering, localized names, gauge interaction and LAN remain
 unverified. This does not extend copper-can input acceptance.
+
+The Copper Can's conservative display path now accepts registered vanilla
+flowing water and lava, using the same sprite, name and default water tint as
+their still forms. It preserves the stored ID and continues to omit tagged,
+unknown or unsupported model data. The helper and display wiring are tested;
+actual icon/tooltip appearance, resource packs and LAN remain unverified.

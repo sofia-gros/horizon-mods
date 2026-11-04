@@ -96,7 +96,7 @@ pub(super) fn can_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool
     let (fluid, tag) = can_contents(stack)?;
     let fluid = fluid?;
     if tag.is_some() || fluid == "tconstruct:potion" || !known(&fluid)
-        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:lava") || fluid.starts_with("tconstruct:")) { return None; }
+        || !(matches!(fluid.as_str(), "minecraft:water" | "minecraft:flowing_water" | "minecraft:lava" | "minecraft:flowing_lava") || fluid.starts_with("tconstruct:")) { return None; }
     Some(fluid)
 }
 
@@ -616,6 +616,19 @@ mod tests {
         use horizon_world::nbt::Tag;
         let empty = ItemStack::new("tconstruct:copper_can", 8);
         assert_eq!(can_display_fluid(&empty, &known), None);
+        for fluid in ["minecraft:flowing_water", "minecraft:flowing_lava"] {
+            let filled = can_set_fluid(&empty, Some(fluid)).unwrap();
+            let before = filled.clone();
+            assert_eq!(can_display_fluid(&filled, &known).as_deref(), Some(fluid));
+            assert_eq!(filled, before);
+            assert_eq!(can_display_fluid(&filled, &|_| false), None);
+            let mut custom = filled.clone();
+            custom.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:can".into())));
+            assert_eq!(can_display_fluid(&custom, &known), None);
+            let tag = Tag::compound([("variant", Tag::String("unknown".into()))]);
+            let tagged = can_set_tagged(&empty, Some(fluid), Some(&tag)).unwrap();
+            assert_eq!(can_display_fluid(&tagged, &known), None);
+        }
         let mut filled = can_set_fluid(&empty, Some("minecraft:water")).unwrap();
         filled.count = 8;
         let before = filled.clone();
