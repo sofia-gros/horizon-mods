@@ -210,7 +210,7 @@ Silky Cloth is registered as a regular item. Its source table recipe consumes a
 cobweb with 90 mB molten rose gold and cools for 52 ticks; its source melting
 recipe returns 90 mB at 550 degrees in 52 ticks. This enables those existing
 recipe lookup paths when the required resources are supplied. The item's
-modifier applications and Creative General tab remain separate work. Native
+modifier applications remain separate work. Native
 registry IDs may change when items are added. Host integration, real casting
 and melting, save/reload, and LAN remain unverified.
 
@@ -221,8 +221,7 @@ manual resource paths. The bundled `forge:wither_bones` and
 `forge:bones/wither` definitions name this item; actual world tag resolution,
 material use and the Blazing Bone casting transaction remain unverified.
 The source wither skeleton loot and Severing drops are not implemented by this
-change, so ordinary survival acquisition remains unestablished. The item is not
-yet added to a General Creative tab. Host integration, saves and LAN are also
+change, so ordinary survival acquisition remains unestablished. The item appears in the partial World Creative tab. Host integration, saves and LAN are also
 unverified.
 
 Seared and Scorched Lamps can be crafted from a glowstone block surrounded by
@@ -241,3 +240,10 @@ Actual screen, reload, other-mod combinations and LAN remain unverified.
 Manual Creative tab registration does not add these entries to the Search tab;
 native Search registration is present but has not been verified in a running
 client. Manual and native page positions may differ.
+
+The partial General Creative tab exposes registered Blazing Bone, Silky Cloth
+and Seared Reinforcement using the source General ID and Materials and You icon.
+Other General entries and source ordering remain incomplete. This provides
+Creative access only; it does not establish their survival acquisition or
+modifier effects. Manual Search does not include these entries; native Search,
+actual display, reload, other-mod combinations and LAN remain unverified.
