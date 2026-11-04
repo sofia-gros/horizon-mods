@@ -29,3 +29,7 @@ The pinned source recipes dye eight Clear Glass blocks with an item from the mat
 ## Stained clear glass panes
 
 For each of the 16 colors, the pinned source recipe makes 16 matching stained Clear Glass Panes from six matching stained Clear Glass blocks in two rows of three. Source, registration and collision tests pass. The matching stained-glass recipes provide the input at the data level. Actual acquisition, crafting, recipe-book display, save/reload and LAN remain unverified.
+
+## Direct pane dyeing
+
+The pinned source also dyes eight uncolored Clear Glass Panes with a matching tagged dye into eight colored panes. All 16 colors are represented. Source and registration tests pass; existing Forge namespace ownership and `remove` limitations apply. Actual acquisition, crafting, recipe-book display, save/reload and LAN remain unverified.
