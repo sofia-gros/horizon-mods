@@ -28,6 +28,10 @@ class ContentPackageTest(unittest.TestCase):
                     self.assertEqual(json.loads(actual), json.loads(expected)) if path.endswith('.json') else self.assertEqual(actual, expected)
                 page = 'assets/tconstruct/book/mighty_smelting/en_us/smeltery/tanks.json'
                 self.assertEqual(json.loads(packed.read(page)), json.loads((MOD / 'content' / page).read_bytes()))
+                for block in ('seared_tinted_glass', 'scorched_tinted_glass'):
+                    path = f'data/tconstruct/horizon/block/{block}.json'
+                    self.assertEqual(json.loads(packed.read(path)), json.loads((MOD / 'content' / path).read_text()))
+                    self.assertEqual(json.loads(packed.read(path))['template'], 'minecraft:tinted_glass')
                 # The MIT text travels with the content containing upstream pixels.
                 self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
                                  (MOD / 'third_party/tconstruct/LICENSE').read_bytes())

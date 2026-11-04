@@ -40,6 +40,15 @@ class SmelteryAssets(unittest.TestCase):
                 generate(out)
                 second = {p.relative_to(out): p.read_bytes() for p in out.rglob('*') if p.is_file()}
                 self.assertEqual(first, second)
+                for block in ('seared_tinted_glass', 'scorched_tinted_glass'):
+                    path = Path(f'data/tconstruct/horizon/block/{block}.json')
+                    generated = json.loads(first[path])
+                    committed = json.loads((ROOT / 'content' / path).read_text())
+                    self.assertEqual(generated, committed)
+                    self.assertEqual(generated['template'], 'minecraft:tinted_glass')
+                    self.assertEqual(generated['properties'], {'hardness': 2.5 if block.startswith('scorched_') else 3.0, 'explosion_resistance': 8.0 if block.startswith('scorched_') else 9.0, 'requires_tool': True, 'sounds': 'minecraft:glass'})
+                    loot = json.loads((ROOT / f'content/data/tconstruct/loot_table/blocks/{block}.json').read_text())
+                    self.assertEqual(loot['pools'][0]['entries'][0]['name'], f'tconstruct:{block}')
                 for block in ('smeltery_controller', 'seared_drain', 'seared_fuel_tank',
                               'foundry_controller', 'scorched_drain', 'scorched_fuel_tank'):
                     self.assertIn(Path(f'data/tconstruct/horizon/block/{block}.json'), first)
