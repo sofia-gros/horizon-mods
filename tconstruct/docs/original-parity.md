@@ -881,3 +881,8 @@ checks wrong inputs and a missing fluid tag. The machine scales melting
 progress by its fuel rate, so source time 69 is not a fixed wall-clock duration.
 The fixture does not establish actual registry/tag preparation, fuel and
 capacity handling, inventory/fluid conservation, gameplay or LAN behavior.
+
+The pinned seared and scorched ladder crafting recipes are available with
+source-matched extensible item tags for their block ingredients. The tests
+compare both recipes and tags to the source and check bundled block
+registrations; live crafting, datapack reload and LAN remain unverified.
