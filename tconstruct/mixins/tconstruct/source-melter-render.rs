@@ -55,6 +55,22 @@ pub(super) fn color_tagged(fluid: &str, tag: Option<&horizon_world::nbt::Tag>) -
     color(fluid)
 }
 
+/// Color for an already validated Copper Can potion tag. Source base potions
+/// without extra effects match the host registry's 1.20.1 color values; effect
+/// mixtures are deliberately not approximated here.
+pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
+    use horizon_world::nbt::Tag;
+    if matches!(tag.get("CustomPotionColor"), Some(Tag::Int(_))) {
+        return Some(color_tagged("tconstruct:potion", Some(tag)));
+    }
+    if tag.get("CustomPotionEffects").is_some() { return None; }
+    let Tag::String(id) = tag.get("Potion")? else { return None; };
+    let id = id.to_string_lossy();
+    super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag))?;
+    let rgb = horizon_client_core::potions::potion_color(Some(&id));
+    Some(0xff00_0000 | (rgb & 0xff) << 16 | (rgb & 0xff00) | (rgb >> 16 & 0xff))
+}
+
 /// Source GuiMeltingModule progress strip: sprite x and visible height.
 pub(super) fn heat_bar(world: &super::World, stack: &horizon_items::items::ItemStack,
     temperature: u32, progress: i32, foundry: bool) -> (f32, f32, Option<&'static str>) {
@@ -206,6 +222,71 @@ pub(super) fn fluid_light(world_light: u8, fluid: &str) -> u32 {
 #[cfg(test)]
 mod fluid_light_tests {
     use super::{fluid_light, fluid_luminosity};
+    // 1.20.1-labelled PotionUtils/Potions/MobEffects oracle, decompiled
+    // source commit 315a03ea8861509b550cc06a7ca6b28853d2459c; not an official jar probe.
+    #[test] fn all_source_base_potion_colors_match() {
+        use horizon_world::nbt::Tag;
+        for (id, expected) in [
+            ("minecraft:water", 0xffc65d38),
+            ("minecraft:mundane", 0xffc65d38),
+            ("minecraft:thick", 0xffc65d38),
+            ("minecraft:awkward", 0xffc65d38),
+            ("minecraft:night_vision", 0xff66ffc2),
+            ("minecraft:long_night_vision", 0xff66ffc2),
+            ("minecraft:invisibility", 0xfff6f6f6),
+            ("minecraft:long_invisibility", 0xfff6f6f6),
+            ("minecraft:leaping", 0xff84fffd),
+            ("minecraft:long_leaping", 0xff84fffd),
+            ("minecraft:strong_leaping", 0xff84fffd),
+            ("minecraft:fire_resistance", 0xff0099ff),
+            ("minecraft:long_fire_resistance", 0xff0099ff),
+            ("minecraft:swiftness", 0xffffeb33),
+            ("minecraft:long_swiftness", 0xffffeb33),
+            ("minecraft:strong_swiftness", 0xffffeb33),
+            ("minecraft:slowness", 0xffe0af8b),
+            ("minecraft:long_slowness", 0xffe0af8b),
+            ("minecraft:strong_slowness", 0xffe0af8b),
+            ("minecraft:turtle_master", 0xffe6828d),
+            ("minecraft:long_turtle_master", 0xffe6828d),
+            ("minecraft:strong_turtle_master", 0xffe6858d),
+            ("minecraft:water_breathing", 0xffc0da98),
+            ("minecraft:long_water_breathing", 0xffc0da98),
+            ("minecraft:healing", 0xff2324f8),
+            ("minecraft:strong_healing", 0xff2324f8),
+            ("minecraft:harming", 0xff6a65a9),
+            ("minecraft:strong_harming", 0xff6a65a9),
+            ("minecraft:poison", 0xff63a387),
+            ("minecraft:long_poison", 0xff63a387),
+            ("minecraft:strong_poison", 0xff63a387),
+            ("minecraft:regeneration", 0xffab5ccd),
+            ("minecraft:long_regeneration", 0xffab5ccd),
+            ("minecraft:strong_regeneration", 0xffab5ccd),
+            ("minecraft:strength", 0xff00c7ff),
+            ("minecraft:long_strength", 0xff00c7ff),
+            ("minecraft:strong_strength", 0xff00c7ff),
+            ("minecraft:weakness", 0xff484d48),
+            ("minecraft:long_weakness", 0xff484d48),
+            ("minecraft:luck", 0xff06c159),
+            ("minecraft:slow_falling", 0xffb9cff3),
+            ("minecraft:long_slow_falling", 0xffb9cff3),
+        ] {
+            let tag = Tag::compound([("Potion", Tag::String(id.into()))]);
+            assert_eq!(super::can_potion_color(&tag), Some(expected), "{id}");
+        }
+    }
+    #[test] fn copper_can_potion_base_colors_and_extra_effect_boundary() {
+        use horizon_world::nbt::Tag;
+        for (id, expected) in [("minecraft:water", 0xffc65d38), ("minecraft:swiftness", 0xffffeb33), ("minecraft:turtle_master", 0xffe6828d)] {
+            let tag = Tag::compound([("Potion", Tag::String(id.into()))]);
+            assert_eq!(super::can_potion_color(&tag), Some(expected), "{id}");
+        }
+        let effects = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![]))]);
+        assert_eq!(super::can_potion_color(&effects), None);
+        let explicit = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![])), ("CustomPotionColor", Tag::Int(0x123456))]);
+        assert_eq!(super::can_potion_color(&explicit), Some(0xff563412));
+        let unknown = Tag::compound([("Potion", Tag::String("example:unknown".into()))]);
+        assert_eq!(super::can_potion_color(&unknown), None);
+    }
     #[test] fn source_emission_preserves_sky_and_brighter_world_light() {
         for (id, expected) in [
             ("tconstruct:molten_cinderslime", 10), ("tconstruct:molten_knightmetal", 10),

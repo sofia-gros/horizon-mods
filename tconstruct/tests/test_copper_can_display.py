@@ -9,7 +9,8 @@ class CopperCanDisplayContract(unittest.TestCase):
         root = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
         render = (root / 'render-copper-can.rs').read_text()
         tooltip = (root / 'part-name-injection.rs').read_text()
-        self.assertIn('tconstruct_source_melter_render::color_tagged(&fluid, tag.as_ref())', render)
+        self.assertIn('tconstruct_source_melter_render::can_potion_color(tag)', render)
+        self.assertIn('tconstruct_source_melter_render::color(&fluid)', render)
         self.assertIn('tconstruct_source_melter_render::sprite(&fluid)', render)
         self.assertIn('tconstruct_source_melter_render::fluid_name(game, &fluid)', tooltip)
 
