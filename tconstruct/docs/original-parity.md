@@ -1092,3 +1092,9 @@ conversion, including its boundary behavior. Portable views preserve the
 original floating-point bits; local complete machine color uses the converted
 tint, and guest fallback and transfer parsing remain unchanged. Integrated
 GUI, save/reload, resource packs and LAN are not verified.
+
+### Direct casting container interaction
+
+Casting Tables and Basins try supported held fluid containers before their item-swap path. The staged interaction discovers the offered fluid, selects a matching casting recipe and its capacity, and commits the tank before changing the held stack. A partially filled casting can be drained before cooling starts; emptying it resets the pending recipe. The existing supported-container and metadata restrictions still apply. Static wiring checks cover ordering and persistence; host compilation and in-game, multiplayer, and full container interoperability remain unverified.
+
+An active Faucet now rechecks the pending packet against a fresh casting after its target is emptied or completes early. A blocked, mismatched, or recognized but unreadable casting target retains the pending fluid; a confirmed removed target clears it under the existing Faucet behavior. Unit tests exercise the production state transitions with a stub recipe selector. The world recipe lookup and host integration remain unverified.

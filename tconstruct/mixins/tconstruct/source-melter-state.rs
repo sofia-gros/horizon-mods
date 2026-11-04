@@ -292,9 +292,95 @@ impl Faucet {
     }
 }
 
+/// Distinguish a recognized but unreadable casting from a removed target.
+pub(super) fn is_casting_block(name: &str) -> bool {
+    matches!(name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin")
+}
+
+/// Pending packets win over a new source when initializing a casting.
+pub(super) fn casting_faucet_offer<'a>(casting: &Casting, faucet: &'a Faucet, input: &'a Tank) -> Option<&'a Tank> {
+    if casting.recipe.is_some() { return None; }
+    let offered = if faucet.pending.amount > 0 { &faucet.pending }
+        else if !faucet.stop_after_packet { input } else { return None; };
+    (offered.amount > 0).then_some(offered)
+}
+
 #[cfg(test)]
 mod faucet_tests {
     use super::*;
+    // A bounded recipe stub stands in for the world recipe lookup. All tank,
+    // faucet, casting and offer transitions below use the production types.
+    fn prepare_copper(casting: &mut Casting, faucet: &Faucet, input: &Tank) -> bool {
+        let Some(offered) = casting_faucet_offer(casting, faucet, input) else { return false; };
+        if offered.fluid.as_deref() != Some("tconstruct:molten_copper") { return false; }
+        casting.prepare("test:copper", 90, 1, ItemStack::new("minecraft:copper_ingot", 1), false, false)
+    }
+    #[test]
+    fn drained_casting_restarts_for_pending_packet_and_conserves_fluid() {
+        let mut source = Tank::new(180); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut casting = Casting::new(); let mut faucet = Faucet::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        assert!(faucet.activate(&mut source, &casting.tank));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!((casting.tank.amount, faucet.pending.amount), (10, 80));
+        assert!(casting.tank.take(10).is_some()); casting = Casting::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        for _ in 0..8 { faucet.tick(&mut source, Some(&mut casting.tank)); }
+        assert_eq!((source.amount, faucet.pending.amount, casting.tank.amount), (0, 0, 80));
+    }
+    #[test]
+    fn completed_casting_waits_for_output_then_resumes_pending() {
+        let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut casting = Casting::new(); let mut faucet = Faucet::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        assert!(faucet.activate(&mut source, &casting.tank));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert!(casting.tank.insert("tconstruct:molten_copper", 80));
+        assert!(casting.tick(true));
+        assert!(!prepare_copper(&mut casting, &faucet, &source));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!(faucet.pending.amount, 80);
+        casting.output = None;
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!((faucet.pending.amount, casting.tank.amount), (70, 10));
+    }
+    #[test]
+    fn pending_identity_wins_and_destroyed_output_discards_pending() {
+        let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+        let mut casting = Casting::new(); let mut faucet = Faucet::new();
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        assert!(faucet.activate(&mut source, &casting.tank));
+        assert!(source.insert("tconstruct:molten_iron", 90));
+        casting = Casting::new();
+        assert_eq!(casting_faucet_offer(&casting, &faucet, &source).unwrap().fluid.as_deref(), Some("tconstruct:molten_copper"));
+        assert!(prepare_copper(&mut casting, &faucet, &source));
+        // A different fluid already in the table blocks the reserved packet.
+        assert!(casting.tank.insert("tconstruct:molten_iron", 10));
+        faucet.tick(&mut source, Some(&mut casting.tank));
+        assert_eq!((faucet.pending.amount, casting.tank.amount), (90, 10));
+        faucet.tick(&mut source, None);
+        assert!(!faucet.active); assert_eq!(faucet.pending.amount, 0);
+        assert_eq!(source.amount, 90);
+    }
+    #[test]
+    fn unreadable_casting_preserves_packet_while_removed_block_discards_it() {
+        for name in ["tconstruct:seared_table", "tconstruct:scorched_table", "tconstruct:seared_basin"] {
+            let mut source = Tank::new(90); assert!(source.insert("tconstruct:molten_copper", 90));
+            let output = Tank::new(90); let mut faucet = Faucet::new();
+            assert!(faucet.activate(&mut source, &output));
+            // The runtime leaves an unreadable recognized target untouched.
+            if !is_casting_block(name) { faucet.tick(&mut source, None); }
+            assert!(faucet.active); assert_eq!(faucet.pending.amount, 90);
+            let mut restored = Faucet::from_nbt(&faucet.to_nbt()).unwrap();
+            let mut repaired = Tank::new(90);
+            restored.tick(&mut source, Some(&mut repaired));
+            assert_eq!((restored.pending.amount, repaired.amount), (80, 10));
+            // A known non-casting block means the output handler was removed.
+            if !is_casting_block("minecraft:air") { faucet.tick(&mut source, None); }
+            assert!(!faucet.active); assert_eq!(faucet.pending.amount, 0);
+        }
+    }
     #[test]
     fn faucet_reserves_and_pours_without_overfill_or_duplicate_after_save() {
         let mut source = Tank::new(2160); assert!(source.insert("tconstruct:molten_copper", 180));
