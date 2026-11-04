@@ -21,6 +21,7 @@ class FoundryDistribution(unittest.TestCase):
                     'data/tconstruct/recipe/fantastic_foundry.json',
                     'assets/tconstruct/book/fantastic_foundry/index.json',
                     'assets/tconstruct/book/fantastic_foundry/en_us/foundry/gui1.json',
+                    'assets/tconstruct/book/fantastic_foundry/en_us/foundry/byproducts.json',
                     'assets/tconstruct/book/images/covers/fantastic_foundry_cover.png',
                     'assets/tconstruct/items/fantastic_foundry.json',
                 ):
