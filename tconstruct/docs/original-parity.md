@@ -891,3 +891,11 @@ The pinned crafting recipes for seared fancy bricks, chiseled scorched bricks
 and polished scorched stone are available for their registered blocks.
 Source-data tests cover inputs, patterns and counts; live crafting, datapack
 reload and LAN remain unverified.
+
+A plain glass bottle can now fill from 250 mB of either pinned untagged TConstruct venom fluid in
+the existing supported tank exchange paths, producing a venom bottle. The
+operation stages the tank and inventory together and rejects insufficient
+fluid, blocked output, missing registration and tagged venom. The pinned
+source uses the `tconstruct:venom` fluid tag; datapack changes to that tag, including additions, removals and replacement,
+are not resolved by this static mapping. Unit tests cover the
+bounded transfer; integrated gameplay, save/reload and LAN remain unverified.
