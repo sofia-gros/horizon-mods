@@ -70,3 +70,9 @@ but can pause all machine ticks. Client LAN snapshot replacement bypasses this
 guard. Controller destruction is not protected and neither tank data nor
 inventory drops are guaranteed. Other malformed or unknown nested data is
 outside this check. Host integration and world/LAN behavior remain unverified.
+
+On the Melter tick's preserving save, and other callers of the preserving
+single-tank encoder, an unpaired UTF-16 surrogate in the old fluid ID rejects
+the update rather than being rewritten lossily. This may pause those machines.
+Other non-preserving transfer, destroy and client snapshot paths are not covered.
+The cached-type fixture is not a full host, world, save/reload or LAN test.
