@@ -68,8 +68,9 @@ pub(super) fn color_with_complete(fluid: &str, tag: Option<&horizon_world::nbt::
 /// integer average. Refuse oversized or unsupported effect lists.
 pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
     use horizon_world::nbt::Tag;
-    if matches!(tag.get("CustomPotionColor"), Some(Tag::Int(_))) {
-        return Some(color_tagged("tconstruct:potion", Some(tag)));
+    if let Some(color) = super::tconstruct_source_fluid_container::display_potion_color(tag) {
+        let rgb = color as u32;
+        return Some(0xff00_0000 | (rgb & 0xff) << 16 | (rgb & 0xff00) | (rgb >> 16 & 0xff));
     }
     let (id, _, _) = super::tconstruct_source_fluid_container::potion_tag(tag, true)?;
     super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag))?;
@@ -313,6 +314,17 @@ mod fluid_light_tests {
     }
     // Source-order 1.20.1-labelled decompiled oracle at commit 315a03ea;
     // these do not replace an official jar or integrated rendering test.
+    #[test] fn integer_nbt_potion_colors_use_source_narrowing() {
+        use horizon_world::nbt::Tag;
+        for (value, expected) in [(Tag::Byte(-128), 0xff80ffff), (Tag::Byte(127), 0xff7f0000),
+            (Tag::Short(-32768), 0xff0080ff), (Tag::Short(32767), 0xffff7f00),
+            (Tag::Long(0x1234_5678_9abc_def0), 0xfff0debc), (Tag::Long(-1), 0xffffffff)] {
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", value)]);
+            assert_eq!(super::can_potion_color(&tag), Some(expected));
+            assert_eq!(super::color_with_complete("tconstruct:potion", Some(&tag), true), expected);
+            assert_eq!(super::color_with_complete("tconstruct:potion", Some(&tag), false), 0xfff800f8);
+        }
+    }
     #[test] fn potion_machine_color_requires_complete_metadata() {
         use horizon_world::nbt::Tag;
         let base = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
