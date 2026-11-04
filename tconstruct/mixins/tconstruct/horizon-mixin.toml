@@ -5064,3 +5064,72 @@ id = "source-trait-tooltip"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_trait_tooltip"
 source = "source-trait-tooltip.rs"
+
+# An open vanilla LAN table can retain a pre-reload result until its next click.
+[[state]]
+id = "lan-craft-recipe-generation"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "u64"
+initial = "0"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "lan-craft-menu-generation"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<(u32, u64, i32), u64>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "lan-craft-reload-generation"
+target = "horizon_client::game::Game<'_>::reload_world_tables"
+kind = "RETURN"
+helper = "source-lan-craft-reload.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "lan-craft-stale-guard-module"
+file = "crates/horizon-client/src/game/lan_crafting.rs"
+name = "tconstruct_lan_craft_stale_guard"
+source = "source-lan-craft-stale.rs"
+
+[[injection]]
+id = "lan-craft-open-record-generation"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_open_crafting"
+kind = "RETURN"
+helper = "source-lan-craft-open-return.rs"
+bindings = [
+  { name = "value", ty = "()", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "pos", ty = "[i32; 3]", value = "pos" },
+]
+
+[[injection]]
+id = "lan-craft-close-clear-generation"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_closed"
+kind = "RETURN"
+helper = "source-lan-craft-close.rs"
+bindings = [
+  { name = "value", ty = "bool", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "conn", ty = "u32", value = "conn" },
+  { name = "window", ty = "Option<i32>", value = "window" },
+]
+
+[[injection]]
+id = "lan-craft-leave-clear-generation"
+target = "horizon_client::game::lan_crafting::Game<'_>::lan_crafting_left"
+kind = "HEAD"
+helper = "source-lan-craft-left.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "guest", ty = "&mut horizon_client::lan::guest::Guest", value = "&mut *g" },
+]
