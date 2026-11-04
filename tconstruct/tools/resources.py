@@ -111,6 +111,7 @@ shutil.copytree(repository / 'assets/tconstruct/textures', mod_assets / 'texture
 food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/encyclopedia.png', mod_assets / 'textures/item/encyclopedia.png')
 for contents in ('earth_slime', 'sky_slime', 'ichor', 'ender_slime', 'magma'):
     relative = Path('item/bottle') / (contents + '_contents.png')
     destination = mod_assets / 'textures' / relative
@@ -173,6 +174,7 @@ entries = [
     ('tconstruct:pattern', 'minecraft:paper', 'Pattern'),
     ('tconstruct:puny_smelting', 'minecraft:book', 'Puny Smelting'),
     ('tconstruct:mighty_smelting', 'minecraft:book', 'Mighty Smelting'),
+    ('tconstruct:encyclopedia', 'minecraft:book', 'Encyclopedia'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:meat_soup', 'minecraft:mushroom_stew', 'Meat Soup'),
     ('tconstruct:splash_bottle', 'minecraft:glass_bottle', 'Splash Bottle'),
@@ -382,6 +384,8 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
+    if short == 'encyclopedia':
+        item['minecraft:max_stack_size'] = 1
     if short == 'meat_soup':
         # Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
         item['minecraft:max_stack_size'] = 1
