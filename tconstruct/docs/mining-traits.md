@@ -252,12 +252,13 @@ unverified.
 
 ## Emerald trait Station material repair
 
-For a resolved Emerald trait, the existing Station material-repair path now
-applies the source 1.5 repair factor once even if Emerald is also an upgrade.
-Known Cultivated, Preserved and Dense factors are applied to each per-item
-repair amount in resolved modifier order. Ambiguous upgrade order and invalid
-or overflowing supported levels are rejected before consumption. Other
-material-repair cases retain the existing calculation. Casting part-swap
+For resolved traits, Station material repair applies known Emerald, Cultivated,
+Preserved and Dense hooks to each per-item repair amount in modifier order.
+Emerald's 1.5 factor applies once even if it is both a trait and an upgrade.
+Ambiguous upgrade order and invalid or overflowing supported levels are rejected
+before consumption, including older non-Emerald items that previously used a
+guessed order. If traits cannot be resolved, the prior fallback remains; unknown
+or custom repair hooks are not implemented. Casting part-swap
 remains separately limited as described below.
 Focused tests cover both factor orders and trait/upgrade deduplication; a static
 test checks the Station wiring. Actual repair plans and ingredient counts,

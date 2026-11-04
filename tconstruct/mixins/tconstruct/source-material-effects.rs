@@ -3,9 +3,9 @@ pub(super) fn repair_factor(cultivated: i32, preserved: i32) -> f32 {
     (1.0 + cultivated as f32 * 0.5) * (1.0 + preserved as f32 * 0.15)
 }
 
-/// Apply known Station material-repair hooks to the per-item amount in source
-/// modifier order. Ambiguous upgrade or trait order fails before consumption.
-pub(super) fn ordered_emerald_repair_amount(stack: &horizon_items::items::ItemStack,
+/// Apply known repair hooks to the supplied amount in source modifier order.
+/// Ambiguous upgrade or trait order fails before consumption.
+pub(super) fn ordered_known_repair_amount(stack: &horizon_items::items::ItemStack,
     traits: &std::collections::BTreeMap<String, i32>, trait_order: &[String], initial: f32) -> Option<f32> {
     use horizon_world::nbt::Tag;
     const IDS: [&str; 4] = ["tconstruct:emerald", "tconstruct:cultivated", "tconstruct:preserved", "tconstruct:dense"];
@@ -88,7 +88,7 @@ pub(super) fn casting_repair_amount(stack: &horizon_items::items::ItemStack,
     let active = [level("tconstruct:preserved") > 0, level("tconstruct:cultivated") > 0,
         level("tconstruct:dense") > 0, emerald].into_iter().filter(|v| *v).count();
     if level("tconstruct:emerald") > 0 || active > 1 {
-        ordered_emerald_repair_amount(stack, traits, order, initial)
+        ordered_known_repair_amount(stack, traits, order, initial)
     } else {
         Some(initial * limited_casting_repair_factor(traits, emerald_upgrade)?)
     }
