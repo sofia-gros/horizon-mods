@@ -8,7 +8,8 @@ import os, pathlib, subprocess, tempfile
 root = pathlib.Path(__file__).resolve().parents[1]
 host = pathlib.Path(os.environ["HORIZON_HOST"]).resolve()
 source = (root / "mixins/tconstruct/source-machine-runtime.rs").read_text()
-route = source[source.index("fn tank_casting_recipe_current("):source.index("pub(super) fn activate_faucet(")]
+route = (source[source.index("fn tank_casting_recipe_current("):source.index("fn tank_to_casting_tank(")]
+         + source[source.index("fn activate_tank_casting("):source.index("pub(super) fn activate_faucet(")])
 template = (root / "tests/rust/faucet_tank_casting_fixture.rs").read_text()
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("// __PRODUCTION_ROUTE__", route)
 with tempfile.TemporaryDirectory(prefix="faucet-casting-") as tmp:
