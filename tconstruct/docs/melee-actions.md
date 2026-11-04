@@ -76,3 +76,27 @@ handoff at a narrower boundary, but applying damage to the host while the
 guest is still installed would target the wrong player. Source wear ordering,
 subsequent target eligibility and actor disconnect behavior have not been
 implemented or validated through this candidate.
+
+## Material attack speed and player base overrides
+
+The active material attack-speed helper now adds the tool's saved speed minus
+four to the player's current `minecraft:attack_speed` base value. A tool with
+speed two therefore produces speed four when the player's base is six; the
+ordinary base of four still produces speed two. The lookup and missing-base
+fallback follow pinned Horizon `0c7b5b61`'s `main_hand_attack_speed`.
+Existing Haste/Mining Fatigue factors are applied afterward, then the result is
+clamped to 0–1024.
+
+This matches the held attack-speed modifier in pinned TConstruct
+[`AttributesModifierHook`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/behavior/AttributesModifierHook.java):
+`tool attack speed - 4` is an additive modifier, not a replacement for the
+player's base attribute. The change is limited to that base composition. It
+does not alter the existing item eligibility, broken-item behavior, held versus
+recorded attack-item selection, or support arbitrary external attribute
+modifiers.
+
+A lightweight Rust boundary harness executes the actual helper and checks
+default/changed/zero/unavailable bases, potion ordering, clamps and native
+fallbacks. A Python assertion confirms the hook remains enabled. These checks
+do not compile the generated host or demonstrate in-game cooldowns, save/reload,
+LAN synchronization or Windows behavior; those remain unverified.
