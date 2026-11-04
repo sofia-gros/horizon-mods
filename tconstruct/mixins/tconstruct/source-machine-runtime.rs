@@ -851,12 +851,10 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
 /// liquid leaves the melter; all three entity edits are staged together.
 pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     if !ensure(game, pos, block) { return false; }
-    let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
-    if faucet.active {
-        faucet.stop_after_packet = true;
-        return store::write(&mut game.world, pos, "tconstruct:faucet", faucet.to_nbt());
-    }
+    let Some(faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
+    if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
+    if let Some(handled) = super::tconstruct_source_faucet_tank::activate(game, pos, source, target, faucet.clone()) { return handled; }
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
     if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") {
         return activate_smeltery_faucet(game, pos, source, target, faucet);
@@ -896,6 +894,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
+    if super::tconstruct_source_faucet_tank::tick(game, pos, source, target, faucet.clone()) { return; }
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
     if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") {
         tick_smeltery_faucet(game, pos, source, target, faucet);
