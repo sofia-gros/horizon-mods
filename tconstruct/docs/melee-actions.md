@@ -114,8 +114,8 @@ broken flag restores the saved material speed on the next query.
 
 Pinned TConstruct's `AttributesModifierHook.getHeldAttributeModifiers` wraps its
 held modifiers in `!tool.isBroken()`. This slice fixes only attack speed for the
-existing material-stat path; broken melee damage, Raging suppression and wider
-melee eligibility remain separate. It does not rewrite stack damage, flags or
+existing material-stat path; general broken melee damage and wider melee eligibility remain separate.
+The narrow Raging flag check is described below. It does not rewrite stack damage, flags or
 the player's attributes.
 
 The expanded boundary harness includes the actual `source-ranged-wear.rs`
@@ -123,3 +123,30 @@ predicate alongside the actual injected helper. Eleven Rust cases pass, covering
 break/repair, both broken indicators, custom and fallback bases, potion factors,
 clamps and existing native fallbacks. Generated-host compilation, gameplay,
 save/reload, LAN and Windows remain unverified.
+
+
+## Raging respects the retained broken flag
+
+The active melee damage-return helper now rejects Raging's conditional bonus
+when the shared retained-durability predicate sees a nonzero `tic_broken` byte,
+even when current damage remains below the maximum. Its existing positive
+`tic_max_damage` and damage-limit checks are preserved. Clearing the flag on an
+otherwise intact item restores the bonus; no stack state is changed by this
+read-only calculation.
+
+Pinned TConstruct
+[`ToolAttackUtil.canPerformAttack`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/helper/ToolAttackUtil.java)
+excludes broken tools before their conditional damage hooks, and
+[`ToolStack.isBroken`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/nbt/ToolStack.java)
+reads the persisted broken flag. This slice suppresses the Raging bonus only;
+it does not implement source-wide broken attack cancellation or alter the
+existing base damage, percent-trait calculation, critical handling or cooldown.
+
+A lightweight harness executes the actual damage-return helper and shared
+broken predicate. Six Rust cases pass, covering flag-only breakage, negative
+nonzero flags, restoration, maximum damage, invalid maximums, actor health,
+existing living/spin/trait gates and unchanged secondary critical handling.
+Actor and trait inputs and the unrelated percent-trait helper are boundary
+doubles. The guest-shaped case is not a LAN test. The enabled RETURN hook is
+also checked; generated-host compilation, gameplay, saving, LAN and Windows
+remain unverified.

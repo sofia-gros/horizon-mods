@@ -16,7 +16,10 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
                     stack.data().and_then(|data| data.other("minecraft:custom_data")),
                     crate::game::tconstruct_source_material_traits::levels(&game.world, stack),
                 ) {
-                    let intact = matches!(custom.get("tic_max_damage"), Some(Tag::Int(max)) if *max > 0 && stack.damage < *max as u32);
+                    // Retained tools may carry an explicit broken flag even when
+                    // their damage is below the maximum (for example after loading).
+                    let intact = matches!(custom.get("tic_max_damage"), Some(Tag::Int(max)) if *max > 0)
+                        && !crate::game::tconstruct_source_ranged_wear::is_broken(stack);
                     let level = traits.levels.get("tconstruct:raging").copied().unwrap_or(0).max(0);
                     if let Some(Tag::Float(bits)) = custom.get("tic_raging_melee_multiplier") {
                         let multiplier = f32::from_bits(*bits);
