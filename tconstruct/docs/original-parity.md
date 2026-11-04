@@ -847,3 +847,8 @@ The pinned seared brick slab, stairs and wall crafting recipes are available
 for the already registered blocks. Their source patterns and output counts
 are covered by source-data tests; live crafting, datapack reload and LAN
 remain unverified.
+
+The pinned seared cobble slab, stairs and wall crafting recipes are available
+for the already registered blocks. Their source patterns and output counts
+are covered by source-data tests; live crafting, datapack reload and LAN
+remain unverified.
