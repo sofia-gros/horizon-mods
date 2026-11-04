@@ -1069,8 +1069,9 @@ resource packs, save/reload and LAN remain unverified.
 
 The portable-item empty-potion display also recognizes an empty fluid-tag
 compound or a tag containing only `Potion:empty` / `Potion:minecraft:empty`.
-The original tag remains unchanged. Unknown fields, empty strings and effects
-are not inferred as this narrow empty case; explicit colors are covered below. Integrated GUI,
+The original tag remains unchanged. Unknown fields and empty strings
+are not inferred as this narrow empty case; supported effects and explicit
+colors are covered below. Integrated GUI,
 resource packs, save/reload and LAN remain unverified.
 
 Portable tanks and Copper Cans now display the source empty-potion name when
@@ -1092,3 +1093,10 @@ conversion, including its boundary behavior. Portable views preserve the
 original floating-point bits; local complete machine color uses the converted
 tint, and guest fallback and transfer parsing remain unchanged. Integrated
 GUI, save/reload, resource packs and LAN are not verified.
+
+Portable potion views now recognize EMPTY potion tags with bounded, validated
+source-era custom effects. Their original tag is preserved. Source tint ignores
+those effects for EMPTY unless an explicit numeric color overrides it; complete
+local machine metadata uses the same rule. Unsupported effects and fields remain
+hidden. Transfer parsing and guest fallback are unchanged. Integrated GUI,
+resource packs, save/reload and LAN remain unverified.

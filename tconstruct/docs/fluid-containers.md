@@ -26,7 +26,8 @@ Filled Copper Cans show a fluid overlay in inventory-style GUI icons and a
 translated fluid-name/one-ingot tooltip when their untagged fluid is known to
 the current world. Supported potion tags also provide the source potion name
 in the tooltip. Tagless potion fluid uses the empty-potion name and default
-color. Advanced tooltips show the original fluid ID. Empty cans show
+color. EMPTY potion tags with supported extra effects retain that default color
+unless an explicit numeric color overrides it. Advanced tooltips show the original fluid ID. Empty cans show
 the source help text. The overlay crops existing Horizon still sprites to the
 upstream MIT mask; missing sprites leave the original icon unchanged.
 

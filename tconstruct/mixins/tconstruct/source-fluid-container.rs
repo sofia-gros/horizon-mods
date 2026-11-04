@@ -382,8 +382,26 @@ pub(super) fn display_potion_color(tag: &horizon_world::nbt::Tag) -> Option<i32>
     }
 }
 
+/// Recognize only bounded, source-era effects on the EMPTY potion. The source
+/// ignores effects for EMPTY tint, but the original metadata must remain intact.
+pub(super) fn empty_potion_effects_tag(tag: &horizon_world::nbt::Tag) -> bool {
+    use horizon_world::nbt::Tag;
+    let Tag::Compound(fields) = tag else { return false; };
+    let potion = fields.get(&"Potion".into());
+    if !matches!(potion, None | Some(Tag::String(_))) { return false; }
+    if let Some(Tag::String(id)) = potion {
+        if !matches!(id.to_string_lossy().as_str(), "empty" | "minecraft:empty") { return false; }
+    }
+    let Some(list @ Tag::List(values)) = fields.get(&"CustomPotionEffects".into()) else { return false; };
+    if values.len() > 64 || effects(list, false).is_none() { return false; }
+    let color = fields.get(&"CustomPotionColor".into());
+    if color.is_some() && display_potion_color(tag).is_none() { return false; }
+    fields.len() == 1 + usize::from(potion.is_some()) + usize::from(color.is_some())
+}
+
 fn known_potion_tag(tag: horizon_world::nbt::Tag) -> Option<horizon_world::nbt::Tag> {
     use horizon_world::nbt::Tag;
+    if empty_potion_effects_tag(&tag) { return Some(tag); }
     // Source PotionFluidType prioritizes an explicit color even for EMPTY.
     // Accept only the exact known fields; unrelated metadata stays opaque.
     if let Tag::Compound(fields) = &tag {
@@ -729,6 +747,35 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn empty_potion_effects_item_views_preserve_tag() {
+        use horizon_world::nbt::Tag;
+        let can = ItemStack::new("tconstruct:copper_can", 1);
+        for potion in [None, Some("empty"), Some("minecraft:empty")] {
+            for color in [None, Some(Tag::Float((-1.25f32).to_bits()))] {
+                for list in [Tag::List(vec![]), Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Amplifier", Tag::Byte(3))])])] {
+                    let mut fields = vec![("CustomPotionEffects", list)];
+                    if let Some(id) = potion { fields.push(("Potion", Tag::String(id.into()))); }
+                    if let Some(color) = &color { fields.push(("CustomPotionColor", color.clone())); }
+                    let tag = Tag::compound(fields);
+                    let filled = can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap();
+                    assert_eq!(can_display_potion(&filled, &known), Some(tag.clone()));
+                    assert_eq!(can_display_potion_icon(&filled, &known), Some(tag.clone()));
+                    let mut tank = ItemStack::new("tconstruct:seared_fuel_tank", 1);
+                    tank.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tconstruct:tank", Tag::compound([("fluid", Tag::String("tconstruct:potion".into())), ("amount", Tag::Int(250)), ("fluid_tag", tag.clone())]))])));
+                    assert_eq!(tank_display_potion(&tank, &known), Some(tag));
+                }
+            }
+        }
+        for tag in [Tag::compound([("CustomPotionEffects", Tag::Int(1))]),
+            Tag::compound([("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(99))])]))]),
+            Tag::compound([("CustomPotionEffects", Tag::List(vec![])), ("other", Tag::Int(1))]),
+            Tag::compound([("Potion", Tag::String("example:unknown".into())), ("CustomPotionEffects", Tag::List(vec![]))]),
+            Tag::compound([("CustomPotionEffects", Tag::List(vec![])), ("CustomPotionColor", Tag::String("red".into()))])] {
+            assert!(!empty_potion_effects_tag(&tag));
+            assert_eq!(can_display_potion(&can_set_tagged(&can, Some("tconstruct:potion"), Some(&tag)).unwrap(), &known), None);
+        }
+    }
     #[test]
     fn numeric_potion_colors_preserve_original_item_tags() {
         use horizon_world::nbt::Tag;

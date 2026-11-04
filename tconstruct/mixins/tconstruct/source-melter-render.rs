@@ -72,6 +72,9 @@ pub(super) fn can_potion_color(tag: &horizon_world::nbt::Tag) -> Option<u32> {
         let rgb = color as u32;
         return Some(0xff00_0000 | (rgb & 0xff) << 16 | (rgb & 0xff00) | (rgb >> 16 & 0xff));
     }
+    if super::tconstruct_source_fluid_container::empty_potion_effects_tag(tag) {
+        return Some(color("tconstruct:potion"));
+    }
     let (id, _, _) = super::tconstruct_source_fluid_container::potion_tag(tag, true)?;
     super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(tag))?;
     let base = horizon_client_core::potions::potion(&id)?;
@@ -310,6 +313,21 @@ mod fluid_light_tests {
         ] {
             let tag = Tag::compound([("Potion", Tag::String(id.into()))]);
             assert_eq!(super::can_potion_color(&tag), Some(expected), "{id}");
+        }
+    }
+    #[test] fn empty_potion_effects_use_default_or_explicit_color() {
+        use horizon_world::nbt::Tag;
+        for potion in [None, Some("empty"), Some("minecraft:empty")] {
+            for color in [None, Some(Tag::Float((-1.25f32).to_bits()))] {
+                let mut fields = vec![("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1))])]))];
+                if let Some(id) = potion { fields.push(("Potion", Tag::String(id.into()))); }
+                if let Some(value) = &color { fields.push(("CustomPotionColor", value.clone())); }
+                let tag = Tag::compound(fields);
+                let expected = if color.is_some() { 0xfffeffff } else { 0xfff800f8 };
+                assert_eq!(super::can_potion_color(&tag), Some(expected));
+                assert_eq!(super::color_with_complete("tconstruct:potion", Some(&tag), true), expected);
+                assert_eq!(super::color_with_complete("tconstruct:potion", Some(&tag), false), 0xfff800f8);
+            }
         }
     }
     // Source-order 1.20.1-labelled decompiled oracle at commit 315a03ea;
