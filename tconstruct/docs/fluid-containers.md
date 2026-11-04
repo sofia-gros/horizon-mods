@@ -23,18 +23,19 @@ Bucket icons use the first frame of the original TConstruct fluid sprites and th
 ## Copper Can GUI contents
 
 Filled Copper Cans show a fluid overlay in inventory-style GUI icons and a
-fluid-name/90 mB tooltip when their untagged fluid is known to the current world.
-The overlay crops existing Horizon still sprites to the upstream MIT mask;
-missing sprites leave the original icon unchanged. The tooltip amount is per
-can, not the total for a stack. Empty cans retain their ordinary icon and name.
+translated fluid-name/one-ingot tooltip when their untagged fluid is known to
+the current world. Supported potion tags also provide the source potion name
+in the tooltip. Advanced tooltips show the original fluid ID. Empty cans show
+the source help text. The overlay crops existing Horizon still sprites to the
+upstream MIT mask; missing sprites leave the original icon unchanged.
 
-Malformed data, opaque wire patches, explicit item-model overrides, unknown
-fluids, and tagged fluids are left unchanged. Potion fluids are also excluded:
-variant/effect names and accurate potion colors are not implemented, including
-custom colors. This display does not change container transfer behavior.
-World/hand/dropped-item contents rendering is not implemented. In-game visuals,
-resource-pack transformations and LAN behavior remain unverified; no gameplay
-tests were run for this change.
+For supported potion tags with an explicit `CustomPotionColor` integer, the
+icon also uses that color. Potion colors derived from effects are not yet
+rendered. Malformed or unknown data, opaque wire patches, explicit item-model
+overrides and unsupported tags remain hidden. This display does not change
+container transfer behavior. World/hand/dropped-item contents rendering is
+not implemented. In-game visuals, resource-pack transformations and LAN behavior
+remain unverified for these additions.
 
 The GUI fluid overlay is drawn after the base icon and can cover enchantment
 glint in its fluid pixels. Automated tests do not exercise live injection,

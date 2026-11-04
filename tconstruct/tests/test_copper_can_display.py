@@ -9,7 +9,7 @@ class CopperCanDisplayContract(unittest.TestCase):
         root = Path(__file__).resolve().parents[1] / 'mixins/tconstruct'
         render = (root / 'render-copper-can.rs').read_text()
         tooltip = (root / 'part-name-injection.rs').read_text()
-        self.assertIn('tconstruct_source_melter_render::color(&fluid)', render)
+        self.assertIn('tconstruct_source_melter_render::color_tagged(&fluid, tag.as_ref())', render)
         self.assertIn('tconstruct_source_melter_render::sprite(&fluid)', render)
         self.assertIn('tconstruct_source_melter_render::fluid_name(game, &fluid)', tooltip)
 
@@ -46,7 +46,7 @@ class CopperCanDisplayContract(unittest.TestCase):
         render = (root / 'render-copper-can.rs').read_text()
         self.assertIn('can_display_potion(stack,', tooltip)
         self.assertIn('fluid_name_tagged(game, "tconstruct:potion", Some(&tag), true)', tooltip)
-        self.assertNotIn('can_display_potion', render)
+        self.assertIn('can_display_potion_icon(stack, &known)', render)
         self.assertIn('can_display_fluid(stack,', render)
 
     def test_unit_return_hook_supplies_exactly_one_original_value(self):
