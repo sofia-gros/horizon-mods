@@ -32,6 +32,10 @@ class ContentPackageTest(unittest.TestCase):
                     path = f'data/tconstruct/horizon/block/{block}.json'
                     self.assertEqual(json.loads(packed.read(path)), json.loads((MOD / 'content' / path).read_text()))
                     self.assertEqual(json.loads(packed.read(path))['template'], 'minecraft:tinted_glass')
+                for block in ('blood_slime_fern', 'ichor_slime_fern'):
+                    path = f'data/tconstruct/loot_table/blocks/{block}.json'
+                    self.assertEqual(json.loads(packed.read(path)), json.loads((MOD / 'content' / path).read_text()))
+                    self.assertEqual(json.loads(packed.read(path))['pools'][0]['condition'], {'type':'minecraft:survives_explosion'})
                 # The MIT text travels with the content containing upstream pixels.
                 self.assertEqual(packed.read('assets/tconstruct/licenses/tconstruct.txt'),
                                  (MOD / 'third_party/tconstruct/LICENSE').read_bytes())
