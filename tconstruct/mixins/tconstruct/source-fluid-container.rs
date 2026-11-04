@@ -22,6 +22,7 @@ fn bucket_fluid(item: &str) -> Option<String> {
     match item {
         "minecraft:water_bucket" => Some("minecraft:water".into()),
         "minecraft:lava_bucket" => Some("minecraft:lava".into()),
+        "minecraft:powder_snow_bucket" => Some("tconstruct:powdered_snow".into()),
         _ => item.strip_prefix("tconstruct:")?.strip_suffix("_bucket").filter(|id| !id.is_empty()).map(|id| format!("tconstruct:{id}")),
     }
 }
@@ -362,6 +363,7 @@ pub(super) fn filled_bucket(fluid: &str) -> Option<String> {
     match fluid {
         "minecraft:water" => Some("minecraft:water_bucket".into()),
         "minecraft:lava" => Some("minecraft:lava_bucket".into()),
+        "tconstruct:powdered_snow" => Some("minecraft:powder_snow_bucket".into()),
         _ => fluid.strip_prefix("tconstruct:").filter(|id| !id.is_empty() && !id.starts_with("flowing_"))
             .map(|id| format!("tconstruct:{id}_bucket")),
     }
@@ -909,6 +911,78 @@ mod tests {
             assert!(!transfer(&mut tagged, &mut slots, Direction::FillItem, &known, &known));
             assert_eq!((tagged, slots), before);
         }
+    }
+    #[test]
+    fn powder_snow_bucket_transfer_round_trips_atomically() {
+        let mut tank = SmelteryTank::new(2000);
+        assert!(tank.insert("minecraft:lava", 1000));
+        let mut slots = [Some(ItemStack::new("minecraft:powder_snow_bucket", 1)), None];
+        assert!(accepts(slots[0].as_ref().unwrap(), &known));
+        assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(tank.amount("tconstruct:powdered_snow"), 1000);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:bucket");
+        slots = [slots[1].take(), None];
+        assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some("tconstruct:powdered_snow"), &known, &known));
+        assert_eq!(tank.amount("minecraft:lava"), 1000);
+        assert_eq!(tank.amount("tconstruct:powdered_snow"), 0);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:powder_snow_bucket");
+        let mut single = super::super::tconstruct_source_melter_state::Tank::new(1000);
+        let mut slots = [Some(ItemStack::new("minecraft:powder_snow_bucket", 1)), None];
+        assert!(transfer_single(&mut single, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!(single.amount, 1000);
+        slots = [slots[1].take(), None];
+        assert!(transfer_single(&mut single, &mut slots, Direction::Auto, &known, &known));
+        assert_eq!(single.amount, 0);
+        assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:powder_snow_bucket");
+    }
+    #[test]
+    fn powder_snow_bucket_input_slot_uses_single_item_limit() {
+        for quick in [false, true] {
+            let mut slots = [None, None];
+            let mut held = Some(ItemStack::new("minecraft:powder_snow_bucket", 2));
+            if quick { assert!(quick_input(&mut slots, &mut held, &known)); }
+            else { assert!(click(&mut slots, &mut held, 0, false, &known)); }
+            assert_eq!(slots[0].as_ref().unwrap().count, 1);
+            assert_eq!(held.as_ref().unwrap().count, 1);
+        }
+    }
+    #[test]
+    fn powder_snow_bucket_transfer_refuses_failed_cases_without_mutation() {
+        use horizon_world::nbt::Tag;
+        let mut tank = SmelteryTank::new(1000); assert!(tank.insert("tconstruct:powdered_snow", 999));
+        let mut slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        assert!(tank.insert("tconstruct:powdered_snow", 1));
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &|id| id != "minecraft:powder_snow_bucket", &known));
+        assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &|_| false));
+        assert_eq!((tank.clone(), slots.clone()), before);
+        slots[1] = Some(ItemStack::new("minecraft:stone", 1));
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!((tank, slots), before);
+        let mut tagged = SmelteryTank::new(1000);
+        assert!(tagged.insert_tagged("tconstruct:powdered_snow", Some(&Tag::compound([("example", Tag::Int(1))])), 1000));
+        let mut slots = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+        let before = (tagged.clone(), slots.clone());
+        assert!(!transfer(&mut tagged, &mut slots, Direction::FillItem, &known, &known));
+        assert_eq!((tagged, slots), before);
+        let mut tank = SmelteryTank::new(999);
+        let mut slots = [Some(ItemStack::new("minecraft:powder_snow_bucket", 1)), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots), before);
+        let mut tank = SmelteryTank::new(1000);
+        let mut bucket = ItemStack::new("minecraft:powder_snow_bucket", 1);
+        bucket.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("example", Tag::Int(1))])));
+        let mut slots = [Some(bucket), None];
+        let before = (tank.clone(), slots.clone());
+        assert!(!transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+        assert_eq!((tank, slots), before);
     }
     #[test]
     fn slime_bottle_transfer_is_atomic_and_uses_250_mb() {
