@@ -104,3 +104,18 @@ fn ammo(id:&str)->ItemStack{ItemStack::new(id,1)}
         assert_eq!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_accuracy"),Some(&Tag::Float(accuracy.to_bits())));
     }
 }
+
+#[test] fn fallback_velocity_clamp_reaches_dispatch_without_an_actor() {
+    let mut stack=crossbow(vec![ammo("minecraft:arrow")]);
+    stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+        ("tic_max_damage",Tag::Int(100)),("tic_velocity",Tag::Float(2000.0f32.to_bits())),
+        ("tic_accuracy",Tag::Float(1.0f32.to_bits())),
+    ])));
+    let mut game=game::Game::new();assert!(game.player.is_none());
+    let _=tconstruct_crossbow_use(&mut game,&stack);
+    assert_eq!(game.dispatched.len(),1);
+    let context=game.dispatched[0].1.as_ref().unwrap();
+    assert_eq!(context.0,1024.0);assert_eq!(context.1,0.0);
+    assert!(game.world.chunks.contexts.is_empty());
+    assert_eq!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_velocity"),Some(&Tag::Float(2000.0f32.to_bits())));
+}

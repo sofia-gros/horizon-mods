@@ -10,6 +10,13 @@ fn stat(stack: &ItemStack, key: &str) -> Option<f32> {
 }
 
 pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
+    let (velocity, spread) = projectile_stats_unclamped(stack)?;
+    Some((velocity.clamp(0.0, 1024.0), spread))
+}
+
+// Keep the intermediate velocity for actor-dependent modifiers: the source
+// clamps once after all conditional-stat hooks, not before Dwarven's penalty.
+fn projectile_stats_unclamped(stack: &ItemStack) -> Option<(f32, f32)> {
     if !matches!(&*stack.item, "tconstruct:longbow" | "tconstruct:crossbow") { return None; }
     let velocity = stat(stack, "tic_velocity")?;
     let accuracy = stat(stack, "tic_accuracy")?;
@@ -36,7 +43,7 @@ pub(crate) fn projectile_stats_at(stack: &ItemStack, y: f32, max_height: i32) ->
 }
 
 pub(crate) fn projectile_stats_at_airborne(stack: &ItemStack, y: f32, max_height: i32, airborne: bool) -> Option<(f32, f32)> {
-    let (mut velocity, spread) = projectile_stats(stack)?;
+    let (mut velocity, spread) = projectile_stats_unclamped(stack)?;
     let custom = stack.data()?.other("minecraft:custom_data")?;
     if airborne && matches!(custom.get("tic_airborne"), Some(Tag::Int(level)) if *level > 0) {
         if let Some(multiplier) = stat(stack, "tic_airborne_velocity_multiplier").filter(|value| value.is_finite()) {
@@ -305,6 +312,38 @@ mod accuracy_boundary_tests {
                 ])));
                 assert_eq!(projectile_stats(&stack),None);
             }
+        }
+    }
+}
+
+#[cfg(test)]
+mod velocity_boundary_tests {
+    use super::*;
+    #[test]
+    fn fallback_clamps_final_velocity_without_prematurely_clamping_actor_path() {
+        for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+            for (velocity,expected) in [(0.0f32,0.0),(1.0,1.0),(1024.0,1024.0),(2000.0,1024.0),(f32::MAX,1024.0)] {
+                let mut stack=ItemStack::new(id,1);
+                stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                    ("tic_velocity",Tag::Float(velocity.to_bits())),("tic_accuracy",Tag::Float(1.0f32.to_bits())),
+                    ("tic_dwarven",Tag::Int(1)),("tic_dwarven_velocity_multiplier",Tag::Float(1.0f32.to_bits())),
+                ])));
+                assert_eq!(projectile_stats(&stack),Some((expected,0.0)));
+                assert_eq!(projectile_stats_at(&stack,256.0,320),Some(((velocity*0.25).clamp(0.0,1024.0),0.0)));
+                assert_eq!(stat(&stack,"tic_velocity"),Some(velocity));
+            }
+        }
+    }
+    #[test]
+    fn fallback_clamps_after_maintained_adjustment() {
+        for (multiplier,expected) in [(100.0f32,1024.0),(-20000.0,0.0),(f32::MAX,1024.0)] {
+            let mut stack=ItemStack::new("tconstruct:longbow",1);
+            stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                ("tic_velocity",Tag::Float(1020.0f32.to_bits())),("tic_accuracy",Tag::Float(1.0f32.to_bits())),
+                ("tic_maintained",Tag::Int(1)),("tic_max_damage",Tag::Int(100)),
+                ("tic_maintained_velocity_multiplier",Tag::Float(multiplier.to_bits())),
+            ])));
+            assert_eq!(projectile_stats(&stack),Some((expected,0.0)));
         }
     }
 }
