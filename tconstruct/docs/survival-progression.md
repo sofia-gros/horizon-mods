@@ -231,8 +231,9 @@ the adapted recipe IDs; runtime unlocking remains unverified. Crafting and place
 worlds, and LAN remain unverified.
 
 The partial World Creative tab exposes cobalt ore and raw forms, Necrotic Bone,
-four source-visible saplings and leaves, and four source-visible slime grass
-seeds using the source World-tab ID and cobalt ore icon. Existing block and seed
+four source-visible saplings and leaves, four source-visible slime grass
+seeds, Earth/Sky/Ichor/Ender Congealed Slime and the three non-vanilla
+slimeballs using the source World-tab ID and cobalt ore icon. Existing block and seed
 entries in the Blocks tab are retained. Other World items and source ordering
 remain incomplete. This is Creative access only, not survival loot. Both native
 and manual preparation use paged placement; existing tab IDs are retained.
