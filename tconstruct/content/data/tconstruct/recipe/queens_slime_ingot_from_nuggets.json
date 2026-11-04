@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "tconstruct:queens_slime_ingot",
+  "key": {
+    "#": "#forge:nuggets/queens_slime",
+    "*": "tconstruct:queens_slime_nugget"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:queens_slime_ingot"
+  }
+}
