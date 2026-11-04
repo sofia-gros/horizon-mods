@@ -1,0 +1,14 @@
+{
+  "title": "Seared Blocks",
+  "item": "tconstruct:seared_bricks",
+  "text": [
+    {
+      "text": "Seared bricks can form the floor or walls of a Smeltery. Other compatible seared blocks can also be used to decorate or build it.",
+      "paragraph": true
+    },
+    {
+      "text": "The illustration shows seared bricks rather than the full source block-tag showcase.",
+      "paragraph": true
+    }
+  ]
+}
