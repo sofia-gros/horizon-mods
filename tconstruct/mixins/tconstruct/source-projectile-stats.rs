@@ -14,6 +14,8 @@ pub(crate) fn projectile_stats(stack: &ItemStack) -> Option<(f32, f32)> {
     let velocity = stat(stack, "tic_velocity")?;
     let accuracy = stat(stack, "tic_accuracy")?;
     if !velocity.is_finite() || velocity < 0.0 || !accuracy.is_finite() || accuracy <= 0.0 { return None; }
+    // ConditionalStatModifierHook clamps supported accuracy before inaccuracy.
+    let accuracy = accuracy.clamp(0.1, 1.0);
     // Maintained (priority 100) precedes Dwarven (85), including its altitude
     // penalty. Evaluate current wear at release, never bake it into base stats.
     let custom = stack.data()?.other("minecraft:custom_data")?;
@@ -277,5 +279,32 @@ mod tests {
         assert!(projectile_stats(&bow("minecraft:bow", 1.0, 1.0)).is_none());
         assert!(projectile_stats(&bow("tconstruct:longbow", 1.0, 0.0)).is_none());
         assert!(projectile_stats(&bow("tconstruct:crossbow", f32::NAN, 1.0)).is_none());
+    }
+}
+
+#[cfg(test)]
+mod accuracy_boundary_tests {
+    use super::*;
+    #[test]
+    fn finite_positive_accuracy_is_clamped_before_reciprocal_spread() {
+        for id in ["tconstruct:longbow","tconstruct:crossbow"] {
+            for accuracy in [f32::from_bits(1),0.05,0.1,f32::from_bits(0.1f32.to_bits()+1),0.75,1.0,2.0,f32::MAX] {
+                let mut stack=ItemStack::new(id,1);
+                stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                    ("tic_velocity",Tag::Float(1.0f32.to_bits())),("tic_accuracy",Tag::Float(accuracy.to_bits())),
+                ])));
+                let expected=3.0f32*(1.0f32/accuracy.clamp(0.1,1.0)-1.0);
+                assert_eq!(projectile_stats(&stack),Some((1.0,expected)));
+                assert_eq!(projectile_stats_at_airborne(&stack,64.0,320,true),Some((1.0,expected)));
+                assert_eq!(stat(&stack,"tic_accuracy"),Some(accuracy));
+            }
+            for accuracy in [0.0,-1.0,f32::NAN,f32::INFINITY,f32::NEG_INFINITY] {
+                let mut stack=ItemStack::new(id,1);
+                stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+                    ("tic_velocity",Tag::Float(1.0f32.to_bits())),("tic_accuracy",Tag::Float(accuracy.to_bits())),
+                ])));
+                assert_eq!(projectile_stats(&stack),None);
+            }
+        }
     }
 }

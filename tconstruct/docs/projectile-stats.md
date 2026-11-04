@@ -412,3 +412,26 @@ the accuracy floor, negative/large/overflow inputs, repeated rebuilding, clearin
 progress/traits, non-bow gating, retained progress/foreign data and unchanged draw
 speed/velocity. No full generated-host build, gameplay, LAN or Windows validation
 was run.
+
+## Saved accuracy bounds at firing
+
+The shared firing-stat reader now clamps finite positive saved accuracy to
+0.1..1.0 before computing `3 * (1 / accuracy - 1)`. Pinned
+[`ToolStats.ACCURACY`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/stat/ToolStats.java)
+defines that range;
+[`ConditionalStatModifierHook.getModifiedStat`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/hook/build/ConditionalStatModifierHook.java)
+clamps before
+[`ModifierUtil.getInaccuracy`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/helper/ModifierUtil.java)
+takes the reciprocal. Saved accuracy 2 therefore supplies spread 0 instead of
+-1.5; accuracy 0.05 supplies 27 instead of 57. Rebuilt in-range stats are unchanged.
+
+The existing rejection of zero, negative, nonfinite, missing or wrong-type
+accuracy remains. This is a finite-positive metadata-boundary correction, not
+full malformed-input parity. Saved metadata is not rewritten; bow eligibility,
+velocity calculations and projectile-damage functions are unchanged.
+
+The cached Longbow and Crossbow harnesses execute their actual firing helpers and
+verify the clamped spread reaches the dispatch context. Shared reader tests cover
+subnormal, ordinary and extreme finite values, range boundaries, invalid values,
+unchanged velocity and retained metadata. Actor/world/dispatch boundaries remain
+doubles; no full generated-host build, gameplay, LAN or Windows test was run.
