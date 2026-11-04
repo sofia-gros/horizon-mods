@@ -5,7 +5,17 @@ fn tconstruct_material_armor(game: &mut crate::game::Game<'_>) {
         let Some(stack) = stack.as_ref().filter(|stack| stack.item.starts_with("tconstruct:")) else { continue; };
         let broken = crate::game::tconstruct_source_ranged_wear::is_broken(stack);
         let Some(data) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { continue; };
-        if !broken {
+        // Pinned ModifiableArmorItem grants base stats only in its class slot.
+        // These stock class slots cannot be reassigned by mutable item tags or
+        // equippable components. External item classes remain unsupported here.
+        let armor_slot = match stack.item.as_ref() {
+            "tconstruct:travelers_helmet" | "tconstruct:plate_helmet" | "tconstruct:slime_helmet" => Some("head"),
+            "tconstruct:travelers_chestplate" | "tconstruct:plate_chestplate" | "tconstruct:slimy_chestplate" | "tconstruct:slime_wings" => Some("chest"),
+            "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings" => Some("legs"),
+            "tconstruct:travelers_boots" | "tconstruct:plate_boots" | "tconstruct:slime_boots" => Some("feet"),
+            _ => None,
+        };
+        if !broken && armor_slot == Some(slot) {
             for (key, attribute) in [("tic_armor", "minecraft:armor"), ("tic_armor_toughness", "minecraft:armor_toughness"), ("tic_knockback_resistance", "minecraft:knockback_resistance")] {
                 if let Some(Tag::Float(bits)) = data.get(key) {
                     values.push((attribute.to_owned(), format!("tconstruct:{key}/{slot}"), f64::from(f32::from_bits(*bits)), "add_value"));
