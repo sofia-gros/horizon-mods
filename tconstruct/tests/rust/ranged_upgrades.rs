@@ -726,21 +726,46 @@ fn emerald_casting_mixed_traits_apply_to_rebuilt_tool_in_source_order() {
  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1))]))])));
  let traits=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:preserved".into(),2),("tconstruct:dense".into(),7)]);
  let order=vec!["tconstruct:dense".into(),"tconstruct:emerald".into(),"tconstruct:preserved".into()];
- let actual=tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,true,20.0).unwrap();
+ let actual=tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).unwrap();
  // The installed Emerald runs first, then resolved Dense and Preserved.
  let expected=((20.0f32*1.5)*(1.0+(-0.5 + -0.05*7.0)))*1.3;
  assert_eq!(actual.to_bits(),expected.to_bits());
  assert_eq!(actual as u32,5);
  let unknown=BTreeMap::from([("tconstruct:emerald".into(),1),("test:unknown".into(),1)]);
- assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&unknown,&order,true,20.0).is_none());
+ assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&unknown,&order,20.0).is_none());
  let without_emerald=BTreeMap::from([("tconstruct:dense".into(),1),("tconstruct:preserved".into(),1)]);
- assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&without_emerald,&order,false,20.0).is_none());
+ let mixed_order=vec!["tconstruct:dense".into(),"tconstruct:preserved".into()];
+ // This fixture still has Emerald installed; remove it for the no-gem path.
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
+ let mixed=tconstruct_source_material_effects::casting_repair_amount(&tool,&without_emerald,&mixed_order,20.0).unwrap();
+ assert_eq!(mixed.to_bits(),((20.0f32*(1.0-0.025*1.0*10.0))*1.15).to_bits());
  tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound(Vec::<(&str,Tag)>::new())));
  let trait_only=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:preserved".into(),1)]);
  let trait_order=vec!["tconstruct:preserved".into(),"tconstruct:emerald".into()];
  let expected=(20.0f32*1.15)*1.5;
- assert_eq!(tconstruct_source_material_effects::casting_repair_amount(&tool,&trait_only,&trait_order,false,20.0).unwrap().to_bits(),expected.to_bits());
+ assert_eq!(tconstruct_source_material_effects::casting_repair_amount(&tool,&trait_only,&trait_order,20.0).unwrap().to_bits(),expected.to_bits());
  let zero=BTreeMap::from([("tconstruct:emerald".into(),1),("tconstruct:dense".into(),10)]);
  let zero_order=vec!["tconstruct:dense".into(),"tconstruct:emerald".into()];
- assert_eq!(tconstruct_source_material_effects::casting_repair_amount(&tool,&zero,&zero_order,false,20.0),Some(0.0));
+ assert_eq!(tconstruct_source_material_effects::casting_repair_amount(&tool,&zero,&zero_order,20.0),Some(0.0));
+}
+
+#[test]
+fn casting_known_mixed_repair_uses_fresh_order_and_gem_upgrade() {
+ use horizon_items::items::ItemStack; use horizon_world::nbt::Tag; use std::collections::BTreeMap;
+ let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+  ("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::Int(1))])),
+  ("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:preserved".into()),Tag::String("tconstruct:dense".into())]))
+ ])));
+ let traits=BTreeMap::from([("tconstruct:dense".into(),7),("tconstruct:preserved".into(),2)]);
+ let order=vec!["tconstruct:dense".into(),"tconstruct:preserved".into()];
+ let actual=tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).unwrap();
+ let expected=((20.0f32*1.5)*(1.0+(-0.5 + -0.05*7.0)))*1.3;
+ assert_eq!(actual.to_bits(),expected.to_bits());
+ assert_eq!(actual as u32,5);
+ let missing=vec!["tconstruct:dense".into()];
+ assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&missing,20.0).is_none());
+ tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:emerald",Tag::String("bad".into()))]))])));
+ assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,20.0).is_none());
+ assert!(tconstruct_source_material_effects::casting_repair_amount(&tool,&traits,&order,f32::NAN).is_none());
 }

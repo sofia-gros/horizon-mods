@@ -283,8 +283,10 @@ existing checks still reject changed unsupported traits, fixed-definition traits
 unknown traits and broken tools. When Emerald is a resolved trait, supported
 Cultivated, Preserved and Dense repair hooks can also apply in source order to
 the rebuilt tool's per-item amount; ambiguous upgrade order fails closed.
-Other cases retain the prior single-active-factor restriction. The tool is
-rebuilt and validated before the existing transaction proceeds. Focused factor
+The same ordered path also supports combinations of those known repair traits
+without an Emerald trait, including an installed Emerald upgrade. Unknown or
+ambiguous modifier order still fails closed. The tool is rebuilt and validated
+before the existing transaction proceeds. Focused factor
 and static wiring tests cover this narrow path; actual casting, fluid/input
 consumption, host integration, save/reload and LAN remain unverified.
 
