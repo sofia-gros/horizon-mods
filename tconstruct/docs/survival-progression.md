@@ -154,3 +154,53 @@ The pinned source smelts or blasts an item in `forge:raw_nuggets/knightmetal` in
 ## Knightmetal storage conversions
 
 The pinned source's Knightmetal Nugget, Ingot and Block conversions are registered, using additive Forge knightmetal tags. Shaped compression requires the corresponding TConstruct item in the center and eight tagged items around it; unpacking a block or ingot yields nine ingots or nuggets. Source and registration tests pass. Existing Forge namespace ownership and `remove` limitations apply. Actual crafting, resource loading, packaging, recipe-book display, save/reload and LAN remain unverified.
+
+## Blazing Blood via piglin barter
+
+For the exact stock Horizon 26.3 piglin barter table, this port adds the pinned source's
+Scorched Lantern entry to the existing weighted pool: weight 20, one to four
+lanterns, each holding 50 mB of Blazing Blood. Empty one into a fuel tank to
+supply the 1500 °C fuel needed for Netherite alloying. This is one possible
+first acquisition route; stock entity melting and Blaze Head melting are not
+implemented by this change.
+
+The material-specific Battlesign and tool-parts barter entries (weights 5 and
+8) are not implemented, so the total weight and resulting probabilities differ
+from the source: this subset selects the lantern with weight 20 out of 489,
+versus 20 out of 502 if all three source entries were added to the same host
+pool. The host's native loot callback also advances its random
+stream once when this entry is selected. A complete normalized table hash
+rejects any modified table, including named pools, extra pools and indirect
+entry modifiers. A world-pack or native replacement of the barter table is
+also rejected, even with identical vanilla bytes. Forge 1.20.1 only fires the
+loot-table-load event for built-in tables, not user-pack replacements.
+
+The pinned injector is explicitly bundled at
+`data/tconstruct/mantle/loot_injectors/piglin_bartering.json` in the content mod.
+Its effective highest-priority resource must match the pinned definition.
+Missing, disabled, unreadable, malformed and modified definitions fail closed;
+absence never implies the source default. Existing prepared roots must be
+regenerated with this content file. A later pack definition takes precedence
+over the bundled one, including an empty definition that disables it. Native
+injector contributions are unsupported and close the gate. Custom packs may
+therefore need their own implementation; this is not general Mantle injector
+support.
+
+The `tests/rust/blazing_barter_integration.rs` fixture exercises the staged
+host item loot evaluator, lantern fluid transfer and fuel lookup, with stubbed
+container capacity and a representative fuel recipe. A minimal content package
+containing the injector was read by the host's package/content loaders, written
+to its prepared overlay and read back by its built-in DataPack loader. The
+complete content package, full client build, actual gameplay, multiplayer and
+cross-mod interactions have not been validated.
+
+The pack gate was checked with the pinned source injector fixture and with
+extracted, transformed pack-loading code using the host DataPack/DataStore types.
+The world loot fixture checks both proof states and cache separation. This is
+not a full client build or proof of hook ordering with other native mods.
+
+The stock-table tests require `TCONSTRUCT_TEST_PIGLIN_BARTER_TABLE` to point to
+the installation's prepared
+`data/minecraft/loot_table/gameplay/piglin_bartering.json`. They fail rather than
+skip when that file is absent or differs from the pinned normalized hash;
+Minecraft's table is not redistributed as a test fixture.

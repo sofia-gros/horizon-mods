@@ -18,6 +18,10 @@ class ContentPackageTest(unittest.TestCase):
             package(output)
             with zipfile.ZipFile(output) as packed:
                 names = set(packed.namelist())
+                injector = 'data/tconstruct/mantle/loot_injectors/piglin_bartering.json'
+                self.assertIn(injector, names)
+                self.assertEqual(packed.read(injector),
+                                 (MOD / 'tests/fixtures/blazing_barter_source.json').read_bytes())
                 for path in ('assets/tconstruct/items/magma_bottle.json',
                              'assets/tconstruct/models/item/magma_bottle.json',
                              'assets/tconstruct/textures/item/bottle/magma_contents.png',
