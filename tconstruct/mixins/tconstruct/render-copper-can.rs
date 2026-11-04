@@ -7,12 +7,15 @@ fn copper_can_contents_gui(
 ) {
     let context = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
         .and_then(|value| value.as_ref().ok());
-    let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack,
-        &|id| context.is_some_and(|(fluids, _)| fluids.contains(id))) else { return; };
+    let known = |id: &str| context.is_some_and(|(fluids, _)| fluids.contains(id));
+    let (fluid, tag) = if let Some(fluid) = crate::game::tconstruct_source_fluid_container::can_display_fluid(stack, &known) {
+        (fluid, None)
+    } else if let Some(tag) = crate::game::tconstruct_source_fluid_container::can_display_potion_icon(stack, &known) {
+        ("tconstruct:potion".to_owned(), Some(tag))
+    } else { return; };
     let sprite_id = crate::game::tconstruct_source_melter_render::sprite(&fluid);
     let Some(sprite) = game.gui.atlas.sprites.get(&sprite_id).copied() else { return; };
-    // The shared tint includes Forge's default water FluidStack color.
-    let color = crate::game::tconstruct_source_melter_render::color(&fluid);
+    let color = crate::game::tconstruct_source_melter_render::color_tagged(&fluid, tag.as_ref());
     // Opaque row spans of the MIT copper_can_fluid.png (16 x 16).
     // Crop the existing still sprite, preserving the base icon outside its mask.
     for (left, top, width) in [(6., 3., 4.), (5., 4., 6.), (5., 5., 6.), (6., 6., 4.)] {

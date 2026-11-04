@@ -1025,7 +1025,14 @@ packs, save/reload and LAN remain unverified.
 
 Copper Can tooltips now resolve known potion names using the same conservative
 complete-tag validation as portable tanks. Their original fluid tag and
-advanced ID are unchanged. Potion icon colors are still not rendered by this
-path, and empty, unknown or malformed potion metadata remains hidden. Focused
+advanced ID are unchanged. Icon color support is described below; empty,
+unknown or malformed potion metadata remains hidden. Focused
 helper and wiring checks cover this slice; integrated GUI, save/reload and LAN
 remain unverified.
+
+Copper Can potion icons now render when supported potion metadata includes an
+explicit `CustomPotionColor`, using the source still texture and exact color.
+Potions without that override remain hidden in the icon because effect-derived
+color calculation is not yet implemented. Data and transfer behavior are
+unchanged. Focused validation and wiring tests cover this subset; integrated
+rendering, resource packs, save/reload and LAN remain unverified.

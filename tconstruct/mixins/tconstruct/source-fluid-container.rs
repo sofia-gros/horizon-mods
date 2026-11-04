@@ -109,6 +109,13 @@ pub(super) fn can_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> boo
     known_potion_tag(tag?)
 }
 
+/// A custom potion color overrides effect-derived color in the source model.
+/// Other potion icons remain unsupported until their effects can be colored.
+pub(super) fn can_display_potion_icon(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<horizon_world::nbt::Tag> {
+    let tag = can_display_potion(stack, known)?;
+    matches!(tag.get("CustomPotionColor"), Some(horizon_world::nbt::Tag::Int(_))).then_some(tag)
+}
+
 /// Empty cans have source help text; malformed or opaque stacks stay hidden.
 pub(super) fn can_display_empty(stack: &ItemStack) -> bool {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return false; }
@@ -655,6 +662,31 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn copper_can_potion_icon_requires_explicit_color() {
+        use horizon_world::nbt::Tag;
+        let empty = ItemStack::new("tconstruct:copper_can", 8);
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(0x123456))]);
+        let mut filled = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
+        filled.count = 8;
+        let before = filled.clone();
+        assert_eq!(can_display_potion_icon(&filled, &known), Some(tag));
+        assert_eq!(filled, before);
+        assert_eq!(can_display_potion_icon(&filled, &|_| false), None);
+        for color in [0, -1, 0x123456] {
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(color))]);
+            let one = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
+            assert_eq!(can_display_potion_icon(&one, &known), Some(tag));
+        }
+        filled.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
+        assert_eq!(can_display_potion_icon(&filled, &known), None);
+        for tag in [Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]),
+            Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::String("red".into()))]),
+            Tag::compound([("Potion", Tag::String("example:unknown".into())), ("CustomPotionColor", Tag::Int(0x123456))])] {
+            let filled = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
+            assert_eq!(can_display_potion_icon(&filled, &known), None);
+        }
+    }
     #[test]
     fn copper_can_potion_tooltip_requires_complete_known_metadata() {
         use horizon_world::nbt::Tag;
