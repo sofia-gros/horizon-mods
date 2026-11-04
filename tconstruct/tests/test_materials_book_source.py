@@ -105,7 +105,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
         entries = json.loads((root / 'sections/smeltery.json').read_text())
         expected = [('features', 'features.json'), ('structurereq', 'structurerequirements.json'),
-                    ('sgui1', 'gui1.json'), ('sgui2', 'gui2.json')]
+                    ('sgui1', 'gui1.json'), ('sgui2', 'gui2.json'), ('seared_tanks', 'tanks.json')]
         selected = [(e['name'], e['data'].removeprefix('smeltery/')) for e in entries if e['name'] in dict(expected)]
         self.assertEqual(selected, expected)
         for name, filename in expected:
@@ -116,6 +116,8 @@ class MaterialsBookSourceTest(unittest.TestCase):
         index = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()
         for name, _ in expected:
             self.assertIn('"' + name + '"', index.split('pub(super) fn mighty_smeltery_page')[1].split('}')[0])
+        self.assertIn('4,000 mB', (root / 'en_us/smeltery/tanks.json').read_text())
+        self.assertIn('not been verified in game', (root / 'en_us/smeltery/tanks.json').read_text())
         self.assertIn('entity melting', (root / 'en_us/smeltery/features.json').read_text())
         self.assertIn('not available', (root / 'en_us/smeltery/structurerequirements.json').read_text())
 

@@ -106,3 +106,5 @@ inventory criterion and Melter parent; only its icon field is adapted for the
 host. It depends on the separately staged Melter placement advancement. Static
 resource tests do not establish gameplay, previously held items, save/reload or
 LAN actor behavior, and this addition does not implement recipe unlocks.
+
+Mighty Smelting's partial Smeltery section now includes a port-adapted Seared Fuel Tanks page. It describes the supported tank capacity and limited transfer endpoints, and notes that the source item showcase is unavailable and potion, piston and dispenser behavior are not game-verified. The new page and LAN display are unverified in game.
