@@ -280,10 +280,13 @@ The existing ordinary casting part-swap path now permits an unchanged resolved
 Emerald trait on a damaged tool and applies its flat 1.5 repair factor once,
 including when Emerald is also an upgrade. Composite casts do not repair. The
 existing checks still reject changed unsupported traits, fixed-definition traits,
-unknown traits, broken tools and combinations with another active repair factor.
-The tool is rebuilt and validated before the existing transaction proceeds.
-Focused factor and static wiring tests cover this narrow path; actual casting,
-fluid/input consumption, host integration, save/reload and LAN remain unverified.
+unknown traits and broken tools. When Emerald is a resolved trait, supported
+Cultivated, Preserved and Dense repair hooks can also apply in source order to
+the rebuilt tool's per-item amount; ambiguous upgrade order fails closed.
+Other cases retain the prior single-active-factor restriction. The tool is
+rebuilt and validated before the existing transaction proceeds. Focused factor
+and static wiring tests cover this narrow path; actual casting, fluid/input
+consumption, host integration, save/reload and LAN remain unverified.
 
 ## Dense repair rounding at high levels
 
