@@ -35,9 +35,9 @@ pub struct World { chunks: Chunks, level: Option<i32> }
 pub mod game {
     use super::*;
     pub(crate) use crate::tconstruct_modifier_snapshot;
-    pub struct Game<'a> { pub player: Option<Player>, pub stack: Option<Stack>, pub world: World, pub lan_acting: Option<u32>, pub marker: std::marker::PhantomData<&'a ()> }
+    pub struct Game<'a> { pub player: Option<Player>, pub inventory: Vec<Option<Stack>>, pub selected: usize, pub offhand: Option<Stack>, pub acting_off: bool, pub world: World, pub lan_acting: Option<u32>, pub marker: std::marker::PhantomData<&'a ()> }
     impl Game<'_> {
-        pub fn held(&self) -> Option<&Stack> { self.stack.as_ref() }
+        pub fn held(&self) -> Option<&Stack> { if self.acting_off { self.offhand.as_ref() } else { self.inventory.get(self.selected).and_then(Option::as_ref) } }
         pub fn attack_damage(&mut self) -> f32 { 4.0 }
     }
     pub mod tconstruct_source_ranged_wear { include!("../../mixins/tconstruct/source-ranged-wear.rs"); }
@@ -65,10 +65,10 @@ fn game() -> game::Game<'static> {
     stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
         ("tic_max_damage",Tag::Int(100)), ("tic_broken",Tag::Byte(0)), ("tic_raging_melee_multiplier",Tag::Float(1.0f32.to_bits())),
     ])));
-    game::Game { player:Some(Player { auto_spin_attack_dmg:0.0,health:Health(1.0) }), stack:Some(stack), world:World { chunks:Chunks(HashSet::new(),Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()])]),BTreeMap::new()))),Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])))),level:Some(1) }, lan_acting:None, marker:std::marker::PhantomData }
+    game::Game { player:Some(Player { auto_spin_attack_dmg:0.0,health:Health(1.0) }), inventory:vec![Some(stack)], selected:0, offhand:None, acting_off:false, world:World { chunks:Chunks(HashSet::new(),Some(Ok((BTreeMap::from([("tconstruct:tinkering/modifiers/raging".into(),vec![tconstruct_modifier_snapshot::PINNED_RAGING.to_vec()])]),BTreeMap::new()))),Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])))),level:Some(1) }, lan_acting:None, marker:std::marker::PhantomData }
 }
 fn field(g: &mut game::Game<'_>, key: &str, value: Tag) {
-    let Tag::Compound(fields)=&mut g.stack.as_mut().unwrap().data_mut().0 else { panic!() };
+    let Tag::Compound(fields)=&mut g.inventory[g.selected].as_mut().unwrap().data_mut().0 else { panic!() };
     fields.insert(key.into(),value);
 }
 const BASE:(f32,f32,bool,bool)=(4.0,1.0,false,false);
@@ -77,12 +77,12 @@ const BASE:(f32,f32,bool,bool)=(4.0,1.0,false,false);
     field(&mut g,"tic_broken",Tag::Byte(1)); assert_eq!(game::run(BASE,&mut g,true),BASE);
     field(&mut g,"tic_broken",Tag::Byte(-1)); assert_eq!(game::run(BASE,&mut g,true),BASE);
     field(&mut g,"tic_broken",Tag::Byte(0)); assert_eq!(game::run(BASE,&mut g,true),(6.5,1.0,false,true));
-    assert_eq!(g.stack.as_ref().unwrap().damage,0);
+    assert_eq!(g.inventory[g.selected].as_ref().unwrap().damage,0);
 }
 #[test] fn damage_limit_and_positive_maximum_guards_remain() {
-    let mut g=game(); g.stack.as_mut().unwrap().damage=100; assert_eq!(game::run(BASE,&mut g,true),BASE);
-    g.stack.as_mut().unwrap().damage=101; assert_eq!(game::run(BASE,&mut g,true),BASE);
-    g.stack.as_mut().unwrap().damage=0; field(&mut g,"tic_max_damage",Tag::Int(0)); assert_eq!(game::run(BASE,&mut g,true),BASE);
+    let mut g=game(); g.inventory[g.selected].as_mut().unwrap().damage=100; assert_eq!(game::run(BASE,&mut g,true),BASE);
+    g.inventory[g.selected].as_mut().unwrap().damage=101; assert_eq!(game::run(BASE,&mut g,true),BASE);
+    g.inventory[g.selected].as_mut().unwrap().damage=0; field(&mut g,"tic_max_damage",Tag::Int(0)); assert_eq!(game::run(BASE,&mut g,true),BASE);
     field(&mut g,"tic_max_damage",Tag::Float(100.0f32.to_bits())); assert_eq!(game::run(BASE,&mut g,true),BASE);
 }
 #[test] fn living_spin_traits_and_actor_health_gates_unchanged() {
@@ -133,12 +133,36 @@ const BASE:(f32,f32,bool,bool)=(4.0,1.0,false,false);
         g.world.chunks.2=tags;
         assert_eq!(game::run(base,&mut g,true),base);
         // Stale multiplier and saved upgrade remain, but cannot grant eligibility.
-        assert!(g.stack.as_ref().unwrap().data().unwrap().other("minecraft:custom_data").unwrap().get("tic_raging_melee_multiplier").is_some());
+        assert!(g.inventory[g.selected].as_ref().unwrap().data().unwrap().other("minecraft:custom_data").unwrap().get("tic_raging_melee_multiplier").is_some());
     }
     g.world.chunks.2=Some(Ok(HashMap::from([("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()]))])));
     assert_eq!(game::run(base,&mut g,true).0,11.5);
-    g.stack.as_mut().unwrap().item="tconstruct:longbow".into();
+    g.inventory[g.selected].as_mut().unwrap().item="tconstruct:longbow".into();
     assert_eq!(game::run(base,&mut g,true),base);
     g.world.chunks.2.as_mut().unwrap().as_mut().unwrap().get_mut("tconstruct:modifiable/melee").unwrap().insert("tconstruct:longbow".into());
     assert_eq!(game::run(base,&mut g,true).0,11.5);
+}
+
+#[test] fn selected_mainhand_is_independent_of_acting_hand_and_same_id_metadata() {
+    let mut g=game();
+    let mut other=game();
+    field(&mut other,"tic_raging_melee_multiplier",Tag::Float(3.0f32.to_bits()));
+    g.offhand=other.inventory[0].take();g.acting_off=true;
+    assert_eq!(g.held().unwrap().item,g.inventory[0].as_ref().unwrap().item);
+    assert_eq!(game::run(BASE,&mut g,true).0,6.5);
+    field(&mut g,"tic_upgrades",Tag::compound([("tconstruct:raging",Tag::Int(1))]));
+    assert_eq!(game::run(BASE,&mut g,true).0,9.0);
+    field(&mut g,"tic_upgrades",Tag::compound([]));
+    field(&mut g,"tic_broken",Tag::Byte(1));
+    assert_eq!(game::run(BASE,&mut g,true),BASE);
+    field(&mut g,"tic_broken",Tag::Byte(0));
+    g.inventory.push(g.offhand.take());g.selected=1;
+    assert_eq!(game::run(BASE,&mut g,true).0,11.5);
+    // Guest-shaped context: selected inventory and actor health change together.
+    g.lan_acting=Some(42);g.player.as_mut().unwrap().health.0=6.0;
+    assert_eq!(game::run(BASE,&mut g,true).0,7.75);
+    g.selected=0;assert_eq!(game::run(BASE,&mut g,true).0,5.25);
+    g.inventory[0]=None;assert_eq!(game::run(BASE,&mut g,true),BASE);
+    g.selected=999;assert_eq!(game::run(BASE,&mut g,true),BASE);
+    g.selected=1;g.player=None;assert_eq!(game::run(BASE,&mut g,true),BASE);
 }

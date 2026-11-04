@@ -8,9 +8,10 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
         amount -= 0.5 * base * (0.2 + scale * scale * 0.8);
         crit = false;
     }
-    // The host swaps the acting player into game.player for local and guest turns.
+    // The host swaps player, inventory and selected slot for local/guest turns.
+    // Melee uses the selected mainhand, not a temporary with_hand use context.
     if living && spin <= 0.0 {
-        if let (Some(stack), Some(player)) = (game.held(), game.player.as_ref()) {
+        if let (Some(stack), Some(player)) = (game.inventory.get(game.selected).and_then(Option::as_ref), game.player.as_ref()) {
             if stack.item.starts_with("tconstruct:") {
                 if let (Some(custom), Some(traits)) = (
                     stack.data().and_then(|data| data.other("minecraft:custom_data")),
