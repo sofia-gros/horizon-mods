@@ -51,6 +51,7 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
     // which can differ from its current eye-in-fluid state.
     let hydraulic_water = game.player.as_ref().and_then(|player|
         player.fluids.was_eye_in_water.then_some(aqua_affinity));
-    let speed = crate::game::tconstruct_source_mining_rules::conditional_with_water(custom, stack.damage, speed, multiplier, position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance), hydraulic_water).unwrap_or(speed);
+    let effect = game.potions.effects.amplifier("tconstruct:momentum_harvest").map_or(0, |amp| amp.saturating_add(1));
+    let speed = crate::game::tconstruct_source_mining_rules::conditional_with_momentum(custom, stack.damage, speed, multiplier, position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance), hydraulic_water, effect).unwrap_or(speed);
     crate::game::tconstruct_source_mining_rules::finish_mining_speed(speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground), armor_multiplier)
 }

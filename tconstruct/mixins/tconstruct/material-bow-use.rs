@@ -4,7 +4,7 @@ fn tconstruct_bow_use(game: &mut crate::game::Game<'_>, stack: &horizon_client::
     if &*stack.item != "tconstruct:longbow" || matches!(game.guest_use, Some(crate::game::GuestUse::OnBlock(_))) { return Continue(()); }
     if crate::game::tconstruct_source_ranged_wear::is_broken(stack) { return Break(Ok(UseResult::Fail)); }
     if game.using.is_none() && (game.creative || game.projectile_slot("minecraft:bow").is_some()) {
-        game.start_using_item();
+        crate::game::tconstruct_source_momentum_ranged_use::start(game);
     }
     Break(Ok(UseResult::Success { swing: false }))
 }

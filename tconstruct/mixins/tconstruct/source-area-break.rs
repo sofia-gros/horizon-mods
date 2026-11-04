@@ -66,6 +66,7 @@ fn tconstruct_area_break(game: &mut crate::game::Game<'_>, pos: [i32;3]) -> std:
         Ok(())
     })();
     game.world.chunks.__horizon_mixins_tconstruct_area_active_mut().remove(&actor);
+    game.world.chunks.__horizon_mixins_tconstruct_momentum_area_seen_mut().remove(&actor);
     game.world.chunks.__horizon_mixins_tconstruct_area_overwield_spent_mut().remove(&actor);
     if let Some(conn) = actor { game.world.chunks.__horizon_mixins_tconstruct_area_guest_hits_mut().remove(&conn); }
     Break(result)

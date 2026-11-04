@@ -1,4 +1,5 @@
-fn tconstruct_wear(game: &mut crate::game::Game<'_>, hardness: f32) -> std::ops::ControlFlow<()> {
+fn tconstruct_wear(game: &mut crate::game::Game<'_>, block: &str, hardness: f32) -> std::ops::ControlFlow<()> {
+    crate::game::tconstruct_source_momentum_harvest::apply(game, block, hardness);
     let Some(stack) = game.inventory[game.selected].clone() else { return std::ops::ControlFlow::Continue(()); };
     if stack.item.as_ref() != "tconstruct:flint_pickaxe" && !(stack.item.starts_with("tconstruct:") && matches!(stack.data().and_then(|data| data.other("minecraft:custom_data")).and_then(|tag| tag.get("tic_max_damage")), Some(horizon_world::nbt::Tag::Int(max)) if *max > 0)) { return std::ops::ControlFlow::Continue(()); }
     if hardness != 0.0 {

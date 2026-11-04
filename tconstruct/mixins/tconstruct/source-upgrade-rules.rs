@@ -553,6 +553,8 @@ pub fn apply_stats(
         let accuracy = ((accuracy_base + accuracy_add) * (1.0 + accuracy_percent) * accuracy_multiply).clamp(0.1, 1.0);
         let projectile_damage = ((projectile_base + projectile_add) * (1.0 + projectile_percent) * projectile_multiply).clamp(0.0, 1024.0);
         fields.insert("tic_overwield_ranged".into(), Tag::Int(level("tconstruct:overwield").max(0)));
+        let momentum = level("tconstruct:momentum").max(0).checked_add(amount(tool, "tconstruct:momentum").max(0)).unwrap_or(0);
+        fields.insert("tic_momentum".into(), Tag::Int(momentum));
         fields.insert("tic_overwield_draw_multiplier".into(), Tag::Float(conditional_draw_multiplier.to_bits()));
         fields.insert("tic_overwield_velocity_multiplier".into(), Tag::Float(stats.velocity_raw[3].to_bits()));
         fields.insert("tic_draw_speed".into(), Tag::Float(draw.to_bits()));

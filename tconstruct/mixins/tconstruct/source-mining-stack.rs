@@ -70,6 +70,9 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
         Some(Tag::Int(n)) if (0..=180).contains(n) => *n,
         _ => return None,
     };
+    let momentum_amount = match custom.get("tic_upgrades").and_then(|u| u.get("tconstruct:momentum")) {
+        Some(Tag::Int(n)) => (*n).max(0), _ => 0,
+    };
     let Tag::Compound(ref mut fields) = custom else { return if tool.is_none() { Some(()) } else { None } };
     let mut dynamic_order = order.to_vec();
     if !dynamic_order.iter().any(|id| id == "tconstruct:blasting") &&
@@ -79,12 +82,17 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     if !dynamic_order.iter().any(|id| id == "tconstruct:hydraulic") && hydraulic_amount > 0 {
         dynamic_order.push("tconstruct:hydraulic".to_owned());
     }
+    if !dynamic_order.iter().any(|id| id == "tconstruct:momentum") && momentum_amount > 0 {
+        dynamic_order.push("tconstruct:momentum".to_owned());
+    }
     let dynamic: Vec<Tag> = dynamic_order.iter().filter_map(|id| {
-        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:blasting" | "tconstruct:hydraulic" | "tconstruct:airborne" | "tconstruct:overwield") { return None; }
+        if !matches!(id.as_str(), "tconstruct:jagged" | "tconstruct:stonebound" | "tconstruct:maintained" | "tconstruct:dwarven" | "tconstruct:crumbling" | "tconstruct:blasting" | "tconstruct:hydraulic" | "tconstruct:airborne" | "tconstruct:overwield" | "tconstruct:momentum") { return None; }
         let effective = if id == "tconstruct:blasting" {
             level(id).max(0).saturating_mul(20).saturating_add(blasting_amount)
         } else if id == "tconstruct:hydraulic" {
             level(id).max(0).saturating_mul(36).saturating_add(hydraulic_amount)
+        } else if id == "tconstruct:momentum" {
+            level(id).max(0).checked_add(momentum_amount).unwrap_or(0)
         } else { level(id) };
         Some(Tag::compound([("id", Tag::String(id.as_str().into())), ("level", Tag::Int(effective))]))
     }).collect();

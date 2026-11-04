@@ -1,11 +1,12 @@
 fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_client::projectiles::Projectile) {
     use horizon_client::projectiles::ProjectileKind;
     if !matches!(p.kind, ProjectileKind::Arrow { .. }) { return; }
+    let native_critical = matches!(p.kind, ProjectileKind::Arrow { critical: true, .. });
     let actor = game.lan_acting;
-    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage, crystal, glowing)| {
-        if shots.is_empty() { None } else { let (angle, power, primary) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage, *crystal, *glowing, primary)) }
+    let shot = game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().get_mut(&actor).and_then(|(velocity, spread, shots, bow, damage, crystal, glowing, momentum)| {
+        if shots.is_empty() { None } else { let (angle, power, primary) = shots.remove(0); Some((*velocity, *spread, angle, power, *bow, *damage, *crystal, *glowing, *momentum, primary)) }
     });
-    let Some((velocity, spread, angle, power, bow, damage, crystal, glowing, primary)) = shot else { return; };
+    let Some((velocity, spread, angle, power, bow, damage, crystal, glowing, momentum, primary)) = shot else { return; };
     if let ProjectileKind::Arrow { ref mut base_damage, .. } = p.kind { *base_damage += damage; }
     if glowing {
         if let Some(stack) = game.held().cloned() {
@@ -28,6 +29,9 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
         let up = glam::DVec3::from_array(super::view_vector(game.yaw, game.pitch - 90.0));
         let dir = glam::DQuat::from_axis_angle(up.normalize_or_zero(), angle.to_radians()) * view;
         p.shoot(&mut game.world.random, dir.to_array(), power * velocity, spread);
+    }
+    if game.remote.is_none() && crate::game::tconstruct_ranged_draw::earns_momentum(momentum, primary, bow, power, native_critical) {
+        crate::game::tconstruct_source_momentum_harvest::add_ranged(game);
     }
     let (direction, yaw) = crate::game::tconstruct_projectile_stats::restrict_direction([p.velocity.x, p.velocity.y, p.velocity.z], crystal);
     if let Some(yaw) = yaw { p.velocity.x = direction[0]; p.velocity.y = direction[1]; p.velocity.z = direction[2]; p.yaw = yaw; }

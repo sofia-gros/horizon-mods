@@ -30,6 +30,7 @@ cancellable = true
 helper = "wear.rs"
 bindings = [
   { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "block", ty = "&str", value = "name" },
   { name = "hardness", ty = "f32", value = "hardness" },
 ]
 
@@ -2763,7 +2764,7 @@ require = 1
 ordinal = 0
 result = "()"
 helper = "source-overwield-harvest-start.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }, { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" }]
 
 [[injection]]
 id = "source-area-guest-hit"
@@ -2987,7 +2988,7 @@ source = "source-projectile-airborne.rs"
 [[state]]
 id = "material-projectile-context"
 target = "horizon_client_render::chunk_map::ChunkMap"
-ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32,bool)>,bool,f64,i32,bool)>"
+ty = "std::collections::HashMap<Option<u32>,(f32,f32,Vec<(f64,f32,bool)>,bool,f64,i32,bool,bool)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
@@ -5053,3 +5054,49 @@ id = "source-part-material-id-host-tests"
 file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_part_material_id_host_tests"
 source = "source-part-material-id-host-tests.rs"
+
+[[module]]
+id = "game-source-momentum-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_momentum_rules"
+source = "source-momentum-rules.rs"
+
+[[module]]
+id = "game-source-momentum-harvest"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_momentum_harvest"
+source = "source-momentum-harvest.rs"
+
+[[state]]
+id = "momentum-break-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<Option<u32>, (String, bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[state]]
+id = "momentum-area-seen"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashSet<Option<u32>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-momentum-milk"
+target = "horizon_client::game::Game<'_>::apply_consume_effect"
+kind = "HEAD"
+cancellable = true
+helper = "source-momentum-milk.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "effect", ty = "&horizon_client::items::ConsumeEffect", value = "effect" }]
+
+[[module]]
+id = "game-source-momentum-ranged-use"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_momentum_ranged_use"
+source = "source-momentum-ranged-use.rs"

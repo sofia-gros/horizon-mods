@@ -579,3 +579,19 @@ neighbors, merged trait/progress cases, large/overflow inputs and broken armor.
 It verifies the bounded multiplier reaches `finish_mining_speed` without capping
 that final speed itself. No full generated-host build, gameplay, LAN or Windows
 validation was run.
+
+## Hepatizon Momentum (bounded implementation)
+
+A qualifying harvest builds a separate player Momentum effect and increases
+speed on effective blocks. The effect uses the source 100-tick minimum,
+hardness-dependent duration, ten-level cap and modifier order. Longbows and
+crossbows snapshot their draw time when a use starts and qualifying primary,
+full-charge arrows build a separate 200-tick ranged effect. Milk buckets do not
+remove these two effects.
+
+The lightweight tests exercise the math, tool stat regeneration, use lifecycle
+and ordinary arrow paths. Rocket, thrown and sling launches remain unsupported;
+unknown or mixed ammunition and unresolved equal-priority modifier order are
+conservative. The host does not preserve hidden weaker effects through a save,
+and the existing fluid-milk cure path refuses mod effects. Full generated-host
+compilation and actual gameplay, save/reload, LAN and Windows remain unverified.
