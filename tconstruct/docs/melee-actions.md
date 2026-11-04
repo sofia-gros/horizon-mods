@@ -329,3 +329,26 @@ missing or restored definitions. The cached `raging_melee.rs` harness retains th
 actual wear-bonus helper and checks the existing Raging-before-Jagged result;
 `ranged_upgrades.rs` exercises the actual planner's ingredient/crystal rejection.
 No full generated-host build, gameplay, LAN or Windows validation was run.
+
+## Live melee eligibility for Raging
+
+Raging's existing living-target damage addition now also requires the acting
+stack to belong to the live resolved `tconstruct:modifiable/melee` item tag.
+Pinned [`ToolAttackUtil.canPerformAttack`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/tools/helper/ToolAttackUtil.java)
+requires both an unbroken tool and MELEE membership before entering its modifier
+attack path. A stale saved multiplier or upgrade is no longer treated as evidence
+that a tool removed from this tag should still receive Raging.
+
+Missing/error tag snapshots, a missing MELEE tag or absent membership suppress
+only the Raging addition. Restoring live membership restores the bonus without
+rewriting metadata. Existing stock-definition, merged-level, broken, target,
+health and cooldown guards remain. This does not reject the host's whole attack
+or alter its base damage, secondary-critical correction or other modifiers;
+full source attack eligibility across every host path remains outside scope.
+
+The actual RETURN-hook boundary harness tests tag removal/restoration, unknown
+and error snapshots, stale saved data and runtime membership of a different item.
+Existing tests retain broken/living/spin/health and definition-override coverage;
+the cached `raging_melee.rs` harness retains the actual wear-bonus integration.
+Resolved tag maps are boundary inputs, not a real resource reload or network
+simulation. No full generated-host build, gameplay, LAN or Windows test was run.
