@@ -6,7 +6,9 @@ locks newly filled fluid until the end of its next tick, tries the downward
 output first at up to 10 mB, and otherwise divides the unlocked amount among
 all configured horizontal outputs with a 1–10 mB per-side limit. The caller
 must supply horizontal sides in source iteration order and each independent,
-compatible sink's simulated capacity. The planner makes no world mutations.
+compatible sink's simulated capacity. The caller must check the same fluid
+identity and metadata, reject aliased sinks, and atomically revalidate the full
+plan before commit. The planner makes no world mutations.
 
 Before connecting it, implement and validate block registration and source
 shapes, placement and side controls, powered neighbour updates, actual fluid
