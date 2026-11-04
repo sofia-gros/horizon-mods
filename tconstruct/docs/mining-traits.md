@@ -406,3 +406,30 @@ This aligns the operation types; it does not promise universal bit identity
 between Rust platform math libraries and Java Math.pow. The existing missing
 resistance fallback, context gating, and modifier ordering are unchanged.
 No full generated-host build, gameplay, LAN, or Windows validation was run.
+
+## Haste tool-stat incremental precision
+
+The harvest-tool regeneration path now reconstructs Haste's integer logical
+upgrade level from the existing fixed 45-unit progress, merges the material
+trait's whole level, then applies the float partial-level correction. It no
+longer divides progress by 45 directly or adds the trait after rounding the
+partial upgrade. This follows pinned
+[`IncrementalModifierEntry.merge` and `scaleLevel`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/IncrementalModifierEntry.java)
+and Haste's
+[4-per-level additive mining stat module](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/haste.json).
+The source-ordered additive, percent, and overall multiplier stages and the
+final speed clamp remain unchanged. Negative or malformed progress retains
+the existing zero-progress fallback. Unrepresentable merged integer levels
+suppress only Haste's bonus rather than overflowing.
+
+The cached-library mining integration harness executes the actual regeneration
+helper and effective-block return hook. Bitwise counterexamples cover one
+progress unit alone, three units plus one trait level, and six units plus two
+trait levels. It also covers full and partial level boundaries, repeated
+regeneration, trait/progress removal, non-harvest gating, unmatched blocks,
+large/negative inputs, and preservation of progress, foreign data, and the
+legacy Tool mirror. Existing integration cases cover other mining modifiers.
+This remains limited to the supported fixed-45 progress representation; it
+does not add arbitrary incremental denominators, datapack interpretation, or
+change the separate equipment Haste attribute path. No full generated-host
+build, gameplay, LAN, or Windows validation was run.
