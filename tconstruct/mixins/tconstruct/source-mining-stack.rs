@@ -16,11 +16,12 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     };
     let has_gem = |id| matches!(stack.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get(id)), Some(Tag::Int(v)) if *v > 0);
     let diamond = has_gem("tconstruct:diamond");
-    let emerald = has_gem("tconstruct:emerald");
+    let emerald = has_gem("tconstruct:emerald") || level("tconstruct:emerald") > 0;
     let netherite = has_gem("tconstruct:netherite") || level("tconstruct:netherite") > 0;
     let mut add = stats.mining_speed_add_raw;
     let percent = stats.mining_speed_percent_raw;
     let mut multiplier = stats.mining_speed_all_multiplier;
+    let mut conditional_multiplier = stats.mining_speed_all_multiplier;
     for id in super::tconstruct_source_material_effects::ordered_modifier_ids(stack, levels) {
         match id.as_str() {
             "tconstruct:diamond" if diamond => add += 2.0,
@@ -29,7 +30,12 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
             "tconstruct:lightweight" => multiplier *= 1.0 + 0.08 * level(&id).max(0) as f32,
             "tconstruct:heavy" => multiplier *= 1.0 + 0.15 * level(&id).max(0) as f32,
             "tconstruct:netherite" if netherite => multiplier *= 1.25,
-            "tconstruct:vintage" => multiplier *= 1.0 - 0.1 * vintage.max(0) as f32,
+            "tconstruct:vintage" => {
+                let factor = 1.0 - 0.1 * vintage.max(0) as f32;
+                multiplier *= factor;
+                conditional_multiplier *= factor;
+            },
+            "tconstruct:emerald" if emerald => conditional_multiplier *= 1.25,
             _ => {},
         }
     }
@@ -79,7 +85,7 @@ pub fn apply(stack: &mut ItemStack, stats: &super::tconstruct_source_station_sta
     if let Some(ref tool) = tool { fields.insert("tic_mining_tool".into(), tool.clone()); }
     else { fields.remove(&"tic_mining_tool".into()); }
     fields.insert("tic_mining_traits".into(), Tag::List(dynamic));
-    fields.insert("tic_mining_all".into(), Tag::Float((stats.mining_speed_all_multiplier * (1.0 - 0.1 * vintage.max(0) as f32) * if emerald { 1.25 } else { 1.0 }).to_bits()));
+    fields.insert("tic_mining_all".into(), Tag::Float(conditional_multiplier.to_bits()));
     fields.insert("tic_durability_all".into(), Tag::Float(stats.durability_multiplier_unit.to_bits()));
     if let Some(tool) = tool { stack.data_mut().set_other("minecraft:tool", Some(tool)); }
     stack.data_mut().set_other("minecraft:custom_data", Some(custom));
