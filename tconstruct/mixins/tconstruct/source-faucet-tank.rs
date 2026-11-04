@@ -47,7 +47,7 @@ impl Source {
 fn name(game: &super::Game<'_>, at: Pos) -> String {
     game.res.facts().get(game.world.block(at.0,at.1,at.2)).name.to_string()
 }
-fn tank_kind(name: &str) -> Option<(&'static str,u32)> {
+pub(super) fn tank_kind(name: &str) -> Option<(&'static str,u32)> {
     super::tconstruct_source_smeltery_fuel::capacity(name).zip(super::tconstruct_source_machine_runtime::kind(name))
         .map(|(capacity,key)| (key,capacity))
 }
