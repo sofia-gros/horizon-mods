@@ -71,7 +71,6 @@ class MaterialsBookSourceTest(unittest.TestCase):
         import hashlib
         root = ARCHIVE / 'assets/tconstruct/book/mighty_smelting'
         for path, sha in {
-            'sections/smeltery.json': '0125b0c787d061e86d1e74c12d157fa9bd3d2f32',
             'en_us/smeltery/controller.json': '68bd1e57a4e61f1a22136fef66127645f8d4a287',
         }.items():
             data = (root / path).read_bytes()
@@ -85,6 +84,11 @@ class MaterialsBookSourceTest(unittest.TestCase):
         image = (ARCHIVE / 'assets/tconstruct/book/images/scontroller.png').read_bytes()
         self.assertEqual(hashlib.sha1(f'blob {len(image)}\0'.encode() + image).hexdigest(), 'f6876cde9a983114a3208992282474f4dc9d0d23')
         section = json.loads((root / 'sections/smeltery.json').read_text())
+        source_sections = (ROOT / 'tests/fixtures/mighty_smeltery_sections_source.json').read_bytes()
+        self.assertEqual(hashlib.sha1(f'blob {len(source_sections)}\0'.encode() + source_sections).hexdigest(), '0125b0c787d061e86d1e74c12d157fa9bd3d2f32')
+        expected_sections = json.loads(source_sections)
+        actual_without_extension = [page for page in section if page['name'] != 'blazing_blood_barter']
+        self.assertEqual(actual_without_extension, expected_sections)
         self.assertEqual([(page['name'], page['data']) for page in section if page['name'] in ('controller', 'alloying')],
                          [('controller', 'smeltery/controller.json'), ('alloying', 'smeltery/alloying.json')])
         for name, path, item in [

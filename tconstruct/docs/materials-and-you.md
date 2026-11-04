@@ -113,4 +113,4 @@ Mighty Smelting's partial Smeltery section now includes a port-adapted Seared Fu
 
 The Mighty Smelting partial Smeltery Basics section also includes Tinted Seared Glass. It describes the default wall/floor distinction and notes that normal crafting is not yet wired. Live display, light updates in existing worlds, and LAN remain unverified.
 
-The Mighty Smelting Alloying page explains the source temperatures for lava, Blazing Blood and the molten netherite alloy. It notes that the stock initial Blazing Blood source is not yet established; vanilla netherite crafting remains separate. The guide display and actual progression remain unverified.
+The Mighty Smelting Alloying page explains the source temperatures for lava, Blazing Blood and the molten netherite alloy. A following page describes the limited stock piglin barter route for Blazing Blood; vanilla netherite crafting remains separate. The guide display and actual progression remain unverified.

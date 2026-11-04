@@ -35,6 +35,11 @@
     "data": "smeltery/alloying.json"
   },
   {
+    "name": "blazing_blood_barter",
+    "type": "mantle:text",
+    "data": "smeltery/blazing_blood_barter.json"
+  },
+  {
     "name": "hidden",
     "type": "mantle:image_text",
 	"data": "smeltery/hottub.json"
