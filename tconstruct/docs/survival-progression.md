@@ -224,3 +224,9 @@ The source wither skeleton loot and Severing drops are not implemented by this
 change, so ordinary survival acquisition remains unestablished. The item is not
 yet added to a General Creative tab. Host integration, saves and LAN are also
 unverified.
+
+Seared and Scorched Lamps can be crafted from a glowstone block surrounded by
+four matching bricks, as in the pinned source. The existing lamp blocks and
+self-drop loot are unchanged. Source-style recipe-book unlock advancements use
+the adapted recipe IDs; runtime unlocking remains unverified. Crafting and placement in a running host, saved
+worlds, and LAN remain unverified.
