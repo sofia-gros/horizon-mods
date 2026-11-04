@@ -968,3 +968,10 @@ name and luminosity in supported tank displays and Copper Gauge names. This is
 only a display alias: stored fluid identity and transfers remain unchanged.
 Focused helper tests cover the two aliases and unrelated IDs; the integrated
 renderer, translations, gauge interaction and LAN have not been game-tested.
+
+The 70 pinned TConstruct flowing fluid IDs now use the corresponding still
+fluid's sprite, display name, tint and luminosity in the same supported display
+paths. The fixed aliases do not change tank identity, transfer behavior or
+unrecognized IDs. Focused tests and the pinned inventory check cover this
+mapping; actual rendering, localized names, gauge interaction and LAN remain
+unverified. This does not extend copper-can input acceptance.
