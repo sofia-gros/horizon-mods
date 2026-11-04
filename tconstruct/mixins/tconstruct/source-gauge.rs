@@ -118,7 +118,8 @@ pub(super) fn interact(game: &mut super::Game<'_>, pos: (i32,i32,i32)) -> bool {
     };
     let capacity = Text::literal(comma(tank.capacity));
     let text = if let Some(fluid) = tank.fluid {
-        let (namespace, name) = fluid.split_once(':').unwrap_or(("minecraft", fluid.as_str()));
+        let display_fluid = super::tconstruct_source_fluid_display::display_id(&fluid);
+        let (namespace, name) = display_fluid.split_once(':').unwrap_or(("minecraft", display_fluid));
         let key = if fluid == "tconstruct:potion" {
             // Native fluid snapshots omit metadata; an absent tag there does
             // not mean the potion itself has no tag.

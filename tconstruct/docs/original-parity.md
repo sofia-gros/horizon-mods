@@ -962,3 +962,9 @@ resource overlays and startup resource preparation preserve other remainder
 entries. The host furnace reads that remainder when fuel is consumed. Resource
 overlay tests cover the registered values and preservation; integrated furnace,
 blast furnace, smoker, save/reload and LAN behavior have not been verified.
+
+Vanilla flowing water and lava now share their still-fluid sprite, translated
+name and luminosity in supported tank displays and Copper Gauge names. This is
+only a display alias: stored fluid identity and transfers remain unchanged.
+Focused helper tests cover the two aliases and unrelated IDs; the integrated
+renderer, translations, gauge interaction and LAN have not been game-tested.

@@ -1,14 +1,11 @@
 // Vanilla fluids use their existing still sprites; TConstruct fluids use the
 // source images staged under a separate prefix.
 pub(super) fn sprite(fluid: &str) -> String {
-    match fluid {
-        "minecraft:lava" => "block/lava_still".to_owned(),
-        "minecraft:water" => "block/water_still".to_owned(),
-        _ => format!("block/tconstruct_fluid_{}", fluid.strip_prefix("tconstruct:").unwrap_or("")),
-    }
+    super::tconstruct_source_fluid_display::sprite(fluid)
 }
 
 pub(super) fn fluid_name(game: &super::Game<'_>, fluid: &str) -> String {
+    let fluid = super::tconstruct_source_fluid_display::display_id(fluid);
     let key = format!("fluid.{}", fluid.replace(':', "."));
     game.pack.names.display_get(&key).or_else(|| {
         fluid.strip_prefix("minecraft:").and_then(|id| game.pack.names.display_get(&format!("block.minecraft.{id}")))
@@ -176,7 +173,7 @@ mod faucet_geometry_tests {
 /// Source TinkerFluids registrations provide the minimum block light used by
 /// Mantle's fluid renderer. Unknown fluids retain the world's existing light.
 pub(super) fn fluid_luminosity(fluid: &str) -> u8 {
-    match fluid {
+    match super::tconstruct_source_fluid_display::display_id(fluid) {
         "minecraft:lava" | "tconstruct:fiery_liquid" => 15,
         "tconstruct:molten_glass" => 1,
         "tconstruct:liquid_soul" | "tconstruct:molten_porcelain" => 2,
@@ -220,5 +217,8 @@ mod fluid_light_tests {
         assert_eq!(fluid_light(0xff, "tconstruct:molten_copper"), 240 | (240 << 8));
         assert_eq!(fluid_light(0x52, "minecraft:water"), 80 | (32 << 8));
         assert_eq!(fluid_light(0x00, "minecraft:lava"), 240 << 8);
+        assert_eq!(fluid_light(0x00, "minecraft:flowing_lava"), fluid_light(0x00, "minecraft:lava"));
+        assert_eq!(fluid_light(0x52, "minecraft:flowing_water"), fluid_light(0x52, "minecraft:water"));
+        assert_eq!(fluid_light(0xff, "minecraft:flowing_lava"), fluid_light(0xff, "minecraft:lava"));
     }
 }
