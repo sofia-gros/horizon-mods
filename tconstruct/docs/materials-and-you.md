@@ -98,3 +98,11 @@ Before production use, duplicate JSON object keys need rejection or verified
 compatibility with the source parser; serde_json currently uses the last key.
 
 Mighty Smelting's partial Smeltery chapter now includes four port-adapted text pages: features, a small structure example, controller operation and fluid-container operation. The chapter section names and order still follow pinned TConstruct `f4e77d43`, but these four page bodies are not verbatim source: the original diagram describes a different GUI, the original height limit differs from the current validator, and entity melting and some fluid-container paths remain incomplete. The source structure viewer, original GUI illustration, and other excluded pages are not implemented by this change. These pages and their layout have not been checked in game or over LAN.
+
+The Melter advancement uses the pinned source's five requirement groups: placement of a Seared Melter, Table, Basin and Faucet, plus any one of the five specified heater or tank/gauge blocks. Its icon uses the host's `id` representation. The host's placed-block and block-state condition paths were inspected, and resource tests check the complete criterion and requirement sets. Actual placement events, progress persistence, packaged content and LAN behavior have not been tested for this addition.
+
+The Mighty Smelting acquisition advancement preserves the pinned source's
+inventory criterion and Melter parent; only its icon field is adapted for the
+host. It depends on the separately staged Melter placement advancement. Static
+resource tests do not establish gameplay, previously held items, save/reload or
+LAN actor behavior, and this addition does not implement recipe unlocks.
