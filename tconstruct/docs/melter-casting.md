@@ -44,3 +44,17 @@ revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, including frame timing and
 interpolation. Powdered snow has no source animation metadata. Both the manual
 resource overlay and the content package stage metadata beside each alias.
 Tests check packaging and values, not visible animation or resource reload.
+
+### Smeltery machine metadata
+
+Writes through the shared metadata store preserve unknown top-level fields in
+the existing `tconstruct:smeltery` machine compound while replacing the
+owned fields according to the current operation, including clearing omitted
+optional `heat_codes`. This covers the store used by both
+Smeltery and Foundry, not nested tank or fluid entries, slot payloads, old Forge
+formats, or collisions with owned field names. It cannot restore data already
+lost. A non-compound existing machine value rejects an update; malformed owned
+fields may still be normalized by their existing decoder. Client network
+snapshots retain replacement semantics rather than merging old fields. Cached-host-type
+fixture tests exercise the merge and the shared store; full host compilation,
+real world save/reload, all interactions, and LAN remain unverified.

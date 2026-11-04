@@ -7,10 +7,22 @@ use super::tconstruct_world::World;
 type Pos = (i32, i32, i32);
 
 fn set_metadata(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag) -> bool {
+    set_metadata_inner(sources, pos, key, value, true)
+}
+fn set_metadata_inner(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value: Tag, preserve_smeltery: bool) -> bool {
     if !matches!(key, "tconstruct:modifier_chest" | "tconstruct:anvil" | "tconstruct:melter" | "tconstruct:heater" | "tconstruct:faucet" | "tconstruct:table" | "tconstruct:basin" | "tconstruct:smeltery" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank" | "tconstruct:lantern" | "tconstruct:casting_tank" | "tconstruct:fluid_cannon") { return false; }
     if let Some((_, tag)) = sources.iter_mut().find(|(at, _)| *at == pos) {
         if tag.get("id") != Some(&Tag::String(key.into())) { return false; }
         let Tag::Compound(map) = tag else { return false; };
+        let value = if preserve_smeltery && key == "tconstruct:smeltery" {
+            match map.get(&key.into()) {
+                Some(previous) => match super::tconstruct_source_smeltery_nbt_preserve::merge_top(previous, &value) {
+                    Some(merged) => merged,
+                    None => return false,
+                },
+                None => value,
+            }
+        } else { value };
         map.insert(key.into(), value);
     } else {
         let mut map = Compound::new();
@@ -68,9 +80,42 @@ pub(super) fn write(world: &mut World, pos: Pos, key: &str, value: Tag) -> bool 
     true
 }
 
+/// Client snapshots replace the previous view rather than merging omitted fields.
+pub(super) fn write_snapshot(world: &mut World, pos: Pos, key: &str, value: Tag) -> bool {
+    let Some(chunk) = world.chunks.get_mut(&(pos.0 >> 4, pos.2 >> 4)) else { return false; };
+    let chunk = std::sync::Arc::make_mut(chunk);
+    let saved = std::sync::Arc::make_mut(chunk.saved.get_or_insert_default());
+    if !set_metadata_inner(&mut saved.block_entity_sources, pos, key, value, false) { return false; }
+    world.modified.insert((pos.0 >> 4, pos.2 >> 4));
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn smeltery_update_preserves_unknown_top_fields_and_rejects_malformed() {
+        let pos = (3, 70, 1); let mut sources = Vec::new();
+        let first = Tag::compound([("future", Tag::Int(42)), ("fuel", Tag::Long(20))]);
+        let next = Tag::compound([("fuel", Tag::Long(19))]);
+        assert!(set_metadata(&mut sources, pos, "tconstruct:smeltery", first));
+        assert!(set_metadata(&mut sources, pos, "tconstruct:smeltery", next));
+        let actual = sources[0].1.get("tconstruct:smeltery").unwrap();
+        assert_eq!(actual.get("future"), Some(&Tag::Int(42)));
+        assert_eq!(actual.get("fuel"), Some(&Tag::Long(19)));
+        let before = sources.clone();
+        assert!(!set_metadata(&mut sources, pos, "tconstruct:smeltery", Tag::Int(3)));
+        assert_eq!(sources, before);
+    }
+    #[test]
+    fn client_snapshot_drops_omitted_view_fields() {
+        let pos = (3, 70, 1); let mut sources = Vec::new();
+        let old = Tag::compound([("heat_start", Tag::Int(2)), ("heat_page", Tag::IntArray(vec![9])), ("slot_count", Tag::Int(10)), ("future", Tag::Int(42))]);
+        let next = Tag::compound([("slot_count", Tag::Int(3))]);
+        assert!(set_metadata(&mut sources, pos, "tconstruct:smeltery", old));
+        assert!(set_metadata_inner(&mut sources, pos, "tconstruct:smeltery", next.clone(), false));
+        assert_eq!(sources[0].1.get("tconstruct:smeltery"), Some(&next));
+    }
     #[test]
     fn removal_preserves_neighbor_metadata_and_allows_replacement() {
         let mut sources = Vec::new();
