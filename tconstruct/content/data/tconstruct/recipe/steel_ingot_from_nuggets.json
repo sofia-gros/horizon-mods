@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "tconstruct:steel_ingot",
+  "key": {
+    "#": "#forge:nuggets/steel",
+    "*": "tconstruct:steel_nugget"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:steel_ingot"
+  }
+}
