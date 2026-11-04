@@ -1069,6 +1069,13 @@ resource packs, save/reload and LAN remain unverified.
 
 The portable-item empty-potion display also recognizes an empty fluid-tag
 compound or a tag containing only `Potion:empty` / `Potion:minecraft:empty`.
-The original tag remains unchanged. Unknown fields, empty strings, custom
-colors or effects are not inferred as this narrow empty case. Integrated GUI,
+The original tag remains unchanged. Unknown fields, empty strings and effects
+are not inferred as this narrow empty case; explicit colors are covered below. Integrated GUI,
 resource packs, save/reload and LAN remain unverified.
+
+Portable tanks and Copper Cans now display the source empty-potion name when
+an otherwise empty potion tag carries an explicit integer `CustomPotionColor`.
+The Copper Can icon uses that explicit color; the original tag remains intact.
+Only a missing Potion field or explicit empty ID and the color field are
+accepted in this narrow case. Other fields and numeric types remain outside it.
+Integrated GUI, resource packs, save/reload and LAN remain unverified.
