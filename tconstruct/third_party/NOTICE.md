@@ -86,3 +86,9 @@ Copyright (c) SlimeKnights; see the corresponding licenses in this directory.
 The Copper Gauge potion-fluid display follows MIT-licensed
 [Tinkers' Construct PotionFluidType.java](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/fluids/fluids/PotionFluidType.java).
 Copyright (c) 2022 SlimeKnights; see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The Clear Tinted Glass base texture is copied
+from Tinkers' Construct at [f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/textures/block).
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`. The content package carries this
+license at `assets/tconstruct/licenses/tconstruct.txt`.
