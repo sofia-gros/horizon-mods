@@ -1,0 +1,16 @@
+{
+  "title": "Scorched Tanks",
+  "text": [
+    {
+      "text": "Scorched fuel tanks and gauges can store supported fluids. A Foundry needs a supported tank in a valid structure position to replenish its fuel. Fuel already acquired can continue burning when the tank is empty."
+    },
+    {
+      "text": "Fuel tanks and gauges hold 4,000 mB; ingot tanks and gauges hold 4,320 mB.",
+      "paragraph": true
+    },
+    {
+      "text": "Some fluid containers and Faucet transfers are supported. Other fluid handlers and game or LAN behavior have not been verified.",
+      "paragraph": true
+    }
+  ]
+}

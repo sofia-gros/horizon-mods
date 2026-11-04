@@ -23,3 +23,5 @@ The ore, fluid selection, casting, wall repair and save/reload sequence was test
 *The X marks indicate the two container slots are not available yet. Fill the fuel tank directly with a lava bucket instead.*
 
 Only the representative copper ore path has been tested end to end. Other ores, larger structures, automatic transfer and fluid containers need further work or testing. The machine models and collision are not yet a complete match for the original. Windows has not been tested.
+
+The Fantastic Foundry guide includes a partial Scorched Tanks text page. It lists the supported tank capacities and fuel requirement; the original showcase, other fluid handlers, in-game display and LAN remain unverified or unsupported.

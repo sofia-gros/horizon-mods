@@ -509,7 +509,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
         let mut chapter_pages = Vec::new();
         for page in section.as_array()? {
-            if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "byproducts" | "structurereq" | "fgui1" | "fgui2")) { continue; }
+            if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "byproducts" | "structurereq" | "fgui1" | "fgui2" | "scorched_tanks")) { continue; }
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
             if mighty_smeltery && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_smeltery_page) { continue; }
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
