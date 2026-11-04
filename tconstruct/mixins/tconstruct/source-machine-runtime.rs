@@ -1111,19 +1111,46 @@ fn tank_to_casting_tank(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
     Some(true)
 }
 
+enum CastingInput {
+    Builtin(super::tconstruct_source_faucet_tank::Source),
+    Portable(super::tconstruct_source_casting_tank::CastingTank),
+}
+impl CastingInput {
+    fn load(game: &super::Game<'_>, pos: Pos, name: &str) -> Option<Self> {
+        if name == "tconstruct:seared_casting_tank" {
+            let state = casting_tank_at(game, pos)?;
+            let raw = store::read(&game.world,pos,"tconstruct:casting_tank")?;
+            if state.to_nbt() != raw { return None; }
+            Some(Self::Portable(state))
+        } else {
+            let state = super::tconstruct_source_faucet_tank::load_source(game,pos,name)?;
+            if !state.canonical_tank() { return None; }
+            Some(Self::Builtin(state))
+        }
+    }
+    fn tank(&mut self) -> &mut Tank { match self { Self::Builtin(state) => state.tank(), Self::Portable(state) => &mut state.tank } }
+    fn comparator(&self) -> Option<i32> { match self { Self::Portable(state) => Some(state.comparator()), Self::Builtin(_) => None } }
+    fn data(&self) -> Option<(&'static str,horizon_world::nbt::Tag)> { match self {
+        Self::Builtin(state) => state.data(),
+        Self::Portable(state) => Some(("tconstruct:casting_tank",state.to_nbt())),
+    } }
+}
+
 fn activate_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
-    if &*source_name == "tconstruct:seared_melter" || !tanks::is_source(&source_name) { return None; }
+    if &*source_name == "tconstruct:seared_melter" || (!tanks::is_source(&source_name) && &*source_name != "tconstruct:seared_casting_tank") { return None; }
     let target_name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
     if !super::tconstruct_source_melter_state::is_casting_block(&target_name) { return None; }
     if source == target || source == pos || target == pos { return Some(false); }
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return Some(false); }
-    let Some(mut input) = tanks::load_source(game, source, &source_name) else { return Some(false); };
-    if !input.canonical_tank() { return Some(false); }
+    let Some(mut input) = CastingInput::load(game, source, &source_name) else { return Some(false); };
+    let source_strength = input.comparator();
+    if source_strength.is_some() && (input.tank().tag.is_some() || faucet.pending.tag.is_some()) { return Some(false); }
     if !ensure(game, target, &target_name) { return Some(false); }
     let Some((kind, mut casting)) = casting_at(game, target) else { return Some(false); };
     let Some(raw_casting) = store::read(&game.world, target, kind) else { return Some(false); };
+    if source_strength.is_some() && casting.tank.tag.is_some() { return Some(false); }
     let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
     if !super::tconstruct_source_melter_state::safe_casting_resume(&casting, &raw_casting, &faucet, &raw_faucet) { return Some(false); }
     if input.tank().fluid.is_none() { return Some(true); }
@@ -1136,19 +1163,23 @@ fn activate_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, targ
     // The source transfers the first 10 mB when a packet is reserved.
     faucet.tick(input.tank(), Some(&mut casting.tank));
     let Some((key, data)) = input.data() else { return Some(false); };
-    Some(store::write_many(&mut game.world, &[(source,key,data),(target,kind,casting.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]))
+    let changed = store::write_many(&mut game.world, &[(source,key,data),(target,kind,casting.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+    if changed { if let (Some(before), Some(after)) = (source_strength, input.comparator()) { notify_casting_comparator(game,source,before,after); } }
+    Some(changed)
 }
 fn tick_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet) -> bool {
     use super::tconstruct_source_faucet_tank as tanks;
     let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
-    if &*source_name == "tconstruct:seared_melter" || !tanks::is_source(&source_name) { return false; }
+    if &*source_name == "tconstruct:seared_melter" || (!tanks::is_source(&source_name) && &*source_name != "tconstruct:seared_casting_tank") { return false; }
     let target_name = game.res.facts().get(game.world.block(target.0, target.1, target.2)).name.clone();
     if !super::tconstruct_source_melter_state::is_casting_block(&target_name) { return false; }
     if source == target || source == pos || target == pos { return true; }
-    let Some(mut input) = tanks::load_source(game, source, &source_name) else { return true; };
-    if !input.canonical_tank() { return true; }
+    let Some(mut input) = CastingInput::load(game, source, &source_name) else { return true; };
+    let source_strength = input.comparator();
+    if source_strength.is_some() && (input.tank().tag.is_some() || faucet.pending.tag.is_some()) { return true; }
     let Some((kind, mut casting)) = casting_at(game, target) else { return true; };
     let Some(raw_casting) = store::read(&game.world, target, kind) else { return true; };
+    if source_strength.is_some() && casting.tank.tag.is_some() { return true; }
     let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return true; };
     if !super::tconstruct_source_melter_state::safe_casting_resume(&casting, &raw_casting, &faucet, &raw_faucet) { return true; }
     let offered = if faucet.pending.amount > 0 { &faucet.pending } else { input.tank() };
@@ -1158,7 +1189,9 @@ fn tick_tank_casting(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: 
     faucet.tick(input.tank(), Some(&mut casting.tank));
     if needs_packet && faucet.pending.amount > 0 { faucet.tick(input.tank(), Some(&mut casting.tank)); }
     let Some((key, data)) = input.data() else { return true; };
-    let _ = store::write_many(&mut game.world, &[(source,key,data),(target,kind,casting.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+    if store::write_many(&mut game.world, &[(source,key,data),(target,kind,casting.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
+        if let (Some(before), Some(after)) = (source_strength, input.comparator()) { notify_casting_comparator(game,source,before,after); }
+    }
     true
 }
 
