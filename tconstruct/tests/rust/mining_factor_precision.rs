@@ -41,3 +41,23 @@ fn source_factor(loss:u32,multiplier:f32,level:i32,coefficient:f32)->f32 {
  }
  assert_eq!(run(100,1.0,&[Conditional::Jagged(-1),Conditional::Stonebound(0)],true),3.0);
 }
+
+#[test] fn broad_overwield_divides_before_multiplying_coefficient() {
+ let actual=run(0,1.0,&[Conditional::Overwield(2,8,true)],true);
+ let source=3.0*(1.0+(8.0f32/5.0)*0.2);
+ let old=3.0*(1.0+0.2f32*8.0/5.0);
+ assert_eq!(actual.to_bits(),source.to_bits());
+ assert_ne!(actual.to_bits(),old.to_bits());
+}
+#[test] fn overwield_caps_gating_and_narrow_tools_are_preserved() {
+ for broad in [false,true] {
+  let cost=if broad {5}else{1};
+  for (level,overslime) in [(0,8),(2,-1),(2,0),(2,1),(2,4),(2,5),(2,6),(2,8),(2,10),(2,11),(2,100),(-1,8)] {
+   let used=overslime.max(0).min(level.max(0)*cost);
+   let expected=3.0*(1.0+(used as f32/cost as f32)*0.2);
+   let modifiers=[Conditional::Overwield(level,overslime,broad)];
+   assert_eq!(run(0,1.0,&modifiers,true).to_bits(),expected.to_bits());
+   assert_eq!(run(0,1.0,&modifiers,false),3.0);
+  }
+ }
+}

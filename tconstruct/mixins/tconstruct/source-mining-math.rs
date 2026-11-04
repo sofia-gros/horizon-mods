@@ -74,7 +74,9 @@ pub(super) fn conditional_speed_with_water(mut speed: f32, loss: u32, maximum: u
             Conditional::Overwield(level, overslime, broad) if effective => {
                 let cost = if broad { 5 } else { 1 };
                 let used = overslime.max(0).min(level.max(0).saturating_mul(cost));
-                speed *= 1.0 + 0.2 * used as f32 / cost as f32;
+                // The broad-tool RPN divides the consumed amount by five
+                // before multiplying by 0.2; reassociation changes f32 bits.
+                speed *= 1.0 + (used as f32 / cost as f32) * 0.2;
             },
             _ => {},
         }

@@ -338,3 +338,19 @@ multiplier 0.1, level 5) and Stonebound (lost 2, multiplier 3, level 5), supplie
 order, effectiveness, zero wear and invalid-durability behavior. Two Python tests
 run the harness and check the shared module/rule wiring. Full generated-host
 compilation, in-game mining timing, save/reload, LAN and Windows remain unverified.
+
+### Broad-tool Overwield factor precision
+
+For broad tools, the active mining helper now divides the capped overslime
+amount by five before multiplying by `0.2`, matching the pinned
+[Overwield mining formula](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tinkering/modifiers/overwield.json).
+Previously these operations were reversed. At level 2 with eight overslime,
+the float factors differ by one bit before multiplying the current speed.
+
+The existing broad-tag lookup, missing-tag refusal, integer level/cost caps,
+effective-block gate, modifier order and final speed clamp are unchanged.
+Narrow tools still have unit cost and the same factor. This does not expand
+supported modifier definitions, change overslime consumption, or verify
+gameplay timing. The actual-helper harness now passes 15 Rust tests, including
+a bitwise counterexample and broad/narrow, depleted, capped and ineffective
+cases; its two Python checks pass. No full host build or gameplay test was run.
