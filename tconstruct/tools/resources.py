@@ -175,6 +175,8 @@ entries = [
     ('tconstruct:mighty_smelting', 'minecraft:book', 'Mighty Smelting'),
     ('tconstruct:venom_bottle', 'minecraft:honey_bottle', 'Venom Bottle'),
     ('tconstruct:meat_soup', 'minecraft:mushroom_stew', 'Meat Soup'),
+    ('tconstruct:splash_bottle', 'minecraft:glass_bottle', 'Splash Bottle'),
+    ('tconstruct:lingering_bottle', 'minecraft:glass_bottle', 'Lingering Bottle'),
     ('tconstruct:flint_pick_head', 'minecraft:flint', 'Flint Pick Head'),
     ('tconstruct:wood_binding', 'minecraft:flint', 'Wooden Tool Binding'),
     ('tconstruct:wood_handle', 'minecraft:flint', 'Wooden Tool Handle'),
@@ -306,6 +308,8 @@ for name, template, title in entries:
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/bucket', 'layer1': 'tconstruct:item/fluid_bucket/' + short}}
     elif short == 'magma_bottle':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/bottle/magma_contents', 'layer1': 'minecraft:item/potion'}}
+    elif short in ('splash_bottle', 'lingering_bottle'):
+        native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'minecraft:item/' + short.replace('_bottle', '_potion')}}
     elif short == 'meat_soup':
         native_model = {'parent': 'minecraft:item/generated', 'textures': {'layer0': 'tconstruct:item/food/meat_soup'}}
     elif short == 'venom_bottle':

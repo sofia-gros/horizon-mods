@@ -937,3 +937,13 @@ as well as still water, consuming 500 mB through the existing transaction.
 This static mapping does not follow datapack changes to `mantle:water`.
 Unit tests cover both water IDs and failure boundaries; integrated gameplay,
 save/reload and LAN remain unverified.
+
+The two bundled empty special bottles can now be filled as splash or lingering
+potions when the current resolved bottle item tags select exactly one kind.
+The existing potion-fluid and water transactions preserve their 250/500 mB
+amounts and supported metadata; local color/effects and the restricted LAN
+path keep their existing rules. Other mod bottles, unavailable or overlapping
+item tags, unsupported metadata and dynamic fluid-tag changes remain outside
+this bounded path. Manual resource preparation also registers both empty
+bottles. Unit tests cover selection and failure boundaries; brewing acquisition,
+integrated gameplay, save/reload and LAN remain unverified.
