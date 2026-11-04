@@ -119,3 +119,19 @@ fn draw_saturation_preserves_saved_stat_fallback_and_overwield_bonus() {
     ])));
     assert_eq!(draw::draw_ticks(&stack),334);
 }
+
+#[test] fn clamped_accuracy_reaches_dispatch_without_changing_saved_metadata() {
+    for (accuracy,spread) in [(0.05f32,27.0f32),(0.1,27.0),(1.0,0.0),(2.0,0.0)] {
+        let mut stack=bow(Some(1.0),false);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_max_damage",Tag::Int(100)),("tic_velocity",Tag::Float(1.0f32.to_bits())),
+            ("tic_accuracy",Tag::Float(accuracy.to_bits())),
+        ])));
+        let mut game=game::Game::new();let _=tconstruct_bow_release(&mut game,&stack,20,false);
+        assert_eq!(game.dispatched.len(),1);
+        let context=game.dispatched[0].1.as_ref().unwrap();
+        assert_eq!(context.0,1.0);assert_eq!(context.1.to_bits(),spread.to_bits());
+        assert!(game.world.chunks.contexts.is_empty());
+        assert_eq!(stack.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_accuracy"),Some(&Tag::Float(accuracy.to_bits())));
+    }
+}
