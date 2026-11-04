@@ -100,6 +100,15 @@ pub(super) fn can_display_fluid(stack: &ItemStack, known: &impl Fn(&str) -> bool
     Some(fluid)
 }
 
+/// Resolve known potion contents for tooltip only; icon handling remains
+/// conservative because potion color may depend on effects.
+pub(super) fn can_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> bool) -> Option<horizon_world::nbt::Tag> {
+    if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return None; }
+    let (fluid, tag) = can_contents(stack)?;
+    if fluid.as_deref() != Some("tconstruct:potion") { return None; }
+    known_potion_tag(tag?)
+}
+
 /// Empty cans have source help text; malformed or opaque stacks stay hidden.
 pub(super) fn can_display_empty(stack: &ItemStack) -> bool {
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) { return false; }
@@ -317,7 +326,10 @@ pub(super) fn tank_display_potion(stack: &ItemStack, known: &impl Fn(&str) -> bo
     if stack.wire_patch().is_some() || stack.data().is_some_and(|data| data.other("minecraft:item_model").is_some()) || !known("tconstruct:potion") { return None; }
     let tank = lantern_tank(stack)?;
     if tank.amount == 0 || tank.fluid.as_deref() != Some("tconstruct:potion") { return None; }
-    let tag = tank.tag?;
+    known_potion_tag(tank.tag?)
+}
+
+fn known_potion_tag(tag: horizon_world::nbt::Tag) -> Option<horizon_world::nbt::Tag> {
     let (potion, _, _) = potion_tag(&tag, true)?;
     if potion == "empty" { return None; }
     super::tconstruct_source_smeltery_fuel::potion_fluid_name(Some(&tag))?;
@@ -643,6 +655,34 @@ pub(super) fn transfer_single_with_color(tank: &mut super::tconstruct_source_mel
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn copper_can_potion_tooltip_requires_complete_known_metadata() {
+        use horizon_world::nbt::Tag;
+        let empty = ItemStack::new("tconstruct:copper_can", 8);
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(0x123456))]);
+        let filled = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
+        let before = filled.clone();
+        assert_eq!(can_display_potion(&filled, &known), Some(tag));
+        assert_eq!(filled, before);
+        for potion in ["minecraft:long_swiftness", "minecraft:strong_swiftness"] {
+            let tag = Tag::compound([("Potion", Tag::String(potion.into())), ("CustomPotionEffects", Tag::List(vec![Tag::compound([("Id", Tag::Byte(1)), ("Duration", Tag::Int(100))])]))]);
+            let mut many = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&tag)).unwrap();
+            many.count = 8;
+            let before = many.clone();
+            assert_eq!(can_display_potion(&many, &known), Some(tag));
+            assert_eq!(many, before);
+        }
+        assert_eq!(can_display_potion(&filled, &|_| false), None);
+        assert_eq!(can_display_fluid(&filled, &known), None);
+        let mut custom = filled.clone(); custom.data_mut().set_other("minecraft:item_model", Some(Tag::String("example:custom".into())));
+        assert_eq!(can_display_potion(&custom, &known), None);
+        for bad in [Tag::Compound(Default::default()), Tag::compound([("Potion", Tag::String("example:unknown".into()))]), Tag::compound([("Potion", Tag::String("minecraft:empty".into()))]), Tag::compound([("Potion", Tag::String("empty".into()))]), Tag::compound([("Potion", Tag::Int(1))])] {
+            let bad = can_set_tagged(&empty, Some("tconstruct:potion"), Some(&bad)).unwrap();
+            assert_eq!(can_display_potion(&bad, &known), None);
+        }
+        assert_eq!(can_display_potion(&can_set_fluid(&empty, Some("tconstruct:potion")).unwrap(), &known), None);
+        assert_eq!(can_display_potion(&can_set_fluid(&empty, Some("minecraft:water")).unwrap(), &known), None);
+    }
     #[test]
     fn portable_potion_tooltip_requires_complete_known_metadata() {
         use horizon_world::nbt::Tag;

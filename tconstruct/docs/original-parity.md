@@ -997,8 +997,8 @@ rendering, resource packs and LAN remain unverified.
 
 Supported Copper Can tooltips use the pinned translated contents and empty-can
 help strings. Advanced tooltips include the original fluid ID; hidden tooltips
-and conservative rejection of malformed, tagged or unsupported can contents
-remain in place. The production helper and translation-key wiring are tested.
+and conservative rejection of malformed or unsupported can contents remain in
+place. Supported potion tags are described below. The production helper and translation-key wiring are tested.
 Actual GUI ordering, F3+H, language switching, resource packs and LAN remain
 unverified.
 
@@ -1022,3 +1022,10 @@ Advanced tooltips retain `tconstruct:potion` as the fluid ID. Unsupported or
 malformed potion metadata remains hidden; fluid quantity and units remain open.
 Focused helper and wiring checks cover this slice; integrated GUI, language
 packs, save/reload and LAN remain unverified.
+
+Copper Can tooltips now resolve known potion names using the same conservative
+complete-tag validation as portable tanks. Their original fluid tag and
+advanced ID are unchanged. Potion icon colors are still not rendered by this
+path, and empty, unknown or malformed potion metadata remains hidden. Focused
+helper and wiring checks cover this slice; integrated GUI, save/reload and LAN
+remain unverified.
