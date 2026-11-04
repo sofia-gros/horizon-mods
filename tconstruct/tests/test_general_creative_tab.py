@@ -15,9 +15,13 @@ class GeneralCreativeTab(unittest.TestCase):
     self.assertEqual(len(general),1)
     self.assertEqual(general[0]['title'], "Tinkers' General")
     self.assertEqual(general[0]['icon'],'{count:1,id:"tconstruct:materials_and_you"}')
-    expected=['blazing_bone','silky_cloth','seared_reinforcement','bacon']
+    expected=['blazing_bone','silky_cloth','seared_reinforcement','bacon', 'materials_and_you','puny_smelting','mighty_smelting','encyclopedia', 'clear_glass','clear_tinted_glass','soul_glass','clear_glass_pane','soul_glass_pane','gold_bars','obsidian_pane']
     self.assertEqual(general[0]['items'],[f'{{count:1,id:"tconstruct:{n}"}}' for n in expected])
-    for n in expected: self.assertIn(f'data/tconstruct/horizon/item/{n}.json',z.namelist())
+    for n in expected[:8]: self.assertIn(f'data/tconstruct/horizon/item/{n}.json',z.namelist())
+    for n in expected[8:]:
+     name=f'data/tconstruct/horizon/block/{n}.json'
+     self.assertIn(name,z.namelist())
+     self.assertTrue(json.loads(z.read(name)).get('item',True))
   src=(MOD/'mixins/tconstruct/resource-tables.rs').read_text()
   self.assertIn('Some("tconstruct:tools" | "tconstruct:blocks" | "tconstruct:world" | "tconstruct:general")',src)
 if __name__ == '__main__': unittest.main()
