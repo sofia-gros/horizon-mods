@@ -43,6 +43,7 @@ class ResourceOverlay(unittest.TestCase):
             legacy = json.loads((SCRIPT.parent.parent / 'tests/fixtures/manual-overlay-legacy-ids.json').read_text())
             self.assertEqual({name: registries[name]['protocol_id'] for name in legacy}, legacy)
             self.assertGreater(registries['tconstruct:silky_cloth']['protocol_id'], max(legacy.values()))
+            self.assertEqual(registries['tconstruct:necrotic_bone']['protocol_id'], registries['tconstruct:silky_cloth']['protocol_id'] + 1)
             items = json.loads((out / 'items.json').read_text())
             for kind in ('splash', 'lingering'):
                 name = kind + '_bottle'
@@ -62,6 +63,10 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual(items['tconstruct:silky_cloth']['minecraft:item_model'], 'tconstruct:silky_cloth')
             self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/silky_cloth.json').read_text())['textures']['layer0'], 'tconstruct:item/materials/silky_cloth')
             self.assertEqual((out / 'assets/tconstruct/textures/item/materials/silky_cloth.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/silky_cloth.png').read_bytes())
+            self.assertEqual(items['tconstruct:necrotic_bone']['minecraft:item_model'], 'tconstruct:necrotic_bone')
+            model = json.loads((out / 'assets/tconstruct/models/item/necrotic_bone.json').read_text())
+            self.assertEqual(model['textures']['layer0'], 'tconstruct:item/materials/necrotic_bone')
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/necrotic_bone.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/necrotic_bone.png').read_bytes())
             blazing = items['tconstruct:blazing_bone']
             self.assertEqual(blazing['minecraft:item_model'], 'tconstruct:blazing_bone')
             model = json.loads((out / 'assets/tconstruct/models/item/blazing_bone.json').read_text())

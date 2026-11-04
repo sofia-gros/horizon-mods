@@ -213,3 +213,14 @@ recipe lookup paths when the required resources are supplied. The item's
 modifier applications and Creative General tab remain separate work. Native
 registry IDs may change when items are added. Host integration, real casting
 and melting, save/reload, and LAN remain unverified.
+
+## Necrotic Bone item
+
+Necrotic Bone is registered with its pinned-source texture for native and
+manual resource paths. The bundled `forge:wither_bones` and
+`forge:bones/wither` definitions name this item; actual world tag resolution,
+material use and the Blazing Bone casting transaction remain unverified.
+The source wither skeleton loot and Severing drops are not implemented by this
+change, so ordinary survival acquisition remains unestablished. The item is not
+yet added to a General Creative tab. Host integration, saves and LAN are also
+unverified.
