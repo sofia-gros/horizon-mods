@@ -1,0 +1,17 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "group": "tconstruct:hepatizon_ingot",
+  "key": {
+    "#": "#forge:nuggets/hepatizon",
+    "*": "tconstruct:hepatizon_nugget"
+  },
+  "pattern": [
+    "###",
+    "#*#",
+    "###"
+  ],
+  "result": {
+    "id": "tconstruct:hepatizon_ingot"
+  }
+}
