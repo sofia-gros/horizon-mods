@@ -86,3 +86,12 @@ as in the former serializer. An invalid UTF-16 fluid ID blocks that candidate
 without consuming fuel or the held container. Other transfer, drop and old
 Forge formats remain outside this limited change. Host/world/save/LAN behavior
 is unverified.
+
+Faucet transfers between supported tanks refuse to patch a source, target or
+reserved packet whose fluid ID cannot be converted from UTF-16 without loss.
+Their staged writes leave fluid and packet data unchanged on this refusal. If
+an invalid source remains present, even an already reserved packet can wait
+without pouring until the source is corrected or removed. Older casting table,
+basin and cannon routes and broken/replaced blocks are outside this guard.
+Fixture tests use mock world and atomic store behavior; host integration and
+LAN remain unverified.
