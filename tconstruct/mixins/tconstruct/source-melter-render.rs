@@ -24,7 +24,7 @@ pub(super) fn fluid_name_tagged(game: &super::Game<'_>, fluid: &str, tag: Option
 
 // Generated from the source FluidTextureProvider ARGB colors.
 pub(super) fn color(fluid: &str) -> u32 {
-    match fluid {
+    match super::tconstruct_source_fluid_display::display_id(fluid) {
         "tconstruct:beetroot_soup" => 0xff0d1684,
         "tconstruct:meat_soup" => 0xff353ee0,
         "tconstruct:molten_bendalloy" => 0xffc1d2d6,
@@ -220,5 +220,7 @@ mod fluid_light_tests {
         assert_eq!(fluid_light(0x00, "minecraft:flowing_lava"), fluid_light(0x00, "minecraft:lava"));
         assert_eq!(fluid_light(0x52, "minecraft:flowing_water"), fluid_light(0x52, "minecraft:water"));
         assert_eq!(fluid_light(0xff, "minecraft:flowing_lava"), fluid_light(0xff, "minecraft:lava"));
+        assert_eq!(fluid_light(0x00, "tconstruct:flowing_molten_copper"), fluid_light(0x00, "tconstruct:molten_copper"));
+        assert_eq!(super::color("tconstruct:flowing_molten_clay"), super::color("tconstruct:molten_clay"));
     }
 }
