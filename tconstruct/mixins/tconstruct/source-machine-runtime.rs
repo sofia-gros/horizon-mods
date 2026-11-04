@@ -553,7 +553,8 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
     let mut fluid_update = None;
     if melter.phase == 0 && melter.fuel == 0 {
         if let Some((capacity, kind)) = liquid_kind {
-            if let Some(mut tank) = store::read(&game.world, below, kind).and_then(|tag| Tank::from_nbt(&tag, capacity)) {
+            if let Some(raw_tank) = store::read(&game.world, below, kind) {
+              if let Some(mut tank) = Tank::from_nbt(&raw_tank, capacity) {
                 if let Some(fluid) = tank.fluid.as_deref() {
                     if let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) {
                         let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _)|
@@ -561,10 +562,12 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
                         if can_heat && tank.take(fuel.fluid.amount).is_some() {
                             melter.fuel = fuel.duration; melter.fuel_quality = fuel.duration;
                             melter.temperature = fuel.temperature; melter.rate = fuel.rate;
-                            fluid_update = Some((below, kind, tank.to_nbt()));
+                            let Some(next_tank) = tank.to_nbt_preserving(&raw_tank) else { return; };
+                            fluid_update = Some((below, kind, next_tank));
                         }
                     }
                 }
+              }
             }
         }
     }
@@ -595,7 +598,7 @@ pub(super) fn tick_melter(game: &mut super::Game<'_>, pos: Pos) {
             super::tconstruct_source_melter_render::encode_heat(recipe, melter.temperature, melter.progress[index])
         }).collect()))
     } else { saved.get("heat_codes").cloned() };
-    let mut melter_tag = melter.to_nbt();
+    let Some(mut melter_tag) = melter.to_nbt_preserving(&saved) else { return; };
     let liquid_temperature = liquid_kind.and_then(|(capacity, kind)| store::read(&game.world, below, kind)
         .and_then(|tag| Tank::from_nbt(&tag, capacity)))
         .and_then(|tank| tank.fluid.and_then(|fluid| super::tconstruct_source_melter_world::fluid_fuel(&game.world, &fluid, u32::MAX)))

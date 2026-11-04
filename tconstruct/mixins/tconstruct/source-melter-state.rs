@@ -37,6 +37,18 @@ impl Tank {
         value.insert("amount".into(), Tag::Int(self.amount as i32));
         Tag::Compound(value)
     }
+    /// Patch only owned fields; retain extension data when a machine mutates
+    /// a tank it has already decoded. Malformed raw state fails closed.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        Self::from_nbt(raw, self.capacity)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for key in ["fluid", "fluid_tag", "amount"] {
+            fields.remove(&key.into());
+            if let Some(value) = next.get(&key.into()) { fields.insert(key.into(), value.clone()); }
+        }
+        Some(Tag::Compound(fields))
+    }
     pub(super) fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };
         if amount > capacity { return None; }
@@ -163,6 +175,20 @@ impl Melter {
         Tag::compound([("slots", Tag::List(slots)), ("progress", Tag::IntArray(self.progress.to_vec())),
             ("tank", self.tank.to_nbt()), ("phase", Tag::Int(self.phase as i32)),
             ("fuel", Tag::Long(self.fuel as i64)), ("fuel_quality", Tag::Long(self.fuel_quality as i64)), ("temperature", Tag::Long(self.temperature as i64)), ("rate", Tag::Long(self.rate as i64))])
+    }
+    /// Preserve unrecognized machine and tank fields while updating the
+    /// state owned by the Melter tick. Inventory slot serialization remains
+    /// governed by the host item codec and is not an opaque-item migration.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        Self::from_nbt(raw)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        let tank = self.tank.to_nbt_preserving(fields.get(&"tank".into())?)?;
+        let Tag::Compound(next) = self.to_nbt() else { return None; };
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate"] {
+            fields.insert(key.into(), next.get(&key.into())?.clone());
+        }
+        fields.insert("tank".into(), tank);
+        Some(Tag::Compound(fields))
     }
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
