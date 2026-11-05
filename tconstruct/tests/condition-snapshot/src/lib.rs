@@ -196,3 +196,7 @@ mod chain_compat_tests {
 #[allow(dead_code)]
 #[path = "../../../mixins/tconstruct/source-fortune-harvest.rs"]
 mod tconstruct_fortune_harvest;
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-chrysophilite.rs"]
+mod tconstruct_chrysophilite;

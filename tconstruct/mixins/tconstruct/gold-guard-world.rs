@@ -15,7 +15,9 @@ fn tool(game: &Game<'_>, stack: &ItemStack) -> Option<(i32,bool)> {
     let golden=super::tconstruct_source_material_traits::level_with_upgrade(stack,&traits,"tconstruct:golden")?;
     if guard>0 && !source::known_guard(definition(game,"tconstruct:tinkering/modifiers/gold_guard")) {return None;}
     if golden>0 && !source::known_golden(definition(game,"tconstruct:tinkering/modifiers/golden")) {return None;}
-    Some((guard,source::neutral(golden,guard)?))
+    let chrysophilite=super::tconstruct_source_material_traits::level_with_upgrade(stack,&traits,"tconstruct:chrysophilite")?;
+    if chrysophilite<0 || (chrysophilite>0 && !source::known_chrysophilite(definition(game,"tconstruct:tinkering/modifiers/chrysophilite"))) {return None;}
+    Some((guard,source::neutral(golden,guard)? || chrysophilite>=2))
 }
 pub(super) fn neutral(game:&Game<'_>, stack:&ItemStack) -> bool {
     tool(game,stack).is_some_and(|(_,neutral)|neutral)

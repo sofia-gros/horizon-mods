@@ -16,6 +16,14 @@ pub(crate) fn known_golden(bytes: Option<&[u8]>) -> bool {
         "level_display":"tconstruct:no_levels","modules":[{"type":"tconstruct:volatile_flag","flag":"tconstruct:piglin_neutral"}]
     }))
 }
+pub(crate) fn known_chrysophilite(bytes: Option<&[u8]>) -> bool {
+    bytes.and_then(|b| serde_json::from_slice::<Value>(b).ok()).is_some_and(|v| v == json!({
+        "level_display":"tconstruct:single_level", "modules":[
+            {"type":"tconstruct:golden_attribute","attribute":"tconstruct:generic.chrysophilite","each_level":1.0,"flat":1.0,"operation":"addition"},
+            {"type":"tconstruct:volatile_flag","flag":"tconstruct:piglin_neutral","modifier_level":{"min":2}}
+        ]
+    }))
+}
 pub(crate) fn neutral(golden: i32, guard: i32) -> Option<bool> {
     (golden>=0 && guard>=0).then_some(golden>0 || guard>=2)
 }

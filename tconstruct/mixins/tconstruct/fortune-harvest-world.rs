@@ -129,15 +129,18 @@ pub(super) fn drops(
     block_entity: &Option<horizon_world::nbt::Tag>,
 ) -> std::ops::ControlFlow<Vec<ItemStack>> {
     use std::ops::ControlFlow::{Break, Continue};
-    let Some(projected) = projected_tool(game, held, true) else {
+    let projected = projected_tool(game, held, true);
+    let chrysophilite = super::tconstruct_chrysophilite_world::context(game, state);
+    if projected.is_none() && chrysophilite.is_none() {
         return Continue(());
-    };
+    }
     Break(roll(
         game,
         pos,
         state,
-        Some(&projected),
+        projected.as_ref().or(held),
         block_entity.clone(),
+        chrysophilite.as_ref(),
     ))
 }
 
@@ -152,7 +155,15 @@ pub(super) fn crop_drops(
     block_entity: Option<horizon_world::nbt::Tag>,
 ) -> Vec<ItemStack> {
     let projected = projected_tool(game, held, false);
-    roll(game, pos, state, projected.as_ref().or(held), block_entity)
+    let chrysophilite = super::tconstruct_chrysophilite_world::context(game, state);
+    roll(
+        game,
+        pos,
+        state,
+        projected.as_ref().or(held),
+        block_entity,
+        chrysophilite.as_ref(),
+    )
 }
 
 fn roll(
@@ -161,9 +172,11 @@ fn roll(
     state: horizon_world::registry::BlockStateId,
     held: Option<&ItemStack>,
     block_entity: Option<horizon_world::nbt::Tag>,
+    chrysophilite: Option<&super::tconstruct_chrysophilite_world::Context>,
 ) -> Vec<ItemStack> {
-    // Match Game::block_loot_at's native roll exactly, changing only the tool
-    // supplied to it. Keep the named random sequence, dynamic drops, world
+    // Match Game::block_loot_at's native roll, using the projected tool and
+    // appending the bounded source modifier in the same RNG context. Keep the
+    // named random sequence, dynamic drops, world
     // location, block entity, and native loot callback. There is one roll, not
     // a post-drop count multiplier or a second random reroll.
     let registry = game.pack.assets.registry;
@@ -177,10 +190,17 @@ fn roll(
         match items.block_loot_sequence(registry, state) {
             Some(sequence) => {
                 let random = game.rand_sequences.get(&sequence, game.level.seed);
-                items.block_drops_by_player(registry, state, held, &dynamic, random)
+                let mut drops =
+                    items.block_drops_by_player(registry, state, held, &dynamic, random);
+                super::tconstruct_chrysophilite_world::apply(chrysophilite, &mut drops, random);
+                drops
             }
             None => {
-                items.block_drops_by_player(registry, state, held, &dynamic, &mut game.world.random)
+                let random = &mut game.world.random;
+                let mut drops =
+                    items.block_drops_by_player(registry, state, held, &dynamic, random);
+                super::tconstruct_chrysophilite_world::apply(chrysophilite, &mut drops, random);
+                drops
             }
         }
     });
