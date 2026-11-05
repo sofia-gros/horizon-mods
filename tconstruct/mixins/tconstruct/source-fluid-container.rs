@@ -1700,6 +1700,111 @@ mod tests {
             assert_eq!(slots[1], Some(ItemStack::new("minecraft:bowl", 1)));
         }
     }
+    const VANILLA_SOUPS: [(&str, &str); 3] = [
+        ("minecraft:beetroot_soup", "tconstruct:beetroot_soup"),
+        ("minecraft:mushroom_stew", "tconstruct:mushroom_stew"),
+        ("minecraft:rabbit_stew", "tconstruct:rabbit_stew"),
+    ];
+    #[test]
+    fn vanilla_soup_emptying_returns_bowl_and_roundtrips_exactly() {
+        for (item, fluid) in VANILLA_SOUPS {
+            let held = ItemStack::new(item, 1);
+            assert!(accepts(&held, &known));
+            assert!(!accepts(&held, &|id| id != fluid));
+            let mut tank = SmelteryTank::new(1250);
+            assert!(tank.insert("minecraft:lava", 1000));
+            let mut slots = [Some(held.clone()), None];
+            assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
+            assert_eq!(tank.amount(fluid), 250); assert_eq!(tank.amount("minecraft:lava"), 1000);
+            assert!(slots[0].is_none());
+            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:bowl");
+            slots[0] = slots[1].take();
+            assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some(fluid), &known, &known));
+            assert_eq!(tank.amount(fluid), 0); assert_eq!(tank.total(), 1000);
+            assert!(slots[0].is_none()); assert_eq!(slots[1], Some(held));
+        }
+    }
+    #[test]
+    fn vanilla_soup_slot_limit_and_one_item_per_transfer() {
+        for (item, fluid) in VANILLA_SOUPS {
+            let mut slots = [None, None];
+            // Even a command-created oversized held stack inserts one bowl.
+            let mut carried = Some(ItemStack::new(item, 3));
+            assert!(click(&mut slots, &mut carried, 0, false, &known));
+            assert_eq!(slots[0].as_ref().unwrap().count, 1);
+            assert_eq!(carried.as_ref().unwrap().count, 2);
+            assert!(!click(&mut slots, &mut carried, 0, false, &known));
+            let mut tank = SmelteryTank::new(1000);
+            let mut slots = [Some(ItemStack::new(item, 3)), None];
+            assert!(transfer(&mut tank, &mut slots, Direction::Auto, &known, &known));
+            assert_eq!(slots[0].as_ref().unwrap().count, 2);
+            assert_eq!(slots[1].as_ref().unwrap().count, 1);
+            assert_eq!(tank.amount(fluid), 250);
+        }
+    }
+    #[test]
+    fn vanilla_soup_failed_transfers_leave_items_and_tank_unchanged() {
+        use horizon_world::nbt::Tag;
+        for (item, fluid) in VANILLA_SOUPS {
+            for case in 0..9 {
+                let mut tank = SmelteryTank::new(if case == 0 { 249 } else { 1000 });
+                let mut held = ItemStack::new(item, if case == 1 { 0 } else { 1 });
+                if case == 2 { held.damage = 1; }
+                if case == 3 { held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("extra", Tag::Int(1))]))); }
+                if case == 4 {
+                    let decoded = held.clone();
+                    held.data_mut().wire = horizon_items::item_data::Wire::new(decoded, std::sync::Arc::from([7u8]));
+                }
+                let mut slots = [Some(held), (case == 5).then(|| ItemStack::new("minecraft:bowl", 1))];
+                let before_tank = tank.to_nbt(); let before_slots = slots.clone();
+                let direction = if case == 6 { Direction::FillItem } else { Direction::Auto };
+                assert!(!transfer(&mut tank, &mut slots, direction,
+                    &|id| case != 7 || id != "minecraft:bowl", &|id| case != 8 || id != fluid), "{item}, case {case}");
+                assert_eq!(tank.to_nbt(), before_tank); assert_eq!(slots, before_slots);
+            }
+        }
+        for item in ["minecraft:suspicious_stew", "example:mushroom_stew"] {
+            assert!(!accepts(&ItemStack::new(item, 1), &known));
+        }
+    }
+    #[test]
+    fn vanilla_soup_single_tanks_reject_other_fluid_and_tagged_variants() {
+        use super::super::tconstruct_source_melter_state::Tank;
+        use horizon_world::nbt::Tag;
+        for (item, fluid) in VANILLA_SOUPS {
+            for tagged in [false, true] {
+                let mut tank = Tank::new(1000);
+                if tagged {
+                    assert!(tank.insert_tagged(fluid, Some(&Tag::compound([("variant", Tag::Int(1))])), 250));
+                } else { assert!(tank.insert("minecraft:water", 250)); }
+                let mut slots = [Some(ItemStack::new(item, 1)), None];
+                let before = tank.clone(); let before_slots = slots.clone();
+                assert!(!transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
+                assert_eq!(tank, before); assert_eq!(slots, before_slots);
+            }
+        }
+    }
+    #[test]
+    fn vanilla_soup_melter_plan_preserves_metadata_and_returns_single_bowl() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        for (item, fluid) in VANILLA_SOUPS {
+            let Tag::Compound(mut fields) = Melter::new().to_nbt() else { panic!() };
+            fields.insert("future".into(), Tag::Long(17));
+            if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("extension".into(), Tag::Byte(2)); }
+            let raw = Tag::Compound(fields); let held = ItemStack::new(item, 1);
+            let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
+            let restored = Melter::from_nbt(&plan.saved).unwrap();
+            assert_eq!(restored.tank.fluid.as_deref(), Some(fluid)); assert_eq!(restored.tank.amount, 250);
+            assert!(!plan.drained); assert!(plan.remaining.is_none());
+            assert_eq!(plan.result.unwrap(), ItemStack::new("minecraft:bowl", 1));
+            for key in ["slots", "progress", "fuel", "future"] { assert_eq!(plan.saved.get(key), raw.get(key)); }
+            assert_eq!(plan.saved.get("tank").unwrap().get("extension"), Some(&Tag::Byte(2)));
+            assert_eq!(raw.get("tank").unwrap().get("amount"), Some(&Tag::Int(0)));
+            assert_eq!(held, ItemStack::new(item, 1));
+        }
+    }
+
     #[test]
     fn meat_soup_bowl_transfers_round_trip_and_preserves_other_fluid() {
         let mut tank = SmelteryTank::new(1500);
@@ -2112,111 +2217,6 @@ mod tests {
         let raw = melter.to_nbt();
         for item in ["minecraft:water_bucket", "minecraft:bucket"] {
             assert!(plan_melter_held(&raw, &ItemStack::new(item, 1), &known, &known, None, false).is_none());
-        }
-    }
-
-    const VANILLA_SOUPS: [(&str, &str); 3] = [
-        ("minecraft:beetroot_soup", "tconstruct:beetroot_soup"),
-        ("minecraft:mushroom_stew", "tconstruct:mushroom_stew"),
-        ("minecraft:rabbit_stew", "tconstruct:rabbit_stew"),
-    ];
-    #[test]
-    fn vanilla_soup_emptying_returns_bowl_and_roundtrips_exactly() {
-        for (item, fluid) in VANILLA_SOUPS {
-            let held = ItemStack::new(item, 1);
-            assert!(accepts(&held, &known));
-            assert!(!accepts(&held, &|id| id != fluid));
-            let mut tank = SmelteryTank::new(1250);
-            assert!(tank.insert("minecraft:lava", 1000));
-            let mut slots = [Some(held.clone()), None];
-            assert!(transfer(&mut tank, &mut slots, Direction::EmptyItem, &known, &known));
-            assert_eq!(tank.amount(fluid), 250); assert_eq!(tank.amount("minecraft:lava"), 1000);
-            assert!(slots[0].is_none());
-            assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:bowl");
-            slots[0] = slots[1].take();
-            assert!(transfer_selected(&mut tank, &mut slots, Direction::FillItem, Some(fluid), &known, &known));
-            assert_eq!(tank.amount(fluid), 0); assert_eq!(tank.total(), 1000);
-            assert!(slots[0].is_none()); assert_eq!(slots[1], Some(held));
-        }
-    }
-    #[test]
-    fn vanilla_soup_slot_limit_and_one_item_per_transfer() {
-        for (item, fluid) in VANILLA_SOUPS {
-            let mut slots = [None, None];
-            // Even a command-created oversized held stack inserts one bowl.
-            let mut carried = Some(ItemStack::new(item, 3));
-            assert!(click(&mut slots, &mut carried, 0, false, &known));
-            assert_eq!(slots[0].as_ref().unwrap().count, 1);
-            assert_eq!(carried.as_ref().unwrap().count, 2);
-            assert!(!click(&mut slots, &mut carried, 0, false, &known));
-            let mut tank = SmelteryTank::new(1000);
-            let mut slots = [Some(ItemStack::new(item, 3)), None];
-            assert!(transfer(&mut tank, &mut slots, Direction::Auto, &known, &known));
-            assert_eq!(slots[0].as_ref().unwrap().count, 2);
-            assert_eq!(slots[1].as_ref().unwrap().count, 1);
-            assert_eq!(tank.amount(fluid), 250);
-        }
-    }
-    #[test]
-    fn vanilla_soup_failed_transfers_leave_items_and_tank_unchanged() {
-        use horizon_world::nbt::Tag;
-        for (item, fluid) in VANILLA_SOUPS {
-            for case in 0..9 {
-                let mut tank = SmelteryTank::new(if case == 0 { 249 } else { 1000 });
-                let mut held = ItemStack::new(item, if case == 1 { 0 } else { 1 });
-                if case == 2 { held.damage = 1; }
-                if case == 3 { held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("extra", Tag::Int(1))]))); }
-                if case == 4 {
-                    let decoded = held.clone();
-                    held.data_mut().wire = horizon_items::item_data::Wire::new(decoded, std::sync::Arc::from([7u8]));
-                }
-                let mut slots = [Some(held), (case == 5).then(|| ItemStack::new("minecraft:bowl", 1))];
-                let before_tank = tank.to_nbt(); let before_slots = slots.clone();
-                let direction = if case == 6 { Direction::FillItem } else { Direction::Auto };
-                assert!(!transfer(&mut tank, &mut slots, direction,
-                    &|id| case != 7 || id != "minecraft:bowl", &|id| case != 8 || id != fluid), "{item}, case {case}");
-                assert_eq!(tank.to_nbt(), before_tank); assert_eq!(slots, before_slots);
-            }
-        }
-        for item in ["minecraft:suspicious_stew", "example:mushroom_stew"] {
-            assert!(!accepts(&ItemStack::new(item, 1), &known));
-        }
-    }
-    #[test]
-    fn vanilla_soup_single_tanks_reject_other_fluid_and_tagged_variants() {
-        use super::super::tconstruct_source_melter_state::Tank;
-        use horizon_world::nbt::Tag;
-        for (item, fluid) in VANILLA_SOUPS {
-            for tagged in [false, true] {
-                let mut tank = Tank::new(1000);
-                if tagged {
-                    assert!(tank.insert_tagged(fluid, Some(&Tag::compound([("variant", Tag::Int(1))])), 250));
-                } else { assert!(tank.insert("minecraft:water", 250)); }
-                let mut slots = [Some(ItemStack::new(item, 1)), None];
-                let before = tank.clone(); let before_slots = slots.clone();
-                assert!(!transfer_single(&mut tank, &mut slots, Direction::Auto, &known, &known));
-                assert_eq!(tank, before); assert_eq!(slots, before_slots);
-            }
-        }
-    }
-    #[test]
-    fn vanilla_soup_melter_plan_preserves_metadata_and_returns_single_bowl() {
-        use super::super::tconstruct_source_melter_state::Melter;
-        use horizon_world::nbt::Tag;
-        for (item, fluid) in VANILLA_SOUPS {
-            let Tag::Compound(mut fields) = Melter::new().to_nbt() else { panic!() };
-            fields.insert("future".into(), Tag::Long(17));
-            if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("extension".into(), Tag::Byte(2)); }
-            let raw = Tag::Compound(fields); let held = ItemStack::new(item, 1);
-            let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
-            let restored = Melter::from_nbt(&plan.saved).unwrap();
-            assert_eq!(restored.tank.fluid.as_deref(), Some(fluid)); assert_eq!(restored.tank.amount, 250);
-            assert!(!plan.drained); assert!(plan.remaining.is_none());
-            assert_eq!(plan.result.unwrap(), ItemStack::new("minecraft:bowl", 1));
-            for key in ["slots", "progress", "fuel", "future"] { assert_eq!(plan.saved.get(key), raw.get(key)); }
-            assert_eq!(plan.saved.get("tank").unwrap().get("extension"), Some(&Tag::Byte(2)));
-            assert_eq!(raw.get("tank").unwrap().get("amount"), Some(&Tag::Int(0)));
-            assert_eq!(held, ItemStack::new(item, 1));
         }
     }
 
