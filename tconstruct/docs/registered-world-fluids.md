@@ -1,13 +1,14 @@
 # Registered world-fluid draft
 
-This slice declares sixty-four world-liquid families. The initial families are iron, gold, copper,
+This slice declares sixty-six world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Glass, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
 Blazing Blood and Fiery Liquid. Four cool food liquids are also included:
 Beetroot Soup, Mushroom Stew, Rabbit Stew and Meat Soup.
 Venom, Honey and Liquid Soul add the first standard player contact effects.
-Magma adds a burning slime-family liquid.
+Magma adds a burning slime-family liquid. Ichor and Molten Cinderslime add
+the first upward-flowing liquids.
 The remaining thirty conventional metals and compatibility alloys are listed
 below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
@@ -16,7 +17,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #26](https://github.com/sofia-gros/horizon/pull/26).** Keep this
+[Horizon fork PR #28](https://github.com/sofia-gros/horizon/pull/28).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -33,7 +34,7 @@ pre-release draft correction, not a migration of already saved draft worlds.
 Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 
 - `FluidDeferredRegisterExtension.registerMetal`: level drop 3, slope distance 3,
-  tick rate 30 for the forty-three metal/alloy families.
+  tick rate 30 for the forty-four metal/alloy families.
 - Molten Debris, Emerald, Quartz, Amethyst and Diamond use `registerGem`:
   level drop 4, slope distance 4, tick rate 45.
 - Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian use `registerStone`:
@@ -41,12 +42,12 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
   uses tick rate 30. The four soups also use the defaults: drop 1, slope 4,
-  tick rate 5. None of the sixty-four families generates new sources.
+  tick rate 5. None of the sixty-six families generates new sources.
 - Molten Glass uses `registerGlass`: level drop 8, slope distance 8, tick rate 30.
   It needs the extended host slope bound; its policy is not approximated as
   stone or clamped to four. It burns for 5 seconds with damage 2 and light 1.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning
-  for the fifty-seven hot families, including non-burning Liquid Soul.
+  for the fifty-eight hot families, including non-burning Liquid Soul.
 - The four soups use `TinkerFluids.cool`: the same current scale, extinguishing
   enabled, and Forge's default swimming/drowning and 0.5 fall scaling. They
   have no burn contact and emit no light. Their 400 K source temperature does
@@ -83,7 +84,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all sixty-four families. Queen's Slime's source camera fog color remains
+  covers all sixty-six families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -144,8 +145,26 @@ conversion idea is commented out in the source and is not implemented here.
 is player-only, so that mob exception remains unimplemented. Existing Magma
 bucket/bottle/acquisition paths and solid Magma Slime blocks are unchanged.
 
-Cinderslime is intentionally undeclared: the source uses an inverted fluid,
-which cannot be represented by the host's current downward-only flow policy.
+Ichor and Molten Cinderslime explicitly set `policy.vertical_direction` to `up`.
+Ichor retains slime flow (drop 1, slope 4, tick rate 50), light 0, no burning,
+and enabled player swimming/drowning/extinguishing. Cinderslime retains metal
+flow (drop 3, slope 3, tick rate 30), light 10 and 10 seconds/7 damage of burning,
+with swimming, drowning and extinguishing disabled. Neither creates new sources or adds a
+contact status effect. Existing bucket and acquisition paths are reused.
+
+Their exact `slime/ichor` and `molten/alloy/cinderslime` source artwork includes
+still, flowing and `flowing_inverted` sprites and all animation metadata. The
+normal flowing path stays in the declaration; the host chooses its `_inverted`
+variant in the world. This matches Mantle's `ClientInvertedFluidType`, including
+reversed source animation frame lists, rather than flipping a different sprite.
+The provenance manifest now records 236 original files. Source inspection of
+Mantle `InvertedFluid` and its type shows unchanged liquid surface/contact
+geometry: only simulation, current direction and the flowing sprite change.
+The host therefore does not invent ceiling-anchored geometry. The new upward
+simulation and current/render paths require Horizon fork PRs #27 and #28 in
+addition to the previous stack. Ichor's slime-mob drowning exemption, sound and
+fog differences remain outside the player-focused host schema.
+
 Soulsteel's existing machine/bucket paths remain unchanged; declaring its world
 liquid does not introduce a new survival acquisition recipe.
 Fiery Liquid also retains its existing compatibility/acquisition conditions;
@@ -162,9 +181,9 @@ integrator without assigning native water tags. Their equivalence to Forge's
 generic fluid travel, fall scaling and mixed-fluid precedence remains unverified.
 They are provisional host integration parameters, not source-parity claims.
 
-Remaining: every other fluid family, source-specific potion contact effects and
-curatives, mob/item/projectile interaction, burn audio, camera fog, mixing and
-solidification, inverted flow, dispenser handling, final build and actual
+Remaining: Earth Slime, Sky Slime, Ender Slime and Molten Ender world fluids,
+source-specific contact effects and curatives, mob/item/projectile interaction, burn audio, camera fog, mixing and
+solidification, dispenser handling, final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for
 the final test batch; full tests, CI checks and merges are intentionally deferred.

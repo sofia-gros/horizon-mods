@@ -80,7 +80,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 224)
+        self.assertEqual(len(manifest['files']), 236)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -115,7 +115,8 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'nicrosil', 'duralumin', 'bendalloy', 'steeleaf')]
                     for short in families + ['seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid',
                                              'beetroot_soup', 'mushroom_stew', 'rabbit_stew', 'meat_soup',
-                                             'venom', 'honey', 'liquid_soul', 'magma']:
+                                             'venom', 'honey', 'liquid_soul', 'magma',
+                                             'ichor', 'molten_cinderslime']:
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
                         blockname = definition['block'].split(':', 1)[1]
                         archive.read('data/tconstruct/horizon/block/' + blockname + '.json')
@@ -123,6 +124,10 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         archive.read('data/tconstruct/horizon/item/' + bucket + '.json')
                         for field in ('still', 'flowing'):
                             sprite = definition['visual'][field].replace(':', '/textures/', 1)
+                            archive.read('assets/' + sprite + '.png')
+                            archive.read('assets/' + sprite + '.png.mcmeta')
+                        if definition['policy'].get('vertical_direction') == 'up':
+                            sprite = definition['visual']['flowing'].replace(':', '/textures/', 1) + '_inverted'
                             archive.read('assets/' + sprite + '.png')
                             archive.read('assets/' + sprite + '.png.mcmeta')
         finally:
@@ -147,15 +152,14 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 pairs.add((definition['visual']['still'], definition['visual']['flowing']))
         self.assertEqual(len(pairs), 4)
 
-    def test_advanced_alloys_use_dedicated_sprites_without_invented_inverted_flow(self):
+    def test_advanced_alloys_use_dedicated_sprites_and_default_downward_flow(self):
         for name in ('manyullyn', 'hepatizon', 'queens_slime', 'soulsteel'):
             with self.subTest(fluid=name):
                 definition = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / ('molten_' + name + '.json')).read_text())
                 for field in ('still', 'flowing'):
                     self.assertEqual(definition['visual'][field],
                                      'tconstruct:fluid/molten/alloy/' + name + '/' + field)
-        # Cinderslime is a separate source InvertedFluid, not a downward alloy.
-        self.assertFalse((CONTENT / 'data/tconstruct/registered_fluid/molten_cinderslime.json').exists())
+                self.assertEqual(definition['policy'].get('vertical_direction', 'down'), 'down')
 
     def test_stone_fluids_keep_solid_blocks_and_source_textures_separate(self):
         for name, template in [('seared_stone', 'minecraft:stone'),

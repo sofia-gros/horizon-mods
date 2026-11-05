@@ -896,6 +896,54 @@
     "assets/tconstruct/textures/fluid/slime/magma/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/magma/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ichor/still.png",
+      "sha256": "1acfb9ad94ec96baa544c76c0043ecd1c25f642a2584c8a73ff18d66447d1592"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ichor/still.png.mcmeta",
+      "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ichor/flowing.png",
+      "sha256": "019963671e9d22f7f6d4609512cc42b88a30d65e29e472f76f542735f2670021"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ichor/flowing.png.mcmeta",
+      "sha256": "37e7942822eb05d02ad0c4d79777cb00b89292937a87f6915f3e4ea498748330"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/flowing_inverted.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ichor/flowing_inverted.png",
+      "sha256": "cafb72ceb5a8ca62284f6dfd5ee50fa7482085a713ed4af2737a322d4b8540a0"
+    },
+    "assets/tconstruct/textures/fluid/slime/ichor/flowing_inverted.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ichor/flowing_inverted.png.mcmeta",
+      "sha256": "ec7b6c03fac7f4dfdb84bc69f62f6d1c623a7163f7df55bddea68f61b3f10a35"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/still.png",
+      "sha256": "b871cf8d8f4a0844739c862320780ad30d8734e04e600e09da13a9d918c405aa"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/still.png.mcmeta",
+      "sha256": "7dc16041541801a5bbfd3e98fc2e939ca860cc063a19393da16841eca4212b37"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing.png",
+      "sha256": "77c9afdea10e32437fa532dd170511d985190750641c7bd170aa5a74782681da"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing_inverted.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing_inverted.png",
+      "sha256": "7810292fef03587c05621f8249a5871cf0c8974965c702031c3affa84e8102ff"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing_inverted.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/cinderslime/flowing_inverted.png.mcmeta",
+      "sha256": "67f9fe4a4a59894f321f9cb5438d7ad9579b8d3ffea65f86fb6b69a769931c6c"
     }
   }
 }
