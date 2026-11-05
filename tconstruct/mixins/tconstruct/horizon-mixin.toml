@@ -5367,3 +5367,26 @@ kind = "HEAD"
 cancellable = true
 helper = "source-stonecutting-ingredient.rs"
 bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "items", ty = "&Items", value = "items" }]
+
+[[module]]
+id = "source-fake-material-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fake_material_world"
+source = "source-fake-material-world.rs"
+
+[[module]]
+id = "source-fake-material-crafting"
+file = "crates/horizon-client/src/crafting.rs"
+name = "tconstruct_source_fake_material_crafting"
+source = "source-fake-material-crafting.rs"
+
+[[injection]]
+id = "fake-material-recipe"
+target = "horizon_client_lib::crafting::Recipes::assemble_if_matches"
+kind = "HEAD"
+cancellable = true
+helper = "fake-material-recipe.rs"
+bindings = [
+  { name = "input", ty = "&Input<'_>", value = "input" },
+  { name = "recipe", ty = "&Recipe", value = "recipe" },
+]

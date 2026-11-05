@@ -511,6 +511,14 @@ pub(super) fn source_random_draw(items: &horizon_items::items::Items, bound: usi
 /// The fake block item accepts only compatibility materials that do not have
 /// a visible nine-unit material recipe, as in the source item.
 pub(super) fn fake_storage_can_use(world: &super::tconstruct_world::World, items: &horizon_items::items::Items, material: &str) -> Result<bool, SourceLookupError> {
+    fake_material_can_use(world, items, material, "tconstruct:fake_storage_block")
+}
+
+/// Shared source HasPart eligibility for both fake metal conversion outputs.
+pub(super) fn fake_material_can_use(world: &super::tconstruct_world::World, items: &horizon_items::items::Items, material: &str, output: &str) -> Result<bool, SourceLookupError> {
+    if !matches!(output, "tconstruct:fake_ingot" | "tconstruct:fake_storage_block") {
+        return Ok(false);
+    }
     let chunks = &world.chunks;
     let (definitions, _, material_tags) = chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
     let item_tags = chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).ok_or(SourceLookupError::IncompleteContext)?;
@@ -522,5 +530,5 @@ pub(super) fn fake_storage_can_use(world: &super::tconstruct_world::World, items
     let known = items.registry_order.iter().map(|id| id.to_string()).collect();
     let registries = [("minecraft:item".to_owned(), item_tags.clone()), ("minecraft:fluid".to_owned(), fluid_tags.clone())].into_iter().collect();
     let values = tx::source_visible_base_recipe_values(base, recipes, &visible, &known, &registries, config, true)?;
-    Ok(tx::source_supported_fake_items(base, material_tags, &values, true)?.contains("tconstruct:fake_storage_block"))
+    Ok(tx::source_supported_fake_items(base, material_tags, &values, true)?.contains(output))
 }
