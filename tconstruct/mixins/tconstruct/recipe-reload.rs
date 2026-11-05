@@ -272,6 +272,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     let generation = game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation().wrapping_add(1);
     *game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = generation;
     crate::game::tconstruct_gold_guard_world::refresh(game);
+    crate::game::tconstruct_respiration_world::refresh(game);
 }
 
 // The active level is captured below the reload hook. Parked levels retain
