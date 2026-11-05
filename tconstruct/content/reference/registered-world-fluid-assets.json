@@ -256,6 +256,70 @@
     "assets/tconstruct/textures/fluid/molten/stone/obsidian/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/obsidian/flowing.png.mcmeta",
       "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/emerald/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/emerald/still.png",
+      "sha256": "7b50985f2e6d98751a21cdd9de783f69b34d14ae47e9b734036c8fa6690b77fa"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/emerald/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/emerald/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/emerald/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/emerald/flowing.png",
+      "sha256": "025cb5aea5d887fcdc959d56fff813d5aad39c8082af593cf12f0c6ffbc9156e"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/emerald/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/emerald/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/quartz/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/quartz/still.png",
+      "sha256": "c8d67b2aca6d169ace31bb773533814c8417c77f719ad95399e96a254832158f"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/quartz/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/quartz/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/quartz/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/quartz/flowing.png",
+      "sha256": "62bc4dab074969765c5be3f1733a583ae48bc20ad0b26b89f040c8e1df6bed59"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/quartz/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/quartz/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/amethyst/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/amethyst/still.png",
+      "sha256": "54f4ca83b2a5b733223ee46971a64d52ce1d22fbccac1676e0c97f1c8cb13ed9"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/amethyst/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/amethyst/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/amethyst/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/amethyst/flowing.png",
+      "sha256": "092efc78a14a8caef67bd56aae61de5c26df057893b3c83e390718665d63f4e8"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/amethyst/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/amethyst/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/diamond/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/diamond/still.png",
+      "sha256": "da745fd1f2be1983459e191afa736f7a4f3f1632095f569800a4ad1ceb155229"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/diamond/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/diamond/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/diamond/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/diamond/flowing.png",
+      "sha256": "df8161194f7ac5f3b36f29d628e36a05ee82de51923c95973f19a25a73f9d7cc"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/diamond/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/diamond/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }

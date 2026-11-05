@@ -1,9 +1,9 @@
 # Registered world-fluid draft
 
-This slice declares nineteen world-liquid families: iron, gold, copper,
+This slice declares twenty-three world-liquid families: iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
-molten Clay, Porcelain and Obsidian.
+molten Clay, Porcelain, Obsidian, Emerald, Quartz, Amethyst and Diamond.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
 supply the items. The host's registered-fluid system handles placement, flow,
 source pickup, scheduling and saving, rendering, player current/travel and burn
@@ -28,9 +28,10 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 
 - `FluidDeferredRegisterExtension.registerMetal`: level drop 3, slope distance 3,
   tick rate 30 for the thirteen metal/alloy families.
-- Molten debris uses `registerGem`: level drop 4, slope distance 4, tick rate 45.
+- Molten Debris, Emerald, Quartz, Amethyst and Diamond use `registerGem`:
+  level drop 4, slope distance 4, tick rate 45.
 - Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian use `registerStone`:
-  level drop 2, slope distance 2, tick rate 40. None of the nineteen families
+  level drop 2, slope distance 2, tick rate 40. None of the twenty-three families
   generates new sources.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning.
 - `TinkerFluids` declarations and `BurningLiquidBlock`: 10 seconds burning;
@@ -42,6 +43,10 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   10 seconds burning; their light levels are 11/8/9/6.
 - Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian deal 2/2/2/2/4 damage,
   burn for 8/7/5/5/12 seconds, and emit light 6/4/3/2/3 respectively.
+- Emerald, Quartz, Amethyst and Diamond deal 6/5/5/7 damage with 10 seconds
+  burning and light 9/6/11/13. Each uses its exact `molten/ore/<gem>` still/flow
+  sprites and animation metadata with white surface tint. Source camera fog
+  differences are not represented by the current host schema.
 - Iron, gold, copper and cobalt retain their exact still/flow sprites and
   animation metadata from `textures/fluid/molten/ore/<metal>/`.
   `content/reference/registered-world-fluid-assets.json` records source paths,
@@ -56,7 +61,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all nineteen families. Queen's Slime's source camera fog color remains
+  covers all twenty-three families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their

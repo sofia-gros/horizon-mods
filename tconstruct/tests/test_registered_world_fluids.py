@@ -1,4 +1,4 @@
-"""Observable content contracts for the initial nineteen world-liquid families."""
+"""Observable content contracts for the initial twenty-three world-liquid families."""
 import hashlib
 import importlib.util
 import json
@@ -36,7 +36,11 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 ('scorched_stone', 2, 4, 2, 40, 0x3E3029),
                 ('clay', 2, 3, 2, 40, 0x9B6045),
                 ('porcelain', 2, 2, 2, 40, 0xFFFFFF),
-                ('obsidian', 4, 3, 2, 40, 0xFFFFFF)]:
+                ('obsidian', 4, 3, 2, 40, 0xFFFFFF),
+                ('emerald', 6, 9, 4, 45, 0xFFFFFF),
+                ('quartz', 5, 6, 4, 45, 0xFFFFFF),
+                ('amethyst', 5, 11, 4, 45, 0xFFFFFF),
+                ('diamond', 7, 13, 4, 45, 0xFFFFFF)]:
             with self.subTest(metal=name):
                 short = name if name in ('seared_stone', 'scorched_stone') else 'molten_' + name
                 blockname = short + '_fluid'
@@ -71,7 +75,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 64)
+        self.assertEqual(len(manifest['files']), 80)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -98,7 +102,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'iron', 'gold', 'copper', 'cobalt', 'debris', 'netherite',
                         'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron',
                         'manyullyn', 'hepatizon', 'queens_slime', 'soulsteel',
-                        'clay', 'porcelain', 'obsidian')]
+                        'clay', 'porcelain', 'obsidian', 'emerald', 'quartz', 'amethyst', 'diamond')]
                     for short in families + ['seared_stone', 'scorched_stone']:
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
                         blockname = definition['block'].split(':', 1)[1]
@@ -158,6 +162,16 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 for field in ('still', 'flowing'):
                     self.assertEqual(fluid['visual'][field],
                                      'tconstruct:fluid/molten/' + folder + '/' + field)
+
+    def test_gem_liquids_keep_source_gem_sprites_and_no_native_lava_alias(self):
+        for gem in ('emerald', 'quartz', 'amethyst', 'diamond'):
+            with self.subTest(gem=gem):
+                fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / ('molten_' + gem + '.json')).read_text())
+                self.assertEqual(fluid['block'], 'tconstruct:molten_' + gem + '_fluid')
+                self.assertFalse(fluid['policy']['source_conversion'])
+                for field in ('still', 'flowing'):
+                    self.assertEqual(fluid['visual'][field],
+                                     'tconstruct:fluid/molten/ore/' + gem + '/' + field)
 
 
 if __name__ == '__main__':
