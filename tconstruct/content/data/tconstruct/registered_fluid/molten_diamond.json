@@ -13,7 +13,11 @@
     "still": "tconstruct:fluid/molten/ore/diamond/still",
     "flowing": "tconstruct:fluid/molten/ore/diamond/flowing",
     "tint": 16777215,
-    "emission": 13
+    "emission": 13,
+    "fog": {
+      "start": 0.25,
+      "end": 4
+    }
   },
   "interaction": {
     "travel": {

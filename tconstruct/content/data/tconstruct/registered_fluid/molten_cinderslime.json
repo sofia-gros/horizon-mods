@@ -14,7 +14,11 @@
     "still": "tconstruct:fluid/molten/alloy/cinderslime/still",
     "flowing": "tconstruct:fluid/molten/alloy/cinderslime/flowing",
     "tint": 16777215,
-    "emission": 10
+    "emission": 10,
+    "fog": {
+      "start": 0.25,
+      "end": 2
+    }
   },
   "interaction": {
     "travel": {

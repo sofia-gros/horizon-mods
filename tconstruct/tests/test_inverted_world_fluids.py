@@ -34,7 +34,8 @@ class InvertedWorldFluidTests(unittest.TestCase):
                 self.assertEqual(fluid['visual'], {
                     'still': 'tconstruct:fluid/' + folder + '/still',
                     'flowing': 'tconstruct:fluid/' + folder + '/flowing',
-                    'tint': 0xFFFFFF, 'emission': light})
+                    'tint': 0xFFFFFF, 'emission': light,
+                    'fog': {'start': 0.25, 'end': 2}})
                 blockname = name + '_fluid'
                 block = json.loads((CONTENT / 'data/tconstruct/horizon/block' / (blockname + '.json')).read_text())
                 self.assertEqual(block['template'], 'minecraft:water')

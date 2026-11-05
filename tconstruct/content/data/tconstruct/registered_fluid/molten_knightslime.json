@@ -13,7 +13,11 @@
     "still": "tconstruct:fluid/molten/alloy/knightslime/still",
     "flowing": "tconstruct:fluid/molten/alloy/knightslime/flowing",
     "tint": 16777215,
-    "emission": 12
+    "emission": 12,
+    "fog": {
+      "start": 0.25,
+      "end": 2
+    }
   },
   "interaction": {
     "travel": {

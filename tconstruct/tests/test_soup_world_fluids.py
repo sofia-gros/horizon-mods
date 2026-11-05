@@ -39,6 +39,7 @@ class SoupWorldFluidTests(unittest.TestCase):
                     'still': 'tconstruct:fluid/food/stew/still',
                     'flowing': 'tconstruct:fluid/food/stew/flowing',
                     'tint': tint, 'emission': 0,
+                    'fog': {'start': 0.25, 'end': 2, 'color': tint},
                 })
 
     def test_nonitem_liquid_blocks_share_art_without_replacing_food_items(self):

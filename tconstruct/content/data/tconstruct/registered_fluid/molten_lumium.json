@@ -13,7 +13,11 @@
     "still": "tconstruct:fluid/molten/compat_alloy/lumium/still",
     "flowing": "tconstruct:fluid/molten/compat_alloy/lumium/flowing",
     "tint": 16777215,
-    "emission": 15
+    "emission": 15,
+    "fog": {
+      "start": 0.25,
+      "end": 2
+    }
   },
   "interaction": {
     "travel": {

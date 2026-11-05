@@ -13,7 +13,12 @@
     "still": "tconstruct:fluid/molten/stone/still",
     "flowing": "tconstruct:fluid/molten/stone/flowing",
     "tint": 1072721,
-    "emission": 5
+    "emission": 5,
+    "fog": {
+      "start": 0.25,
+      "end": 2,
+      "color": 1072721
+    }
   },
   "interaction": {
     "travel": {

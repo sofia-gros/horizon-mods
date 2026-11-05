@@ -13,7 +13,11 @@
     "still": "tconstruct:fluid/molten/alloy/netherite/still",
     "flowing": "tconstruct:fluid/molten/alloy/netherite/flowing",
     "tint": 16777215,
-    "emission": 14
+    "emission": 14,
+    "fog": {
+      "start": 0.25,
+      "end": 2
+    }
   },
   "interaction": {
     "travel": {
