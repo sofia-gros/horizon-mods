@@ -554,6 +554,10 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
     let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
+    if plan.id == "tconstruct:bane_of_sssss" && !super::tconstruct_source_smite::supported_bane_definition(world) {
+        *reason = Some("Bane of Sssss is unavailable: the current modifier definition is unsupported.".into());
+        return None;
+    }
     if plan.id == "tconstruct:antiaquatic" && !super::tconstruct_source_smite::supported_antiaquatic_definition(world) {
         *reason = Some("Antiaquatic is unavailable: the current modifier definition is unsupported.".into());
         return None;

@@ -17,8 +17,8 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 25] = [
-    ("tconstruct:antiaquatic", 5), ("tconstruct:smite", 5), ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
+const UPGRADES: [(&str, i32); 26] = [
+    ("tconstruct:bane_of_sssss", 15), ("tconstruct:antiaquatic", 5), ("tconstruct:smite", 5), ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
@@ -83,7 +83,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
-        "tconstruct:smite" | "tconstruct:antiaquatic" => matches!(item, "tconstruct:pickaxe" | "tconstruct:sledge_hammer" | "tconstruct:vein_hammer" | "tconstruct:hand_axe" | "tconstruct:broad_axe" | "tconstruct:mattock" | "tconstruct:pickadze" | "tconstruct:excavator" | "tconstruct:kama" | "tconstruct:scythe" | "tconstruct:sword" | "tconstruct:cleaver" | "tconstruct:dagger" | "tconstruct:battlesign" | "tconstruct:war_pick"),
+        "tconstruct:smite" | "tconstruct:antiaquatic" | "tconstruct:bane_of_sssss" => matches!(item, "tconstruct:pickaxe" | "tconstruct:sledge_hammer" | "tconstruct:vein_hammer" | "tconstruct:hand_axe" | "tconstruct:broad_axe" | "tconstruct:mattock" | "tconstruct:pickadze" | "tconstruct:excavator" | "tconstruct:kama" | "tconstruct:scythe" | "tconstruct:sword" | "tconstruct:cleaver" | "tconstruct:dagger" | "tconstruct:battlesign" | "tconstruct:war_pick"),
         "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
@@ -119,8 +119,8 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
 fn valid_target_damage_amounts(tool: &ItemStack) -> bool {
     let Some(upgrades) = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) else { return true; };
     let Tag::Compound(_) = upgrades else { return false; };
-    ["tconstruct:smite", "tconstruct:antiaquatic"].iter().all(|id|
-        match upgrades.get(id) { None => true, Some(Tag::Int(amount)) => (0..=25).contains(amount), _ => false })
+    [("tconstruct:smite",25), ("tconstruct:antiaquatic",25), ("tconstruct:bane_of_sssss",75)].iter().all(|(id,max)|
+        match upgrades.get(id) { None => true, Some(Tag::Int(amount)) => (0..=*max).contains(amount), _ => false })
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
@@ -153,7 +153,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (!matches!(id, "tconstruct:smite" | "tconstruct:antiaquatic") || valid_target_damage_amounts(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (!matches!(id, "tconstruct:smite" | "tconstruct:antiaquatic" | "tconstruct:bane_of_sssss") || valid_target_damage_amounts(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -181,7 +181,7 @@ pub(super) fn extract_upgrade_with_traits(
     if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
-    if matches!(id, "tconstruct:smite" | "tconstruct:antiaquatic") && !belongs("tconstruct:modifiable/melee") { return None; }
+    if matches!(id, "tconstruct:smite" | "tconstruct:antiaquatic" | "tconstruct:bane_of_sssss") && !belongs("tconstruct:modifiable/melee") { return None; }
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
@@ -232,12 +232,12 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
-        if matches!(id, "tconstruct:smite" | "tconstruct:antiaquatic") &&
+        if matches!(id, "tconstruct:smite" | "tconstruct:antiaquatic" | "tconstruct:bane_of_sssss") &&
             (recipe_type != Some("tconstruct:incremental_modifier")
                 || !tags.get("tconstruct:modifiable/melee").is_some_and(|items| items.contains(tool.item.as_ref()))
                 || value.get("level") != Some(&serde_json::json!({"max":5}))
                 || value.get("slots") != Some(&serde_json::json!({"upgrades":1}))
-                || value.get("needed_per_level").and_then(Value::as_i64) != Some(5)
+                || value.get("needed_per_level").and_then(Value::as_i64) != Some(if id == "tconstruct:bane_of_sssss" { 15 } else { 5 })
                 || value.get("amount_per_item").and_then(Value::as_i64) != Some(1)) { continue; }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
 ) { continue; }
@@ -601,6 +601,41 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn bane_uses_fifteen_eyes_per_level_with_its_own_slot_cost() {
+        use super::*;
+        let recipe=serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
+            "input":{"item":"minecraft:fermented_spider_eye"},"amount_per_item":1,"needed_per_level":15,
+            "level":{"max":5},"result":"tconstruct:bane_of_sssss","slots":{"upgrades":1},
+            "tools":{"tag":"tconstruct:modifiable/melee"}});
+        let recipes=BTreeMap::from([("bane".into(),serde_json::to_vec(&recipe).unwrap())]);
+        let tags=HashMap::from([
+            ("tconstruct:modifiable/melee".into(),HashSet::from(["tconstruct:sword".into()])),
+            ("tconstruct:modifiable".into(),HashSet::from(["tconstruct:sword".into()])),
+        ]);
+        let mk=|amount| {
+            let mut tool=ItemStack::new("tconstruct:sword",1);
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",
+                Tag::compound([("tconstruct:bane_of_sssss",Tag::Int(amount))]))])));
+            tool
+        };
+        let eyes=[Some(ItemStack::new("minecraft:fermented_spider_eye",64))];
+        let first=plan(&recipes,&tags,&mk(0),&eyes,1).unwrap();
+        assert_eq!(first.amount,15);
+        assert_eq!(first.consumed,vec![(0,1),(1,15)]);
+        assert_eq!(plan(&recipes,&tags,&mk(14),&eyes,1).unwrap().consumed,vec![(0,1),(1,1)]);
+        assert!(plan(&recipes,&tags,&mk(15),&eyes,1).is_none());
+        assert_eq!(plan(&recipes,&tags,&mk(74),&eyes,5).unwrap().amount,75);
+        assert!(plan(&recipes,&tags,&mk(75),&eyes,6).is_none());
+        assert!(plan(&recipes,&tags,&mk(76),&eyes,6).is_none());
+        assert!(plan(&recipes,&tags,&mk(0),&[Some(ItemStack::new("minecraft:spider_eye",64))],1).is_none());
+        let mut crystal=ItemStack::new("tconstruct:modifier_crystal",1);
+        crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String("tconstruct:bane_of_sssss".into()))])));
+        assert_eq!(plan(&recipes,&tags,&mk(0),&[Some(crystal)],1).unwrap().amount,15);
+        let extract=[Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
+        assert_eq!(extract_upgrade(&tags,&mk(31),&extract,"tconstruct:bane_of_sssss").unwrap().upgrade.amount,16);
+    }
+
     #[test]
     fn antiaquatic_pufferfish_progress_and_shared_slot_budget() {
         use super::*;

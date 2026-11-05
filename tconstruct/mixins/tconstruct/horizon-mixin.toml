@@ -5415,3 +5415,18 @@ bindings = [
   { name = "living", ty = "bool", value = "living" },
   { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>) -> f32", value = "$operation" },
 ]
+
+
+[[injection]]
+id = "source-bane-primary-hit"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "WRAP_OPERATION"
+selector = "self.weapon_hit"
+require = 1
+ordinal = 0
+helper = "bane-hit.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "index", ty = "usize", value = "$arg0" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, usize)", value = "$operation" },
+]

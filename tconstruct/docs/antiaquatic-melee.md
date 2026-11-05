@@ -15,8 +15,9 @@ Elder Guardian, Axolotl and Turtle. Drowned, other undead, Frog and ordinary
 land mobs do not gain water-type eligibility merely by entering water.
 Unknown namespaces and newer/custom aquatic types are not inferred.
 
-The shared runtime selects Smite for undead and Antiaquatic for the supported
-water types, validates that modifier's current stock definition, and combines
+The shared runtime evaluates Smite for undead, Antiaquatic for the supported
+water types, and Bane for its arthropod/creeper predicate. It validates each
+modifier's current stock definition and combines
 material trait levels with partial recipe progress in source float order. The
 existing common conditional multiplier and supported Jagged/Stonebound order
 are preserved. The selected bonus enters before native cooldown and the actual
