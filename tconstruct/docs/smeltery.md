@@ -51,3 +51,24 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 ### Casting Tank to casting blocks
 
 A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Guarded Drain to Table/Basin pouring
+
+Formed Smeltery and Foundry Drains use a staged route for all four Seared and
+Scorched Tables/Basins. Controller data is retained and only its tank is patched.
+The casting destination uses the metadata-preserving codec, retaining supported
+extension fields while refusing stale live slots, legacy aliases and unsafe
+item representations. The current recipe is checked before and after staging.
+
+Initial and later packet reservations pour their first 10 mB immediately,
+limited by remaining recipe capacity. A pending packet retains its identity
+if source selection changes; it waits when its recipe is no longer current.
+Controller, casting and Faucet changes save together after ownership, structure,
+block, chunk, raw snapshot and destination live-slot rechecks.
+
+Four focused fixture cases and dispatch assertions were added but not run.
+The fixture uses real state/metadata codecs with mocked world, recipes and
+storage. Brief static review only; full host, actual recipes, gameplay,
+save/reload, LAN and atomic disk/network persistence are unverified. Separate
+Duct behavior and comparator integration remain outside this change.
