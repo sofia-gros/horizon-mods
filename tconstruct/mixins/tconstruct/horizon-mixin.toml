@@ -5446,3 +5446,27 @@ bindings = [
   { name = "value", ty = "Vec<(i32, i32, Vec<ItemStack>)>", value = "$value" },
   { name = "entry", ty = "&Entry", value = "entry" },
 ]
+
+[[module]]
+id = "source-fake-material-book-load"
+file = "crates/horizon-client/src/recipe_book.rs"
+name = "tconstruct_source_fake_material_book_load"
+source = "source-fake-material-book-load.rs"
+visibility = "pub"
+
+[[state]]
+id = "fake-material-book-pending"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<(Vec<String>, Vec<String>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "fake-material-book-prepare"
+target = "horizon_client::game::world_loading::WorldRequest::prepare"
+kind = "RETURN"
+helper = "fake-material-book-prepare.rs"
+bindings = [{ name = "value", ty = "Result<PreparedWorld>", value = "$value" }]
