@@ -8,14 +8,14 @@ class FaucetMelterInputWiring(unittest.TestCase):
         code = RUNTIME.read_text()
         activate = code[code.index('pub(super) fn activate_faucet('):code.index('pub(super) fn tick_faucet(')]
         tick = code[code.index('pub(super) fn tick_faucet('):code.index('pub(super) fn tick_casting(')]
-        self.assertLess(activate.index('source_to_melter('), activate.index('tank_to_cannon('))
-        self.assertLess(tick.index('source_to_melter('), tick.index('tank_to_cannon('))
-        route = code[code.index('fn source_to_melter('):]
-        self.assertIn('patch_melter_tank(&raw_melter, &melter.tank)', route)
+        self.assertLess(activate.index('source_to_melter_or_lantern('), activate.index('tank_to_cannon('))
+        self.assertLess(tick.index('source_to_melter_or_lantern('), tick.index('tank_to_cannon('))
+        route = code[code.index('fn source_to_melter_or_lantern('):]
+        self.assertIn('patch_melter_tank(&raw_target, &output)', route)
         self.assertNotIn('melter.to_nbt()', route)
         self.assertIn('if !store::write_many(&mut game.world, &changes)', route)
         self.assertIn('if let Some(at) = changed_source { game.container_changed(at); }', route)
-        self.assertLess(route.index('process_casting_tank(game, state)'), route.index('let Some(next_melter)'))
+        self.assertLess(route.index('process_casting_tank(game, state)'), route.index('let next_target'))
         self.assertLess(route.index('if !store::write_many('), route.index('slots[0] = state.slots[0].clone()'))
         self.assertIn('data.wire.patch().is_some()', route)
 
