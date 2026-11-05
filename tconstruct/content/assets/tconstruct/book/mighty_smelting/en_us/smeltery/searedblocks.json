@@ -1,6 +1,8 @@
 {
   "title": "Seared Blocks",
-  "item": "tconstruct:seared_bricks",
+  "item": {
+    "tag": "tconstruct:seared_blocks"
+  },
   "text": [
     {
       "text": "Under the default structure rules, full Seared Blocks such as Seared Bricks can form either the floor or walls of a smeltery. Decorative slabs, stairs and walls are not substitutes for those full blocks.",
@@ -11,7 +13,7 @@
       "paragraph": true
     },
     {
-      "text": "This page shows Seared Bricks as a representative icon, not the original cycling block-tag display. Datapacks may change valid structure blocks or recipe ingredients. The recipes are implemented; actual crafting, building, save/reload and LAN remain unverified.",
+      "text": "The icon cycles through registered items in the current world\u2019s Seared Blocks item tag. Datapacks may change that tag, valid structure blocks or recipe ingredients. The recipes are implemented; actual crafting, building, save/reload and LAN remain unverified.",
       "paragraph": true
     }
   ]

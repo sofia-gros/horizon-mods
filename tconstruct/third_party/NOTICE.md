@@ -126,6 +126,12 @@ The multi-alloy cycle is adapted from Tinkers' Construct
 `library/recipe/alloying/AlloyRecipe.java`. Copyright (c) 2022 SlimeKnights;
 MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
 
+The four early workstation recipe-unlock advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables).
+`docs/station-recipe-unlocks.md` lists source files and native adaptations.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`.
+
 The Fantastic Foundry acquisition and recipe-unlock advancements are adapted
 from Tinkers' Construct at
 [f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements):
@@ -150,3 +156,9 @@ advancements are adapted from
 `docs/grout-recipe-unlocks.md` lists source paths and native adaptations.
 Copyright (c) 2022 SlimeKnights; MIT license, see
 `tconstruct/third_party/tconstruct/LICENSE`.
+
+Eleven Seared machinery recipe-unlock advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes).
+Exact source paths and native recipe-ID adaptations are listed in
+`docs/seared-recipe-unlocks.md`. Copyright (c) 2022 SlimeKnights; MIT license,
+see `tconstruct/third_party/tconstruct/LICENSE`.
