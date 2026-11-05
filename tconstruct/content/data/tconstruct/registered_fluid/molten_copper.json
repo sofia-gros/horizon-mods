@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_copper",
   "flowing": "tconstruct:flowing_molten_copper",
-  "block": "tconstruct:molten_copper",
+  "block": "tconstruct:molten_copper_fluid",
   "bucket": "tconstruct:molten_copper_bucket",
   "policy": {
     "drop_off": 3,

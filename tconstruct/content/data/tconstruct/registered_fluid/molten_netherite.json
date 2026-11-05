@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_netherite",
   "flowing": "tconstruct:flowing_molten_netherite",
-  "block": "tconstruct:molten_netherite",
+  "block": "tconstruct:molten_netherite_fluid",
   "bucket": "tconstruct:molten_netherite_bucket",
   "policy": {
     "drop_off": 3,

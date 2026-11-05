@@ -1,0 +1,36 @@
+{
+  "source": "tconstruct:seared_stone",
+  "flowing": "tconstruct:flowing_seared_stone",
+  "block": "tconstruct:seared_stone_fluid",
+  "bucket": "tconstruct:seared_stone_bucket",
+  "policy": {
+    "drop_off": 2,
+    "slope_distance": 2,
+    "tick_delay": 40,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/stone/still",
+    "flowing": "tconstruct:fluid/molten/stone/flowing",
+    "tint": 5196359,
+    "emission": 6
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": {
+      "seconds": 8,
+      "damage": 2
+    }
+  }
+}

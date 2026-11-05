@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_soulsteel",
   "flowing": "tconstruct:flowing_molten_soulsteel",
-  "block": "tconstruct:molten_soulsteel",
+  "block": "tconstruct:molten_soulsteel_fluid",
   "bucket": "tconstruct:molten_soulsteel_bucket",
   "policy": {
     "drop_off": 3,

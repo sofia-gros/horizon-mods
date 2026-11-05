@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_cobalt",
   "flowing": "tconstruct:flowing_molten_cobalt",
-  "block": "tconstruct:molten_cobalt",
+  "block": "tconstruct:molten_cobalt_fluid",
   "bucket": "tconstruct:molten_cobalt_bucket",
   "policy": {
     "drop_off": 3,

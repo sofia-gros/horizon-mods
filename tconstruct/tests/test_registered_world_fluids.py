@@ -1,4 +1,4 @@
-"""Observable content contracts for the initial fourteen world-liquid families."""
+"""Observable content contracts for the initial nineteen world-liquid families."""
 import hashlib
 import importlib.util
 import json
@@ -31,39 +31,47 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 ('manyullyn', 8, 11, 3, 30, 0xFFFFFF),
                 ('hepatizon', 7, 8, 3, 30, 0xFFFFFF),
                 ('queens_slime', 6, 9, 3, 30, 0xFFFFFF),
-                ('soulsteel', 7, 6, 3, 30, 0xFFFFFF)]:
+                ('soulsteel', 7, 6, 3, 30, 0xFFFFFF),
+                ('seared_stone', 2, 6, 2, 40, 0x4F4A47),
+                ('scorched_stone', 2, 4, 2, 40, 0x3E3029),
+                ('clay', 2, 3, 2, 40, 0x9B6045),
+                ('porcelain', 2, 2, 2, 40, 0xFFFFFF),
+                ('obsidian', 4, 3, 2, 40, 0xFFFFFF)]:
             with self.subTest(metal=name):
-                short = 'molten_' + name
+                short = name if name in ('seared_stone', 'scorched_stone') else 'molten_' + name
+                blockname = short + '_fluid'
                 fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / (short + '.json')).read_text())
                 self.assertEqual(fluid['source'], 'tconstruct:' + short)
                 self.assertEqual(fluid['flowing'], 'tconstruct:flowing_' + short)
-                self.assertEqual(fluid['block'], 'tconstruct:' + short)
+                self.assertEqual(fluid['block'], 'tconstruct:' + blockname)
                 self.assertEqual(fluid['bucket'], 'tconstruct:' + short + '_bucket')
                 self.assertEqual(fluid['policy'], {'drop_off': drop, 'slope_distance': drop, 'tick_delay': delay, 'source_conversion': False})
                 policy = fluid['interaction']
-                self.assertEqual(policy['burn'], {'seconds': 10, 'damage': damage})
+                seconds = {'seared_stone': 8, 'scorched_stone': 7,
+                           'clay': 5, 'porcelain': 5, 'obsidian': 12}.get(name, 10)
+                self.assertEqual(policy['burn'], {'seconds': seconds, 'damage': damage})
                 self.assertFalse(policy['can_swim'])
                 self.assertFalse(policy['can_drown'])
                 self.assertFalse(policy['extinguishes'])
                 self.assertEqual(policy['motion_scale'], 0.0023333333333333335)
-                block = json.loads((CONTENT / 'data/tconstruct/horizon/block' / (short + '.json')).read_text())
+                block = json.loads((CONTENT / 'data/tconstruct/horizon/block' / (blockname + '.json')).read_text())
                 self.assertEqual(block['template'], 'minecraft:water')
                 self.assertFalse(block['item'])
                 self.assertEqual(block['properties']['light'], light)
                 self.assertEqual(fluid['visual']['emission'], light)
                 self.assertEqual(fluid['visual']['tint'], tint)
-                state = json.loads((CONTENT / 'assets/tconstruct/blockstates' / (short + '.json')).read_text())
-                self.assertEqual(state['variants']['']['model'], 'tconstruct:block/' + short)
-                model = json.loads((CONTENT / 'assets/tconstruct/models/block' / (short + '.json')).read_text())
+                state = json.loads((CONTENT / 'assets/tconstruct/blockstates' / (blockname + '.json')).read_text())
+                self.assertEqual(state['variants']['']['model'], 'tconstruct:block/' + blockname)
+                model = json.loads((CONTENT / 'assets/tconstruct/models/block' / (blockname + '.json')).read_text())
                 self.assertEqual(model['elements'], [])
                 self.assertEqual(model['textures']['particle'], fluid['visual']['still'])
-                self.assertFalse((CONTENT / 'assets/tconstruct/items' / (short + '.json')).exists())
-                self.assertFalse((CONTENT / 'data/tconstruct/loot_table/blocks' / (short + '.json')).exists())
+                self.assertFalse((CONTENT / 'assets/tconstruct/items' / (blockname + '.json')).exists())
+                self.assertFalse((CONTENT / 'data/tconstruct/loot_table/blocks' / (blockname + '.json')).exists())
 
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 56)
+        self.assertEqual(len(manifest['files']), 64)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -86,10 +94,15 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 target = Path(tmp) / 'tconstruct.hmod'
                 module.package(target)
                 with zipfile.ZipFile(target) as archive:
-                    for metal in ('iron', 'gold', 'copper', 'cobalt', 'debris', 'netherite',
-                                  'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron',
-                                  'manyullyn', 'hepatizon', 'queens_slime', 'soulsteel'):
-                        definition = json.loads(archive.read('data/tconstruct/registered_fluid/molten_' + metal + '.json'))
+                    families = ['molten_' + name for name in (
+                        'iron', 'gold', 'copper', 'cobalt', 'debris', 'netherite',
+                        'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron',
+                        'manyullyn', 'hepatizon', 'queens_slime', 'soulsteel',
+                        'clay', 'porcelain', 'obsidian')]
+                    for short in families + ['seared_stone', 'scorched_stone']:
+                        definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
+                        blockname = definition['block'].split(':', 1)[1]
+                        archive.read('data/tconstruct/horizon/block/' + blockname + '.json')
                         bucket = definition['bucket'].split(':', 1)[1]
                         archive.read('data/tconstruct/horizon/item/' + bucket + '.json')
                         for field in ('still', 'flowing'):
@@ -127,6 +140,24 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                                      'tconstruct:fluid/molten/alloy/' + name + '/' + field)
         # Cinderslime is a separate source InvertedFluid, not a downward alloy.
         self.assertFalse((CONTENT / 'data/tconstruct/registered_fluid/molten_cinderslime.json').exists())
+
+    def test_stone_fluids_keep_solid_blocks_and_source_textures_separate(self):
+        for name, template in [('seared_stone', 'minecraft:stone'),
+                               ('scorched_stone', 'minecraft:basalt')]:
+            with self.subTest(solid=name):
+                block = json.loads((CONTENT / 'data/tconstruct/horizon/block' / (name + '.json')).read_text())
+                self.assertEqual(block['template'], template)
+                self.assertTrue(block.get('item', True))
+                self.assertTrue((CONTENT / 'assets/tconstruct/items' / (name + '.json')).is_file())
+                self.assertTrue((CONTENT / 'data/tconstruct/loot_table/blocks' / (name + '.json')).is_file())
+        for name, folder in [('seared_stone', 'stone'), ('scorched_stone', 'stone'),
+                             ('molten_clay', 'stone'), ('molten_porcelain', 'stone/porcelain'),
+                             ('molten_obsidian', 'stone/obsidian')]:
+            with self.subTest(fluid=name):
+                fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / (name + '.json')).read_text())
+                for field in ('still', 'flowing'):
+                    self.assertEqual(fluid['visual'][field],
+                                     'tconstruct:fluid/molten/' + folder + '/' + field)
 
 
 if __name__ == '__main__':

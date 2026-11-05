@@ -224,6 +224,38 @@
     "assets/tconstruct/textures/fluid/molten/alloy/soulsteel/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/soulsteel/flowing.png.mcmeta",
       "sha256": "85be302541e665d05e268ad555b02f91eb678919cda581b16eb5fc72965ae82a"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/porcelain/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/porcelain/still.png",
+      "sha256": "3daebadf62266518caee0fc2a05fa4d21d6f50420f348b675b159e5bb6331eed"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/porcelain/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/porcelain/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/porcelain/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/porcelain/flowing.png",
+      "sha256": "c5b14388faf147806cd31fc90ea73b08ee5b1f5334318a3c93e6378d43d32c86"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/porcelain/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/porcelain/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/obsidian/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/obsidian/still.png",
+      "sha256": "6a63697c21bd518ee799a9e7cb550d7090cd57fa96af6345a2bb1f90cb008e1b"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/obsidian/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/obsidian/still.png.mcmeta",
+      "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/obsidian/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/obsidian/flowing.png",
+      "sha256": "e88640b3f05e085cd91fe524a6296f406fda1907e4e20a385aeb22f15f35d6b7"
+    },
+    "assets/tconstruct/textures/fluid/molten/stone/obsidian/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/stone/obsidian/flowing.png.mcmeta",
+      "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
     }
   }
 }

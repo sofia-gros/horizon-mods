@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_gold",
   "flowing": "tconstruct:flowing_molten_gold",
-  "block": "tconstruct:molten_gold",
+  "block": "tconstruct:molten_gold_fluid",
   "bucket": "tconstruct:molten_gold_bucket",
   "policy": {
     "drop_off": 3,

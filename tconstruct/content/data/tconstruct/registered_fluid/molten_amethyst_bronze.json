@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_amethyst_bronze",
   "flowing": "tconstruct:flowing_molten_amethyst_bronze",
-  "block": "tconstruct:molten_amethyst_bronze",
+  "block": "tconstruct:molten_amethyst_bronze_fluid",
   "bucket": "tconstruct:molten_amethyst_bronze_bucket",
   "policy": {
     "drop_off": 3,

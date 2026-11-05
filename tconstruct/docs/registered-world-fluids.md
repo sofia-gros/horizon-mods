@@ -1,8 +1,9 @@
 # Registered world-fluid draft
 
-This slice declares fourteen molten world-liquid families: iron, gold, copper,
+This slice declares nineteen world-liquid families: iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
-Manyullyn, Hepatizon, Queen's Slime and Soulsteel.
+Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
+molten Clay, Porcelain and Obsidian.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
 supply the items. The host's registered-fluid system handles placement, flow,
 source pickup, scheduling and saving, rendering, player current/travel and burn
@@ -17,12 +18,20 @@ that the current release can run these definitions.
 These declarations ship through the native `.hmod` content overlay. The legacy
 manual resource-preparation path does not install registered world liquids.
 
+Liquid blocks use Mantle's source `<fluid>_fluid` naming. Source and flowing
+fluid IDs and bucket IDs are unchanged. This keeps `seared_stone_fluid` and
+`scorched_stone_fluid` separate from the existing solid masonry blocks. The
+fourteen earlier draft liquid blocks are renamed consistently; this is a
+pre-release draft correction, not a migration of already saved draft worlds.
+
 Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 
 - `FluidDeferredRegisterExtension.registerMetal`: level drop 3, slope distance 3,
-  tick rate 30 for all declared families except debris.
+  tick rate 30 for the thirteen metal/alloy families.
 - Molten debris uses `registerGem`: level drop 4, slope distance 4, tick rate 45.
-  None of these fourteen families generates new sources.
+- Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian use `registerStone`:
+  level drop 2, slope distance 2, tick rate 40. None of the nineteen families
+  generates new sources.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning.
 - `TinkerFluids` declarations and `BurningLiquidBlock`: 10 seconds burning;
   iron/gold/copper deal 5, cobalt 6, debris 8 and netherite 10;
@@ -31,6 +40,8 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   the same 10-second burning duration; their light levels are 10/12/12/10.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel deal 8/7/6/7 damage with
   10 seconds burning; their light levels are 11/8/9/6.
+- Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian deal 2/2/2/2/4 damage,
+  burn for 8/7/5/5/12 seconds, and emit light 6/4/3/2/3 respectively.
 - Iron, gold, copper and cobalt retain their exact still/flow sprites and
   animation metadata from `textures/fluid/molten/ore/<metal>/`.
   `content/reference/registered-world-fluid-assets.json` records source paths,
@@ -45,13 +56,19 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all fourteen families. Queen's Slime's source camera fog color remains
+  covers all nineteen families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
+- Seared Stone, Scorched Stone and Clay share the source stone sprites with
+  tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
+  own `molten/stone/<name>` sprites. Porcelain availability still depends on
+  existing recipes and compatibility content; no new acquisition is added.
 
 Cinderslime is intentionally undeclared: the source uses an inverted fluid,
 which cannot be represented by the host's current downward-only flow policy.
 Soulsteel's existing machine/bucket paths remain unchanged; declaring its world
 liquid does not introduce a new survival acquisition recipe.
+Molten Glass remains undeclared because its source slope distance 8 exceeds
+the host's current supported maximum 4. It must not be approximated as stone.
 
 The explicit travel coefficients use Horizon's water-style drag/falling
 integrator without assigning native water tags. Their equivalence to Forge's
