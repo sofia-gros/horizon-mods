@@ -426,8 +426,8 @@ This is an ingredient overview, not the physical Station/Anvil layout or a
 crafting grid. Four/five-input previews say they require a Tinker's Anvil.
 Following text pages still contain the complete ingredient lists, valid tool
 types, level and slot costs, empty-container rules, bottle returns and permitted
-modifier-crystal alternatives. Incremental/bulk recipes keep their existing
-text because their point amounts are not equivalent to one item in each slot.
+modifier-crystal alternatives. Incremental/bulk recipes use the separate progress
+preview below because their amounts are not equivalent to one item in each slot.
 
 The optional visual fails closed on an invalid/empty slot, more than five slots,
 oversized alternatives/IDs, an over-budget payload or text that does not fit the
@@ -439,3 +439,31 @@ Pure slot/choice/geometry cases, a wire round-trip case and reader/draw wiring
 regressions were added but not run. Brief static review only. Actual item
 artwork, hover, pagination, full host integration, resource reload and LAN
 remain unverified. No recipe application or gameplay behavior changes.
+
+
+## Incremental and bulk progress previews
+
+Puny's supported incremental and slotless incremental recipes now have optional
+visual pages showing the input item and, for bulk recipes, the leftover item
+type. Input alternatives use the same sorted three-second cycle as ordinary
+modifier previews. Both icons use fresh one-item stacks and the exact drawn
+stack supplies its hover tooltip. The return icon is explicitly labeled as an
+item type, not a guaranteed payout or a modified output tool.
+
+The caption gives points per item, points per level, the input count needed
+from zero progress and the return count for that zero-progress example. Ceiling
+division and return arithmetic use u64 to avoid overflow near the accepted i32
+limit. Existing partial progress changes these quantities, and an ingredient
+operation stops at the next completed level. The unchanged following pages
+retain all tool, slot, cap, default-limit, extraction and crystal restrictions.
+
+Only the current guide's supported 1/4/9-point recipes can produce previews.
+Single-point inputs have no return; bulk inputs require a valid registered
+return item from the existing recipe projection. Invalid/oversized choices or
+text that exceeds the reserved layout omit only the optional preview, leaving
+the full text recipe. The current book and response size limits remain.
+
+Arithmetic/cycling/rejection, production wire round-trip and reader/draw wiring
+regressions were authored but not run. Brief static review only. Host compilation,
+actual rendering/hover, real tool operations, resource reload and LAN remain
+unverified. This is guide coverage, not new modifier gameplay or acquisition.

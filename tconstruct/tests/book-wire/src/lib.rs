@@ -18,6 +18,23 @@ mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
     #[test]
+    fn incremental_points_and_return_type_survive_book_reply() {
+        let mut spec = recipe::modifier_progress_spec(&["test:b".into(), "test:a".into()], 9, 20, Some("test:point")).unwrap();
+        spec["body_runs"] = serde_json::json!([{"text":"From zero: 3 inputs, 7 returned points."}]);
+        let pages = vec![
+            Text::styled("Puny Smelting\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Modifier: Progress", Style { insertion:Some(format!("tconstruct:book:{spec}")), ..Default::default() }),
+        ];
+        let reply = wire::encode_reply(13, &pages).unwrap();
+        let result = wire::decode_reply(13, &pages, &reply).unwrap();
+        let decoded: serde_json::Value = serde_json::from_str(result[1].spans[0].style.insertion.as_ref().unwrap().strip_prefix("tconstruct:book:").unwrap()).unwrap();
+        assert_eq!(decoded, spec);
+        for seconds in [0, 2, 3, 5, 6, u64::MAX] {
+            assert_eq!(recipe::modifier_progress_view(&decoded, seconds), recipe::modifier_progress_view(&spec, seconds));
+        }
+        assert!(wire::decode_reply(14, &pages, &reply).is_none());
+    }
+    #[test]
     fn pinned_seared_item_tags_and_world_replacement_feed_showcase() {
         use std::collections::BTreeMap;
         let input = serde_json::json!({"tag":"tconstruct:seared_blocks"});
