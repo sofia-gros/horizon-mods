@@ -553,7 +553,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             }
         }
     }
-    super::tconstruct_source_scute_compat::prepare(&original_out, &item_table)?;
+    crate::tconstruct_source_scute_compat::prepare(&original_out, &item_table)?;
     super::tconstruct_source_chain_compat::prepare(&original_out, &item_table)?;
     crate::tconstruct_source_harvest_tags::prepare(&cache, &original_out, &runtime.join("forge-harvest-tags.zip"))?;
     std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
