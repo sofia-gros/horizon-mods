@@ -17,10 +17,10 @@ pub(super) fn puny_armor_order(id: &str) -> usize {
     ORDER.iter().position(|known| *known == id).unwrap_or(usize::MAX)
 }
 
-// Mighty exposes bounded broad-tool pages and static advice. The tank page
-// remains omitted until its display and operation are supported.
+// Mighty exposes bounded broad-tool pages, static advice and the adapted
+// tool-tank page. The original screenshot and unsupported effects stay omitted.
 pub(super) fn mighty_advice_page(name: &str) -> bool {
-    matches!(name, "group_general" | "group_ranged" | "group_info" | "tips" | "designing")
+    matches!(name, "group_general" | "group_ranged" | "group_info" | "tanks" | "tips" | "designing")
 }
 
 // These source pages describe existing broad-tool families, not complete
@@ -128,9 +128,9 @@ mod tests {
         assert!(!mighty_advice_ready([Some("Partial"), Some(" "), Some("Details")]));
     }
     #[test]
-    fn mighty_advice_includes_bounded_groups_but_excludes_tank_page() {
-        for name in ["group_general", "group_ranged", "group_info", "tips", "designing"] { assert!(mighty_advice_page(name)); }
-        for name in ["tanks", "unknown"] { assert!(!mighty_advice_page(name)); }
+    fn mighty_advice_includes_bounded_groups_and_adapted_tank_page() {
+        for name in ["group_general", "group_ranged", "group_info", "tanks", "tips", "designing"] { assert!(mighty_advice_page(name)); }
+        for name in ["unknown"] { assert!(!mighty_advice_page(name)); }
     }
     #[test]
     fn mighty_tool_pages_require_known_registered_tools_inputs_and_matching_source() {
