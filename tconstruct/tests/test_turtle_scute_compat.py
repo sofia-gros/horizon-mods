@@ -26,6 +26,6 @@ class TurtleScuteCompat(unittest.TestCase):
         bundled = (MIXINS / 'resource-tables.rs').read_text()
         self.assertIn('tconstruct_source_scute_compat::prepare(&original_pack, &items)?', manual)
         self.assertIn('tconstruct_source_scute_compat::prepare(&original_out, &item_table)?', bundled)
-        self.assertIn('tconstruct-native-creative-v8-scute-v1', bundled)
+        self.assertIn('tconstruct-native-creative-v8-scute-v2-turtle-shell', bundled)
         self.assertLess(bundled.index('tconstruct_source_scute_compat::prepare'), bundled.rindex('std::fs::write(&marker'))
         self.assertIn('source = "source-scute-compat.rs"', (MIXINS / 'horizon-mixin.toml').read_text())

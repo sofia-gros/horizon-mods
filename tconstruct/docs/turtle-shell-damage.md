@@ -51,3 +51,6 @@ Three regression cases were added for independent water conditions, fractional
 levels/overlapping tags and invalid data. They were not run. Brief static review
 and `git diff --check` only. No tests, builds, planner runs, CI inspection,
 version checks or merge. Publication remains paused.
+
+The subsequent [Station acquisition patch](turtle-shell-acquisition.md) adds the
+scute, crystal and extraction paths described as outside scope above.
