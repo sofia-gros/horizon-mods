@@ -71,11 +71,13 @@ impl Tank {
 }
 
 /// Source consumed Elytra casting builds a fresh tool, regardless of wear.
-/// Retain the bounded plain-input contract: do not discard item components
-/// or retained wire, including stale wire no longer exposed by wire_patch().
-pub(super) fn plain_consumed_elytra(stack: &ItemStack) -> bool {
+/// Known name/lore is consumed, not copied. Gameplay components and retained
+/// wire, including backing no longer exposed by wire_patch(), still wait.
+pub(super) fn consumed_elytra_with_presentation(stack: &ItemStack) -> bool {
     if stack.item.as_ref() != "minecraft:elytra" || stack.count != 1
-        || stack.data().is_some_and(|data| !data.is_empty() || data.wire.patch().is_some()) { return false; }
+        || stack.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
+    let mut unworn = stack.clone(); unworn.damage = 0;
+    if !same_pristine_with_presentation(&unworn, &ItemStack::new("minecraft:elytra", 1)) { return false; }
     let Some(decoded) = item_from_nbt(&item_to_nbt(stack)) else { return false; };
     decoded.count == stack.count && decoded.damage == stack.damage && decoded.same_item_same_components(stack)
 }
@@ -843,24 +845,35 @@ mod casting_tests {
 mod slimelytra_tests {
     use super::*;
     #[test]
-    fn damaged_plain_elytra_is_consumable_but_components_and_wire_are_not() {
+    fn worn_named_elytra_is_consumable_but_gameplay_data_and_wire_are_not() {
         for damage in [0,1,430,431,432] {
             let mut stack=ItemStack::new("minecraft:elytra",1);stack.damage=damage;
-            assert!(plain_consumed_elytra(&stack));
+            assert!(consumed_elytra_with_presentation(&stack));
+            stack.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Named wings".into())));
+            stack.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::String("Last flight".into())])));
+            assert!(consumed_elytra_with_presentation(&stack));
             let decoded=item_from_nbt(&item_to_nbt(&stack)).unwrap();
-            assert_eq!(decoded.damage,damage);assert!(plain_consumed_elytra(&decoded));
+            assert_eq!(decoded.damage,damage);assert!(consumed_elytra_with_presentation(&decoded));
         }
-        for count in [0,2] {assert!(!plain_consumed_elytra(&ItemStack::new("minecraft:elytra",count)));}
-        assert!(!plain_consumed_elytra(&ItemStack::new("tconstruct:slime_wings",1)));
+        for count in [0,2] {assert!(!consumed_elytra_with_presentation(&ItemStack::new("minecraft:elytra",count)));}
+        assert!(!consumed_elytra_with_presentation(&ItemStack::new("tconstruct:slime_wings",1)));
         let mut stack=ItemStack::new("minecraft:elytra",1);stack.damage=431;
-        for key in ["minecraft:custom_name","minecraft:custom_data","minecraft:enchantments"] {
+        for key in ["minecraft:custom_data","minecraft:enchantments"] {
             let mut extra=stack.clone();extra.data_mut().set_other(key,Some(Tag::compound([("unknown",Tag::Int(1))])));
-            assert!(!plain_consumed_elytra(&extra));
+            assert!(!consumed_elytra_with_presentation(&extra));
         }
+        let mut enchanted=stack.clone(); enchanted.data_mut().enchantments=vec![("minecraft:unbreaking".into(), 1)];
+        assert!(!consumed_elytra_with_presentation(&enchanted));
+        let mut malformed=stack.clone(); malformed.data_mut().custom_name=Some(Tag::Int(1));
+        assert!(!consumed_elytra_with_presentation(&malformed));
+        malformed=stack.clone(); malformed.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::Int(1)])));
+        assert!(!consumed_elytra_with_presentation(&malformed));
+        let mut unrepresentable=stack.clone(); unrepresentable.damage=u32::MAX;
+        assert!(!consumed_elytra_with_presentation(&unrepresentable));
         let mut wire=stack.clone();
         wire.data_mut().wire=horizon_items::item_data::Wire::new(stack,std::sync::Arc::<[u8]>::from([1,2,3]));
-        assert!(wire.wire_patch().is_some());assert!(!plain_consumed_elytra(&wire));
-        wire.damage=430;assert!(wire.wire_patch().is_none());assert!(!plain_consumed_elytra(&wire));
+        assert!(wire.wire_patch().is_some());assert!(!consumed_elytra_with_presentation(&wire));
+        wire.damage=430;assert!(wire.wire_patch().is_none());assert!(!consumed_elytra_with_presentation(&wire));
     }
 
 
@@ -873,7 +886,7 @@ fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
     ])));
     let mut basin = Casting::new();
     let mut worn = ItemStack::new("minecraft:elytra", 1); worn.damage = 431;
-    assert!(plain_consumed_elytra(&worn));
+    assert!(consumed_elytra_with_presentation(&worn));
     basin.input = Some(worn);
     basin.output = Some(ItemStack::new("minecraft:stone", 1));
     assert!(!basin.prepare("test:slimelytra", 2000, 2, result.clone(), true, false));

@@ -190,25 +190,32 @@ mod tconstruct_source_smeltery_fuel {
   let item_tags=HashMap::new();let fluid_tags=HashMap::from([(tag.into(),HashSet::from(["tconstruct:earth_slime".into()]))]);
   let known_items=HashSet::from(["minecraft:elytra".into(),"tconstruct:slime_wings".into()]);let known_fluids=HashSet::from(["tconstruct:earth_slime".into()]);
   let catalog=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&item_tags,fluid_tags:&fluid_tags,known_items:&known_items,known_fluids:&known_fluids};
-  for damage in [1,430,431,432] {
+  for (damage, named) in [0,1,430,431,432].into_iter().flat_map(|damage| [false,true].map(|named| (damage,named))) {
    let mut input=ItemStack::new("minecraft:elytra",1);input.damage=damage;
-   assert!(tconstruct_source_melter_state::plain_consumed_elytra(&input));
+   if named {
+    use horizon_world::nbt::Tag;
+    input.data_mut().set_other("minecraft:custom_name", Some(Tag::compound([("text", Tag::String("Named wings".into()))])));
+    input.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::String("Last flight".into())])));
+   }
+   let original=input.clone();
+   assert!(tconstruct_source_melter_state::consumed_elytra_with_presentation(&input));
    let (id,recipe,material)=catalog.slimelytra_casting(true,&input.item,"tconstruct:earth_slime",&|m|m=="tconstruct:earthslime",&|_|true).unwrap();
    assert_eq!((recipe.fluid.amount,recipe.consumes_cast,recipe.switch_slots,material.as_str()),(2000,true,false,"tconstruct:earthslime"));
    assert!(catalog.slimelytra_casting(false,&input.item,"tconstruct:earth_slime",&|_|true,&|_|true).is_none());
    assert!(catalog.slimelytra_casting(true,&input.item,"tconstruct:earth_slime",&|_|false,&|_|true).is_none());
-   // Assembly/material trait evaluation has separate host tests. Here a fresh
-   // result exercises the real recipe and saved Casting state boundary.
+   // Assembly/material trait evaluation is outside this fixture. A supplied
+   // fresh result exercises the real recipe and saved Casting state boundary.
    let output=ItemStack::new("tconstruct:slime_wings",1);
    let mut state=tconstruct_source_melter_state::Casting::new();state.input=Some(input);
    assert!(state.prepare(&id,recipe.fluid.amount,recipe.cooling_time,output,recipe.consumes_cast,recipe.switch_slots));
    assert!(state.tank.insert("tconstruct:earth_slime",1999));assert!(!state.tick(true));
    assert_eq!(state.input.as_ref().unwrap().damage,damage);assert!(state.tank.insert("tconstruct:earth_slime",1));
    let mut state=tconstruct_source_melter_state::Casting::from_nbt(&state.to_nbt()).unwrap();
-   assert_eq!(state.input.as_ref().unwrap().damage,damage);assert!(!state.tick(false));assert_eq!(state.timer,0);
+   assert_eq!(state.input,Some(original));assert!(!state.tick(false));assert_eq!(state.timer,0);
    for _ in 1..recipe.cooling_time {assert!(!state.tick(true));}
    assert!(state.tick(true));assert!(state.input.is_none());assert_eq!(state.tank.amount,0);
    let result=state.output.unwrap();assert_eq!((&*result.item,result.damage),("tconstruct:slime_wings",0));
+   assert!(result.data().is_none_or(|data| data.is_empty()));
   }
  }
 }

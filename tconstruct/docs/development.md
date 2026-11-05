@@ -216,18 +216,19 @@ actual book UI, crafting, save/reload and LAN remain unverified.
 
 ### Damaged ordinary Elytra casting (#379 high-priority tool casting)
 
-A plain vanilla Elytra no longer needs zero damage to enter the existing
+A vanilla Elytra no longer needs zero damage to enter the existing
 Slimelytra Basin recipe. Pinned TConstruct `ToolCastingRecipe.matches` checks
 the consumed ingredient/material, not wear; its non-swap `assemble` builds a
 fresh tool from the material rather than copying Elytra damage. This enables
 worn and exhausted ordinary Elytra to use the existing 2,000 mB Earth Slime
 route. It does not enable damaged Slimelytra material swapping.
 
-The input must still be a single plain Elytra that round-trips through the
-host codec. Names, enchantments, custom data and retained wire (including
-invalidated wire caches) fail closed. Native result registration, material
+The input must still be a single Elytra that round-trips through the
+host codec. Known custom names and lore are consumed, not copied to the
+fresh wings. Enchantments, custom data and retained wire (including invalidated
+wire caches) fail closed. Native result registration, material
 stats/traits and fresh Station assembly remain required. Partial pours and
-invalid cooling keep the original wear; completion consumes it once and
+invalid cooling keep the original wear and presentation; completion consumes it once and
 produces fresh wings.
 
 Source: [pinned ToolCastingRecipe](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/recipe/casting/material/ToolCastingRecipe.java),

@@ -348,9 +348,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         if candidate.is_some() { return candidate; }
     }
     // Build a fresh slimelytra only when all material traits can be resolved.
-    // Source consumes plain Elytra even when worn; named/enchanted/component
-    // inputs and retained wire remain unsupported rather than losing metadata.
-    if basin && super::tconstruct_source_melter_state::plain_consumed_elytra(stack) {
+    // Source consumes wear and known name/lore when building fresh wings.
+    // Gameplay components and retained wire remain unsupported.
+    if basin && super::tconstruct_source_melter_state::consumed_elytra_with_presentation(stack) {
         let candidate = (|| {
             let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
             let definition = materials.get("tconstruct:tinkering/tool_definitions/slime_wings")?.last()?;

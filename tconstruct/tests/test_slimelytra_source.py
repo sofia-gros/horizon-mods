@@ -9,7 +9,7 @@ class SlimelytraSourceTests(unittest.TestCase):
     def test_damaged_input_runtime_keeps_trait_and_registry_checks(self):
         source=(ROOT/'mixins/tconstruct/source-melter-world.rs').read_text()
         body=source.split('// Build a fresh slimelytra',1)[1].split('// Clearing an already-tipped',1)[0]
-        self.assertIn('if basin && super::tconstruct_source_melter_state::plain_consumed_elytra(stack)',body)
+        self.assertIn('if basin && super::tconstruct_source_melter_state::consumed_elytra_with_presentation(stack)',body)
         self.assertNotIn('stack.damage == 0',body)
         self.assertIn('native.contains_key("tconstruct:slime_wings")',body)
         self.assertIn('levels_from_definition',body)
