@@ -1,0 +1,50 @@
+{
+  "recipes/chiseled_scorched_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/chiseled_scorched_bricks_stonecutting.json",
+    "sha256": "f4dd7977ce3e087ea8125ca9491852adeaa0c0fc6f18ea5275002ebdaf5a063c"
+  },
+  "advancements/chiseled_scorched_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/chiseled_scorched_bricks_stonecutting.json",
+    "sha256": "02699509a0003bdefd39048f5eaa3c3122fa0b235af68172f3ea7e5865ed1e14"
+  },
+  "recipes/polished_scorched_stone_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/polished_scorched_stone_stonecutting.json",
+    "sha256": "dfb75c5dd8a62fa4cf2f006e1964df52689cccf7fc61c07cf622c8d89c6dfa0d"
+  },
+  "advancements/polished_scorched_stone_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/polished_scorched_stone_stonecutting.json",
+    "sha256": "c86b262432050dabf9e0dc0b685b265725c28189e853dc4501c1e000a705370d"
+  },
+  "recipes/scorched_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/scorched/scorched_bricks_stonecutting.json",
+    "sha256": "748e5b1dadbe2fd6b6cb18140f2af97c46f7f65aaec14f8ff00dc666ee82a8da"
+  },
+  "advancements/scorched_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/scorched/scorched_bricks_stonecutting.json",
+    "sha256": "aa9ed091fbe517d496f98453c283a261aabe4fa9e423831e23a930c786d21eb2"
+  },
+  "recipes/seared_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_bricks_stonecutting.json",
+    "sha256": "306ee7c0b94b30cab5f22f14decdb6272a692bb702c781b1b6d283c42fde711f"
+  },
+  "advancements/seared_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_bricks_stonecutting.json",
+    "sha256": "b6a8988c235bc06b25a697476e57e1e20b8f3d8e41da3da0517bc6eaeb05f04c"
+  },
+  "recipes/seared_fancy_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_fancy_bricks_stonecutting.json",
+    "sha256": "f213763bb48f648a226d09836d8133d58223242f23bf604d6cdff97b24ed9975"
+  },
+  "advancements/seared_fancy_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_fancy_bricks_stonecutting.json",
+    "sha256": "0fc079f92a9a1be7466ffbb97a6eb8aba2d3eb739a957fe79f1b561213af5e56"
+  },
+  "recipes/seared_triangle_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/smeltery/seared/seared_triangle_bricks_stonecutting.json",
+    "sha256": "b5935bd349e88c4f99379b59611a66f6179efa521b669aa5c49695642d4d694f"
+  },
+  "advancements/seared_triangle_bricks_stonecutting.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/building_blocks/smeltery/seared/seared_triangle_bricks_stonecutting.json",
+    "sha256": "133931c0bbd6787f92c1f1a4fa439f12ab124c6094aaddc8f6d7a36c154806ba"
+  }
+}

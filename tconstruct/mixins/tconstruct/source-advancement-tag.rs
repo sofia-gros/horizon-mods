@@ -5,6 +5,8 @@ const TAGS: &[&str] = &[
     "tconstruct:modifiable",
     "tconstruct:modifiable/harvest",
     "tconstruct:seared_blocks",
+    "tconstruct:seared_bricks",
+    "tconstruct:scorched_blocks",
     "tconstruct:anvil_metal",
     "forge:rods/wooden",
     "forge:ingots/copper",

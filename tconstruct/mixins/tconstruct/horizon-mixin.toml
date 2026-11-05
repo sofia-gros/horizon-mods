@@ -5359,3 +5359,11 @@ kind = "HEAD"
 cancellable = true
 helper = "source-advancement-tank-predicate.rs"
 bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }]
+
+[[injection]]
+id = "source-stonecutting-ingredient"
+target = "horizon_client::stations::ingredient"
+kind = "HEAD"
+cancellable = true
+helper = "source-stonecutting-ingredient.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "items", ty = "&Items", value = "items" }]
