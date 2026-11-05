@@ -5354,3 +5354,32 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[state]]
+id = "overgrowth-phase"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u128, u8>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-overgrowth"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overgrowth"
+source = "source-overgrowth.rs"
+
+[[module]]
+id = "source-overgrowth-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overgrowth_world"
+source = "source-overgrowth-world.rs"
+
+[[injection]]
+id = "source-overgrowth-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_inventory_ticks"
+kind = "TAIL"
+helper = "source-overgrowth-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

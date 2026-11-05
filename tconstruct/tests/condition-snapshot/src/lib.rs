@@ -192,3 +192,7 @@ mod chain_compat_tests {
         assert_eq!(value, expected);
     }
 }
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-overgrowth.rs"]
+mod tconstruct_source_overgrowth;
