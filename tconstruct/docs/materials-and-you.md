@@ -410,3 +410,32 @@ overview resources suppress that group rather than showing unqualified prose.
 Pinned source hashes, group mappings and reader wiring regressions were added
 but not run. Compilation, full host integration, actual layout/navigation,
 acquisition, resource reload, save/reload and LAN remain unverified.
+
+
+## Visual modifier ingredient slots
+
+Supported Puny/Mighty bonus and ordinary modifier recipes now receive an
+ingredient-preview page before their unchanged full text instructions. The
+preview shows one to five numbered, separate input slots in a centered row.
+Repeated ingredients keep separate slots; alternatives within a slot are sorted,
+deduplicated and cycle every three seconds while the book is open. The item
+actually drawn is also the hover-tooltip stack. Input icons are fresh single
+items, without synthesized display-tool metadata or a fabricated output tool.
+
+This is an ingredient overview, not the physical Station/Anvil layout or a
+crafting grid. Four/five-input previews say they require a Tinker's Anvil.
+Following text pages still contain the complete ingredient lists, valid tool
+types, level and slot costs, empty-container rules, bottle returns and permitted
+modifier-crystal alternatives. Incremental/bulk recipes keep their existing
+text because their point amounts are not equivalent to one item in each slot.
+
+The optional visual fails closed on an invalid/empty slot, more than five slots,
+oversized alternatives/IDs, an over-budget payload or text that does not fit the
+reserved layout. It never silently drops an ingredient or alternative. The
+full text recipe still appears. Existing total book page/byte limits remain
+unchanged, and previews use the same sequence/book-checked response path.
+
+Pure slot/choice/geometry cases, a wire round-trip case and reader/draw wiring
+regressions were added but not run. Brief static review only. Actual item
+artwork, hover, pagination, full host integration, resource reload and LAN
+remain unverified. No recipe application or gameplay behavior changes.
