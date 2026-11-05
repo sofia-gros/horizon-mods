@@ -213,3 +213,40 @@ Existing narrowed material inputs and machine limitations remain unchanged.
 Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
 Source fixtures, recipe shapes/counts and packaged registrations are checked;
 actual book UI, crafting, save/reload and LAN remain unverified.
+
+### Broken stock iron helmet casting (#379 high-priority part swapping)
+
+Ordinary part-swap casting can now admit a canonical broken Plate Helmet with
+iron plating and steel maille, replacing the plating with steel using the
+pinned 270 mB molten-steel recipe. This is a deliberately narrow stock route:
+the original must equal a freshly assembled, broken iron/steel helmet, with
+no names, upgrades, extra components or retained wire. Its exact old traits
+must be Projectile Protection 1, Iron Armor 1 and Ductile 1; the replacement
+must have Ductile 2. Other unsupported trait changes still fail closed.
+
+The exception is only available to the casting planner, not Station part
+swapping. The removed pinned modifiers provide a rebuilt volatile flag,
+equipment attribute and protection hook, with no modifier-removal hook or
+persistent item-state contribution. We do not enable their other effects.
+
+Damage follows the pinned `ToolStack.setStats`/`getDamage` rules: a broken tool
+uses the new maximum durability after replacement, and a newly reduced maximum
+can break an intact tool. Ordinary casting then applies its existing ordered
+repair hooks. The stock example has new maximum 382 and repairs 319 damage,
+leaving usable steel/steel armor with damage 63, not a free full repair.
+Composite broken inputs, unsupported repair factors and still-broken outputs
+remain rejected. Input damage/identity remains intact through partial pours,
+invalid cooling and the native state round trip, until successful completion.
+
+The pinned fixture executes extracted production assembly, material/trait/stat
+resolution, rebuild, the full ordinary casting candidate branch, damage setter,
+recipe lookup and Casting state with pinned stock data. World registry/config
+providers and the no-mining-tool transport boundary are bounded doubles. It
+covers the real stock candidate, canonical-input rejection, new durability
+bounds, composite rejection and normal Station isolation. This does not prove
+world save/reload, equipped attributes, actual gameplay or LAN behavior.
+
+Sources at TConstruct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
+`PartSwapCastingRecipe.assemble`/`canPartSwap`, `ToolStack.getDamage`/`setStats`,
+`iron_armor.json`, `projectile_protection.json`, and `VolatileFlagModule`,
+`MaxArmorAttributeModule`, `ProtectionModule`. No comparator dependency.

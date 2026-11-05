@@ -472,7 +472,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
             // outside that existing bounded path.
             if composite && was_broken { return None; }
             let mut next = identities; *next.get_mut(index)? = material;
-            let mut output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
+            let mut output = super::tconstruct_source_station_world::rebuild_casting_material_swap(world, definition, stack, &next, &mut None)?;
             let max_damage = match output.data()?.other("minecraft:custom_data")?.get("tic_max_damage")? {
                 Tag::Int(value) if *value > 0 => *value as u32, _ => return None,
             };

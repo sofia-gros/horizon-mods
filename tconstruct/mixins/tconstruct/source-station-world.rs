@@ -278,8 +278,39 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
 /// Rebuild using the station's existing normalization, stats and slot checks.
 /// Callers lacking original modifier hooks request unchanged traits so no
 /// trait removal or changed-level validation is silently skipped.
+/// Bounded stock route: a canonical broken iron helmet with steel maille may
+/// replace its iron plating with steel. These two removed source modifiers
+/// only contribute rebuilt volatile/equipment/protection state, not item data
+/// or a removal hook. Do not generalize this exception to arbitrary tools.
+fn stock_iron_helmet_repair(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
+    identities: &[String], old: &std::collections::BTreeMap<String, i32>, next: &std::collections::BTreeMap<String, i32>) -> bool {
+    if tool.item.as_ref() != "tconstruct:plate_helmet" || identities != ["tconstruct:steel", "tconstruct:steel"]
+        || super::tconstruct_source_melter_state::casting_swap_broken(tool) != Some(true) { return false; }
+    let expected_old = std::collections::BTreeMap::from([
+        ("tconstruct:projectile_protection".to_owned(),1), ("tconstruct:iron_armor".to_owned(),1), ("tconstruct:ductile".to_owned(),1)]);
+    let expected_next = std::collections::BTreeMap::from([("tconstruct:ductile".to_owned(),2)]);
+    if old != &expected_old || next != &expected_next { return false; }
+    let originals = vec!["tconstruct:iron".to_owned(), "tconstruct:steel".to_owned()];
+    let Some(mut canonical) = assemble(world, definition, &tool.item, &originals, None, &mut None) else { return false; };
+    super::tconstruct_tx::fixed_set_damage(&mut canonical, tool.damage);
+    // Exact freshly assembled input equality rejects names, upgrades and
+    // unknown persistent/component data for this newly admitted exception.
+    canonical.count == tool.count && canonical.damage == tool.damage && canonical.same_item_same_components(tool)
+}
+
 pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
     identities: &[String], repair: u32, reject_removed_traits: bool, reason: &mut Option<String>) -> Option<ItemStack> {
+    rebuild_material_swap_inner(world, definition, tool, identities, repair, reject_removed_traits, false, reason)
+}
+
+/// Only the casting planner may admit the bounded stock repair exception.
+pub(super) fn rebuild_casting_material_swap(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
+    identities: &[String], reason: &mut Option<String>) -> Option<ItemStack> {
+    rebuild_material_swap_inner(world, definition, tool, identities, 0, true, true, reason)
+}
+
+fn rebuild_material_swap_inner(world: &super::tconstruct_world::World, definition: &[u8], tool: &ItemStack,
+    identities: &[String], repair: u32, reject_removed_traits: bool, allow_stock_helmet_repair: bool, reason: &mut Option<String>) -> Option<ItemStack> {
     let old_traits = if reject_removed_traits { Some(super::tconstruct_source_material_traits::levels(world, tool)?.levels) } else { None };
     let verified = match super::tconstruct_source_tool_normalize::prepare_for_tool_mutation(tool) {
         Ok(value) => value, Err(error) => { *reason = Some(format!("Cannot modify tool: {error}")); return None; }
@@ -293,12 +324,18 @@ pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, defi
         i32::try_from(total).ok()
     };
     let traits = super::tconstruct_source_material_traits::levels(world, &output)?.levels;
+    let stock_helmet_repair = allow_stock_helmet_repair && old_traits.as_ref().is_some_and(|old|
+        stock_iron_helmet_repair(world, definition, tool, identities, old, &traits));
+    // This change admits exactly the proven stock broken-input route. Missing
+    // trait context must not turn an unknown broken item into a generic swap.
+    if allow_stock_helmet_repair && super::tconstruct_source_melter_state::casting_swap_broken(tool)? && !stock_helmet_repair { return None; }
     // These upstream material traits have no removal hook; their supported
     // stat and repair effects are rebuilt by the station path above. Other
     // changed traits remain closed until their removal hooks are handled.
     if old_traits.as_ref().is_some_and(|old| old.iter().chain(traits.iter()).any(|(id, _)| {
         old.get(id).copied().unwrap_or(0) != traits.get(id).copied().unwrap_or(0)
             && !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense")
+            && !(stock_helmet_repair && matches!(id.as_str(), "tconstruct:iron_armor" | "tconstruct:projectile_protection"))
     })) { return None; }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
