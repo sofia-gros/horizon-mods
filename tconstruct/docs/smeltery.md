@@ -51,3 +51,24 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 ### Casting Tank to casting blocks
 
 A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Drain to Fluid Cannon
+
+The formed Smeltery/Foundry Drain-to-Cannon route stages the controller tank,
+Cannon tank and Faucet together, retaining raw controller inventory and other
+metadata instead of reserializing the full controller. Both initial and later
+packet reservations pour their first 10 mB immediately. Cannon inventory remains
+unchanged; its comparator and container notification update after a saved pour.
+
+Saved state must match the Cannon's live item, and opaque/noncanonical or
+retained wire-backed Cannon items wait. Drain ownership, current structure,
+block states, chunks and saved snapshots are revalidated. Untagged fluids and
+supported vanilla base-potion identity are accepted without mixing different
+tags. An existing packet may finish after source selection changes to an
+unsupported layer; a new reservation waits, while stop-after-packet still works.
+
+Four focused fixture cases and dispatch assertions were added but not run.
+Brief static review only; build, gameplay, save/reload, LAN and atomic disk/network
+persistence remain unverified. This does not implement Cannon firing, custom
+potion effects/colors or extend the separate Duct route.
