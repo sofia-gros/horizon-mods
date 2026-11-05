@@ -42,6 +42,15 @@ class SlimeCrafting(unittest.TestCase):
                 for name in ('sky_slime_ball', 'ichor_slime_ball', 'ender_slime_ball'):
                     self.assertIn(f'data/tconstruct/horizon/item/{name}.json', archive.namelist())
 
+    def test_ci_runs_rust_and_overlay_regressions(self):
+        workflow = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
+        self.assertIn('cargo test --locked --manifest-path tconstruct/tests/slime-crafting/Cargo.toml', workflow)
+        self.assertIn('run: python3 tconstruct/tests/run_slime_crafting_overlay_rust.py', workflow)
+        self.assertLess(workflow.index('name: Fetch upstream sources'),
+                        workflow.index('name: Test slime crafting overlay precedence and rebuild'))
+        runner = (ROOT / 'tests/run_slime_crafting_overlay_rust.py').read_text()
+        self.assertIn("['cargo', 'test', '--locked', '--offline'", runner)
+
     def test_per_load_native_hook_and_server_root_selection(self):
         manifest = tomllib.loads((MIXINS / 'horizon-mixin.toml').read_text())
         injection = next(value for value in manifest['injection'] if value['id'] == 'source-slime-crafting-files')

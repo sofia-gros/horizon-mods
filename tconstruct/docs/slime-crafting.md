@@ -44,3 +44,7 @@ and packaged slimeball declarations are checked separately.
 Actual crafting, in-game reload, recipe-book UI, tag replacement and LAN round
 trips remain unverified. Existing Forge namespace and tag removal limitations
 remain. Host integration is checked separately by full Mixins/client CI.
+
+The Mixins validation workflow explicitly runs both Rust fixtures. The host
+overlay runner uses the checked-in fixture lockfile and runs after the pinned
+Horizon checkout is fetched; its dependency set is fetched by the first fixture.

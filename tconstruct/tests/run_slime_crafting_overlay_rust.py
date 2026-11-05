@@ -34,6 +34,11 @@ tconstruct-source-config = {{ path = {json.dumps(str(ROOT / 'mixins/tconstruct/s
 path = "lib.rs"
 '''
     (work / 'Cargo.toml').write_text(manifest)
+    # The main fixture fetches this identical dependency set in CI. Keep the
+    # temporary host fixture on its checked-in versions instead of resolving anew.
+    lock = (ROOT / 'tests/slime-crafting/Cargo.lock').read_text()
+    lock = lock.replace('name = "tconstruct-slime-crafting-tests"', 'name = "slime-overlay-fixture"')
+    (work / 'Cargo.lock').write_text(lock)
     rust = '#![cfg(test)]\n#[path = ' + json.dumps(str(ROOT / 'mixins/tconstruct/source-slime-crafting.rs')) + ']\nmod slime;\n'
     rust += '''mod host {
 fn content_overlay(world_root: &std::path::Path, _: &std::path::Path, _: bool, _: &[String]) -> Vec<(String, Vec<Vec<u8>>)> {
@@ -65,4 +70,4 @@ fn host_overlay_keeps_pack_priority_and_rebuilds_without_disabled_recipe() {
 }
 '''
     (work / 'lib.rs').write_text(rust)
-    subprocess.run(['cargo', 'test', '--offline', '--manifest-path', str(work / 'Cargo.toml'), '--', '--nocapture'], check=True)
+    subprocess.run(['cargo', 'test', '--locked', '--offline', '--manifest-path', str(work / 'Cargo.toml'), '--', '--nocapture'], check=True)

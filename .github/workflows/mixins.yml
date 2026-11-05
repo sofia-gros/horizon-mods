@@ -50,6 +50,7 @@ jobs:
           python3 -m unittest discover -s tconstruct/tests -v
           python3 -m unittest discover -s pluto-lib/tests -p "test_package_native.py" -v
           cargo test --locked --manifest-path tconstruct/tests/condition-snapshot/Cargo.toml
+          cargo test --locked --manifest-path tconstruct/tests/slime-crafting/Cargo.toml
           cargo test --locked --manifest-path tconstruct/tests/book-wire/Cargo.toml
           SOUL_REPO_ROOT="$GITHUB_WORKSPACE" cargo test --locked --manifest-path tconstruct/tests/soul-glass/Cargo.toml
           rustc --edition=2021 --test tconstruct/tests/rust/source_fluid_display.rs -o /tmp/tconstruct-fluid-display-test
@@ -99,6 +100,11 @@ jobs:
           MIXINS_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["mixins_revision"])')"
           git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
+      - name: Test slime crafting overlay precedence and rebuild
+        if: steps.scope.outputs.docs_only != 'true'
+        env:
+          HORIZON_HOST: ${{ github.workspace }}/../horizon-official
+        run: python3 tconstruct/tests/run_slime_crafting_overlay_rust.py
       - name: Apply Mixins and check client
         if: steps.scope.outputs.docs_only != 'true'
         run: |
