@@ -1,0 +1,18 @@
+{
+  "glass_bottle": {
+    "source": "brewing/common/glass/vanilla/glass_bottle.json",
+    "sha256": "4aee5e4804d51688f5d279cfeba4ef4f717613c404f0e55de861a0a8ad5388c9"
+  },
+  "beacon": {
+    "source": "misc/common/glass/vanilla/beacon.json",
+    "sha256": "5b42bb36427d9abe328f421d4e8351be069485d67b935239c3c3cc10adf16ac2"
+  },
+  "daylight_detector": {
+    "source": "redstone/common/glass/vanilla/daylight_detector.json",
+    "sha256": "6bdd2d246937d156870a23da57dc24fbb47cb6632abd5d70e921134c811e8d99"
+  },
+  "end_crystal": {
+    "source": "decorations/common/glass/vanilla/end_crystal.json",
+    "sha256": "da41a38a9950ddf3dc81b4a27e3a4e026d82ee971c35ea88453dd431b213dab8"
+  }
+}
