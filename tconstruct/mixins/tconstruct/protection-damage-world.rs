@@ -63,6 +63,20 @@ fn wanted(game: &super::Game<'_>) -> Option<(Table,Table)> {
         let target = if rule.direct_only { &mut direct_table } else { &mut table };
         super::tconstruct_protection_damage::add_points(target,source_types,vanilla_types,points);
     }
+    // Scorch Protection generates Fire Protection too. On intact armor its
+    // protection hook cancels that vanilla EPF, but broken worn armor skips the
+    // canceling hook while still generating the enchantment. Held tools never
+    // contributed to vanilla armor enchantments in the first place.
+    if super::tconstruct_scorch_protection_world::supported(game) {
+        if let Some(fire_types) = damage_types.get("minecraft:is_fire") {
+            if let Some(pieces) = equipment.iter().map(|(stack,worn)|
+                super::tconstruct_scorch_protection_world::piece(game,stack,*worn)).collect::<Option<Vec<_>>>() {
+                if let Some(points) = super::tconstruct_protection_damage::points(&pieces,0.0,2.0) {
+                    super::tconstruct_protection_damage::add_points(&mut table,&empty,fire_types,points);
+                }
+            }
+        }
+    }
     Some((table.into_iter().collect(),direct_table.into_iter().collect()))
 }
 
