@@ -23,3 +23,8 @@ matches, unchanged yield/heat/time, condition handling, registry gating, exact
 field updates, repeated preparation and unrelated file preservation. This does
 not claim live furnace interaction, world save/reload, or multiplayer testing.
 Chain-dependent modifiers and hanging signs are outside this bounded runtime fix.
+
+The test fixture `tests/fixtures/iron-chain-melting.json` is copied from
+Tinkers' Construct `src/generated/resources/data/tconstruct/recipes/smeltery/melting/metal/iron/chain.json`
+at revision `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`.
+Copyright (c) SlimeKnights; MIT license, retained in `third_party/tconstruct/LICENSE`.
