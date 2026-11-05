@@ -41,5 +41,6 @@
       "seconds": 20,
       "damage": 6
     }
-  }
+  },
+  "path_type": "lava"
 }
