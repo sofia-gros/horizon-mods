@@ -5354,3 +5354,39 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-shield-rules"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_shield"
+source = "source-shield.rs"
+
+[[module]]
+id = "source-shield-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_shield_world"
+source = "shield-world.rs"
+
+[[injection]]
+id = "source-shield-raise"
+target = "horizon_client::game::shield::Game<'_>::raise_shield"
+kind = "HEAD"
+cancellable = true
+helper = "shield-raise.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "slot", ty = "usize", value = "slot" }]
+
+[[injection]]
+id = "source-shield-blocking"
+target = "horizon_client::game::shield::Game<'_>::player_blocking"
+kind = "HEAD"
+cancellable = true
+helper = "shield-blocking.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "from", ty = "Option<[f64;3]>", value = "from" }, { name = "damage_type", ty = "&str", value = "damage_type" }, { name = "pierce", ty = "bool", value = "pierce" }]
+
+[[injection]]
+id = "source-shield-wear"
+target = "horizon_client::game::shield::Game<'_>::after_block"
+kind = "HEAD"
+helper = "shield-wear.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "outcome", ty = "horizon_client::health::BlockOutcome", value = "outcome" }]
+
