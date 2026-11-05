@@ -25,5 +25,13 @@ class FaucetSmelteryTankWiring(unittest.TestCase):
         self.assertIn('patch_smeltery_controller_tank(&raw_controller, &smeltery)', route)
         self.assertIn('capacity != smeltery.tank.capacity', route)
 
+    def test_cannon_source_preserves_item_and_checks_live_state(self):
+        route = RUNTIME.read_text().split('fn tank_to_smeltery(', 1)[1]
+        self.assertIn('Some(("tconstruct:fluid_cannon", 2000))', route)
+        self.assertIn('cannon_at(game, source).is_some_and', route)
+        self.assertIn('data.wire.patch().is_some()', route)
+        self.assertIn('patch_melter_tank(raw, tank)', route)
+        self.assertIn('notify_casting_comparator(game, source, source_strength.unwrap_or(0), state.comparator())', route)
+
 if __name__ == '__main__':
     unittest.main()

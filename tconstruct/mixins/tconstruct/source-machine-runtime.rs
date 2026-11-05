@@ -1416,7 +1416,7 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Fill a formed Smeltery/Foundry through its Drain from a supported tank, Melter or Lantern.
+/// Fill a formed Smeltery/Foundry through its Drain from a supported tank or machine.
 /// The destination proxy represents only the offered layer and available
 /// total capacity, so unrelated fluids never prevent a compatible fill.
 fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
@@ -1431,9 +1431,17 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         let Some(state) = casting_tank_at(game, source) else { return Some(false); };
         Some(state)
     } else { None };
-    let source_strength = portable.as_ref().map(|state| state.comparator());
+    let cannon = if &*source_name == "tconstruct:seared_fluid_cannon" {
+        let Some(state) = cannon_at(game, source) else { return Some(false); };
+        if state.item.as_ref().is_some_and(|item| item.data().is_some_and(|data| data.wire.patch().is_some())) { return Some(false); }
+        Some(state)
+    } else { None };
+    let source_strength = portable.as_ref().map(|state| state.comparator())
+        .or_else(|| cannon.as_ref().map(|state| state.comparator()));
     let source_kind = if portable.is_some() {
         Some(("tconstruct:casting_tank", 4000))
+    } else if cannon.is_some() {
+        Some(("tconstruct:fluid_cannon", 2000))
     } else if &*source_name == "tconstruct:seared_melter" {
         Some(("tconstruct:melter", super::tconstruct_source_melter_state::MELTER_CAPACITY))
     } else if matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") {
@@ -1444,7 +1452,8 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, key) else { return Some(false); };
         if portable.as_ref().is_some_and(|state| state.to_nbt() != raw) { return Some(false); }
-        let source_tank = if matches!(key, "tconstruct:melter" | "tconstruct:casting_tank") {
+        if cannon.as_ref().is_some_and(|state| state.to_nbt() != raw) { return Some(false); }
+        let source_tank = if matches!(key, "tconstruct:melter" | "tconstruct:casting_tank" | "tconstruct:fluid_cannon") {
             if key == "tconstruct:melter" && super::tconstruct_source_melter_state::Melter::from_nbt(&raw).is_none() { return Some(false); }
             let Some(tank) = raw.get("tank") else { return Some(false); };
             tank
@@ -1509,7 +1518,10 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         let saved = if let Some(state) = &portable {
             if !casting_tank_at(game, source).is_some_and(|current| current.to_nbt() == *raw) { return Some(false); }
             state.to_nbt()
-        } else if *key == "tconstruct:melter" {
+        } else if matches!(*key, "tconstruct:melter" | "tconstruct:fluid_cannon") {
+            if cannon.is_some() && !cannon_at(game, source).is_some_and(|state| state.to_nbt() == *raw
+                && !state.item.as_ref().is_some_and(|item| item.data().is_some_and(|data| data.wire.patch().is_some()))) { return Some(false); }
+            // This tank-only patch leaves Cannon items and Melter fields intact.
             let Some(saved) = super::tconstruct_source_faucet_tank::patch_melter_tank(raw, tank) else { return Some(false); };
             saved
         } else { tank.to_nbt() };
@@ -1520,6 +1532,10 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&source) {
             slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone();
         }
+        notify_casting_comparator(game, source, source_strength.unwrap_or(0), state.comparator());
+    }
+    if let (Some(mut state), Some((_, tank, _))) = (cannon, input.as_ref()) {
+        state.tank = tank.clone();
         notify_casting_comparator(game, source, source_strength.unwrap_or(0), state.comparator());
     }
     if input.is_some() { game.container_changed(source); }
