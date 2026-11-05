@@ -1,0 +1,36 @@
+{
+  "source": "tconstruct:molten_quartz",
+  "flowing": "tconstruct:flowing_molten_quartz",
+  "block": "tconstruct:molten_quartz_fluid",
+  "bucket": "tconstruct:molten_quartz_bucket",
+  "policy": {
+    "drop_off": 4,
+    "slope_distance": 4,
+    "tick_delay": 45,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/ore/quartz/still",
+    "flowing": "tconstruct:fluid/molten/ore/quartz/flowing",
+    "tint": 16777215,
+    "emission": 6
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": {
+      "seconds": 10,
+      "damage": 5
+    }
+  }
+}
