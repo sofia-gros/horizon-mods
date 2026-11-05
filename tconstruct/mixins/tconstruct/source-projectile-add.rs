@@ -9,7 +9,7 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     if let ProjectileKind::Arrow { ref mut base_damage, .. } = p.kind { *base_damage += damage; }
     if glowing {
         if let Some(stack) = game.held().cloned() {
-            if let Some(arrow) = p.arrow.as_mut() { arrow.fired_from_weapon = Some(stack.clone()); }
+            if let Some(arrow) = p.arrow.as_mut() { if arrow.fired_from_weapon.is_none() { arrow.fired_from_weapon = Some(stack.clone()); } }
             if primary && !game.creative {
                 let (loss, shield) = crate::game::tconstruct_source_overslime_host::damage_with_cause(game, &stack, 5, Some("tconstruct:glowing"));
                 if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) {
@@ -19,6 +19,7 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
             }
         }
     }
+    crate::game::tconstruct_looting_arrow_world::launch(game, p);
     if bow {
         if let ProjectileKind::Arrow { ref mut critical, .. } = p.kind { *critical = power >= 3.0; }
         let (v, on_ground) = game.player.as_ref().map_or((horizon_core::geometry::Vec3::ZERO, true), |pl| (pl.velocity, pl.ground.on_ground));

@@ -2,7 +2,8 @@
 
 Issue #379. This is a bounded bridge into native death loot, separate from the
 Fortune block-harvest work. It does not change attack damage or drop counts after
-they have been rolled.
+they have been rolled. The stacked [arrow Looting extension](looting-arrow-drops.md)
+adds a separately attributed ordinary-arrow path.
 
 ## Source behavior
 
@@ -50,7 +51,8 @@ Native enchantments remain in place even when the source projection declines.
 
 ## Deferred and validation
 
-- Projectile capability Looting, offhand attacks, barehand armor Looting,
+- Projectile capability Looting has a bounded [arrow extension](looting-arrow-drops.md).
+  Offhand attacks, barehand armor Looting,
   mob-held tools, other damage kinds, custom tools/definitions, and cross-actor
   deaths during another guest's active turn are outside this bounded path.
 - No new Station acquisition, extraction, Fortune harvest, Luck/fishing,

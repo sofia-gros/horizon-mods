@@ -38,6 +38,21 @@ pub(crate) fn total(base: i32, bonuses: &[i32]) -> Option<i32> {
     (value <= 255).then_some(value)
 }
 
+// Source projectile DummyToolStack starts from zero rather than the current
+// weapon's native Looting. Luck's separate module remains outside this capture.
+pub(crate) fn arrow_level(looting: i32, luck: i32) -> Option<i32> {
+    (looting > 0 && looting <= 255 && luck == 0).then_some(looting)
+}
+pub(crate) fn base(native: i32, projectile: Option<i32>) -> Option<i32> {
+    if native < 0 {
+        return None;
+    }
+    match projectile {
+        Some(level) => arrow_level(level, 0).map(|_| 0),
+        None => (native >= 0).then_some(native),
+    }
+}
+
 pub(crate) fn armor_slot(item: &str) -> Option<usize> {
     Some(match item {
         "tconstruct:travelers_helmet" | "tconstruct:plate_helmet" | "tconstruct:slime_helmet" => 0,
@@ -56,6 +71,15 @@ pub(crate) fn armor_slot(item: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn projectile_base_does_not_inherit_the_current_weapon() {
+        assert_eq!(base(8, Some(2)), Some(0));
+        assert_eq!(total(base(8, Some(2)).unwrap(), &[2, 1, 1]), Some(4));
+        assert_eq!(base(8, None), Some(8));
+        assert_eq!(base(8, Some(0)), None);
+        assert_eq!(arrow_level(2, 1), None);
+        assert_eq!(arrow_level(256, 0), None);
+    }
     #[test]
     fn armor_sources_have_distinct_level_rules() {
         assert_eq!(armor_bonus(3, 0, 0), Some(3));
