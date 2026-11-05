@@ -574,6 +574,19 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             fields.insert("minecraft:equippable".into(), serde_json::json!({"slot": slot, "equip_sound": "minecraft:item.armor.equip_generic"}));
         }
     }
+    // The live shield hook supplies source block limits. Zero fallback damage
+    // reduction fails closed; zero native wear avoids deleting a broken TiC tool.
+    for (short, speed) in [("travelers_shield", 0.8), ("plate_shield", 0.2), ("battlesign", 0.2)] {
+        if let Some(item) = items.get_mut(format!("tconstruct:{short}")) {
+            item["minecraft:blocks_attacks"] = serde_json::json!({
+                "block_delay_seconds":0.25,"disable_cooldown_scale":1.0,
+                "damage_reductions":[{"horizontal_blocking_angle":90.0,"base":0.0,"factor":0.0}],
+                "item_damage":{"threshold":3.0,"base":0.0,"factor":0.0},
+                "bypassed_by":"#minecraft:bypasses_shield",
+                "block_sound":"minecraft:item.shield.block","disabled_sound":"minecraft:item.shield.break"});
+            item["minecraft:use_effects"] = serde_json::json!({"speed_multiplier":speed,"can_sprint":false});
+        }
+    }
     for short in ["pickaxe", "flint_pickaxe"] {
         if let Some(item) = items.get_mut(format!("tconstruct:{short}")) {
             item["minecraft:max_damage"] = serde_json::json!(85);
