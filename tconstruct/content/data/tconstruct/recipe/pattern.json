@@ -7,7 +7,7 @@
   ],
   "key": {
     "p": "#minecraft:planks",
-    "s": "minecraft:stick"
+    "s": "#forge:rods/wooden"
   },
   "result": {
     "id": "tconstruct:pattern",
