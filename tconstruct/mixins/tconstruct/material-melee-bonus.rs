@@ -1,6 +1,7 @@
 fn tconstruct_material_melee_bonus(game: &crate::game::Game<'_>) -> std::ops::ControlFlow<f32> {
     use horizon_world::nbt::Tag;
     use std::ops::ControlFlow::{Break, Continue};
+    if let Some(damage) = crate::game::tconstruct_offhand_attack_world::damage(game) { return Break(damage); }
     // Attack attributes belong to the selected mainhand, not the acting hand.
     let Some(stack) = game.inventory.get(game.selected).and_then(Option::as_ref)
         .filter(|stack| stack.item.starts_with("tconstruct:"))

@@ -1,11 +1,16 @@
-use super::{tconstruct_padded as rule, Game};
+use super::{Game, tconstruct_padded as rule};
 use horizon_client::mobs::{Damage, DamageKind, Who};
 
 fn level(game: &Game<'_>) -> Option<i32> {
     if game.remote.is_some() {
         return None;
     }
-    let stack = game.inventory.get(game.selected)?.as_ref()?;
+    let offhand = super::tconstruct_offhand_attack_world::charge(game).is_some();
+    let stack = if offhand {
+        game.held()?
+    } else {
+        game.inventory.get(game.selected)?.as_ref()?
+    };
     // A first complete primary-mob path, not generic modifier dispatch.
     if stack.item.as_ref() != "tconstruct:dagger"
         || stack.count != 1
@@ -56,6 +61,11 @@ fn level(game: &Game<'_>) -> Option<i32> {
     )? > 0
     {
         return None;
+    }
+    // The scoped offhand dispatcher already checked the complete ordered
+    // modifier set, including its static Offhand Attack (which has no JSON).
+    if offhand {
+        return (level > 0).then_some(level);
     }
     // Other source knockback modules need ordered dispatch, not this shortcut.
     let mut ids: std::collections::BTreeSet<String> = traits.levels.keys().cloned().collect();
@@ -127,11 +137,12 @@ pub(super) fn extra(game: &mut Game<'_>, value: (f32, bool)) -> (f32, bool) {
     if value.0 != if value.1 { 0.5 } else { 0.0 } {
         return value;
     }
-    let attack = game
-        .player
-        .as_mut()
-        .and_then(|p| p.attribute("minecraft:attack_knockback").ok())
-        .unwrap_or(0.0) as f32;
+    let attack = super::tconstruct_offhand_attack_world::knockback(game).unwrap_or_else(|| {
+        game.player
+            .as_mut()
+            .and_then(|p| p.attribute("minecraft:attack_knockback").ok())
+            .unwrap_or(0.0) as f32
+    });
     let Some((active, Some((_, level, total, _)))) = game
         .world
         .chunks

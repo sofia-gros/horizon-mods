@@ -6,7 +6,11 @@ fn tconstruct_melee_wear(game: &mut crate::game::Game<'_>, stack: &ItemStack) ->
     if !game.creative {
         // Preserve each registered tool's attack cost while keeping the
         // material-derived broken tool instead of deleting its stack.
-        let cost = if dynamic {
+        let cost = if crate::game::tconstruct_offhand_attack_world::charge(game).is_some() {
+            // Source Dagger is melee-primary even though its native template
+            // has no weapon component. Keep the ordinary retained wear chain.
+            1
+        } else if dynamic {
             crate::game::tconstruct_source_melee_shape::builtin_attack_wear(stack.item.as_ref())
                 .unwrap_or_else(|| game.res.items().get(&stack.item).and_then(|item| item.weapon_damage).unwrap_or(0))
         } else { 2 };
