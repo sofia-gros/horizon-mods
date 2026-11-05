@@ -70,6 +70,17 @@ impl BuildingRecipe {
     /// Other modules still require validation before producing a tool.
     pub(super) fn parts(&self, definition: &[u8]) -> Option<Vec<String>> {
         if let Some(parts) = &self.parts_override { return Some(parts.clone()); }
+        Self::definition_parts(definition)
+    }
+
+    /// Part swapping is limited by the complete tool definition, not by the
+    /// one replacement input or a tool-building recipe's parts override.
+    pub(super) fn swap_parts_fit(definition: &[u8], input_capacity: usize) -> Option<bool> {
+        if !matches!(input_capacity, 3 | 5) { return Some(false); }
+        Some(Self::definition_parts(definition)?.len() <= input_capacity)
+    }
+
+    fn definition_parts(definition: &[u8]) -> Option<Vec<String>> {
         let value: Value = serde_json::from_slice(definition).ok()?;
         let mut result = None;
         for module in value.get("modules")?.as_array()? {
@@ -99,6 +110,33 @@ pub(super) fn building_recipe_index(recipes: &std::collections::BTreeMap<String,
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn swapping_uses_total_definition_parts_not_replacement_count() {
+        let definition = |count: usize| serde_json::to_vec(&serde_json::json!({"modules":[{
+            "type":"tconstruct:part_stats", "parts":vec![serde_json::json!({"item":"tconstruct:tool_handle"});count]
+        }]})).unwrap();
+        for count in 1..=6 {
+            assert_eq!(BuildingRecipe::swap_parts_fit(&definition(count), 3), Some(count <= 3));
+            assert_eq!(BuildingRecipe::swap_parts_fit(&definition(count), 5), Some(count <= 5));
+        }
+        for capacity in [0,1,2,4,6,usize::MAX] {
+            assert_eq!(BuildingRecipe::swap_parts_fit(&definition(1),capacity), Some(false));
+        }
+        // A one-input building override must not bypass a four-part tool's gate.
+        let recipe = BuildingRecipe::parse(br#"{"type":"tconstruct:tool_building","result":"tconstruct:sledge_hammer","parts_override":["tconstruct:tool_handle"]}"#).unwrap();
+        assert_eq!(recipe.parts(&definition(4)).unwrap().len(),1);
+        assert_eq!(BuildingRecipe::swap_parts_fit(&definition(4),3),Some(false));
+        assert_eq!(BuildingRecipe::swap_parts_fit(&definition(4),5),Some(true));
+    }
+    #[test]
+    fn swapping_capacity_uses_valid_current_tool_parts_hook() {
+        let explicit = br#"{"modules":[{"type":"tconstruct:tool_parts","hooks":["tconstruct:tool_parts"],"parts":["a","b","c","d"]}]}"#;
+        assert_eq!(BuildingRecipe::swap_parts_fit(explicit,3),Some(false));
+        assert_eq!(BuildingRecipe::swap_parts_fit(explicit,5),Some(true));
+        assert_eq!(BuildingRecipe::swap_parts_fit(b"{",3),None);
+        assert_eq!(BuildingRecipe::swap_parts_fit(br#"{"modules":[{"type":"other:parts","hooks":["tconstruct:tool_parts"],"parts":["a"]}]}"#,3),None);
+        assert_eq!(BuildingRecipe::swap_parts_fit(br#"{"modules":[{"type":"tconstruct:tool_parts","parts":["a"]},{"type":"tconstruct:tool_parts","parts":["b"]}]}"#,5),None);
+    }
     #[test]
     fn building_index_preserves_order_and_tracks_snapshot_replacement() {
         use std::collections::BTreeMap;

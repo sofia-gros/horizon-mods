@@ -249,6 +249,10 @@ fn swap_plan_with_capacity(world: &super::tconstruct_world::World, slots: &[Opti
     let parts = recipe.parts(definition)?;
     let index = if parts.get(slot - 1).is_some_and(|id| id == &*part.item) { slot - 1 }
         else { parts.iter().position(|id| id == &*part.item)? };
+    if !BuildingRecipe::swap_parts_fit(definition, input_capacity)? {
+        *reason = Some("Cannot swap parts: this tool needs a workstation with more input slots".into());
+        return None;
+    }
     let Tag::String(material) = part.data()?.other("minecraft:custom_data")?.get("Material")? else { return None; };
     let material = material.to_string_lossy().to_string();
     if !super::tconstruct_source_builder_world::supported_material(world, &material).ok()?.1.contains(&*part.item) { return None; }
