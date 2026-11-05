@@ -88,7 +88,11 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         let id = id.to_string_lossy();
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
                         let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
-                        let tip = if id.as_str() == "tconstruct:projectile_protection" {
+                        let tip = if id.as_str() == "tconstruct:fire_protection" {
+                            Some("Fire Protection: supported armor/shield damage reduction uses the default cap; worn armor also shortens ignition.".to_owned())
+                        } else if id.as_str() == "tconstruct:blast_protection" {
+                            Some("Blast Protection: supported armor/shield damage reduction uses the default cap; worn armor also reduces explosion knockback.".to_owned())
+                        } else if id.as_str() == "tconstruct:projectile_protection" {
                             Some("Projectile Protection: maximum-equipped-level knockback resistance is connected; damage reduction is not connected yet.".to_owned())
                         } else if super::tconstruct_source_upgrade_rules::is_protection(id.as_str()) {
                             Some("Acquisition only: this Protection modifier's damage and secondary effects are not connected yet.".to_owned())
