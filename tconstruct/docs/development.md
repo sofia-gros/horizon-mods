@@ -155,3 +155,19 @@ These conversions do not add an alloy production route: the ingot or block
 must first be obtained by melting, alloying and casting. Source-data and early
 reachability tests pass; crafting-grid behavior, recipe-book display, datapack
 reload, save/reload, and LAN remain unverified in game.
+
+### Venombone acquisition
+
+Venombone is registered as a bone-template item in the native content pack and
+appended to the manual resource overlay without renumbering existing entries.
+Its texture and bone-parent model come from the pinned TConstruct revision.
+The existing source casting recipe consumes a `forge:bones` input and 250 mB
+of `tconstruct:venom`, cools for 48 ticks, and yields one Venombone. The existing
+material recipe accepts one Venombone for one unit of the craftable material.
+Recipe lookup still requires the current world's resolved item/fluid tags and
+registered output; registration does not bypass these checks.
+
+Package/resource tests cover registration and visuals, with a bounded catalog
+regression in `tests/rust/soul_glass_acquisition.rs`. Actual world casting,
+Part Builder use, Venom supply, reload, saves and LAN remain unverified. This
+does not add Venombone to Creative tabs or implement its material traits.

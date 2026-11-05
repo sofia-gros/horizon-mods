@@ -56,7 +56,11 @@ class ResourceOverlay(unittest.TestCase):
             self.assertEqual({name: registries[name]['protocol_id'] for name in legacy}, legacy)
             self.assertGreater(registries['tconstruct:silky_cloth']['protocol_id'], max(legacy.values()))
             self.assertEqual(registries['tconstruct:necrotic_bone']['protocol_id'], registries['tconstruct:silky_cloth']['protocol_id'] + 1)
+            self.assertEqual(registries['tconstruct:venombone']['protocol_id'], registries['tconstruct:necrotic_bone']['protocol_id'] + 1)
             items = json.loads((out / 'items.json').read_text())
+            self.assertEqual(items['tconstruct:venombone']['minecraft:item_model'], 'tconstruct:venombone')
+            self.assertEqual(json.loads((out / 'assets/tconstruct/models/item/venombone.json').read_text()), {'parent': 'minecraft:item/bone', 'textures': {'layer0': 'tconstruct:item/materials/venombone'}})
+            self.assertEqual((out / 'assets/tconstruct/textures/item/materials/venombone.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/materials/venombone.png').read_bytes())
             for kind in ('splash', 'lingering'):
                 name = kind + '_bottle'
                 self.assertEqual(items['tconstruct:' + name]['minecraft:max_stack_size'], 64)
