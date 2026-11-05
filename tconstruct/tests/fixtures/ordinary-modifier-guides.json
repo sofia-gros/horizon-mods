@@ -1,0 +1,151 @@
+{
+  "source_commit": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "recipes": {
+    "data/tconstruct/recipes/tools/modifiers/upgrade/diamond.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "inputs": [
+        {
+          "tag": "forge:gems/diamond"
+        }
+      ],
+      "level": 1,
+      "result": "tconstruct:diamond",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/durability"
+      }
+    },
+    "data/tconstruct/recipes/tools/modifiers/upgrade/emerald.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "inputs": [
+        {
+          "tag": "forge:gems/emerald"
+        }
+      ],
+      "level": 1,
+      "result": "tconstruct:emerald",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/durability"
+      }
+    },
+    "data/tconstruct/recipes/tools/modifiers/upgrade/netherite.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "inputs": [
+        {
+          "item": "minecraft:netherite_upgrade_smithing_template"
+        },
+        {
+          "tag": "forge:ingots/netherite"
+        }
+      ],
+      "level": 1,
+      "result": "tconstruct:netherite",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/durability"
+      }
+    },
+    "data/tconstruct/recipes/tools/modifiers/ability/glowing.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "check_trait_level": true,
+      "inputs": [
+        {
+          "item": "minecraft:glowstone"
+        },
+        {
+          "item": "minecraft:daylight_detector"
+        },
+        {
+          "item": "minecraft:shroomlight"
+        }
+      ],
+      "level": 1,
+      "result": "tconstruct:glowing",
+      "slots": {
+        "abilities": 1
+      },
+      "tools": {
+        "type": "forge:intersection",
+        "children": [
+          {
+            "tag": "tconstruct:modifiable/durability"
+          },
+          [
+            {
+              "tag": "tconstruct:modifiable/interactable"
+            },
+            {
+              "tag": "tconstruct:modifiable/armor/boots"
+            }
+          ]
+        ]
+      }
+    }
+  },
+  "modifier_tags": {
+    "data/tconstruct/tinkering/tags/modifiers/upgrades/general.json": {
+      "values": [
+        "tconstruct:diamond",
+        "tconstruct:emerald",
+        "tconstruct:netherite",
+        "tconstruct:reinforced",
+        "tconstruct:overforced",
+        "tconstruct:soulbound",
+        "tconstruct:experienced",
+        "tconstruct:magnetic",
+        "tconstruct:scope",
+        "tconstruct:zoom",
+        "tconstruct:tank",
+        "tconstruct:smelting",
+        "tconstruct:fireprimer",
+        {
+          "id": "tconstruct:the_one_probe",
+          "required": false
+        }
+      ]
+    },
+    "data/tconstruct/tinkering/tags/modifiers/abilities/interaction.json": {
+      "values": [
+        "tconstruct:bucketing",
+        "tconstruct:firestarter",
+        "tconstruct:glowing",
+        "tconstruct:pathing",
+        "tconstruct:stripping",
+        "tconstruct:tilling",
+        "tconstruct:brushing",
+        "tconstruct:spitting",
+        "tconstruct:splashing",
+        "tconstruct:slurping",
+        "tconstruct:bonking",
+        "tconstruct:flinging",
+        "tconstruct:springing",
+        "tconstruct:warping",
+        "tconstruct:throwing",
+        "tconstruct:drill_attack"
+      ]
+    },
+    "data/tconstruct/tinkering/tags/modifiers/abilities/armor/boots.json": {
+      "values": [
+        "tconstruct:bouncy",
+        "tconstruct:double_jump",
+        "tconstruct:flamewake",
+        "tconstruct:snowdrift",
+        "tconstruct:tilling",
+        "tconstruct:pathing",
+        "tconstruct:frost_walker",
+        "tconstruct:glowing"
+      ]
+    }
+  }
+}

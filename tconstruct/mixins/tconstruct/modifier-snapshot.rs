@@ -140,6 +140,69 @@ pub(super) fn bonus_guide_recipes(
     result
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub(super) struct OrdinaryGuideRecipe {
+    pub recipe: String,
+    pub modifier: String,
+    // Each inner list is alternatives for ONE separate input slot. Duplicate
+    // ingredients in different slots must never collapse into a single item.
+    pub inputs: Vec<Vec<String>>,
+    pub tools: Vec<String>,
+    pub upgrade_cost: i32,
+    pub ability_cost: i32,
+    pub check_trait_level: bool,
+}
+
+/// Bounded ordinary modifier pages: explicit level one, one to five ordinary
+/// ingredient slots, upgrade/ability costs and optional trait-level checks.
+/// Unknown fields and stack-sensitive ingredients are not guessed. Caller
+/// supplies the real Station matcher and its supported modifier/tool gate.
+pub(super) fn ordinary_guide_recipes(
+    recipes: &BTreeMap<String, Vec<u8>>, modifiers: &[String],
+    items: &[String], tools: &[String],
+    matches: impl Fn(&serde_json::Value, &str) -> bool,
+    supported_tool: impl Fn(&str, &str) -> bool,
+) -> Vec<OrdinaryGuideRecipe> {
+    let mut result = Vec::new();
+    let mut seen = HashSet::new();
+    for modifier in modifiers {
+        if !seen.insert(modifier) { continue; }
+        for (recipe, bytes) in recipes {
+            let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
+            let Some(object) = value.as_object() else { continue; };
+            if object.keys().any(|key| !matches!(key.as_str(), "type" | "result" | "inputs" | "tools" | "level" | "allow_crystal" | "check_trait_level" | "slots"))
+                || value.get("type").and_then(|v| v.as_str()) != Some("tconstruct:modifier")
+                || value.get("result").and_then(|v| v.as_str()) != Some(modifier.as_str())
+                || value.get("level").and_then(|v| v.as_i64()) != Some(1)
+                || value.get("allow_crystal").is_some_and(|v| !v.is_boolean())
+                || value.get("check_trait_level").is_some_and(|v| !v.is_boolean()) { continue; }
+            let costs = match value.get("slots") {
+                None => Some((0, 0)),
+                Some(slots) => slots.as_object().and_then(|slots| {
+                    if slots.keys().any(|key| !matches!(key.as_str(), "upgrades" | "abilities")) { return None; }
+                    let cost = |key| slots.get(key).map_or(Some(0), |v| v.as_i64().filter(|v| *v >= 0).and_then(|v| i32::try_from(v).ok()));
+                    Some((cost("upgrades")?, cost("abilities")?))
+                }),
+            };
+            let Some((upgrade_cost, ability_cost)) = costs else { continue; };
+            let Some(inputs) = value.get("inputs").and_then(|v| v.as_array()).filter(|v| (1..=5).contains(&v.len())) else { continue; };
+            let Some(tool_filter) = value.get("tools") else { continue; };
+            let inputs: Vec<Vec<String>> = inputs.iter().map(|input| {
+                let mut choices: Vec<_> = items.iter().filter(|id| matches(input, id)).cloned().collect();
+                choices.sort(); choices.dedup(); choices
+            }).collect();
+            if inputs.iter().any(Vec::is_empty) { continue; }
+            let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches(tool_filter, id)).cloned().collect();
+            tools.sort(); tools.dedup();
+            if !tools.is_empty() {
+                result.push(OrdinaryGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools,
+                    upgrade_cost, ability_cost, check_trait_level:value.get("check_trait_level").and_then(|v| v.as_bool()).unwrap_or(false) });
+            }
+        }
+    }
+    result
+}
+
 /// Authoritative results of evaluating the highest-priority JSON resource.
 /// Producing these results requires the source condition context and modifier
 /// deserializer; this module intentionally does not guess them from file names.
@@ -277,6 +340,42 @@ pub(super) fn compose_registry(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn ordinary_guide_preserves_five_slots_and_rejects_unknown_costs_and_shapes() {
+        let recipe = serde_json::json!({"type":"tconstruct:modifier", "result":"x:known", "level":1,
+            "inputs":[{"item":"x:a"},{"item":"x:b"},{"item":"x:a"},{"item":"x:b"},{"item":"x:a"}],
+            "tools":{"item":"x:tool"}, "slots":{"upgrades":2,"abilities":1}, "check_trait_level":true});
+        let modifiers = vec!["x:known".into()];
+        let items = vec!["x:b".into(), "x:a".into(), "x:a".into()];
+        let tools = vec!["x:tool".into()];
+        let matcher = |v: &serde_json::Value, id: &str| v["item"].as_str() == Some(id);
+        let rows = |value: &serde_json::Value| ordinary_guide_recipes(
+            &BTreeMap::from([("x:recipe".into(), serde_json::to_vec(value).unwrap())]),
+            &modifiers, &items, &tools, matcher, |_,_|true);
+        let output = rows(&recipe);
+        assert_eq!(output.len(), 1);
+        assert_eq!(output[0].inputs, [vec!["x:a"], vec!["x:b"], vec!["x:a"], vec!["x:b"], vec!["x:a"]]);
+        assert_eq!((output[0].upgrade_cost, output[0].ability_cost, output[0].check_trait_level), (2,1,true));
+        for (key, value) in [
+            ("slots", serde_json::json!({"upgrades":-1})), ("slots", serde_json::json!({"defense":1})),
+            ("slots", serde_json::json!({"upgrades":2147483648u64})), ("slots", serde_json::json!(null)),
+            ("slots", serde_json::json!({"abilities":"1"})), ("slots", serde_json::json!({"upgrades":0.5})),
+            ("level", serde_json::json!({"max":5})), ("level", serde_json::json!(null)),
+            ("inputs", serde_json::json!([])), ("inputs", serde_json::json!([{}, {}, {}, {}, {}, {}])),
+            ("inputs", serde_json::json!([{"item":"x:missing"}])),
+            ("inputs", serde_json::json!([{"type":"tconstruct:no_container","tag":"x:tanks"}])),
+            ("check_trait_level", serde_json::json!(1)), ("allow_crystal", serde_json::json!("true")),
+            ("conditions", serde_json::json!([])), ("requirements", serde_json::json!({})),
+            ("type", serde_json::json!("tconstruct:incremental_modifier")),
+        ] {
+            let mut invalid = recipe.clone(); invalid[key] = value;
+            assert!(rows(&invalid).is_empty(), "{key}: {invalid}");
+        }
+        let recipes = BTreeMap::from([("x:recipe".into(), serde_json::to_vec(&recipe).unwrap())]);
+        assert!(ordinary_guide_recipes(&recipes,&modifiers,&items,&tools,matcher,|_,_|false).is_empty());
+        assert!(ordinary_guide_recipes(&BTreeMap::new(),&modifiers,&items,&tools,matcher,|_,_|true).is_empty());
+    }
+
     #[test]
     fn supported_guide_projection_reloads_nested_tags_without_inventing_registry() {
         let supported = HashSet::from(["tconstruct:writable".into(), "tconstruct:draconic".into()]);

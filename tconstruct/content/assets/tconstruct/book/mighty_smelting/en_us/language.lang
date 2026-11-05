@@ -45,3 +45,5 @@ tools.partial.notice=Only the advice pages are shown. The broad-tool list and ta
 smeltery.partial=Smeltery Basics (Partial)
 smeltery.partial.notice_title=About This Section
 smeltery.partial.notice=Only selected Smeltery pages are shown. They describe the original; structures, fuels, alloys, controller casts and chute automation are limited. Entity melting is incomplete, and connected glass faces are unavailable.
+
+abilities.partial=Supported abilities (partial)
