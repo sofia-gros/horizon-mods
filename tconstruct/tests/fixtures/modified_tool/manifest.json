@@ -1,0 +1,14 @@
+{
+  "modified.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/tools/modified.json",
+    "sha256": "e552516384a45d78f5b8ec83b0decfd57c0a1cdb96c471dbbaeb55a2a48dee07"
+  },
+  "ToolStackItemPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/tool/ToolStackItemPredicate.java",
+    "sha256": "c81ecc6ed09c759ee42e95d9681ec140b6add3bb084cf0a9e8a2d46a37024176"
+  },
+  "ToolContextPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/tool/ToolContextPredicate.java",
+    "sha256": "35a4ebcb3c661c18df7e2aa95e7c305dbbb0496345f5e863f30c17e24c6b0f42"
+  }
+}

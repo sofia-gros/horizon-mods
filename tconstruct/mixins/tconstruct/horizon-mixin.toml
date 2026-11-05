@@ -5337,6 +5337,14 @@ helper = "source-advancement-tag-predicate.rs"
 bindings = [{ name = "view", ty = "&View<'_, '_>", value = "&*self" }, { name = "registry", ty = "&str", value = "registry" }, { name = "tag", ty = "&str", value = "tag" }, { name = "id", ty = "&str", value = "id" }]
 
 [[injection]]
+id = "source-advancement-tool-predicate"
+target = "horizon_client::advancements::item"
+kind = "HEAD"
+cancellable = true
+helper = "source-advancement-tool-predicate.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }, { name = "w", ty = "&dyn World", value = "w" }]
+
+[[injection]]
 id = "source-advancement-tag-index"
 target = "horizon_client::game::advancements::Game<'_>::inventory_index"
 kind = "HEAD"
