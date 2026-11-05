@@ -1,0 +1,10 @@
+{
+  "fake_ingot_to_block.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/misc/tools/parts/fake_ingot_to_block.json",
+    "sha256": "e81555e7bc780b406e93e7d1614147330f2ebbaaa2c8fe54e9a7a4ecf94d58ba"
+  },
+  "fake_block_to_ingots.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/misc/tools/parts/fake_block_to_ingots.json",
+    "sha256": "d73fac11236f31e6d0ccba9ffd590db86327a16f3f79dafb0e2cb86679eace54"
+  }
+}

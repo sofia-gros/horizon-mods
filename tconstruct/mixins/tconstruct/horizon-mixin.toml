@@ -5470,3 +5470,34 @@ target = "horizon_client::game::world_loading::WorldRequest::prepare"
 kind = "RETURN"
 helper = "fake-material-book-prepare.rs"
 bindings = [{ name = "value", ty = "Result<PreparedWorld>", value = "$value" }]
+
+[[module]]
+id = "source-fake-material-discovery"
+file = "crates/horizon-client/src/advancements.rs"
+name = "tconstruct_source_fake_material_discovery"
+source = "source-fake-material-discovery.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-fake-material-discovery-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fake_material_discovery_world"
+source = "source-fake-material-discovery-world.rs"
+
+[[injection]]
+id = "fake-material-discovery-tree"
+target = "horizon_client::game::advancements::Game<'_>::advancement_tree"
+kind = "RETURN"
+helper = "fake-material-discovery-tree.rs"
+bindings = [
+  { name = "value", ty = "Arc<Tree>", value = "$value" },
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+]
+
+# AdvState has derived Default and no explicit struct-literal constructors.
+# A retained Arc prevents pointer reuse from masquerading as the cached tree.
+[[state]]
+id = "fake-material-discovery-cache"
+target = "horizon_client::game::advancements::AdvState"
+ty = "Option<(u64, std::sync::Arc<horizon_client::advancements::Tree>)>"
+initial = "::core::default::Default::default()"

@@ -87,6 +87,7 @@ pub(super) fn refresh(game: &mut super::Game<'_>) {
     tables.recipes.crafting.extend(generated);
     horizon_client::recipe_book::tconstruct_source_fake_material_book::replace(
         &mut tables.stations.recipe_index, &tables.recipes.crafting);
+    super::tconstruct_source_fake_material_discovery_world::refresh(game);
     restore_saved_book(game);
     game.tconstruct_invalidate_fake_material_book();
 }

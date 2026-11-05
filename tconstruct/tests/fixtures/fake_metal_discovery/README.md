@@ -1,0 +1,1 @@
+Exact pinned TConstruct source acquisition goals for the two fake-metal conversions. Native files only rename recipe_unlocked conditions.recipe to conditions.recipes; current-world mapping supplies generated variants at runtime. Source is MIT licensed; see ../../../third_party/tconstruct/LICENSE. Tests are deferred.
