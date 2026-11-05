@@ -5479,3 +5479,47 @@ bindings = [
   { name = "mob", ty = "&crate::mobs::Mob", value = "$receiver" },
   { name = "original", ty = "impl FnOnce(&crate::mobs::Mob) -> (f32, f32)", value = "$operation" },
 ]
+
+
+[[module]]
+id = "source-enderference"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_enderference"
+source = "source-enderference.rs"
+
+[[module]]
+id = "server-source-enderference"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_enderference"
+source = "source-enderference.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-enderference-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_enderference_world"
+source = "enderference-world.rs"
+
+[[injection]]
+id = "source-enderference-enderman-teleport"
+target = "horizon_client_lib::mobs::enderman::teleport_to"
+kind = "HEAD"
+cancellable = true
+helper = "enderference-teleport.rs"
+bindings = [{ name = "mob", ty = "&crate::mobs::Mob", value = "&*m" }]
+
+[[injection]]
+id = "source-enderference-shulker-teleport"
+target = "horizon_client_lib::mobs::shulker::teleport"
+kind = "HEAD"
+cancellable = true
+helper = "enderference-teleport.rs"
+bindings = [{ name = "mob", ty = "&crate::mobs::Mob", value = "&*m" }]
+
+[[injection]]
+id = "source-enderference-fox-chorus-teleport"
+target = "horizon_client_lib::mobs::fox::random_teleport"
+kind = "HEAD"
+cancellable = true
+helper = "enderference-teleport.rs"
+bindings = [{ name = "mob", ty = "&crate::mobs::Mob", value = "&*m" }]
