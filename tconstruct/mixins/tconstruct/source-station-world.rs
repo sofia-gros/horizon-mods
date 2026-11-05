@@ -209,6 +209,11 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
         for id in per_level { units = units.checked_add(levels.get(&format!("tconstruct:{id}")).copied().unwrap_or(0))?; }
         for id in ["bucketing", "overburn"] { if levels.get(&format!("tconstruct:{id}")).copied().unwrap_or(0) > 0 { units = units.checked_add(1)?; } }
         let capacity = units.checked_mul(1000)?;
+        // OverburnModule.onRemoved clears only its saved fuel, not another
+        // tank handler's fluid or unrelated persistent data.
+        if levels.get("tconstruct:overburn").copied().unwrap_or(0) == 0 {
+            super::tconstruct_source_overburn_stack::clear_fuel(&mut probe)?;
+        }
         // Source TankModule.validate clamps to the new capacity; removing the
         // final handler clears the fluid. Work on a copy before consuming slots.
         let resized = super::pluto_stack_fluid::resize(&probe, "tic_persistent", "tconstruct:tank_fluid", capacity as u32)?;
