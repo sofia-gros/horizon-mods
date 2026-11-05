@@ -360,9 +360,12 @@ pub(super) fn cannon_at(game: &super::Game<'_>, pos: Pos) -> Option<super::tcons
 }
 pub(super) fn save_cannon(game: &mut super::Game<'_>, pos: Pos, state: &super::tconstruct_source_fluid_cannon::Cannon) -> bool {
     if !state.lossless() || !matches!(game.world.block_entities.get(&pos), Some(BlockEntity::Chest(slots)) if !slots.is_empty()) { return false; }
-    let before = store::read(&game.world,pos,"tconstruct:fluid_cannon")
-        .and_then(|tag| super::tconstruct_source_fluid_cannon::Cannon::from_nbt(&tag)).map_or(0, |state| state.comparator());
-    if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",state.to_nbt()) { return false; }
+    let Some(raw) = store::read(&game.world,pos,"tconstruct:fluid_cannon") else { return false; };
+    let Some(current) = cannon_at(game,pos) else { return false; };
+    if current.tank_to_nbt_preserving(&raw).as_ref() != Some(&raw) { return false; }
+    let before = current.comparator();
+    let Some(saved) = state.to_nbt_preserving(&raw) else { return false; };
+    if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",saved) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = state.item.clone(); }
     notify_casting_comparator(game, pos, before, state.comparator());
     game.container_changed(pos); true

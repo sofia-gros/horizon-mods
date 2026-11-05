@@ -291,21 +291,23 @@ fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32
     fn snapshot(value: &Option<horizon_items::items::ItemStack>) -> Option<StackSnapshot<'_,horizon_items::items::ItemStack>> {
         value.as_ref().filter(|s| s.count > 0).map(|item| StackSnapshot { item, count: item.count })
     }
+    let wire_safe = |item: &horizon_items::items::ItemStack| item.wire_patch().is_none()
+        && !item.data().is_some_and(|data| data.wire.patch().is_some());
     let mut choice = None;
     let containers = game.containers();
     if push {
-        if cannon.item.as_ref().is_some_and(|s| s.wire_patch().is_some()) { return false; }
+        if cannon.item.as_ref().is_some_and(|s| !wire_safe(s)) { return false; }
         for (index, source) in before.iter().enumerate() {
-            let Some(item) = source.as_ref().filter(|s| s.count > 0 && s.wire_patch().is_none()) else { continue; };
+            let Some(item) = source.as_ref().filter(|s| s.count > 0 && wire_safe(s)) else { continue; };
             let max = containers.max_stack(item).min(64);
             if plan_between(snapshot(source),snapshot(&cannon.item),1,|_,_| max,|_,_| true,|a,b| a.same_item_same_components(b)).ok().flatten().is_some() {
                 choice = Some((index,item.clone())); break;
             }
         }
     } else {
-        let Some(item) = cannon.item.as_ref().filter(|s| s.count > 0 && s.wire_patch().is_none()) else { return false; };
+        let Some(item) = cannon.item.as_ref().filter(|s| s.count > 0 && wire_safe(s)) else { return false; };
         for (index,dest) in before.iter().enumerate() {
-            if dest.as_ref().is_some_and(|s| s.wire_patch().is_some()) || !containers.can_place(hopper,index,item) { continue; }
+            if dest.as_ref().is_some_and(|s| !wire_safe(s)) || !containers.can_place(hopper,index,item) { continue; }
             let max = containers.max_stack(item);
             if plan_between(snapshot(&cannon.item),snapshot(dest),1,|_,_| max,|_,_| true,|a,b| a.same_item_same_components(b)).ok().flatten().is_some() {
                 choice = Some((index,item.clone())); break;
@@ -316,7 +318,8 @@ fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32
     let (from,to) = if push { (hopper_pos,target) } else { (target,hopper_pos) };
     let mut cancel = false;
     game.native_inventory_move_item([from.0,from.1,from.2],[to.0,to.1,to.2],&item.item,&mut cancel);
-    if cancel || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before)
+    if cancel || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before
+            && slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item)))
         || crate::game::tconstruct_source_machine_runtime::cannon_at(game,target).is_none_or(|state| state.to_nbt() != machine_before) { return false; }
     let mut after = before.clone(); item.count = 1;
     if push {

@@ -44,6 +44,7 @@ mod runtime{
  fn ensure(_: &mut Game<'_>,_:Pos,_:&str)->bool{true}
  fn notify_casting_comparator(game:&mut Game<'_>,_:Pos,before:i32,after:i32){if before!=after{game.signals+=1;}}
  // __CANNON_AT__
+ // __CANNON_SAVE__
  // __CANNON_HELD__
 }
 fn fixture(draining:bool,count:u32)->Game<'static>{
@@ -93,5 +94,49 @@ fn fixture(draining:bool,count:u32)->Game<'static>{
   runtime::interact_cannon(&mut game,(0,0,0),true);
   assert_eq!((game.world.raw,game.held),before);let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&slots);
   assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));assert!(game.gifts.is_empty());
+ }
+}
+
+fn canonical_saved_item(game:&mut Game<'_>){
+ if let Tag::Compound(fields)=&mut game.world.raw{if let Some(Tag::Compound(item))=fields.get_mut(&"item".into()){item.remove(&"future_item".into());}}
+}
+#[test]fn cannon_item_saves_preserve_extensions_before_publishing_slots(){
+ let mut game=fixture(false,1);canonical_saved_item(&mut game);let initial=game.world.raw.clone();
+ for next in [Some(ItemStack::new("minecraft:stone",15)),None,Some(ItemStack::new("minecraft:diamond",32))]{
+  let mut state=runtime::cannon_at(&game,(0,0,0)).unwrap();state.item=next.clone();
+  assert!(runtime::save_cannon(&mut game,(0,0,0),&state));
+  assert_eq!(game.world.raw.get("future"),initial.get("future"));assert_eq!(game.world.raw.get("tank"),initial.get("tank"));
+  let restored=tconstruct_source_fluid_cannon::Cannon::from_nbt(&game.world.raw).unwrap();assert_eq!(restored.item,next);
+  let BlockEntity::Chest(live)=&game.world.block_entities[&(0,0,0)];assert_eq!(live[0],next);
+ }
+ assert_eq!((game.world.writes,game.signals,game.updates),(3,0,3));
+}
+#[test]fn cannon_item_saves_refuse_opaque_changes_and_stale_live_state(){
+ for mode in 0..5{let mut game=fixture(false,1);let mut state=runtime::cannon_at(&game,(0,0,0)).unwrap();
+  match mode{
+   0=>state.item=None,
+   1=>state.item.as_mut().unwrap().count-=1,
+   2=>state.item=Some(ItemStack::new("minecraft:diamond",1)),
+   3=>{canonical_saved_item(&mut game);if let Tag::Compound(fields)=&mut game.world.raw{fields.insert("Items".into(),Tag::List(vec![]));}state.item=None;},
+   4=>{canonical_saved_item(&mut game);let BlockEntity::Chest(slots)=game.world.block_entities.get_mut(&(0,0,0)).unwrap();slots[0]=Some(ItemStack::new("minecraft:diamond",1));},
+   _=>unreachable!(),
+  }
+  let raw=game.world.raw.clone();let BlockEntity::Chest(before)=game.world.block_entities[&(0,0,0)].clone();
+  assert!(!runtime::save_cannon(&mut game,(0,0,0),&state));assert_eq!(game.world.raw,raw);
+  let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);
+  assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));
+ }
+ // The same opaque item can remain byte-for-byte in an unchanged slot.
+ let mut game=fixture(false,1);let raw=game.world.raw.clone();let state=runtime::cannon_at(&game,(0,0,0)).unwrap();
+ assert!(runtime::save_cannon(&mut game,(0,0,0),&state));assert_eq!(game.world.raw,raw);
+}
+#[test]fn cannon_item_saves_refuse_retained_wire_and_failed_persistence(){
+ for mode in 0..3{let mut game=fixture(false,1);canonical_saved_item(&mut game);let mut state=runtime::cannon_at(&game,(0,0,0)).unwrap();
+  state.item=Some(ItemStack::new("minecraft:diamond",1));
+  if mode<2{let item=state.item.as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if mode==1{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}assert!(!state.lossless());}else{game.world.fail=true;}
+  let raw=game.world.raw.clone();let BlockEntity::Chest(before)=game.world.block_entities[&(0,0,0)].clone();
+  assert!(!runtime::save_cannon(&mut game,(0,0,0),&state));assert_eq!(game.world.raw,raw);
+  let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);
+  assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));
  }
 }

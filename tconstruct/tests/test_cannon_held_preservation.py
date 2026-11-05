@@ -17,6 +17,24 @@ class CannonHeldPreservation(unittest.TestCase):
             self.assertLess(body.index('store::write('), body.index(mutation))
         self.assertNotIn('block_entities.get_mut', body)
 
+class CannonItemPreservation(unittest.TestCase):
+    def test_item_save_persists_before_live_slot_and_notifications(self):
+        text = (ROOT / 'source-machine-runtime.rs').read_text()
+        body = text.split('pub(super) fn save_cannon(', 1)[1].split('pub(super) fn interact_cannon(', 1)[0]
+        self.assertIn('current.tank_to_nbt_preserving(&raw)', body)
+        self.assertIn('state.to_nbt_preserving(&raw)', body)
+        self.assertNotIn('state.to_nbt()', body)
+        for mutation in ('slots[0] = state.item.clone()', 'notify_casting_comparator(', 'game.container_changed('):
+            self.assertLess(body.index('store::write('), body.index(mutation))
+
+    def test_hopper_checks_retained_wire_and_keeps_rollback(self):
+        text = (ROOT / 'source-chute-hopper.rs').read_text()
+        body = text.split('fn cannon_transfer(', 1)[1].split('// The source sided inventory', 1)[0]
+        self.assertIn('data.wire.patch().is_some()', body)
+        self.assertIn('slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item))', body)
+        self.assertIn('save_cannon(game,target,&cannon)', body)
+        self.assertIn('*slots = before;', body)
+
 
 if __name__ == '__main__':
     unittest.main()
