@@ -68,3 +68,6 @@ Brief source/API and whitespace review only. Three regression cases cover exact
 canonical definitions, changed hooks/child traits and the narrow static ID set;
 they were added but not run. Builds/planner/tests belong to the separate batch
 integration pass. No CI inspection or merge was performed for this slice.
+
+The subsequent [retained break feedback slice](retained-armor-break-feedback.md)
+adds slot-specific sound/particles and guest events without destroying gear.
