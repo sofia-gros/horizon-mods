@@ -1,0 +1,349 @@
+{
+  "description": "Synthetic object-identity cases derived from Forge TagLoader LinkedHashSet add/remove and TConstruct ModifierManager empty-sentinel lookup. Not an upstream game execution or a complete registry.",
+  "sources": [
+    "https://github.com/MinecraftForge/MinecraftForge/blob/8bdaec882b9bfd76e9dfdf67a22a924f677b1062/patches/minecraft/net/minecraft/tags/TagLoader.java.patch",
+    "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/ModifierManager.java"
+  ],
+  "registry": {
+    "tconstruct:empty": "tconstruct:empty",
+    "x:a": "x:a",
+    "x:alias": "x:a",
+    "x:b": "x:b",
+    "x:c": "x:c",
+    "x:empty_alias": "tconstruct:empty"
+  },
+  "cases": [
+    {
+      "name": "remove_alias_removes_canonical_object",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:a",
+              "x:b"
+            ],
+            "remove": [
+              "x:alias"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:b"
+      ]
+    },
+    {
+      "name": "remove_canonical_removes_alias_object",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:alias",
+              "x:b"
+            ],
+            "remove": [
+              "x:a"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:b"
+      ]
+    },
+    {
+      "name": "remove_then_readd_moves_to_end",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:alias",
+              "x:b"
+            ],
+            "remove": [
+              "x:a"
+            ]
+          },
+          {
+            "values": [
+              "x:a",
+              "x:c",
+              "x:alias"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:b",
+        "x:a",
+        "x:c"
+      ]
+    },
+    {
+      "name": "nested_removal_uses_child_objects",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:alias",
+              "x:b",
+              "x:c"
+            ],
+            "remove": [
+              "#x:child"
+            ]
+          }
+        ],
+        "child": [
+          {
+            "values": [
+              "x:a",
+              "x:c"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:b"
+      ]
+    },
+    {
+      "name": "child_removes_before_parent_expansion",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "#x:child",
+              "x:alias"
+            ]
+          }
+        ],
+        "child": [
+          {
+            "values": [
+              "x:alias",
+              "x:b"
+            ],
+            "remove": [
+              "x:a"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:b",
+        "x:a"
+      ]
+    },
+    {
+      "name": "replacement_discards_previous_operations",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:a",
+              "x:b"
+            ],
+            "remove": [
+              "x:b"
+            ]
+          },
+          {
+            "values": [
+              "x:alias",
+              "x:c"
+            ],
+            "remove": [
+              "x:alias"
+            ],
+            "replace": true
+          }
+        ]
+      },
+      "expected": [
+        "x:c"
+      ]
+    },
+    {
+      "name": "unrelated_removals_do_not_poison_tag",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:a"
+            ]
+          }
+        ],
+        "other": [
+          {
+            "values": [
+              "x:missing"
+            ],
+            "remove": [
+              "#x:missing"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:a"
+      ]
+    },
+    {
+      "name": "missing_removals_and_optional_entries_are_ignored",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:a",
+              {
+                "id": "x:missing",
+                "required": false
+              },
+              {
+                "id": "#x:missing",
+                "required": false
+              }
+            ],
+            "remove": [
+              "x:missing",
+              "#x:missing"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:a"
+      ]
+    },
+    {
+      "name": "required_missing_still_fails_even_if_removed_later",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:missing"
+            ],
+            "remove": [
+              "x:missing"
+            ]
+          }
+        ]
+      },
+      "error": "missing item x:missing"
+    },
+    {
+      "name": "required_nested_missing_still_fails",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "#x:missing"
+            ]
+          }
+        ]
+      },
+      "error": "missing tag x:missing"
+    },
+    {
+      "name": "optional_cycle_is_not_misreported_as_empty",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              {
+                "id": "#x:child",
+                "required": false
+              }
+            ]
+          }
+        ],
+        "child": [
+          {
+            "values": [
+              "#x:root"
+            ]
+          }
+        ]
+      },
+      "error": "cyclic tag x:root"
+    },
+    {
+      "name": "removal_cycle_is_not_misreported_as_empty",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:a"
+            ],
+            "remove": [
+              "#x:root"
+            ]
+          }
+        ]
+      },
+      "error": "cyclic tag x:root"
+    },
+    {
+      "name": "empty_alias_cannot_remove_explicit_empty",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "tconstruct:empty",
+              "x:a"
+            ],
+            "remove": [
+              "x:empty_alias"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "tconstruct:empty",
+        "x:a"
+      ]
+    },
+    {
+      "name": "explicit_empty_can_be_removed",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "tconstruct:empty",
+              "x:a"
+            ],
+            "remove": [
+              "tconstruct:empty"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "x:a"
+      ]
+    },
+    {
+      "name": "invalid_later_file_does_not_erase_prior_layer",
+      "tags": {
+        "root": [
+          {
+            "values": [
+              "x:a"
+            ]
+          },
+          {
+            "replace": true,
+            "values": [
+              "x:b"
+            ],
+            "remove": 3
+          }
+        ]
+      },
+      "expected": [
+        "x:a"
+      ]
+    }
+  ]
+}

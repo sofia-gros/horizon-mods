@@ -196,13 +196,24 @@ pub fn resolve_tag(
     tags: &BTreeMap<String, Vec<Vec<u8>>>,
     registry: &std::collections::HashSet<String>,
 ) -> Result<Vec<String>, String> {
+    resolve_tag_identities(id, tags, |id| registry.contains(id).then(|| id.to_owned()))
+}
+
+/// Resolve values to registry object identities before linked-set insertion or
+/// removal. Aliases must compare as the same object, including inside nested
+/// tags. The caller owns registry completeness and missing-value semantics.
+pub(super) fn resolve_tag_identities(
+    id: &str,
+    tags: &BTreeMap<String, Vec<Vec<u8>>>,
+    lookup: impl Fn(&str) -> Option<String>,
+) -> Result<Vec<String>, String> {
     fn canonical(id: &str) -> String {
         if id.contains(':') { id.to_owned() } else { format!("minecraft:{id}") }
     }
     fn resolve(
         id: &str,
         tags: &BTreeMap<String, Vec<Vec<u8>>>,
-        registry: &std::collections::HashSet<String>,
+        lookup: &impl Fn(&str) -> Option<String>,
         visiting: &mut Vec<String>,
     ) -> Result<Vec<String>, String> {
         if visiting.iter().any(|v| v == id) { return Err(format!("cyclic tag {id}")); }
@@ -212,10 +223,10 @@ pub fn resolve_tag(
         let mut result: Vec<String> = Vec::new();
         for entry in merge_tag_files(files) {
             let found = if let Some(tag) = entry.id.strip_prefix('#') {
-                resolve(&canonical(tag), tags, registry, visiting)
+                resolve(&canonical(tag), tags, lookup, visiting)
             } else {
                 let item = canonical(&entry.id);
-                if registry.contains(&item) { Ok(vec![item]) } else { Err(format!("missing item {item}")) }
+                lookup(&item).map(|identity| vec![identity]).ok_or_else(|| format!("missing item {item}"))
             };
             let values = match found {
                 Ok(values) => values,
@@ -232,7 +243,7 @@ pub fn resolve_tag(
         visiting.pop();
         Ok(result)
     }
-    resolve(&canonical(id), tags, registry, &mut Vec::new())
+    resolve(&canonical(id), tags, &lookup, &mut Vec::new())
 }
 
 /// Resolve item tags against one world's actual item registry. Like the
