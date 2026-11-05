@@ -32,7 +32,8 @@
     "effect": {
       "id": "minecraft:poison",
       "duration_ticks": 100,
-      "amplifier": 0
+      "amplifier": 0,
+      "no_curatives": true
     }
   }
 }

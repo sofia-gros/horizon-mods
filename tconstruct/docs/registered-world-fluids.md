@@ -17,7 +17,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #28](https://github.com/sofia-gros/horizon/pull/28).** Keep this
+[Horizon fork PR #29](https://github.com/sofia-gros/horizon/pull/29).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -128,10 +128,19 @@ The three retain exact `slime/venom`, `food/honey` and `slime/soul` source artwo
 and animation metadata with white surface tint. Existing bucket and acquisition
 paths remain unchanged. Only the authoritative player path adds effects, using
 positive body height for the matching family, with ordinary effect merging,
-refresh, expiry and network synchronization. The source's empty curative-item
-list is NOT implemented: milk and other existing curatives retain their current
-behavior, including after leaving the liquid. These declarations are not full
-effect parity. Mobs, custom slime/Enderference effects and fog remain separate.
+refresh, expiry and network synchronization. All three effects explicitly set
+`no_curatives: true`, following `MobEffectLiquidBlock`'s empty curative-item list.
+The required host curative extension keeps those instances through milk-style
+generic cures, including after leaving the liquid, and persists the active
+instance policy in owner/guest playerdata. Direct targeted removal, commands,
+death and expiry still remove effects. Remote clients wait for authoritative
+cure results rather than clearing protected effects speculatively.
+
+This is not arbitrary item-specific curative support or full effect parity.
+The host attaches the policy to accepted duration/amplifier updates and restores
+hidden-instance policy on downgrade; mixed-source equivalence with Forge is
+unverified. Its existing save model does not persist hidden chains. Mobs,
+custom slime/Enderference effects, fog and gameplay/LAN validation remain separate.
 
 Magma retains `registerSlime` flow: drop 1, slope 4 and tick rate 50, with light 3
 and 8 seconds/3 damage of burning contact. Despite burning, its source uses the
@@ -182,7 +191,7 @@ generic fluid travel, fall scaling and mixed-fluid precedence remains unverified
 They are provisional host integration parameters, not source-parity claims.
 
 Remaining: Earth Slime, Sky Slime, Ender Slime and Molten Ender world fluids,
-source-specific contact effects and curatives, mob/item/projectile interaction, burn audio, camera fog, mixing and
+source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, burn audio, camera fog, mixing and
 solidification, dispenser handling, final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for
