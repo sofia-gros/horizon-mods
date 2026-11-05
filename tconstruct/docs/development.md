@@ -4,6 +4,25 @@ Builds use the Horizon and Mixins revisions pinned in `compatibility.json`. Chec
 
 ## Run the lightweight tests
 
+Material conversion regressions live in `tests/test_material_conversions.py`.
+Its shared assertions compare against pinned upstream recipes and tags, without
+calling the production converter. Add ordinary alloy names to `ALLOYS`; keep
+special recipe families explicit (currently netherite nuggets and Rose Gold).
+Failures identify the material, recipe, tag or item through named subtests.
+The consolidated suite retains 48 recipe cases, 24 tag comparisons, ten block
+checks and 22 item-registration checks from the former twelve modules. The
+unittest method count changes from 13 to 4; coverage is retained in subtests.
+Run it alone with:
+
+```sh
+python3 -m unittest discover -s tconstruct/tests -p 'test_material_conversions.py' -v
+```
+
+Keep regression cases after a feature is finished. Remove superseded test files
+only when their assertions are represented in the maintained feature suite.
+This reduces repeated test code, not generated build or game-world storage.
+
+
 From the repository root:
 
 ```sh
