@@ -1,0 +1,14 @@
+{
+  "recipe.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/crafting_station.json",
+    "sha256": "39487c197b26bacdc3488869f6ce2de51025a76bee8f2f85269b33989003514d"
+  },
+  "advancement.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables/crafting_station.json",
+    "sha256": "70816c970d0e3b7f6d3132087cd7e7179f759b590ed08767a899848ab4929eb0"
+  },
+  "tag.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/forge/tags/items/workbenches.json",
+    "sha256": "15368b145f8e8992d415037e677650b767897acd02947d454a217e8a1bc55808"
+  }
+}

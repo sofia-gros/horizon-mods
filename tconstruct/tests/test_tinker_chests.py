@@ -10,7 +10,7 @@ class TinkerChestSourceTest(unittest.TestCase):
     def test_crafting_station_uses_the_source_pattern_and_workbench_tag(self):
         recipe = json.loads((ROOT / "data/tconstruct/recipe/crafting_station.json").read_text())
         self.assertEqual(recipe["pattern"], ["p", "w"])
-        self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "w": "#tconstruct:source_forge_workbenches"})
+        self.assertEqual(recipe["key"], {"p": "tconstruct:pattern", "w": {"type": "neoforge:difference", "base": "#forge:workbenches", "subtracted": "tconstruct:crafting_station"}})
         tag = json.loads((ROOT / "reference/tconstruct-tags/data/forge/tags/items/workbenches.json").read_text())
         self.assertIn("minecraft:crafting_table", tag["values"])
 
