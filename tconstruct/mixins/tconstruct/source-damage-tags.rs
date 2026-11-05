@@ -88,3 +88,20 @@ mod magic_tag_test {
         assert_eq!(project("tconstruct:protection/magic",&raw,&registry).unwrap(),registry);
     }
 }
+
+#[cfg(test)]
+mod projectile_tag_test {
+    use super::*;
+    #[test]
+    fn source_projectile_tag_includes_falling_blocks_not_only_arrows() {
+        let registry = ["minecraft:arrow","minecraft:falling_anvil","minecraft:falling_block","minecraft:falling_stalactite","minecraft:magic"].map(str::to_owned).into_iter().collect();
+        let raw = Raw::from([
+            ("minecraft:is_projectile".into(),vec![br#"{"values":["minecraft:arrow"]}"#.to_vec()]),
+            ("tconstruct:protection/projectile".into(),vec![br##"{"values":["#minecraft:is_projectile","minecraft:falling_anvil","minecraft:falling_block","minecraft:falling_stalactite",{"id":"twilightforest:falling_ice","required":false}]}"##.to_vec()]),
+        ]);
+        let projected = project("tconstruct:protection/projectile",&raw,&registry).unwrap();
+        assert_eq!(projected.len(),4);
+        assert!(projected.contains("minecraft:falling_anvil"));
+        assert!(!projected.contains("minecraft:magic"));
+    }
+}

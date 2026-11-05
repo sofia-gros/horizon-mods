@@ -89,3 +89,23 @@ mod magic_tests {
         assert_eq!(table["mixed"],9.0);
     }
 }
+
+#[cfg(test)]
+mod projectile_tests {
+    use super::*;
+    #[test]
+    fn projectile_uses_two_points_and_has_no_broken_enchantment() {
+        assert_eq!(points(&[(1.0,false,true)],2.0,0.0),Some((2.0,0.0)));
+        assert_eq!(points(&[(0.4,false,true),(2.0,false,false)],2.0,0.0),Some((2.0 * 0.4 + 4.0,0.0)));
+        assert_eq!(points(&[(3.0,true,true),(3.0,true,false)],2.0,0.0),Some((0.0,0.0)));
+    }
+    #[test]
+    fn overlapping_magic_and_projectile_tags_add_unclamped_coefficients() {
+        use std::collections::{BTreeMap,HashSet};
+        let types = HashSet::from(["mixed".into()]);
+        let mut table = BTreeMap::new();
+        add_points(&mut table,&types,&HashSet::new(),points(&[(6.0,false,true)],3.0,0.0).unwrap());
+        add_points(&mut table,&types,&HashSet::new(),points(&[(2.0,false,true)],2.0,0.0).unwrap());
+        assert_eq!(table["mixed"],22.0); // native stage applies its single cap
+    }
+}

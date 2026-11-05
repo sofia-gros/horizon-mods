@@ -24,7 +24,8 @@ Related to #379. Stacked on the shared Fire/Blast post-armor protection stage.
 
 The harmful-effect-duration secondary effect is implemented on a separate
 Magic Protection duration branch and is not part of this stacked damage branch.
-It must be integrated separately. Melee/Projectile damage protection,
+It must be integrated separately. [Projectile damage](projectile-protection-damage.md)
+now shares the stage. Melee damage protection,
 Boundless/extended caps, negative protection, other custom tools and mobs remain
 outside this change. Native bypass rules, wear/stat rounding, mixed-modifier
 ordering and multiplayer limits remain as documented in the Fire damage bridge.

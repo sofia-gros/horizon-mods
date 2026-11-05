@@ -8,10 +8,11 @@ struct Rule {
     source_each: f32,
     vanilla: Option<(&'static str,f32)>,
 }
-const RULES: [Rule;3] = [
+const RULES: [Rule;4] = [
     Rule { id:"tconstruct:fire_protection", source_tag:"tconstruct:protection/fire", source_each:3.0, vanilla:Some(("minecraft:is_fire",2.0)) },
     Rule { id:"tconstruct:blast_protection", source_tag:"tconstruct:protection/blast", source_each:3.0, vanilla:Some(("minecraft:is_explosion",2.0)) },
     Rule { id:"tconstruct:magic_protection", source_tag:"tconstruct:protection/magic", source_each:3.0, vanilla:None },
+    Rule { id:"tconstruct:projectile_protection", source_tag:"tconstruct:protection/projectile", source_each:2.0, vanilla:None },
 ];
 
 fn piece(game: &super::Game<'_>, stack: &ItemStack, worn: bool, id: &str) -> Option<(f32,bool,bool)> {

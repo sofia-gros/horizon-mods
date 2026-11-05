@@ -1,8 +1,8 @@
 # Projectile Protection knockback resistance
 
 This #379 slice connects Projectile Protection's secondary maximum-armor
-attribute, following its normal acquisition implementation. It does not yet
-connect the separate projectile-damage protection module.
+attribute, following its normal acquisition implementation. The later
+[damage bridge](projectile-protection-damage.md) connects its separate protection module.
 
 The actor receives +0.05 knockback resistance per **highest effective level**
 among eligible equipped pieces. Levels are not summed across armor or hands.
@@ -28,13 +28,13 @@ written into tools or native enchantments.
 
 ## Remaining boundaries
 
-Projectile damage reduction, source damage-tag matching, protection caps,
-other maximum-attribute modules sharing the same source data key, arbitrary
+The damage bridge handles source tag matching at the default cap. Extended
+protection caps, other maximum-attribute modules sharing the same source data key, arbitrary
 effective-level hooks, additional held tools, custom equipment classes and
 monster equipment are not implemented here. Armor refresh occurs at the
 existing equipment/tick boundaries rather than claiming every Java event's
 exact timing. The previous acquisition document's blanket runtime limitation
-is superseded only for this Projectile Protection knockback attribute.
+is superseded by this attribute and the later damage bridge.
 
 The separate use-item-speed work already contains a Melee Protection secondary
 bridge; its integer-level assumptions must be reconciled with five-unit saved

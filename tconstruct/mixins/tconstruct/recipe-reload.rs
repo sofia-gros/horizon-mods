@@ -81,7 +81,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     }
     let damage_types = damage_tags.map(|raw| {
         // One failed tag disables only its associated modifier, not all others.
-        ["tconstruct:protection/fire", "minecraft:is_fire", "tconstruct:protection/blast", "minecraft:is_explosion", "tconstruct:protection/magic"]
+        ["tconstruct:protection/fire", "minecraft:is_fire", "tconstruct:protection/blast", "minecraft:is_explosion", "tconstruct:protection/magic", "tconstruct:protection/projectile"]
             .into_iter().filter_map(|tag| crate::game::tconstruct_source_damage_tags::project(tag,&raw,&registry)
                 .ok().map(|values| (tag.to_owned(),values))).collect::<std::collections::HashMap<_,_>>()
     });
