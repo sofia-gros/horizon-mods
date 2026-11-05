@@ -109,3 +109,31 @@ mod projectile_tests {
         assert_eq!(table["mixed"],22.0); // native stage applies its single cap
     }
 }
+
+/// Only these native creature/PvP entry points have a verified direct attacker.
+/// A damage-type tag alone cannot establish DamageSource.isDirect().
+pub(super) fn verified_melee_source(kind: &str, projectile: bool) -> bool {
+    !projectile && matches!(kind,
+        "minecraft:player_attack" | "minecraft:mob_attack" |
+        "minecraft:mob_attack_no_aggro" | "minecraft:sting")
+}
+
+#[cfg(test)]
+mod melee_tests {
+    use super::*;
+    #[test]
+    fn melee_uses_fractional_two_points_and_no_broken_enchantment() {
+        assert_eq!(points(&[(0.4,false,true),(2.0,false,false)],2.0,0.0),Some((0.8 + 4.0,0.0)));
+        assert_eq!(points(&[(3.0,true,true),(3.0,true,false)],2.0,0.0),Some((0.0,0.0)));
+    }
+    #[test]
+    fn tags_never_invent_a_direct_entity_for_an_unknown_source() {
+        for kind in ["minecraft:player_attack","minecraft:mob_attack","minecraft:mob_attack_no_aggro","minecraft:sting"] {
+            assert!(verified_melee_source(kind,false));
+            assert!(!verified_melee_source(kind,true));
+        }
+        for kind in ["minecraft:arrow","minecraft:fireworks","minecraft:cramming","custom:melee"] {
+            assert!(!verified_melee_source(kind,false));
+        }
+    }
+}

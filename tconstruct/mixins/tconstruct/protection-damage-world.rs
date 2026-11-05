@@ -6,13 +6,15 @@ struct Rule {
     id: &'static str,
     source_tag: &'static str,
     source_each: f32,
+    direct_only: bool,
     vanilla: Option<(&'static str,f32)>,
 }
-const RULES: [Rule;4] = [
-    Rule { id:"tconstruct:fire_protection", source_tag:"tconstruct:protection/fire", source_each:3.0, vanilla:Some(("minecraft:is_fire",2.0)) },
-    Rule { id:"tconstruct:blast_protection", source_tag:"tconstruct:protection/blast", source_each:3.0, vanilla:Some(("minecraft:is_explosion",2.0)) },
-    Rule { id:"tconstruct:magic_protection", source_tag:"tconstruct:protection/magic", source_each:3.0, vanilla:None },
-    Rule { id:"tconstruct:projectile_protection", source_tag:"tconstruct:protection/projectile", source_each:2.0, vanilla:None },
+const RULES: [Rule;5] = [
+    Rule { id:"tconstruct:fire_protection", source_tag:"tconstruct:protection/fire", source_each:3.0, direct_only:false, vanilla:Some(("minecraft:is_fire",2.0)) },
+    Rule { id:"tconstruct:blast_protection", source_tag:"tconstruct:protection/blast", source_each:3.0, direct_only:false, vanilla:Some(("minecraft:is_explosion",2.0)) },
+    Rule { id:"tconstruct:magic_protection", source_tag:"tconstruct:protection/magic", source_each:3.0, direct_only:false, vanilla:None },
+    Rule { id:"tconstruct:projectile_protection", source_tag:"tconstruct:protection/projectile", source_each:2.0, direct_only:false, vanilla:None },
+    Rule { id:"tconstruct:melee_protection", source_tag:"tconstruct:protection/melee", source_each:2.0, direct_only:true, vanilla:None },
 ];
 
 fn piece(game: &super::Game<'_>, stack: &ItemStack, worn: bool, id: &str) -> Option<(f32,bool,bool)> {
@@ -30,7 +32,9 @@ fn piece(game: &super::Game<'_>, stack: &ItemStack, worn: bool, id: &str) -> Opt
     Some((level, flag || stack.damage >= maximum, worn))
 }
 
-fn wanted(game: &super::Game<'_>) -> Option<Vec<(String,f32)>> {
+type Table = Vec<(String,f32)>;
+
+fn wanted(game: &super::Game<'_>) -> Option<(Table,Table)> {
     let damage_types = game.world.chunks.__horizon_mixins_tconstruct_protection_damage_types().as_ref()?.as_ref().ok()?;
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let belongs = |stack:&ItemStack, tag:&str| tags.get(tag).is_some_and(|set|set.contains(stack.item.as_ref()));
@@ -45,6 +49,7 @@ fn wanted(game: &super::Game<'_>) -> Option<Vec<(String,f32)>> {
             && belongs(stack,"tconstruct:modifiable/armor/worn") { equipment.push((stack,true)); }
     }
     let mut table = std::collections::BTreeMap::new();
+    let mut direct_table = std::collections::BTreeMap::new();
     let empty = std::collections::HashSet::new();
     for rule in RULES {
         if !super::tconstruct_source_protection::supported_definition(&game.world,rule.id) { continue; }
@@ -55,14 +60,16 @@ fn wanted(game: &super::Game<'_>) -> Option<Vec<(String,f32)>> {
         };
         let Some(pieces) = equipment.iter().map(|(stack,worn)|piece(game,stack,*worn,rule.id)).collect::<Option<Vec<_>>>() else { continue; };
         let Some(points) = super::tconstruct_protection_damage::points(&pieces,rule.source_each,vanilla_each) else { continue; };
-        super::tconstruct_protection_damage::add_points(&mut table,source_types,vanilla_types,points);
+        let target = if rule.direct_only { &mut direct_table } else { &mut table };
+        super::tconstruct_protection_damage::add_points(target,source_types,vanilla_types,points);
     }
-    Some(table.into_iter().collect())
+    Some((table.into_iter().collect(),direct_table.into_iter().collect()))
 }
 
 pub(super) fn refresh(game: &mut super::Game<'_>) {
-    let table = if game.remote.is_none() { wanted(game).unwrap_or_default() } else { Vec::new() };
+    let (table,direct_table) = if game.remote.is_none() { wanted(game).unwrap_or_default() } else { Default::default() };
     if let Some(player) = game.player.as_mut() {
         *player.status.__horizon_mixins_tconstruct_protection_points_mut() = table;
+        *player.status.__horizon_mixins_tconstruct_melee_protection_points_mut() = direct_table;
     }
 }

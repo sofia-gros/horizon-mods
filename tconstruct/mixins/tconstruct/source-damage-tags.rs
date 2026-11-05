@@ -105,3 +105,21 @@ mod projectile_tag_test {
         assert!(!projected.contains("minecraft:magic"));
     }
 }
+
+
+#[cfg(test)]
+mod melee_tag_test {
+    use super::*;
+    #[test]
+    fn source_melee_tag_keeps_cramming_for_future_identity_bridges() {
+        let registry = ["minecraft:mob_attack","minecraft:player_attack","minecraft:cramming","minecraft:arrow"].map(str::to_owned).into_iter().collect();
+        let raw = Raw::from([
+            ("tconstruct:is_melee".into(),vec![br#"{"values":["minecraft:mob_attack","minecraft:player_attack","tconstruct:fluid_impact_melee"]}"#.to_vec()]),
+            ("tconstruct:protection/melee".into(),vec![br##"{"values":["#tconstruct:is_melee","minecraft:cramming"]}"##.to_vec()]),
+        ]);
+        let projected = project("tconstruct:protection/melee",&raw,&registry).unwrap();
+        assert_eq!(projected.len(),3);
+        assert!(projected.contains("minecraft:cramming"));
+        assert!(!projected.contains("minecraft:arrow"));
+    }
+}

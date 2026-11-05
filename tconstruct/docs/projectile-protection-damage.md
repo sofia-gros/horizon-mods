@@ -25,7 +25,7 @@ the earlier Projectile Protection knockback-resistance implementation.
 
 ## Boundaries
 
-Melee Protection damage, Boundless/extended caps, Overshield, negative protection,
+Broader Melee Protection direct-source coverage, Boundless/extended caps, Overshield, negative protection,
 other custom held tools, mobs, exact mixed-modifier ordering and full multiplayer
 parity remain outside this patch. Native bypass, wear/stat rounding and source
 unregistered-ID projection limits are unchanged. The separate Magic duration
@@ -40,3 +40,6 @@ pieces, shared cap input and falling-block tag membership. They were not run.
 Brief static review only; no tests, builds, planner runs, CI inspection, version
 checks or merges. Actual projectile/falling-block damage, reloads and LAN remain
 unverified. Publication remains paused.
+
+The subsequent [Melee Protection patch](melee-protection-damage.md) adds bounded
+verified native direct-hit coverage at this shared protection stage.

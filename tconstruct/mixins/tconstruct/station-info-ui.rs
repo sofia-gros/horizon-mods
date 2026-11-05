@@ -96,6 +96,8 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                             Some("Magic Protection: supported armor/shield damage reduction uses the default cap. Harmful-effect duration is not connected in this build.".to_owned())
                         } else if id.as_str() == "tconstruct:projectile_protection" {
                             Some("Projectile Protection: supported armor/shield damage reduction uses the default cap; knockback resistance uses the highest equipped level.".to_owned())
+                        } else if id.as_str() == "tconstruct:melee_protection" {
+                            Some("Melee Protection: supported armor/shields reduce verified native creature/PvP melee damage. Cramming, command damage and use-speed are not connected in this build.".to_owned())
                         } else if super::tconstruct_source_upgrade_rules::is_protection(id.as_str()) {
                             Some("Acquisition only: this Protection modifier's damage and secondary effects are not connected yet.".to_owned())
                         } else if id.as_str() == "tconstruct:hydraulic" {
