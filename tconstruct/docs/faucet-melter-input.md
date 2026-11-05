@@ -15,7 +15,7 @@ The fixed upstream [MelterBlockEntity](https://github.com/SlimeKnights/TinkersCo
 
 This is not a generic external capability implementation. Filtered Duct and third-party sources into these destinations remain outside this route. Melter/Lantern comparator integration, Lantern fluid rendering and world light, redstone scheduling, host/world execution, reload, and LAN remain unverified or separate work.
 
-Twenty-one production-route fixture cases and a wiring check were added (five tank-input, three Drain-input, four Casting Tank-input, three Melter-input, three Lantern-destination, and three Lantern-source cases). They have **not been run**. Review was limited to static inspection and `git diff --check`; no tests, CI, version checks, or merge were performed.
+Twenty-four production-route fixture cases and a wiring check were added (five tank-input, three Drain-input, four Casting Tank-input, three Melter-input, three Lantern-destination, three Lantern-source, and three Lantern-to-storage cases). They have **not been run**. Review was limited to static inspection and `git diff --check`; no tests, CI, version checks, or merge were performed.
 
 The formed-Drain extension is stacked on PR #779. Its three added cases cover both controller/Drain variants, metadata and unselected-layer preservation, immediate packet timing, owner/structure/entity/save failures, Duct refusal, and exact base-potion selection changes. These cases use a mock structure detector, not real world formation.
 
@@ -36,3 +36,9 @@ Three unrun cases cover both Lanterns with twelve source configurations, 50 mB c
 Stacked on PR #792. Both placed Lantern variants now feed Melters or either Lantern variant through the shared route. This uses the same inherited fluid handler described above. The source lookup is local to this route: Lanterns are not reclassified as multiblock fuel tanks, and unrelated Faucet paths remain unchanged.
 
 Canonical readable 50 mB source data is required. The source/Faucet/destination save is staged together; an empty source loses only the drained fluid fields, pending fluid preserves its original exact tag across a refill, and opaque/unreadable source state waits. Three unrun cases cover both sources × all three destinations, stop completion, unknown/missing/source-alias/save failures, and exact potion identity after a refill. Other Lantern output destinations, generic capabilities, and the visual/comparator limitations above remain outside this change.
+
+## Lantern output into built-in storage
+
+Stacked on PR #794. Both placed Lantern variants can also supply all eight Seared/Scorched fuel and ingot tanks/gauges. The destination's registered 4,000 or 4,320 mB capacity is used, and source plus destination tanks must be canonical. These destinations are accepted only for Lantern sources; existing transfers between other sources and storage keep their prior dispatch.
+
+Three unrun cases cover all sixteen source/destination pairs, preservation of the old non-Lantern dispatch, failed saves and opaque/missing/unloaded destination refusal, exact potion identity, and a final 5 mB fill for both storage capacities. Casting-machine, Casting Tank, Cannon, and formed-Drain destinations for Lantern output remain outside this change, as do comparator/visual integration and host/world/LAN verification.
