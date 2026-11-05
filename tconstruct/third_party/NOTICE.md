@@ -166,7 +166,7 @@ Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LI
 
 Mighty Smelting's `sections/abilities.json` is copied verbatim from
 [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/sections/abilities.json).
-The ordinary modifier guide fixture copies eight recipes and three modifier
+The ordinary modifier guide fixture copies eleven recipes and three modifier
 tags from the same pinned source archives; exact paths are recorded in `tests/fixtures/ordinary-modifier-guides.json`.
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
 The partial labels and generated recipe text are port adaptations.

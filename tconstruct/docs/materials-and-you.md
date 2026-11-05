@@ -28,7 +28,7 @@ New LAN guide requests carry a sequence number, and the client accepts a reply o
 
 The source permits book images without explicit dimensions. The reader falls back to atlas dimensions and preparation resizes oversized guide images for the host's 1024×512 GUI sprite limit, keeping the pinned originals unchanged. Missing sprites no longer hide their accompanying text. Representative Melter, Casting, Moving Fluids and Channel illustrations were verified in the combined Linux build.
 
-The modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot, ordinary and single-point incremental upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
+The modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot, ordinary and supported incremental upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
 
 Puny Smelting showcase pages accept both source string and object item IDs. Gauge, Fluid Cannon and Casting Tank remain unregistered in this snapshot, so their icons may be missing until the items are available. Their source descriptions remain readable. A Linux creative fixture substituted stone for the unavailable source items and verified string/object forms and tooltip display locally and for a LAN guest; it did not verify the original icons or machine behavior.
 
@@ -214,8 +214,23 @@ fixtures exercise Haste, Sharpness, Quick Charge and Hydraulic; supported
 recipe and tag overrides affect the next open/request. A removed recipe or
 unavailable input does not leave a static placeholder.
 
-This is still a partial port-supported view. Recipes worth multiple points per
-item, leftover-producing recipes, crystal alternatives, absent/default level
-caps, changed effect denominators and additional requirements are omitted.
+This is still a partial port-supported view. Point values other than one/four/nine, bulk recipes without a registered
+leftover, crystal alternatives, absent/default level caps, changed effect
+denominators and additional requirements are omitted.
 Full source registry/redirect parity and in-game/LAN visual checks remain
 outstanding. These pages do not change modifier acquisition or effect rules.
+
+## Block-value incremental inputs and leftovers
+
+The same partial Puny incremental view also accepts the source block values
+of four or nine progress points per item. These entries require a registered
+leftover item in the current item registry, the existing fixed effect
+denominator and cap checks, and an explicit one-upgrade-slot cost. Pages show
+the item value, input count from zero progress and the actual leftover item:
+one leftover item is returned per unused point when crossing a level boundary.
+
+Pinned Redstone Block/Haste, Quartz Block/Sharpness and Prismarine Bricks/
+Hydraulic fixtures compare guide data to actual Station consumption with one
+point remaining. A missing or unregistered leftover hides the bulk entry;
+unsupported point multipliers and crystal alternatives remain omitted. No
+new acquisition/effect behavior or complete source registry is claimed.

@@ -1088,3 +1088,41 @@ fn incremental_guide_matches_source_amounts_targets_and_runtime_limits() {
     recipes.remove(quick);
     assert!(!rows(&recipes).iter().any(|row|row.modifier=="tconstruct:quick_charge"));
 }
+
+#[test]
+fn bulk_incremental_guide_reports_actual_partial_level_leftovers() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let registry=tconstruct_source_upgrade_rules::incremental_guide_registry();
+    for (name,modifier,block,dust,tool,per_item,needed) in [
+        ("haste_from_block","tconstruct:haste","minecraft:redstone_block","minecraft:redstone","tconstruct:pickaxe",9,45),
+        ("sharpness_from_block","tconstruct:sharpness","minecraft:quartz_block","minecraft:quartz","tconstruct:sword",4,36),
+        ("hydraulic_from_bricks","tconstruct:hydraulic","minecraft:prismarine_bricks","minecraft:prismarine_shard","tconstruct:pickaxe",9,36),
+    ] {
+        let path=format!("data/tconstruct/recipes/tools/modifiers/upgrade/{name}.json");
+        let recipes=BTreeMap::from([(path.clone(),serde_json::to_vec(&fixture["bulk_incremental_recipes"][&path]).unwrap())]);
+        let tags:HashMap<String,HashSet<String>>=[
+            ("forge:storage_blocks/redstone",vec!["minecraft:redstone_block"]),
+            ("forge:storage_blocks/quartz",vec!["minecraft:quartz_block"]),
+            ("tconstruct:modifiable/harvest",vec!["tconstruct:pickaxe"]),
+            ("tconstruct:modifiable/melee",vec!["tconstruct:sword"]),
+        ].into_iter().map(|(tag,ids)|(tag.into(),ids.into_iter().map(str::to_owned).collect())).collect();
+        let modifiers=vec![modifier.to_owned()]; let tools=vec![tool.to_owned()];
+        let rows=|items:&[String]|tconstruct_modifier_snapshot::incremental_guide_recipes(
+            &recipes,&modifiers,&registry,items,&tools,
+            |v,id|tconstruct_source_upgrade_rules::ingredient_matches(v,id,&tags),
+            |id,item|tconstruct_source_upgrade_rules::tool_supported_with_tags(id,item,&tags),
+            tconstruct_source_upgrade_rules::incremental_limits_supported);
+        let shown=rows(&[block.into(),dust.into()]); assert_eq!(shown.len(),1,"{name}");
+        assert_eq!((shown[0].per_item,shown[0].needed),(per_item,needed));
+        assert_eq!(shown[0].leftover.as_deref(),Some(dust));
+        assert!(rows(&[block.into()]).is_empty(),"unregistered leftover must hide {name}");
+        let mut stack=ItemStack::new(tool,1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([(modifier,Tag::Int(needed-1))]))])));
+        let plan=tconstruct_source_upgrade_rules::plan(&recipes,&tags,&stack,&[Some(ItemStack::new(block,1))],1).unwrap();
+        assert_eq!(plan.amount,needed); assert_eq!(plan.consumed,[(0,1),(1,1)]);
+        let leftover=plan.leftover.unwrap(); assert_eq!(&*leftover.item,dust); assert_eq!(leftover.count,(per_item-1) as u32);
+    }
+}

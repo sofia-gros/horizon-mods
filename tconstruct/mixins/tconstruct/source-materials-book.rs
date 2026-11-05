@@ -385,9 +385,14 @@ fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Te
         let mut text = String::from("Supported incremental recipe (partial guide).\n\n");
         let description = game.translate(&format!("modifier.{namespace}.{name}.description"), "");
         if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str("\n\n"); }
-        text.push_str(&format!("Each item adds 1 progress point. {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\n\nPartial progress can be added over multiple Station operations. One operation stops at the next completed level.\n\nInput alternatives: {}.\n\nEligible tool types: {}.\n\nRecipe: {}\n\nOnly single-point item recipes are shown. Block-value and crystal alternatives are not shown. Existing modifier and tool state still affect application.",
-            entry.needed, entry.maximum, entry.upgrade_cost, entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR "),
+        text.push_str(&format!("Each item adds {} progress point(s). {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\n\nPartial progress can be added over multiple Station operations. One operation stops at the next completed level.\n\nInput alternatives: {}.\n\nEligible tool types: {}.\n\nRecipe: {}\n\nOnly supported single-item and block-value recipes are shown. Crystal alternatives are not shown. Existing modifier and tool state still affect application.",
+            entry.per_item, entry.needed, entry.maximum, entry.upgrade_cost, entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR "),
             entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", "), entry.recipe));
+        let from_zero = entry.needed / entry.per_item + i32::from(entry.needed % entry.per_item != 0);
+        text.push_str(&format!("\n\nFrom zero progress, {from_zero} input item(s) complete the next level."));
+        if let Some(leftover) = &entry.leftover {
+            text.push_str(&format!("\n\nWhen an item crosses the next level boundary, unused progress points return as {} (one item per unused point).", item_name(leftover)));
+        }
         for part in split_styled(game, &Text::literal(text), 182.0, 15) {
             let mut page = Text::styled(&title, horizon_client::text::Style { insertion:Some("tconstruct:book-title".into()), underlined:Some(true), ..Default::default() });
             page.push("\n\n"); page.push(part); pages.push(page);
