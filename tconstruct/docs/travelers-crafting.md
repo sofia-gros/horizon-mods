@@ -37,12 +37,42 @@ by this change, not claims of a live client/LAN test.
 - Native `recipe/` world overrides of the five contributed paths take precedence
   over the legacy source recipe. Conditional native-format overrides disable
   the projection; legacy source conditions use the existing snapshot resolver.
-- Synthetic IDs are reserved under `tconstruct:travelers_native/`. Recipe-book
-  discovery, original recipe-ID advancement rewards, and arbitrary conflicting
-  datapack ordering are not completed by this slice.
+- Synthetic IDs are reserved under `tconstruct:travelers_native/`. They now have
+  world-local recipe-book index entries, but automatic discovery, original
+  recipe-ID advancement rewards, and arbitrary conflicting datapack ordering
+  are not completed by this slice.
 - At most 4,096 combinations per source recipe and 8,192 total are projected.
 - This establishes a bounded ordinary acquisition route, not completion of all
   armor/shield effects or all material crafting recipe types.
+
+## Recipe-book indexing follow-up
+
+After world projection, each generated recipe receives one learnable native
+RecipeIndex display, preserving source category, group and show-notification
+metadata. All five pinned recipes use the equipment category. Native Book
+construction keeps the assembled result's materials, stats and upgrades.
+
+Only the reserved Travelers index and recipe metadata entries are replaced.
+Other recipe families retain their display numbers. Available display gaps are
+reused in deterministic recipe-ID order so repeated rebuilds do not drift upward
+beside another synthetic family. Missing/invalid projection clears stale entries.
+The old book, known-display cache and stale ghost/click state are invalidated.
+
+The normal native craftability and placement paths stay enabled for these bounded
+ordinary item ingredients. No alternate inventory transaction or material-blind
+fake-ingot placement is introduced. Actual UI/placement behavior is unverified.
+
+This is indexing support, not automatic discovery. Native recipe commands can
+learn the indexed variants after projection. The five source acquisition goals
+and dynamic rewards remain separate. Early native saved-book validation may still
+discard synthetic recipe knowledge before projection on reopen; Travelers has no
+saved-book handoff in this change. Remote clients do not install authoritative
+projections, and LAN display/content synchronization remains unimplemented.
+
+The added planner metadata and index allocation unit cases plus source/wiring
+regressions were authored but **not run**. Brief static review and whitespace
+checking only; no compilation, native injection checks, CI/version checks or merge.
+The earlier parser test report below predates this follow-up and does not validate it.
 
 ## Verification
 

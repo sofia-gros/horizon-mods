@@ -8,6 +8,14 @@ use horizon_client::{
 use std::collections::BTreeSet;
 const PREFIX: &str = "tconstruct:travelers_native/";
 
+struct Projection {
+    id: String,
+    recipe: Recipe,
+    category: String,
+    group: String,
+    notify: bool,
+}
+
 pub(super) fn contribute(game: &super::Game<'_>, files: &mut Vec<(String, Vec<u8>)>) {
     let manual = game.options.resources.join("tconstruct-original-pack");
     let root = if manual.is_dir() {
@@ -60,7 +68,7 @@ fn ingredient_items(
         out.extend(tag.iter().cloned());
     }
 }
-fn generated(game: &super::Game<'_>) -> Option<Vec<(String, Recipe)>> {
+fn generated(game: &super::Game<'_>) -> Option<Vec<Projection>> {
     let chunks = &game.world.chunks;
     let recipes = chunks
         .__horizon_mixins_tconstruct_recipe_snapshot()
@@ -178,9 +186,9 @@ fn generated(game: &super::Game<'_>) -> Option<Vec<(String, Recipe)>> {
             if generated.len() >= 8192 {
                 return None;
             }
-            generated.push((
+            generated.push(Projection {
                 id,
-                Recipe::Shaped {
+                recipe: Recipe::Shaped {
                     width: plan.width,
                     height: plan.height,
                     cells: plan
@@ -195,7 +203,10 @@ fn generated(game: &super::Game<'_>) -> Option<Vec<(String, Recipe)>> {
                         extra: output.extra,
                     },
                 },
-            ));
+                category: plan.category,
+                group: plan.group,
+                notify: plan.show_notification,
+            });
         }
     }
     Some(generated)
@@ -214,5 +225,18 @@ pub(super) fn refresh(game: &mut super::Game<'_>) {
         .retain(|(id, _)| !id.starts_with(PREFIX));
     // Keep ordinary source/native recipes first. Synthetic material variants
     // only supply the custom recipe kind absent from native normal matching.
-    tables.recipes.crafting.extend(generated);
+    tables.recipes.meta.retain(|id, _| !id.starts_with(PREFIX));
+    let mut displays = Vec::with_capacity(generated.len());
+    for projection in generated {
+        let output = match &projection.recipe {
+            Recipe::Shaped { result, .. } => result.item.as_deref().unwrap_or_default().to_owned(),
+            _ => continue,
+        };
+        displays.push((projection.id.clone(), output, projection.notify));
+        tables.recipes.meta.insert(projection.id.clone(), (projection.category, projection.group));
+        tables.recipes.crafting.push((projection.id, projection.recipe));
+    }
+    horizon_client::recipe_book::tconstruct_source_travelers_book::replace(
+        &mut tables.stations.recipe_index, &displays);
+    game.tconstruct_invalidate_travelers_book();
 }
