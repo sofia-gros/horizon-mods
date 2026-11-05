@@ -5383,3 +5383,38 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_inventory_ticks"
 kind = "TAIL"
 helper = "source-overgrowth-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[state]]
+id = "overburn-phase"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u128, u16>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-overburn"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overburn"
+source = "source-overburn.rs"
+
+[[module]]
+id = "source-overburn-stack"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overburn_stack"
+source = "source-overburn-stack.rs"
+
+[[module]]
+id = "source-overburn-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_overburn_world"
+source = "source-overburn-world.rs"
+
+[[injection]]
+id = "source-overburn-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_inventory_ticks"
+kind = "TAIL"
+helper = "source-overburn-tick.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

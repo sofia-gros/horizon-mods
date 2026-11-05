@@ -196,3 +196,7 @@ mod chain_compat_tests {
 #[allow(dead_code)]
 #[path = "../../../mixins/tconstruct/source-overgrowth.rs"]
 mod tconstruct_source_overgrowth;
+
+#[allow(dead_code)]
+#[path = "../../../mixins/tconstruct/source-overburn.rs"]
+mod tconstruct_source_overburn;
