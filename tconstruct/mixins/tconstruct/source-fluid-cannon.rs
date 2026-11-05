@@ -12,7 +12,7 @@ impl Cannon {
     }
     pub(super) fn lossless(&self) -> bool {
         self.item.as_ref().is_none_or(|item| {
-            if item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
+            if item.count == 0 || item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
             item_from_nbt(&item_to_nbt(item)).is_some_and(|decoded| decoded.count == item.count && decoded.damage == item.damage && decoded.same_item_same_components(item))
         })
     }

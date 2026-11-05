@@ -212,3 +212,22 @@ block/chunk/raw/live/wire changes, missing entities, invalid endpoints and faile
 save rollback. Host containers/world/storage remain mocked; these tests were added
 but not run. Actual hopper scheduling, host gameplay, reload and LAN remain for the
 combined validation phase.
+
+### Cannon ordinary item clicks: retained-wire destinations
+
+The upper/item interaction rejects retained wire patches before inserting a
+held stack, and before the native inventory-add planner touches any player or
+offhand stack. Zero-count stored/target items are not representable inventory
+entries. An inventory that cannot accept any items is a handled no-op: no
+machine save or comparator/container notification is emitted. Partial extraction
+keeps the remainder in the Cannon. Player inventory changes still publish only
+after the preserving Cannon save succeeds.
+
+`run_cannon_held.py` now extracts the complete production Cannon interaction and
+the host's actual `inventory_add` function. Added fixtures cover insertion,
+empty-hand extraction, selected/offhand/empty-slot ordering, partial transfer,
+full inventories, current/retained wire patches, malformed player layout and
+save failure. World storage, notifications and the acting-hand mapping remain
+fixture implementations, not a full host/LAN execution. These new cases have not
+been run in this implementation-only batch. This does not implement firing or
+claim arbitrary host callback/notification transaction safety.
