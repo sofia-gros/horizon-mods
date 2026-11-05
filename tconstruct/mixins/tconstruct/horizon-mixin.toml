@@ -5354,3 +5354,70 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-padded"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_padded"
+source = "source-padded.rs"
+
+[[module]]
+id = "source-padded-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_padded_world"
+source = "padded-world.rs"
+
+[[state]]
+id = "padded-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Vec<(Option<u32>, Option<(u32, i32, Option<f32>, Option<f64>)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-padded-begin"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "padded-begin.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-padded-end"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "padded-end.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-padded-extra"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "WRAP_OPERATION"
+selector = "self.extra_knockback"
+require = 1
+ordinal = 0
+helper = "padded-extra.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "kind", ty = "&str", value = "$arg0" },
+  { name = "scale", ty = "f32", value = "$arg1" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, &str, f32) -> (f32, bool)", value = "$operation" },
+]
+
+[[injection]]
+id = "source-padded-hurt"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "WRAP_OPERATION"
+selector = "self.hurt_by_player"
+require = 1
+ordinal = 0
+helper = "padded-hurt.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "index", ty = "usize", value = "$arg0" },
+  { name = "amount", ty = "f32", value = "$arg1" },
+  { name = "source", ty = "horizon_client::mobs::Damage", value = "$arg2" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, usize, f32, horizon_client::mobs::Damage) -> bool", value = "$operation" },
+]
