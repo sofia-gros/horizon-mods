@@ -39,7 +39,7 @@ pub(super) fn harvest(game: &mut Game<'_>, hit: Option<&Hit>) -> ControlFlow<Res
             let Some(reset) = tconstruct_source_crop_age::mature_reset(game.pack.assets.registry, state) else { continue; };
             let name = game.res.facts().get(state).name.clone();
             let block_entity = game.loot_block_entity(pos, &name);
-            let mut drops = game.block_loot_at(pos, state, Some(&stack), block_entity);
+            let mut drops = super::tconstruct_fortune_harvest_world::crop_drops(game, pos, state, Some(&stack), block_entity);
             if tconstruct_source_crop_loot::consume_seed(&mut drops, &seeds) {
                 game.level_set(pos, reset)?;
             } else {
