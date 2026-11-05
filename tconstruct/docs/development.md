@@ -217,3 +217,21 @@ commit helper with real Melter/NBT types and a mock world, testing every valid
 fluid amount, save/load, same-level changes, fill/drain and failed writes. CI
 runs this fixture. Actual redstone circuits, world reload and LAN remain
 unverified; Alloyer registration and other machines are outside this change.
+
+### Fuel/ingot tank and gauge comparator signals
+
+The eight registered Seared/Scorched fuel tanks, fuel gauges, ingot tanks and
+ingot gauges now expose source tank analog output: empty 0, otherwise
+`1 + floor(14 * amount / capacity)`, using 4,000 or 4,320 mB as appropriate.
+[SearedTankBlock at f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/smeltery/block/component/SearedTankBlock.java)
+delegates to the same ITankBlockEntity comparator as Melter. Fuel/ingot naming
+does not change signal semantics, and fluid type/tag does not contribute.
+
+The existing committed-signal wrapper now covers these saved tank keys. It is
+used after melting fuel withdrawals, held-container exchanges, Faucet transfers
+and filled-tank placement; failed writes do not notify. Melter behavior is
+preserved. Lanterns and other machine signals are outside this change. Saved
+states that cannot be decoded yield zero without rewriting them. Fixture tests
+cover every representable amount at both capacities and threshold/failure
+transitions; world storage/neighbor callbacks are mocked. Actual redstone
+circuits, placement, reload and LAN remain unverified.

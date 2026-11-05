@@ -15,6 +15,12 @@ fn tconstruct_casting_comparator(level: &crate::game::GameLevel<'_>, pos: horizo
             *output = crate::game::tconstruct_source_melter_store::read(level.world,key,"tconstruct:fluid_cannon")
                 .and_then(|tag| crate::game::tconstruct_source_fluid_cannon::Cannon::from_nbt(&tag)).map_or(0, |state| state.comparator());
         }
-        _ => {}
+        _ => {
+            if let Some(capacity) = crate::game::tconstruct_source_smeltery_fuel::capacity(name) {
+                let key_name = if capacity == 4000 { "tconstruct:fuel_tank" } else { "tconstruct:ingot_tank" };
+                *output = crate::game::tconstruct_source_melter_store::read(level.world,key,key_name)
+                    .and_then(|raw| crate::game::tconstruct_source_melter_state::saved_comparator(key_name, &raw)).unwrap_or(0);
+            }
+        }
     }
 }
