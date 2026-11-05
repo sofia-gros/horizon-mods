@@ -72,3 +72,24 @@ Melter/Casting Tank sources and generic handlers are not added here.
 Brief static review only. Focused route fixtures are added but not run in this
 phase; full host build, gameplay, save/reload, LAN and atomic disk/network
 persistence remain unverified.
+
+
+### Drain to Drain
+
+A Faucet can transfer from a formed Smeltery or Foundry Drain into a different
+formed controller's Drain. All four Smeltery/Foundry combinations use the
+selected source layer and the destination's total free capacity. Exact fluid
+and vanilla base-potion tags remain separate; an already-reserved packet keeps
+its identity when the source's selection advances to the next layer.
+
+Both controller tanks and the Faucet are staged together. Only tank fields
+are replaced, retaining inventory and other controller metadata. Source and
+destination ownership, formed shells, blocks, loaded chunks, saved data and
+destination capacity are checked before commit. Same-controller loops are
+rejected rather than saving two conflicting snapshots. A recognized but invalid
+source Drain waits, including when a packet is pending.
+
+This is not generic FluidHandler support. Ducts and custom potion color/effects
+are excluded. Four focused fixture cases and dispatch-order assertions were
+added but not run. Brief static review only; full host, gameplay, save/reload,
+LAN and atomic disk/network persistence remain unverified.
