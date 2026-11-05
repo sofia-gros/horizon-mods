@@ -1417,8 +1417,8 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
 }
 
 /// A Melter exposes its internal tank as a fillable fluid handler on every face.
-/// This bounded route accepts built-in tanks/gauges, Casting Tanks, and formed
-/// Drains without rewriting Melter inventory, heat, fuel, or progress.
+/// This bounded route accepts built-in tanks/gauges, Melters, Casting Tanks,
+/// and formed Drains without rewriting Melter inventory, heat, fuel, or progress.
 fn source_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
     let target_state = game.world.block(target.0, target.1, target.2);
@@ -1438,6 +1438,12 @@ fn source_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
         let fluid = state.tank.clone();
         portable_input = Some(state);
         Some((source, "tconstruct:casting_tank", fluid, raw))
+    } else if &*source_name == "tconstruct:seared_melter" {
+        if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
+        let Some(raw) = store::read(&game.world, source, "tconstruct:melter") else { return Some(false); };
+        let Some(state) = Melter::from_nbt(&raw) else { return Some(false); };
+        if raw.get("tank") != Some(&state.tank.to_nbt()) { return Some(false); }
+        Some((source, "tconstruct:melter", state.tank, raw))
     } else if let Some((key, capacity)) = tanks::tank_kind(&source_name) {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, key) else { return Some(false); };
@@ -1507,6 +1513,9 @@ fn source_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
             if !casting_tank_at(game, source).is_some_and(|current| current.to_nbt() == *raw
                 && current.slots.iter().flatten().all(|item| item.data().is_none_or(|data| data.wire.patch().is_none()))) { return Some(false); }
             state.to_nbt()
+        } else if &*source_name == "tconstruct:seared_melter" {
+            let Some(next) = tanks::patch_melter_tank(raw, tank) else { return Some(false); };
+            next
         } else { tank.to_nbt() };
         if next != *raw { changed_source = Some(*at); }
         changes.push((*at, *key, next));
