@@ -1,4 +1,5 @@
 fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
+    *chunks.__horizon_mixins_tconstruct_entity_melting_snapshot_mut() = None;
     chunks.__horizon_mixins_tconstruct_builder_info_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_info_scroll_mut().clear();
     chunks.__horizon_mixins_tconstruct_builder_info_recv_mut().clear();

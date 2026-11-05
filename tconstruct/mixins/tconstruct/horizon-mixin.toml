@@ -4,7 +4,7 @@ version = "0.5.0"
 priority = 100
 
 [compatibility]
-horizon_revision = "0c7b5b61a5e746d621afffba919b12aeccf9c0fa"
+horizon_revision = "f2e8a953042e674bbb1936ec36849f607734437e"
 
 [[crate]]
 id = "source-config-parser"
@@ -5337,6 +5337,54 @@ helper = "gravel-crafting-injection.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
 
 [[module]]
+id = "source-entity-melting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_entity_melting"
+source = "source-entity-melting.rs"
+
+[[module]]
+id = "server-entity-melting"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_entity_melting"
+source = "source-entity-melting.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-entity-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_entity_world"
+source = "source-entity-world.rs"
+
+[[state]]
+id = "entity-melting-snapshot"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Option<Result<Vec<u8>,String>>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[module]]
+id = "source-entity-runtime"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_entity_runtime"
+source = "source-entity-runtime.rs"
+
+[[module]]
+id = "source-entity-step"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_entity_step"
+source = "source-entity-step.rs"
+
+[[module]]
+id = "server-entity-step"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_entity_step"
+source = "source-entity-step.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-gold-guard-module"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_gold_guard"
@@ -5354,3 +5402,10 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-entity-damage-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+helper = "entity-damage-pack-injection.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]

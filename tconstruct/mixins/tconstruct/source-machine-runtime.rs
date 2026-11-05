@@ -102,7 +102,8 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         let name = &game.res.facts().get(game.world.block(at.0, at.1, at.2)).name;
         super::tconstruct_source_smeltery_fuel::capacity(name).is_some()
     });
-    if state.entity_phase == 12 && has_tank {
+    let melt_entities = state.entity_phase == 12 && has_tank;
+    if melt_entities {
         use horizon_core::geometry::{Aabb, Vec3};
         let area = Aabb::new(Vec3::new(f64::from(min[0]+1), f64::from(min[1]+1), f64::from(min[2]+1)),
             Vec3::new(f64::from(max[0]), f64::from(max[1]+1), f64::from(max[2])));
@@ -239,6 +240,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         else { game.dropped[index].stack.count = remaining; game.dropped[index].needs_sync = true; }
     }
     super::spill::tconstruct_source_smeltery_spill::spill(game, pos, displaced);
+    if melt_entities { super::tconstruct_source_entity_runtime::melt_blazes(game, pos, min, max, &saved); }
     if game.container == Some(pos) && game.remote.is_none() {
         let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map_or(0, |page| page.1);
         let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)

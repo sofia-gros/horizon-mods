@@ -73,7 +73,7 @@ impl Ingredient {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct FluidSpec { pub id: String, pub tagged: bool, pub amount: u32 }
 impl FluidSpec {
-    fn parse(value: &Value) -> Option<Self> {
+    pub(super) fn parse(value: &Value) -> Option<Self> {
         let obj = value.as_object()?;
         if obj.keys().any(|key| key != "fluid" && key != "tag" && key != "amount") { return None; }
         let (id, tagged) = match (obj.get("fluid"), obj.get("tag")) {

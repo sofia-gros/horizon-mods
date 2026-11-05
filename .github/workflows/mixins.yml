@@ -91,7 +91,8 @@ jobs:
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           git init ../horizon-official
-          git -C ../horizon-official remote add origin https://github.com/horizon-rust/horizon.git
+          HORIZON_REPOSITORY="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_repository"])')"
+          git -C ../horizon-official remote add origin "$HORIZON_REPOSITORY"
           HORIZON_REVISION="$(python3 -c 'import json; print(json.load(open("tconstruct/compatibility.json"))["horizon_revision"])')"
           git -C ../horizon-official fetch --depth 1 origin "$HORIZON_REVISION"
           git -C ../horizon-official checkout --detach FETCH_HEAD
@@ -108,6 +109,7 @@ jobs:
           python3 tconstruct/tools/extract_pluto.py --horizon ../horizon-official --package "$RUNNER_TEMP/pluto-source/plutolib.hnmod" --output "$RUNNER_TEMP/pluto-installed"
           python3 tconstruct/tools/stage.py --horizon ../horizon-official --mixins ../horizon-mixins --mixins-revision "$(git -C ../horizon-mixins rev-parse HEAD)" --pluto-bundle "$RUNNER_TEMP/pluto-installed/pluto_native_creative/mixins/pluto_native_creative"
           cargo check --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --bin horizon-client --no-default-features
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client-lib --lib --no-default-features --profile fast tconstruct_source_entity_
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p tconstruct-source-config --lib
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_station_recipes::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_recipes::foundry_tests
