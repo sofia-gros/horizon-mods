@@ -46,7 +46,7 @@ class DestroyGuardWiring(unittest.TestCase):
         self.assertIn('::protect(kind, &raw)', helper)
         runtime = (ROOT / 'source-machine-runtime.rs').read_text()
         self.assertIn('let fresh_smeltery', runtime)
-        self.assertIn('&& game.world.block_entities.get(&pos).is_none()', runtime)
+        self.assertIn('matches!(live.len(), 27 | 54) && live.iter().all(Option::is_none)', runtime)
         self.assertIn('if fresh_smeltery {', runtime)
         self.assertIn('"tconstruct:smeltery" => 54', runtime)
         self.assertLess(runtime.index('::capture_legacy('), runtime.index('let bounds ='))

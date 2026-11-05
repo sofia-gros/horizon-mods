@@ -456,8 +456,14 @@ pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool 
     if !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4)) { return false; }
     if game.world.block_entities.get(&pos).is_some_and(|entity| !matches!(entity, BlockEntity::Chest(_))) { return false; }
     if game.world.block_entities.get(&pos).is_none() { store::clear_different(&mut game.world, pos, kind); }
+    // Placement may already have created the host's empty 27-slot chest.
+    // Only absent/empty inventory with no source can initialize provenance.
     let fresh_smeltery = kind == "tconstruct:smeltery" && store::read_outer(&game.world, pos).is_none()
-        && game.world.block_entities.get(&pos).is_none();
+        && match game.world.block_entities.get(&pos) {
+            None => true,
+            Some(BlockEntity::Chest(live)) => matches!(live.len(), 27 | 54) && live.iter().all(Option::is_none),
+            _ => false,
+        };
     if store::read(&game.world, pos, kind).is_none() {
         let Some(data) = initial(kind) else { return false; };
         if !store::write(&mut game.world, pos, kind, data) { return false; }
@@ -468,6 +474,7 @@ pub(super) fn ensure(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool 
         let Some(raw) = store::read_outer(&game.world, pos) else { return false; };
         let Some(updated) = super::tconstruct_source_machine_destroy_guard::retire_outer(&raw) else { return false; };
         if !store::replace_outer(&mut game.world, pos, &raw, updated) { return false; }
+        if let Some(BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) { live.resize(54, None); }
     }
     game.world.modified.insert((pos.0 >> 4, pos.2 >> 4));
     true
