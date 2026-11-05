@@ -425,8 +425,14 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
         && z >= min[2] && z <= max[2] && y >= min[1] && y <= max[1]
         && (y == min[1] || x == min[0] || x == max[0] || z == min[2] || z == max[2]);
     if !wall && !floor && !foundry_shell { return false; }
-    let Some(mut state) = store::read(&game.world, controller, "tconstruct:smeltery").and_then(|tag| Smeltery::from_nbt(&tag)) else { return false; };
+    let Some(raw_controller) = store::read(&game.world, controller, "tconstruct:smeltery") else { return false; };
+    let Some(mut state) = Smeltery::from_nbt(&raw_controller) else { return false; };
+    // Only the tank changes. Refuse unknown rows/aliases or lossy fluid IDs,
+    // and never serialize unrelated inventory, heat, fuel or extension data.
+    if raw_controller.get("tank") != Some(&state.tank.to_nbt()) { return false; }
     let Some(held) = game.held().cloned() else { return false; };
+    if held.wire_patch().is_some() || held.data().is_some_and(|data| data.wire.patch().is_some()) { return false; };
+
     let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
         .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
@@ -440,7 +446,9 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
     if !super::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut slots,
         super::tconstruct_source_fluid_container::Direction::Auto, None,
         &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return container; }
-    if !store::write(&mut game.world, controller, "tconstruct:smeltery", state.to_nbt()) { return false; }
+    let Some(saved) = patch_smeltery_controller_tank(&raw_controller, &state) else { return false; };
+    if store::read(&game.world, controller, "tconstruct:smeltery").as_ref() != Some(&raw_controller) { return false; }
+    if !store::write(&mut game.world, controller, "tconstruct:smeltery", saved) { return false; }
     if game.creative {
         if state.tank.total() < before {
             if let Some(result) = slots[1].take() { game.give_or_drop(result); }
