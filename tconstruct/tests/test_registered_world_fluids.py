@@ -1,4 +1,4 @@
-"""Observable content contracts for the initial twenty-three world-liquid families."""
+"""Observable content contracts for the initial twenty-five world-liquid families."""
 import hashlib
 import importlib.util
 import json
@@ -40,19 +40,23 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 ('emerald', 6, 9, 4, 45, 0xFFFFFF),
                 ('quartz', 5, 6, 4, 45, 0xFFFFFF),
                 ('amethyst', 5, 11, 4, 45, 0xFFFFFF),
-                ('diamond', 7, 13, 4, 45, 0xFFFFFF)]:
+                ('diamond', 7, 13, 4, 45, 0xFFFFFF),
+                ('blazing_blood', 5, 15, 1, 5, 0xFFFFFF),
+                ('fiery_liquid', 6, 15, 1, 30, 0xFFFFFF)]:
             with self.subTest(metal=name):
-                short = name if name in ('seared_stone', 'scorched_stone') else 'molten_' + name
+                short = name if name in ('seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid') else 'molten_' + name
                 blockname = short + '_fluid'
                 fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / (short + '.json')).read_text())
                 self.assertEqual(fluid['source'], 'tconstruct:' + short)
                 self.assertEqual(fluid['flowing'], 'tconstruct:flowing_' + short)
                 self.assertEqual(fluid['block'], 'tconstruct:' + blockname)
                 self.assertEqual(fluid['bucket'], 'tconstruct:' + short + '_bucket')
-                self.assertEqual(fluid['policy'], {'drop_off': drop, 'slope_distance': drop, 'tick_delay': delay, 'source_conversion': False})
+                slope = 4 if name in ('blazing_blood', 'fiery_liquid') else drop
+                self.assertEqual(fluid['policy'], {'drop_off': drop, 'slope_distance': slope, 'tick_delay': delay, 'source_conversion': False})
                 policy = fluid['interaction']
                 seconds = {'seared_stone': 8, 'scorched_stone': 7,
-                           'clay': 5, 'porcelain': 5, 'obsidian': 12}.get(name, 10)
+                           'clay': 5, 'porcelain': 5, 'obsidian': 12,
+                           'blazing_blood': 15, 'fiery_liquid': 20}.get(name, 10)
                 self.assertEqual(policy['burn'], {'seconds': seconds, 'damage': damage})
                 self.assertFalse(policy['can_swim'])
                 self.assertFalse(policy['can_drown'])
@@ -75,7 +79,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 80)
+        self.assertEqual(len(manifest['files']), 88)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -103,7 +107,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron',
                         'manyullyn', 'hepatizon', 'queens_slime', 'soulsteel',
                         'clay', 'porcelain', 'obsidian', 'emerald', 'quartz', 'amethyst', 'diamond')]
-                    for short in families + ['seared_stone', 'scorched_stone']:
+                    for short in families + ['seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid']:
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
                         blockname = definition['block'].split(':', 1)[1]
                         archive.read('data/tconstruct/horizon/block/' + blockname + '.json')
@@ -172,6 +176,19 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 for field in ('still', 'flowing'):
                     self.assertEqual(fluid['visual'][field],
                                      'tconstruct:fluid/molten/ore/' + gem + '/' + field)
+
+    def test_burning_liquids_keep_distinct_default_flow_timing_and_source_sprites(self):
+        for name, folder, delay in [('blazing_blood', 'molten/blaze', 5),
+                                    ('fiery_liquid', 'slime/fiery', 30)]:
+            with self.subTest(fluid=name):
+                fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / (name + '.json')).read_text())
+                # Mantle FluidBuilder defaults: level decrease 1, slope 4, tick 5.
+                # Fiery Liquid alone overrides the tick delay to 30.
+                self.assertEqual(fluid['policy'], {'drop_off': 1, 'slope_distance': 4,
+                                                  'tick_delay': delay, 'source_conversion': False})
+                for field in ('still', 'flowing'):
+                    self.assertEqual(fluid['visual'][field],
+                                     'tconstruct:fluid/' + folder + '/' + field)
 
 
 if __name__ == '__main__':

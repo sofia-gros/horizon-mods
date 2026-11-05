@@ -1,9 +1,10 @@
 # Registered world-fluid draft
 
-This slice declares twenty-three world-liquid families: iron, gold, copper,
+This slice declares twenty-five world-liquid families: iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
-molten Clay, Porcelain, Obsidian, Emerald, Quartz, Amethyst and Diamond.
+molten Clay, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
+Blazing Blood and Fiery Liquid.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
 supply the items. The host's registered-fluid system handles placement, flow,
 source pickup, scheduling and saving, rendering, player current/travel and burn
@@ -31,8 +32,10 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Molten Debris, Emerald, Quartz, Amethyst and Diamond use `registerGem`:
   level drop 4, slope distance 4, tick rate 45.
 - Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian use `registerStone`:
-  level drop 2, slope distance 2, tick rate 40. None of the twenty-three families
-  generates new sources.
+  level drop 2, slope distance 2, tick rate 40.
+- Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
+  distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
+  uses tick rate 30. None of the twenty-five families generates new sources.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning.
 - `TinkerFluids` declarations and `BurningLiquidBlock`: 10 seconds burning;
   iron/gold/copper deal 5, cobalt 6, debris 8 and netherite 10;
@@ -47,6 +50,9 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   burning and light 9/6/11/13. Each uses its exact `molten/ore/<gem>` still/flow
   sprites and animation metadata with white surface tint. Source camera fog
   differences are not represented by the current host schema.
+- Blazing Blood deals 5 damage and burns for 15 seconds; Fiery Liquid deals 6
+  and burns for 20 seconds. Both emit light 15. They retain their source
+  `molten/blaze` and `slime/fiery` sprite pairs and animation metadata.
 - Iron, gold, copper and cobalt retain their exact still/flow sprites and
   animation metadata from `textures/fluid/molten/ore/<metal>/`.
   `content/reference/registered-world-fluid-assets.json` records source paths,
@@ -61,7 +67,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all twenty-three families. Queen's Slime's source camera fog color remains
+  covers all twenty-five families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -72,6 +78,8 @@ Cinderslime is intentionally undeclared: the source uses an inverted fluid,
 which cannot be represented by the host's current downward-only flow policy.
 Soulsteel's existing machine/bucket paths remain unchanged; declaring its world
 liquid does not introduce a new survival acquisition recipe.
+Fiery Liquid also retains its existing compatibility/acquisition conditions;
+this declaration does not add external materials, recipes or mobs.
 Molten Glass remains undeclared because its source slope distance 8 exceeds
 the host's current supported maximum 4. It must not be approximated as stone.
 

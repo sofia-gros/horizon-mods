@@ -1,0 +1,36 @@
+{
+  "source": "tconstruct:blazing_blood",
+  "flowing": "tconstruct:flowing_blazing_blood",
+  "block": "tconstruct:blazing_blood_fluid",
+  "bucket": "tconstruct:blazing_blood_bucket",
+  "policy": {
+    "drop_off": 1,
+    "slope_distance": 4,
+    "tick_delay": 5,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/blaze/still",
+    "flowing": "tconstruct:fluid/molten/blaze/flowing",
+    "tint": 16777215,
+    "emission": 15
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": {
+      "seconds": 15,
+      "damage": 5
+    }
+  }
+}
