@@ -37,8 +37,11 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
     for (id, level) in active {
         if level < 0 { return None; }
         if level == 0 { continue; }
-        // This source ID is statically registered, not a dynamic definition.
-        if id == "tconstruct:overslime" { continue; }
+        // These source IDs are statically registered, not dynamic definitions.
+        // Overslime's damage hook is implemented below. The other two have no
+        // damage/durability-change hooks and cannot hide dynamic overrides.
+        if id == "tconstruct:overslime"
+            || super::tconstruct_armor_wear_definitions::static_no_wear(&id) { continue; }
         let (namespace, path) = id.split_once(':')?;
         let value = serde_json::from_slice::<serde_json::Value>(raw.0.get(&format!("{namespace}:tinkering/modifiers/{path}"))?.last()?).ok()?;
         if id == "tconstruct:tanned" {

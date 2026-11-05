@@ -41,9 +41,10 @@ records require an integer saved capacity in 0..32767 and a nonnegative stored
 amount no greater than it. Missing amount means zero. Positive orphan shield,
 missing capacity, malformed or over-capacity state is rejected. This does not
 recompute capacity, add capacity/refill modifiers or repair stale saved data.
-Other active modifiers must satisfy the existing bounded armor guards; Overcast,
-Overforced, Overgrowth and other unadmitted friend/capacity combinations remain
-outside this slice. Native enchantments and source/native unbreakable flags,
+Other active modifiers must satisfy the existing bounded armor guards. The
+follow-up [friend eligibility slice](overslime-armor-friends.md) admits six exact
+capacity/recovery definitions and two proven no-wear static registrations;
+other friend/capacity combinations remain outside the supported set. Native enchantments and source/native unbreakable flags,
 creative/remote actors, wrong slots, opaque data and broken gear remain excluded.
 
 Shield persistence is intentionally deferred with durability to the per-event
