@@ -26,7 +26,7 @@ class FirstMaterialSourceTest(unittest.TestCase):
 
     def test_runtime_uses_guarded_part_and_preserves_order(self):
         s = (ROOT / 'mixins/tconstruct/source-melter-world.rs').read_text()
-        self.assertIn('plain_material_part(stack)', s)
+        self.assertIn('consumed_material_part(stack)', s)
         self.assertIn('let identities = vec![first, fluid_material];', s)
         self.assertIn('supported_material(world, &first)', s)
         self.assertIn('item_from_nbt(&horizon_items::item_nbt::item_to_nbt(&output))?', s)

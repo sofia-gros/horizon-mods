@@ -70,14 +70,15 @@ impl Tank {
     }
 }
 
-/// Accept only an unmodified material part, so consumption cannot drop unrelated data.
-pub(super) fn plain_material_part(stack: &ItemStack) -> Option<String> {
-    if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
+/// First-material casting consumes the part and builds a fresh tool. Known
+/// name/lore is deliberately consumed; gameplay data and retained wire wait.
+pub(super) fn consumed_material_part(stack: &ItemStack) -> Option<String> {
+    if stack.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
     let Tag::String(material) = stack.data()?.other("minecraft:custom_data")?.get("Material")? else { return None; };
-    let material = material.to_string_lossy().to_string();
+    let material = material.to_string().ok()?;
     let mut expected = ItemStack::new(&stack.item, 1);
     expected.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String(material.as_str().into()))])));
-    stack.same_item_same_components(&expected).then_some(material)
+    same_pristine_with_presentation(stack, &expected).then_some(material)
 }
 
 /// Permit only display-name and lore changes over the freshly assembled tool.
@@ -925,17 +926,66 @@ mod tagged_portable_tests {
 mod first_material_input_tests {
     use super::*;
     #[test]
-    fn only_plain_single_material_parts_are_accepted() {
+    fn only_material_and_lossless_presentation_are_accepted() {
         let mut part = ItemStack::new("tconstruct:laces", 1);
         part.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:vine".into()))])));
-        assert_eq!(plain_material_part(&part).as_deref(), Some("tconstruct:vine"));
+        assert_eq!(consumed_material_part(&part).as_deref(), Some("tconstruct:vine"));
         let mut extra = part.clone();
         extra.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String("tconstruct:vine".into())), ("other", Tag::Int(1))])));
-        assert!(plain_material_part(&extra).is_none());
+        assert!(consumed_material_part(&extra).is_none());
         let mut named = part.clone(); named.data_mut().set_other("minecraft:custom_name", Some(Tag::String("name".into())));
-        assert!(plain_material_part(&named).is_none());
-        let mut stack = part.clone(); stack.count = 2; assert!(plain_material_part(&stack).is_none());
-        let mut damaged = part; damaged.damage = 1; assert!(plain_material_part(&damaged).is_none());
+        named.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::compound([("text", Tag::String("lore".into()))])])));
+        assert_eq!(consumed_material_part(&named).as_deref(), Some("tconstruct:vine"));
+        let mut stack = named.clone(); stack.count = 2; assert!(consumed_material_part(&stack).is_none());
+        let mut damaged = named.clone(); damaged.damage = 1; assert!(consumed_material_part(&damaged).is_none());
+        for (key, value) in [
+            ("minecraft:enchantments", Tag::compound([("minecraft:unbreaking", Tag::Int(1))])),
+            ("minecraft:custom_name", Tag::Int(1)),
+            ("minecraft:lore", Tag::List(vec![Tag::Int(1)])),
+            ("minecraft:custom_data", Tag::compound([("Material", Tag::String(horizon_world::nbt::JavaString(vec![0xd800])))])),
+        ] {
+            let mut rejected = named.clone();
+            if key == "minecraft:custom_name" {
+                // Bypass the setter, which normalizes malformed names away.
+                rejected.data_mut().custom_name = Some(value);
+            } else { rejected.data_mut().set_other(key, Some(value)); }
+            assert!(consumed_material_part(&rejected).is_none(), "{key}");
+        }
+        let mut wired = part.clone();
+        wired.data_mut().wire = horizon_items::item_data::Wire::new(part, std::sync::Arc::from([0u8]));
+        assert!(consumed_material_part(&wired).is_none());
+        wired.data_mut().set_other("minecraft:custom_name", Some(Tag::String("changed".into())));
+        assert!(wired.wire_patch().is_none());
+        assert!(consumed_material_part(&wired).is_none());
+    }
+
+    #[test]
+    fn named_parts_survive_partial_pours_then_are_consumed_without_copying_presentation() {
+        for (part, material, output, fluid, amount) in [
+            ("shield_core", "tconstruct:wood", "plate_shield", "tconstruct:molten_iron", 270),
+            ("laces", "tconstruct:vine", "slime_boots", "tconstruct:earth_slime", 1000),
+            ("ribcage", "tconstruct:bone", "slimy_chestplate", "tconstruct:earth_slime", 2000),
+            ("shell", "tconstruct:leather", "slime_leggings", "tconstruct:earth_slime", 1750),
+        ] {
+            let mut input = ItemStack::new(&format!("tconstruct:{part}"), 1);
+            input.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("Material", Tag::String(material.into()))])));
+            input.data_mut().set_other("minecraft:custom_name", Some(Tag::compound([("text", Tag::String("Keepsake".into()))])));
+            input.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::String("Consumed cast".into())])));
+            assert_eq!(consumed_material_part(&input).as_deref(), Some(material));
+            let mut state = Casting::new(); state.input = Some(input.clone());
+            // Assembly is outside this fixture; check the real transaction
+            // and codec with a fresh result supplied by the caller.
+            assert!(state.prepare("test:first_material", amount, 2, ItemStack::new(&format!("tconstruct:{output}"), 1), true, false));
+            assert!(state.tank.insert(fluid, amount - 1));
+            assert!(!state.tick(true)); assert_eq!(state.input, Some(input.clone()));
+            state = Casting::from_nbt(&state.to_nbt()).unwrap();
+            assert_eq!(state.input, Some(input));
+            assert!(state.tank.insert(fluid, 1)); assert!(!state.tick(true)); assert!(state.input.is_some());
+            assert!(state.tick(true)); assert!(state.input.is_none()); assert_eq!(state.tank.amount, 0);
+            let result = state.output.as_ref().unwrap();
+            assert_eq!(result.item.as_ref(), format!("tconstruct:{output}"));
+            assert!(result.data().is_none_or(|data| data.is_empty()));
+        }
     }
 }
 

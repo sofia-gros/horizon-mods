@@ -288,8 +288,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         output.count = 1;
         return Some((id, recipe, output));
     }
-    // The four source first-material recipes consume one unmodified material part.
-    if let Some(first) = super::tconstruct_source_melter_state::plain_material_part(stack) {
+    // Source first-material recipes consume the part, including known name/lore,
+    // and assemble a fresh tool. Gameplay components and retained wire wait.
+    if let Some(first) = super::tconstruct_source_melter_state::consumed_material_part(stack) {
         let candidate = (|| {
             let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
             let native = world.chunks.__horizon_mixins_tconstruct_source_native_durability().as_ref()?;
