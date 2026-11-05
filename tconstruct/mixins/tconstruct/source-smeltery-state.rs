@@ -96,6 +96,19 @@ impl Smeltery {
             ("temperature", Tag::Long(i64::from(self.temperature))), ("rate", Tag::Long(i64::from(self.rate))),
             ("fuel_cost", Tag::Long(i64::from(self.fuel_cost))), ("phase", Tag::Int(i32::from(self.phase))), ("entity_phase", Tag::Int(i32::from(self.entity_phase)))])
     }
+    /// A tank-only controller update must not serialize its inventory, fuel,
+    /// progress or unknown fields. Reject callers that also changed other state.
+    pub(super) fn tank_to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        let before = Self::from_nbt(raw)?;
+        let mut unchanged = self.clone(); unchanged.tank = before.tank.clone();
+        if unchanged.to_nbt() != before.to_nbt() { return None; }
+        for alias in ["Tank", "Fluids"] { if raw.get(alias).is_some() { return None; } }
+        let tank = self.tank.to_nbt_preserving(raw.get("tank")?)?;
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        fields.insert("tank".into(), tank);
+        Some(Tag::Compound(fields))
+    }
+
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::List(slots) = tag.get("slots")? else { return None; };
         let mut inventory = Vec::with_capacity(slots.len());
@@ -253,5 +266,56 @@ mod tests {
         assert_eq!(s.tank.amount("tconstruct:molten_amethyst_bronze"), 90);
         assert!(s.slots.iter().all(Option::is_none));
         assert_eq!(Smeltery::from_nbt(&s.to_nbt()).unwrap().tank, s.tank);
+    }
+}
+
+
+#[cfg(test)]
+mod tank_preservation_tests {
+    use super::*;
+    fn fixture() -> (Smeltery,Tag) {
+        let mut state=Smeltery::new();state.resize(1,4000);state.slots[0]=Some(ItemStack::new("minecraft:stone",3));
+        state.progress[0]=17;state.fuel=33;state.temperature=800;
+        assert!(state.tank.insert("minecraft:water",2000));assert!(state.tank.insert("minecraft:lava",1000));
+        let mut raw=state.to_nbt();if let Tag::Compound(fields)=&mut raw {
+            fields.insert("future".into(),Tag::Int(7));fields.insert("heat_codes".into(),Tag::IntArray(vec![5]));
+            if let Some(Tag::List(slots))=fields.get_mut(&"slots".into()){if let Tag::Compound(item)=&mut slots[0]{item.insert("future_item".into(),Tag::Int(9));}}
+            if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){
+                tank.insert("future_tank".into(),Tag::Int(8));
+                if let Some(Tag::List(rows))=tank.get_mut(&"fluids".into()){for (index,row) in rows.iter_mut().enumerate(){if let Tag::Compound(row)=row{row.insert("future_row".into(),Tag::Int(index as i32));}}}
+            }
+        }
+        (state,raw)
+    }
+    #[test]
+    fn tank_only_selection_keeps_raw_controller_and_item_fields() {
+        let (mut state,raw)=fixture();assert_eq!(state.tank_to_nbt_preserving(&raw),Some(raw.clone()));
+        assert!(state.tank.move_to_bottom(1));assert!(state.tank.take("minecraft:lava",250));
+        let saved=state.tank_to_nbt_preserving(&raw).unwrap();
+        let Tag::Compound(fields)=&raw else{panic!()};for (key,value) in fields{if key.to_string_lossy()!="tank"{assert_eq!(saved.get(&key.to_string_lossy()),Some(value));}}
+        let tank=saved.get("tank").unwrap();assert_eq!(tank.get("future_tank"),Some(&Tag::Int(8)));
+        let Tag::List(rows)=tank.get("fluids").unwrap() else{panic!()};assert_eq!(rows[0].get("future_row"),Some(&Tag::Int(1)));
+        assert_eq!(rows[0].get("amount"),Some(&Tag::Long(750)));assert_eq!(rows[1].get("future_row"),Some(&Tag::Int(0)));
+    }
+    #[test]
+    fn tank_only_mode_processing_keeps_machine_inventory_separate() {
+        use super::super::tconstruct_source_fluid_container::{Direction,transfer_selected_with_color};
+        let (mut state,raw)=fixture();let mut containers=[Some(ItemStack::new("minecraft:water_bucket",1)),None];
+        assert!(transfer_selected_with_color(&mut state.tank,&mut containers,Direction::Auto.next(),None,&|_|true,&|_|true,None,false));
+        let saved=state.tank_to_nbt_preserving(&raw).unwrap();assert_eq!(saved.get("slots"),raw.get("slots"));
+        assert_eq!(state.tank.amount("minecraft:water"),3000);assert!(containers[0].is_none());assert_eq!(&*containers[1].as_ref().unwrap().item,"minecraft:bucket");
+    }
+    #[test]
+    fn tank_only_patch_refuses_unrelated_changes_aliases_and_opaque_removal() {
+        for mode in 0..8{let(mut state,mut raw)=fixture();match mode{
+            0=>state.slots[0].as_mut().unwrap().count+=1,
+            1=>state.progress[0]+=1,
+            2=>state.fuel+=1,
+            3=>state.temperature+=1,
+            4=>state.phase=1,
+            5|6=>if let Tag::Compound(fields)=&mut raw{fields.insert(if mode==5{"Tank"}else{"Fluids"}.into(),Tag::Int(1));},
+            7=>{assert!(state.tank.take("minecraft:lava",1000));},
+            _=>unreachable!(),
+        }assert!(state.tank_to_nbt_preserving(&raw).is_none());}
     }
 }
