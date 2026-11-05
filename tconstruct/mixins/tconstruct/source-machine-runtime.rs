@@ -149,6 +149,12 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             let Some(mut tank) = Tank::from_nbt(&raw_tank, tank_capacity) else { continue; };
             let Some(fluid) = tank.fluid.as_deref() else { continue; };
             let Some(fuel) = super::tconstruct_source_melter_world::fluid_fuel(&game.world, fluid, tank.amount) else { continue; };
+            // findFuel(false) treats zero temperature as no usable fuel.
+            if fuel.temperature == 0 { continue; }
+            // Validate the staged drain/patch first: unsupported tagged or
+            // malformed fuel must retain the existing safe fallback behavior.
+            if tank.take(fuel.fluid.amount).is_none() { continue; }
+            let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { continue; };
             let can_heat = recipes.iter().enumerate().any(|(slot, recipe)| recipe.as_ref().is_some_and(|(_, recipe, _, _)|
                 state.can_heat_slot(slot, fuel.temperature, recipe.temperature)));
             let (fluids, tagged, capacity) = alloy_snapshot(&state.tank);
@@ -158,9 +164,9 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
                     let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
                     candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount })
                 });
-            if !can_heat && !can_alloy { continue; }
-            if tank.take(fuel.fluid.amount).is_none() { continue; }
-            let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { continue; };
+            // Source chooses a valid fuel before testing the work temperature.
+            // A cold selected tank must not silently spend a later hotter fuel.
+            if !can_heat && !can_alloy { break; }
             state.fuel = fuel.duration; state.fuel_quality = fuel.duration; state.temperature = fuel.temperature; state.rate = fuel.rate;
             fuel_update = Some((at, kind, updated_tank));
             break;
