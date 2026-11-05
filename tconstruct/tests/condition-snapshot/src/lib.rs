@@ -192,3 +192,6 @@ mod chain_compat_tests {
         assert_eq!(value, expected);
     }
 }
+
+#[path = "../../../mixins/tconstruct/source-shell-gut.rs"]
+mod source_shell_gut;
