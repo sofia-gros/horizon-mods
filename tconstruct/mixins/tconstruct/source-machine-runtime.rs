@@ -810,7 +810,9 @@ fn faucet_neighbors(game: &super::Game<'_>, pos: Pos) -> Option<(Pos, Pos)> {
 
 fn smeltery_source(game: &super::Game<'_>, io: Pos) -> Option<(Pos, Smeltery)> {
     let block = &game.res.facts().get(game.world.block(io.0, io.1, io.2)).name;
-    if !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:seared_duct" | "tconstruct:scorched_drain" | "tconstruct:scorched_duct") { return None; }
+    // Duct filter inventories are not yet supported. Never interpret one as
+    // an unrestricted drain, even when its controller ownership is known.
+    if !matches!(&**block, "tconstruct:seared_drain" | "tconstruct:scorched_drain") { return None; }
     let controller = *game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().get(&io)?;
     let state = store::read(&game.world, controller, "tconstruct:smeltery").and_then(|tag| Smeltery::from_nbt(&tag))?;
     Some((controller, state))
@@ -1264,6 +1266,8 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
+    if super::tconstruct_source_machine_interaction::unsupported_duct(
+        &game.res.facts().get(game.world.block(source.0, source.1, source.2)).name) { return true; }
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_casting_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = smeltery_to_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
@@ -1312,6 +1316,10 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     // world. Only wire-safe potion identity may pass through the fallbacks.
     if (game.remote.is_some() || game.lan.is_some() || game.lan_acting_uuid.is_some()) && !faucet_network_tag_safe(&faucet.pending) { return; }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
+    // Hold existing packets unchanged as well: unknown Duct metadata is not
+    // proof that the source was removed or permission to use another route.
+    if super::tconstruct_source_machine_interaction::unsupported_duct(
+        &game.res.facts().get(game.world.block(source.0, source.1, source.2)).name) { return; }
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
     if tank_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
