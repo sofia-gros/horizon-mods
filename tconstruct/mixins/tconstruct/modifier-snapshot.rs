@@ -151,6 +151,8 @@ pub(super) struct OrdinaryGuideRecipe {
     pub upgrade_cost: i32,
     pub ability_cost: i32,
     pub check_trait_level: bool,
+    pub repeatable_maximum: Option<i32>,
+    pub empty_inputs: Vec<bool>,
 }
 
 /// Bounded ordinary modifier pages: explicit level one, one to five ordinary
@@ -163,17 +165,32 @@ pub(super) fn ordinary_guide_recipes(
     matches: impl Fn(&serde_json::Value, &str) -> bool,
     supported_tool: impl Fn(&str, &str) -> bool,
 ) -> Vec<OrdinaryGuideRecipe> {
+    ordinary_guide_recipes_with_fluids(recipes, modifiers, items, tools, &matches, &matches, supported_tool, |_| None)
+}
+
+/// Extend the same ordinary page plan with runtime-authorized repeatable fluid
+/// recipes. The caller must use the Station stack matcher on fresh item stacks
+/// and supply the runtime's cost/limit policy; missing policy is not guessed.
+pub(super) fn ordinary_guide_recipes_with_fluids(
+    recipes: &BTreeMap<String, Vec<u8>>, modifiers: &[String],
+    items: &[String], tools: &[String],
+    matches: impl Fn(&serde_json::Value, &str) -> bool,
+    matches_tool: impl Fn(&serde_json::Value, &str) -> bool,
+    supported_tool: impl Fn(&str, &str) -> bool,
+    fluid_policy: impl Fn(&str) -> Option<(i32, i32, i32)>,
+) -> Vec<OrdinaryGuideRecipe> {
     let mut result = Vec::new();
     let mut seen = HashSet::new();
     for modifier in modifiers {
         if !seen.insert(modifier) { continue; }
+        let fluid = fluid_policy(modifier);
         for (recipe, bytes) in recipes {
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
             let Some(object) = value.as_object() else { continue; };
             if object.keys().any(|key| !matches!(key.as_str(), "type" | "result" | "inputs" | "tools" | "level" | "allow_crystal" | "check_trait_level" | "slots"))
                 || value.get("type").and_then(|v| v.as_str()) != Some("tconstruct:modifier")
                 || value.get("result").and_then(|v| v.as_str()) != Some(modifier.as_str())
-                || value.get("level").and_then(|v| v.as_i64()) != Some(1)
+                || !(value.get("level").and_then(|v| v.as_i64()) == Some(1) || (fluid.is_some() && value.get("level").is_none()))
                 || value.get("allow_crystal").is_some_and(|v| !v.is_boolean())
                 || value.get("check_trait_level").is_some_and(|v| !v.is_boolean()) { continue; }
             let costs = match value.get("slots") {
@@ -185,18 +202,22 @@ pub(super) fn ordinary_guide_recipes(
                 }),
             };
             let Some((upgrade_cost, ability_cost)) = costs else { continue; };
+            if fluid.is_some_and(|(upgrades, abilities, maximum)| maximum <= 0 || (upgrades, abilities) != (upgrade_cost, ability_cost))
+                || (fluid.is_some() && value.get("check_trait_level").and_then(|v| v.as_bool()) == Some(true)) { continue; }
             let Some(inputs) = value.get("inputs").and_then(|v| v.as_array()).filter(|v| (1..=5).contains(&v.len())) else { continue; };
             let Some(tool_filter) = value.get("tools") else { continue; };
+            let empty_inputs = inputs.iter().map(|input| input.get("type").and_then(|v| v.as_str()) == Some("tconstruct:no_container")).collect();
             let inputs: Vec<Vec<String>> = inputs.iter().map(|input| {
                 let mut choices: Vec<_> = items.iter().filter(|id| matches(input, id)).cloned().collect();
                 choices.sort(); choices.dedup(); choices
             }).collect();
             if inputs.iter().any(Vec::is_empty) { continue; }
-            let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches(tool_filter, id)).cloned().collect();
+            let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches_tool(tool_filter, id)).cloned().collect();
             tools.sort(); tools.dedup();
             if !tools.is_empty() {
                 result.push(OrdinaryGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools,
-                    upgrade_cost, ability_cost, check_trait_level:value.get("check_trait_level").and_then(|v| v.as_bool()).unwrap_or(false) });
+                    upgrade_cost, ability_cost, check_trait_level:value.get("check_trait_level").and_then(|v| v.as_bool()).unwrap_or(false),
+                    repeatable_maximum:fluid.map(|(_, _, maximum)| maximum), empty_inputs });
             }
         }
     }
@@ -458,6 +479,34 @@ mod tests {
         assert!(incremental_guide_recipes(&recipes,&modifiers,&registry,&[],&tools,matches,|_,_|true,|_,_,_|true).is_empty());
         assert!(incremental_guide_recipes(&recipes,&modifiers,&registry,&items,&tools,matches,|_,_|false,|_,_,_|true).is_empty());
         assert!(incremental_guide_recipes(&recipes,&modifiers,&registry,&items,&tools,matches,|_,_|true,|_,_,_|false).is_empty());
+    }
+
+    #[test]
+    fn fluid_guide_requires_runtime_policy_and_rejects_changed_costs_or_limits() {
+        let recipe = serde_json::json!({"type":"tconstruct:modifier", "result":"tconstruct:tank",
+            "inputs":[{"type":"tconstruct:no_container","tag":"x:tanks"}],
+            "tools":{"item":"x:tool"}, "slots":{"upgrades":1}});
+        let modifiers = vec!["tconstruct:tank".into()];
+        let items = vec!["x:tank".into()]; let tools = vec!["x:tool".into()];
+        let input_match = |v: &serde_json::Value,id: &str| v["type"] == "tconstruct:no_container" && id == "x:tank";
+        let tool_match = |v: &serde_json::Value,id: &str| v["item"].as_str() == Some(id);
+        let rows = |value: &serde_json::Value,policy| ordinary_guide_recipes_with_fluids(
+            &BTreeMap::from([("x:recipe".into(),serde_json::to_vec(value).unwrap())]),
+            &modifiers,&items,&tools,input_match,tool_match,|_,_|true,move |_|policy);
+        let valid = rows(&recipe,Some((1,0,32767))); assert_eq!(valid.len(),1);
+        assert_eq!(valid[0].empty_inputs,[true]); assert_eq!(valid[0].repeatable_maximum,Some(32767));
+        assert!(rows(&recipe,None).is_empty());
+        assert!(rows(&recipe,Some((1,0,0))).is_empty());
+        for (key,value) in [
+            ("slots",serde_json::json!({"upgrades":2})), ("slots",serde_json::json!({"abilities":1})),
+            ("level",serde_json::json!(2)), ("level",serde_json::json!({"max":3})),
+            ("level",serde_json::json!(null)), ("check_trait_level",serde_json::json!(true)),
+        ] {
+            let mut changed = recipe.clone(); changed[key] = value;
+            assert!(rows(&changed,Some((1,0,32767))).is_empty(),"{key}: {changed}");
+        }
+        let mut explicit = recipe.clone(); explicit["level"] = serde_json::json!(1);
+        assert_eq!(rows(&explicit,Some((1,0,32767))).len(),1);
     }
 
     #[test]

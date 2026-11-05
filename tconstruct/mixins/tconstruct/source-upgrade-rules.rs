@@ -60,6 +60,15 @@ pub(super) fn incremental_limits_supported(id: &str, needed: i32, maximum: i32) 
         && (id != "tconstruct:hydraulic" || (needed == 36 && maximum == 5))
 }
 
+pub(super) fn repeatable_fluid_limit(id: &str) -> Option<i32> {
+    matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing").then_some(i16::MAX as i32)
+}
+
+pub(super) fn fluid_guide_policy(id: &str) -> Option<(i32, i32, i32)> {
+    let maximum = repeatable_fluid_limit(id)?;
+    Some(if is_ability(id) { (0, 1, maximum) } else { (1, 0, maximum) })
+}
+
 /// Item- and tag-dependent eligibility shared by Station planning and guides.
 /// A recipe's tool selector cannot bypass these gameplay restrictions.
 pub(super) fn tool_supported_with_tags(id: &str, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
@@ -85,7 +94,7 @@ pub(super) fn ingredient_matches(value: &Value, item: &str, tags: &HashMap<Strin
 
 // Match stack-sensitive no-container ingredients using the supported source
 // portable item implementations. Unknown contents never become a match.
-fn stack_ingredient_matches(value: &Value, stack: &ItemStack, tags: &HashMap<String, HashSet<String>>) -> bool {
+pub(super) fn stack_ingredient_matches(value: &Value, stack: &ItemStack, tags: &HashMap<String, HashSet<String>>) -> bool {
     if value.get("type").and_then(Value::as_str) != Some("tconstruct:no_container") {
         return ingredient_matches(value, &stack.item, tags);
     }
@@ -260,9 +269,10 @@ pub(super) fn plan_with_traits(
         if recipe_type == Some("tconstruct:modifier") {
             if !ordinary_modifier_supported(id) { continue; }
             let old = amount(tool, id);
-            let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
+            let fluid_limit = repeatable_fluid_limit(id);
+            let fluid = fluid_limit.is_some();
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
-            if fluid && old >= i16::MAX as i32 { continue; }
+            if fluid_limit.is_some_and(|maximum| old >= maximum) { continue; }
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);

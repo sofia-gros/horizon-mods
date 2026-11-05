@@ -191,7 +191,7 @@ source group metadata does not enable missing static overview prose.
 
 Changing tag replacement/removal, recipes or item availability affects the
 next open/request through the existing reader and LAN response. The displayed
-tool types do not override checks against an existing tool's state. Other incremental recipe shapes, level ranges, stack-sensitive/container ingredients, additional
+tool types do not override checks against an existing tool's state. Other incremental recipe shapes, level ranges, unsupported stack-sensitive ingredients, additional
 requirements and unknown slot types are still omitted. Source registry,
 redirect and external-registration completeness is not claimed. In-game
 pagination and LAN visual validation remain outstanding.
@@ -234,3 +234,26 @@ Hydraulic fixtures compare guide data to actual Station consumption with one
 point remaining. A missing or unregistered leftover hides the bulk entry;
 unsupported point multipliers and crystal alternatives remain omitted. No
 new acquisition/effect behavior or complete source registry is claimed.
+
+## Repeatable fluid modifier recipes
+
+Puny's Tank upgrade and Mighty's Slurping, Spilling and Splashing abilities
+can now show their source recipes without an explicit level field. These four
+entries share the Station's repeatability limit and slot policy. They display
+one added level per application, one upgrade or ability slot per level, and
+the port's 32767-level ceiling rather than claiming a source-wide maximum.
+
+Container alternatives use the actual Station stack matcher on newly created
+empty registered items. Unknown containers are omitted even when a datapack
+adds them to the tank tag. The page labels the empty-container requirement and
+warns that filled or modified stacks may be rejected. The five separate input
+slots and repeated bottle/channel/copper ingredients are retained, with the
+Anvil requirement shown. Slurping's resolved charge tag and Splashing's native
+staff/melting-pan restriction remain in effect.
+
+Changed costs, trait-counting recipes, level ranges and unsupported ingredient
+forms are omitted conservatively. This does not expand fluid effects, add
+container acquisition or complete the source modifier registry. Pinned source
+fixtures and focused Station/guide regressions cover these bounded cases;
+full host, page layout, actual gameplay, save/reload and LAN validation remain
+outstanding.
