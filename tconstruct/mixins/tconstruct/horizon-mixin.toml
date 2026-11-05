@@ -5378,7 +5378,7 @@ source = "smite-world.rs"
 [[state]]
 id = "smite-context"
 target = "horizon_client_render::chunk_map::ChunkMap"
-ty = "Vec<(Option<u32>, String, Option<f32>)>"
+ty = "Vec<(Option<u32>, String, Option<f32>, f32)>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
@@ -5620,3 +5620,22 @@ target = "horizon_client_lib::mobs::ai::tick_effects"
 kind = "HEAD"
 helper = "lacerating-tick.rs"
 bindings = [{ name = "mob", ty = "&mut crate::mobs::Mob", value = "&mut *m" }]
+
+[[module]]
+id = "source-conducting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_conducting"
+source = "source-conducting.rs"
+
+[[module]]
+id = "server-source-conducting"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_conducting"
+source = "source-conducting.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-conducting-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_conducting_world"
+source = "conducting-world.rs"

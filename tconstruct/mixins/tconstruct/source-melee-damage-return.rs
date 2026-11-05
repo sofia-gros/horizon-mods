@@ -38,6 +38,8 @@ fn tconstruct_melee_secondary_damage(value: (f32, f32, bool, bool), game: &mut c
                         if intact && level > 0 && multiplier.is_finite() && player.health.health().is_finite() {
                             let factor = ((11.0 - player.health.health()) / 10.0).clamp(0.0, 1.0);
                             let flat = factor * level as f32 * 2.5 * multiplier;
+                            // Conducting (90) follows flat Raging (100), before wear (75).
+                            let flat = flat * crate::game::tconstruct_conducting_world::primary_factor(game);
                             // Source flat Raging (priority 100) precedes the
                             // percent Jagged and Stonebound traits (priority 75).
                             let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|raw| raw.as_ref().ok());
