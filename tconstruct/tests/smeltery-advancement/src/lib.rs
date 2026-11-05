@@ -65,7 +65,7 @@ mod tests {
     fn unrelated_blocks_remote_clients_and_absent_players_do_not_award() {
         let criteria = [json!({"type":"tconstruct:smeltery"})];
         let mut actor = game(&criteria, 1);
-        for block in ["tconstruct:foundry_controller", "tconstruct:seared_melter", "minecraft:chest", ""] {
+        for block in ["tconstruct:seared_melter", "minecraft:chest", ""] {
             production::opened(&mut actor, block);
         }
         assert!(actor.events.is_empty());
@@ -76,5 +76,28 @@ mod tests {
         actor.present = false;
         production::opened(&mut actor, "tconstruct:smeltery_controller");
         assert!(actor.awarded.is_empty());
+    }
+
+    #[test]
+    fn foundry_open_never_satisfies_smeltery_and_keeps_actor_conditions() {
+        let criteria = [json!({"type":"tconstruct:smeltery"}),
+            json!({"type":"tconstruct:foundry"}),
+            json!({"type":"tconstruct:foundry", "player":{"actor":7}}),
+            json!({"type":"tconstruct:foundry", "player":{"actor":8}}),
+            json!({}), json!({"type":["tconstruct:foundry"]})];
+        let mut actor = game(&criteria, 7);
+        production::opened(&mut actor, "tconstruct:foundry_controller");
+        assert_eq!(actor.events, ["tconstruct:block_container_opened"]);
+        assert_eq!(actor.awarded, [1, 2]);
+        production::opened(&mut actor, "tconstruct:foundry_controller");
+        assert_eq!(actor.awarded, [1, 2]);
+        let mut guest = game(&criteria, 8);
+        production::opened(&mut guest, "tconstruct:foundry_controller");
+        assert_eq!(guest.awarded, [1, 3]);
+        assert_eq!(actor.awarded, [1, 2]);
+        guest.remote = Some(());
+        guest.awarded.clear();
+        production::opened(&mut guest, "tconstruct:foundry_controller");
+        assert!(guest.awarded.is_empty());
     }
 }
