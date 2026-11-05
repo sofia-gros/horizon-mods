@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 23] = [
+const UPGRADES: [(&str, i32); 24] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36), ("tconstruct:multishot", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -84,7 +84,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 fn supported(id: &str, item: &str) -> bool {
     match id {
         "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
-        "tconstruct:quick_charge" => item == "tconstruct:crossbow",
+        "tconstruct:quick_charge" | "tconstruct:multishot" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
         "tconstruct:power" => item == "tconstruct:longbow",
         "tconstruct:splashing" => matches!(item, "tconstruct:sky_staff" | "tconstruct:earth_staff" | "tconstruct:ichor_staff" | "tconstruct:ender_staff" | "tconstruct:melting_pan"),
@@ -116,7 +116,7 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:multishot") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -228,16 +228,29 @@ pub(super) fn plan_with_traits(
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:multishot")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
+            if id == "tconstruct:multishot" {
+                let saved = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
+                let valid = match saved {
+                    None => true,
+                    Some(tag @ Tag::Compound(_)) => match tag.get(id) {
+                        None => true,
+                        Some(Tag::Int(n)) => (0..31).contains(n),
+                        _ => false,
+                    },
+                    _ => false,
+                };
+                if !valid { continue; }
+            }
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:multishot") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") {
+            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:multishot") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -277,7 +290,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:multishot") { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
@@ -582,6 +595,28 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn multishot_recipe_consumes_inputs_and_ability_per_level() {
+        use super::*;
+        let recipe = br#"{"type":"tconstruct:modifier","inputs":[{"item":"minecraft:piston"},{"tag":"forge:ingots/steel"},{"item":"minecraft:piston"},{"tag":"forge:slimeball/ichor"},{"tag":"forge:slimeball/ichor"}],"result":"tconstruct:multishot","slots":{"abilities":1},"tools":{"tag":"tconstruct:modifiable/ranged/crossbows"},"allow_crystal":true}"#;
+        let recipes=BTreeMap::from([("multishot".into(),recipe.to_vec())]);
+        let tags=HashMap::from([("forge:ingots/steel".into(),HashSet::from(["tconstruct:steel_ingot".into()])),("forge:slimeball/ichor".into(),HashSet::from(["tconstruct:ichor_slime_ball".into()])),("tconstruct:modifiable/ranged/crossbows".into(),HashSet::from(["tconstruct:crossbow".into()]))]);
+        let inputs=["minecraft:piston","tconstruct:steel_ingot","minecraft:piston","tconstruct:ichor_slime_ball","tconstruct:ichor_slime_ball"].map(|s|Some(ItemStack::new(s,1)));
+        let mut bow=ItemStack::new("tconstruct:crossbow",1);
+        let levels=BTreeMap::new();
+        let plan=plan_with_traits(&recipes,&tags,&bow,&inputs,0,2,&levels).unwrap();
+        assert_eq!(plan.amount,1);assert_eq!(plan.consumed.len(),6);
+        bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:multishot",Tag::Int(1))]))])));
+        assert!(plan_with_traits(&recipes,&tags,&bow,&inputs,0,1,&levels).is_none());
+        assert_eq!(plan_with_traits(&recipes,&tags,&bow,&inputs,0,2,&levels).unwrap().amount,2);
+        assert!(!valid_slots(&bow,&levels,8,0));assert!(valid_slots(&bow,&levels,0,1));
+        for bad in [Tag::Int(-1), Tag::String("1".into()), Tag::Int(31)] {
+            bow.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([("tconstruct:multishot",bad)]))])));
+            assert!(plan_with_traits(&recipes,&tags,&bow,&inputs,64,64,&levels).is_none());
+        }
+        bow.item="tconstruct:longbow".into();assert!(plan_with_traits(&recipes,&tags,&bow,&inputs,8,8,&levels).is_none());
+    }
     #[test]
     fn necrotic_recipe_obeys_levels_slots_and_crystal() {
         use super::*;
