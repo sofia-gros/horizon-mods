@@ -5478,3 +5478,35 @@ require = 1
 ordinal = 0
 helper = "fire-duration-contact.rs"
 bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "player", ty = "&crate::motion::PlayerMotion", value = "&*self.player" }]
+
+[[module]]
+id = "source-blast-knockback"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_blast_knockback"
+source = "source-blast-knockback.rs"
+
+[[module]]
+id = "source-blast-knockback-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_blast_knockback_world"
+source = "blast-knockback-world.rs"
+
+[[injection]]
+id = "source-blast-knockback-explosion"
+target = "horizon_client::game::explosion::Game<'_>::explosion_hurt_player"
+kind = "MODIFY_VARIABLE"
+variable = { name = "resistance", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "blast-knockback-injection.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-blast-knockback-wind"
+target = "horizon_client::game::wind::Game<'_>::wind_push_player"
+kind = "MODIFY_VARIABLE"
+variable = { name = "resistance", ordinal = 0, at = "LOAD" }
+require = 1
+ordinal = 0
+helper = "blast-knockback-injection.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
