@@ -2,7 +2,7 @@ use horizon_world::nbt::Tag;
 use horizon_items::items::ItemStack;
 use super::tconstruct_source_material_traits::Traits;
 
-fn context<'a>(game: &'a super::Game<'_>) -> Option<(&'a ItemStack, Traits)> {
+pub(super) fn context<'a>(game: &'a super::Game<'_>) -> Option<(&'a ItemStack, Traits)> {
     if game.remote.is_some() || game.player.as_ref()?.auto_spin_attack_dmg > 0.0 { return None; }
     let stack = game.inventory.get(game.selected)?.as_ref()?;
     if game.held() != Some(stack) || stack.count != 1 || stack.wire_patch().is_some()

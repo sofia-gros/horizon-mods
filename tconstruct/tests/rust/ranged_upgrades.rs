@@ -1004,3 +1004,23 @@ fn raging_is_not_installable_by_current_normal_or_crystal_recipe_planner() {
   assert!(tconstruct_source_upgrade_rules::plan(&recipes,&tags,&tool,&[Some(input)],5).is_none());
  }
 }
+
+
+#[test]
+fn purchased_pierce_merges_with_bone_traits_before_stat_multiplier() {
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    use std::collections::BTreeMap;
+    let def=br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:attack_damage":4.0,"tconstruct:attack_speed":1.0}}]}"#;
+    let stats=tconstruct_source_station_stats::base_stats(def,&[]).unwrap();
+    let mut tool=ItemStack::new("tconstruct:sword",1);
+    tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+        ("tic_upgrades",Tag::compound([("tconstruct:pierce",Tag::Int(15))]))])));
+    let traits=BTreeMap::from([("tconstruct:pierce".into(),2)]);
+    tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+    let damage=tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_damage");
+    assert!(matches!(damage,Some(Tag::Float(bits)) if f32::from_bits(*bits)==5.75));
+    tconstruct_source_upgrade_rules::apply_stats(&mut tool,&stats,&traits,true,true).unwrap();
+    let damage=tool.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_attack_damage");
+    assert!(matches!(damage,Some(Tag::Float(bits)) if f32::from_bits(*bits)==5.75));
+}
