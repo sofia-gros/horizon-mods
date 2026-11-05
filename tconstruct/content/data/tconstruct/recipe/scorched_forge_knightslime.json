@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "key": {
+    "s": "#tconstruct:scorched_blocks",
+    "m": "tconstruct:knightslime_block",
+    "t": "tconstruct:tinker_station"
+  },
+  "result": {
+    "id": "tconstruct:scorched_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:knightslime_block",
+          "Variant": "knightslime",
+          "Texture": "tconstruct:block/storage/knightslime"
+        }
+      },
+      "minecraft:item_model": "tconstruct:scorched_anvil_knightslime",
+      "minecraft:custom_name": {
+        "translate": "block.tconstruct.tool_forge"
+      }
+    }
+  },
+  "show_notification": true
+}

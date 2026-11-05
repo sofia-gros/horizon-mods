@@ -1,0 +1,18 @@
+{
+  "recipes/tinkers_forge.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/tinkers_forge.json",
+    "sha256": "a67da9328f976a13c97d086be34fdd12b87a4097efbdb285293a8f70bc024838"
+  },
+  "recipes/scorched_forge.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/scorched_forge.json",
+    "sha256": "0e772580b99530a03ff19c35c6d3ecc901178563914b03be332b2975e38f7186"
+  },
+  "advancements/tinkers_forge.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables/tinkers_forge.json",
+    "sha256": "b500816102947f8e93c9498915d4af59571c5429f469a9aa6e0bee02e1568df2"
+  },
+  "advancements/scorched_forge.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/decorations/tables/scorched_forge.json",
+    "sha256": "b98c5d819a5b79565991e429ff52d72453bb403f65fef3835cb47e4736729c80"
+  }
+}

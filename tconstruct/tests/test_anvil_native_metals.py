@@ -36,7 +36,7 @@ class NativeAnvilMetals(unittest.TestCase):
         with ZipFile(CONTENT / 'reference/tconstruct-recipes.zip') as source:
             for anvil in ANVILS:
                 original = json.loads(source.read(f'data/tconstruct/recipes/tables/{anvil}.json'))
-                support = '#tconstruct:anvil_' + ('seared_blocks' if anvil == 'tinkers_anvil' else 'scorched_blocks')
+                support = '#tconstruct:' + ('seared_blocks' if anvil == 'tinkers_anvil' else 'scorched_blocks')
                 fallback = json.loads((DATA / f'recipe/zz_{anvil}_mixed_alloys.json').read_text())
                 self.assertEqual(fallback['result'], {'id': 'tconstruct:' + anvil})
                 for metal, texture in METALS.items():

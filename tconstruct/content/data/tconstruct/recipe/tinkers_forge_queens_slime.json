@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "key": {
+    "s": "#tconstruct:seared_blocks",
+    "m": "tconstruct:queens_slime_block",
+    "t": "tconstruct:tinker_station"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:queens_slime_block",
+          "Variant": "queens_slime",
+          "Texture": "tconstruct:block/storage/queens_slime_side"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_queens_slime",
+      "minecraft:custom_name": {
+        "translate": "block.tconstruct.tool_forge"
+      }
+    }
+  },
+  "show_notification": true
+}
