@@ -11,6 +11,7 @@ pub(super) const MELTER_CAPACITY: u32 = 24 * 90;
 pub(super) fn saved_comparator(key: &str, raw: &Tag) -> Option<i32> {
     match key {
         "tconstruct:melter" => Melter::from_nbt(raw).map(|state| state.comparator()),
+        "tconstruct:table" | "tconstruct:basin" => Casting::from_nbt(raw).map(|state| state.comparator()),
         "tconstruct:fuel_tank" => Tank::from_nbt(raw, 4000).map(|tank| tank.comparator()),
         "tconstruct:ingot_tank" => Tank::from_nbt(raw, 48 * 90).map(|tank| tank.comparator()),
         _ => None,
@@ -564,6 +565,18 @@ pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemSta
     Some(Tag::Compound(fields))
 }
 impl Casting {
+    /// Source CastingBlockEntity.getAnalogSignal, using this port's stored
+    /// recipe duration only once the exact fluid capacity has been supplied.
+    pub(super) fn comparator(&self) -> i32 {
+        if self.output.as_ref().is_some_and(|item| item.count > 0) { return 15; }
+        if self.cooling_time > 0 && self.tank.amount == self.tank.capacity {
+            return (11 + 4 * u64::from(self.timer) / u64::from(self.cooling_time)).min(15) as i32;
+        }
+        if self.tank.capacity > 0 {
+            return (2 + 9 * u64::from(self.tank.amount) / u64::from(self.tank.capacity)).min(15) as i32;
+        }
+        i32::from(self.input.as_ref().is_some_and(|item| item.count > 0))
+    }
     /// The existing serializer replaces the compound. Do not introduce a new
     /// interaction when that rewrite would discard or normalize saved data.
     pub(super) fn roundtrips(&self, raw: &Tag) -> bool { self.to_nbt() == *raw }
@@ -672,6 +685,36 @@ impl Casting {
 #[cfg(test)]
 mod casting_tests {
     use super::*;
+    #[test]
+    fn casting_comparator_tracks_cast_filling_cooling_and_result() {
+        let mut state=Casting::new();assert_eq!(state.comparator(),0);
+        state.input=Some(ItemStack::new("tconstruct:ingot_cast",1));assert_eq!(state.comparator(),1);
+        assert!(state.prepare("x:recipe",90,100,ItemStack::new("minecraft:copper_ingot",1),false,false));
+        assert_eq!(state.comparator(),2);
+        for amount in 1..90 {
+            assert!(state.tank.insert("tconstruct:molten_copper",1));
+            assert_eq!(state.comparator(),(2+amount*9/90) as i32);
+            for key in ["tconstruct:table","tconstruct:basin"] {
+                assert_eq!(saved_comparator(key,&state.to_nbt()),Some(state.comparator()));
+            }
+        }
+        assert!(state.tank.insert("tconstruct:molten_copper",1));assert_eq!(state.comparator(),11);
+        for timer in 1..100 {
+            assert!(!state.tick(true));assert_eq!(state.comparator(),11+timer*4/100);
+        }
+        assert!(state.tick(true));assert_eq!(state.comparator(),15);
+        state.output=None;assert_eq!(state.comparator(),1);
+        state.input=None;assert_eq!(state.comparator(),0);
+    }
+    #[test]
+    fn casting_output_precedes_cooling_and_invalid_timer_is_bounded() {
+        let mut state=Casting::new();
+        assert!(state.prepare("x:recipe",1,1,ItemStack::new("minecraft:stone",1),true,false));
+        assert!(state.tank.insert("minecraft:water",1));state.timer=u32::MAX;
+        assert_eq!(state.comparator(),15);
+        state.output=Some(ItemStack::new("minecraft:stone",1));state.timer=0;
+        assert_eq!(state.comparator(),15);
+    }
     #[test]
     fn casting_roundtrip_rejects_unknown_and_lossy_saved_data() {
         let casting = Casting::new(); let raw = casting.to_nbt();

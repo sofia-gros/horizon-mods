@@ -11,7 +11,7 @@ type Pos = (i32, i32, i32);
 /// so every supported Melter extraction route observes the committed amount.
 pub(super) fn write_machine_updates(game: &mut super::Game<'_>, changes: &[(Pos, &str, Tag)]) -> bool {
     let before: Vec<_> = changes.iter()
-        .filter(|(_, key, _)| matches!(*key, "tconstruct:melter" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank"))
+        .filter(|(_, key, _)| matches!(*key, "tconstruct:melter" | "tconstruct:fuel_tank" | "tconstruct:ingot_tank" | "tconstruct:table" | "tconstruct:basin"))
         .map(|(pos, key, _)| (*pos, *key, store::read(&game.world, *pos, key)
             .and_then(|raw| super::tconstruct_source_melter_state::saved_comparator(key, &raw)).unwrap_or(0)))
         .collect();
@@ -690,7 +690,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
     let Some((kind, mut casting)) = casting_at(game, pos) else { return false; };
     if casting.tank.amount != 0 || casting.recipe.is_some() {
         if let Some(excess) = casting.recover_excess_input() {
-            if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+            if !write_machine_updates(game, &[(pos, kind, casting.to_nbt())]) { return false; }
             if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
                 slots[0] = casting.input.clone();
             }
@@ -735,7 +735,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             // This newly supported path must not discard extensions or lossy
             // strings when replacing the existing casting compound.
             if !store::read(&game.world, pos, kind).is_some_and(|raw| casting.roundtrips(&raw)) { return true; }
-            if !store::write(&mut game.world, pos, kind, next.to_nbt()) { return false; }
+            if !write_machine_updates(game, &[(pos, kind, next.to_nbt())]) { return false; }
             if game.creative {
                 if next.tank.amount < before { if let Some(result) = slots[1].take() { game.give_or_drop(result); } }
             } else if let Some(rest) = slots[0].take() {
@@ -762,7 +762,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
                     remaining = Some((stack.count > 0).then_some(stack));
                     casting.input = Some(result);
                 } else { casting.input = None; taken = Some(result); }
-                if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+                if !write_machine_updates(game, &[(pos, kind, casting.to_nbt())]) { return false; }
                 if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
                     slots[0] = casting.input.clone(); slots[1] = casting.output.clone();
                 }
@@ -779,7 +779,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             if held.is_some() {
                 if let Some((_, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
                     casting.input = None;
-                    if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+                    if !write_machine_updates(game, &[(pos, kind, casting.to_nbt())]) { return false; }
                     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
                     let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
                     // The source fallback gives the assembled item without onCraftedBy.
@@ -797,7 +797,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
         casting.input = Some(item);
     } else if casting.output.is_some() { taken = casting.output.take(); }
     else { taken = casting.input.take(); }
-    if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+    if !write_machine_updates(game, &[(pos, kind, casting.to_nbt())]) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = casting.input.clone(); slots[1] = casting.output.clone();
     }
@@ -860,14 +860,14 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
         let Some(state) = cannon_at(game,target) else { return false; };
         if !faucet.activate(&mut fluid,&state.tank) { return true; }
         if !apply_smeltery_take(&mut smeltery,&before,&fluid) { return false; }
-        return store::write_many(&mut game.world,&[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+        return write_machine_updates(game,&[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
     if &*target_name == "tconstruct:seared_casting_tank" {
         if !ensure(game, target, &target_name) { return false; }
         let Some(state) = casting_tank_at(game, target) else { return false; };
         if !faucet.activate(&mut fluid, &state.tank) { return true; }
         if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return false; }
-        return store::write_many(&mut game.world, &[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
+        return write_machine_updates(game, &[(controller,"tconstruct:smeltery",smeltery.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]);
     }
     if !matches!(&*target_name, "tconstruct:seared_table" | "tconstruct:scorched_table" | "tconstruct:seared_basin" | "tconstruct:scorched_basin") { return true; }
     if !ensure(game, target, &target_name) { return false; }
@@ -878,7 +878,7 @@ fn activate_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, t
     }
     if !faucet.activate(&mut fluid, &casting.tank) { return true; }
     if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return false; }
-    store::write_many(&mut game.world, &[(controller, "tconstruct:smeltery", smeltery.to_nbt()), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())])
+    write_machine_updates(game, &[(controller, "tconstruct:smeltery", smeltery.to_nbt()), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())])
 }
 
 // A casting handler resolves a fresh recipe whenever fluid next arrives,
@@ -904,7 +904,7 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
         let previous_strength = state.comparator();
         faucet.tick(&mut fluid,Some(&mut state.tank));
         if !apply_smeltery_take(&mut smeltery,&before,&fluid) || !state.lossless() { return; }
-        if store::write_many(&mut game.world,&[(controller,"tconstruct:smeltery",match patch_smeltery_controller_tank(&raw_controller, &smeltery) { Some(tag) => tag, None => return }),(target,"tconstruct:fluid_cannon",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
+        if write_machine_updates(game,&[(controller,"tconstruct:smeltery",match patch_smeltery_controller_tank(&raw_controller, &smeltery) { Some(tag) => tag, None => return }),(target,"tconstruct:fluid_cannon",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
             notify_casting_comparator(game, target, previous_strength, state.comparator());
         }
         return;
@@ -921,7 +921,7 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
         if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return; }
         if state.tank.to_nbt() != previous_tank { let _ = process_casting_tank(game, &mut state); }
         if !state.lossless() { return; }
-        if store::write_many(&mut game.world, &[(controller,"tconstruct:smeltery",match patch_smeltery_controller_tank(&raw_controller, &smeltery) { Some(tag) => tag, None => return }),(target,"tconstruct:casting_tank",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
+        if write_machine_updates(game, &[(controller,"tconstruct:smeltery",match patch_smeltery_controller_tank(&raw_controller, &smeltery) { Some(tag) => tag, None => return }),(target,"tconstruct:casting_tank",state.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) {
             let strength = state.comparator();
             if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&target) { slots[0] = state.slots[0].clone(); slots[1] = state.slots[1].clone(); }
             notify_casting_comparator(game, target, previous_strength, strength);
@@ -950,7 +950,7 @@ fn tick_smeltery_faucet(game: &mut super::Game<'_>, pos: Pos, source: Pos, targe
             .is_some_and(|(casting_raw, faucet_raw)| super::tconstruct_source_melter_state::safe_casting_resume(&before_casting, &casting_raw, &faucet, &faucet_raw)) { return; }
     faucet.tick(&mut fluid, Some(&mut casting.tank));
     if !apply_smeltery_take(&mut smeltery, &before, &fluid) { return; }
-    let _ = store::write_many(&mut game.world, &[(controller, "tconstruct:smeltery", match patch_smeltery_controller_tank(&raw_controller, &smeltery) { Some(tag) => tag, None => return }), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())]);
+    let _ = write_machine_updates(game, &[(controller, "tconstruct:smeltery", match patch_smeltery_controller_tank(&raw_controller, &smeltery) { Some(tag) => tag, None => return }), (target, kind, casting.to_nbt()), (pos, "tconstruct:faucet", faucet.to_nbt())]);
 }
 
 /// Start or stop a source faucet. A destination recipe is resolved before any
@@ -1411,10 +1411,10 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
             && casting.result.as_ref().is_some_and(|stored| stored.same_item_same_components(&result) && stored.count == result.count));
     let previous_timer = casting.timer;
     if !casting.tick(valid) {
-        if casting.timer != previous_timer { let _ = store::write(&mut game.world, pos, kind, casting.to_nbt()); }
+        if casting.timer != previous_timer { let _ = write_machine_updates(game, &[(pos, kind, casting.to_nbt())]); }
         return;
     }
-    if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return; }
+    if !write_machine_updates(game, &[(pos, kind, casting.to_nbt())]) { return; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = casting.input; slots[1] = casting.output;
     }

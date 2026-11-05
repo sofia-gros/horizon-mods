@@ -235,3 +235,25 @@ states that cannot be decoded yield zero without rewriting them. Fixture tests
 cover every representable amount at both capacities and threshold/failure
 transitions; world storage/neighbor callbacks are mocked. Actual redstone
 circuits, placement, reload and LAN remain unverified.
+
+### Table and Basin progress comparator signals
+
+The four registered Seared/Scorched Casting Tables and Basins now expose the
+source analog signal: output present 15, cooling `11 + floor(timer * 4 / time)`,
+filling `2 + floor(amount * 9 / capacity)`, input-only 1, empty 0. Output takes
+precedence. The native state stores recipe time before filling, so cooling
+signals begin only at full capacity. Extreme invalid saved timers are bounded
+to the legal signal range rather than overflowing.
+
+Source: [CastingBlockEntity.getAnalogSignal at f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/smeltery/block/entity/CastingBlockEntity.java).
+Committed Faucet fills, direct interactions and cooling ticks notify comparator
+neighbors only after successful saves and only on changed strengths. Hopper
+slot changes retain the existing post-save host `container_changed` notification.
+No new recipe handling or redstone slot swapping is added. Existing timing of
+prepared empty recipes and unsupported recipes remains unchanged.
+
+Production state/commit fixtures check cast insertion, filling fractions,
+cooling quarters, output priority, pickup, save/load and failed writes. Their
+world/neighbor callbacks are mocks; actual redstone circuits, automation,
+reload and LAN remain unverified. This builds on the Melter and tank comparator
+changes and must preserve those wrappers when combining fuel integration.
