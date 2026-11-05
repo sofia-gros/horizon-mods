@@ -74,3 +74,17 @@ mod tests {
         assert!(project("tconstruct:protection/fire", &raw, &HashSet::new()).unwrap_err().starts_with("cyclic damage tag "));
     }
 }
+
+#[cfg(test)]
+mod magic_tag_test {
+    use super::*;
+    #[test]
+    fn source_magic_tag_expands_witch_resistance_and_optional_mod_damage() {
+        let registry = ["minecraft:magic","minecraft:wither","minecraft:dragon_breath"].map(str::to_owned).into_iter().collect();
+        let raw = Raw::from([
+            ("minecraft:witch_resistant_to".into(),vec![br#"{"values":["minecraft:magic"]}"#.to_vec()]),
+            ("tconstruct:protection/magic".into(),vec![br##"{"values":["#minecraft:witch_resistant_to","minecraft:wither","minecraft:wither_skull","minecraft:dragon_breath",{"id":"twilightforest:haunt","required":false}]}"##.to_vec()]),
+        ]);
+        assert_eq!(project("tconstruct:protection/magic",&raw,&registry).unwrap(),registry);
+    }
+}
