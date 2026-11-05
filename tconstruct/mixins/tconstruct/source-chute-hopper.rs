@@ -283,11 +283,17 @@ fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32
     use horizon_client::{containers::BlockEntity, pluto_inventory::{plan_between, StackSnapshot}};
     if hopper.kind != Kind::Hopper || hopper.parts.len() != 1 || hopper.len() != 5 { return false; }
     let hopper_pos = hopper.parts[0].0;
+    if hopper_pos == target || !game.world.chunks.contains_key(&(hopper_pos.0 >> 4,hopper_pos.2 >> 4))
+        || !game.world.chunks.contains_key(&(target.0 >> 4,target.2 >> 4)) { return false; }
+    let hopper_block = game.world.block(hopper_pos.0,hopper_pos.1,hopper_pos.2);
+    let target_block = game.world.block(target.0,target.1,target.2);
     let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get(&hopper_pos) else { return false; };
     if slots.len() != 5 { return false; }
     let before = slots.clone();
     let Some(mut cannon) = crate::game::tconstruct_source_machine_runtime::cannon_at(game,target) else { return false; };
     let machine_before = cannon.to_nbt();
+    let Some(saved) = crate::game::tconstruct_source_melter_store::read(&game.world,target,"tconstruct:fluid_cannon") else { return false; };
+    if cannon.tank_to_nbt_preserving(&saved).as_ref() != Some(&saved) { return false; }
     fn snapshot(value: &Option<horizon_items::items::ItemStack>) -> Option<StackSnapshot<'_,horizon_items::items::ItemStack>> {
         value.as_ref().filter(|s| s.count > 0).map(|item| StackSnapshot { item, count: item.count })
     }
@@ -318,7 +324,14 @@ fn cannon_transfer(game: &mut crate::game::Game<'_>, hopper: &View, target: (i32
     let (from,to) = if push { (hopper_pos,target) } else { (target,hopper_pos) };
     let mut cancel = false;
     game.native_inventory_move_item([from.0,from.1,from.2],[to.0,to.1,to.2],&item.item,&mut cancel);
-    if cancel || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before
+    // The native move callback may replace blocks or saved data even when
+    // decoded items still compare equal. Commit only to the original endpoints.
+    if cancel || !game.world.chunks.contains_key(&(hopper_pos.0 >> 4,hopper_pos.2 >> 4))
+        || !game.world.chunks.contains_key(&(target.0 >> 4,target.2 >> 4))
+        || game.world.block(hopper_pos.0,hopper_pos.1,hopper_pos.2) != hopper_block
+        || game.world.block(target.0,target.1,target.2) != target_block
+        || crate::game::tconstruct_source_melter_store::read(&game.world,target,"tconstruct:fluid_cannon").as_ref() != Some(&saved)
+        || !matches!(game.world.block_entities.get(&hopper_pos), Some(BlockEntity::Chest(slots)) if *slots == before
             && slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item)))
         || crate::game::tconstruct_source_machine_runtime::cannon_at(game,target).is_none_or(|state| state.to_nbt() != machine_before) { return false; }
     let mut after = before.clone(); item.count = 1;

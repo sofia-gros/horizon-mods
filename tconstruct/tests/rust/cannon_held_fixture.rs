@@ -6,22 +6,45 @@
 #[path="__MIXINS__/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
 #[path="__PLUTO__"] mod pluto_stack_fluid;
+#[path="__INVENTORY__"] mod pluto_inventory;
 use std::collections::{HashMap,HashSet};
 use horizon_world::nbt::Tag;use horizon_items::items::ItemStack;
 type Pos=(i32,i32,i32);type Tags=HashMap<String,HashSet<String>>;
 #[derive(Clone)]enum BlockEntity{Chest(Vec<Option<ItemStack>>)}
 struct Items;impl Items{fn get(&self,_:&str)->Option<()>{Some(())}}
 struct Res;impl Res{fn items(&self)->Items{Items}}
-struct Chunks{loaded:bool,fluids:Option<Result<(HashSet<String>,()),()>>,tags:Option<Result<Tags,()>>}
+struct Chunks{loaded:bool,unloaded:HashSet<(i32,i32)>,fluids:Option<Result<(HashSet<String>,()),()>>,tags:Option<Result<Tags,()>>}
 impl Chunks{
- fn contains_key(&self,_:&(i32,i32))->bool{self.loaded}
+ fn contains_key(&self,key:&(i32,i32))->bool{self.loaded && !self.unloaded.contains(key)}
  fn __horizon_mixins_tconstruct_tank_fluid_context(&self)->&Option<Result<(HashSet<String>,()),()>>{&self.fluids}
  fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<Tags,()>>{&self.tags}
 }
-struct World{raw:Tag,chunks:Chunks,block_entities:HashMap<Pos,BlockEntity>,block:usize,fail:bool,writes:usize}
-impl World{fn block(&self,_:i32,_:i32,_:i32)->usize{self.block}}
-struct Game<'a>{world:World,res:Res,held:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,signals:usize,updates:usize,_life:std::marker::PhantomData<&'a()>}
+struct World{raw:Tag,chunks:Chunks,block_entities:HashMap<Pos,BlockEntity>,block:usize,blocks:HashMap<Pos,usize>,fail:bool,writes:usize}
+impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{self.blocks.get(&(x,y,z)).copied().unwrap_or(self.block)}}
+struct Game<'a>{world:World,res:Res,held:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,move_fault:u8,moves:usize,signals:usize,updates:usize,_life:std::marker::PhantomData<&'a()>}
+#[derive(PartialEq)]enum Kind{Hopper,Other}
+struct View{kind:Kind,parts:Vec<(Pos,usize)>}impl View{fn len(&self)->usize{self.parts.iter().map(|(_,len)|len).sum()}}
+struct Containers;impl Containers{fn max_stack(&self,_:&ItemStack)->u32{64}fn can_place(&self,_:&View,_:usize,_:&ItemStack)->bool{true}}
 impl Game<'_>{
+ fn containers(&self)->Containers{Containers}
+ fn native_inventory_move_item(&mut self,_:[i32;3],_:[i32;3],_:&str,cancel:&mut bool){
+  self.moves+=1;let hopper=(32,0,0);let target=(0,0,0);
+  match self.move_fault{
+   1=>*cancel=true,
+   2=>{self.world.blocks.insert(hopper,99);},
+   3=>{self.world.blocks.insert(target,99);},
+   4=>{self.world.chunks.unloaded.insert((2,0));},
+   5=>{self.world.chunks.unloaded.insert((0,0));},
+   6=>if let Tag::Compound(fields)=&mut self.world.raw{fields.insert("future".into(),Tag::Int(999));},
+   7=>{let BlockEntity::Chest(slots)=self.world.block_entities.get_mut(&hopper).unwrap();slots[0].as_mut().unwrap().count+=1;},
+   8=>{let BlockEntity::Chest(slots)=self.world.block_entities.get_mut(&target).unwrap();slots[0]=Some(ItemStack::new("minecraft:diamond",1));},
+   9|10=>{let pos=if self.move_fault==9{hopper}else{target};let BlockEntity::Chest(slots)=self.world.block_entities.get_mut(&pos).unwrap();let item=slots[0].as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));},
+   11=>{self.world.block_entities.remove(&hopper);},
+   12=>{self.world.block_entities.remove(&target);},
+   _=>{},
+  }
+ }
+
  fn held(&self)->Option<&ItemStack>{self.held.as_ref()}fn held_mut(&mut self)->&mut Option<ItemStack>{&mut self.held}
  fn give_or_drop(&mut self,item:ItemStack){self.gifts.push(item)}fn container_changed(&mut self,_:Pos){self.updates+=1;}
  fn ensure_datapacks(&mut self){
@@ -56,7 +79,7 @@ fn fixture(draining:bool,count:u32)->Game<'static>{
   if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){tank.insert("future_tank".into(),Tag::Int(8));}
   if let Some(Tag::Compound(item))=fields.get_mut(&"item".into()){item.insert("future_item".into(),Tag::Int(9));}
  }
- Game{world:World{raw,chunks:Chunks{loaded:true,fluids:Some(Ok((HashSet::from(["minecraft:water".into()]),()))),tags:Some(Ok(Tags::new()))},block_entities:HashMap::from([((0,0,0),BlockEntity::Chest(vec![Some(item)]))]),block:1,fail:false,writes:0},res:Res,held:Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},count)),gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,signals:0,updates:0,_life:std::marker::PhantomData}
+ Game{world:World{raw,chunks:Chunks{loaded:true,unloaded:HashSet::new(),fluids:Some(Ok((HashSet::from(["minecraft:water".into()]),()))),tags:Some(Ok(Tags::new()))},block_entities:HashMap::from([((0,0,0),BlockEntity::Chest(vec![Some(item)]))]),block:1,blocks:HashMap::new(),fail:false,writes:0},res:Res,held:Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},count)),gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,move_fault:0,moves:0,signals:0,updates:0,_life:std::marker::PhantomData}
 }
 #[test]fn cannon_held_fill_drain_preserve_raw_and_live_items(){
  for draining in [false,true]{for count in [1,2]{for creative in [false,true]{
@@ -139,4 +162,39 @@ fn canonical_saved_item(game:&mut Game<'_>){
   let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);
   assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));
  }
+}
+
+mod hopper_runtime{use super::*; // __CANNON_HOPPER__
+}
+fn hopper_fixture()->(Game<'static>,View){
+ let mut game=fixture(false,1);canonical_saved_item(&mut game);
+ game.world.block_entities.insert((32,0,0),BlockEntity::Chest(vec![Some(ItemStack::new("minecraft:stone",8)),None,None,None,None]));
+ (game,View{kind:Kind::Hopper,parts:vec![((32,0,0),5)]})
+}
+#[test]fn cannon_hopper_push_pull_preserve_data_and_counts(){
+ for push in [false,true]{let(mut game,view)=hopper_fixture();let raw=game.world.raw.clone();
+  assert!(hopper_runtime::cannon_transfer(&mut game,&view,(0,0,0),push));
+  let BlockEntity::Chest(hopper)=&game.world.block_entities[&(32,0,0)];let BlockEntity::Chest(cannon)=&game.world.block_entities[&(0,0,0)];
+  assert_eq!(hopper[0].as_ref().unwrap().count,if push{7}else{9});assert_eq!(cannon[0].as_ref().unwrap().count,if push{17}else{15});
+  assert_eq!(game.world.raw.get("tank"),raw.get("tank"));assert_eq!(game.world.raw.get("future"),raw.get("future"));
+  assert_eq!(runtime::cannon_at(&game,(0,0,0)).unwrap().item,cannon[0]);assert_eq!((game.moves,game.world.writes,game.updates),(1,1,1));
+ }
+}
+#[test]fn cannon_hopper_callback_changes_preserve_both_inventories(){
+ for push in [false,true]{for fault in 1..=12{let(mut game,view)=hopper_fixture();game.move_fault=fault;
+  let raw=game.world.raw.clone();assert!(!hopper_runtime::cannon_transfer(&mut game,&view,(0,0,0),push));
+  assert_eq!((game.moves,game.world.writes,game.updates,game.signals),(1,0,0,0));
+  if fault!=6{assert_eq!(game.world.raw,raw);}else{assert_eq!(game.world.raw.get("future"),Some(&Tag::Int(999)));}
+  if fault!=11{let BlockEntity::Chest(slots)=&game.world.block_entities[&(32,0,0)];assert_eq!(slots[0].as_ref().unwrap().count,if fault==7{9}else{8});}
+  if fault!=12{let BlockEntity::Chest(slots)=&game.world.block_entities[&(0,0,0)];assert_eq!(&*slots[0].as_ref().unwrap().item,if fault==8{"minecraft:diamond"}else{"minecraft:stone"});assert_eq!(slots[0].as_ref().unwrap().count,if fault==8{1}else{16});}
+ }}
+}
+#[test]fn cannon_hopper_failed_save_rolls_back_and_invalid_endpoints_wait(){
+ for push in [false,true]{for mode in 0..5{let(mut game,mut view)=hopper_fixture();let target=if mode==3{(32,0,0)}else{(0,0,0)};
+  match mode{0=>game.world.fail=true,1=>{game.world.chunks.unloaded.insert((2,0));},2=>{game.world.chunks.unloaded.insert((0,0));},3=>{},4=>view.kind=Kind::Other,_=>unreachable!()}
+  let raw=game.world.raw.clone();let BlockEntity::Chest(hopper)=game.world.block_entities[&(32,0,0)].clone();let BlockEntity::Chest(cannon)=game.world.block_entities[&(0,0,0)].clone();
+  assert!(!hopper_runtime::cannon_transfer(&mut game,&view,target,push));assert_eq!(game.world.raw,raw);
+  let BlockEntity::Chest(after)=&game.world.block_entities[&(32,0,0)];assert_eq!(after,&hopper);let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&cannon);
+  assert_eq!((game.world.writes,game.updates,game.signals),(0,0,0));assert_eq!(game.moves,usize::from(mode==0));
+ }}
 }

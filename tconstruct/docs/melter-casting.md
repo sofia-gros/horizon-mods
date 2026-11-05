@@ -194,3 +194,21 @@ failed persistence. Wiring assertions cover hopper rollback and post-callback
 guards. Tests were not run. The fixture does not execute native hopper
 callbacks or full manual dispatch; host/gameplay/save/reload/LAN and destruction
 remain for the later combined work.
+
+
+### Fluid Cannon hopper endpoint snapshots (#379)
+
+Cannon hopper push/pull now requires distinct, loaded endpoints, captures both
+exact block states and the raw Cannon save, and validates the saved/live Cannon
+identity before the move event. After the native inventory callback, the route
+rechecks both chunks, both block states and the exact saved compound, in addition
+to its existing inventory and retained-wire guards. A callback cannot redirect a
+staged transfer into a replacement block or overwrite newer saved data. Failed
+Cannon persistence still restores the hopper snapshot.
+
+The Cannon fixture now extracts this production route and imports the real Pluto
+inventory planner. Added cases cover push/pull counts and metadata, cancellation,
+block/chunk/raw/live/wire changes, missing entities, invalid endpoints and failed
+save rollback. Host containers/world/storage remain mocked; these tests were added
+but not run. Actual hopper scheduling, host gameplay, reload and LAN remain for the
+combined validation phase.
