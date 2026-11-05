@@ -4,7 +4,7 @@ import os, pathlib, subprocess, tempfile
 root=pathlib.Path(__file__).resolve().parents[1]; host=pathlib.Path(os.environ['HORIZON_HOST']).resolve()
 s=(root/'mixins/tconstruct/source-machine-runtime.rs').read_text()
 helpers=s[s.index('fn selected_smeltery_fluid('):s.index('fn matched_casting(')]
-route=s[s.index('pub(super) fn casting_tank_at('):s.index('pub(super) fn save_casting_tank(')] + s[s.index('fn patch_smeltery_controller_tank('):s.index('fn tank_casting_recipe_current(')] + s[s.index('fn faucet_network_tag_safe('):s.index('fn tank_to_casting_tank(')] + s[s.index('fn tank_to_smeltery('):]
+route=s[s.index('pub(super) fn cannon_at('):s.index('pub(super) fn save_cannon(')] + s[s.index('pub(super) fn casting_tank_at('):s.index('pub(super) fn save_casting_tank(')] + s[s.index('fn patch_smeltery_controller_tank('):s.index('fn tank_casting_recipe_current(')] + s[s.index('fn faucet_network_tag_safe('):s.index('fn tank_to_casting_tank(')] + s[s.index('fn tank_to_smeltery('):]
 
 tank_source=(root/'mixins/tconstruct/source-faucet-tank.rs').read_text()
 melter_patch=tank_source[tank_source.index('pub(super) fn patch_melter_tank('):tank_source.index('fn patch_faucet(')]
