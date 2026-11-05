@@ -3118,6 +3118,12 @@ name = "tconstruct_armor_wear_world"
 source = "armor-wear-world.rs"
 
 [[module]]
+id = "source-dense-armor-wear"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dense_armor_wear"
+source = "source-dense-armor-wear.rs"
+
+[[module]]
 id = "source-armor-wear-definitions"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_armor_wear_definitions"

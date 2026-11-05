@@ -1,5 +1,8 @@
 # Tanned ordinary armor wear
 
+The subsequent [Dense extension](dense-armor-wear.md) adds canonical Dense after
+Tanned. The remaining exclusions below are unchanged.
+
 Partial high-priority #379 durability-pipeline implementation, stacked on retained
 armor writeback #923 and live Tanned tags #916.
 

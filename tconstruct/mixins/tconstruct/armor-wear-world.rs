@@ -43,6 +43,8 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
             // Probe a positive amount: zero loss deliberately skips validation
             // in the shared evaluator. Ordinary armor wear has EMPTY cause.
             super::tconstruct_tanned_wear::loss(raw, 1, level, None)?;
+        } else if id == "tconstruct:dense" {
+            if !super::tconstruct_dense_armor_wear::supported(&value) { return None; }
         } else if !super::tconstruct_armor_wear_definitions::supported(&id, &value) {
             // Every other active modifier must have no durability hook.
             return None;
@@ -53,16 +55,20 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
 
 /// Transform ordinary armor damage before native item-damage callbacks and
 /// advancement reporting. Outside the scoped armor call the native path wins.
-pub(super) fn pre_native_loss(game: &super::Game<'_>, stack: &ItemStack, amount: u32) -> Option<u32> {
+pub(super) fn pre_native_loss(game: &mut super::Game<'_>, stack: &ItemStack, amount: u32) -> Option<u32> {
     if !game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context().contains_key(&game.lan_acting) {
         return None;
     }
     supported(game, stack)?;
     let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
-    let level = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tanned")?;
-    if level == 0 { return Some(amount); }
+    let tanned = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tanned")?;
+    let dense = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:dense")?;
     let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
-    super::tconstruct_tanned_wear::loss(raw, amount, level, None)
+    // Source priority 200 precedes Dense's default priority 100. Draw only for
+    // points left by Tanned; record/commit validation never rolls again.
+    let amount = super::tconstruct_tanned_wear::loss(raw, amount, tanned, None)?;
+    use horizon_core::random::RandomSource;
+    Some(super::tconstruct_dense_armor_wear::reduce(amount, dense, || game.world.random.next_float()))
 }
 
 pub(super) fn record(game: &mut super::Game<'_>, stack: &ItemStack, loss: u32) {
