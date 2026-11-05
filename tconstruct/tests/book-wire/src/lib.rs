@@ -21,6 +21,22 @@ mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
     #[test]
+    fn material_fluid_sidebar_pairs_survive_book_reply() {
+        let entry = recipe::material_fluid_options(&[("test:b".into(), "Fluid B".into()), ("test:a".into(), "Fluid A".into())], "Castable", "Cast from %s").unwrap();
+        let spec = serde_json::json!({"material_panel":{"material":"test:material","sidebar":[entry.clone()],"groups":[]}});
+        let pages = vec![
+            Text::styled("Materials & You\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Material", Style { insertion:Some(format!("tconstruct:book:{spec}")), ..Default::default() }),
+        ];
+        let reply = wire::encode_reply(15, &pages).unwrap();
+        let decoded = wire::decode_reply(15, &pages, &reply).unwrap();
+        let spec: serde_json::Value = serde_json::from_str(decoded[1].spans[0].style.insertion.as_ref().unwrap().strip_prefix("tconstruct:book:").unwrap()).unwrap();
+        let paired = &spec["material_panel"]["sidebar"][0];
+        for seconds in [0, 2, 3, 5, 6, u64::MAX] {
+            assert_eq!(recipe::material_sidebar_entry(paired, seconds), recipe::material_sidebar_entry(&entry, seconds));
+        }
+    }
+    #[test]
     fn drawn_small_smeltery_layers_match_the_production_detector() {
         use super::smeltery_structure::{self, Part};
         let layers = recipe::small_smeltery_layers();

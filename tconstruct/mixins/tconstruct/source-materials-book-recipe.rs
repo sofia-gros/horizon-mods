@@ -1,6 +1,38 @@
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
+// Bind each casting-fluid bucket to its own translated description. Sorting
+// icons separately from tooltips would name the wrong fluid while cycling.
+pub(super) fn material_fluid_options(choices: &[(String, String)], title: &str, template: &str) -> Option<Value> {
+    if title.trim().is_empty() || title.len() > 256 || template.matches("%s").count() != 1 { return None; }
+    let mut choices = choices.to_vec(); choices.sort(); choices.dedup();
+    if choices.is_empty() || choices.len() > 128 { return None; }
+    let mut options = Vec::new();
+    for (item, fluid) in choices {
+        if item.len() > 256 || item == "minecraft:air" || showcase_item(&Value::String(item.clone())).is_none()
+            || fluid.trim().is_empty() || fluid.len() > 256 { return None; }
+        let description = template.replacen("%s", &fluid, 1);
+        if description.len() > 256 { return None; }
+        options.push(serde_json::json!({"item":item, "tooltip":[title,description]}));
+    }
+    let entry = serde_json::json!({"options":options});
+    (entry.to_string().len() <= 4096).then_some(entry)
+}
+
+// Legacy category/repair/tool entries retain their existing behavior. New
+// paired options select once, then drawing and hover share the same entry.
+pub(super) fn material_sidebar_entry(entry: &Value, seconds: u64) -> Option<&Value> {
+    let Some(options) = entry.get("options") else { return Some(entry); };
+    let options = options.as_array().filter(|values| !values.is_empty() && values.len() <= 128)?;
+    let selected = &options[((seconds / 3) % options.len() as u64) as usize];
+    let item = selected.get("item")?;
+    let id = item.as_str().filter(|id| id.len() <= 256 && *id != "minecraft:air")?;
+    if showcase_item(item) != Some(id) { return None; }
+    let tooltip = selected.get("tooltip")?.as_array().filter(|lines| lines.len() == 2)?;
+    if !tooltip.iter().all(|line| line.as_str().is_some_and(|line| !line.trim().is_empty() && line.len() <= 256)) { return None; }
+    Some(selected)
+}
+
 // Top-down 3x3 layers, north first. Null cells are not required; the wall
 // layer's center must remain air. The controller faces north, away from it.
 pub(super) fn small_smeltery_layers() -> [[Option<&'static str>; 9]; 2] {
@@ -177,6 +209,50 @@ pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn material_fluid_options_keep_bucket_and_description_together() {
+        let choices = vec![("test:z_bucket".into(), "Molten Z".into()), ("test:a_bucket".into(), "Molten A".into()),
+            ("test:z_bucket".into(), "Molten Z".into())];
+        let entry = material_fluid_options(&choices, "Castable", "Cast from %s").unwrap();
+        assert_eq!(entry["options"].as_array().unwrap().len(), 2);
+        for seconds in [0, 1, 2, 6, 7, 8] {
+            let selected = material_sidebar_entry(&entry, seconds).unwrap();
+            assert_eq!(selected["item"], "test:a_bucket");
+            assert_eq!(selected["tooltip"], serde_json::json!(["Castable", "Cast from Molten A"]));
+        }
+        for seconds in [3, 4, 5, u64::MAX] {
+            let selected = material_sidebar_entry(&entry, seconds).unwrap();
+            assert_eq!(selected["item"], "test:z_bucket");
+            assert_eq!(selected["tooltip"][1], "Cast from Molten Z");
+        }
+        let shared_icon = material_fluid_options(&[("test:a".into(), "A".into()), ("test:a".into(), "B".into())], "Castable", "Cast from %s").unwrap();
+        assert_eq!(shared_icon["options"].as_array().unwrap().len(), 2);
+    }
+    #[test]
+    fn material_fluid_options_reject_invalid_and_over_budget_pairs() {
+        for choices in [vec![], vec![("bad id".into(), "A".into())], vec![("minecraft:air".into(), "A".into())],
+            vec![("test:a".into(), " ".into())], vec![("test:a".into(), "x".repeat(257))],
+            (0..129).map(|i| (format!("test:bucket_{i}"), format!("Fluid {i}"))).collect(),
+            (0..100).map(|i| (format!("test:bucket_{i}"), format!("Fluid {i}"))).collect()] {
+            assert!(material_fluid_options(&choices, "Castable", "Cast from %s").is_none());
+        }
+        for (title, template) in [("", "Cast from %s"), ("Castable", "No placeholder"), ("Castable", "%s and %s")] {
+            assert!(material_fluid_options(&[("test:a".into(), "A".into())], title, template).is_none());
+        }
+        for entry in [serde_json::json!({"options":[]}), serde_json::json!({"options":42}),
+            serde_json::json!({"options":[{"item":"bad id","tooltip":["Title","Text"]}]}),
+            serde_json::json!({"options":[{"item":"test:a","tooltip":["Title",42]}]}),
+            serde_json::json!({"options":[{"item":"test:a","tooltip":["Title"]}]})] {
+            assert!(material_sidebar_entry(&entry, 0).is_none());
+        }
+    }
+    #[test]
+    fn material_sidebar_legacy_entries_remain_unchanged() {
+        for entry in [serde_json::json!({"item":"test:tool","materials":["test:material"]}),
+            serde_json::json!({"choices":["test:a","test:b"],"tooltip":["Original tooltip"]})] {
+            for seconds in [0, 3, u64::MAX] { assert_eq!(material_sidebar_entry(&entry, seconds), Some(&entry)); }
+        }
+    }
     #[test]
     fn small_smeltery_uses_current_tags_and_all_registered_parts() {
         let tags = HashMap::from([

@@ -496,3 +496,30 @@ the drawn cells to the production discovery function, changed-tag/absent-item
 gates, wire preservation and resource/reader/draw wiring were added but not run.
 Brief static review only. Compilation, actual diagram/hover, construction,
 melting/casting, resource reload, save/reload and LAN remain unverified.
+
+
+## Material casting fluid tooltip pairing
+
+The material sidebar previously sorted/cycled its available casting buckets
+but retained the description of the first fluid encountered in source-recipe
+order. With more than one accepted fluid, the icon and tooltip could disagree.
+Casting entries now keep each registered bucket and its translated fluid
+description in one option, sort/deduplicate complete pairs and select one option
+every three seconds. Drawing and hover read that same selected option.
+
+This uses the current world recipe snapshot, recipe conditions, fluid tags,
+`hide_in_book` flag, material ID and registered bucket checks already used by
+Materials and You, Puny and Mighty. No gameplay or acquisition support expands.
+Category icons, repair choices, Part Builder hints, composite entries and
+material/tool previews retain their previous behavior and cycling cadence.
+
+Paired options are bounded to 128 entries and 4,096 bytes; invalid IDs, empty
+descriptions, oversized text or unsupported description templates omit the
+optional casting hint rather than mismatching or truncating its options. Total
+book and per-page transport limits remain unchanged. Current pages still need
+to be reopened to reflect resource reload changes.
+
+Pairing/sorting/cycling/bounds, legacy-entry preservation, production wire
+round-trip and reader/draw wiring regressions were authored but not run. Brief
+static review only. Compilation, actual material layout/hover, resource reload,
+save/reload and LAN remain unverified.
