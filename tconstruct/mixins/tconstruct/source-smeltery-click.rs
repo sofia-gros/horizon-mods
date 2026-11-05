@@ -13,6 +13,11 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     // generic menu can alter the carried stack or player inventory.
     let Some(slot) = slot else { return Break(true); };
     if (36..300).contains(&slot) { return Break(true); }
+    if game.remote.is_none() {
+        let incoming = if input == horizon_client::menu::Input::QuickMove && slot < 36 { game.inventory.get(slot).and_then(Option::as_ref) }
+            else { game.carried.as_ref() };
+        if incoming.is_some_and(|stack| stack.data().is_some_and(|data| data.wire.patch().is_some())) { return Break(true); }
+    }
     if (300..302).contains(&slot) {
         if game.remote.is_some() { return Continue(()); }
         let Some(pos) = game.container else { return Break(true); };
@@ -168,7 +173,8 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     let handled = game.menu_ops(&[(Some(slot), button, input)]);
     let changed = game.world.block_entities.get(&pos).map(|entity| entity.slots().to_vec());
     let before_slots = state.slots.clone();
-    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::commit_with_containers(&mut state.slots, offset, &expected, view, &containers));
+    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::no_retained_wire(view)
+        && crate::game::tconstruct_source_smeltery_page::commit_with_containers(&mut state.slots, offset, &expected, view, &containers));
     if committed {
         for (index, (before, after)) in before_slots.iter().zip(&state.slots).enumerate() {
             let same = match (before, after) {

@@ -115,7 +115,9 @@ slots. Guest and runtime writes use that same transaction. Failed validation
 or any failed member of a multi-source batch leaves source and live data
 unchanged. Local UI, runtime and chute paths also check before they can
 replace a live view. Menu operations restore the validated old page before
-committing their new authoritative inputs through the store.
+committing their new authoritative inputs through the store. Guest Pickup owns
+its final commit and restores cursor, inventory and drag on failure, withholding
+speculative drops. Retained-wire incoming items are refused before serialization.
 
 The outer `tconstruct:retired_projection` field accepts only integer modes
 `0` (open/unproven) and `1` (retired). Mode 1 can authorize only an empty
@@ -148,3 +150,9 @@ names so a zero-test run cannot pass. The suite exercises real item/NBT codecs,
 host overlay/canonicalization, the decode adapter and store/CAS code in a
 minimal world fixture. These tests pass; they are not a real world/LAN test or
 a substitute for type-checking the full injected host.
+
+The guest Pickup transaction helper is also executed with a simulated native
+menu engine and the real store, forcing final-write failures for deposit,
+withdrawal and outside drop. These tests establish rollback in the adapter,
+not end-to-end native LAN behavior. The separate store fixture can be run with
+`MACHINE_GUARD_FIXTURE=smeltery_nbt_store.rs` using the same runner.

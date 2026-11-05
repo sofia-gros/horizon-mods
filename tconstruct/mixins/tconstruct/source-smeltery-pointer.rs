@@ -17,6 +17,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
         return Continue(());
     }
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    if game.remote.is_none() && game.carried.as_ref().is_some_and(|stack| stack.data().is_some_and(|data| data.wire.patch().is_some())) { return Break(true); }
     let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
         .map(|(id, items)| (id.clone(), items.clone())).collect());

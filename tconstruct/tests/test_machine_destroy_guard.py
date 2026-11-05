@@ -52,6 +52,24 @@ class DestroyGuardWiring(unittest.TestCase):
         self.assertIn('live.iter().all(Option::is_none) && retired_projection(raw)', guard)
         self.assertIn('raw.get("Items") != Some(&horizon_items::item_nbt::encode_items(live))', guard)
 
+    def test_guest_pickup_owns_rollback_and_filters_wire_before_serialization(self):
+        guest = (ROOT / 'source-smeltery-guest-guard.rs').read_text()
+        self.assertLess(guest.index('::current_projection('), guest.index('tconstruct_smeltery_guest_pickup::pickup('))
+        self.assertLess(guest.index('data.wire.patch().is_some()'), guest.index('tconstruct_smeltery_guest_pickup::pickup('))
+        native = (ROOT / 'source-smeltery-guest-pickup.rs').read_text().split('let (drops, changed) = {', 1)[1]
+        self.assertLess(native.index('::write('), native.index('return drops'))
+        self.assertIn('hub.guests[gi].inventory = previous_inventory;', native)
+        self.assertIn('hub.guests[gi].carried = previous_carried;', native)
+        self.assertIn('Vec::new()', native)
+        self.assertNotIn('Continue(())', native)
+        self.assertLess(native.index('no_retained_wire(&items)'), native.index('state.to_nbt()'))
+        local = (ROOT / 'source-smeltery-click.rs').read_text()
+        self.assertLess(local.index('data.wire.patch().is_some()'), local.index('state.to_nbt()'))
+        self.assertIn('no_retained_wire(view)', local)
+        self.assertIn('no_retained_wire(items)', (ROOT / 'source-smeltery-guest-write.rs').read_text())
+        self.assertIn('no_retained_wire(original_hopper)', (ROOT / 'source-chute-hopper.rs').read_text())
+        self.assertIn('item.stack.data().is_some_and(|data| data.wire.patch().is_some())', (ROOT / 'source-machine-runtime.rs').read_text())
+
     def test_all_source_languages_receive_feedback(self):
         self.assertEqual(set(MACHINE_GUARD_MESSAGES), set(WARNINGS))
         for locale in WARNINGS:

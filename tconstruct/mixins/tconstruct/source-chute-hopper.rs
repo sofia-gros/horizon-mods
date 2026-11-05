@@ -46,6 +46,7 @@ fn tconstruct_chute_transfer(game: &mut crate::game::Game<'_>, hopper: &View, ch
     if state.slots.len() != volume { return false; }
     let Some(BlockEntity::Chest(original_hopper)) = game.world.block_entities.get(&hopper_pos) else { return false; };
     if original_hopper.len() != 5 { return false; }
+    if !crate::game::tconstruct_source_smeltery_page::no_retained_wire(original_hopper) { return false; }
     let before_hopper = original_hopper.clone();
     let containers = game.containers();
     fn snapshot(stack: &Option<horizon_items::items::ItemStack>) -> Option<StackSnapshot<'_, horizon_items::items::ItemStack>> {

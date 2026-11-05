@@ -11,7 +11,9 @@ ACTUAL=$(git -C "$HORIZON_HOST" rev-parse HEAD 2>/dev/null) || {
 if [[ "$ACTUAL" != "$EXPECTED" ]] || [[ -n "$(git -C "$HORIZON_HOST" status --porcelain --untracked-files=no)" ]]; then
     echo "HORIZON_HOST must have a clean tracked tree at $EXPECTED." >&2; exit 1
 fi
-export ROOT HORIZON_HOST
+FIXTURE=${MACHINE_GUARD_FIXTURE:-machine_destroy_guard.rs}
+case "$FIXTURE" in machine_destroy_guard.rs|smeltery_nbt_store.rs) ;; *) echo 'Unsupported machine fixture' >&2; exit 1;; esac
+export ROOT HORIZON_HOST FIXTURE
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/machine-destroy-guard.XXXXXXXX")
 trap 'rm -rf "$WORK"' EXIT
 export WORK
@@ -35,7 +37,7 @@ horizon-world = {{ path = {quoted(host / 'crates/horizon-world')} }}
 horizon-items = {{ path = {quoted(host / 'crates/horizon-items')} }}
 horizon-client-core = {{ path = {quoted(host / 'crates/horizon-client-core')} }}
 [lib]
-path = {quoted(root / 'tconstruct/tests/rust/machine_destroy_guard.rs')}
+path = {quoted(root / 'tconstruct/tests/rust' / os.environ['FIXTURE'])}
 '''
 (work / 'Cargo.toml').write_text(manifest)
 PY
@@ -71,10 +73,17 @@ if unknown:
 PYLOCK
 cargo test --locked --offline --manifest-path "$WORK/Cargo.toml" -- --nocapture 2>&1 | tee "$WORK/results.log"
 # A successful zero-test filter is not evidence that the target behavior ran.
-for case in \
-    'test verified_close_allows_filled_controller_after_page_offset_is_discarded ... ok' \
-    'test close_never_erases_mismatched_or_unknown_page ... ok'
-do
+if [[ "$FIXTURE" == smeltery_nbt_store.rs ]]; then
+    cases=('test write_many_rejects_wrong_destination_without_mutating_first_chunk ... ok')
+else
+    cases=('test verified_close_allows_filled_controller_after_page_offset_is_discarded ... ok'
+           'test close_never_erases_mismatched_or_unknown_page ... ok'
+           'test forged_valid_shaped_snapshot_does_not_authorize_diamond_deletion ... ok'
+           'test writer_cannot_erase_unexplained_or_retained_wire_live_items ... ok'
+           'test guest_pickup_final_write_failure_rolls_back_deposit_withdrawal_and_outside_drop ... ok'
+           'test guest_pickup_success_commits_source_before_acknowledging ... ok')
+fi
+for case in "${cases[@]}"; do
     if ! grep -Fqx "$case" "$WORK/results.log"; then
         printf 'Required test did not pass: %s\n' "$case" >&2
         exit 1

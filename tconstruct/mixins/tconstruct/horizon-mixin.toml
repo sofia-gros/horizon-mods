@@ -177,6 +177,12 @@ bindings = [
   { name = "input", ty = "horizon_client::menu::Input", value = "input" },
 ]
 
+[[module]]
+id = "smeltery-guest-pickup"
+file = "crates/horizon-client/src/lan/containers.rs"
+name = "tconstruct_smeltery_guest_pickup"
+source = "source-smeltery-guest-pickup.rs"
+
 [[injection]]
 id = "smeltery-guest-guard"
 target = "horizon_client_lib::lan::containers::Hub::container_click"

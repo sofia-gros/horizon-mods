@@ -4,6 +4,7 @@ fn smeltery_guest_write(slots: crate::lan::menu::Slots, world: &mut crate::world
     let Some(tag) = crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery") else { return Continue(()); };
     let Some(mut state) = crate::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag) else { return Break(()); };
     let offset = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&(guest.conn, guest.placed_at, pos)).map_or(0, |page| page.0);
+    if !crate::tconstruct_source_smeltery_page::no_retained_wire(items) { return Break(()); }
     let previous = state.slots.clone();
     let containers = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&guest.conn)
         .filter(|(at, _, _)| *at == pos).map(|(_, slots, _)| slots.clone()).unwrap_or([None, None]);
@@ -17,6 +18,8 @@ fn smeltery_guest_write(slots: crate::lan::menu::Slots, world: &mut crate::world
         };
         if !same { state.progress[index] = 0; }
     }
-    let _ = crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt());
+    // Container Pickup is handled transactionally by smeltery_guest_guard;
+    // this fallback has no ability to commit a guest inventory/cursor change.
+    if !crate::tconstruct_source_melter_store::write(world, pos, "tconstruct:smeltery", state.to_nbt()) { return Break(()); }
     Break(())
 }

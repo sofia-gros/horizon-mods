@@ -319,3 +319,69 @@ fn live(world: &tconstruct_world::World) -> &[Option<horizon_items::items::ItemS
     assert_eq!(live(&world), changed);
     assert!(projection_world::record(&mut world, (0,64,0), 0));
 }
+
+// Execute the unchanged production guest transaction helper with a minimal
+// native-menu engine stand-in. The engine is not under test: it mutates the
+// cursor/inventory/page as Pickup does. Source writes are the real code above.
+use horizon_items::items::ItemStack;
+use tconstruct_world::World;
+trait Rules {}
+impl Rules for () {}
+#[derive(Default)] struct GuestMenu { drag: Option<(u8,Vec<usize>)>, hidden: Vec<usize> }
+#[derive(Default)] struct Guest { inventory: Vec<Option<ItemStack>>, carried: Option<ItemStack>, menu: Option<GuestMenu> }
+#[derive(Default)] struct Hub { guests: Vec<Guest>, answers: usize, resyncs: usize }
+impl Hub {
+    fn answer_click(&mut self, _: usize, _: &play::ContainerClick, _: &World, _: &[usize]) { self.answers += 1; }
+    fn send_menu_content(&mut self, _: usize, _: Vec<Option<ItemStack>>) { self.resyncs += 1; }
+}
+mod play { pub struct ContainerClick { pub slot: i16, pub button: i8, pub input: i32 } }
+struct View<'a> { guest: &'a mut Guest, container: Option<&'a mut [Option<ItemStack>]>, shulker: bool, hidden: &'a [usize] }
+mod menu {
+    use super::*;
+    pub fn click(view: &mut View, drag: &mut Option<(u8,Vec<usize>)>, slot: i32, _: i32, _: i32, _: &dyn Rules) -> (Vec<ItemStack>,Vec<usize>) {
+        *drag = None;
+        if slot == -999 { return (view.guest.carried.take().into_iter().collect(), vec![]); }
+        let slots = view.container.as_deref_mut().unwrap();
+        std::mem::swap(&mut slots[slot as usize], &mut view.guest.carried);
+        // Simulate a native side effect in the player inventory as well, so
+        // rollback has to restore both fields rather than only the cursor.
+        view.guest.inventory[0] = Some(ItemStack::new("minecraft:gold_ingot", 1));
+        (vec![], vec![slot as usize])
+    }
+}
+#[path = "../../mixins/tconstruct/source-smeltery-guest-pickup.rs"] mod guest_pickup;
+
+#[test] fn guest_pickup_final_write_failure_rolls_back_deposit_withdrawal_and_outside_drop() {
+    for mode in [0,1,2] {
+        let (mut world, mut state) = fixture(1, None);
+        let carried = if mode == 1 { None } else { Some(ItemStack::new("minecraft:gold_ore", 1)) };
+        if mode == 0 { state.slots[0] = None;
+            let before = raw(&world);
+            let next = outer("tconstruct:smeltery", state.to_nbt());
+            assert!(tconstruct_source_melter_store::replace_outer(&mut world, (0,64,0), &before, next));
+        }
+        // A late invalidation after the guard's preflight must still be safe.
+        let containers::BlockEntity::Chest(page) = world.block_entities.get_mut(&(0,64,0)).unwrap();
+        page[53] = Some(ItemStack::new("minecraft:diamond", 1));
+        let source_before = raw(&world); let live_before = live(&world).to_vec();
+        let inventory_before = vec![Some(ItemStack::new("minecraft:copper_ingot", 2)); 36];
+        let mut hub = Hub { guests: vec![Guest { inventory: inventory_before.clone(), carried: carried.clone(),
+            menu: Some(GuestMenu { drag: Some((1, vec![2])), hidden: vec![] }) }], ..Default::default() };
+        let packet = play::ContainerClick { slot: if mode == 2 { -999 } else { 2 }, button: 0, input: 0 };
+        let drops = guest_pickup::pickup(&mut hub, 0, &packet, &mut world, &(), (0,64,0), state, 0, [None,None]);
+        assert!(drops.is_empty()); assert_eq!(hub.answers, 0); assert_eq!(hub.resyncs, 1);
+        assert_eq!(hub.guests[0].inventory, inventory_before); assert_eq!(hub.guests[0].carried, carried);
+        assert_eq!(hub.guests[0].menu.as_ref().unwrap().drag, Some((1,vec![2])));
+        assert_eq!(raw(&world), source_before); assert_eq!(live(&world), live_before);
+    }
+}
+#[test] fn guest_pickup_success_commits_source_before_acknowledging() {
+    let (mut world, state) = fixture(1, None);
+    let mut hub = Hub { guests: vec![Guest { inventory: vec![None;36], carried: None, menu: Some(GuestMenu::default()) }], ..Default::default() };
+    let packet = play::ContainerClick { slot: 2, button: 0, input: 0 };
+    let drops = guest_pickup::pickup(&mut hub, 0, &packet, &mut world, &(), (0,64,0), state, 0, [None,None]);
+    assert!(drops.is_empty()); assert_eq!(hub.answers,1); assert_eq!(hub.resyncs,0);
+    assert_eq!(hub.guests[0].carried.as_ref().unwrap().item.as_ref(), "minecraft:iron_ore");
+    assert!(tconstruct_source_smeltery_state::Smeltery::from_nbt(raw(&world).get("tconstruct:smeltery").unwrap()).unwrap().slots[0].is_none());
+    assert!(live(&world).iter().all(Option::is_none));
+}

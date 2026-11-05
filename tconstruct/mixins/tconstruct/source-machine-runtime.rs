@@ -109,6 +109,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
             Vec3::new(f64::from(max[0]), f64::from(max[1]+1), f64::from(max[2])));
         for (index, item) in game.dropped.iter().enumerate() {
             if item.health <= 0 || item.stack.count == 0 || !area.intersects(item.bounds()) { continue; }
+            if item.stack.data().is_some_and(|data| data.wire.patch().is_some()) { continue; }
             let mut remaining = item.stack.count;
             for slot in state.slots.iter_mut().filter(|slot| slot.is_none()) {
                 if remaining == 0 { break; }
