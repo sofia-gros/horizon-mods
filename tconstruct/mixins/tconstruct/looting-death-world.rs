@@ -46,7 +46,7 @@ fn levels(game: &Game<'_>, stack: &ItemStack, armor: bool) -> Option<[i32; 3]> {
     Some(result)
 }
 
-fn projected_level(game: &Game<'_>, killer: &LootEntity) -> Option<i32> {
+fn projected_level(game: &Game<'_>, killer: &LootEntity, projectile: Option<i32>) -> Option<i32> {
     let held = game.inventory.get(game.selected)?.as_ref()?;
     // The native snapshot must still describe the actual selected mainhand.
     // Refuse a departed/replaced actor or changes made by an earlier hook.
@@ -67,6 +67,7 @@ fn projected_level(game: &Game<'_>, killer: &LootEntity) -> Option<i32> {
         .iter()
         .find(|(id, _)| id == "minecraft:looting")
         .map_or(0, |(_, level)| *level);
+    let base = rules::base(base, projectile)?;
     let tags = game
         .world
         .chunks
@@ -78,7 +79,9 @@ fn projected_level(game: &Game<'_>, killer: &LootEntity) -> Option<i32> {
     let melee = tags.get("tconstruct:modifiable/melee")?;
     let worn = tags.get("tconstruct:modifiable/armor/worn")?;
     let mut bonuses = [0; 5];
-    if held.item.starts_with("tconstruct:")
+    if let Some(level) = projectile {
+        bonuses[0] = level;
+    } else if held.item.starts_with("tconstruct:")
         && modifiable.contains(held.item.as_ref())
         && melee.contains(held.item.as_ref())
         && crate::game::tconstruct_source_melee_shape::intact(held).is_some()
@@ -120,26 +123,35 @@ pub(super) fn apply(
     let Some((damage, _)) = victim.last_damage else {
         return;
     };
-    // Projectile Looting comes from launch-time modifier capabilities, not
-    // whatever melee tool happens to be held at impact. Do not approximate it.
-    if damage.kind != DamageKind::PlayerAttack || damage.attacker != Some(Who::Player) {
+    if damage.attacker != Some(Who::Player) {
         return;
     }
     let Some(uuid) = player_uuid else {
         return;
+    };
+    let captured = crate::game::tconstruct_looting_arrow_world::take(game, victim, uuid);
+    let projectile = match damage.kind {
+        DamageKind::PlayerAttack => None,
+        DamageKind::Arrow => match captured {
+            Some(level) => Some(level),
+            None => return,
+        },
+        _ => return,
     };
     let Some(actor) = game.player_with_uuid(horizon_client::lan::playerdata::uuid_ints(uuid))
     else {
         return;
     };
     let level = if actor == game.lan_acting {
-        projected_level(game, killer)
+        projected_level(game, killer, projectile)
     } else if let Some(conn) = actor.filter(|_| game.lan_acting.is_none()) {
         let Some(mut host) = game.lan.take() else {
             return;
         };
         let level = game
-            .as_guest(&mut host, conn, |guest| projected_level(guest, killer))
+            .as_guest(&mut host, conn, |guest| {
+                projected_level(guest, killer, projectile)
+            })
             .flatten();
         game.lan = Some(host);
         level

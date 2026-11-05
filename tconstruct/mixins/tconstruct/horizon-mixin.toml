@@ -5381,3 +5381,39 @@ bindings = [
   { name = "by_player", ty = "bool", value = "by_player" },
   { name = "killer", ty = "&mut horizon_world::loot::LootEntity", value = "&mut killer" },
 ]
+
+
+# Positive launch-snapshotted Looting for successful lethal ordinary arrows.
+[[module]]
+id = "looting-arrow-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_looting_arrow_world"
+source = "looting-arrow-world.rs"
+
+[[state]]
+id = "looting-arrow-deaths"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "std::collections::HashMap<u32, ([i32; 4], [i32; 4], i64, [f64; 3], i32)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "looting-arrow-hit"
+target = "horizon_client::game::potions::Game<'_>::arrow_post_hurt_effects"
+kind = "HEAD"
+helper = "looting-arrow-hit.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" },
+  { name = "who", ty = "horizon_client::mobs::Who", value = "who" },
+]
+
+[[injection]]
+id = "looting-arrow-clear"
+target = "horizon_client_render::chunk_map::ChunkMap::clear"
+kind = "HEAD"
+helper = "looting-arrow-clear.rs"
+bindings = [{ name = "chunks", ty = "&mut crate::chunk_map::ChunkMap", value = "&mut *self" }]
