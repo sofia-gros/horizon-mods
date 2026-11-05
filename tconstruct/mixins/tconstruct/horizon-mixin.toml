@@ -5415,3 +5415,55 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "projectile-protection-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-fire-duration"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_fire_duration"
+source = "source-fire-duration.rs"
+
+[[module]]
+id = "server-source-fire-duration"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_fire_duration"
+source = "source-fire-duration.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-fire-duration-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_fire_duration_world"
+source = "fire-duration-world.rs"
+
+[[state]]
+id = "fire-duration-context"
+target = "horizon_client_lib::motion::PlayerMotion"
+ty = "Option<(i32, f64)>"
+initial = "None"
+[[state.constructor]]
+target = "horizon_client_lib::motion::PlayerMotion::new"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-fire-duration-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "fire-duration-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-fire-duration-player-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "fire-duration-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-fire-duration-ignite"
+target = "horizon_client_lib::motion::PlayerMotion::ignite_for_ticks"
+kind = "MODIFY_EXPRESSION_VALUE"
+selector = '(f64::from(ticks) * self.attribute("minecraft:burning_time")?).ceil() as i32'
+require = 1
+helper = "fire-duration-ignite.rs"
+bindings = [{ name = "value", ty = "i32", value = "$value" }, { name = "player", ty = "&mut crate::motion::PlayerMotion", value = "&mut *self" }, { name = "ticks", ty = "i32", value = "ticks" }]
