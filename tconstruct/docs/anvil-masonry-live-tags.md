@@ -10,13 +10,14 @@ Scorched Blocks and Seared Bricks already have the exact source defaults and are
 unchanged. Default-world input membership remains seven Seared or five Scorched
 blocks. Replacements of either the parent tag or the Seared Bricks child can
 now affect ordinary world-local ingredient resolution. No hardcoded fallback
-is added. Old private tags remain for other consumers, including Worktables.
+is added. Old private tags remain for compatibility. Modifier Worktables use the same
+live Seared Blocks tag; see [their correction](worktable-masonry-live-tags.md).
 
 All recipe IDs, patterns, costs, metal selectors, compatibility-material guards,
 results, texture components and existing discovery remain unchanged. The variant
 generator uses the same live masonry tags so regeneration does not restore the
 copies. This does not implement generic retextured crafting, source Anvil Metal
-tag parity, Tool Forge recipes, new metal variants or Worktable tag parity.
+tag parity, Tool Forge recipes or new metal variants.
 
 ## Evidence and deferred checks
 
