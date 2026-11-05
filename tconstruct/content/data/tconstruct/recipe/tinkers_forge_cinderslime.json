@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "key": {
+    "s": "#tconstruct:seared_blocks",
+    "m": "tconstruct:cinderslime_block",
+    "t": "tconstruct:tinker_station"
+  },
+  "result": {
+    "id": "tconstruct:tinkers_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:cinderslime_block",
+          "Variant": "cinderslime",
+          "Texture": "tconstruct:block/storage/cinderslime"
+        }
+      },
+      "minecraft:item_model": "tconstruct:tinkers_anvil_cinderslime",
+      "minecraft:custom_name": {
+        "translate": "block.tconstruct.tool_forge"
+      }
+    }
+  },
+  "show_notification": true
+}

@@ -33,7 +33,7 @@ class AnvilRecipes(unittest.TestCase):
                     recipe = json.loads(path.read_text())
                     self.assertEqual(recipe['pattern'], source['pattern'])
                     self.assertEqual(recipe['result']['id'], f'tconstruct:{anvil}')
-                    self.assertEqual(recipe['key']['s'], f'#tconstruct:anvil_{material}_blocks')
+                    self.assertEqual(recipe['key']['s'], f'#tconstruct:{material}_blocks')
                     components = recipe['result']['components']
                     variant = path.stem
                     self.assertEqual(components['minecraft:item_model'], f'tconstruct:{variant}')

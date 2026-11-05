@@ -1,0 +1,31 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "sss",
+    "mtm",
+    "m m"
+  ],
+  "key": {
+    "s": "#tconstruct:scorched_blocks",
+    "m": "tconstruct:rose_gold_block",
+    "t": "tconstruct:tinker_station"
+  },
+  "result": {
+    "id": "tconstruct:scorched_anvil",
+    "components": {
+      "minecraft:custom_data": {
+        "tconstruct:anvil": {
+          "Metal": "tconstruct:rose_gold_block",
+          "Variant": "rose_gold",
+          "Texture": "tconstruct:block/storage/rose_gold"
+        }
+      },
+      "minecraft:item_model": "tconstruct:scorched_anvil_rose_gold",
+      "minecraft:custom_name": {
+        "translate": "block.tconstruct.tool_forge"
+      }
+    }
+  },
+  "show_notification": true
+}
