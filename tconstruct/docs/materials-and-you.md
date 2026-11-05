@@ -28,7 +28,7 @@ New LAN guide requests carry a sequence number, and the client accepts a reply o
 
 The source permits book images without explicit dimensions. The reader falls back to atlas dimensions and preparation resizes oversized guide images for the host's 1024×512 GUI sprite limit, keeping the pinned originals unchanged. Missing sprites no longer hide their accompanying text. Representative Melter, Casting, Moving Fluids and Channel illustrations were verified in the combined Linux build.
 
-The modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot and ordinary upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
+The modifier chapter overviews remain incomplete. Puny includes the supported bonus-slot, ordinary and single-point incremental upgrade recipe projections described below; Mighty includes supported ordinary ability recipes. Remaining tag-generated modifier pages are not rendered. The current pack snapshot captures raw modifier tags, but does not expose a complete source modifier registry against which required entries can be validated. Completing those pages needs ordered tag merging and registry resolution, modifier page content and translations, and modifier recipe selection with tool filters and the source's up-to-five-input display. A fixed built-in list would not honor datapack replacement, nested tags, optional entries or other registered modifiers. Those paths and the complete book's LAN transfer size remain unverified.
 
 Puny Smelting showcase pages accept both source string and object item IDs. Gauge, Fluid Cannon and Casting Tank remain unregistered in this snapshot, so their icons may be missing until the items are available. Their source descriptions remain readable. A Linux creative fixture substituted stone for the unavailable source items and verified string/object forms and tooltip display locally and for a LAN guest; it did not verify the original icons or machine behavior.
 
@@ -191,8 +191,31 @@ source group metadata does not enable missing static overview prose.
 
 Changing tag replacement/removal, recipes or item availability affects the
 next open/request through the existing reader and LAN response. The displayed
-tool types do not override checks against an existing tool's state. Incremental
-recipes, level ranges, stack-sensitive/container ingredients, additional
+tool types do not override checks against an existing tool's state. Other incremental recipe shapes, level ranges, stack-sensitive/container ingredients, additional
 requirements and unknown slot types are still omitted. Source registry,
 redirect and external-registration completeness is not claimed. In-game
 pagination and LAN visual validation remain outstanding.
+
+## Supported single-point incremental upgrades
+
+Puny's Upgrades chapter also generates incremental recipe pages from its source
+group tags and current world snapshots. The selected gameplay registry excludes
+provisionally disabled modifiers. Each displayed recipe must use a plain item
+or tag input worth one progress point, the gameplay registry's fixed
+points-per-level denominator, an explicit positive level cap and an explicit
+one-upgrade-slot cost. Other or omitted costs are excluded because runtime
+occupancy remains one slot per started incremental level. Shared Station tool and recipe-limit gates apply, including
+Quick Charge's crossbow restriction and Hydraulic's fixed denominator/cap.
+
+Pages show current input alternatives, points per level, maximum level,
+upgrade cost and eligible tools. They explain that partial progress can span
+operations and each operation stops at the next completed level. Pinned source
+fixtures exercise Haste, Sharpness, Quick Charge and Hydraulic; supported
+recipe and tag overrides affect the next open/request. A removed recipe or
+unavailable input does not leave a static placeholder.
+
+This is still a partial port-supported view. Recipes worth multiple points per
+item, leftover-producing recipes, crystal alternatives, absent/default level
+caps, changed effect denominators and additional requirements are omitted.
+Full source registry/redirect parity and in-game/LAN visual checks remain
+outstanding. These pages do not change modifier acquisition or effect rules.

@@ -64,7 +64,7 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
         import zipfile
         fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
-            for path, recipe in fixture['recipes'].items():
+            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {})}.items():
                 self.assertEqual(recipe, json.loads(archive.read(path)), path)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
             for path, tag in fixture['modifier_tags'].items():
@@ -147,3 +147,20 @@ fn actual_guide_gate() {
             binary = Path(directory) / 'guide_gate'
             subprocess.run(['rustc', '--edition=2021', '--test', str(path), '-o', str(binary)], check=True, capture_output=True, text=True)
             subprocess.run([str(binary)], check=True, capture_output=True, text=True)
+
+
+class IncrementalModifierGuideWiring(unittest.TestCase):
+    def test_partial_incremental_pages_use_current_snapshots_and_shared_limits(self):
+        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        start = source.index('fn incremental_modifier_pages(')
+        body = source[start:source.index('fn dynamic_materials(', start)]
+        for text in ('modifier_resource_snapshot()', 'recipe_snapshot()', 'resolved_item_tags()',
+                     'incremental_guide_registry()', 'supported_guide_tag(raw, tag, &supported)',
+                     'incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools',
+                     'tool_supported_with_tags(modifier, item, tags)', 'incremental_limits_supported',
+                     'entry.needed, entry.maximum, entry.upgrade_cost', 'split_styled(game,', 'partial guide'):
+            self.assertIn(text, body)
+        self.assertIn('if puny && key == "upgrades" { chapter_pages.extend(incremental_modifier_pages', source)
+        rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
+        self.assertIn('if !incremental_limits_supported(id, needed, max) { continue; }', rules)
+        self.assertIn('*needed > 1 && provisional_upgrade_enabled(id)', rules)

@@ -356,6 +356,46 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
     pages
 }
 
+fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text> {
+    let Some(raw) = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };
+    let Some(recipes) = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref() else { return Vec::new(); };
+    let Some(tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };
+    let Some(rest) = game.res.rest.get() else { return Vec::new(); };
+    let registry = crate::game::tconstruct_source_upgrade_rules::incremental_guide_registry();
+    let supported = registry.keys().cloned().collect();
+    let mut modifiers = Vec::new();
+    for tag in source_tags {
+        if let Ok(ids) = crate::game::tconstruct_modifier_snapshot::supported_guide_tag(raw, tag, &supported) { modifiers.extend(ids); }
+    }
+    let items: Vec<String> = rest.items.items.keys().map(|id| id.to_string()).collect();
+    let tools: Vec<String> = tags.get("tconstruct:modifiable").into_iter().flatten()
+        .filter(|id| rest.items.items.contains_key(id.as_str())).cloned().collect();
+    let entries = crate::game::tconstruct_modifier_snapshot::incremental_guide_recipes(recipes, &modifiers, &registry, &items, &tools,
+        |ingredient, item| crate::game::tconstruct_source_upgrade_rules::ingredient_matches(ingredient, item, tags),
+        |modifier, item| crate::game::tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier, item, tags),
+        crate::game::tconstruct_source_upgrade_rules::incremental_limits_supported);
+    let mut pages = Vec::new();
+    for entry in entries {
+        let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
+        let title = game.translate(&format!("modifier.{namespace}.{name}"), name);
+        let item_name = |id: &str| {
+            let (namespace, name) = id.split_once(':').unwrap_or(("minecraft", id));
+            game.translate(&format!("item.{namespace}.{name}"), &game.translate(&format!("block.{namespace}.{name}"), id))
+        };
+        let mut text = String::from("Supported incremental recipe (partial guide).\n\n");
+        let description = game.translate(&format!("modifier.{namespace}.{name}.description"), "");
+        if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str("\n\n"); }
+        text.push_str(&format!("Each item adds 1 progress point. {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\n\nPartial progress can be added over multiple Station operations. One operation stops at the next completed level.\n\nInput alternatives: {}.\n\nEligible tool types: {}.\n\nRecipe: {}\n\nOnly single-point item recipes are shown. Block-value and crystal alternatives are not shown. Existing modifier and tool state still affect application.",
+            entry.needed, entry.maximum, entry.upgrade_cost, entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR "),
+            entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", "), entry.recipe));
+        for part in split_styled(game, &Text::literal(text), 182.0, 15) {
+            let mut page = Text::styled(&title, horizon_client::text::Style { insertion:Some("tconstruct:book-title".into()), underlined:Some(true), ..Default::default() });
+            page.push("\n\n"); page.push(part); pages.push(page);
+        }
+    }
+    pages
+}
+
 fn dynamic_materials(game: &Game<'_>, key: &str, puny: bool, mighty: bool) -> Option<Vec<(String, String)>> {
     let (definitions, _, tags) = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_definitions().as_ref()?.as_ref().ok()?;
     let stats = game.world.chunks.__horizon_mixins_tconstruct_resolved_material_stats().as_ref()?.as_ref().ok()?;
@@ -741,7 +781,10 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             }
         }
         chapter_pages.extend(bonus_pages);
-        if !ordinary_tags.is_empty() { chapter_pages.extend(ordinary_modifier_pages(game, &ordinary_tags)); }
+        if !ordinary_tags.is_empty() {
+            chapter_pages.extend(ordinary_modifier_pages(game, &ordinary_tags));
+            if puny && key == "upgrades" { chapter_pages.extend(incremental_modifier_pages(game, &ordinary_tags)); }
+        }
         if !chapter_pages.is_empty() {
             if mighty_advice || mighty_smeltery || encyclopedia || gadgetry {
                 let (title_key, note_key) = if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };

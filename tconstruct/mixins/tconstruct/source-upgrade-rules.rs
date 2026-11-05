@@ -48,6 +48,18 @@ pub(super) fn ordinary_guide_registry() -> Vec<String> {
         .map(|(id, _)| (*id).to_owned()).collect()
 }
 
+pub(super) fn incremental_guide_registry() -> BTreeMap<String, i32> {
+    UPGRADES.iter().filter(|(id, needed)| *needed > 1 && provisional_upgrade_enabled(id))
+        .map(|(id, needed)| ((*id).to_owned(), *needed)).collect()
+}
+
+/// These two effects encode fixed denominators/ranges in their runtime hooks.
+/// Keep the same acceptance boundary in Station transactions and guide pages.
+pub(super) fn incremental_limits_supported(id: &str, needed: i32, maximum: i32) -> bool {
+    (id != "tconstruct:blasting" || needed == 20)
+        && (id != "tconstruct:hydraulic" || (needed == 36 && maximum == 5))
+}
+
 /// Item- and tag-dependent eligibility shared by Station planning and guides.
 /// A recipe's tool selector cannot bypass these gameplay restrictions.
 pub(super) fn tool_supported_with_tags(id: &str, item: &str, tags: &HashMap<String, HashSet<String>>) -> bool {
@@ -331,9 +343,6 @@ pub(super) fn plan_with_traits(
         else {
             continue;
         };
-        // The dynamic snapshots encode fixed source increments. Reject a
-        // changed denominator instead of consuming inputs for a wrong effect.
-        if (id == "tconstruct:blasting" && needed != 20) || (id == "tconstruct:hydraulic" && needed != 36) { continue; }
         let Some(per_item) = value
             .get("amount_per_item")
             .and_then(Value::as_i64)
@@ -347,7 +356,7 @@ pub(super) fn plan_with_traits(
             None if id == "tconstruct:blindshot" && value.get("level").is_none() => i16::MAX as i32,
             None => continue,
         };
-        if id == "tconstruct:hydraulic" && max != 5 { continue; }
+        if !incremental_limits_supported(id, needed, max) { continue; }
         let cost = value
             .pointer("/slots/upgrades")
             .and_then(Value::as_i64)
