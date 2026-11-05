@@ -5354,3 +5354,43 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-crystalstrike"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_crystalstrike"
+source = "source-crystalstrike.rs"
+
+[[module]]
+id = "source-crystalstrike-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_crystalstrike_world"
+source = "crystalstrike-world.rs"
+
+[[injection]]
+id = "source-crystalstrike-speed"
+target = "horizon_client::game::hand::Game<'_>::main_hand_attack_speed"
+kind = "RETURN"
+helper = "crystalstrike-speed.rs"
+bindings = [{ name = "value", ty = "f64", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]
+
+[[injection]]
+id = "source-crystalstrike-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "TAIL"
+helper = "crystalstrike-equipment.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-crystalstrike-effect"
+target = "horizon_client::game::creatures::Game<'_>::give_player_effect"
+kind = "HEAD"
+helper = "crystalstrike-effect.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "effect", ty = "&str", value = "effect" }, { name = "ticks", ty = "&mut i32", value = "&mut ticks" }]
+
+[[injection]]
+id = "source-crystalstrike-knockback"
+target = "horizon_client::game::creatures::Game<'_>::knock_back_player"
+kind = "HEAD"
+helper = "crystalstrike-knockback.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "x", ty = "&mut f64", value = "&mut xd" }, { name = "z", ty = "&mut f64", value = "&mut zd" }]
