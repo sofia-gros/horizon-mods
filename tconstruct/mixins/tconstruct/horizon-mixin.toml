@@ -5968,3 +5968,35 @@ bindings = [
   { name = "known", ty = "Option<Option<u32>>", value = "$arg3" },
   { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, f32, Option<[f64;3]>, &str, Option<Option<u32>>) -> bool", value = "$operation" },
 ]
+
+[[module]]
+id = "source-consecrated"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_consecrated"
+source = "source-consecrated.rs"
+
+[[module]]
+id = "source-consecrated-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_consecrated_world"
+source = "consecrated-world.rs"
+
+[[state]]
+id = "consecrated-points"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "f32"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[state]]
+id = "consecrated-source"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "Option<String>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1

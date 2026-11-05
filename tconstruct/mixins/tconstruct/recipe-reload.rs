@@ -295,6 +295,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     crate::game::tconstruct_projectile_protection_world::refresh(game);
     crate::game::tconstruct_fire_duration_world::refresh(game);
     crate::game::tconstruct_protection_damage_world::refresh(game);
+    crate::game::tconstruct_consecrated_world::refresh(game);
     crate::game::tconstruct_rugged_world::refresh(game);
     crate::game::tconstruct_depth_protection_world::refresh(game);
     crate::game::tconstruct_turtle_shell_world::refresh(game);
