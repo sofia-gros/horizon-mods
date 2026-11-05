@@ -5833,3 +5833,54 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "turtle-shell-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-boundless"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_boundless"
+source = "source-boundless.rs"
+
+[[module]]
+id = "source-boundless-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_boundless_world"
+source = "boundless-world.rs"
+
+[[state]]
+id = "boundless-cap"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "f32"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[injection]]
+id = "source-boundless-maximum"
+target = "horizon_client_render::effects::StatusFlags::maximum_protection"
+kind = "HEAD"
+cancellable = true
+helper = "boundless-maximum.rs"
+bindings = [{ name = "status", ty = "&crate::effects::StatusFlags", value = "self" }]
+
+[[injection]]
+id = "source-boundless-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "boundless-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-boundless-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "RETURN"
+helper = "boundless-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-boundless-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "boundless-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
