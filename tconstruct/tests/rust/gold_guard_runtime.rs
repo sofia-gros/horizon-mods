@@ -43,7 +43,7 @@ mod game {
             match stack.data()?.other("minecraft:custom_data")?.get(id){None=>Some(traits.levels.get(id).copied().unwrap_or(0)),Some(Tag::Int(n)) if *n>=0=>Some(*n+traits.levels.get(id).copied().unwrap_or(0)),_=>None}
         }
     }
-    pub mod tconstruct_source_ranged_wear {pub fn is_broken(stack:&horizon_items::items::ItemStack)->bool {stack.damage>=999}}
+    pub mod tconstruct_source_ranged_wear {include!("../../mixins/tconstruct/source-ranged-wear.rs");}
     pub mod tconstruct_gold_guard_world {include!("../../mixins/tconstruct/gold-guard-world.rs");}
     include!("../../mixins/tconstruct/gold-guard-attributes.rs");
     include!("../../mixins/tconstruct/golden-armor.rs");
@@ -141,7 +141,7 @@ mod game {
     }
     fn rev(item:&str,level:i32)->ItemStack {
         let mut stack=ItemStack::new(item,1);
-        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("revitalizing_trait",Tag::Int(level))])));stack
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("revitalizing_trait",Tag::Int(level)),("tic_max_damage",Tag::Int(999))])));stack
     }
     #[test] fn revitalizing_worn_levels_clamp_without_healing_and_restore() {
         let mut game=rev_setup();game.armor[1]=Some(rev("tconstruct:plate_chestplate",2));game.armor[2]=Some(rev("tconstruct:plate_leggings",1));
