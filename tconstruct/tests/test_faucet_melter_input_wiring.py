@@ -15,6 +15,9 @@ class FaucetMelterInputWiring(unittest.TestCase):
         self.assertNotIn('melter.to_nbt()', route)
         self.assertIn('if !store::write_many(&mut game.world, &changes)', route)
         self.assertIn('if let Some(at) = changed_source { game.container_changed(at); }', route)
+        self.assertLess(route.index('process_casting_tank(game, state)'), route.index('let Some(next_melter)'))
+        self.assertLess(route.index('if !store::write_many('), route.index('slots[0] = state.slots[0].clone()'))
+        self.assertIn('data.wire.patch().is_some()', route)
 
 if __name__ == '__main__':
     unittest.main()
