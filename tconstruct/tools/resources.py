@@ -466,6 +466,7 @@ for name, template, title in entries:
             armor_slot = 'chest'
         if armor_slot:
             item['minecraft:equippable'] = {'slot': armor_slot, 'equip_sound': 'minecraft:item.armor.equip_generic'}
+            item.setdefault('minecraft:break_sound', 'minecraft:entity.item.break')
     if name.endswith('pickaxe'):
         item['minecraft:max_damage'] = 85
         item['minecraft:tool']['rules'][-1]['speed'] = 3.5

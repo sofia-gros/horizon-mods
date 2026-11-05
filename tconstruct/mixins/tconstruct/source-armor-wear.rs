@@ -118,3 +118,55 @@ pub(super) fn paired_losses(slots: &[Option<ItemStack>; 4], losses: &[(ItemStack
         assert!(!valid_record(&item));
     }
 }
+
+/// A retained armor break is an equipment animation, never an item deletion.
+/// The caller already owns a unique exact-stack commit. Repeated, shield-only
+/// and already-broken records must not produce another event.
+pub(super) fn break_event(slot: usize, before: &ItemStack, after: &ItemStack) -> Option<i8> {
+    if !valid_record(before) || before.item != after.item || after.count != 1
+        || after.damage <= before.damage
+        || !super::tconstruct_source_ranged_wear::is_broken(after)
+        || super::tconstruct_fire_duration::armor_slot(&before.item) != Some(slot) {
+        return None;
+    }
+    [49, 50, 51, 52].get(slot).copied()
+}
+
+#[cfg(test)] mod break_tests {
+    use super::*;
+    use horizon_world::nbt::Tag;
+    fn armor(item: &str) -> ItemStack {
+        let mut stack = ItemStack::new(item, 1);
+        stack.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_max_damage", Tag::Int(5)), ("tic_overslime", Tag::Int(3)),
+        ])));
+        stack
+    }
+    #[test] fn each_retained_armor_slot_gets_its_own_break_event_once() {
+        for (slot, item) in ["tconstruct:plate_helmet", "tconstruct:plate_chestplate",
+            "tconstruct:plate_leggings", "tconstruct:plate_boots"].iter().enumerate() {
+            let before = armor(item);
+            let mut after = before.clone();
+            super::super::tconstruct_tx::fixed_damage(&mut after, 7);
+            assert_eq!(after.count, 1);
+            assert_eq!(break_event(slot, &before, &after), Some(49 + slot as i8));
+            assert_eq!(break_event(slot, &after, &after), None);
+            assert_eq!(break_event((slot + 1) % 4, &before, &after), None);
+        }
+    }
+    #[test] fn partial_shield_only_replaced_and_missing_gear_are_silent() {
+        let before = armor("tconstruct:plate_helmet");
+        let mut after = before.clone();
+        super::super::tconstruct_source_overslime::spend(&mut after, 3);
+        assert_eq!(break_event(0, &before, &after), None);
+        super::super::tconstruct_tx::fixed_damage(&mut after, 4);
+        assert_eq!(break_event(0, &before, &after), None);
+        super::super::tconstruct_tx::fixed_damage(&mut after, 1);
+        after.count = 0;
+        assert_eq!(break_event(0, &before, &after), None);
+        after.count = 1;
+        after.item = "minecraft:iron_helmet".into();
+        assert_eq!(break_event(0, &before, &after), None);
+        assert_eq!(break_event(4, &before, &before), None);
+    }
+}

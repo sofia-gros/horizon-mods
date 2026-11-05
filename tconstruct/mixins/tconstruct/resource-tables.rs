@@ -572,6 +572,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
             .or_else(|| (short == "slime_wings").then_some("chest"));
         if let Some(slot) = slot {
             fields.insert("minecraft:equippable".into(), serde_json::json!({"slot": slot, "equip_sound": "minecraft:item.armor.equip_generic"}));
+            fields.entry("minecraft:break_sound").or_insert_with(|| serde_json::json!("minecraft:entity.item.break"));
         }
     }
     for short in ["pickaxe", "flint_pickaxe"] {

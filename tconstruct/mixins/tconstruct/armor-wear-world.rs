@@ -109,6 +109,7 @@ fn commit(game: &mut super::Game<'_>, losses: Losses, shields: Losses) {
     let selected = super::tconstruct_source_armor_wear::paired_losses(&game.armor, &losses, &shields);
     let mut changed = false;
     let mut broke = false;
+    let mut breaks = Vec::new();
     for (slot, loss, spent) in selected {
         let Some(original) = game.armor[slot].clone() else { continue; };
         if supported(game, &original) != Some(slot) { continue; }
@@ -117,9 +118,29 @@ fn commit(game: &mut super::Game<'_>, losses: Losses, shields: Losses) {
         super::tconstruct_tx::fixed_damage(stack, loss);
         changed |= *stack != original;
         broke |= super::tconstruct_source_ranged_wear::is_broken(stack);
+        if let Some(event) = super::tconstruct_source_armor_wear::break_event(slot, &original, stack) {
+            breaks.push((event, original));
+        }
     }
+    for (event, stack) in breaks { break_feedback(game, event, &stack); }
     if broke { game.apply_equipment(); }
     if changed { super::tconstruct_maintained_world::refresh(game); }
+}
+
+// Use only the presentation half of native equipment breaking. Calling
+// player_equipment_broke would also emit PlayerDestroyItem for retained gear.
+fn break_feedback(game: &mut super::Game<'_>, event: i8, stack: &ItemStack) {
+    let Some(player) = game.player.as_ref() else { return; };
+    let at = [player.position.x, player.position.y, player.position.z];
+    if game.lan_acting.is_some() {
+        // as_guest broadcasts and restores this existing queue on exit; the
+        // receiving native handler renders the slot without deleting it.
+        game.guest_equipment_breaks.push((event, at));
+    }
+    if game.options.execution_role.is_client() {
+        game.break_sound_at(stack, at);
+        game.eat_particles(stack, 5);
+    }
 }
 
 pub(super) fn wrap(
