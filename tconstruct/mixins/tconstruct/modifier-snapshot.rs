@@ -104,12 +104,13 @@ pub(super) fn supported_guide_tag(snapshot: &Raw, tag: &str, supported: &HashSet
 pub(super) struct BonusGuideRecipe {
     pub recipe: String,
     pub modifier: String,
-    pub inputs: Vec<String>,
+    pub inputs: Vec<Vec<String>>,
     pub tools: Vec<String>,
+    pub returns_bottles: bool,
 }
 
-/// Only the ordinary single-input, level-one, no-slot-cost bonus recipe shape
-/// is displayed. The caller supplies the condition-filtered world snapshot,
+/// Only ordinary one-to-five-input, level-one, no-slot-cost bonus recipes
+/// are displayed. The caller supplies the condition-filtered world snapshot,
 /// real item registry and the exact Station ingredient matcher. Unsupported
 /// requirements/serializers are omitted rather than advertised as craftable.
 pub(super) fn bonus_guide_recipes(
@@ -118,7 +119,9 @@ pub(super) fn bonus_guide_recipes(
     matches: impl Fn(&serde_json::Value, &str) -> bool,
 ) -> Vec<BonusGuideRecipe> {
     let mut result = Vec::new();
+    let mut seen = HashSet::new();
     for modifier in modifiers {
+        if !seen.insert(modifier) { continue; }
         for (recipe, bytes) in recipes {
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
             let Some(object) = value.as_object() else { continue; };
@@ -127,13 +130,19 @@ pub(super) fn bonus_guide_recipes(
                 || value.get("result").and_then(|v| v.as_str()) != Some(modifier.as_str())
                 || value.get("level").and_then(|v| v.as_i64()) != Some(1)
                 || value.get("allow_crystal").is_some_and(|v| !v.is_boolean()) { continue; }
-            let Some(inputs) = value.get("inputs").and_then(|v| v.as_array()).filter(|v| v.len() == 1) else { continue; };
+            let Some(inputs) = value.get("inputs").and_then(|v| v.as_array()).filter(|v| (1..=5).contains(&v.len())) else { continue; };
             let Some(tool_filter) = value.get("tools") else { continue; };
-            let mut inputs: Vec<_> = items.iter().filter(|id| matches(&inputs[0], id)).cloned().collect();
+            let inputs: Vec<Vec<String>> = inputs.iter().map(|input| {
+                let mut choices: Vec<_> = items.iter().filter(|id| matches(input, id)).cloned().collect();
+                choices.sort(); choices.dedup(); choices
+            }).collect();
+            if inputs.iter().any(Vec::is_empty) { continue; }
+            let returns_bottles = inputs.iter().flatten().any(|id| id == "minecraft:dragon_breath");
+            if returns_bottles && !items.iter().any(|id| id == "minecraft:glass_bottle") { continue; }
             let mut tools: Vec<_> = tools.iter().filter(|id| matches(tool_filter, id)).cloned().collect();
-            inputs.sort(); inputs.dedup(); tools.sort(); tools.dedup();
-            if !inputs.is_empty() && !tools.is_empty() {
-                result.push(BonusGuideRecipe { recipe: recipe.clone(), modifier: modifier.clone(), inputs, tools });
+            tools.sort(); tools.dedup();
+            if !tools.is_empty() {
+                result.push(BonusGuideRecipe { recipe: recipe.clone(), modifier: modifier.clone(), inputs, tools, returns_bottles });
             }
         }
     }
@@ -575,16 +584,18 @@ mod tests {
         let matcher = |value: &serde_json::Value, id: &str| value.get("item").and_then(|v| v.as_str()) == Some(id);
         let mut recipes = BTreeMap::from([("x:bonus".into(), serde_json::to_vec(&recipe).unwrap())]);
         let rows = bonus_guide_recipes(&recipes, &modifiers, &items, &tools, matcher);
-        assert_eq!(rows, vec![BonusGuideRecipe { recipe:"x:bonus".into(), modifier:"tconstruct:writable".into(), inputs:vec!["minecraft:writable_book".into()], tools:vec!["tconstruct:pickaxe".into()] }]);
+        assert_eq!(rows, vec![BonusGuideRecipe { recipe:"x:bonus".into(), modifier:"tconstruct:writable".into(), inputs:vec![vec!["minecraft:writable_book".into()]], tools:vec!["tconstruct:pickaxe".into()], returns_bottles:false }]);
         let mut changed = recipe.clone(); changed["inputs"][0]["item"] = serde_json::json!("minecraft:paper");
         recipes.insert("x:bonus".into(), serde_json::to_vec(&changed).unwrap());
-        assert_eq!(bonus_guide_recipes(&recipes, &modifiers, &items, &tools, matcher)[0].inputs, ["minecraft:paper"]);
+        assert_eq!(bonus_guide_recipes(&recipes, &modifiers, &items, &tools, matcher)[0].inputs, [vec!["minecraft:paper"]]);
         assert!(bonus_guide_recipes(&recipes, &[], &items, &tools, matcher).is_empty());
         assert!(bonus_guide_recipes(&recipes, &modifiers, &[], &tools, matcher).is_empty());
         assert!(bonus_guide_recipes(&recipes, &modifiers, &items, &[], matcher).is_empty());
         for (key, value) in [("conditions", serde_json::json!([])), ("slots", serde_json::json!({"upgrades":1})),
             ("requirements", serde_json::json!({})), ("level", serde_json::json!(2)),
             ("allow_crystal", serde_json::json!("yes")), ("inputs", serde_json::json!([])),
+            ("inputs",serde_json::json!([{"item":"minecraft:writable_book"},{"item":"minecraft:missing"}])),
+            ("inputs",serde_json::json!([{}, {}, {}, {}, {}, {}])),
             ("type", serde_json::json!("tconstruct:incremental_modifier"))] {
             let mut unsupported = recipe.clone(); unsupported[key] = value;
             recipes.insert("x:bonus".into(), serde_json::to_vec(&unsupported).unwrap());

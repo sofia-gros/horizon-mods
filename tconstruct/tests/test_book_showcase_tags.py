@@ -34,6 +34,16 @@ if __name__ == '__main__':
 
 
 class SupportedBonusGuideWiring(unittest.TestCase):
+    def test_bonus_pages_keep_numbered_inputs_anvil_and_bottle_return_notice(self):
+        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        start = source.index('fn bonus_modifier_pages(')
+        body = source[start:source.index('fn ordinary_modifier_pages(', start)]
+        for text in ('entry.inputs.iter().enumerate()', 'Repeated ingredients need separate slots',
+                     'entry.inputs.len() > 3', "More than three inputs require a Tinker",
+                     'entry.returns_bottles', 'Each consumed {} returns one {}',
+                     'item_name("minecraft:dragon_breath")', 'item_name("minecraft:glass_bottle")'):
+            self.assertIn(text, body)
+
     def test_puny_bonus_group_reads_current_snapshots_and_existing_pagination(self):
         source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         start = source.index('fn bonus_modifier_pages(')
@@ -78,7 +88,7 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
         import zipfile
         fixture = json.loads((ROOT / 'tests/fixtures/ordinary-modifier-guides.json').read_text())
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
-            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {}), **fixture.get('fluid_recipes', {})}.items():
+            for path, recipe in {**fixture['recipes'], **fixture.get('incremental_recipes', {}), **fixture.get('bulk_incremental_recipes', {}), **fixture.get('fluid_recipes', {}), **fixture.get('bonus_recipes', {})}.items():
                 self.assertEqual(recipe, json.loads(archive.read(path)), path)
         with zipfile.ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
             for path, tag in fixture['modifier_tags'].items():

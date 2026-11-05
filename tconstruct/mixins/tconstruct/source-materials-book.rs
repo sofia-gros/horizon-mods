@@ -301,9 +301,16 @@ fn bonus_modifier_pages(game: &Game<'_>, tag: &str) -> Vec<Text> {
             let (namespace, name) = id.split_once(':').unwrap_or(("minecraft", id));
             game.translate(&format!("item.{namespace}.{name}"), &game.translate(&format!("block.{namespace}.{name}"), id))
         };
-        let input = entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", ");
         let tools = entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", ");
-        let text = format!("Supported bonus modifier (partial guide).\n\nAdds {upgrades} upgrade slot(s) and {abilities} ability slot(s), once per tool.\n\nStation input: one of {input}.\n\nEligible tool types: {tools}.\n\nRecipe: {}\n\nShows this port's ordinary one-input bonus recipes, not all source modifiers. Existing modifier and tool state still affect application.", entry.recipe);
+        let mut text = format!("Supported bonus modifier (partial guide).\n\nAdds {upgrades} upgrade slot(s) and {abilities} ability slot(s), once per tool.\n\nUse one item in EACH listed input slot. Repeated ingredients need separate slots.");
+        for (index, choices) in entry.inputs.iter().enumerate() {
+            text.push_str(&format!("\n\nInput {}: {}", index + 1, choices.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR ")));
+        }
+        if entry.returns_bottles {
+            text.push_str(&format!("\n\nEach consumed {} returns one {}.", item_name("minecraft:dragon_breath"), item_name("minecraft:glass_bottle")));
+        }
+        if entry.inputs.len() > 3 { text.push_str("\n\nMore than three inputs require a Tinker's Anvil."); }
+        text.push_str(&format!("\n\nEligible tool types: {tools}.\n\nRecipe: {}\n\nShows this port's supported bonus recipes, not all source modifiers. Existing modifier and tool state still affect application.", entry.recipe));
         for part in split_styled(game, &Text::literal(text), 182.0, 15) {
             let mut page = Text::styled(&title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
             page.push("\n\n"); page.push(part); pages.push(page);
