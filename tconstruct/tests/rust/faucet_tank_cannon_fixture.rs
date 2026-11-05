@@ -10,7 +10,7 @@ pub mod containers{pub enum BlockEntity{Chest(Vec<Option<horizon_items::items::I
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
 #[path="__PLUTO__"] mod pluto_stack_fluid;
 use std::collections::HashMap;use horizon_world::nbt::Tag;use horizon_items::items::ItemStack;type Pos=(i32,i32,i32);
-struct Info{name:String}struct Facts;impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_fuel_tank",2=>"tconstruct:seared_fluid_cannon",3=>"tconstruct:seared_casting_tank",4=>"tconstruct:seared_melter",_=>"minecraft:air"}.into()}}}struct Res;impl Res{fn facts(&self)->Facts{Facts}}
+struct Info{name:String}struct Facts;impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_fuel_tank",2=>"tconstruct:seared_fluid_cannon",3=>"tconstruct:seared_casting_tank",4=>"tconstruct:seared_melter",5=>"tconstruct:seared_lantern",6=>"tconstruct:scorched_lantern",_=>"minecraft:air"}.into()}}}struct Res;impl Res{fn facts(&self)->Facts{Facts}}
 struct World{blocks:HashMap<Pos,usize>,block_entities:HashMap<Pos,containers::BlockEntity>,chunks:HashMap<(i32,i32),()>,tags:HashMap<(Pos,String),Tag>,fail:bool}impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{*self.blocks.get(&(x,y,z)).unwrap_or(&0)}}
 struct Game<'a>{res:Res,world:World,notified:bool,process_fault:u8,_life:std::marker::PhantomData<&'a()>}impl Game<'_>{fn ensure_datapacks(&mut self){}fn container_changed(&mut self,_:Pos){self.notified=true}}
 mod tconstruct_source_melter_store{use super::*;pub(super) fn read(w:&World,p:Pos,k:&str)->Option<Tag>{w.tags.get(&(p,k.into())).cloned()}pub(super) fn write_many(w:&mut World,v:&[(Pos,&str,Tag)])->bool{if w.fail||v.iter().any(|(p,k,_)|!w.tags.contains_key(&(*p,(*k).into()))){return false}for(p,k,t)in v{w.tags.insert((*p,(*k).into()),t.clone());}true}}
@@ -311,6 +311,76 @@ fn melter_cannon_base_potion_identity_and_unsupported_metadata() {
     }
 }
 
+
+fn lantern_cannon_fixture(id:usize)->(Game<'static>,Pos,Pos,Pos) {
+    let (mut game,pos,source,target)=super::fixture();
+    game.world.blocks.insert(source,id); game.world.tags.remove(&(source,"tconstruct:fuel_tank".into()));
+    let mut tank=Tank::new(50); assert!(tank.insert("minecraft:water",50));
+    game.world.tags.insert((source,"tconstruct:lantern".into()),tank.to_nbt());
+    (game,pos,source,target)
+}
+
+#[test]
+fn both_lanterns_supply_cannon_preserving_its_item_and_immediate_packets() {
+    for id in [5,6] {
+        let (mut game,pos,source,target)=lantern_cannon_fixture(id);
+        let item=cannon_at(&game,target).unwrap().item;
+        assert_eq!(tank_to_cannon(&mut game,pos,source,target,Faucet::new(),true),Some(true));
+        let input=Tank::from_nbt(&store::read(&game.world,source,"tconstruct:lantern").unwrap(),50).unwrap();
+        let faucet=Faucet::from_nbt(&store::read(&game.world,pos,"tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!((input.amount,cannon_at(&game,target).unwrap().tank.amount,faucet.pending.amount),(0,10,40));
+        for _ in 0..4 {
+            let faucet=Faucet::from_nbt(&store::read(&game.world,pos,"tconstruct:faucet").unwrap()).unwrap();
+            assert_eq!(tank_to_cannon(&mut game,pos,source,target,faucet,false),Some(true));
+        }
+        let mut refill=Tank::new(50); assert!(refill.insert("minecraft:water",50)); game.world.tags.insert((source,"tconstruct:lantern".into()),refill.to_nbt());
+        let faucet=Faucet::from_nbt(&store::read(&game.world,pos,"tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!(faucet.pending.amount,0); assert_eq!(tank_to_cannon(&mut game,pos,source,target,faucet,false),Some(true));
+        let faucet=Faucet::from_nbt(&store::read(&game.world,pos,"tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!((cannon_at(&game,target).unwrap().tank.amount,faucet.pending.amount),(60,40));
+        assert_eq!(cannon_at(&game,target).unwrap().item,item);
+        let BlockEntity::Chest(slots)=game.world.block_entities.get(&target).unwrap(); assert_eq!(slots[0],item);
+    }
+}
+
+#[test]
+fn lantern_cannon_opaque_missing_stale_unloaded_and_failed_saves_wait() {
+    for fault in 0..6 {
+        let (mut game,pos,source,target)=lantern_cannon_fixture(5);
+        match fault {
+            0=>game.world.fail=true,
+            1=>{if let Tag::Compound(fields)=game.world.tags.get_mut(&(source,"tconstruct:lantern".into())).unwrap(){fields.insert("future".into(),Tag::Int(7));}},
+            2=>{game.world.block_entities.remove(&source);},
+            3=>{if let Tag::Compound(fields)=game.world.tags.get_mut(&(target,"tconstruct:fluid_cannon".into())).unwrap(){fields.insert("future".into(),Tag::Int(7));}},
+            4=>{let BlockEntity::Chest(slots)=game.world.block_entities.get_mut(&target).unwrap();slots[0]=None;},
+            _=>game.world.chunks.clear(),
+        }
+        let before=game.world.tags.clone(); assert_eq!(tank_to_cannon(&mut game,pos,source,target,Faucet::new(),true),Some(false));
+        assert_eq!(game.world.tags,before); assert!(!game.notified);
+    }
+}
+
+#[test]
+fn lantern_cannon_potion_identity_refill_and_remaining_capacity() {
+    for custom in [false,true] {
+        let (mut game,pos,source,target)=lantern_cannon_fixture(6);
+        let mut tag=Tag::compound([("Potion",Tag::String("minecraft:swiftness".into()))]);
+        if custom {if let Tag::Compound(fields)=&mut tag {fields.insert("CustomPotionColor".into(),Tag::Int(7));}}
+        let mut tank=Tank::new(50);assert!(tank.insert_tagged("tconstruct:potion",Some(&tag),50));game.world.tags.insert((source,"tconstruct:lantern".into()),tank.to_nbt());
+        let before=game.world.tags.clone();assert_eq!(tank_to_cannon(&mut game,pos,source,target,Faucet::new(),true),Some(!custom));
+        if custom {assert_eq!(game.world.tags,before);} else {
+            let second=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);
+            let mut refill=Tank::new(50);assert!(refill.insert_tagged("tconstruct:potion",Some(&second),50));game.world.tags.insert((source,"tconstruct:lantern".into()),refill.to_nbt());
+            for _ in 0..5 {let faucet=Faucet::from_nbt(&store::read(&game.world,pos,"tconstruct:faucet").unwrap()).unwrap();assert_eq!(tank_to_cannon(&mut game,pos,source,target,faucet,false),Some(true));}
+            let input=Tank::from_nbt(&store::read(&game.world,source,"tconstruct:lantern").unwrap(),50).unwrap();let output=cannon_at(&game,target).unwrap();
+            assert_eq!((input.amount,input.tag),(50,Some(second)));assert_eq!((output.tank.amount,output.tank.tag),(50,Some(tag)));
+        }
+    }
+    let (mut game,pos,source,target)=lantern_cannon_fixture(5);let mut output=cannon_at(&game,target).unwrap();assert!(output.tank.insert("minecraft:water",1995));game.world.tags.insert((target,"tconstruct:fluid_cannon".into()),output.to_nbt());
+    assert_eq!(tank_to_cannon(&mut game,pos,source,target,Faucet::new(),true),Some(true));
+    let input=Tank::from_nbt(&store::read(&game.world,source,"tconstruct:lantern").unwrap(),50).unwrap();let faucet=Faucet::from_nbt(&store::read(&game.world,pos,"tconstruct:faucet").unwrap()).unwrap();
+    assert_eq!((input.amount,cannon_at(&game,target).unwrap().tank.amount,faucet.pending.amount),(45,2000,0));
+}
 
 }
 fn fixture()->(Game<'static>,Pos,Pos,Pos){use tconstruct_source_melter_state::{Tank,Faucet};use tconstruct_source_fluid_cannon::Cannon;let(p,s,t)=((0,1,0),(-1,1,0),(0,0,0));let mut source=Tank::new(4000);source.insert("minecraft:water",180);let mut output=Cannon::new();output.item=Some(ItemStack::new("minecraft:stone",16));let tags=HashMap::from([((s,"tconstruct:fuel_tank".into()),source.to_nbt()),((p,"tconstruct:faucet".into()),Faucet::new().to_nbt()),((t,"tconstruct:fluid_cannon".into()),output.to_nbt())]);let blocks=HashMap::from([(s,1),(t,2)]);let block_entities=HashMap::from([(s,containers::BlockEntity::Chest(vec![])),(t,containers::BlockEntity::Chest(vec![output.item.clone()]))]);(Game{res:Res,world:World{blocks,block_entities,chunks:HashMap::from([((-1,0),()),((0,0),())]),tags,fail:false},notified:false,process_fault:0,_life:std::marker::PhantomData},p,s,t)}
