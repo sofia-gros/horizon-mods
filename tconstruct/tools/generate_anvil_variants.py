@@ -10,11 +10,11 @@ for anvil in ('tinkers_anvil','scorched_anvil'):
   models={f'models/block/table/{name}.json':{'parent':f'tconstruct:block/table/{anvil}','textures':{'particle':texture,'top':texture}},f'models/item/{name}.json':{'parent':f'tconstruct:block/table/{name}'},f'items/{name}.json':{'model':{'type':'minecraft:model','model':f'tconstruct:item/{name}'}}}
   for path,value in models.items():
    dest=asset/path;dest.parent.mkdir(parents=True,exist_ok=True);dest.write_text(json.dumps(value,separators=(',',':'))+'\n')
-  file=data/'recipe'/f'{name}.json';value=json.loads(file.read_text());value['result']['components']={'minecraft:custom_data':{'tconstruct:anvil':{'Metal':value['key']['m'],'Variant':metal,'Texture':texture}},'minecraft:item_model':f'tconstruct:{name}'};file.write_text(json.dumps(value,indent=2)+'\n')
+  file=data/'recipe'/f'{name}.json';value=json.loads(file.read_text());value['key']['s']='#tconstruct:' + ('seared_blocks' if anvil == 'tinkers_anvil' else 'scorched_blocks');value['result']['components']={'minecraft:custom_data':{'tconstruct:anvil':{'Metal':value['key']['m'],'Variant':metal,'Texture':texture}},'minecraft:item_model':f'tconstruct:{name}'};file.write_text(json.dumps(value,indent=2)+'\n')
 
 # Forge compatibility alloys use material-bearing fake storage blocks. The
 # shared crafting guard checks the source Material on all three inputs.
-for anvil, tag in [('tinkers_anvil', 'anvil_seared_blocks'), ('scorched_anvil', 'anvil_scorched_blocks')]:
+for anvil, tag in [('tinkers_anvil', 'seared_blocks'), ('scorched_anvil', 'scorched_blocks')]:
  for metal in ('bronze', 'constantan', 'invar', 'electrum', 'pewter', 'nicrosil'):
   variant = 'compat_' + metal
   name = f'{anvil}_{variant}'
@@ -34,7 +34,7 @@ for anvil, tag in [('tinkers_anvil', 'anvil_seared_blocks'), ('scorched_anvil', 
 
 # Mixed ordinary alloy blocks match the original shaped recipe but use its
 # fallback appearance. Sorted after the specific material-preserving variants.
-for anvil, tag in [('tinkers_anvil', 'anvil_seared_blocks'), ('scorched_anvil', 'anvil_scorched_blocks')]:
+for anvil, tag in [('tinkers_anvil', 'seared_blocks'), ('scorched_anvil', 'scorched_blocks')]:
  blocks = [f'tconstruct:{metal}_block' for metal in metals if metal != 'netherite'] + ['minecraft:netherite_block']
  value = {'type': 'minecraft:crafting_shaped', 'category': 'misc', 'pattern': ['mmm', ' s ', 'sss'],
           'key': {'m': blocks, 's': f'#tconstruct:{tag}'}, 'result': {'id': f'tconstruct:{anvil}'}}

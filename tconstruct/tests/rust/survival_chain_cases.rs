@@ -120,7 +120,7 @@ fn copper_controller_and_rose_gold_chain_retain_quantities() {
     let pattern: String = recipe["pattern"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
     assert_eq!(pattern.matches('m').count(), blocks.len()); assert_eq!(pattern.matches('s').count(), 4);
     assert_eq!(recipe["key"]["m"], "tconstruct:rose_gold_block");
-    assert_eq!(recipe["key"]["s"], "#tconstruct:anvil_seared_blocks");
+    assert_eq!(recipe["key"]["s"], "#tconstruct:seared_blocks");
     assert_eq!(recipe["result"]["id"], "tconstruct:tinkers_anvil");
     for block in blocks { let restored = item_from_nbt(&item_to_nbt(&block)).unwrap();
         assert_eq!(restored.count, block.count); assert!(restored.same_item_same_components(&block)); }

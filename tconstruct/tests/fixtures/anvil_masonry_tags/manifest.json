@@ -1,0 +1,22 @@
+{
+  "recipes/tinkers_anvil.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/tinkers_anvil.json",
+    "sha256": "5a49afe3af3ef3a8544e05780ac7a5bbfeb4944a947e6528ae7edb3fa04ac0cf"
+  },
+  "recipes/scorched_anvil.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/recipes/tables/scorched_anvil.json",
+    "sha256": "f9b53fa2fa0522fd029990d5c9f86c84829fa16ee4a64c3f2d31ac4e20e9e82c"
+  },
+  "tags/seared_blocks.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tags/items/seared_blocks.json",
+    "sha256": "cbcfd21bd1ea34371e31ef98d437829497b196c2cb967335140a6ddd9511a6c9"
+  },
+  "tags/scorched_blocks.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tags/items/scorched_blocks.json",
+    "sha256": "3e636445f5d8e8b30627f9d5a18c2d56d2d9b80c9f9947c6c5f06c3b76b6a52a"
+  },
+  "tags/seared_bricks.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/tags/items/seared_bricks.json",
+    "sha256": "a6fdbdd502dd5d22fb8151ad79d17d13600475d0ba96703d375878e4213e1dd8"
+  }
+}

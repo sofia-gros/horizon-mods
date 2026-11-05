@@ -8,7 +8,7 @@
   ],
   "key": {
     "m": "tconstruct:fake_storage_block",
-    "s": "#tconstruct:anvil_seared_blocks"
+    "s": "#tconstruct:seared_blocks"
   },
   "result": {
     "id": "tconstruct:tinkers_anvil",

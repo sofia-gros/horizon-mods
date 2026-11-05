@@ -8,7 +8,7 @@
   ],
   "key": {
     "m": "tconstruct:queens_slime_block",
-    "s": "#tconstruct:anvil_seared_blocks"
+    "s": "#tconstruct:seared_blocks"
   },
   "result": {
     "id": "tconstruct:tinkers_anvil",

@@ -8,7 +8,7 @@
   ],
   "key": {
     "m": "tconstruct:manyullyn_block",
-    "s": "#tconstruct:anvil_scorched_blocks"
+    "s": "#tconstruct:scorched_blocks"
   },
   "result": {
     "id": "tconstruct:scorched_anvil",
