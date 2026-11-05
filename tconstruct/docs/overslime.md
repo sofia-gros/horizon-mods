@@ -18,4 +18,28 @@ The source Casting Table recipe fills a glass bottle with 250 mB of the matching
 
 The crafting-table refill has representative Linux normal-click and shift-click checks, including unused bottle and empty bottle returns. Shift-click was also checked for a LAN guest, with supplied tool and bottles.
 
+## Overgrowth inventory recovery candidate
+
+Overgrowth now has an authoritative player-inventory recovery path, including
+carried tools, armor and offhand. Once per 20 inventory ticks for each holder,
+an eligible tool has a 5% chance per resolved modifier level to restore one
+Overslime point. Overworked adds one restored point per level, capped by the
+stored capacity. The actively used hand is skipped, so recovery does not
+change a bow while it is being drawn. Broken tools are not excluded by this
+modifier's source condition. Other custom data is retained.
+
+The implementation requires the exact pinned Overgrowth definition and valid
+material, modifier and item-tag snapshots. Missing or changed definitions,
+invalid shield data, inactive Overslime, and full shields do not recover.
+The phase is transient per holder and world, not saved on the item; switching
+worlds can restart the first interval. Non-player holders and custom Overgrowth
+module definitions are not handled by this player hook.
+
+Source: [OvergrowthModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/tools/modules/OvergrowthModule.java)
+and [OverslimeModule](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/modules/capacity/OverslimeModule.java).
+Six focused Rust rule tests and two Python source/wiring checks cover this
+candidate. Full Mixins application, client compilation, gameplay, persistence
+and LAN behavior are not yet verified. Earlier evidence below does not validate
+this new recovery path.
+
 Linux tests with supplied ingredients checked a Station's partial Overforced application and Overslime refill (20/68), plus shield consumption ahead of Unbreakable on a pickaxe, Longbow, Crossbow and two armor pieces. A LAN guest test checked both armor pieces and their shield changes; a local save/reload retained them. A supplied iron ingot, Sky Crystal, Seared Brick, Obsidian and lava were processed into Slimesteel Reinforcements, applied at the Station, and retained after reload. Natural acquisition of those inputs was not part of that test. The source traits and modifier effects outside these paths remain incomplete.
