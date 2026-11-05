@@ -604,3 +604,37 @@ placement/overflow wiring regressions were authored or updated but not run.
 Brief static review only. Compilation, actual book size/layout, resource reload,
 save/reload and LAN remain unverified. Other books and gameplay are unchanged;
 the full modifier registry and remaining recipe forms are still incomplete.
+
+
+## Static crafting preview eligibility
+
+Static source-book crafting graphics now check the current world's recipe
+conditions before resolving any icons. Nonempty conditions require the same
+item/fluid tag and source-config snapshots used by material sidebars; missing,
+invalid or unsupported conditions omit the graphic. Absent or empty conditions
+need no condition snapshot. Direct input/output icons must be registered items,
+and tag choices come from the current resolved item tags, excluding air and
+unregistered members. A required slot with no remaining choices omits the whole
+graphic rather than showing a recipe with a missing ingredient.
+
+The bounded renderer accepts ordinary shaped/shapeless crafting and Mantle's
+shaped retextured form. It keeps the existing plain item preview for retextured
+outputs; no material-specific output texture is claimed. Unknown serializers,
+complex Forge ingredients (including the Crafting Station's source difference
+ingredient), component/NBT restrictions and decorated results are omitted.
+Text and other page content remain available. A diagram is still explanatory
+source advice, not proof that this port can craft the displayed recipe.
+
+Patterns must fit their two- or three-wide page grid, have equal row widths and
+exactly their used single-character keys. Shapeless recipes must fit completely.
+Missing keys, unused keys, empty/malformed shapes, ambiguous results and invalid
+counts no longer become truncated or partially empty previews. Alternatives,
+nesting, IDs and metadata are bounded; over-budget graphics are omitted instead
+of silently dropping required inputs. Reopening the book reads fresh snapshots;
+already-open pages do not automatically refresh on reload.
+
+Condition, registry, tag, shape, count, bounds, reader wiring and book-reply
+regressions were authored or updated but not run. Brief static source/diff
+review only. Compilation, actual rendering, world reload, save/reload and LAN
+remain unverified. Crafting transactions, recipe acquisition and modifier pages
+are unchanged. This is another partial #379 guide-accuracy improvement.

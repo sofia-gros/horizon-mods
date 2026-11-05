@@ -204,36 +204,104 @@ pub(super) fn modifier_input_x(index: usize, count: usize) -> Option<f32> {
     Some((182.0 - (count as f32 * 28.0 - 6.0)) / 2.0 + index as f32 * 28.0)
 }
 
-pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<String>>>, grid_size: &str) -> Option<Value> {
-    fn ingredient(value: &serde_json::Value, tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>) -> Vec<String> {
-        if let Some(choices) = value.as_array() {
-            let mut result: Vec<_> = choices.iter().flat_map(|v| ingredient(v, tags)).collect();
-            result.sort(); result.dedup(); return result;
+// Static book diagrams are explanatory, not a crafting authority. Omit the
+// whole graphic when a required input or shape cannot be represented exactly.
+fn crafting_ingredient(value: &Value, tags: Option<&HashMap<String, HashSet<String>>>,
+    known: &mut impl FnMut(&str) -> bool, depth: usize) -> Option<Vec<String>> {
+    if depth > 8 { return None; }
+    let mut choices = if let Some(values) = value.as_array() {
+        if values.is_empty() || values.len() > 128 { return None; }
+        let mut choices = Vec::new();
+        for value in values {
+            choices.extend(crafting_ingredient(value, tags, known, depth + 1)?);
+            if choices.len() > 128 { return None; }
         }
-        let id = value.as_str().or_else(|| value.get("item").and_then(|v| v.as_str()));
-        let tag = id.and_then(|id| id.strip_prefix('#')).or_else(|| value.get("tag").and_then(|v| v.as_str()));
-        if let Some(tag) = tag {
-            let mut entries: Vec<_> = tags.and_then(|tags| tags.get(tag)).into_iter().flatten().cloned().collect();
-            entries.sort(); return entries;
+        choices
+    } else {
+        let (id, tag) = if let Some(value) = value.as_str() {
+            value.strip_prefix('#').map(|tag| (tag, true)).unwrap_or((value, false))
+        } else {
+            let object = value.as_object()?;
+            // Complex Forge ingredients and component/NBT restrictions need
+            // their own renderer; showing their base item would be misleading.
+            if object.len() != 1 { return None; }
+            if let Some(item) = object.get("item") { (item.as_str()?, false) }
+            else { (object.get("tag")?.as_str()?, true) }
+        };
+        if id.len() > 256 || showcase_item(&Value::String(id.into())) != Some(id) { return None; }
+        if tag {
+            let members = tags?.get(id)?;
+            // Bound the snapshot walk as well as the resulting metadata.
+            if members.len() > 128 { return None; }
+            members.iter().filter(|item| item.as_str() != "minecraft:air" && item.len() <= 256
+                && showcase_item(&Value::String((*item).clone())).is_some() && known(item)).cloned().collect()
+        } else {
+            if id == "minecraft:air" || !known(id) { return None; }
+            vec![id.into()]
         }
-        id.map(|s| vec![s.to_owned()]).unwrap_or_default()
+    };
+    choices.sort(); choices.dedup();
+    (!choices.is_empty() && choices.len() <= 128).then_some(choices)
+}
+
+pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<String>>>, grid_size: &str,
+    mut known: impl FnMut(&str) -> bool, mut conditions: impl FnMut(&[Value]) -> bool) -> Option<Value> {
+    if let Some(raw) = recipe.get("conditions") {
+        let values = raw.as_array()?;
+        if !values.is_empty() && !conditions(values) { return None; }
     }
-    let grid = if grid_size == "small" { 2 } else { 3 };
+    let grid = match grid_size { "small" => 2, "large" => 3, _ => return None };
+    let shaped = match recipe.get("type")?.as_str()? {
+        "minecraft:crafting_shaped" | "mantle:crafting_shaped_retextured" => true,
+        "minecraft:crafting_shapeless" => false,
+        _ => return None,
+    };
     let mut slots: Vec<Vec<String>> = vec![Vec::new(); 9];
-    if let (Some(pattern), Some(keys)) = (recipe.get("pattern").and_then(|v| v.as_array()), recipe.get("key").and_then(|v| v.as_object())) {
-        for (y, line) in pattern.iter().take(3).enumerate() {
-            for (x, ch) in line.as_str()?.chars().take(3).enumerate() {
-                if ch != ' ' { slots[y * 3 + x] = keys.get(&ch.to_string()).map(|v| ingredient(v, tags)).unwrap_or_default(); }
+    if shaped {
+        if recipe.get("ingredients").is_some() { return None; }
+        let pattern = recipe.get("pattern")?.as_array()?;
+        let keys = recipe.get("key")?.as_object()?;
+        if pattern.is_empty() || pattern.len() > grid || keys.is_empty() || keys.len() > grid * grid { return None; }
+        let width = pattern.first()?.as_str()?.chars().count();
+        if width == 0 || width > grid { return None; }
+        let mut resolved = HashMap::new();
+        for (key, value) in keys {
+            let mut chars = key.chars();
+            let ch = chars.next()?;
+            if ch == ' ' || chars.next().is_some() { return None; }
+            resolved.insert(ch, crafting_ingredient(value, tags, &mut known, 0)?);
+        }
+        let mut used = HashSet::new();
+        for (y, line) in pattern.iter().enumerate() {
+            let line = line.as_str()?;
+            if line.chars().count() != width { return None; }
+            for (x, ch) in line.chars().enumerate() {
+                if ch != ' ' {
+                    slots[y * 3 + x] = resolved.get(&ch)?.clone();
+                    used.insert(ch);
+                }
             }
         }
+        if used.len() != resolved.len() { return None; }
     } else {
-        for (i, value) in recipe.get("ingredients")?.as_array()?.iter().take(grid * grid).enumerate() {
-            slots[(i / grid) * 3 + i % grid] = ingredient(value, tags);
+        if recipe.get("pattern").is_some() || recipe.get("key").is_some() { return None; }
+        let ingredients = recipe.get("ingredients")?.as_array()?;
+        if ingredients.is_empty() || ingredients.len() > grid * grid { return None; }
+        for (i, value) in ingredients.iter().enumerate() {
+            slots[(i / grid) * 3 + i % grid] = crafting_ingredient(value, tags, &mut known, 0)?;
         }
     }
-    let result = recipe.get("result").and_then(|v| v.get("id").or_else(|| v.get("item"))).and_then(|v| v.as_str());
-    let count = recipe.get("result").and_then(|v| v.get("count")).and_then(|v| v.as_u64()).unwrap_or(1).min(u32::MAX as u64);
-    Some(serde_json::json!({"slots": slots, "result": result, "count":count, "grid": if grid_size == "small" { 2 } else { 3 }}))
+    let result = recipe.get("result")?.as_object()?;
+    if result.keys().any(|key| !matches!(key.as_str(), "item" | "id" | "count"))
+        || result.contains_key("item") == result.contains_key("id") { return None; }
+    let id = result.get("item").or_else(|| result.get("id"))?.as_str()?;
+    if id.len() > 256 || id == "minecraft:air" || showcase_item(&Value::String(id.into())) != Some(id) || !known(id) { return None; }
+    let count = match result.get("count") {
+        None => 1,
+        Some(value) => value.as_u64().filter(|count| *count > 0 && *count <= u32::MAX as u64)?,
+    };
+    let spec = serde_json::json!({"slots":slots,"result":id,"count":count,"grid":grid});
+    (spec.to_string().len() <= 4096).then_some(spec)
 }
 
 #[cfg(test)]
@@ -482,8 +550,8 @@ mod tests {
     #[test]
     fn preserves_tag_candidates_and_output_count() {
         let tags = HashMap::from([("tconstruct:planklike".to_owned(), ["minecraft:birch_planks".to_owned(), "minecraft:oak_planks".to_owned()].into_iter().collect())]);
-        let source = serde_json::json!({"pattern":["pw"], "key":{"p":{"item":"tconstruct:pattern"},"w":{"tag":"tconstruct:planklike"}},"result":{"item":"tconstruct:part_builder","count":4}});
-        let actual = resolve(&source, Some(&tags), "small").unwrap();
+        let source = serde_json::json!({"type":"minecraft:crafting_shaped","pattern":["pw"], "key":{"p":{"item":"tconstruct:pattern"},"w":{"tag":"tconstruct:planklike"}},"result":{"item":"tconstruct:part_builder","count":4}});
+        let actual = resolve(&source, Some(&tags), "small", |_| true, |_| false).unwrap();
         assert_eq!(actual["slots"][0], serde_json::json!(["tconstruct:pattern"]));
         assert_eq!(actual["slots"][1], serde_json::json!(["minecraft:birch_planks", "minecraft:oak_planks"]));
         assert_eq!(actual["count"], 4);
@@ -491,9 +559,103 @@ mod tests {
     }
     #[test]
     fn shapeless_small_grid_places_third_input_on_second_row() {
-        let source = serde_json::json!({"ingredients":["minecraft:a","minecraft:b","minecraft:c"],"result":{"id":"minecraft:book"}});
-        let actual = resolve(&source, None, "small").unwrap();
+        let source = serde_json::json!({"type":"minecraft:crafting_shapeless","ingredients":["minecraft:a","minecraft:b","minecraft:c"],"result":{"id":"minecraft:book"}});
+        let actual = resolve(&source, None, "small", |_| true, |_| false).unwrap();
         assert_eq!(actual["slots"][3], serde_json::json!(["minecraft:c"]));
         assert_eq!(actual["count"], 1);
     }
+    fn simple_crafting_recipe() -> Value {
+        serde_json::json!({"type":"minecraft:crafting_shapeless", "ingredients":[{"item":"test:input"}],
+            "result":{"item":"test:output"}})
+    }
+    #[test]
+    fn crafting_conditions_gate_before_resolving_icons() {
+        let mut source = simple_crafting_recipe();
+        source["conditions"] = serde_json::json!([{"type":"forge:false"}]);
+        assert!(resolve(&source, None, "large", |_| panic!("disabled recipe must not resolve icons"), |_| false).is_none());
+        assert!(resolve(&source, None, "large", |_| true, |conditions| conditions.len() == 1).is_some());
+        source["conditions"] = serde_json::json!([]);
+        assert!(resolve(&source, None, "large", |_| true, |_| panic!("empty conditions need no snapshot")).is_some());
+        source["conditions"] = serde_json::json!({"type":"forge:true"});
+        assert!(resolve(&source, None, "large", |_| true, |_| true).is_none());
+    }
+    #[test]
+    fn crafting_requires_registered_inputs_outputs_and_live_nonempty_tags() {
+        let mut source = simple_crafting_recipe();
+        for unavailable in ["test:input", "test:output"] {
+            assert!(resolve(&source, None, "large", |id| id != unavailable, |_| true).is_none());
+        }
+        source["ingredients"][0] = serde_json::json!({"tag":"test:inputs"});
+        assert!(resolve(&source, None, "large", |_| true, |_| true).is_none());
+        let tags = HashMap::from([("test:inputs".into(), ["test:input".into(), "test:missing".into(), "minecraft:air".into()].into_iter().collect())]);
+        let view = resolve(&source, Some(&tags), "large", |id| id != "test:missing", |_| true).unwrap();
+        assert_eq!(view["slots"][0], serde_json::json!(["test:input"]));
+        assert!(resolve(&source, Some(&tags), "large", |id| id == "test:output", |_| true).is_none());
+    }
+    #[test]
+    fn crafting_rejects_unsupported_serializers_ingredients_and_results() {
+        let source = simple_crafting_recipe();
+        for kind in ["forge:conditional", "test:custom", "minecraft:smelting", ""] {
+            let mut bad = source.clone(); bad["type"] = serde_json::json!(kind);
+            assert!(resolve(&bad, None, "large", |_| true, |_| true).is_none());
+        }
+        for input in [serde_json::json!({"type":"forge:difference","base":{"item":"test:input"},"subtracted":{"item":"test:other"}}),
+            serde_json::json!({"item":"test:input","nbt":{}}), serde_json::json!({"item":"test:input","tag":"test:inputs"}),
+            serde_json::json!("minecraft:air"), serde_json::json!("bad id"), serde_json::json!([])] {
+            let mut bad = source.clone(); bad["ingredients"][0] = input;
+            assert!(resolve(&bad, None, "large", |_| true, |_| true).is_none());
+        }
+        for output in [serde_json::json!({"item":"test:output","nbt":{}}),
+            serde_json::json!({"item":"test:output","id":"test:other"}), serde_json::json!({"item":"minecraft:air"}),
+            serde_json::json!({"item":"bad id"}), serde_json::json!({}), serde_json::json!("test:output")] {
+            let mut bad = source.clone(); bad["result"] = output;
+            assert!(resolve(&bad, None, "large", |_| true, |_| true).is_none());
+        }
+        for count in [serde_json::json!(0), serde_json::json!(-1), serde_json::json!(1.5),
+            serde_json::json!("2"), serde_json::json!(u32::MAX as u64 + 1)] {
+            let mut bad = source.clone(); bad["result"]["count"] = count;
+            assert!(resolve(&bad, None, "large", |_| true, |_| true).is_none());
+        }
+    }
+    #[test]
+    fn crafting_never_truncates_oversized_or_malformed_grids() {
+        let mut source = simple_crafting_recipe();
+        for grid in ["small", "large"] {
+            let limit = if grid == "small" { 4 } else { 9 };
+            source["ingredients"] = serde_json::json!(vec![serde_json::json!({"item":"test:input"}); limit + 1]);
+            assert!(resolve(&source, None, grid, |_| true, |_| true).is_none());
+        }
+        assert!(resolve(&simple_crafting_recipe(), None, "unknown", |_| true, |_| true).is_none());
+        let shaped = serde_json::json!({"type":"minecraft:crafting_shaped","pattern":["aa","aa"],
+            "key":{"a":{"item":"test:input"}},"result":{"item":"test:output"}});
+        assert!(resolve(&shaped, None, "small", |_| true, |_| true).is_some());
+        for pattern in [serde_json::json!([]), serde_json::json!([""]), serde_json::json!(["aaa"]),
+            serde_json::json!(["a","a","a"]), serde_json::json!(["aa","a"]), serde_json::json!(["ab"]), serde_json::json!(["  "])] {
+            let mut bad = shaped.clone(); bad["pattern"] = pattern;
+            assert!(resolve(&bad, None, "small", |_| true, |_| true).is_none());
+        }
+        for key in ["unused", "b", " "] {
+            let mut bad = shaped.clone(); bad["key"][key] = serde_json::json!({"item":"test:input"});
+            assert!(resolve(&bad, None, "small", |_| true, |_| true).is_none());
+        }
+        let mut ambiguous = shaped; ambiguous["ingredients"] = serde_json::json!([{"item":"test:input"}]);
+        assert!(resolve(&ambiguous, None, "small", |_| true, |_| true).is_none());
+    }
+    #[test]
+    fn crafting_bounds_alternatives_depth_and_wire_metadata() {
+        let mut source = simple_crafting_recipe();
+        source["ingredients"][0] = serde_json::json!([{"item":"test:b"},{"item":"test:a"},{"item":"test:b"}]);
+        let view = resolve(&source, None, "large", |_| true, |_| true).unwrap();
+        assert_eq!(view["slots"][0], serde_json::json!(["test:a","test:b"]));
+        source["ingredients"][0] = serde_json::json!((0..129).map(|i| format!("test:item_{i}")).collect::<Vec<_>>());
+        assert!(resolve(&source, None, "large", |_| true, |_| true).is_none());
+        let mut deep = serde_json::json!("test:input");
+        for _ in 0..10 { deep = serde_json::json!([deep]); }
+        source["ingredients"][0] = deep;
+        assert!(resolve(&source, None, "large", |_| true, |_| true).is_none());
+        let choices: Vec<_> = (0..128).map(|i| format!("test:{}_{i}", "x".repeat(50))).collect();
+        source["ingredients"][0] = serde_json::json!(choices);
+        assert!(resolve(&source, None, "large", |_| true, |_| true).is_none());
+    }
+
 }
