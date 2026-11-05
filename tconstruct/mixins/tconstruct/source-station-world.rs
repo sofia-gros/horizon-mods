@@ -300,6 +300,8 @@ pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, defi
         old.get(id).copied().unwrap_or(0) != traits.get(id).copied().unwrap_or(0)
             && !matches!(id.as_str(), "tconstruct:preserved" | "tconstruct:ductile" | "tconstruct:cultivated" | "tconstruct:dense")
     })) { return None; }
+    if matches!(output.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:knockback_resistance")), Some(Tag::Int(level)) if *level > 0)
+        && !super::tconstruct_source_upgrade_rules::valid_defense_slots(&output, base_slots("defense")?) { return None; }
     if !super::tconstruct_source_upgrade_rules::valid_slots(&output, &traits, base_slots("upgrades")?, base_slots("abilities")?)
         || !super::tconstruct_source_upgrade_rules::valid_unbreakable(&output, &traits) { return None; }
     super::tconstruct_tx::fixed_set_damage(&mut output, tool.damage.saturating_sub(repair));
@@ -553,7 +555,14 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
         .filter_map(|module| module.pointer("/slots/abilities").and_then(serde_json::Value::as_i64)).sum::<i64>();
     let traits = super::tconstruct_source_material_traits::levels(world, tool).map(|v| v.levels).unwrap_or_default();
-    let plan = super::tconstruct_source_upgrade_rules::plan_with_traits(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, &traits)?;
+    let defense_slots = parsed.get("modules")?.as_array()?.iter()
+        .filter(|module| module.get("type").and_then(serde_json::Value::as_str) == Some("tconstruct:modifier_slots"))
+        .filter_map(|module| module.pointer("/slots/defense").and_then(serde_json::Value::as_i64)).sum::<i64>();
+    let plan = super::tconstruct_source_upgrade_rules::plan_with_defense(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, i32::try_from(defense_slots).ok()?, &traits)?;
+    if plan.id == "tconstruct:knockback_resistance" && !super::tconstruct_source_knockback_defense::supported_definition(world) {
+        *reason = Some("Knockback Resistance is unavailable: the current modifier definition is unsupported.".into());
+        return None;
+    }
     if plan.id == "tconstruct:necrotic"
         && !tags.get("tconstruct:modifiable/melee/weapon").is_some_and(|items| items.contains(tool.item.as_ref()))
     {
