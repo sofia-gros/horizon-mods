@@ -103,11 +103,13 @@ pub(super) fn dense_reduce(mut loss: u32, level: i32, mut next: impl FnMut() -> 
     loss
 }
 
-/// Source secondary-durability causes bypass the primary clamp and are
-/// suppressed by Tanned's second, higher-priority range module.
-pub(super) fn tanned_wear(loss: u32, level: i32, cause: Option<&str>) -> u32 {
-    if level <= 0 { return loss; }
-    if matches!(cause, Some("tconstruct:protection" | "tconstruct:thorns" | "tconstruct:fiery" | "tconstruct:freezing" | "tconstruct:springy" | "tconstruct:pierce" | "tconstruct:venom" | "tconstruct:conductive" | "tconstruct:shock" | "tconstruct:necrotic" | "tconstruct:restore" | "tconstruct:enderporting")) { 0 }
+/// Source Tanned's first range clamps non-bypassed causes to one; its second
+/// range suppresses secondary causes even when they bypass the first range.
+/// Membership comes from the current resource snapshot, never a fixed ID list.
+pub(super) fn tanned_wear(loss: u32, level: i32, bypass: bool, secondary: bool) -> u32 {
+    if level <= 0 { loss }
+    else if secondary { 0 }
+    else if bypass { loss }
     else { loss.min(1) }
 }
 
@@ -235,12 +237,12 @@ mod tests {
     }
     #[test]
     fn tanned_primary_and_secondary_cause_ranges_precede_shield() {
-        assert_eq!(tanned_wear(7, 0, None), 7);
-        assert_eq!(tanned_wear(7, 1, None), 1);
-        assert_eq!(tanned_wear(0, 1, None), 0);
-        assert_eq!(tanned_wear(7, 1, Some("tconstruct:glowing")), 1);
-        assert_eq!(tanned_wear(7, 1, Some("tconstruct:protection")), 0);
-        assert_eq!(tanned_wear(7, 1, Some("tconstruct:thorns")), 0);
+        assert_eq!(tanned_wear(7, 0, false, false), 7);
+        assert_eq!(tanned_wear(7, 1, false, false), 1);
+        assert_eq!(tanned_wear(0, 1, false, false), 0);
+        assert_eq!(tanned_wear(7, 1, true, false), 7);
+        assert_eq!(tanned_wear(7, 1, true, true), 0);
+        assert_eq!(tanned_wear(7, 1, false, true), 0);
     }
     #[test]
     fn stringy_provides_only_source_string_repair() {
