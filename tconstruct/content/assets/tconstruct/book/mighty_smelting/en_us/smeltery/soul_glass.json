@@ -1,0 +1,18 @@
+{
+  "title": "Seared Soul Glass",
+  "item": "tconstruct:seared_soul_glass",
+  "text": [
+    {
+      "text": "Seared Soul Glass forms a smeltery window that entities can pass through, slowing them inside the glass. Under the default structure rules it can be used in walls, but not in the floor.",
+      "paragraph": true
+    },
+    {
+      "text": "To obtain Soul Glass, melt Soul Sand or Soul Soil at 400\u00b0C to produce 1,000 mB of Liquid Soul, then pour it into an empty Casting Basin. Place that Soul Glass in the center of a crafting grid with one Seared Brick above, below, left and right to make one Seared Soul Glass.",
+      "paragraph": true
+    },
+    {
+      "text": "These recipes and the collision and movement resource rules are implemented. Actual crafting and casting, passage through a formed smeltery wall, save/reload and LAN remain unverified. This page does not imply entity melting is available.",
+      "paragraph": true
+    }
+  ]
+}
