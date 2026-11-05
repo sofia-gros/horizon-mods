@@ -8,9 +8,9 @@ class FaucetMelterInputWiring(unittest.TestCase):
         code = RUNTIME.read_text()
         activate = code[code.index('pub(super) fn activate_faucet('):code.index('pub(super) fn tick_faucet(')]
         tick = code[code.index('pub(super) fn tick_faucet('):code.index('pub(super) fn tick_casting(')]
-        self.assertLess(activate.index('source_to_melter_or_lantern('), activate.index('tank_to_cannon('))
-        self.assertLess(tick.index('source_to_melter_or_lantern('), tick.index('tank_to_cannon('))
-        route = code[code.index('fn source_to_melter_or_lantern('):]
+        self.assertLess(activate.index('melter_lantern_transfer('), activate.index('tank_to_cannon('))
+        self.assertLess(tick.index('melter_lantern_transfer('), tick.index('tank_to_cannon('))
+        route = code[code.index('fn melter_lantern_transfer('):]
         self.assertIn('patch_melter_tank(&raw_target, &output)', route)
         self.assertNotIn('melter.to_nbt()', route)
         self.assertIn('if !store::write_many(&mut game.world, &changes)', route)

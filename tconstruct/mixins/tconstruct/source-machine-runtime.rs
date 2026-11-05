@@ -1264,7 +1264,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
-    if let Some(handled) = source_to_melter_or_lantern(game, pos, source, target, faucet.clone(), true) { return handled; }
+    if let Some(handled) = melter_lantern_transfer(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_casting_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = smeltery_to_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
@@ -1315,7 +1315,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
-    if source_to_melter_or_lantern(game, pos, source, target, faucet.clone(), false).is_some() { return; }
+    if melter_lantern_transfer(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_casting_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if smeltery_to_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
@@ -1419,13 +1419,20 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
 /// Melters and Lanterns expose their internal tank as a fluid handler on every face.
 /// This bounded route accepts built-in tanks/gauges, Lanterns, Melters, Casting Tanks,
 /// and formed Drains without rewriting Melter inventory, heat, fuel, or progress.
-fn source_to_melter_or_lantern(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
+fn melter_lantern_transfer(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
     let target_state = game.world.block(target.0, target.1, target.2);
-    let (target_key, melter_target) = match &*game.res.facts().get(target_state).name {
-        "tconstruct:seared_melter" => ("tconstruct:melter", true),
-        "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => ("tconstruct:lantern", false),
-        _ => return None,
+    let (target_key, melter_target, target_capacity) = match &*game.res.facts().get(target_state).name {
+        "tconstruct:seared_melter" => ("tconstruct:melter", true, 2160),
+        "tconstruct:seared_lantern" | "tconstruct:scorched_lantern" => ("tconstruct:lantern", false, 50),
+        name => {
+            let source_name = game.res.facts().get(game.world.block(source.0, source.1, source.2)).name.clone();
+            if !matches!(&*source_name, "tconstruct:seared_lantern" | "tconstruct:scorched_lantern") { return None; }
+            // Only Lantern output uses these extra destinations; existing
+            // non-Lantern tank routes retain their original dispatch.
+            let (key, capacity) = tanks::tank_kind(name)?;
+            (key, false, capacity)
+        },
     };
     if source == target || source == pos || target == pos { return Some(false); }
     if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))) { return Some(false); }
@@ -1477,7 +1484,7 @@ fn source_to_melter_or_lantern(game: &mut super::Game<'_>, pos: Pos, source: Pos
         if raw_target.get("tank") != Some(&state.tank.to_nbt()) { return Some(false); }
         state.tank
     } else {
-        let Some(tank) = Tank::from_nbt(&raw_target, 50) else { return Some(false); };
+        let Some(tank) = Tank::from_nbt(&raw_target, target_capacity) else { return Some(false); };
         if tank.to_nbt() != raw_target { return Some(false); }
         tank
     };
