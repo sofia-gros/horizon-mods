@@ -14,7 +14,10 @@ and `forge:slimeball/{earth,sky,ichor,ender}`. Legacy `tag` predicates become
 the host's native `items: "#tag"` form, not fixed lists of current members.
 Both the inventory candidate index and final predicate use the same resolved
 current-world snapshot for these tags and the existing
-`tconstruct:modifiable/multipart` tag. Unrelated tags retain host behavior.
+`tconstruct:modifiable/multipart` tag. Workstation discovery additionally
+uses the source `tconstruct:seared_blocks` tag, as described in
+[workstation discovery unlocks](workstation-discovery-unlocks.md).
+Unrelated tags retain host behavior.
 
 Missing, invalid or empty snapshots match nothing for the managed tags,
 including when the native resource table still has stale members. The

@@ -2,6 +2,7 @@
 // resolved world snapshot. Unrelated host tag semantics remain untouched.
 const TAGS: &[&str] = &[
     "tconstruct:modifiable/multipart",
+    "tconstruct:seared_blocks",
     "forge:rods/wooden",
     "forge:ingots/copper",
     "forge:ingots/gold",

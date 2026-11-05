@@ -1,0 +1,129 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_item": {
+      "conditions": {
+        "items": [
+          {
+            "items": "#tconstruct:seared_blocks"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_recipe_andesite": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_andesite"
+      }
+    },
+    "has_recipe_basalt": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_basalt"
+      }
+    },
+    "has_recipe_blackstone": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_blackstone"
+      }
+    },
+    "has_recipe_calcite": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_calcite"
+      }
+    },
+    "has_recipe_cobbled_deepslate": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_cobbled_deepslate"
+      }
+    },
+    "has_recipe_cobblestone": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_cobblestone"
+      }
+    },
+    "has_recipe_deepslate": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_deepslate"
+      }
+    },
+    "has_recipe_diorite": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_diorite"
+      }
+    },
+    "has_recipe_dripstone_block": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_dripstone_block"
+      }
+    },
+    "has_recipe_granite": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_granite"
+      }
+    },
+    "has_recipe_mossy_cobblestone": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_mossy_cobblestone"
+      }
+    },
+    "has_recipe_stone": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_stone"
+      }
+    },
+    "has_recipe_tuff": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:modifier_worktable_tuff"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_item",
+      "has_recipe_andesite",
+      "has_recipe_basalt",
+      "has_recipe_blackstone",
+      "has_recipe_calcite",
+      "has_recipe_cobbled_deepslate",
+      "has_recipe_cobblestone",
+      "has_recipe_deepslate",
+      "has_recipe_diorite",
+      "has_recipe_dripstone_block",
+      "has_recipe_granite",
+      "has_recipe_mossy_cobblestone",
+      "has_recipe_stone",
+      "has_recipe_tuff"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "tconstruct:modifier_worktable_andesite",
+      "tconstruct:modifier_worktable_basalt",
+      "tconstruct:modifier_worktable_blackstone",
+      "tconstruct:modifier_worktable_calcite",
+      "tconstruct:modifier_worktable_cobbled_deepslate",
+      "tconstruct:modifier_worktable_cobblestone",
+      "tconstruct:modifier_worktable_deepslate",
+      "tconstruct:modifier_worktable_diorite",
+      "tconstruct:modifier_worktable_dripstone_block",
+      "tconstruct:modifier_worktable_granite",
+      "tconstruct:modifier_worktable_mossy_cobblestone",
+      "tconstruct:modifier_worktable_stone",
+      "tconstruct:modifier_worktable_tuff"
+    ]
+  },
+  "sends_telemetry_event": false
+}
