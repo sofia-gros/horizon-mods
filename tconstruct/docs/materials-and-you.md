@@ -137,3 +137,13 @@ The adaptation deliberately omits claims of external-pipe integration and
 drain-center fluid rendering. Reader selection, content packaging, and source
 fixture identity are tested; full host build, actual page display, acquisition,
 save/reload, and LAN remain unverified.
+
+### Mighty Smelting: Seared Soul Glass
+
+The source Smeltery showcase slot now exposes a bounded Seared Soul Glass page.
+It explains the default wall-only structure role, existing pass-through/slowdown
+resource rules, and the Soul Sand/Soil → Liquid Soul → Soul Glass → Seared Soul
+Glass acquisition route. The pinned source identity and order are retained; the
+text is adapted to describe this port and disclose unverified behavior.
+Actual crafting/casting, passage through a formed wall, save/reload and LAN
+remain unverified. Entity melting and the remaining guide pages are not added.
