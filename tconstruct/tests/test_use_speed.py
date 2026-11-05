@@ -56,7 +56,7 @@ class UseSpeed(unittest.TestCase):
         self.assertEqual(sum(v['target'] == hook['target'] for v in manifest['injection']), 1)
         helper = (MIXINS / 'source-use-speed.rs').read_text()
         self.assertIn('game.remote.is_some() || game.riding.is_some()', helper)
-        self.assertRegex(helper, r'if total != level \|\| level < 0')
+        self.assertRegex(helper, r'if total != trait_level \|\| trait_level < 0')
         workflow = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
         self.assertIn('python3 tconstruct/tests/run_use_speed.py --horizon ../horizon-official', workflow)
         self.assertIn('test game::tconstruct_use_speed::tests::held_stat_uses_defaults_additions_multipliers_and_clamp ... ok', workflow)

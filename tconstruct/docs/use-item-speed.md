@@ -15,8 +15,9 @@ with the ordinary 20% slowdown:
   Unburdened's additive 0.1 per trait level. Tool stat is clamped to 0–1.
 - Worn Unburdened adds 0.1 per level. Cobalamin adds 0.1 per level from its eligible
   slots. Featherweight adds 0.05 per level on tagged armor, including held shields.
-- Melee Protection adds 0.05 times the greatest eligible trait level, not the sum
-  across pieces. Broken equipment and armor in the wrong class slot do not
+- Melee Protection adds 0.05 times the greatest eligible effective level, not the sum
+  across pieces. Its material traits combine with acquired five-unit progress,
+  including fractional levels. Broken equipment and armor in the wrong class slot do not
   contribute attributes. Held-tool stat evaluation follows the source input
   hook, which does not separately filter brokenness.
 - The combined source speed is clamped to 0–1. The native movement pipeline still
@@ -28,7 +29,8 @@ its field; stopping use, removing equipment or invalidating resource definitions
 cannot leave a persistent movement bonus. No extra saved state is introduced.
 Current source definitions, traits and tags are re-read. Unknown stat modules,
 changed modifier definitions, malformed traits and manually stored unsupported
-incremental-upgrade counters fail closed. A custom modifier declaring another
+incremental-upgrade counters for the other three modifiers fail closed.
+Melee Protection uses its explicit five-unit defense acquisition contract. A custom modifier declaring another
 use-item-speed effect is not silently ignored.
 
 ## Bounds and validation
@@ -67,3 +69,23 @@ There are no other such injections in the pinned TConstruct bundle, and a test
 rejects adding one unnoticed. Compatibility with external mods injecting into
 that body is not established. A future narrow native post-sync hook should
 replace this compatibility copy rather than extending it to unrelated features.
+
+## Melee Protection acquisition integration
+
+The prior resolver rejected any purchased modifier value, including Melee
+Protection. It did not apply a five-times bonus. This follow-on admits only
+Melee Protection's newly defined acquired progress: five stored units are one
+level, with the source f32 partial-level correction. Other three traits retain
+their integer arithmetic and purchased-modifier rejection. Damage protection
+is still not implemented by this movement bridge.
+
+This fix is based on the existing use-item-speed branch and is independent of
+the defense-acquisition branch. Integrate both to enable the complete normal
+acquisition-to-use-speed path. No new movement injection or compatibility-body
+copy was added. The previously documented remote/LAN and native-sync limitations
+remain.
+
+Brief static review covered all level consumers, maximum aggregation and the
+existing fixture's stored-data key. Source and runtime-adapter regressions were
+updated but not run for this follow-on. No tests, builds, Mixins transforms, CI
+inspection, version checks or merge were performed. Publication is paused.
