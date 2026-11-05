@@ -5571,3 +5571,16 @@ bindings = [
   { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
   { name = "stack", ty = "Option<&horizon_client::items::ItemStack>", value = "stack" },
 ]
+
+
+[[module]]
+id = "source-flamestance"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_flamestance"
+source = "source-flamestance.rs"
+
+[[module]]
+id = "source-flamestance-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_flamestance_world"
+source = "flamestance-world.rs"
