@@ -5428,3 +5428,20 @@ target = "horizon_client::game::Game<'_>::melee_damage"
 kind = "RETURN"
 helper = "insatiable-damage.rs"
 bindings = [{ name = "value", ty = "(f32,f32,bool,bool)", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "living", ty = "bool", value = "living" }]
+
+[[module]]
+id = "source-insatiable-ranged-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_insatiable_ranged_world"
+source = "insatiable-ranged-world.rs"
+
+[[injection]]
+id = "source-insatiable-arrow-hit"
+target = "horizon_client::game::potions::Game<'_>::arrow_post_hurt_effects"
+kind = "HEAD"
+helper = "insatiable-arrow-hit.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" },
+  { name = "who", ty = "horizon_client::mobs::Who", value = "who" },
+]

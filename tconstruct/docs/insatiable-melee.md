@@ -32,8 +32,9 @@ Source: Tinkers' Construct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`,
 
 ## Boundaries and review
 
-Only primary melee attacks against mobs are connected here. Ranged hits,
-projectile damage, sling launches, PvP, monster-held tools, unarmed attacks,
+Only primary melee attacks against mobs are connected here. The separate
+[ordinary-arrow connection](insatiable-ranged.md) documents ranged coverage.
+Sling launches, PvP, monster-held tools, unarmed attacks,
 secondary/sweep damage, and the separate Kinetic armor effect remain unimplemented.
 The native extra attack path does not receive this bonus. Full modifier ordering,
 bit-identical mixed-trait floating-point evaluation, custom effective-level
