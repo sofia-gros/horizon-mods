@@ -5354,3 +5354,29 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-dragonfall"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dragonfall"
+source = "source-dragonfall.rs"
+
+[[module]]
+id = "source-dragonfall-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_dragonfall_world"
+source = "dragonfall-world.rs"
+
+[[injection]]
+id = "source-dragonfall-critical"
+target = "horizon_client::game::native_hooks::Game<'_>::native_critical_hit"
+kind = "HEAD"
+helper = "dragonfall-critical.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "critical", ty = "&mut bool", value = "&mut *critical" }, { name = "multiplier", ty = "&mut f32", value = "&mut *damage_multiplier" }]
+
+[[injection]]
+id = "source-dragonfall-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "TAIL"
+helper = "dragonfall-equipment.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
