@@ -19,8 +19,9 @@ class LocalArmorHaste(unittest.TestCase):
                       'tconstruct_source_material_traits::levels(&game.world, stack)'):
             self.assertIn(field, source)
         self.assertIn('unwrap_or(0)', source)
-        self.assertLess(source.index('conditional_with_water('), source.rindex('finish_mining_speed('))
-        self.assertIn('return speed * armor_multiplier', source)
+        self.assertLess(source.index('conditional_with_water('), source.rindex('finish(speed'))
+        self.assertIn('return finish(speed)', source)
+        self.assertIn('tconstruct_cobalamin_world::mining_speed(game, speed, armor_multiplier)', source)
         self.assertIn('Some(facts.explosion_resistance)', source)
         self.assertLess(source.index('environment_multiplier('), source.index('conditional_with_water('))
         self.assertIn('player.is_eye_in_fluid(horizon_client::motion::WATER)', source)

@@ -19,13 +19,14 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
         };
         Some(crate::game::tconstruct_source_mining_rules::haste_armor_multiplier_with_trait(custom, stack.damage, traits))
     }).unwrap_or(1.0);
-    let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return speed * armor_multiplier; };
-    let Some(data) = stack.data() else { return speed * armor_multiplier; };
-    let Some(custom) = data.other("minecraft:custom_data") else { return speed * armor_multiplier; };
+    let finish = |speed| crate::game::tconstruct_cobalamin_world::mining_speed(game, speed, armor_multiplier);
+    let Some(stack) = held.filter(|stack| stack.item.starts_with("tconstruct:")) else { return finish(speed); };
+    let Some(data) = stack.data() else { return finish(speed); };
+    let Some(custom) = data.other("minecraft:custom_data") else { return finish(speed); };
     let effective = match data.other("minecraft:tool") {
         Some(tool) => match crate::game::tconstruct_source_mining_rules::evaluated_speed(tool, &facts.name, |tag, block| game.items().block_in_tag(tag, block)) {
             Some(value) => value.is_some(),
-            None => return speed * armor_multiplier,
+            None => return finish(speed),
         },
         None => false,
     };
@@ -52,5 +53,5 @@ pub(super) fn apply(speed: f32, game: &crate::game::Game<'_>, facts: &&horizon_i
     let hydraulic_water = game.player.as_ref().and_then(|player|
         player.fluids.was_eye_in_water.then_some(aqua_affinity));
     let speed = crate::game::tconstruct_source_mining_rules::conditional_with_water(custom, stack.damage, speed, multiplier, position, effective, !facts.requires_tool, broad, Some(facts.explosion_resistance), hydraulic_water).unwrap_or(speed);
-    crate::game::tconstruct_source_mining_rules::finish_mining_speed(speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground), armor_multiplier)
+    finish(speed * crate::game::tconstruct_source_mining_rules::airborne_multiplier(custom, stack.damage, on_ground))
 }
