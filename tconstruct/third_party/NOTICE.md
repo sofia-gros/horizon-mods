@@ -109,3 +109,8 @@ Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconst
 The Cheese Block model, blockstate and textures are copied from Tinkers' Construct
 [f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct).
 Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
+The Venombone item texture and model are copied from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct).
+The model's vanilla parent is explicitly namespaced for Horizon.
+Copyright (c) 2022 SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.

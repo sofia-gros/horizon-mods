@@ -64,8 +64,33 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     if !matches!(input, horizon_client::menu::Input::Pickup | horizon_client::menu::Input::QuickMove) { return Break(true); }
     if game.remote.is_some() { return Continue(()); }
     let Some(pos) = game.container else { return Break(true); };
-    let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
-        .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Break(true); };
+    let Some(saved) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery") else { return Break(true); };
+    let Some(mut state) = crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&saved) else { return Break(true); };
+    // Bounded ordinary left-click: an unbundled, representable carried stack
+    // enters an empty melting slot one item at a time. Other clicks retain the
+    // generic menu behavior, including taking items and bundle overrides.
+    if game.lan.is_none() && input == horizon_client::menu::Input::Pickup && button == 0 && (302..354).contains(&slot) {
+        let index = crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300).unwrap();
+        if let Some(held) = game.carried.clone().filter(|held| held.count > 1 && held.data().is_none_or(|data| data.wire.patch().is_none())
+            && horizon_items::bundle::Contents::of(game.res.items(), held).is_none()) {
+            if state.slots[index].is_none() {
+                let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
+                    .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+                let expected = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                if !matches!(game.world.block_entities.get(&pos), Some(horizon_client::containers::BlockEntity::Chest(live)) if crate::game::tconstruct_source_smeltery_page::no_retained_wire(live)
+                    && crate::game::tconstruct_source_smeltery_page::no_retained_wire(&expected) && *live == expected) { return Break(true); }
+                let Some((next, one, rest)) = crate::game::tconstruct_source_smeltery_page::prepare_single_insert(&saved, index, &held) else { return Break(true); };
+                if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", next) {
+                    state.slots[index] = Some(one); state.progress[index] = 0; game.carried = Some(rest);
+                    if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
+                        *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    }
+                    game.container_changed(pos);
+                }
+                return Break(true);
+            }
+        }
+    }
     if input == horizon_client::menu::Input::QuickMove && slot < 36 {
         let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
@@ -100,7 +125,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             let stackable = info.is_some_and(|item| max > 1 && !(item.max_damage > 0 && stack.damage > 0));
             let before = stack.count;
             let remaining = if slot < 36 {
-                let remaining = crate::game::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, max, stackable);
+                let remaining = crate::game::tconstruct_tx::source_give_inventory(&mut state.slots, 0, stack, 1, false);
                 inventory[slot] = remaining.clone(); remaining
             } else {
                 let Some(index) = crate::game::tconstruct_source_smeltery_layout::melting_index(count, offset, slot - 300) else { return Break(true); };

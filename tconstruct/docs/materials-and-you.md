@@ -120,3 +120,20 @@ Fantastic Foundry now has a limited English reader entry and the source book-and
 A package test checks the Foundry item declaration, recipe and selected reader assets in the native hmod. The Windows launcher runs the manual overlay before the content-based preparation step, which reads the same declaration. This is a static pipeline check, not an executed Windows prepare, host registration or gameplay test.
 
 The partial Fantastic Foundry adds a byproducts page explaining the existing default copper/gold example and the tank-space limit. The text reflects the current modeled behavior; actual Foundry output, page display and LAN remain unverified.
+
+### Mighty Smelting fluid-access pages
+
+The partial Smeltery Basics chapter includes adapted Seared Drain and Seared
+Duct pages. The Drain page explains the existing formed-wall faucet/casting
+route, controller fluid selection, and supported held-container transfers.
+The Duct page explicitly warns that the original filter slot and fluid display
+are missing: the existing faucet route takes the controller's bottom fluid,
+not a filtered fluid. No machine behavior is changed by these guide pages.
+
+The original page fixtures are pinned to Tinkers' Construct
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, under
+`src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/smeltery/`.
+The adaptation deliberately omits claims of external-pipe integration and
+drain-center fluid rendering. Reader selection, content packaging, and source
+fixture identity are tested; full host build, actual page display, acquisition,
+save/reload, and LAN remain unverified.

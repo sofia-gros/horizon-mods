@@ -23,3 +23,9 @@ The ore, fluid selection, casting, wall repair and save/reload sequence was test
 *The X marks indicate the two container slots are not available yet. Fill the fuel tank directly with a lava bucket instead.*
 
 Only the representative copper ore path has been tested end to end. Other ores, larger structures, automatic transfer and fluid containers need further work or testing. The machine models and collision are not yet a complete match for the original. Windows has not been tested.
+
+The Fantastic Foundry guide includes a partial Scorched Tanks text page. It lists the supported tank capacities and fuel requirement; the original showcase, other fluid handlers, in-game display and LAN remain unverified or unsupported.
+
+Shift-moving items from a player inventory into Smeltery or Foundry melting slots now fills empty slots one item at a time, leaving excess in the player inventory. This applies to local and guest quick-move paths; other click modes, existing oversized saved stacks, host integration, world and LAN behavior remain unverified.
+
+A bounded ordinary left-click path splits a representable, non-Bundle carried stack into one item when placing it in an empty melting slot. The local path is single-player only and requires the live projection to match; the guest path applies only when one guest has that controller menu open the host has not opened its controller menu, and the last-sent guest page matches the current projection. Retained wire data on the held stack or compared page, or a saved item that fails exact NBT roundtrip, blocks this limited path; Bundles, occupied slots, other click modes, simultaneous guest viewers, and local-host LAN interactions continue through the previous paths and are not claimed to obey the one-item limit. Host integration, pickup sounds and menu callbacks, world/save and LAN are unverified.

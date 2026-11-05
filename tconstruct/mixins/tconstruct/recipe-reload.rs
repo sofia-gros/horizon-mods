@@ -283,3 +283,17 @@ pub(super) fn invalidate_parked_item_tags(game: &mut crate::game::Game<'_>) {
         }
     }
 }
+
+// The authoritative recipe tables are shared among the active and parked
+// dimensions; invalidate every open LAN table's cached generation.
+pub(super) fn invalidate_lan_crafting_results(game: &mut crate::game::Game<'_>) {
+    fn invalidate(chunks: &mut horizon_client_render::chunk_map::ChunkMap) {
+        let generation = chunks.__horizon_mixins_tconstruct_lan_craft_recipe_generation_mut();
+        *generation = generation.wrapping_add(1).max(1);
+        chunks.__horizon_mixins_tconstruct_lan_craft_menu_generation_mut().clear();
+    }
+    invalidate(&mut game.world.chunks);
+    for dim in [crate::game::Dim::Overworld, crate::game::Dim::Nether, crate::game::Dim::End] {
+        if let Some(world) = game.levels.parked_world_mut(dim) { invalidate(&mut world.chunks); }
+    }
+}
