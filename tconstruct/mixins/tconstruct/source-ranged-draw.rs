@@ -8,6 +8,10 @@ fn ticks_for_speed(speed: f32) -> u32 {
 }
 
 pub(crate) fn draw_ticks(stack: &ItemStack) -> u32 {
+    draw_ticks_with_bonus(stack, 0.0)
+}
+
+pub(crate) fn draw_ticks_with_bonus(stack: &ItemStack, conditional_bonus: f32) -> u32 {
     let speed = match stack
         .data()
         .and_then(|d| d.other("minecraft:custom_data"))
@@ -22,7 +26,8 @@ pub(crate) fn draw_ticks(stack: &ItemStack) -> u32 {
         let multiplier = match custom.get("tic_overwield_draw_multiplier") { Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return None };
         multiplier.is_finite().then_some(level.min(amount) as f32 * 0.06 * multiplier)
     }).unwrap_or(0.0);
-    ticks_for_speed((speed + bonus).clamp(0.0, 1024.0))
+    let conditional_bonus = if conditional_bonus.is_finite() && conditional_bonus >= 0.0 { conditional_bonus } else { 0.0 };
+    ticks_for_speed((speed + bonus + conditional_bonus).clamp(0.0, 1024.0))
 }
 
 pub(crate) fn vanilla_charge_ticks(elapsed: u32, draw_ticks: u32) -> u32 {
@@ -58,5 +63,26 @@ mod saturation_tests {
             assert_eq!(ticks_for_speed(speed), 1); // Existing host minimum, not source NaN=0.
         }
         assert_eq!(ticks_for_speed(1024.0), 1);
+    }
+}
+
+
+#[cfg(test)]
+mod conditional_bonus_tests {
+    use super::*;
+    #[test]
+    fn conditional_draw_bonus_is_ephemeral_and_combines_with_existing_overwield() {
+        let mut stack=ItemStack::new("tconstruct:crossbow",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_draw_speed",Tag::Float(1.0f32.to_bits())),
+            ("tic_overwield_ranged",Tag::Int(1)),("tic_overslime",Tag::Int(1)),
+            ("tic_overwield_draw_multiplier",Tag::Float(1.0f32.to_bits())),
+        ])));
+        let before=stack.clone();
+        assert_eq!(draw_ticks(&stack),19);
+        assert_eq!(draw_ticks_with_bonus(&stack,1.5 * 0.1),17);
+        assert_eq!(draw_ticks_with_bonus(&stack,0.0),draw_ticks(&stack));
+        assert_eq!(draw_ticks_with_bonus(&stack,f32::NAN),draw_ticks(&stack));
+        assert_eq!(stack,before);
     }
 }

@@ -9,7 +9,7 @@ fn tconstruct_bow_release(
         return Continue(());
     }
     if !hand_changed && !crate::game::tconstruct_source_ranged_wear::is_broken(stack) {
-        let draw_ticks = crate::game::tconstruct_ranged_draw::draw_ticks(stack);
+        let draw_ticks = crate::game::tconstruct_antitoxin_world::draw_ticks(game, stack);
         let adjusted = crate::game::tconstruct_ranged_draw::vanilla_charge_ticks(ticks, draw_ticks);
         let actor = game.lan_acting;
         let mut dispatch_ticks = adjusted;
