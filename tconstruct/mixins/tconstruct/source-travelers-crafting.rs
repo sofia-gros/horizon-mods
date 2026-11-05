@@ -15,6 +15,9 @@ pub(super) struct MaterialItem {
 pub(super) struct Plan {
     pub result: String,
     pub materials: Vec<String>,
+    pub category: String,
+    pub group: String,
+    pub show_notification: bool,
     pub width: usize,
     pub height: usize,
     pub cells: Vec<Option<Vec<String>>>,
@@ -264,6 +267,9 @@ pub(super) fn compile(
             plans.push(Plan {
                 result: result.into(),
                 materials: vec![first.clone(), second.clone()],
+                category: value["category"].as_str().unwrap_or_default().to_owned(),
+                group: value["group"].as_str().unwrap_or_default().to_owned(),
+                show_notification: value["show_notification"].as_bool().unwrap_or(true),
                 width,
                 height: rows.len(),
                 cells,
@@ -452,4 +458,18 @@ mod tests {
         )
         .is_none());
     }
+    #[test]
+    fn book_metadata_preserves_source_values_and_native_defaults() {
+        let mut value = recipe(RESULTS[4], &["scs", "lcl"]);
+        let plans = compile_with(&value, &items()).unwrap();
+        assert!(plans.iter().all(|p| p.category.is_empty() && p.group.is_empty() && p.show_notification));
+        value["category"] = json!("equipment");
+        value["group"] = json!("test:travelers");
+        value["show_notification"] = json!(false);
+        let plans = compile_with(&value, &items()).unwrap();
+        assert!(plans.iter().all(|p| p.category == "equipment" && p.group == "test:travelers" && !p.show_notification));
+        value["show_notification"] = json!("false");
+        assert!(compile_with(&value, &items()).is_none());
+    }
+
 }
