@@ -21,7 +21,9 @@ data and retained tank extension fields. Existing Honey-to-bottle filling remain
 The source is MIT-licensed Mantle at
 [`17c287ad`](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/generated/resources/data/mantle/mantle/fluid_transfer/honey_bottle_empty.json):
 Honey Bottle → 250 mB from `forge:honey` + Glass Bottle. The fixture retains that
-source recipe. This bounded implementation selects bundled `tconstruct:honey`,
+source recipe. Attribution is in
+[`honey-bottle-transfer-NOTICE.md`](../third_party/honey-bottle-transfer-NOTICE.md).
+This bounded implementation selects bundled `tconstruct:honey`,
 matching the stock tag pair and existing filling path. Arbitrary modpack tag
 replacement or another mod's Honey fluid preference is not implemented.
 
