@@ -52,12 +52,22 @@ impl Tank {
         }
         Some(Tag::Compound(fields))
     }
-    /// Patch a normal fuel tank while retaining unrelated native extension data.
-    /// Legacy Forge aliases were discarded by the old fuel-tank serializer.
+    /// Preserve native fuel data; aliases are ambiguous, not disposable.
     pub(super) fn to_nbt_preserving_fuel(&self, raw: &Tag) -> Option<Tag> {
-        let Tag::Compound(mut fields) = self.to_nbt_preserving(raw)? else { return None; };
-        for key in ["FluidName", "Amount", "Tag"] { fields.remove(&key.into()); }
-        Some(Tag::Compound(fields))
+        for key in ["FluidName", "Amount", "Tag", "Tank", "Fluid"] {
+            if raw.get(key).is_some() { return None; }
+        }
+        if Self::from_nbt(&self.to_nbt(), self.capacity).as_ref() != Some(self) { return None; }
+        self.to_nbt_preserving(raw)
+    }
+    /// Stage a non-tagged recipe-fuel debit without modifying the raw tank.
+    /// The caller may grant fuel only after this proposal succeeds, and must
+    /// persist the machine and tank together before publishing either side.
+    pub(super) fn drain_fuel_preserving(raw: &Tag, capacity: u32, amount: u32) -> Option<Tag> {
+        let mut tank = Self::from_nbt(raw, capacity)?;
+        if tank.to_nbt_preserving_fuel(raw).as_ref() != Some(raw) { return None; }
+        tank.take(amount)?;
+        tank.to_nbt_preserving_fuel(raw)
     }
     pub(super) fn from_nbt(tag: &Tag, capacity: u32) -> Option<Self> {
         let amount = match tag.get("amount")? { Tag::Int(n) => u32::try_from(*n).ok()?, _ => return None };

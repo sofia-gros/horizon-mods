@@ -6,7 +6,7 @@ class FuelTankPreservation(unittest.TestCase):
     def test_guard_precedes_commit_and_inventory_changes(self):
         source = (ROOT / 'mixins/tconstruct/source-machine-runtime.rs').read_text()
         refresh = source.split('pub(super) fn refresh_smeltery',1)[1].split('pub(super) fn interact_fuel_tank',1)[0]
-        self.assertLess(refresh.index('tank.to_nbt_preserving_fuel(&raw_tank)'), refresh.index('state.fuel = fuel.duration'))
+        self.assertLess(refresh.index('Tank::drain_fuel_preserving(&raw_tank, tank_capacity, fuel.fluid.amount)'), refresh.index('state.fuel = fuel.duration'))
         self.assertIn('fuel_update = Some((at, kind, updated_tank))', refresh)
         interaction = source.split('pub(super) fn interact_fuel_tank',1)[1].split('\npub(super) fn ',1)[0]
         self.assertLess(interaction.index('plan_single_tank_container('), interaction.index('store::write(&mut game.world'))
