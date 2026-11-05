@@ -6006,3 +6006,54 @@ id = "source-tanned-live-wear"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_tanned_wear"
 source = "source-tanned-wear.rs"
+
+[[module]]
+id = "source-maintained-armor"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_maintained"
+source = "source-maintained.rs"
+
+[[module]]
+id = "source-maintained-armor-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_maintained_world"
+source = "maintained-world.rs"
+
+[[injection]]
+id = "source-maintained-before-local-tick"
+target = "horizon_client::game::Game<'_>::tick"
+kind = "HEAD"
+helper = "maintained-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-maintained-before-caused-hit"
+target = "horizon_client::game::creatures::Game<'_>::hurt_player_from"
+kind = "HEAD"
+helper = "maintained-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-maintained-before-environment-hit"
+target = "horizon_client::game::creatures::Game<'_>::hurt_player_by"
+kind = "HEAD"
+helper = "maintained-refresh.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-maintained-after-armor-wear"
+target = "horizon_client::game::Game<'_>::wear_armor"
+kind = "RETURN"
+helper = "maintained-refresh-return.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-maintained-before-guest-tick"
+target = "horizon_client::game::lan_actions::Game<'_>::guest_server_tick"
+kind = "HEAD"
+helper = "maintained-guest-refresh.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "host", ty = "&mut crate::game::lan::LanHost", value = "&mut *host" },
+  { name = "conn", ty = "u32", value = "conn" },
+]
