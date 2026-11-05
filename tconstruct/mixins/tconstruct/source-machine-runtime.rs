@@ -1264,6 +1264,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
+    if let Some(handled) = smeltery_to_smeltery(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_smeltery(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_casting_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
@@ -1315,6 +1316,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
+    if smeltery_to_smeltery(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_smeltery(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_casting_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
@@ -1481,5 +1483,55 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     if !store::write_many(&mut game.world, &changes) { return Some(false); }
     if input.is_some() { game.container_changed(source); }
     if added > 0 { game.container_changed(controller); }
+    Some(true)
+}
+
+/// Transfer between different formed controllers through their Drains.
+/// Never write two independently staged tank snapshots to the same controller.
+fn smeltery_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
+    let is_drain = |name: &str| matches!(name, "tconstruct:seared_drain" | "tconstruct:scorched_drain");
+    if !is_drain(&game.res.facts().get(game.world.block(source.0, source.1, source.2)).name)
+        || !is_drain(&game.res.facts().get(game.world.block(target.0, target.1, target.2)).name) { return None; }
+    if source == target || source == pos || target == pos { return Some(false); }
+    if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))) { return Some(false); }
+    let Some((input_pos, mut input_state, raw_input)) = validated_drain(game, source) else { return Some(false); };
+    let Some((output_pos, mut output_state, raw_output)) = validated_drain(game, target) else { return Some(false); };
+    if input_pos == output_pos || [source, target, pos].contains(&input_pos) || [source, target, pos].contains(&output_pos) { return Some(false); }
+    if super::tconstruct_source_smeltery_world::detect(game, output_pos)
+        .is_none_or(|(_, _, capacity)| capacity != output_state.tank.capacity) { return Some(false); }
+    let positions = [pos, source, target, input_pos, output_pos];
+    let blocks = positions.map(|at| game.world.block(at.0, at.1, at.2));
+    let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
+    if faucet.to_nbt() != raw_faucet { return Some(false); }
+    let mut input = selected_smeltery_fluid(&input_state).unwrap_or_else(|| Tank::new(0));
+    let reserves_source = starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet);
+    if !faucet_network_tag_safe(&faucet.pending) || (reserves_source && !faucet_network_tag_safe(&input)) { return Some(false); }
+    let offered = if faucet.pending.amount > 0 { &faucet.pending } else { &input };
+    let existing = offered.fluid.as_ref().map_or(0, |id| output_state.tank.amount_tagged(id, offered.tag.as_ref()));
+    let available = output_state.tank.capacity.saturating_sub(output_state.tank.total());
+    let Some(capacity) = existing.checked_add(available) else { return Some(false); };
+    let mut output = Tank { fluid: (existing > 0).then(|| offered.fluid.clone()).flatten(),
+        tag: (existing > 0).then(|| offered.tag.clone()).flatten(), amount: existing, capacity };
+    let before = input.clone();
+    if starting && !faucet.activate(&mut input, &output) { return Some(true); }
+    let needs_packet = !starting && faucet.pending.amount == 0;
+    faucet.tick(&mut input, Some(&mut output));
+    if needs_packet && faucet.pending.amount > 0 { faucet.tick(&mut input, Some(&mut output)); }
+    if !apply_smeltery_take(&mut input_state, &before, &input) { return Some(false); }
+    let Some(added) = output.amount.checked_sub(existing) else { return Some(false); };
+    if added > 0 && !output.fluid.as_ref().is_some_and(|id| output_state.tank.insert_tagged(id, output.tag.as_ref(), added)) { return Some(false); }
+    let Some(next_input) = patch_smeltery_controller_tank(&raw_input, &input_state) else { return Some(false); };
+    let Some(next_output) = patch_smeltery_controller_tank(&raw_output, &output_state) else { return Some(false); };
+    if positions.iter().zip(blocks).any(|(at, block)| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))
+        || game.world.block(at.0, at.1, at.2) != block)
+        || !validated_drain(game, source).is_some_and(|(at, _, raw)| at == input_pos && raw == raw_input)
+        || !validated_drain(game, target).is_some_and(|(at, _, raw)| at == output_pos && raw == raw_output)
+        || super::tconstruct_source_smeltery_world::detect(game, output_pos)
+            .is_none_or(|(_, _, capacity)| capacity != output_state.tank.capacity)
+        || store::read(&game.world, pos, "tconstruct:faucet").as_ref() != Some(&raw_faucet) { return Some(false); }
+    if !store::write_many(&mut game.world, &[(input_pos, "tconstruct:smeltery", next_input),
+        (output_pos, "tconstruct:smeltery", next_output), (pos, "tconstruct:faucet", faucet.to_nbt())]) { return Some(false); }
+    if input.amount < before.amount { game.container_changed(input_pos); }
+    if added > 0 { game.container_changed(output_pos); }
     Some(true)
 }
