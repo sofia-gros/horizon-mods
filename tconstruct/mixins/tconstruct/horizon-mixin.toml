@@ -764,6 +764,19 @@ file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_config"
 source = "source-config.rs"
 
+[[module]]
+id = "source-glass-crafting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_glass_crafting"
+source = "source-glass-crafting.rs"
+
+[[injection]]
+id = "source-glass-crafting-files"
+target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
+kind = "RETURN"
+helper = "glass-crafting-injection.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
 [[state]]
 id = "source-config-snapshot"
 target = "horizon_client_render::chunk_map::ChunkMap"
