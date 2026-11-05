@@ -2,7 +2,7 @@
   "type": "minecraft:crafting_shaped",
   "category": "building",
   "key": {
-    "G": "minecraft:glass",
+    "G": "#forge:glass/colorless",
     "b": "tconstruct:seared_brick"
   },
   "pattern": [
