@@ -1,0 +1,123 @@
+use super::{tconstruct_crystalstrike as rule, Game};
+
+/// Worn stock armor only. Held Crystalstrike is a separately tracked feature.
+fn levels(game: &Game<'_>, knockback: bool) -> Option<[i32; 4]> {
+    let raw = game
+        .world
+        .chunks
+        .__horizon_mixins_tconstruct_modifier_resource_snapshot()
+        .as_ref()?
+        .as_ref()
+        .ok()?;
+    if !rule::known(super::tconstruct_modifier_snapshot::highest_definition(
+        raw,
+        "tconstruct:tinkering/modifiers/crystalstrike",
+    )) {
+        return None;
+    }
+    let tags = game
+        .world
+        .chunks
+        .__horizon_mixins_tconstruct_resolved_item_tags()
+        .as_ref()?
+        .as_ref()
+        .ok()?;
+    let worn = tags.get("tconstruct:modifiable/armor/worn")?;
+    let mut levels = [0; 4];
+    for (index, stack) in game
+        .armor
+        .iter()
+        .enumerate()
+        .filter_map(|(i, s)| s.as_ref().map(|s| (i, s)))
+    {
+        if rule::armor_slot(&stack.item) != Some(index) || !worn.contains(stack.item.as_ref()) {
+            continue;
+        }
+        if stack.count != 1 || stack.wire_patch().is_some() {
+            return None;
+        }
+        // AttributeModule's EquipmentChange hooks have no brokenness check.
+        // ArmorLevelModule expressly excludes broken pieces for knockback.
+        if knockback && super::tconstruct_source_ranged_wear::is_broken(stack) {
+            continue;
+        }
+        let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+        levels[index] =
+            super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, rule::ID)?;
+    }
+    Some(levels)
+}
+
+pub(super) fn attack_speed(game: &Game<'_>, value: f64) -> f64 {
+    let Some(levels) = levels(game, false) else {
+        return value;
+    };
+    levels
+        .into_iter()
+        .fold(value, |value, level| {
+            value * (1.0 + rule::amount(level).unwrap_or(0.0))
+        })
+        .clamp(0.0, 1024.0)
+}
+
+pub(super) fn multiplier(game: &Game<'_>) -> f64 {
+    levels(game, false)
+        .and_then(|levels| rule::multiplier(&levels))
+        .unwrap_or(1.0)
+}
+
+/// Keep /attribute consistent with the combat consumer's live calculation.
+/// Own transient IDs, so removal and definition reload do not leave a bonus.
+pub(super) fn refresh(game: &mut Game<'_>) {
+    let levels = levels(game, false).unwrap_or([0; 4]);
+    let Some(player) = game.player.as_mut() else {
+        return;
+    };
+    for (index, level) in levels.into_iter().enumerate() {
+        let id = format!("tconstruct:crystalstrike_worn/{index}");
+        let amount = rule::amount(level).unwrap_or(0.0);
+        let _ = player.set_modifier(
+            "minecraft:attack_speed",
+            &id,
+            amount,
+            "add_multiplied_total",
+            level > 0,
+        );
+    }
+}
+
+pub(super) fn effect_duration(game: &Game<'_>, effect: &str, ticks: i32) -> i32 {
+    if game.remote.is_some() || !rule::curable_bad_effect(effect) {
+        return ticks;
+    }
+    rule::duration(ticks, multiplier(game)).unwrap_or(ticks)
+}
+
+pub(super) fn knockback(game: &Game<'_>, x: &mut f64, z: &mut f64) {
+    if game.remote.is_some() || !x.is_finite() || !z.is_finite() {
+        return;
+    }
+    let Some(level) =
+        levels(game, true).and_then(|levels| levels.into_iter().try_fold(0_i32, i32::checked_add))
+    else {
+        return;
+    };
+    let squared = *x * *x + *z * *z;
+    // Leave the host's random-direction fallback and invalid vectors alone.
+    if squared <= 0.0 || !squared.is_finite() {
+        return;
+    }
+    use horizon_core::geometry::trig;
+    let angle = trig::atan2(*x, *z);
+    let Some(delta) = rule::angle_delta(angle, level) else {
+        return;
+    };
+    // Vec3.yRot takes a float angle. Source 1.20.1 sine/cosine index arithmetic
+    // is float, unlike the current host's double-index wrapper.
+    let table = trig::sine_table();
+    let sin = f64::from(table[((delta * 10430.378_f32) as i32 & 65535) as usize]);
+    let cos = f64::from(table[((delta * 10430.378_f32 + 16384.0_f32) as i32 & 65535) as usize]);
+    let (old_x, old_z) = (*x, *z);
+    *x = old_x * cos + old_z * sin;
+    *z = old_z * cos - old_x * sin;
+}
