@@ -1,0 +1,22 @@
+{
+  "material_master.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/tools/material_master.json",
+    "sha256": "14d63b73d98848873ab12648ff2b605c2bae72c424462cd5a329509fb5644121"
+  },
+  "HasMaterialPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/tool/HasMaterialPredicate.java",
+    "sha256": "f8883dde62b10a8d1f26232bb4733cf3d9dac98eb190efebce65d5ffcc8195fc"
+  },
+  "MaterialPredicateField.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/material/MaterialPredicateField.java",
+    "sha256": "16cc884caf86b4dbeeee8b453af80357d4755fea24ffa9b4079d89f22274944e"
+  },
+  "MaterialPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/material/MaterialPredicate.java",
+    "sha256": "71e7dd8c79f30730298085b8f838b6dad6385897b7bc0b5272f49a7d1762d8db"
+  },
+  "MaterialVariantId.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/materials/definition/MaterialVariantId.java",
+    "sha256": "2f64a27156320ce5feecb2efe5a26cfdb81866635bc279872f8171552e12af1b"
+  }
+}
