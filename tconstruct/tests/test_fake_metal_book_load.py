@@ -46,7 +46,7 @@ class FakeMetalBookLoad(unittest.TestCase):
             self.assertIn(required, source)
         for forbidden in ('add_recipes(', 'std::fs', 'unsafe', 'static mut'):
             self.assertNotIn(forbidden, source)
-        self.assertIn('source goal mapping remains separate',
+        self.assertIn('newly eligible variants are not automatically awarded',
                       (ROOT / 'docs/fake-metal-discovery.md').read_text().lower())
 
 
