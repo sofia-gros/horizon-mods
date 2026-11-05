@@ -1,4 +1,4 @@
-"""Observable content contracts for the initial four world-liquid families."""
+"""Observable content contracts for the initial six world-liquid families."""
 import hashlib
 import importlib.util
 import json
@@ -15,9 +15,15 @@ CONTENT = ROOT / 'content'
 
 class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_flow_burn_and_native_water_separation(self):
-        # Independent expectations from pinned TinkerFluids and registerMetal.
-        for name, damage, light in [('iron', 5, 12), ('gold', 5, 12),
-                                    ('copper', 5, 12), ('cobalt', 6, 8)]:
+        # Independent expectations from pinned TinkerFluids, registration
+        # helpers and FluidTextureProvider. Debris uses gem flow, not metal.
+        for name, damage, light, drop, delay, tint in [
+                ('iron', 5, 12, 3, 30, 0xFFFFFF),
+                ('gold', 5, 12, 3, 30, 0xFFFFFF),
+                ('copper', 5, 12, 3, 30, 0xFFFFFF),
+                ('cobalt', 6, 8, 3, 30, 0xFFFFFF),
+                ('debris', 8, 14, 4, 45, 0x411E15),
+                ('netherite', 10, 14, 3, 30, 0xFFFFFF)]:
             with self.subTest(metal=name):
                 short = 'molten_' + name
                 fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / (short + '.json')).read_text())
@@ -25,7 +31,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 self.assertEqual(fluid['flowing'], 'tconstruct:flowing_' + short)
                 self.assertEqual(fluid['block'], 'tconstruct:' + short)
                 self.assertEqual(fluid['bucket'], 'tconstruct:' + short + '_bucket')
-                self.assertEqual(fluid['policy'], {'drop_off': 3, 'slope_distance': 3, 'tick_delay': 30, 'source_conversion': False})
+                self.assertEqual(fluid['policy'], {'drop_off': drop, 'slope_distance': drop, 'tick_delay': delay, 'source_conversion': False})
                 policy = fluid['interaction']
                 self.assertEqual(policy['burn'], {'seconds': 10, 'damage': damage})
                 self.assertFalse(policy['can_swim'])
@@ -37,6 +43,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 self.assertFalse(block['item'])
                 self.assertEqual(block['properties']['light'], light)
                 self.assertEqual(fluid['visual']['emission'], light)
+                self.assertEqual(fluid['visual']['tint'], tint)
                 state = json.loads((CONTENT / 'assets/tconstruct/blockstates' / (short + '.json')).read_text())
                 self.assertEqual(state['variants']['']['model'], 'tconstruct:block/' + short)
                 model = json.loads((CONTENT / 'assets/tconstruct/models/block' / (short + '.json')).read_text())
@@ -48,7 +55,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 16)
+        self.assertEqual(len(manifest['files']), 24)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -71,14 +78,24 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                 target = Path(tmp) / 'tconstruct.hmod'
                 module.package(target)
                 with zipfile.ZipFile(target) as archive:
-                    for metal in ('iron', 'gold', 'copper', 'cobalt'):
+                    for metal in ('iron', 'gold', 'copper', 'cobalt', 'debris', 'netherite'):
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/molten_' + metal + '.json'))
+                        bucket = definition['bucket'].split(':', 1)[1]
+                        archive.read('data/tconstruct/horizon/item/' + bucket + '.json')
                         for field in ('still', 'flowing'):
                             sprite = definition['visual'][field].replace(':', '/textures/', 1)
                             archive.read('assets/' + sprite + '.png')
                             archive.read('assets/' + sprite + '.png.mcmeta')
         finally:
             sys.path.pop(0)
+
+    def test_debris_uses_tinted_stone_and_netherite_uses_its_alloy_sprites(self):
+        for name, folder in [('debris', 'stone'), ('netherite', 'alloy/netherite')]:
+            with self.subTest(fluid=name):
+                definition = json.loads((CONTENT / 'data/tconstruct/registered_fluid' / ('molten_' + name + '.json')).read_text())
+                for field in ('still', 'flowing'):
+                    self.assertEqual(definition['visual'][field],
+                                     'tconstruct:fluid/molten/' + folder + '/' + field)
 
 
 if __name__ == '__main__':
