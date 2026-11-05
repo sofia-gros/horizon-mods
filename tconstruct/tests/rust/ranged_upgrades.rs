@@ -1309,3 +1309,53 @@ fn level_range_guides_match_step_up_necrotic_and_gilded_station_boundaries() {
         assert!(rows(&BTreeMap::from([(row.recipe.clone(),serde_json::to_vec(&changed).unwrap())])).is_empty());
     }
 }
+
+#[test]
+fn guide_crystal_alternatives_match_station_level_progress_and_permission() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let tags: HashMap<String,HashSet<String>> = ["tconstruct:modifiable/durability", "tconstruct:modifiable/harvest", "tconstruct:modifiable/bonus_slots"]
+        .map(|tag|(tag.into(),HashSet::from(["tconstruct:pickaxe".into()]))).into_iter().collect();
+    let crystal = |modifier: &str| {
+        let mut stack = ItemStack::new("tconstruct:modifier_crystal",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("modifier",Tag::String(modifier.into()))])));
+        stack
+    };
+    for (group,path) in [
+        ("recipes","data/tconstruct/recipes/tools/modifiers/upgrade/diamond.json"),
+        ("bonus_recipes","data/tconstruct/recipes/tools/modifiers/slotless/draconic_from_head.json"),
+        ("incremental_recipes","data/tconstruct/recipes/tools/modifiers/upgrade/haste_from_dust.json"),
+    ] {
+        let mut recipe = fixture[group][path].clone();
+        let modifier = recipe["result"].as_str().unwrap().to_owned();
+        let needed = recipe["needed_per_level"].as_i64().unwrap_or(1) as i32;
+        let plan = |recipe: &serde_json::Value, old, slots, input| {
+            let mut tool = ItemStack::new("tconstruct:pickaxe",1);
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([(&*modifier,Tag::Int(old))]))])));
+            tconstruct_source_upgrade_rules::plan_with_traits(
+                &BTreeMap::from([(path.into(),serde_json::to_vec(recipe).unwrap())]),&tags,&tool,&[Some(input)],slots,0,&BTreeMap::new())
+        };
+        let applied = plan(&recipe,0,1,crystal(&modifier)).unwrap();
+        assert_eq!(applied.amount,needed); assert_eq!(applied.consumed,[(0,1),(1,1)]); assert!(applied.leftover.is_none());
+        assert!(plan(&recipe,0,1,crystal("tconstruct:other")).is_none());
+        assert!(plan(&recipe,0,1,ItemStack::new("tconstruct:modifier_crystal",1)).is_none());
+        recipe["allow_crystal"] = serde_json::json!(false);
+        assert!(plan(&recipe,0,1,crystal(&modifier)).is_none());
+        recipe.as_object_mut().unwrap().remove("allow_crystal");
+        assert!(plan(&recipe,0,1,crystal(&modifier)).is_some());
+        if needed > 1 {
+            assert_eq!(plan(&recipe,20,2,crystal(&modifier)).unwrap().amount,20+needed);
+            assert!(plan(&recipe,20,1,crystal(&modifier)).is_none());
+            let cap = needed * recipe["level"]["max"].as_i64().unwrap() as i32;
+            assert_eq!(plan(&recipe,cap-needed,5,crystal(&modifier)).unwrap().amount,cap);
+            assert!(plan(&recipe,cap-needed+1,6,crystal(&modifier)).is_none());
+        }
+    }
+    let disabled = &fixture["bonus_recipes"]["data/tconstruct/recipes/tools/modifiers/slotless/draconic_from_scales.json"];
+    assert_eq!(disabled["allow_crystal"],false);
+    assert!(tconstruct_source_upgrade_rules::plan(
+        &BTreeMap::from([("scales".into(),serde_json::to_vec(disabled).unwrap())]),&tags,
+        &ItemStack::new("tconstruct:pickaxe",1),&[Some(crystal("tconstruct:draconic"))],1).is_none());
+}

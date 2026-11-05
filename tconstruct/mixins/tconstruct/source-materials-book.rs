@@ -310,6 +310,9 @@ fn bonus_modifier_pages(game: &Game<'_>, tag: &str) -> Vec<Text> {
             text.push_str(&format!("\n\nEach consumed {} returns one {}.", item_name("minecraft:dragon_breath"), item_name("minecraft:glass_bottle")));
         }
         if entry.inputs.len() > 3 { text.push_str("\n\nMore than three inputs require a Tinker's Anvil."); }
+        if entry.crystal_alternative {
+            text.push_str(&format!("\n\nAlternative input: one {} carrying {title} ({}), instead of ALL listed ingredients. This uses one input slot and adds the modifier once, under the same tool and level restrictions. Empty or different-modifier crystals do not work. No ingredient container is returned.", item_name("tconstruct:modifier_crystal"), entry.modifier));
+        }
         text.push_str(&format!("\n\nEligible tool types: {tools}.\n\nRecipe: {}\n\nShows this port's supported bonus recipes, not all source modifiers. Existing modifier and tool state still affect application.", entry.recipe));
         for part in split_styled(game, &Text::literal(text), 182.0, 15) {
             let mut page = Text::styled(&title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });
@@ -368,6 +371,9 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
         }
         if entry.empty_inputs.iter().any(|empty| *empty) { text.push_str("\n\nContainer choices are checked as fresh empty items. Filled or otherwise modified containers may be rejected."); }
         if entry.inputs.len() > 3 { text.push_str("\n\nMore than three inputs require a Tinker's Anvil."); }
+        if entry.crystal_alternative {
+            text.push_str(&format!("\n\nAlternative input: one {} carrying {title} ({}), instead of ALL listed ingredients. This uses one input slot and adds one level under the same level, tool and slot requirements. Empty or different-modifier crystals do not work. No ingredient container is returned.", item_name("tconstruct:modifier_crystal"), entry.modifier));
+        }
         text.push_str(&format!("\n\nEligible tool types: {}.\n\nRecipe: {}\n\nNot all source modifiers or recipe forms are shown. Existing modifier and tool state still affect application.",
             entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", "), entry.recipe));
         for part in split_styled(game, &Text::literal(text), 182.0, 15) {
@@ -407,13 +413,16 @@ fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Te
         let mut text = String::from("Supported incremental recipe (partial guide).\n\n");
         let description = game.translate(&format!("modifier.{namespace}.{name}.description"), "");
         if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str("\n\n"); }
-        text.push_str(&format!("Each item adds {} progress point(s). {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\n\nPartial progress can be added over multiple Station operations. One operation stops at the next completed level.\n\nInput alternatives: {}.\n\nEligible tool types: {}.\n\nRecipe: {}\n\nOnly supported single-item and block-value recipes are shown. Crystal alternatives are not shown. Existing modifier and tool state still affect application.",
+        text.push_str(&format!("Each ingredient item adds {} progress point(s). {} points complete a level; maximum {} levels. Starting each level requires {} upgrade slot(s).\n\nPartial progress can be added over multiple Station operations. One ingredient operation stops at the next completed level.\n\nInput alternatives: {}.\n\nEligible tool types: {}.\n\nRecipe: {}\n\nOnly supported single-item and block-value recipes are shown. Existing modifier and tool state still affect application.",
             entry.per_item, entry.needed, entry.maximum, entry.upgrade_cost, entry.inputs.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(" OR "),
             entry.tools.iter().map(|id| item_name(id)).collect::<Vec<_>>().join(", "), entry.recipe));
         let from_zero = entry.needed / entry.per_item + i32::from(entry.needed % entry.per_item != 0);
         text.push_str(&format!("\n\nFrom zero progress, {from_zero} input item(s) complete the next level."));
         if let Some(leftover) = &entry.leftover {
             text.push_str(&format!("\n\nWhen an item crosses the next level boundary, unused progress points return as {} (one item per unused point).", item_name(leftover)));
+        }
+        if entry.crystal_alternative {
+            text.push_str(&format!("\n\nAlternative input: one {} carrying {title} ({}), used alone. Empty or different-modifier crystals do not work. One crystal adds {} progress points (one full level), preserving existing partial progress. It requires {} free upgrade slot(s), even when a partial level is installed, and the entire addition must fit within the level cap. This uses one input slot and returns no leftover. The same tool restrictions apply.", item_name("tconstruct:modifier_crystal"), entry.modifier, entry.needed, entry.upgrade_cost));
         }
         for part in split_styled(game, &Text::literal(text), 182.0, 15) {
             let mut page = Text::styled(&title, horizon_client::text::Style { insertion:Some("tconstruct:book-title".into()), underlined:Some(true), ..Default::default() });

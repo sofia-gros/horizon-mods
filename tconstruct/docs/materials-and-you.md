@@ -215,7 +215,7 @@ recipe and tag overrides affect the next open/request. A removed recipe or
 unavailable input does not leave a static placeholder.
 
 This is still a partial port-supported view. Point values other than one/four/nine, bulk recipes without a registered
-leftover, crystal alternatives, absent/default level caps, changed effect
+leftover, absent/default level caps, changed effect
 denominators and additional requirements are omitted.
 Full source registry/redirect parity and in-game/LAN visual checks remain
 outstanding. These pages do not change modifier acquisition or effect rules.
@@ -232,7 +232,7 @@ one leftover item is returned per unused point when crossing a level boundary.
 Pinned Redstone Block/Haste, Quartz Block/Sharpness and Prismarine Bricks/
 Hydraulic fixtures compare guide data to actual Station consumption with one
 point remaining. A missing or unregistered leftover hides the bulk entry;
-unsupported point multipliers and crystal alternatives remain omitted. No
+unsupported point multipliers remain omitted. No
 new acquisition/effect behavior or complete source registry is claimed.
 
 ## Repeatable fluid modifier recipes
@@ -292,3 +292,27 @@ out-of-range level bounds, or trait-counting conditions are omitted.
 Pinned recipes and focused production-planner regression cases were added.
 Execution of those new checks, detailed review, full host validation and
 in-game/LAN verification are deferred to the final batch.
+
+
+## Modifier-crystal alternatives
+
+The supported bonus, ordinary/ranged and incremental recipe pages now identify
+one modifier-bearing crystal as an alternative to all listed ingredient inputs.
+They use the current recipe's `allow_crystal` flag (default true) and require
+the crystal item to be registered. False or malformed permission never creates
+an advertised alternative. An empty crystal or one carrying a different
+modifier does not qualify. This is added only to otherwise-supported recipe
+pages; a crystal does not make an omitted ingredient recipe appear.
+
+Ordinary and bonus crystals consume one input and add one modifier level under
+the existing tool, slot and level rules, with no ingredient-container returns.
+Incremental crystals add a full level's points while preserving prior partial
+progress. Unlike ordinary ingredient top-ups, that path requires an additional
+free upgrade slot even when partial progress exists, and the whole addition
+must fit within the cap. It returns no bulk-input remainder.
+
+This describes existing Station behavior, not new crystal extraction,
+acquisition, registry or gameplay support. Focused guide-policy and Station
+regressions cover permission/defaults, missing crystal registration, wrong or
+empty crystals, partial progress and level caps. Full host, GUI and LAN
+verification remain deferred.

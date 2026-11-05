@@ -201,3 +201,19 @@ class IncrementalModifierGuideWiring(unittest.TestCase):
         rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
         self.assertIn('if !incremental_limits_supported(id, needed, max) { continue; }', rules)
         self.assertIn('*needed > 1 && provisional_upgrade_enabled(id)', rules)
+
+
+class ModifierCrystalGuideWiring(unittest.TestCase):
+    def test_all_guide_families_describe_tagged_crystal_alternatives(self):
+        source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
+        names = ['bonus_modifier_pages', 'ordinary_modifier_pages', 'incremental_modifier_pages', 'dynamic_materials']
+        for name, following in zip(names, names[1:]):
+            body = source[source.index('fn ' + name + '('):source.index('fn ' + following + '(')]
+            self.assertIn('if entry.crystal_alternative', body)
+            self.assertIn('item_name("tconstruct:modifier_crystal")', body)
+            self.assertIn('Empty or different-modifier crystals do not work', body)
+        self.assertNotIn('Crystal alternatives are not shown', source)
+        incremental = source[source.index('fn incremental_modifier_pages('):source.index('fn dynamic_materials(')]
+        for text in ('preserving existing partial progress', 'even when a partial level is installed',
+                     'entire addition must fit within the level cap', 'returns no leftover'):
+            self.assertIn(text, incremental)
