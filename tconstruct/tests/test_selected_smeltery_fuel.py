@@ -22,3 +22,10 @@ class SelectedSmelteryFuel(unittest.TestCase):
         self.assertIn('cargo test --locked --offline',runner)
         self.assertIn('fixture dependencies differ from the pinned host lock',runner)
         self.assertIn('tconstruct/tests/run_selected_fuel_rust.sh',(ROOT/'.github/workflows/mixins.yml').read_text())
+
+    def test_fixture_keeps_production_selection_and_anchors_only_unused_rng_type(self):
+        runner=(ROOT/'tconstruct/tests/run_selected_fuel_rust.sh').read_text()
+        self.assertIn('selection = text[start:end]', runner)
+        self.assertIn('let _: Option<()> = alloy_random;', runner)
+        production=(ROOT/'tconstruct/mixins/tconstruct/source-machine-runtime.rs').read_text()
+        self.assertNotIn('let _: Option<()>', production)

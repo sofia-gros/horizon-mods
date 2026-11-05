@@ -17,3 +17,8 @@ This fixes the temperature-check ordering only. The port still discovers candida
 The test runner executes the verbatim production selection block and its tank-kind/capacity helpers with real source fuel recipes, parsers and Tank NBT; Game, ownership, registry, recipe snapshot access and heating eligibility are bounded adapters. Alloy eligibility is stubbed false. The fixture verifies cold-first/hot-second nonconsumption for both machine flags, missing/insufficient/zero-temperature fallback, no re-selection outside phase zero or while already fueled, changed recipe snapshots, and preserved extension fields in staged patches, and refusal to consume tagged/malformed fuels (retaining existing fallback). It does not execute actual reload, world persistence, structure discovery, the final write transaction, GUI or LAN. The preexisting final atomic save is unchanged; rejected-save behavior is not claimed from this fixture.
 
 Run `HORIZON_HOST=/path/to/clean/pinned/horizon tconstruct/tests/run_selected_fuel_rust.sh`. CI runs all six named cases with clean-host revision and dependency-lock checks. Manual gameplay remains unverified and outside v0.5 completion conditions.
+
+The selected-fuel fixture retains the extracted production selection block
+unchanged. After extraction it supplies a type-only `Option<()>` anchor for the
+unused deferred alloy RNG local, whose production use is beyond this fixture's
+boundary. This neither executes nor claims coverage of the later alloy/RNG stage.

@@ -67,7 +67,12 @@ parts=[section(text,'fn alloy_snapshot(', 'pub(super) fn kind('),
 (out/'helpers.rs').write_text('\n'.join(parts))
 start=text.index('    let mut fuel_update = None;')
 end=text.index('    if state.phase == 1 {',start)
-(out/'selection.rs').write_text('{\n'+text[start:end]+'\nfuel_update\n}')
+selection = text[start:end]
+# Keep the production selection block byte-for-byte. The deferred alloy RNG
+# is used only after this extraction boundary; constrain its unused None in
+# this fixture without executing or claiming coverage of the alloy/RNG stage.
+assert selection.count('    let mut alloy_random = None;\n') == 1
+(out/'selection.rs').write_text('{\n'+selection+'\nlet _: Option<()> = alloy_random;\nfuel_update\n}')
 text=(root/'source-smeltery-fuel.rs').read_text()
 (out/'capacity.rs').write_text(section(text,'pub(super) fn capacity(', '/// Portable tank items'))
 PYEXTRACT
