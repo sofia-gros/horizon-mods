@@ -195,3 +195,6 @@ mod chain_compat_tests {
 
 #[path = "../../../mixins/tconstruct/source-fire-duration.rs"]
 mod source_fire_duration;
+
+#[path = "../../../mixins/tconstruct/source-blast-knockback.rs"]
+mod source_blast_knockback;

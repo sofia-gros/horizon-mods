@@ -58,3 +58,7 @@ on Fire Protection acquisition and its Fortified/Knockback prerequisites.
 Sources: Tinkers' Construct f4e77d43, the four corresponding
 `recipes/tools/modifiers/defense/*_protection.json` and
 `tinkering/modifiers/*_protection.json` resources.
+
+The later [Blast Protection knockback bridge](blast-protection-knockback.md)
+connects its secondary effect for native player explosions and wind bursts.
+Blast damage protection remains separate.
