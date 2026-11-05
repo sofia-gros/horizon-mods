@@ -7,6 +7,16 @@ CONTENT = Path(__file__).resolve().parents[1] / 'content'
 
 
 class EffectWorldFluidTests(unittest.TestCase):
+    def test_only_declared_contact_effects_opt_out_of_generic_cures(self):
+        protected = set()
+        for path in (CONTENT / 'data/tconstruct/registered_fluid').glob('*.json'):
+            fluid = json.loads(path.read_text())
+            effect = fluid['interaction'].get('effect')
+            if effect is not None:
+                self.assertTrue(effect['no_curatives'])
+                protected.add(path.stem)
+        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul'})
+
     def test_source_effect_flow_temperature_class_and_sprites(self):
         # TinkerFluids and FluidTextureProvider at f4e77d43, not generated values.
         cases = [
@@ -26,7 +36,8 @@ class EffectWorldFluidTests(unittest.TestCase):
                                                   'tick_delay': delay, 'source_conversion': False})
                 interaction = fluid['interaction']
                 self.assertEqual(interaction['effect'], {'id': 'minecraft:' + effect,
-                                                        'duration_ticks': 100, 'amplifier': 0})
+                                                        'duration_ticks': 100, 'amplifier': 0,
+                                                        'no_curatives': True})
                 self.assertIsNone(interaction['burn'])
                 for key in ('can_swim', 'can_drown', 'extinguishes'):
                     self.assertEqual(interaction[key], cool)
