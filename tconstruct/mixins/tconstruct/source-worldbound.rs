@@ -8,6 +8,12 @@ pub(super) fn known(bytes: Option<&[u8]>) -> bool {
         .is_some_and(|value| Some(value) == serde_json::from_str(DEFINITION).ok())
 }
 
+// Unknown damage types retain native behavior. Source Worldbound explicitly
+// permits damage tagged as bypassing invulnerability, including pack overrides.
+pub(super) fn blocks_lightning(bypasses_invulnerability: Option<bool>) -> bool {
+    bypasses_invulnerability == Some(false)
+}
+
 // Native expiry grants at most 32766 additional ticks. Repeated extensions
 // keep the item alive without the unlimited-age sentinel that stops spinning.
 pub(super) fn extend_life(extra_life: i32) -> i32 {
@@ -17,6 +23,12 @@ pub(super) fn extend_life(extra_life: i32) -> i32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn lightning_requires_known_non_bypassing_damage() {
+        assert!(blocks_lightning(Some(false)));
+        assert!(!blocks_lightning(Some(true)));
+        assert!(!blocks_lightning(None));
+    }
     #[test]
     fn expiry_preserves_other_positive_extensions() {
         assert_eq!(extend_life(0), 32766);
