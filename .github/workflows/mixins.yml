@@ -131,6 +131,11 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_gold_guard::tests -- --nocapture | tee "$RUNNER_TEMP/gold-guard-tests.log"
           grep -Fq "test game::tconstruct_gold_guard::tests::count_neutral_slots_once_not_modifier_levels ... ok" "$RUNNER_TEMP/gold-guard-tests.log"
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_upgrade_rules::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client-lib --lib --no-default-features --profile fast tconstruct_multishot::tests -- --nocapture | tee "$RUNNER_TEMP/multishot-server-tests.log"
+          grep -Fq "test tconstruct_multishot::tests::matching_stacks_partial_loads_and_real_consumption ... ok" "$RUNNER_TEMP/multishot-server-tests.log"
+          python3 tconstruct/tests/run_multishot.py --horizon ../horizon-official
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_multishot::tests -- --nocapture | tee "$RUNNER_TEMP/multishot-tests.log"
+          grep -Fq "test game::tconstruct_multishot::tests::matching_stacks_partial_loads_and_real_consumption ... ok" "$RUNNER_TEMP/multishot-tests.log"
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_render::fluid_light_tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::casting_tests
