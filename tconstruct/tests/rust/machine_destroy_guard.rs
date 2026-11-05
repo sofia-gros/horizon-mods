@@ -436,3 +436,22 @@ mod tconstruct_world {
     assert!(guard::live_matches("tconstruct:smeltery", &store::read_outer(&world, pos).unwrap(), &live, None));
     assert!(!projection_world::capture_legacy(&mut world, pos)); // never remigrate existing proof
 }
+
+#[test] fn close_retires_known_stale_page_after_guest_update_without_duplicating_buckets() {
+    use horizon_items::items::ItemStack;
+    let mut state = tconstruct_source_smeltery_state::Smeltery::new();
+    state.slots = vec![Some(ItemStack::new("minecraft:iron_ore", 1))]; state.progress = vec![0];
+    let containers = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+    let live = tconstruct_source_smeltery_page::project_with_containers(&state.slots, 0, &containers);
+    let mut raw = guard::snapshot_outer(&outer("tconstruct:smeltery", state.to_nbt()), &live, 0, &containers).unwrap();
+    state.slots[0] = Some(ItemStack::new("minecraft:gold_ore", 1));
+    if let Tag::Compound(fields) = &mut raw { fields.insert("tconstruct:smeltery".into(), state.to_nbt()); }
+    let mut retired = live.clone();
+    assert!(guard::close_projection(&raw, &mut retired, Some(0), &containers));
+    assert!(retired.iter().all(Option::is_none));
+    let closed = guard::retire_outer(&raw).unwrap();
+    assert!(guard::live_matches("tconstruct:smeltery", &closed, &retired, None));
+    let mut unexplained_bucket = live.clone();
+    assert!(!guard::close_projection(&raw, &mut unexplained_bucket, Some(0), &[None, None]));
+    assert_eq!(unexplained_bucket, live);
+}

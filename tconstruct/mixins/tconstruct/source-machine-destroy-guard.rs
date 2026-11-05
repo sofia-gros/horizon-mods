@@ -110,12 +110,21 @@ pub(super) fn close_projection(raw: &Tag, live: &mut [Option<horizon_items::item
     let Some(saved) = raw.get("tconstruct:smeltery")
         .and_then(super::tconstruct_source_smeltery_state::Smeltery::from_nbt) else { return false; };
     let expected = super::tconstruct_source_smeltery_page::project_with_containers(&saved.slots, offset, containers);
-    if live.len() != expected.len() || !live.iter().zip(&expected).all(|(a,b)| match (a,b) {
+    let equal = |a: &Option<horizon_items::items::ItemStack>, b: &Option<horizon_items::items::ItemStack>| match (a,b) {
         (None,None) => true,
         (Some(a),Some(b)) => a.data().is_none_or(|data| data.wire.patch().is_none()) && b.data().is_none_or(|data| data.wire.patch().is_none())
             && a.count == b.count && a.damage == b.damage && a.same_item_same_components(b),
         _ => false,
-    }) { return false; }
+    };
+    let current = live.len() == expected.len() && live.iter().zip(&expected).all(|(a,b)| equal(a,b));
+    // A guest may have updated saved inputs since this local page was drawn.
+    // The old cache is still disposable if its whole recorded snapshot and
+    // separately owned bucket slots agree exactly. Never return a stale bucket
+    // twice or mistake an unexplained live insertion for a projected input.
+    let recorded = snapshot_view(raw).is_some_and(|snapshot| live.len() == snapshot.len()
+        && live.iter().zip(&snapshot).all(|(a,b)| equal(a,b))
+        && containers.iter().zip(&snapshot[..2]).all(|(a,b)| equal(a,b)));
+    if !current && !recorded { return false; }
     live.fill(None);
     true
 }
