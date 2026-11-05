@@ -2,6 +2,7 @@
 #[path="__MIXINS__/source-smeltery-fuel.rs"] mod tconstruct_source_smeltery_fuel;
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-smeltery-tank.rs"] mod tconstruct_source_smeltery_tank;
+#[path="__MIXINS__/source-casting-tank.rs"] mod tconstruct_source_casting_tank;
 #[path="__MIXINS__/source-fluid-cannon.rs"] mod tconstruct_source_fluid_cannon;
 #[path="__MIXINS__/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
@@ -45,6 +46,7 @@ mod runtime{
  fn notify_casting_comparator(game:&mut Game<'_>,_:Pos,before:i32,after:i32){if before!=after{game.signals+=1;}}
  // __CANNON_AT__
  // __CANNON_SAVE__
+ // __CASTING_TANK_SAVE__
  // __CANNON_HELD__
 }
 fn fixture(draining:bool,count:u32)->Game<'static>{
@@ -138,5 +140,54 @@ fn canonical_saved_item(game:&mut Game<'_>){
   assert!(!runtime::save_cannon(&mut game,(0,0,0),&state));assert_eq!(game.world.raw,raw);
   let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);
   assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));
+ }
+}
+
+fn casting_fixture(input:Option<ItemStack>,output:Option<ItemStack>,opaque:bool)->Game<'static>{
+ let mut game=fixture(false,1);let mut state=tconstruct_source_casting_tank::CastingTank::new();state.slots=[input,output];
+ let mut raw=state.to_nbt();if let Tag::Compound(fields)=&mut raw{
+  fields.insert("future".into(),Tag::Int(7));if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){tank.insert("future_tank".into(),Tag::Int(8));}
+  if opaque{if let Some(Tag::List(slots))=fields.get_mut(&"slots".into()){for (index,slot) in slots.iter_mut().enumerate(){if state.slots[index].is_some(){if let Tag::Compound(fields)=slot{fields.insert("future_item".into(),Tag::Int(9));}}}}}
+ }
+ game.world.raw=raw;game.world.block_entities.insert((0,0,0),BlockEntity::Chest(state.slots.to_vec()));game
+}
+#[test]fn casting_tank_save_preserves_extensions_and_processed_containers(){
+ let mut game=casting_fixture(Some(ItemStack::new("minecraft:water_bucket",1)),None,false);let raw=game.world.raw.clone();
+ let mut state=runtime::casting_tank_at(&game,(0,0,0)).unwrap();assert!(state.process(&|_|true,&|_|true,None,false));
+ assert!(runtime::save_casting_tank(&mut game,(0,0,0),&state));
+ assert_eq!(state.tank.amount,1000);assert_eq!(game.world.raw.get("future"),raw.get("future"));
+ assert_eq!(game.world.raw.get("tank").unwrap().get("future_tank"),Some(&Tag::Int(8)));
+ let BlockEntity::Chest(slots)=&game.world.block_entities[&(0,0,0)];assert_eq!(slots,&state.slots.to_vec());
+ assert_eq!((game.world.writes,game.signals,game.updates),(1,1,1));
+ state.slots[1]=None;state.redstone=true;assert!(runtime::save_casting_tank(&mut game,(0,0,0),&state));
+ let restored=tconstruct_source_casting_tank::CastingTank::from_nbt(&game.world.raw).unwrap();assert!(restored.redstone);assert!(restored.slots.iter().all(Option::is_none));
+ assert_eq!((game.world.writes,game.signals,game.updates),(2,1,2));
+}
+#[test]fn casting_tank_save_refuses_opaque_slot_changes_and_stale_state(){
+ for mode in 0..6{let mut game=casting_fixture(Some(ItemStack::new("minecraft:water_bucket",1)),Some(ItemStack::new("minecraft:stone",2)),true);
+  let mut state=runtime::casting_tank_at(&game,(0,0,0)).unwrap();
+  match mode{
+   0=>state.slots[0]=None,
+   1=>state.slots[1].as_mut().unwrap().count-=1,
+   2=>state.slots[1]=Some(ItemStack::new("minecraft:diamond",1)),
+   3=>{let BlockEntity::Chest(slots)=game.world.block_entities.get_mut(&(0,0,0)).unwrap();slots[0]=None;},
+   4=>if let Tag::Compound(fields)=&mut game.world.raw{fields.insert("Items".into(),Tag::List(vec![]));},
+   5=>if let Tag::Compound(fields)=&mut game.world.raw{if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){tank.insert("Amount".into(),Tag::Int(1));}},
+   _=>unreachable!(),
+  }
+  let raw=game.world.raw.clone();let BlockEntity::Chest(before)=game.world.block_entities[&(0,0,0)].clone();
+  assert!(!runtime::save_casting_tank(&mut game,(0,0,0),&state));assert_eq!(game.world.raw,raw);
+  let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);
+  assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));
+ }
+ let mut game=casting_fixture(None,Some(ItemStack::new("minecraft:stone",1)),true);let raw=game.world.raw.clone();let mut state=runtime::casting_tank_at(&game,(0,0,0)).unwrap();
+ assert!(state.tank.insert("minecraft:water",50));assert!(runtime::save_casting_tank(&mut game,(0,0,0),&state));assert_eq!(game.world.raw.get("slots"),raw.get("slots"));
+}
+#[test]fn casting_tank_process_and_save_refuse_wire_and_failed_commit(){
+ for mode in 0..3{let mut game=casting_fixture(Some(ItemStack::new("minecraft:water_bucket",1)),None,false);let mut state=runtime::casting_tank_at(&game,(0,0,0)).unwrap();
+  if mode<2{let item=state.slots[0].as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if mode==1{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}let before=state.to_nbt();assert!(!state.process(&|_|true,&|_|true,None,false));assert_eq!(state.to_nbt(),before);assert!(!state.lossless());}else{assert!(state.process(&|_|true,&|_|true,None,false));game.world.fail=true;}
+  let raw=game.world.raw.clone();let BlockEntity::Chest(before)=game.world.block_entities[&(0,0,0)].clone();
+  assert!(!runtime::save_casting_tank(&mut game,(0,0,0),&state));assert_eq!(game.world.raw,raw);
+  let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&before);assert_eq!((game.world.writes,game.signals,game.updates),(0,0,0));
  }
 }
