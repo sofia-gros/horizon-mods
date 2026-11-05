@@ -18,6 +18,18 @@ Run it alone with:
 python3 -m unittest discover -s tconstruct/tests -p 'test_material_conversions.py' -v
 ```
 
+Block-shape regressions live in `tests/test_block_shapes.py`, covering 15 masonry,
+six firewood and eight slimewood recipes. Shared source comparisons remain
+independent of production converters; masonry retains explicit pattern, count
+and ingredient checks, including the two-ingredient scorched-brick fence.
+Extend `MASONRY` for matching families and keep distinct wood behavior explicit.
+The seven former modules are represented by three methods with named subtests;
+all 132 original assertions are retained. Run this feature suite with:
+
+```sh
+python3 -m unittest discover -s tconstruct/tests -p 'test_block_shapes.py' -v
+```
+
 Keep regression cases after a feature is finished. Remove superseded test files
 only when their assertions are represented in the maintained feature suite.
 This reduces repeated test code, not generated build or game-world storage.
