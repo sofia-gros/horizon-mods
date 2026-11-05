@@ -215,5 +215,10 @@
       "result_count": 1,
       "slot_layout": "tconstruct:plate_armor"
     }
+  },
+  "modifiers": {
+    "tconstruct:tinkering/modifiers/iron_armor": "{\n  \"level_display\": \"tconstruct:default\",\n  \"modules\": [\n    {\n      \"type\": \"tconstruct:volatile_flag\",\n      \"flag\": \"tconstruct:iron_armor\"\n    }\n  ],\n  \"show_in_tooltips\": \"never\"\n}",
+    "tconstruct:tinkering/modifiers/projectile_protection": "{\n  \"level_display\": \"tconstruct:default\",\n  \"modules\": [\n    {\n      \"type\": \"tconstruct:max_armor_attribute\",\n      \"allow_broken\": false,\n      \"attribute\": \"minecraft:generic.knockback_resistance\",\n      \"each_level\": 0.05,\n      \"held_tag\": \"tconstruct:modifiable/held\",\n      \"operation\": \"addition\"\n    },\n    {\n      \"type\": \"tconstruct:protection\",\n      \"damage_source\": {\n        \"type\": \"mantle:and\",\n        \"predicates\": [\n          \"mantle:can_protect\",\n          {\n            \"type\": \"mantle:tag\",\n            \"tag\": \"tconstruct:protection/projectile\"\n          }\n        ]\n      },\n      \"each_level\": 2.0\n    }\n  ]\n}",
+    "tconstruct:tinkering/modifiers/ductile": "{\n  \"level_display\": \"tconstruct:default\",\n  \"modules\": [\n    {\n      \"type\": \"tconstruct:stat_boost\",\n      \"each_level\": 0.1,\n      \"operation\": \"multiply_base\",\n      \"stat\": \"tconstruct:durability\"\n    },\n    {\n      \"type\": \"tconstruct:stat_boost\",\n      \"each_level\": 0.05,\n      \"operation\": \"multiply_base\",\n      \"stat\": \"tconstruct:attack_damage\"\n    },\n    {\n      \"type\": \"tconstruct:stat_boost\",\n      \"each_level\": 0.25,\n      \"operation\": \"add\",\n      \"stat\": \"tconstruct:projectile_damage\"\n    },\n    {\n      \"type\": \"tconstruct:stat_boost\",\n      \"each_level\": 1.0,\n      \"operation\": \"add\",\n      \"stat\": \"tconstruct:armor_toughness\"\n    }\n  ]\n}"
   }
 }

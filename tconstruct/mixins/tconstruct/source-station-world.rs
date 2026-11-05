@@ -286,6 +286,8 @@ fn stock_iron_helmet_repair(world: &super::tconstruct_world::World, definition: 
     identities: &[String], old: &std::collections::BTreeMap<String, i32>, next: &std::collections::BTreeMap<String, i32>) -> bool {
     if tool.item.as_ref() != "tconstruct:plate_helmet" || identities != ["tconstruct:steel", "tconstruct:steel"]
         || super::tconstruct_source_melter_state::casting_swap_broken(tool) != Some(true) { return false; }
+    let modifiers = world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|raw| raw.as_ref().ok());
+    if !super::tconstruct_source_melter_state::known_casting_helmet_modifiers(modifiers) { return false; }
     let expected_old = std::collections::BTreeMap::from([
         ("tconstruct:projectile_protection".to_owned(),1), ("tconstruct:iron_armor".to_owned(),1), ("tconstruct:ductile".to_owned(),1)]);
     let expected_next = std::collections::BTreeMap::from([("tconstruct:ductile".to_owned(),2)]);

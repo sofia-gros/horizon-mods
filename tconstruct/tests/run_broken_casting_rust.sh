@@ -96,6 +96,7 @@ PYLOCK
 cargo test --locked --offline --manifest-path "$WORK/Cargo.toml" -- --nocapture 2>&1 | tee "$WORK/results.log"
 # A successful zero-test filter is not evidence that the target behavior ran.
 for case in \
+    'test stock_helmet_requires_current_complete_pinned_modifier_definitions ... ok' \
     'test stock_broken_iron_helmet_casts_to_usable_steel_and_preserves_until_complete ... ok' \
     'test stock_exception_rejects_unknown_item_data_wire_and_unsupported_traits ... ok' \
     'test broken_composite_and_missing_stock_context_remain_closed ... ok' \

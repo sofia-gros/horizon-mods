@@ -222,7 +222,11 @@ pinned 270 mB molten-steel recipe. This is a deliberately narrow stock route:
 the original must equal a freshly assembled, broken iron/steel helmet, with
 no names, upgrades, extra components or retained wire. Its exact old traits
 must be Projectile Protection 1, Iron Armor 1 and Ductile 1; the replacement
-must have Ductile 2. Other unsupported trait changes still fail closed.
+must have Ductile 2. The current authoritative modifier-resource snapshot must
+contain the complete byte-exact pinned highest-priority definitions of Iron
+Armor, Projectile Protection and Ductile. Missing, unreadable or overridden
+definitions (even otherwise harmless byte edits) fail closed. Other unsupported
+trait changes still fail closed.
 
 The exception is only available to the casting planner, not Station part
 swapping. The removed pinned modifiers provide a rebuilt volatile flag,

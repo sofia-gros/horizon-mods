@@ -8,6 +8,10 @@ class BrokenCasting(unittest.TestCase):
         fixture=json.loads((ROOT/'tests/fixtures/broken_iron_helmet.json').read_text())
         for category,values in fixture.items():
             for key,value in values.items():
+                if category=='modifiers':
+                    with ZipFile(ROOT/'content/reference/tconstruct-modifiers.zip') as z:
+                        self.assertEqual(value,z.read('data/tconstruct/'+key.split(':',1)[1]+'.json').decode())
+                    continue
                 path=key.split(':',1)[1]
                 archive='tconstruct-recipes' if category=='recipes' else 'tconstruct-tool-definitions' if 'tool_definitions/' in path else 'tconstruct-materials'
                 with ZipFile(ROOT/f'content/reference/{archive}.zip') as z:
@@ -30,6 +34,8 @@ class BrokenCasting(unittest.TestCase):
         self.assertIn('identities, 0, true, true, reason)',station)
         self.assertIn('canonical.same_item_same_components(tool)',station)
         self.assertIn('allow_stock_helmet_repair && old_traits',station)
+        self.assertIn('__horizon_mixins_tconstruct_modifier_resource_snapshot()',station)
+        self.assertIn('known_casting_helmet_modifiers(modifiers)',station)
     def test_ci_runs_pinned_actual_candidate_and_assembly_fixture(self):
         ci=(ROOT.parent/'.github/workflows/mixins.yml').read_text()
         self.assertIn('tconstruct/tests/run_broken_casting_rust.sh',ci)

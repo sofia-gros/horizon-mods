@@ -16,8 +16,10 @@ use std::collections::{HashMap,HashSet,BTreeMap};use horizon_items::items::ItemS
 mod tconstruct_world {
  use super::*;
  pub struct World{pub chunks:Chunks}
- pub struct Chunks {pub materials:Option<HashMap<String,Vec<Vec<u8>>>>,pub recipes:Option<BTreeMap<String,Vec<u8>>>,pub tags:Option<Result<HashMap<String,HashSet<String>>,()>>,pub blocks:Option<Result<HashMap<String,i32>,()>>,pub fluids:HashMap<String,HashSet<String>>,pub known_items:HashSet<String>,pub known_fluids:HashSet<String>}
+ pub type ModifierRaw=(BTreeMap<String,Vec<Vec<u8>>>,BTreeMap<String,Vec<Vec<u8>>>);
+ pub struct Chunks {pub modifiers:Option<Result<ModifierRaw,String>>,pub materials:Option<HashMap<String,Vec<Vec<u8>>>>,pub recipes:Option<BTreeMap<String,Vec<u8>>>,pub tags:Option<Result<HashMap<String,HashSet<String>>,()>>,pub blocks:Option<Result<HashMap<String,i32>,()>>,pub fluids:HashMap<String,HashSet<String>>,pub known_items:HashSet<String>,pub known_fluids:HashSet<String>}
  impl Chunks {
+  pub fn __horizon_mixins_tconstruct_modifier_resource_snapshot(&self)->&Option<Result<ModifierRaw,String>>{&self.modifiers}
   pub fn __horizon_mixins_tconstruct_material_snapshot(&self)->&Option<HashMap<String,Vec<Vec<u8>>>>{&self.materials}
   pub fn __horizon_mixins_tconstruct_recipe_snapshot(&self)->&Option<BTreeMap<String,Vec<u8>>>{&self.recipes}
   pub fn __horizon_mixins_tconstruct_resolved_item_tags(&self)->&Option<Result<HashMap<String,HashSet<String>>,()>>{&self.tags}
@@ -70,7 +72,7 @@ fn stock_world()->tconstruct_world::World{
  let data:serde_json::Value=serde_json::from_str(include_str!("__FIXTURE__")).unwrap();
  let materials=data["materials"].as_object().unwrap().iter().map(|(k,v)|(k.clone(),vec![serde_json::to_vec(v).unwrap()])).collect();
  let recipes=data["recipes"].as_object().unwrap().iter().map(|(k,v)|(k.clone(),serde_json::to_vec(v).unwrap())).collect();
- tconstruct_world::World{chunks:tconstruct_world::Chunks{materials:Some(materials),recipes:Some(recipes),tags:Some(Ok(HashMap::from([("tconstruct:modifiable/armor".into(),HashSet::from(["tconstruct:plate_helmet".into()])),("tconstruct:modifiable/armor/worn".into(),HashSet::from(["tconstruct:plate_helmet".into()]))]))),blocks:Some(Ok(HashMap::new())),fluids:HashMap::from([("forge:molten_steel".into(),HashSet::from(["tconstruct:molten_steel".into()]))]),known_items:HashSet::from(["tconstruct:plate_helmet".into()]),known_fluids:HashSet::from(["tconstruct:molten_steel".into()])}}
+ tconstruct_world::World{chunks:tconstruct_world::Chunks{modifiers:Some(Ok((data["modifiers"].as_object().unwrap().iter().map(|(k,v)|(k.clone(),vec![v.as_str().unwrap().as_bytes().to_vec()])).collect(),BTreeMap::new()))),materials:Some(materials),recipes:Some(recipes),tags:Some(Ok(HashMap::from([("tconstruct:modifiable/armor".into(),HashSet::from(["tconstruct:plate_helmet".into()])),("tconstruct:modifiable/armor/worn".into(),HashSet::from(["tconstruct:plate_helmet".into()]))]))),blocks:Some(Ok(HashMap::new())),fluids:HashMap::from([("forge:molten_steel".into(),HashSet::from(["tconstruct:molten_steel".into()]))]),known_items:HashSet::from(["tconstruct:plate_helmet".into()]),known_fluids:HashSet::from(["tconstruct:molten_steel".into()])}}
 }
 fn iron_helmet(w:&tconstruct_world::World)->ItemStack{
  let def=w.chunks.materials.as_ref().unwrap()["tconstruct:tinkering/tool_definitions/plate_helmet"].last().unwrap();
@@ -115,4 +117,21 @@ fn iron_helmet(w:&tconstruct_world::World)->ItemStack{
  assert!(candidate::casting(&w,&original,false,"tconstruct:molten_steel").is_none());
  let mut w=stock_world();w.chunks.materials.as_mut().unwrap().remove("tconstruct:tinkering/materials/traits/iron");assert!(candidate::casting(&w,&original,false,"tconstruct:molten_steel").is_none());
  let w=stock_world();assert!(candidate::casting(&w,&original,true,"tconstruct:molten_steel").is_none());assert!(candidate::casting(&w,&original,false,"minecraft:water").is_none());
+}
+
+#[test]fn stock_helmet_requires_current_complete_pinned_modifier_definitions(){
+ for name in ["iron_armor","projectile_protection","ductile"] {
+  let mut w=stock_world();let original=iron_helmet(&w);let key=format!("tconstruct:tinkering/modifiers/{name}");
+  let raw=w.chunks.modifiers.as_mut().unwrap().as_mut().unwrap();
+  let layers=raw.0.get_mut(&key).unwrap();layers.insert(0,b"{}".to_vec());
+  assert!(candidate::casting(&w,&original,false,"tconstruct:molten_steel").is_some());
+  let layers=w.chunks.modifiers.as_mut().unwrap().as_mut().unwrap().0.get_mut(&key).unwrap();
+  let mut custom:serde_json::Value=serde_json::from_slice(layers.last().unwrap()).unwrap();
+  custom["modules"].as_array_mut().unwrap().push(serde_json::json!({"type":"test:persistent_removal"}));layers.push(serde_json::to_vec(&custom).unwrap());
+  let before=original.clone();assert!(candidate::casting(&w,&original,false,"tconstruct:molten_steel").is_none());assert_eq!(original,before);
+  w.chunks.modifiers.as_mut().unwrap().as_mut().unwrap().0.remove(&key);assert!(candidate::casting(&w,&original,false,"tconstruct:molten_steel").is_none());
+ }
+ for value in [None,Some(Err("unreadable modifier pack".into()))] {
+  let mut w=stock_world();let original=iron_helmet(&w);w.chunks.modifiers=value;assert!(candidate::casting(&w,&original,false,"tconstruct:molten_steel").is_none());
+ }
 }

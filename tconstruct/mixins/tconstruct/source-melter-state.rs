@@ -70,6 +70,80 @@ impl Tank {
     }
 }
 
+// The removal exception is valid only for the complete pinned definitions.
+// An override can add removal/persistent-data behavior to the same IDs.
+const CASTING_HELMET_IRON_ARMOR: &[u8] = br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:volatile_flag",
+      "flag": "tconstruct:iron_armor"
+    }
+  ],
+  "show_in_tooltips": "never"
+}"#;
+const CASTING_HELMET_PROJECTILE_PROTECTION: &[u8] = br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:max_armor_attribute",
+      "allow_broken": false,
+      "attribute": "minecraft:generic.knockback_resistance",
+      "each_level": 0.05,
+      "held_tag": "tconstruct:modifiable/held",
+      "operation": "addition"
+    },
+    {
+      "type": "tconstruct:protection",
+      "damage_source": {
+        "type": "mantle:and",
+        "predicates": [
+          "mantle:can_protect",
+          {
+            "type": "mantle:tag",
+            "tag": "tconstruct:protection/projectile"
+          }
+        ]
+      },
+      "each_level": 2.0
+    }
+  ]
+}"#;
+const CASTING_HELMET_DUCTILE: &[u8] = br#"{
+  "level_display": "tconstruct:default",
+  "modules": [
+    {
+      "type": "tconstruct:stat_boost",
+      "each_level": 0.1,
+      "operation": "multiply_base",
+      "stat": "tconstruct:durability"
+    },
+    {
+      "type": "tconstruct:stat_boost",
+      "each_level": 0.05,
+      "operation": "multiply_base",
+      "stat": "tconstruct:attack_damage"
+    },
+    {
+      "type": "tconstruct:stat_boost",
+      "each_level": 0.25,
+      "operation": "add",
+      "stat": "tconstruct:projectile_damage"
+    },
+    {
+      "type": "tconstruct:stat_boost",
+      "each_level": 1.0,
+      "operation": "add",
+      "stat": "tconstruct:armor_toughness"
+    }
+  ]
+}"#;
+pub(super) fn known_casting_helmet_modifiers(raw: Option<&(std::collections::BTreeMap<String, Vec<Vec<u8>>>, std::collections::BTreeMap<String, Vec<Vec<u8>>>)>) -> bool {
+    let Some(raw) = raw else { return false; };
+    [("iron_armor", CASTING_HELMET_IRON_ARMOR), ("projectile_protection", CASTING_HELMET_PROJECTILE_PROTECTION), ("ductile", CASTING_HELMET_DUCTILE)].into_iter().all(|(name, expected)|
+        raw.0.get(&format!("tconstruct:tinkering/modifiers/{name}")).and_then(|layers| layers.last()).map(Vec::as_slice) == Some(expected))
+}
+
 /// Validate the native damage/broken pair before a casting material swap.
 /// Broken inputs are admitted only by ordinary recipes that actually repair.
 pub(super) fn casting_swap_broken(stack: &ItemStack) -> Option<bool> {
