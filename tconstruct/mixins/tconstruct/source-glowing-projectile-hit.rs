@@ -1,10 +1,13 @@
 // Arrow hits retain their firing stack during flight; save/reload is not yet wired.
 fn tconstruct_glowing_projectile_hit(game: &mut crate::game::Game<'_>, p: &horizon_client::projectiles::Projectile, hit: horizon_client::projectiles::Hit) {
     use horizon_client::{mobs::Who, projectiles::Hit};
+    if game.remote.is_some() { return; }
     let Some(weapon) = p.arrow.as_ref().and_then(|a| a.fired_from_weapon.as_ref()) else { return; };
     // A disconnected guest must not fall back to host permissions.
     if p.guest.is_some() && p.guest != game.lan_acting { return; }
-    if !crate::game::tconstruct_glowing_world::has_glowing(game, weapon) { return; }
+    let glowing = crate::game::tconstruct_glowing_world::has_glowing(game, weapon);
+    let spectral = crate::game::tconstruct_spectral_world::projectile_duration(game, p).is_some();
+    if !glowing && !spectral { return; }
     let (at, preferred, remove_arrow) = match hit {
         Hit::Block { pos, face, .. } if face != [0,0,0] => {
             let Some(x) = pos[0].checked_add(face[0]) else { return; };
@@ -12,7 +15,7 @@ fn tconstruct_glowing_projectile_hit(game: &mut crate::game::Game<'_>, p: &horiz
             let Some(z) = pos[2].checked_add(face[2]) else { return; };
             ([x,y,z], [-face[0],-face[1],-face[2]], true)
         }
-        Hit::Entity { who: Who::Mob(id), .. } => {
+        Hit::Entity { who: Who::Mob(id), .. } if glowing => {
             let Some(mob) = game.mobs.iter().find(|mob| mob.id == id) else { return; };
             ([mob.position.x.floor() as i32,mob.position.y.floor() as i32,mob.position.z.floor() as i32], [0,-1,0], false)
         }

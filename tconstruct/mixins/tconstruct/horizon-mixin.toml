@@ -5354,3 +5354,66 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-spectral"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_spectral"
+source = "source-spectral.rs"
+
+[[module]]
+id = "source-spectral-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_spectral_world"
+source = "spectral-world.rs"
+
+[[state]]
+id = "spectral-context"
+target = "horizon_client_render::chunk_map::ChunkMap"
+ty = "Vec<(Option<u32>, Option<(u32, i32)>)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-spectral-begin"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "HEAD"
+helper = "spectral-begin.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "index", ty = "usize", value = "index" }]
+
+[[injection]]
+id = "source-spectral-end"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "RETURN"
+helper = "spectral-end.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-spectral-hurt"
+target = "horizon_client::game::Game<'_>::attack_mob"
+kind = "WRAP_OPERATION"
+selector = "self.hurt_by_player"
+require = 1
+ordinal = 0
+helper = "spectral-hurt.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "$receiver" },
+  { name = "index", ty = "usize", value = "$arg0" },
+  { name = "amount", ty = "f32", value = "$arg1" },
+  { name = "source", ty = "horizon_client::mobs::Damage", value = "$arg2" },
+  { name = "original", ty = "impl FnOnce(&mut crate::game::Game<'_>, usize, f32, horizon_client::mobs::Damage) -> bool", value = "$operation" },
+]
+
+[[injection]]
+id = "source-spectral-arrow-hit"
+target = "horizon_client::game::potions::Game<'_>::arrow_post_hurt_effects"
+kind = "HEAD"
+helper = "spectral-arrow-hit.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "p", ty = "&horizon_client::projectiles::Projectile", value = "p" },
+  { name = "who", ty = "horizon_client::mobs::Who", value = "who" },
+]
