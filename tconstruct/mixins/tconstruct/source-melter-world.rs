@@ -319,9 +319,9 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
         if candidate.is_some() { return candidate; }
     }
     // Source consumed-offset slimeskulls use [head material, fluid material].
-    // Refuse component-bearing heads until their deliberate consumption is
-    // proven safe through the host item codec and every material trait resolves.
-    if basin && stack.count == 1 && stack.damage == 0 && stack.wire_patch().is_none() && stack.data().is_none_or(|data| data.is_empty()) {
+    // Source builds a fresh tool: known name/lore on the consumed head is not copied.
+    // Profile, gameplay data and retained wire still wait; material traits must resolve.
+    if basin && super::tconstruct_source_melter_state::consumed_head_with_presentation(stack) {
         let candidate = (|| {
             let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
             let definition = materials.get("tconstruct:tinkering/tool_definitions/slime_helmet")?.last()?;

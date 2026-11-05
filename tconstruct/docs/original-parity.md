@@ -699,8 +699,10 @@ the consumed head supplies the first material, and the fluid supplies the
 second slime material. It checks registered items and fluids, recipe conditions,
 both material stat types, and trait data before using the Station assembly
 path. For example, the skeleton skull and earthslime source recipes use
-1,250 mB and produce a bone/earthslime helmet. Inputs carrying components,
-opaque wire patches, tagged fluids, ambiguous candidates and unsupported
+1,250 mB and produce a bone/earthslime helmet. Losslessly encoded custom names
+and lore on the consumed head are accepted and consumed rather than copied to
+the fresh helmet, matching pinned `ToolCastingRecipe.assemble`. Other input
+components (including player profiles), retained wire patches, tagged fluids, ambiguous candidates and unsupported
 predicate or recipe forms are rejected. This bounded path does not implement
 other tool-casting forms or all helmet traits and effects. Source-data, catalog
 and saved transaction tests pass; integrated host, gameplay and LAN remain

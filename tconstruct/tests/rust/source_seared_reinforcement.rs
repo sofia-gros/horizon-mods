@@ -45,6 +45,59 @@ mod tconstruct_source_smeltery_fuel {
 #[path = "../../mixins/tconstruct/source-tags.rs"] mod tconstruct_source_tags;
 #[cfg(test)] mod tests {
  use super::*; use horizon_items::items::ItemStack; use std::collections::{BTreeMap,HashMap,HashSet};
+ #[test]
+ fn named_head_cast_consumes_presentation_only_after_complete_pour() {
+  use horizon_world::nbt::Tag;
+  use tconstruct_source_melter_state::{Casting, consumed_head_with_presentation};
+  let mut head = ItemStack::new("minecraft:skeleton_skull", 1);
+  head.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Remember me".into())));
+  head.data_mut().set_other("minecraft:lore", Some(Tag::List(vec![Tag::String("Named cast".into())])));
+  assert!(consumed_head_with_presentation(&head));
+  let mut state = Casting::new();
+  state.input = Some(head.clone());
+  assert!(state.prepare("tconstruct:tools/armor/slime_skull/bone", 1250, 2, ItemStack::new("tconstruct:slime_helmet", 1), true, false));
+  assert!(state.tank.insert("tconstruct:earth_slime", 1249));
+  assert!(!state.tick(true));
+  assert_eq!(state.input, Some(head.clone()));
+  state = Casting::from_nbt(&state.to_nbt()).unwrap();
+  assert_eq!(state.input, Some(head));
+  assert!(state.tank.insert("tconstruct:earth_slime", 1));
+  state.tick(true); state.tick(true);
+  assert!(state.input.is_none());
+  let output = state.output.as_ref().unwrap();
+  assert_eq!(output.item.as_ref(), "tconstruct:slime_helmet");
+  assert!(output.data().is_none_or(|data| data.is_empty()));
+ }
+ #[test]
+ fn named_head_cast_rejects_gameplay_components_and_invalid_presentation() {
+  use horizon_world::nbt::Tag;
+  use tconstruct_source_melter_state::consumed_head_with_presentation;
+  let plain = ItemStack::new("minecraft:skeleton_skull", 1);
+  assert!(consumed_head_with_presentation(&plain));
+  for (component, value) in [
+   ("minecraft:profile", Tag::compound([("name", Tag::String("Player".into()))])),
+   ("minecraft:custom_data", Tag::compound([("extension", Tag::Int(1))])),
+   ("minecraft:custom_name", Tag::Int(1)),
+   ("minecraft:lore", Tag::List(vec![Tag::Int(1)])),
+  ] {
+   let mut head = plain.clone();
+   if component == "minecraft:custom_name" {
+    // Bypass the setter, which normalizes malformed names away.
+    head.data_mut().custom_name = Some(value);
+   } else { head.data_mut().set_other(component, Some(value)); }
+   assert!(!consumed_head_with_presentation(&head), "{component}");
+  }
+  let mut wired = plain.clone();
+  wired.data_mut().wire = horizon_items::item_data::Wire::new(plain.clone(), std::sync::Arc::from([0u8]));
+  assert!(!consumed_head_with_presentation(&wired));
+  wired.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Changed".into())));
+  assert!(wired.wire_patch().is_none()); // Retained wire remains unsafe even after a visible edit.
+  assert!(!consumed_head_with_presentation(&wired));
+  let mut stacked = plain.clone(); stacked.count = 2;
+  assert!(!consumed_head_with_presentation(&stacked));
+  let mut damaged = plain; damaged.damage = 1;
+  assert!(!consumed_head_with_presentation(&damaged));
+ }
  #[test] fn remaining_reinforcements_cast_only_with_registered_output_and_consume_pattern() {
   for (material,bytes,amount,ticks,tag) in [
    ("iron",include_bytes!("../fixtures/iron_reinforcement.json").as_slice(),90,60,"forge:molten_iron"),

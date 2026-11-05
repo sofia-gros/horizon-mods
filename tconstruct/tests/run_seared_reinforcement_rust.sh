@@ -72,6 +72,8 @@ PYLOCK
 cargo test --locked --offline --manifest-path "$WORK/Cargo.toml" tests:: -- --nocapture 2>&1 | tee "$WORK/results.log"
 # A successful zero-test filter is not evidence that the target behavior ran.
 for case in \
+    'test tests::named_head_cast_consumes_presentation_only_after_complete_pour ... ok' \
+    'test tests::named_head_cast_rejects_gameplay_components_and_invalid_presentation ... ok' \
     'test tests::remaining_reinforcements_cast_only_with_registered_output_and_consume_pattern ... ok' \
     'test tests::water_bottles_cast_with_potion_components_and_survive_state_roundtrip ... ok' \
     'test tests::water_result_parser_rejects_unknown_nbt_and_ambiguous_plain_potion ... ok' \

@@ -99,6 +99,13 @@ pub(super) fn same_pristine_with_presentation(input: &ItemStack, pristine: &Item
     input.same_item_same_components(&expected)
 }
 
+/// Consumed-offset head casting builds a fresh tool; known presentation on
+/// the head is consumed, not copied. All gameplay data and retained wire wait.
+pub(super) fn consumed_head_with_presentation(input: &ItemStack) -> bool {
+    if input.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
+    same_pristine_with_presentation(input, &ItemStack::new(&input.item, 1))
+}
+
 pub(super) fn presentation_preserved(input: &ItemStack, output: &ItemStack) -> bool {
     ["minecraft:custom_name", "minecraft:lore"].into_iter().all(|key|
         input.data().and_then(|data| data.other(key)) == output.data().and_then(|data| data.other(key)))
