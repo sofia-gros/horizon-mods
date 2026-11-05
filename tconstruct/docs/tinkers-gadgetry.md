@@ -9,7 +9,10 @@ uses the source texture and is listed in the general creative tab.
 Obtaining the book satisfies `world/tinkers_gadgetry` under Materials and You,
 providing the formerly missing parent of the existing Ancient Tools challenge.
 This does not make every ancient tool obtainable or complete their gameplay.
-No new recipe-book unlock advancement is claimed here.
+The separate recipe-book unlock now discovers its crafting recipe from the
+current world's Sky Slimeball tag, OR the recipe-unlocked event. This does not
+grant the book-possession advancement. See
+[recipe discovery](gadgetry-gauge-discovery.md).
 
 The local and server reader paths expose Melvin's source introduction and a
 bounded exploration chapter, each preceded by an explicit partial-edition

@@ -1,0 +1,14 @@
+{
+  "tinkers_gadgetry": {
+    "source": "advancements/recipes/misc/common/tinkers_gadgetry.json",
+    "sha256": "988f8c80ae9e014909312910462fee073048b6c0f9a755e2728db98bba5dc97b"
+  },
+  "copper_gauge": {
+    "source": "advancements/recipes/redstone/smeltery/seared/gauge.json",
+    "sha256": "03d61804f71aa43eea18f2535bfb5321f835eebfe5c8841b48ad2067f339ccaa"
+  },
+  "copper_gauge_recipe": {
+    "source": "recipes/smeltery/seared/gauge.json",
+    "sha256": "7404dd132d87279d388dfac341c4066e7e804b61b84ec89cd3d46dfa32316f93"
+  }
+}
