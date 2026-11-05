@@ -54,7 +54,8 @@ class TaggedRecipeUnlocks(unittest.TestCase):
     def test_only_declared_acquisition_tags_share_the_snapshot_bridge(self):
         helper = (MIXINS / 'source-advancement-tag.rs').read_text()
         tags = set(re.findall(r'"((?:forge|tconstruct):[^"]+)"', helper))
-        self.assertEqual(tags, {case[3] for case in CASES.values()} | {'tconstruct:modifiable/multipart'})
+        self.assertEqual(tags, {case[3] for case in CASES.values()} |
+                         {'tconstruct:modifiable/multipart', 'tconstruct:seared_blocks'})
         for path in ('source-advancement-tag-index.rs', 'source-advancement-tag-predicate.rs'):
             source = (MIXINS / path).read_text()
             self.assertIn('tconstruct_source_advancement_tag::managed(tag)', source)
