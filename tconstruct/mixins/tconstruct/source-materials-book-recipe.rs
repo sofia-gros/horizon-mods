@@ -1,6 +1,36 @@
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 
+// Top-down 3x3 layers, north first. Null cells are not required; the wall
+// layer's center must remain air. The controller faces north, away from it.
+pub(super) fn small_smeltery_layers() -> [[Option<&'static str>; 9]; 2] {
+    [
+        [None, None, None, None, Some("tconstruct:seared_bricks"), None, None, None, None],
+        [None, Some("tconstruct:smeltery_controller"), None,
+            Some("tconstruct:seared_bricks"), Some("minecraft:air"), Some("tconstruct:seared_fuel_tank"),
+            None, Some("tconstruct:seared_drain"), None],
+    ]
+}
+
+// A fixed construction example must disappear when pack overrides make its
+// exact block choices invalid. Registered icons alone cannot prove a plan valid.
+pub(super) fn small_smeltery_spec(tags: Option<&HashMap<String, HashSet<String>>>, mut known: impl FnMut(&str) -> bool) -> Option<Value> {
+    let tags = tags?;
+    for (tag, block) in [
+        ("tconstruct:smeltery/floor", "tconstruct:seared_bricks"),
+        ("tconstruct:smeltery/wall", "tconstruct:seared_bricks"),
+        ("tconstruct:smeltery/wall", "tconstruct:seared_drain"),
+        ("tconstruct:smeltery/tanks", "tconstruct:seared_fuel_tank"),
+    ] {
+        if !tags.get(tag).is_some_and(|members| members.contains(block)) { return None; }
+    }
+    for id in small_smeltery_layers().into_iter().flatten().flatten() {
+        if id != "minecraft:air" && (!known(id)
+            || tags.get("tconstruct:structure_air").is_some_and(|members| members.contains(id))) { return None; }
+    }
+    Some(serde_json::json!({"small_smeltery":true}))
+}
+
 pub(super) fn showcase_item(value: &Value) -> Option<&str> {
     let id = value.as_str().or_else(|| value.get("item").and_then(Value::as_str))?;
     let (namespace, path) = id.split_once(':')?;
@@ -147,6 +177,29 @@ pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn small_smeltery_uses_current_tags_and_all_registered_parts() {
+        let tags = HashMap::from([
+            ("tconstruct:smeltery/floor".into(), HashSet::from(["tconstruct:seared_bricks".into()])),
+            ("tconstruct:smeltery/wall".into(), HashSet::from(["tconstruct:seared_bricks".into(), "tconstruct:seared_drain".into()])),
+            ("tconstruct:smeltery/tanks".into(), HashSet::from(["tconstruct:seared_fuel_tank".into()])),
+        ]);
+        assert_eq!(small_smeltery_spec(Some(&tags), |_| true), Some(serde_json::json!({"small_smeltery":true})));
+        assert!(small_smeltery_spec(None, |_| true).is_none());
+        assert!(small_smeltery_spec(Some(&HashMap::new()), |_| true).is_none());
+        for (tag, members) in &tags {
+            for block in members {
+                let mut removed = tags.clone(); removed.get_mut(tag).unwrap().remove(block);
+                assert!(small_smeltery_spec(Some(&removed), |_| true).is_none());
+            }
+        }
+        for missing in ["tconstruct:seared_bricks", "tconstruct:smeltery_controller", "tconstruct:seared_fuel_tank", "tconstruct:seared_drain"] {
+            assert!(small_smeltery_spec(Some(&tags), |id| id != missing).is_none());
+            let mut ambiguous = tags.clone();
+            ambiguous.insert("tconstruct:structure_air".into(), HashSet::from([missing.to_owned()]));
+            assert!(small_smeltery_spec(Some(&ambiguous), |_| true).is_none());
+        }
+    }
     #[test]
     fn incremental_preview_counts_points_items_and_conditional_returns() {
         for (per_item, needed, leftover, count, returned) in [

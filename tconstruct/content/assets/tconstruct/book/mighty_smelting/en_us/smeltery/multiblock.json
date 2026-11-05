@@ -1,0 +1,25 @@
+{
+  "title": "Small Smeltery Plan",
+  "structure_diagram": "small_smeltery",
+  "text": [
+    {
+      "text": "Static top views; north is up. Build the floor first, then the wall layer directly above it. Air marks the empty interior; a dash means no block is required."
+    },
+    {
+      "text": "Use two Seared Bricks, one Smeltery Controller, one Seared Fuel Tank and one Seared Drain. One brick is the floor beneath the center; the other is the west wall. The controller is the north wall, the tank the east wall and the drain the south wall.",
+      "paragraph": true
+    },
+    {
+      "text": "Face the controller north, outward from the empty center. Leave the top open. The corners and blocks beneath the walls are not required by this Smeltery detector. This one-block interior has 1,080 mB of molten-fluid capacity; the fuel tank stores fuel separately.",
+      "paragraph": true
+    },
+    {
+      "text": "Fill the fuel tank with a supported fuel before melting. The drain is an outlet choice, not mandatory for formation; it can be replaced by another valid wall block. A Faucet and casting container outside the drain are separate additions, not shown here.",
+      "paragraph": true
+    },
+    {
+      "text": "This is a limited port diagram, not the original animated structure viewer or a Foundry plan. It is shown only while these blocks are registered and accepted by the current structure tags. Loaded chunks and unclaimed structure blocks are still required. Actual building, heating, casting, save/reload and LAN have not been verified by this guide.",
+      "paragraph": true
+    }
+  ]
+}

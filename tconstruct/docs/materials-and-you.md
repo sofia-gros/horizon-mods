@@ -467,3 +467,32 @@ Arithmetic/cycling/rejection, production wire round-trip and reader/draw wiring
 regressions were authored but not run. Brief static review only. Host compilation,
 actual rendering/hover, real tool operations, resource reload and LAN remain
 unverified. This is guide coverage, not new modifier gameplay or acquisition.
+
+
+## Small Smeltery layer diagram
+
+Mighty's previously omitted source `structure` entry now displays an adapted,
+static top-down plan. Two 3x3 diagrams show the floor and wall layers of a
+one-block interior: two Seared Bricks, a north-facing outward Controller, an
+east-wall Seared Fuel Tank and a south-wall Seared Drain. Air and optional cells
+are distinct, with plain item icons and matching hover tooltips. The existing
+text overflow and chapter/page indexes retain the full instructions.
+
+The plan describes the current detector's 1,080 mB molten-fluid capacity,
+separate fuel storage, open top and unneeded corners/floor perimeter. A drain
+is an outlet choice rather than a formation requirement. Fuel, Faucet and
+casting-container setup are explicitly separate. It is not a Foundry plan,
+interactive/rotatable source NBT viewer or proof of completed survival gameplay.
+
+The entire page is omitted unless every illustrated item is registered and
+the current resolved block tags accept the exact floor, wall and tank choices.
+Illustrated solid parts must not also be tagged as structure air, which would
+change boundary discovery. This avoids retaining a stale fixed plan after pack overrides. The controller
+is handled by the detector's existing special case; actual loaded chunks,
+ownership, heating and transfers are still checked by gameplay, not by the book.
+
+The original source page is retained as an attributed fixture. Tests connecting
+the drawn cells to the production discovery function, changed-tag/absent-item
+gates, wire preservation and resource/reader/draw wiring were added but not run.
+Brief static review only. Compilation, actual diagram/hover, construction,
+melting/casting, resource reload, save/reload and LAN remain unverified.
