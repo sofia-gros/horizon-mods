@@ -72,3 +72,23 @@ Four focused fixture cases and dispatch assertions were added but not run.
 Brief static review only; build, gameplay, save/reload, LAN and atomic disk/network
 persistence remain unverified. This does not implement Cannon firing, custom
 potion effects/colors or extend the separate Duct route.
+
+
+### Drain to Casting Tank
+
+A formed Smeltery/Foundry Drain can fill a Casting Tank while preserving the
+controller's raw inventory, fuel, progress and other metadata. Initial and
+subsequent reservations pour their first 10 mB immediately. Destination
+container processing is staged after a pour; source tank, destination fluid and
+slots, and Faucet commit together before live slots or comparator notifications.
+
+The route rechecks both saved and live destination state, Drain ownership,
+structure, block identities and chunks after processing. Unknown state and
+retained wire-backed items wait. Supported vanilla potion identity is accepted
+through the integrated/network path. Supported custom color/effects remain
+nonnetwork-only, matching the existing bounded Casting Tank route.
+
+Four focused fixture cases and dispatch assertions were added but not run.
+Brief static review only. Real host, gameplay, save/reload, LAN and atomic
+disk/network persistence remain unverified; Duct extensions and generic fluid
+handlers are outside this change.

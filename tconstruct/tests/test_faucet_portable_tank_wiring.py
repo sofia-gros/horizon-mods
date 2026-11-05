@@ -7,6 +7,7 @@ class Wiring(unittest.TestCase):
         code = P.read_text()
         for section, terminal in [('activate_faucet', 'tick_faucet'), ('tick_faucet', 'tick_casting')]:
             body = code[code.index('pub(super) fn '+section+'('):code.index('pub(super) fn '+terminal+'(')]
+            self.assertLess(body.index('smeltery_to_casting_tank('), body.index('tank_to_casting_tank('))
             self.assertLess(body.index('tank_to_casting_tank('), body.index('tconstruct_source_faucet_tank::' + ('activate(' if section == 'activate_faucet' else 'tick(')))
         for target in ('casting_tank', 'fluid_cannon'):
             self.assertEqual(code.count('store::read(&game.world,target,"tconstruct:'+target+'").is_some_and(|raw| state.to_nbt() == raw)'), 2)
