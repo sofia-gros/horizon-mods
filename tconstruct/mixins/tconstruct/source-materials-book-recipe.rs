@@ -217,6 +217,15 @@ fn crafting_ingredient(value: &Value, tags: Option<&HashMap<String, HashSet<Stri
             if choices.len() > 128 { return None; }
         }
         choices
+    } else if value.get("type").and_then(Value::as_str) == Some("forge:difference") {
+        // Resolve both complete sets first. Unknown subtraction semantics must
+        // never silently turn an excluded workbench back into an alternative.
+        let object = value.as_object()?;
+        if object.len() != 3 { return None; }
+        let base = crafting_ingredient(object.get("base")?, tags, known, depth + 1)?;
+        let subtracted: HashSet<_> = crafting_ingredient(object.get("subtracted")?, tags, known, depth + 1)?
+            .into_iter().collect();
+        base.into_iter().filter(|item| !subtracted.contains(item)).collect()
     } else {
         let (id, tag) = if let Some(value) = value.as_str() {
             value.strip_prefix('#').map(|tag| (tag, true)).unwrap_or((value, false))
@@ -599,7 +608,7 @@ mod tests {
             let mut bad = source.clone(); bad["type"] = serde_json::json!(kind);
             assert!(resolve(&bad, None, "large", |_| true, |_| true).is_none());
         }
-        for input in [serde_json::json!({"type":"forge:difference","base":{"item":"test:input"},"subtracted":{"item":"test:other"}}),
+        for input in [serde_json::json!({"type":"forge:intersection","children":[{"item":"test:input"},{"item":"test:other"}]}),
             serde_json::json!({"item":"test:input","nbt":{}}), serde_json::json!({"item":"test:input","tag":"test:inputs"}),
             serde_json::json!("minecraft:air"), serde_json::json!("bad id"), serde_json::json!([])] {
             let mut bad = source.clone(); bad["ingredients"][0] = input;
@@ -656,6 +665,44 @@ mod tests {
         let choices: Vec<_> = (0..128).map(|i| format!("test:{}_{i}", "x".repeat(50))).collect();
         source["ingredients"][0] = serde_json::json!(choices);
         assert!(resolve(&source, None, "large", |_| true, |_| true).is_none());
+    }
+
+    #[test]
+    fn crafting_difference_excludes_current_world_members_without_truncating() {
+        let source = serde_json::json!({"type":"minecraft:crafting_shaped", "pattern":["p","w"],
+            "key":{"p":{"item":"tconstruct:pattern"},"w":{"type":"forge:difference",
+                "base":{"tag":"forge:workbenches"},"subtracted":{"item":"tconstruct:crafting_station"}}},
+            "result":{"item":"tconstruct:crafting_station"}});
+        let mut tags = HashMap::from([("forge:workbenches".into(), ["minecraft:crafting_table".into(),
+            "tconstruct:crafting_station".into(), "test:workbench".into()].into_iter().collect())]);
+        let view = resolve(&source, Some(&tags), "small", |_| true, |_| false).unwrap();
+        assert_eq!(view["slots"][3], serde_json::json!(["minecraft:crafting_table","test:workbench"]));
+        assert_eq!(view["slots"][0], serde_json::json!(["tconstruct:pattern"]));
+        tags.get_mut("forge:workbenches").unwrap().remove("test:workbench");
+        let refreshed = resolve(&source, Some(&tags), "small", |_| true, |_| false).unwrap();
+        assert_eq!(refreshed["slots"][3], serde_json::json!(["minecraft:crafting_table"]));
+        tags.get_mut("forge:workbenches").unwrap().remove("minecraft:crafting_table");
+        assert!(resolve(&source, Some(&tags), "small", |_| true, |_| false).is_none());
+    }
+    #[test]
+    fn crafting_difference_requires_bounded_supported_subtraction() {
+        let mut source = simple_crafting_recipe();
+        let difference = serde_json::json!({"type":"forge:difference", "base":["test:a","test:b","test:c"],
+            "subtracted":["test:b","test:c"]});
+        source["ingredients"][0] = difference.clone();
+        let view = resolve(&source, None, "large", |_| true, |_| false).unwrap();
+        assert_eq!(view["slots"][0], serde_json::json!(["test:a"]));
+        for subtracted in [serde_json::json!({"type":"forge:nbt","item":"test:b","nbt":{}}),
+            serde_json::json!({"tag":"test:missing"}), serde_json::json!([]), serde_json::Value::Null] {
+            source["ingredients"][0] = difference.clone(); source["ingredients"][0]["subtracted"] = subtracted;
+            assert!(resolve(&source, None, "large", |_| true, |_| false).is_none());
+        }
+        source["ingredients"][0] = difference.clone(); source["ingredients"][0]["extra"] = serde_json::json!(true);
+        assert!(resolve(&source, None, "large", |_| true, |_| false).is_none());
+        let mut nested = serde_json::json!({"item":"test:a"});
+        for _ in 0..10 { nested = serde_json::json!({"type":"forge:difference","base":nested,"subtracted":{"item":"test:b"}}); }
+        source["ingredients"][0] = nested;
+        assert!(resolve(&source, None, "large", |_| true, |_| false).is_none());
     }
 
 }

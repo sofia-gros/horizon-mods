@@ -1,0 +1,16 @@
+{
+  "title": "Crafting Station (Port Guide)",
+  "recipe": "tconstruct:tables/crafting_station",
+  "grid_size": "small",
+  "description": [
+    {
+      "text": "Optional workstation: place one Pattern above a vanilla Crafting Table to make a Crafting Station. This does not replace the Part Builder or Tinker Station used to make and modify tools."
+    },
+    {
+      "text": "Port guide: the diagram follows the source workbench tag and excludes an existing Crafting Station. Other displayed workbenches depend on current tags; this does not prove native crafting compatibility for every alternative. If the full ingredient cannot be represented, only this explanation is shown."
+    },
+    {
+      "text": "Existing inventory and workstation behavior remains limited; this page does not claim complete original-mod behavior or verified multiplayer operation."
+    }
+  ]
+}

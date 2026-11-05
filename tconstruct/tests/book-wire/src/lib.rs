@@ -21,6 +21,23 @@ mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
     #[test]
+    fn difference_crafting_preview_keeps_excluded_items_out_of_book_reply() {
+        let source = serde_json::json!({"type":"minecraft:crafting_shapeless","ingredients":[
+            {"type":"forge:difference","base":["test:workbench","test:excluded"],"subtracted":{"item":"test:excluded"}}],
+            "result":{"item":"test:result"}});
+        let spec = recipe::resolve(&source, None, "small", |_| true, |_| false).unwrap();
+        let pages = vec![
+            Text::styled("Materials & You\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Crafting", Style { insertion:Some(format!("tconstruct:book:{spec}")), ..Default::default() }),
+        ];
+        let reply = wire::encode_reply(18, &pages).unwrap();
+        let decoded = wire::decode_reply(18, &pages, &reply).unwrap();
+        let actual: serde_json::Value = serde_json::from_str(decoded[1].spans[0].style.insertion.as_ref().unwrap().strip_prefix("tconstruct:book:").unwrap()).unwrap();
+        assert_eq!(actual, spec);
+        assert_eq!(actual["slots"][0], serde_json::json!(["test:workbench"]));
+        assert!(!actual.to_string().contains("test:excluded"));
+    }
+    #[test]
     fn validated_crafting_preview_survives_book_reply() {
         let source = serde_json::json!({"type":"minecraft:crafting_shaped","pattern":["a "," a"],
             "key":{"a":{"item":"test:input"}},"result":{"item":"test:output","count":3}});
