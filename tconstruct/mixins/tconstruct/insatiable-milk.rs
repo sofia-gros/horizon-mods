@@ -17,6 +17,7 @@ fn tconstruct_insatiable_milk(
             matches!(
                 entry.id,
                 "tconstruct:insatiable_melee"
+                    | "tconstruct:insatiable_ranged"
                     | "tconstruct:momentum_harvest"
                     | "tconstruct:momentum_ranged"
             )

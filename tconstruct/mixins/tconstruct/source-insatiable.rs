@@ -46,3 +46,49 @@ mod tests {
         assert!(charged(0.91));
     }
 }
+
+pub(super) const RANGED_EFFECT: &str = "tconstruct:insatiable_ranged";
+pub(super) const RANGED_DURATION: i32 = 200;
+
+pub(super) fn ranged_bonus(amplifier: Option<i32>, level: i32, multiplier: f32) -> Option<f32> {
+    if level <= 0 || !multiplier.is_finite() || multiplier < 0.0 {
+        return None;
+    }
+    let effect_level = amplifier?.checked_add(1)?;
+    if effect_level <= 0 {
+        return None;
+    }
+    let value = effect_level as f32 * level as f32 / 4.0 * multiplier;
+    value.is_finite().then_some(value)
+}
+
+// The caller's damage is the TiC stat-minus-two delta, not native arrow
+// damage (which may also contain vanilla enchantments). Preserve that split.
+pub(super) fn ranged_damage_delta(damage: f64, bonus: f32) -> Option<f64> {
+    if !damage.is_finite() || !bonus.is_finite() || bonus < 0.0 {
+        return None;
+    }
+    let value = ((damage + 2.0) as f32 + bonus).clamp(0.0, 1024.0);
+    Some(f64::from(value) - 2.0)
+}
+
+#[cfg(test)]
+mod ranged_tests {
+    use super::*;
+    #[test]
+    fn ranged_is_half_melee_and_lasts_ten_seconds() {
+        assert_eq!(ranged_bonus(None, 1, 1.0), None);
+        assert_eq!(ranged_bonus(Some(0), 1, 1.0), Some(0.25));
+        assert_eq!(ranged_bonus(Some(4), 2, 1.25), Some(3.125));
+        assert_eq!(RANGED_DURATION, 200);
+        assert_ne!(RANGED_EFFECT, EFFECT);
+    }
+    #[test]
+    fn damage_clamps_the_source_float_stat_before_native_delta() {
+        assert_eq!(ranged_damage_delta(0.0, 1.25), Some(1.25));
+        assert_eq!(ranged_damage_delta(-2.0, 0.25), Some(-1.75));
+        assert_eq!(ranged_damage_delta(1021.0, 2.0), Some(1022.0));
+        assert_eq!(ranged_damage_delta(1022.0, 1.25), Some(1022.0));
+        assert_eq!(ranged_damage_delta(f64::NAN, 1.0), None);
+    }
+}
