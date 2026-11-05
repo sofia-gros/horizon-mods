@@ -841,12 +841,19 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             let Some(raw) = read(path, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
-            let mut graphic = value.get("image").and_then(|image| {
+            let structure_diagram = if mighty_smeltery && page.get("name").and_then(|value| value.as_str()) == Some("structure") {
+                if value.get("structure_diagram").and_then(|value| value.as_str()) != Some("small_smeltery") { continue; }
+                let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags().as_ref().and_then(|value| value.as_ref().ok());
+                let Some(rest) = game.res.rest.get() else { continue; };
+                let Some(diagram) = super::tconstruct_materials_book_recipe::small_smeltery_spec(tags, |id| rest.items.items.contains_key(id)) else { continue; };
+                Some(diagram)
+            } else { None };
+            let mut graphic = structure_diagram.or_else(|| value.get("image").and_then(|image| {
                 let file = image.get("file")?.as_str()?;
                 // Mantle permits omitted dimensions; the renderer falls back
                 // to the atlas sprite's intrinsic width and height.
                 Some(serde_json::json!({"image":file,"width":image.get("width").and_then(|v| v.as_u64()),"height":image.get("height").and_then(|v| v.as_u64())}))
-            })
+            }))
                 .or_else(|| value.get("recipe").and_then(|v| v.as_str()).and_then(|id| recipe_graphic(game, id, value.get("grid_size").and_then(|v| v.as_str()).unwrap_or("large"))))
                 .or_else(|| {
                     let rows = value.get("grid")?.as_array()?;
@@ -904,8 +911,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     let lines: Vec<_> = tooltip.iter().filter_map(|v| v.as_str().or_else(|| v.get("text").and_then(|s| s.as_str()))).take(16).collect();
                     if !lines.is_empty() { graphic["tooltip"] = serde_json::json!(lines); }
                 }
-                if (graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("showcase_items").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
-                    let height = if graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("showcase_items").is_some() { 40.0 }
+                if (graphic.get("small_smeltery").is_some() || graphic.get("image").is_some() || graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("showcase_items").is_some() || graphic.get("slots").is_some()) && !text.is_empty() {
+                    let height = if graphic.get("small_smeltery").is_some() { 80.0 }
+                        else if graphic.get("source_icon").is_some() || graphic.get("showcase_item").is_some() || graphic.get("showcase_items").is_some() { 40.0 }
                         else if graphic.get("slots").is_some() { if graphic.get("grid").and_then(|v| v.as_u64()) == Some(2) { 78.0 } else { 114.0 } }
                         else { graphic.get("height").and_then(|v| v.as_u64()).unwrap_or(100).min(100) as f32 };
                     let rows = ((137.0 - height) / 9.0).floor().max(1.0) as usize;

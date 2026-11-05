@@ -34,7 +34,7 @@ pub(super) fn mighty_tool_guide_ready(id: &str, registered: bool, inputs_availab
 // Expose source pages whose described basics have an existing limited path.
 // Adapted pages explicitly distinguish missing operations from supported basics.
 pub(super) fn mighty_smeltery_page(name: &str) -> bool {
-    matches!(name, "features" | "controller" | "structurereq" | "alloying" | "blazing_blood_barter" | "sgui1" | "sgui2" | "seared_tanks" | "seared_blocks" | "seared_chute" | "seared_ladder" | "seared_glass" | "tinted_glass" | "soul_glass" | "seared_drain" | "seared_duct")
+    matches!(name, "features" | "controller" | "structure" | "structurereq" | "alloying" | "blazing_blood_barter" | "sgui1" | "sgui2" | "seared_tanks" | "seared_blocks" | "seared_chute" | "seared_ladder" | "seared_glass" | "tinted_glass" | "soul_glass" | "seared_drain" | "seared_duct")
 }
 
 // Never show source advice without the reader's partial-coverage notice.
@@ -124,8 +124,8 @@ mod tests {
     }
     #[test]
     fn mighty_smeltery_only_exposes_selected_source_pages() {
-        for name in ["features", "controller", "structurereq", "alloying", "blazing_blood_barter", "sgui1", "sgui2", "seared_tanks", "seared_blocks", "seared_chute", "seared_ladder", "seared_glass", "tinted_glass", "soul_glass", "seared_drain", "seared_duct"] { assert!(mighty_smeltery_page(name)); }
-        for name in ["structure", "unknown"] {
+        for name in ["features", "controller", "structure", "structurereq", "alloying", "blazing_blood_barter", "sgui1", "sgui2", "seared_tanks", "seared_blocks", "seared_chute", "seared_ladder", "seared_glass", "tinted_glass", "soul_glass", "seared_drain", "seared_duct"] { assert!(mighty_smeltery_page(name)); }
+        for name in ["unknown"] {
             assert!(!mighty_smeltery_page(name));
         }
     }

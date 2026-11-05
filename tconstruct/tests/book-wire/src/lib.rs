@@ -11,12 +11,42 @@ pub mod text {
 #[path = "../../../mixins/tconstruct/source-materials-book-recipe.rs"] mod recipe;
 
 #[cfg(test)]
+#[path = "../../../mixins/tconstruct/source-smeltery-structure.rs"] mod smeltery_structure;
+
+#[cfg(test)]
 #[path = "../../../mixins/tconstruct/source-tags.rs"] mod tags;
 
 #[cfg(test)]
 mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
+    #[test]
+    fn drawn_small_smeltery_layers_match_the_production_detector() {
+        use super::smeltery_structure::{self, Part};
+        let layers = recipe::small_smeltery_layers();
+        assert_eq!(layers.iter().flatten().filter(|cell| cell.is_some_and(|id| id != "minecraft:air")).count(), 5);
+        let accepts = |p: [i32; 3], part: Part| {
+            if !(0..3).contains(&p[0]) || !(0..2).contains(&p[1]) || !(0..3).contains(&p[2]) { return false; }
+            let cell = layers[p[1] as usize][(p[2] * 3 + p[0]) as usize];
+            match part {
+                Part::Floor => p[1] == 0 && cell == Some("tconstruct:seared_bricks"),
+                Part::Interior => cell == Some("minecraft:air"),
+                Part::Wall => p[1] == 1 && cell.is_some_and(|id| id != "minecraft:air"),
+            }
+        };
+        assert_eq!(smeltery_structure::discover([1,1,0], [0,-1], accepts), Some(([0,0,0], [2,1,2], 1080)));
+        assert!(smeltery_structure::discover([1,1,0], [0,1], accepts).is_none());
+        for missing in [[1,0,1], [0,1,1], [2,1,1], [1,1,2], [1,1,1]] {
+            assert!(smeltery_structure::discover([1,1,0], [0,-1], |p, part| p != missing && accepts(p, part)).is_none());
+        }
+        let metadata = serde_json::json!({"small_smeltery":true,"body_runs":[{"text":"Static top views; north is up."}]});
+        let pages = vec![
+            Text::styled("Mighty Smelting\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Small Smeltery Plan", Style { insertion:Some(format!("tconstruct:book:{metadata}")), ..Default::default() }),
+        ];
+        let result = wire::decode_reply(14, &pages, &wire::encode_reply(14, &pages).unwrap()).unwrap();
+        assert_eq!(result[1].spans[0].style.insertion, pages[1].spans[0].style.insertion);
+    }
     #[test]
     fn incremental_points_and_return_type_survive_book_reply() {
         let mut spec = recipe::modifier_progress_spec(&["test:b".into(), "test:a".into()], 9, 20, Some("test:point")).unwrap();

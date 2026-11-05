@@ -193,3 +193,10 @@ Mighty Smelting's six ability category overview files under
 Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
 Source-reference notices, empty-category notices and bounded recipe grouping
 are port adaptations. Source blob hashes are in `tests/test_mighty_ability_groups.py`.
+
+`tests/fixtures/mighty_structure_source.json` copies the original structure-page
+reference from [Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/resources/assets/tconstruct/book/mighty_smelting/en_us/smeltery/multiblock.json).
+Copyright (c) SlimeKnights; MIT license in `tconstruct/third_party/tconstruct/LICENSE`.
+The displayed `en_us/smeltery/multiblock.json` and fixed two-layer plan are port
+adaptations to the existing detector. The source NBT model and animated viewer
+are not imported or presented as implemented.

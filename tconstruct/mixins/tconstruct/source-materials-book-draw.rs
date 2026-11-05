@@ -158,6 +158,39 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
         return;
     }
+    if spec.get("small_smeltery").and_then(|value| value.as_bool()) == Some(true) {
+        for (layer, cells) in tconstruct_materials_book_recipe::small_smeltery_layers().into_iter().enumerate() {
+            let x = left + 36.0 + 10.0 + layer as f32 * 92.0;
+            let label = if layer == 0 { "Floor (Y=0)" } else { "Walls (Y=1)" };
+            batch.text(atlas, label, x + (66.0 - HudBatch::text_width(atlas, label)) / 2.0, top + 31.0, BLACK, false);
+            for (index, cell) in cells.into_iter().enumerate() {
+                let (cx, cy) = (x + (index % 3) as f32 * 22.0, top + 44.0 + (index / 3) as f32 * 22.0);
+                batch.fill(atlas, cx, cy, 22.0, 22.0, rgba(140, 120, 90, 255));
+                batch.fill(atlas, cx + 1.0, cy + 1.0, 20.0, 20.0, if cell == Some("minecraft:air") { rgba(203, 225, 227, 255) } else { rgba(229, 214, 178, 255) });
+                match cell {
+                    Some("minecraft:air") => {
+                        batch.text(atlas, "Air", cx + (22.0 - HudBatch::text_width(atlas, "Air")) / 2.0, cy + 7.0, BLACK, false);
+                        if hovered(cx, cy, 22.0) { tooltip = Some(vec![Text::literal("Keep the interior empty.")]); }
+                    }
+                    Some(id) => {
+                        let stack = ItemStack::new(id, 1);
+                        game.draw_item(batch, &stack, cx + 3.0, cy + 3.0);
+                        if hovered(cx + 3.0, cy + 3.0, 16.0) { item_tooltip = Some(stack); }
+                    }
+                    None => {
+                        batch.text(atlas, "-", cx + (22.0 - HudBatch::text_width(atlas, "-")) / 2.0, cy + 7.0, BLACK, false);
+                        if hovered(cx, cy, 22.0) { tooltip = Some(vec![Text::literal("No block is required here by this Smeltery plan.")]); }
+                    }
+                }
+            }
+        }
+        if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
+            for (i, line) in atlas.font.split(&content, 182.0).iter().take(6).enumerate() {
+                batch.text_styled(atlas, line, left + 36.0, top + 116.0 + i as f32 * 9.0, BLACK, false);
+            }
+        }
+        return;
+    }
     if spec.get("modifier_progress").is_some() {
         let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs());
         if let Some(view) = tconstruct_materials_book_recipe::modifier_progress_view(&spec, seconds) {
