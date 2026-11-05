@@ -1264,7 +1264,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
-    if let Some(handled) = tank_to_melter(game, pos, source, target, faucet.clone(), true) { return handled; }
+    if let Some(handled) = source_to_melter(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_casting_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = smeltery_to_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
@@ -1315,7 +1315,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
-    if tank_to_melter(game, pos, source, target, faucet.clone(), false).is_some() { return; }
+    if source_to_melter(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_casting_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if smeltery_to_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
@@ -1417,9 +1417,9 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
 }
 
 /// A Melter exposes its internal tank as a fillable fluid handler on every face.
-/// This bounded route accepts built-in tanks/gauges without rewriting Melter
+/// This bounded route accepts built-in tanks/gauges and formed Drains without rewriting Melter
 /// inventory, heat, fuel, progress, or unrelated saved machine fields.
-fn tank_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
+fn source_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
     let target_state = game.world.block(target.0, target.1, target.2);
     if &*game.res.facts().get(target_state).name != "tconstruct:seared_melter" { return None; }
@@ -1428,12 +1428,19 @@ fn tank_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos
     let source_state = game.world.block(source.0, source.1, source.2);
     let faucet_state = game.world.block(pos.0, pos.1, pos.2);
     let source_name = game.res.facts().get(source_state).name.clone();
+    let mut smeltery_input = None;
     let mut input = if let Some((key, capacity)) = tanks::tank_kind(&source_name) {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, key) else { return Some(false); };
         let Some(tank) = Tank::from_nbt(&raw, capacity) else { return Some(false); };
         if tank.to_nbt() != raw { return Some(false); }
-        Some((key, tank, raw))
+        Some((source, key, tank, raw))
+    } else if matches!(&*source_name, "tconstruct:seared_drain" | "tconstruct:scorched_drain") {
+        let Some((controller, state, raw)) = validated_drain(game, source) else { return Some(false); };
+        if [source, target, pos].contains(&controller) { return Some(false); }
+        let fluid = selected_smeltery_fluid(&state).unwrap_or_else(|| Tank::new(0));
+        smeltery_input = Some((game.world.block(controller.0, controller.1, controller.2), state));
+        Some((controller, "tconstruct:smeltery", fluid, raw))
     } else {
         // An absent loaded source may finish a packet already owned by the
         // Faucet. Unsupported machines cannot be mistaken for removed input.
@@ -1449,14 +1456,14 @@ fn tank_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos
     if faucet.to_nbt() != raw_faucet { return Some(false); }
     let reserves_source = starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet);
     if !faucet_network_tag_safe(&faucet.pending) || !faucet_network_tag_safe(&melter.tank)
-        || (reserves_source && input.as_ref().is_some_and(|(_, tank, _)| !faucet_network_tag_safe(tank))) { return Some(false); }
+        || (reserves_source && input.as_ref().is_some_and(|(_, _, tank, _)| !faucet_network_tag_safe(tank))) { return Some(false); }
     let previous_amount = melter.tank.amount;
     let mut empty = Tank::new(0);
-    if starting && !faucet.activate(input.as_mut().map_or(&mut empty, |(_, tank, _)| tank), &melter.tank) { return Some(true); }
+    if starting && !faucet.activate(input.as_mut().map_or(&mut empty, |(_, _, tank, _)| tank), &melter.tank) { return Some(true); }
     let needs_packet = !starting && faucet.pending.amount == 0;
-    faucet.tick(input.as_mut().map_or(&mut empty, |(_, tank, _)| tank), Some(&mut melter.tank));
+    faucet.tick(input.as_mut().map_or(&mut empty, |(_, _, tank, _)| tank), Some(&mut melter.tank));
     if needs_packet && faucet.pending.amount > 0 {
-        faucet.tick(input.as_mut().map_or(&mut empty, |(_, tank, _)| tank), Some(&mut melter.tank));
+        faucet.tick(input.as_mut().map_or(&mut empty, |(_, _, tank, _)| tank), Some(&mut melter.tank));
     }
     let Some(next_melter) = tanks::patch_melter_tank(&raw_melter, &melter.tank) else { return Some(false); };
     if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4)))
@@ -1467,16 +1474,24 @@ fn tank_to_melter(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos
         || store::read(&game.world, target, "tconstruct:melter").as_ref() != Some(&raw_melter)
         || store::read(&game.world, pos, "tconstruct:faucet").as_ref() != Some(&raw_faucet) { return Some(false); }
     let mut changes = vec![(target, "tconstruct:melter", next_melter), (pos, "tconstruct:faucet", faucet.to_nbt())];
-    let mut source_changed = false;
-    if let Some((key, tank, raw)) = &input {
-        if store::read(&game.world, source, key).as_ref() != Some(raw)
-            || !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
-        let next = tank.to_nbt();
-        source_changed = next != *raw;
-        changes.push((source, *key, next));
+    let mut changed_source = None;
+    if let Some((at, key, tank, raw)) = &input {
+        if !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))
+            || store::read(&game.world, *at, key).as_ref() != Some(raw)
+            || !matches!(game.world.block_entities.get(at), Some(BlockEntity::Chest(_))) { return Some(false); }
+        let next = if let Some((block, state)) = smeltery_input.as_mut() {
+            if game.world.block(at.0, at.1, at.2) != *block
+                || !validated_drain(game, source).is_some_and(|(controller, _, saved)| controller == *at && saved == *raw) { return Some(false); }
+            let before = selected_smeltery_fluid(state).unwrap_or_else(|| Tank::new(0));
+            if !apply_smeltery_take(state, &before, tank) { return Some(false); }
+            let Some(next) = patch_smeltery_controller_tank(raw, state) else { return Some(false); };
+            next
+        } else { tank.to_nbt() };
+        if next != *raw { changed_source = Some(*at); }
+        changes.push((*at, *key, next));
     }
     if !store::write_many(&mut game.world, &changes) { return Some(false); }
-    if source_changed { game.container_changed(source); }
+    if let Some(at) = changed_source { game.container_changed(at); }
     if melter.tank.amount != previous_amount { game.container_changed(target); }
     Some(true)
 }
