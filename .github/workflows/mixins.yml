@@ -147,6 +147,9 @@ jobs:
       - name: Test bounded survival helper chain
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_survival_chain_rust.sh
+      - name: Test selected Smeltery fuel temperature
+        if: steps.scope.outputs.docs_only != 'true'
+        run: HORIZON_HOST=../horizon-official tconstruct/tests/run_selected_fuel_rust.sh
       - name: Package native mod sources and resource inputs
         run: python3 tconstruct/tools/package_hnmod.py --output dist/tconstruct.hnmod
       - name: Package content mod
