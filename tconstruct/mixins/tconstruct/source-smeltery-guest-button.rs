@@ -15,8 +15,8 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
     let Some(menu) = host.hub.guests[gi].menu.as_ref() else { return Continue(()); };
     if menu.window != window || !menu.slots.still_valid(&game.world, &host.hub.guests[gi], menu.pos) { return Continue(()); }
     let Some(pos) = menu.pos else { return Continue(()); };
-    let Some(mut state) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
-        .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return Continue(()); };
+    let Some(raw) = crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery") else { return Continue(()); };
+    let Some(mut state) = crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&raw) else { return Continue(()); };
     if host.hub.guests[gi].spectator() { return Break(()); }
     let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
@@ -33,7 +33,9 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
         crate::game::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut slots, direction, None,
             &|item| game.res.items().get(item).is_some(), &|fluid| known_fluids.contains(fluid), bottle_tags.as_ref());
-        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+        let Some(saved) = state.tank_to_nbt_preserving(&raw) else { return Break(()); };
+        if crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery").as_ref() != Some(&raw) { return Break(()); }
+        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", saved) {
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, slots, direction.index()));
             host.hub.guests[gi].send(&horizon_protocol::packets::play::Clientbound::ContainerSetData(horizon_protocol::packets::play::ContainerSetData { container: window, id: 30004, value: i16::from(direction.index()) }));
         }
@@ -55,7 +57,9 @@ fn smeltery_guest_button(game: &mut crate::game::Game<'_>, host: &mut crate::gam
             crate::game::tconstruct_source_fluid_container::transfer_selected_with_tags(&mut state.tank, &mut slots,
                 crate::game::tconstruct_source_fluid_container::Direction::from_index(mode), None,
                 &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), bottle_tags.as_ref());
-            if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+            let Some(saved) = state.tank_to_nbt_preserving(&raw) else { return Break(()); };
+            if crate::game::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery").as_ref() != Some(&raw) { return Break(()); }
+            if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", saved) {
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers_mut().insert(conn, (pos, slots, mode));
             }
         }

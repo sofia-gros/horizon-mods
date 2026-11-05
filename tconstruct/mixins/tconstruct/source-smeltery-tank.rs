@@ -111,6 +111,41 @@ impl SmelteryTank {
         Tag::compound([("capacity", Tag::Long(i64::from(self.capacity))), ("fluids", Tag::List(fluids))])
     }
 
+    /// Keep native tank and row extensions attached to their exact fluid/tag
+    /// identity. Removing an opaque row would discard unknown state, so wait.
+    pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        let before = Self::from_nbt(raw)?;
+        let canonical = self.to_nbt();
+        if Self::from_nbt(&canonical).as_ref() != Some(self) { return None; }
+        let Tag::Compound(mut fields) = raw.clone() else { return None; };
+        for alias in ["Capacity", "Fluids", "Fluid", "Tank", "FluidName", "Amount", "Tag"] {
+            if raw.get(alias).is_some() { return None; }
+        }
+        let Tag::List(old_rows) = raw.get("fluids")? else { return None; };
+        let old_canonical = before.to_nbt();
+        let Tag::List(old_normal) = old_canonical.get("fluids")? else { return None; };
+        let Tag::List(new_normal) = canonical.get("fluids")? else { return None; };
+        for (index, fluid) in before.fluids.iter().enumerate() {
+            let row = &old_rows[index];
+            let Tag::String(id) = row.get("id")? else { return None; };
+            if id.to_string().ok()?.as_str() != fluid.id.as_str() { return None; }
+            for alias in ["FluidName", "Amount", "Tag", "fluid"] { if row.get(alias).is_some() { return None; } }
+            if !self.fluids.iter().any(|next| next.id == fluid.id && next.tag == fluid.tag)
+                && row != &old_normal[index] { return None; }
+        }
+        let mut rows = Vec::with_capacity(self.fluids.len());
+        for (index, fluid) in self.fluids.iter().enumerate() {
+            if let Some(old) = before.fluids.iter().position(|old| old.id == fluid.id && old.tag == fluid.tag) {
+                let Tag::Compound(mut row) = old_rows[old].clone() else { return None; };
+                row.insert("amount".into(), Tag::Long(i64::from(fluid.amount)));
+                rows.push(Tag::Compound(row));
+            } else { rows.push(new_normal[index].clone()); }
+        }
+        fields.insert("capacity".into(), Tag::Long(i64::from(self.capacity)));
+        fields.insert("fluids".into(), Tag::List(rows));
+        Some(Tag::Compound(fields))
+    }
+
     pub(super) fn from_nbt(tag: &Tag) -> Option<Self> {
         let Tag::Long(capacity) = tag.get("capacity")? else { return None; };
         let mut tank = Self::new(u32::try_from(*capacity).ok()?);
@@ -202,5 +237,62 @@ mod tests {
         assert!(tank.move_to_bottom(1));
         assert_eq!(tank.fluids, vec![fluid("amethyst", 100), fluid("copper", 90)]);
         assert!(!tank.move_to_bottom(2)); assert_eq!(tank.total(), 190);
+    }
+}
+
+
+#[cfg(test)]
+mod preservation_tests {
+    use super::*;
+    fn extended(tank: &SmelteryTank, rows: bool) -> Tag {
+        let Tag::Compound(mut fields) = tank.to_nbt() else { unreachable!() };
+        fields.insert("future_tank".into(), Tag::Int(7));
+        if rows { if let Some(Tag::List(rows)) = fields.get_mut(&"fluids".into()) {
+            for (index, row) in rows.iter_mut().enumerate() { if let Tag::Compound(fields) = row {
+                fields.insert("future_row".into(), Tag::Int(index as i32));
+            }}
+        }}
+        Tag::Compound(fields)
+    }
+    #[test]
+    fn preserving_rows_follow_exact_tag_identity_and_reordering() {
+        let first = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+        let second = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        let mut tank = SmelteryTank::new(4000);
+        assert!(tank.insert_tagged("tconstruct:potion", Some(&first), 1500));
+        assert!(tank.insert_tagged("tconstruct:potion", Some(&second), 1500));
+        let raw = extended(&tank,true);assert_eq!(tank.to_nbt_preserving(&raw),Some(raw.clone()));
+        assert!(tank.move_to_bottom(1));assert!(tank.take_tagged("tconstruct:potion",Some(&first),250));
+        tank.capacity=2000; // An existing overfull tank can survive a structure shrink.
+        let saved=tank.to_nbt_preserving(&raw).unwrap();assert_eq!(SmelteryTank::from_nbt(&saved),Some(tank));
+        assert_eq!(saved.get("future_tank"),Some(&Tag::Int(7)));
+        let Tag::List(rows)=saved.get("fluids").unwrap() else{panic!()};
+        assert_eq!(rows[0].get("future_row"),Some(&Tag::Int(1)));assert_eq!(rows[1].get("future_row"),Some(&Tag::Int(0)));
+        assert_eq!(rows[0].get("fluid_tag"),Some(&second));assert_eq!(rows[1].get("fluid_tag"),Some(&first));
+    }
+    #[test]
+    fn preserving_rows_refuse_opaque_removal_and_identity_replacement() {
+        let mut tank=SmelteryTank::new(4000);assert!(tank.insert("minecraft:water",1000));
+        let raw=extended(&tank,true);let normal=extended(&tank,false);
+        assert!(tank.take("minecraft:water",1000));assert!(tank.to_nbt_preserving(&raw).is_none());
+        let empty=tank.to_nbt_preserving(&normal).unwrap();assert_eq!(empty.get("future_tank"),Some(&Tag::Int(7)));
+        assert!(tank.insert("minecraft:lava",1000));assert!(tank.to_nbt_preserving(&raw).is_none());
+        let saved=tank.to_nbt_preserving(&empty).unwrap();assert_eq!(SmelteryTank::from_nbt(&saved),Some(tank));
+    }
+    #[test]
+    fn preserving_rows_refuse_aliases_lossy_ids_and_invalid_owned_state() {
+        let mut tank=SmelteryTank::new(4000);assert!(tank.insert("minecraft:water",1000));
+        for alias in ["Capacity","Fluids","Fluid","Tank","FluidName","Amount","Tag"] {
+            let Tag::Compound(mut fields)=tank.to_nbt() else{panic!()};fields.insert(alias.into(),Tag::Int(1));
+            assert!(tank.to_nbt_preserving(&Tag::Compound(fields)).is_none());
+        }
+        for alias in ["FluidName","Amount","Tag","fluid"] {
+            let mut raw=tank.to_nbt();if let Tag::Compound(fields)=&mut raw{if let Some(Tag::List(rows))=fields.get_mut(&"fluids".into()){if let Tag::Compound(row)=&mut rows[0]{row.insert(alias.into(),Tag::Int(1));}}}
+            assert!(tank.to_nbt_preserving(&raw).is_none());
+        }
+        let mut raw=tank.to_nbt();if let Tag::Compound(fields)=&mut raw{if let Some(Tag::List(rows))=fields.get_mut(&"fluids".into()){if let Tag::Compound(row)=&mut rows[0]{row.insert("id".into(),Tag::String(horizon_world::nbt::JavaString(vec![0xd800])));}}}
+        let decoded=SmelteryTank::from_nbt(&raw).unwrap();assert!(decoded.to_nbt_preserving(&raw).is_none());
+        let raw=tank.to_nbt();tank.fluids.push(tank.fluids[0].clone());assert!(tank.to_nbt_preserving(&raw).is_none());
+        tank.fluids.pop();tank.fluids[0].amount=0;assert!(tank.to_nbt_preserving(&raw).is_none());
     }
 }

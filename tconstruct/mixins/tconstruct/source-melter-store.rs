@@ -22,6 +22,15 @@ fn set_metadata_inner(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value:
                 },
                 None => value,
             }
+        } else if preserve_smeltery && matches!(key, "tconstruct:table" | "tconstruct:basin") {
+            match map.get(&key.into()) {
+                Some(previous) => match super::tconstruct_source_melter_state::Casting::from_nbt(&value)
+                    .and_then(|state| state.to_nbt_preserving(previous)) {
+                    Some(merged) => merged,
+                    None => return false,
+                },
+                None => value,
+            }
         } else { value };
         map.insert(key.into(), value);
     } else {
@@ -57,6 +66,15 @@ pub(super) fn clear_different(world: &mut World, pos: Pos, key: &str) {
         .and_then(|saved| saved.block_entity_sources.iter().find(|(at, _)| *at == pos))
         .and_then(|(_, tag)| tag.get("id"));
     if matches!(old, Some(Tag::String(id)) if id.to_string_lossy() != key) { clear(world, pos); }
+}
+
+/// Typed boundary for live casting interactions. Never encode opaque items
+/// before checking them: decoding an encoded candidate cannot recover wire.
+pub(super) fn write_casting(world: &mut World, pos: Pos, key: &str, state: &super::tconstruct_source_melter_state::Casting) -> bool {
+    if !matches!(key, "tconstruct:table" | "tconstruct:basin") || !state.items_save_safe() { return false; }
+    let Some(raw) = read(world, pos, key) else { return false; };
+    let Some(next) = state.to_nbt_preserving(&raw) else { return false; };
+    write(world, pos, key, next)
 }
 
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {

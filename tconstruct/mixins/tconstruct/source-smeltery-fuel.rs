@@ -20,6 +20,13 @@ pub(super) fn item_capacity(name: &str) -> Option<u32> {
     })
 }
 
+/// Copy a readable native tank payload without normalizing extension fields.
+/// This is transport, not a debit or migration: no owned field is changed.
+pub(super) fn copy_native_tank(raw: &horizon_world::nbt::Tag, capacity: u32) -> Option<horizon_world::nbt::Tag> {
+    let tank = Tank::from_nbt(raw,capacity)?;
+    (tank.to_nbt_preserving(raw).as_ref() == Some(raw)).then(|| raw.clone())
+}
+
 /// Read the first fluid tank from the machine's saved representation.
 /// The casting tank and cannon nest their Tank beneath their inventory state;
 /// ordinary portable tanks store their Tank directly.
@@ -133,6 +140,79 @@ mod tests {
         assert_eq!(capacity("tconstruct:seared_fuel_gauge"), Some(4000));
         assert_eq!(capacity("tconstruct:seared_ingot_gauge"), Some(4320));
         assert_eq!(capacity("minecraft:glass"), None);
+    }
+}
+
+/// Heater count changes must not invalidate retained network data or lose
+/// item fields through the native save codec.
+pub(super) fn heater_stack_save_safe(item: &horizon_items::items::ItemStack) -> bool {
+    use horizon_items::item_nbt::{item_from_nbt, item_to_nbt};
+    item.count > 0 && item.wire_patch().is_none()
+        && !item.data().is_some_and(|data| data.wire.patch().is_some())
+        && item_from_nbt(&item_to_nbt(item)).is_some_and(|saved| saved.count == item.count
+            && saved.damage == item.damage && saved.same_item_same_components(item))
+}
+
+/// Consume one solid-fuel item on copies. The caller resolves burn duration,
+/// whether the crafting remainder burns for more than three ticks, and the
+/// source stack limit. Return the next Heater slot and an optional spill.
+pub(super) fn plan_heater_fuel(fuel: &horizon_items::items::ItemStack,
+    remainder: Option<horizon_items::items::ItemStack>, accepts_remainder: bool, limit: u32)
+    -> Option<(Option<horizon_items::items::ItemStack>, Option<horizon_items::items::ItemStack>)> {
+    if !heater_stack_save_safe(fuel) || remainder.as_ref().is_some_and(|item| item.count != 1 || !heater_stack_save_safe(item)) { return None; }
+    let mut remaining = fuel.clone(); remaining.count -= 1;
+    let mut next = (remaining.count > 0).then_some(remaining);
+    let mut spill = None;
+    if let Some(remainder) = remainder {
+        if accepts_remainder {
+            match &mut next {
+                None => next = Some(remainder),
+                Some(stack) if stack.same_item_same_components(&remainder) && stack.count < limit.min(64) => stack.count += 1,
+                _ => spill = Some(remainder),
+            }
+        } else { spill = Some(remainder); }
+    }
+    Some((next, spill))
+}
+
+#[cfg(test)]
+mod heater_tests {
+    use super::*;
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    #[test]
+    fn heater_debit_preserves_fuel_components_and_original_stack() {
+        for count in [1,3] {
+            let mut fuel = ItemStack::new("minecraft:coal",count);fuel.damage=2;
+            fuel.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Kept".into())));
+            let original=fuel.clone();let(next,spill)=plan_heater_fuel(&fuel,None,false,64).unwrap();
+            assert_eq!(fuel,original);assert!(spill.is_none());
+            if count==1{assert!(next.is_none());}else{let next=next.unwrap();assert_eq!(next.count,2);assert_eq!(next.damage,fuel.damage);assert!(next.same_item_same_components(&fuel));}
+        }
+    }
+    #[test]
+    fn heater_remainder_routing_matches_source_slot_rules() {
+        for count in [1,2]{for accepted in [false,true]{for same in [false,true]{
+            let fuel=ItemStack::new("minecraft:coal",count);let remainder=ItemStack::new(if same{"minecraft:coal"}else{"minecraft:bucket"},1);
+            let(next,spill)=plan_heater_fuel(&fuel,Some(remainder.clone()),accepted,64).unwrap();
+            if accepted && count==1{assert_eq!(next,Some(remainder));assert!(spill.is_none());}
+            else if accepted && same{assert_eq!(next.unwrap().count,count);assert!(spill.is_none());}
+            else{assert_eq!(next.as_ref().map(|item|item.count),(count>1).then_some(count-1));assert_eq!(spill,Some(remainder));}
+        }}}
+        let fuel=ItemStack::new("minecraft:coal",2);let(next,spill)=plan_heater_fuel(&fuel,Some(ItemStack::new("minecraft:coal",1)),true,1).unwrap();
+        assert_eq!(next.unwrap().count,1);assert_eq!(spill.unwrap().count,1);
+    }
+    #[test]
+    fn heater_debit_rejects_zero_and_retained_wire_without_a_plan() {
+        for stale in [false,true]{for target in [false,true]{
+            let mut fuel=ItemStack::new("minecraft:coal",2);let mut remainder=ItemStack::new("minecraft:bucket",1);
+            let item=if target{&mut remainder}else{&mut fuel};
+            item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));
+            if stale{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}
+            let before=(fuel.clone(),remainder.clone());assert!(plan_heater_fuel(&fuel,Some(remainder.clone()),true,64).is_none());assert_eq!((fuel,remainder),before);
+        }}
+        assert!(plan_heater_fuel(&ItemStack::new("minecraft:coal",0),None,false,64).is_none());
+        assert!(plan_heater_fuel(&ItemStack::new("minecraft:coal",2),Some(ItemStack::new("minecraft:bucket",2)),false,64).is_none());
     }
 }
 

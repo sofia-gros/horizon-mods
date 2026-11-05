@@ -5,5 +5,5 @@ class MelterPreservationWiring(unittest.TestCase):
         source=(ROOT/'mixins/tconstruct/source-machine-runtime.rs').read_text()
         tick=source.split('pub(super) fn tick_melter',1)[1].split('pub(super) fn casting_at',1)[0]
         self.assertIn('melter.to_nbt_preserving(&saved)',tick)
-        self.assertIn('tank.to_nbt_preserving(&raw_tank)',tick)
+        self.assertIn('Tank::drain_fuel_preserving(&raw_tank, capacity, fuel.fluid.amount)',tick)
 if __name__=='__main__': unittest.main()

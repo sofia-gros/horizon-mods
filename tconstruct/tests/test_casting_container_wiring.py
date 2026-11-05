@@ -13,11 +13,30 @@ class CastingContainerWiring(unittest.TestCase):
         self.assertIn('casting_recipe_at(game, pos, kind, &next, &offered)', body)
         self.assertIn('Direction::Auto', body)
         self.assertIn('next.recipe = None; next.result = None', body)
-        self.assertLess(body.index('store::write(&mut game.world, pos, kind, next.to_nbt())'), body.index('*game.held_mut() = Some(rest)'))
+        self.assertLess(body.index('store::write_casting(&mut game.world, pos, kind, &next)'), body.index('*game.held_mut() = Some(rest)'))
         self.assertIn('if game.creative', body)
         self.assertLess(body.index('casting_portable_rewrite_safe(stack)'), body.index('transfer_single_with_color'))
         self.assertIn('let held = game.held().cloned();', body)
-        self.assertLess(body.index('casting.roundtrips(&raw)'), body.index('store::write(&mut game.world, pos, kind, next.to_nbt())'))
+        self.assertLess(body.index('let raw_casting = store::read('), body.index('game.ensure_datapacks()'))
+        self.assertNotIn('casting.roundtrips(&raw)', body)
+        for guard in ('casting.to_nbt_preserving(&raw_casting)', 'fresh.to_nbt_preserving(&raw_casting)',
+                      'game.world.block(pos.0, pos.1, pos.2) != block_state',
+                      'store::read(&game.world, pos, kind).as_ref() != Some(&raw_casting)',
+                      'held.same_item_same_components(&held_before)', 'game.creative != creative'):
+            self.assertLess(body.index(guard), body.index('store::write_casting(&mut game.world, pos, kind, &next)'))
+
+    def test_failed_probe_guard_precedes_every_item_fallback(self):
+        source = (ROOT / 'source-machine-runtime.rs').read_text()
+        body = source.split('pub(super) fn interact_casting(', 1)[1].split('\nfn faucet_neighbors(', 1)[0]
+        prepare = body.index('game.ensure_datapacks()')
+        guard = body.index('if !unchanged(game) { return true; }', prepare)
+        self.assertLess(guard, body.index('transfer_single_with_color', prepare))
+        self.assertLess(guard, body.index('let held = game.held().cloned();'))
+        self.assertEqual(body.count('if !unchanged(game) { return true; }'), 3)
+        self.assertIn('(game.lan.is_none(), game.lan_acting_uuid.is_none()) != local', body)
+        fallback = body.index('let held = game.held().cloned();')
+        self.assertLess(body.rindex('if !unchanged(game) { return true; }'), fallback)
+        self.assertLess(fallback, body.index('tconstruct_source_melter_world::molding('))
 
     def test_both_faucet_sources_reinitialize_the_casting_before_pouring(self):
         source = (ROOT / 'source-machine-runtime.rs').read_text()

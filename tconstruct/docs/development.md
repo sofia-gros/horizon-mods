@@ -213,3 +213,52 @@ Existing narrowed material inputs and machine limitations remain unchanged.
 Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
 Source fixtures, recipe shapes/counts and packaged registrations are checked;
 actual book UI, crafting, save/reload and LAN remain unverified.
+
+### Drain interactions with containers that cannot transfer
+
+A validated formed Seared/Scorched Drain now consumes the interaction when an
+already-supported canonical container cannot move fluid, such as a full tank
+or an empty bucket at an empty tank. This prevents the held container's normal
+world action from running after the blocked transfer. Noncontainers (including
+Faucets), missing owners and invalid/unformed structures still pass through.
+Recognition uses the existing `accepts_with_color` predicate; this does not add
+arbitrary Forge capabilities, fish spawning or unsupported container metadata.
+Successful transfers and save-failure handling are unchanged.
+
+Source: TConstruct `SearedDrainBlock.use` delegates to Mantle's
+[`FluidTransferHelper.interactWithTank`](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/FluidTransferHelper.java),
+which uses `hasContainer()`, including `CONTAINER` when no transfer occurs.
+The runtime fixture extracts the production Drain function, uses real
+Smeltery/container/NBT code, and mocks world, structure detection and inventory
+access. It checks full/part-full tanks, empty extraction, noncontainers,
+unformed structures, successful transfer and rejected saves. Live held/offhand
+routing, redstone, multiplayer and actual world placement remain unverified.
+### Lossless Casting Table/Basin host writes (#379 high-priority preservation)
+
+Authoritative native Table/Basin writes now patch only owned casting fields,
+retaining unknown top-level and tank extensions instead of rewriting the whole
+compound. The shared host store applies this to direct writes and atomic
+multi-machine Faucet commits; client snapshots intentionally replace state.
+Cooling can retain an opaque item's original raw compound unchanged in its
+slot. Transforming, removing or moving an item that cannot round-trip through
+the host codec is rejected, rather than dropping its unrepresented data.
+Canonical item completion and emptying the tank remain supported, including
+capacity shrinking to zero. Legacy alias collisions and lossy recipe/fluid IDs
+remain fail-closed, not migrated or silently updated. Live held items and
+chest slots are checked before encoding or consumption, including retained
+wire whose public `wire_patch()` is already invalidated. Interactive writes
+use a typed boundary; slot patches used by the #631 path share the same item
+safety check.
+
+The pinned fixture uses production Casting, item/NBT codecs and the production
+store with mock chunk storage. It covers cooling/completion extensions, opaque
+item retention, rejected consumption with whole-batch rollback, legacy aliases,
+snapshot replacement and both Table/Basin keys. It also runs the verbatim
+`interact_casting` and `casting_at` functions with mocked recipe/resource
+lookup and portable transfer, testing ordinary insertion, reusable molding,
+opaque/invalidated-wire insertion and reusable/consumed-pattern rejection,
+and live-slot rejection. Portable-fluid conversion itself is not exercised
+by this fixture. This fixes a persistence
+boundary; it does not add unsupported item gameplay, remove existing canonical
+interaction restrictions, solve destruction/migration, or establish live
+world/reload/LAN behavior. It does not depend on the comparator PR series.
