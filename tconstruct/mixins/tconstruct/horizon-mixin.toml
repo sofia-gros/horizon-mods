@@ -5675,3 +5675,80 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "rugged-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+
+[[module]]
+id = "source-depth-protection"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_depth_protection"
+source = "source-depth-protection.rs"
+
+[[module]]
+id = "server-source-depth-protection"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_depth_protection"
+source = "source-depth-protection.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-depth-protection-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_depth_protection_world"
+source = "depth-protection-world.rs"
+
+[[state]]
+id = "depth-protection-levels"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "Vec<i32>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[state]]
+id = "depth-protection-points"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "f32"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[injection]]
+id = "source-depth-protection-hit-height"
+target = "horizon_client_lib::health::PlayerMotion::hurt_caused_by"
+kind = "HEAD"
+helper = "depth-protection-height.rs"
+bindings = [{ name = "player", ty = "&mut crate::motion::PlayerMotion", value = "&mut *self" }]
+
+# Requires the native signed-protection extension, not an early damage multiplier.
+[[injection]]
+id = "source-depth-protection-lower-bound"
+target = "horizon_client_render::effects::StatusFlags::minimum_protection"
+kind = "HEAD"
+cancellable = true
+helper = "depth-protection-minimum.rs"
+bindings = [{ name = "status", ty = "&crate::effects::StatusFlags", value = "self" }]
+
+[[injection]]
+id = "source-depth-protection-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "RETURN"
+helper = "depth-protection-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-depth-protection-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "depth-protection-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-depth-protection-player-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "depth-protection-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
