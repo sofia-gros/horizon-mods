@@ -3,10 +3,17 @@
 #[path = "../../mixins/tconstruct/source-melting-lookup.rs"] mod tconstruct_source_melting_lookup;
 
 mod tconstruct_source_fluid_container {
-    // The acquisition test never uses buckets. This stub also supports the
-    // catalog module's own unrelated bucket unit test when run together.
+    // The acquisition test never uses buckets. Model the bucket suppliers used
+    // by the imported catalog tests, including their source/flowing aliases.
+    // This fixture tests catalog lookup, not the production container adapter.
     pub(super) fn filled_bucket(fluid: &str) -> Option<String> {
-        (fluid == "minecraft:lava").then(|| "minecraft:lava_bucket".into())
+        match fluid {
+            "minecraft:lava" | "minecraft:flowing_lava" => Some("minecraft:lava_bucket".into()),
+            "minecraft:water" | "minecraft:flowing_water" => Some("minecraft:water_bucket".into()),
+            "tconstruct:molten_copper" | "tconstruct:flowing_molten_copper" => Some("tconstruct:molten_copper_bucket".into()),
+            "tconstruct:powdered_snow" => Some("minecraft:powder_snow_bucket".into()),
+            _ => None,
+        }
     }
 }
 
