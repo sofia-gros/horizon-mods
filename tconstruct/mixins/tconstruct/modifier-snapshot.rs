@@ -107,6 +107,15 @@ pub(super) struct BonusGuideRecipe {
     pub inputs: Vec<Vec<String>>,
     pub tools: Vec<String>,
     pub returns_bottles: bool,
+    pub crystal_alternative: bool,
+}
+
+// This describes a modifier-bearing crystal, never the fresh empty stack.
+// The Station defaults allow_crystal to true; malformed values are rejected
+// by each guide parser before this availability projection is consulted.
+fn guide_crystal_alternative(recipe: &serde_json::Value, items: &[String]) -> bool {
+    recipe.get("allow_crystal").map_or(true, |value| value.as_bool() == Some(true))
+        && items.iter().any(|id| id == "tconstruct:modifier_crystal")
 }
 
 /// Only ordinary one-to-five-input, level-one, no-slot-cost bonus recipes
@@ -142,7 +151,8 @@ pub(super) fn bonus_guide_recipes(
             let mut tools: Vec<_> = tools.iter().filter(|id| matches(tool_filter, id)).cloned().collect();
             tools.sort(); tools.dedup();
             if !tools.is_empty() {
-                result.push(BonusGuideRecipe { recipe: recipe.clone(), modifier: modifier.clone(), inputs, tools, returns_bottles });
+                result.push(BonusGuideRecipe { recipe: recipe.clone(), modifier: modifier.clone(), inputs, tools, returns_bottles,
+                    crystal_alternative: guide_crystal_alternative(&value, items) });
             }
         }
     }
@@ -163,6 +173,7 @@ pub(super) struct OrdinaryGuideRecipe {
     pub repeatable_maximum: Option<i32>,
     pub level_range: Option<(i32, i32)>,
     pub empty_inputs: Vec<bool>,
+    pub crystal_alternative: bool,
 }
 
 /// Bounded ordinary modifier pages: explicit level one, one to five ordinary
@@ -257,7 +268,8 @@ pub(super) fn ordinary_guide_recipes_with_levels(
             if !tools.is_empty() {
                 result.push(OrdinaryGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools,
                     upgrade_cost, ability_cost, check_trait_level:value.get("check_trait_level").and_then(|v| v.as_bool()).unwrap_or(false),
-                    repeatable_maximum:fluid.map(|(_, _, maximum)| maximum), level_range, empty_inputs });
+                    repeatable_maximum:fluid.map(|(_, _, maximum)| maximum), level_range, empty_inputs,
+                    crystal_alternative: guide_crystal_alternative(&value, items) });
             }
         }
     }
@@ -275,6 +287,7 @@ pub(super) struct IncrementalGuideRecipe {
     pub leftover: Option<String>,
     pub maximum: i32,
     pub upgrade_cost: i32,
+    pub crystal_alternative: bool,
 }
 
 /// Show item/tag inputs worth the source single-item or block values (1/4/9)
@@ -325,7 +338,8 @@ pub(super) fn incremental_guide_recipes(
             let mut tools: Vec<_> = tools.iter().filter(|id| supported_tool(modifier, id) && matches(tool_filter, id)).cloned().collect();
             inputs.sort(); inputs.dedup(); tools.sort(); tools.dedup();
             if !inputs.is_empty() && !tools.is_empty() {
-                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, per_item, leftover, maximum, upgrade_cost });
+                rows.push(IncrementalGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools, needed, per_item, leftover, maximum, upgrade_cost,
+                    crystal_alternative: guide_crystal_alternative(&value, items) });
             }
         }
     }
@@ -615,7 +629,7 @@ mod tests {
         let matcher = |value: &serde_json::Value, id: &str| value.get("item").and_then(|v| v.as_str()) == Some(id);
         let mut recipes = BTreeMap::from([("x:bonus".into(), serde_json::to_vec(&recipe).unwrap())]);
         let rows = bonus_guide_recipes(&recipes, &modifiers, &items, &tools, matcher);
-        assert_eq!(rows, vec![BonusGuideRecipe { recipe:"x:bonus".into(), modifier:"tconstruct:writable".into(), inputs:vec![vec!["minecraft:writable_book".into()]], tools:vec!["tconstruct:pickaxe".into()], returns_bottles:false }]);
+        assert_eq!(rows, vec![BonusGuideRecipe { recipe:"x:bonus".into(), modifier:"tconstruct:writable".into(), inputs:vec![vec!["minecraft:writable_book".into()]], tools:vec!["tconstruct:pickaxe".into()], returns_bottles:false, crystal_alternative:false }]);
         let mut changed = recipe.clone(); changed["inputs"][0]["item"] = serde_json::json!("minecraft:paper");
         recipes.insert("x:bonus".into(), serde_json::to_vec(&changed).unwrap());
         assert_eq!(bonus_guide_recipes(&recipes, &modifiers, &items, &tools, matcher)[0].inputs, [vec!["minecraft:paper"]]);

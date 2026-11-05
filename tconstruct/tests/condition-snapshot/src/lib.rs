@@ -242,3 +242,48 @@ mod ordinary_modifier_guide_fixtures {
         assert!(empty.is_empty());
     }
 }
+
+#[cfg(test)]
+mod modifier_crystal_guide_tests {
+    use super::tconstruct_modifier_snapshot as guide;
+    use std::collections::BTreeMap;
+    use serde_json::{json, Value};
+
+    #[test]
+    fn crystal_alternatives_follow_recipe_permission_and_registered_item_in_every_guide() {
+        let modifiers = vec!["tconstruct:example".to_owned()];
+        let registry = BTreeMap::from([(modifiers[0].clone(), 45)]);
+        let tools = vec!["tconstruct:pickaxe".to_owned()];
+        let matches = |value: &Value, id: &str| value["item"].as_str() == Some(id);
+        for kind in ["bonus", "ordinary", "incremental"] {
+            let mut recipe = json!({"type":"tconstruct:modifier","result":"tconstruct:example",
+                "inputs":[{"item":"minecraft:stone"}],"level":1,"tools":{"item":"tconstruct:pickaxe"}});
+            if kind == "ordinary" { recipe["slots"] = json!({"upgrades":1}); }
+            if kind == "incremental" {
+                recipe.as_object_mut().unwrap().remove("inputs");
+                recipe["type"] = json!("tconstruct:incremental_modifier");
+                recipe["input"] = json!({"item":"minecraft:stone"});
+                recipe["needed_per_level"] = json!(45); recipe["amount_per_item"] = json!(1);
+                recipe["level"] = json!({"max":5}); recipe["slots"] = json!({"upgrades":1});
+            }
+            let shown = |recipe: &Value, items: &[String]| {
+                let recipes = BTreeMap::from([("test:recipe".into(), serde_json::to_vec(recipe).unwrap())]);
+                match kind {
+                    "bonus" => guide::bonus_guide_recipes(&recipes,&modifiers,items,&tools,matches)
+                        .into_iter().map(|row|row.crystal_alternative).collect::<Vec<_>>(),
+                    "ordinary" => guide::ordinary_guide_recipes(&recipes,&modifiers,items,&tools,matches,|_,_|true)
+                        .into_iter().map(|row|row.crystal_alternative).collect(),
+                    _ => guide::incremental_guide_recipes(&recipes,&modifiers,&registry,items,&tools,matches,|_,_|true,|_,_,_|true)
+                        .into_iter().map(|row|row.crystal_alternative).collect(),
+                }
+            };
+            let items = ["minecraft:stone", "tconstruct:modifier_crystal"].map(str::to_owned);
+            assert_eq!(shown(&recipe,&items),[true],"{kind}: omitted permission uses Station default");
+            recipe["allow_crystal"] = json!(true); assert_eq!(shown(&recipe,&items),[true]);
+            assert_eq!(shown(&recipe,&items[..1]),[false],"{kind}: crystal not registered");
+            assert!(shown(&recipe,&items[1..]).is_empty(),"{kind}: crystal alone does not create an unsupported recipe page");
+            recipe["allow_crystal"] = json!(false); assert_eq!(shown(&recipe,&items),[false]);
+            recipe["allow_crystal"] = json!("true"); assert!(shown(&recipe,&items).is_empty());
+        }
+    }
+}
