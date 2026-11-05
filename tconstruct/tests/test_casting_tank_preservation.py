@@ -14,6 +14,15 @@ class CastingTankPreservation(unittest.TestCase):
         for update in ('slots[0] = state.slots[0].clone()', 'notify_casting_comparator(', 'game.container_changed('):
             self.assertLess(body.index('store::write('), body.index(update))
 
+    def test_interaction_rechecks_snapshots_before_every_save(self):
+        body = (ROOT / 'source-machine-runtime.rs').read_text().split('pub(super) fn interact_casting_tank(', 1)[1].split('pub(super) fn cannon_at(', 1)[0]
+        self.assertLess(body.index('let held_before'), body.index('game.ensure_datapacks()'))
+        for check in ('contains_key(', '== block_state', 'Some(&raw)', 'fresh.to_nbt_preserving(&raw)', 'game.creative == creative', '== local', 'same_item_same_components(before)', 'data.wire.patch().is_some()'):
+            self.assertIn(check, body)
+        self.assertEqual(body.count('if !unchanged(game) { return true; }'), 3)
+        self.assertEqual(body.count('if !unchanged(game) { return true; }\n        if !save_casting_tank('), 2)
+        self.assertIn('if !unchanged(game) { return true; }\n    if !save_casting_tank(', body)
+
     def test_hopper_rechecks_wire_and_keeps_rollback(self):
         body = (ROOT / 'source-chute-hopper.rs').read_text().split('fn casting_tank_transfer(', 1)[1]
         self.assertIn('data.wire.patch().is_some()', body)

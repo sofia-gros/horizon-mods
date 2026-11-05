@@ -215,3 +215,22 @@ production Casting Tank loader/save. Three new cases cover container
 processing, slot/redstone updates, extensions, opaque/stale states, wire and
 failed writes. Tests were not run. Full manual/hopper execution, host/world,
 save/reload, LAN and destruction handling remain separate and unverified.
+
+
+### Casting Tank interaction snapshot safety (#379)
+
+Held-container fill/drain and upper-slot insert/take now snapshot the exact block,
+saved Casting Tank compound, both live slots, held stack, creative flag and local/
+network execution mode. They require a preserving identity roundtrip before staging
+and recheck the snapshots after datapack preparation and automatic container
+processing, before saving or publishing held items or gifts. Retained wire-backed
+held items wait without conversion, including stale backing hidden by a new item
+component. The preserving save from the prior change retains unknown native
+metadata and refuses unsafe slot rewrites.
+
+The shared Cannon/Casting Tank fixture now extracts the full production Casting
+Tank interaction and process helper. Added cases cover fill/drain, counts, creative
+behavior, automatic container processing, upper-slot insert/take, first/second
+callback changes, wire refusal and failed persistence. These fixtures use a mocked
+host/world/store and were added but not run in this implementation phase. Full host,
+gameplay, save/reload, LAN and notification callback behavior remain unverified.

@@ -319,9 +319,31 @@ pub(super) fn process_casting_tank(game: &mut super::Game<'_>, state: &mut super
 pub(super) fn interact_casting_tank(game: &mut super::Game<'_>, pos: Pos, clicked_tank: bool) -> bool {
     if !ensure(game, pos, "tconstruct:seared_casting_tank") { return false; }
     let Some(mut state) = casting_tank_at(game, pos) else { return false; };
+    let Some(raw) = store::read(&game.world, pos, "tconstruct:casting_tank") else { return false; };
+    if state.to_nbt_preserving(&raw).as_ref() != Some(&raw) { return true; }
+    let block_state = game.world.block(pos.0,pos.1,pos.2);
+    let held_before = game.held().cloned(); let creative = game.creative;
+    let local = (game.lan.is_none(), game.lan_acting_uuid.is_none());
+    // Both datapack preparation and container processing can call back into
+    // the host. Do not publish a staged result over any changed snapshot.
+    let unchanged = |game: &super::Game<'_>| {
+        game.world.chunks.contains_key(&(pos.0 >> 4,pos.2 >> 4))
+            && game.world.block(pos.0,pos.1,pos.2) == block_state
+            && store::read(&game.world,pos,"tconstruct:casting_tank").as_ref() == Some(&raw)
+            && casting_tank_at(game,pos).is_some_and(|fresh| fresh.to_nbt_preserving(&raw).as_ref() == Some(&raw))
+            && game.creative == creative
+            && (game.lan.is_none(), game.lan_acting_uuid.is_none()) == local
+            && match (game.held(), held_before.as_ref()) {
+                (None,None) => true,
+                (Some(now),Some(before)) => now.count == before.count && now.damage == before.damage
+                    && now.same_item_same_components(before) && now.wire_patch().is_none()
+                    && !now.data().is_some_and(|data| data.wire.patch().is_some()),
+                _ => false,
+            }
+    };
     if clicked_tank {
         let Some(held) = game.held().cloned() else { return true; };
-        if held.wire_patch().is_some() { return true; }
+        if held.wire_patch().is_some() || held.data().is_some_and(|data| data.wire.patch().is_some()) { return true; }
         game.ensure_datapacks();
         let Some((fluids, _)) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok()) else { return true; };
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
@@ -332,6 +354,7 @@ pub(super) fn interact_casting_tank(game: &mut super::Game<'_>, pos: Pos, clicke
             &|fluid| fluids.contains(fluid), tags, game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
         let drained = state.tank.amount < before;
         let _ = process_casting_tank(game, &mut state);
+        if !unchanged(game) { return true; }
         if !save_casting_tank(game, pos, &state) { return false; }
         if game.creative { if drained { if let Some(result) = slots[1].take() { game.give_or_drop(result); } } }
         else if let Some(rest) = slots[0].take() { *game.held_mut() = Some(rest); if let Some(result) = slots[1].take() { game.give_or_drop(result); } }
@@ -340,16 +363,18 @@ pub(super) fn interact_casting_tank(game: &mut super::Game<'_>, pos: Pos, clicke
     }
     let taken = if state.slots[1].is_some() { state.slots[1].take() } else { state.slots[0].take() };
     if let Some(stack) = taken {
+        if !unchanged(game) { return true; }
         if !save_casting_tank(game, pos, &state) { return false; }
         game.give_or_drop(stack); return true;
     }
     let Some(mut held) = game.held().cloned() else { return true; };
     let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok());
     let Some((fluids, _)) = fluids else { return true; };
-    if held.count == 0 || held.wire_patch().is_some() || !super::tconstruct_source_fluid_container::accepts_with_color(&held, &|id| fluids.contains(id), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
+    if held.count == 0 || held.wire_patch().is_some() || held.data().is_some_and(|data| data.wire.patch().is_some()) || !super::tconstruct_source_fluid_container::accepts_with_color(&held, &|id| fluids.contains(id), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
     let mut one = held.clone(); one.count = 1; held.count -= 1;
     state.slots[0] = Some(one);
     let _ = process_casting_tank(game, &mut state);
+    if !unchanged(game) { return true; }
     if !save_casting_tank(game, pos, &state) { return false; }
     *game.held_mut() = (held.count > 0).then_some(held);
     true
