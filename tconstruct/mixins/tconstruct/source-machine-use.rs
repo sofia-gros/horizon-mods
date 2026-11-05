@@ -32,9 +32,40 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
             }
             crate::game::tconstruct_source_machine_runtime::interact_cannon(game,pos,tank)
         },
+        "tconstruct:seared_melter" => {
+            // Source TinyMultiblockControllerBlock tries the held container
+            // first, then opens its normal menu when no transfer is possible.
+            use crate::game::tconstruct_source_melter_store as store;
+            if !crate::game::tconstruct_source_machine_runtime::ensure(game, pos, &name) { return Break(Ok(false)); }
+            game.ensure_datapacks();
+            let plan = game.held().and_then(|held| {
+                let raw = store::read(&game.world, pos, "tconstruct:melter")?;
+                let (fluids, _) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()?.as_ref().ok()?;
+                let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok());
+                crate::game::tconstruct_source_fluid_container::plan_melter_held(&raw, held,
+                    &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags,
+                    game.lan.is_none() && game.lan_acting_uuid.is_none())
+            });
+            if let Some(mut plan) = plan {
+                // A rejected save must not consume, give or drop any item.
+                if !store::write(&mut game.world, pos, "tconstruct:melter", plan.saved) { return Break(Ok(false)); }
+                if game.creative {
+                    if plan.drained { if let Some(result) = plan.result.take() { game.give_or_drop(result); } }
+                } else if let Some(rest) = plan.remaining.take() {
+                    *game.held_mut() = Some(rest);
+                    if let Some(result) = plan.result.take() { game.give_or_drop(result); }
+                } else {
+                    *game.held_mut() = plan.result.take();
+                }
+                game.container_changed(pos);
+            } else {
+                game.open_menu(hit.pos);
+            }
+            true
+        },
         "tconstruct:copper_gauge" => crate::game::tconstruct_source_gauge::interact(game, pos),
         "tconstruct:crafting_station" => crate::game::tconstruct_crafting_station::open(game, hit.pos),
-        "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_melter" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
+        "tconstruct:part_chest" | "tconstruct:tinkers_chest" | "tconstruct:tinkers_anvil" | "tconstruct:scorched_anvil" | "tconstruct:modifier_worktable" | "tconstruct:seared_heater" => { game.open_menu(hit.pos); true },
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
         "tconstruct:seared_drain" | "tconstruct:scorched_drain" => {
