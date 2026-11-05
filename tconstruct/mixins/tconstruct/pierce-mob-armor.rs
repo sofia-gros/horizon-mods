@@ -1,6 +1,6 @@
 fn tconstruct_pierced_mob_armor(
-    mob: &crate::mobs::Mob,
-    original: impl FnOnce(&crate::mobs::Mob) -> (f32, f32),
+    mob: &mut crate::mobs::Mob,
+    original: impl FnOnce(&mut crate::mobs::Mob) -> (f32, f32),
 ) -> (f32, f32) {
     let (armor, toughness) = original(mob);
     // Only the damage calculation sees this delta. Equipment and MobKind stay
