@@ -11,6 +11,7 @@ const TAGS: &[&str] = &[
     "forge:slimeballs",
     "tconstruct:casts/single_use/blank",
     "tconstruct:casts/gold",
+    "tconstruct:parts",
     "tconstruct:greenheart_logs",
     "tconstruct:skyroot_logs",
     "tconstruct:bloodshroom_logs",
