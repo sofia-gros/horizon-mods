@@ -1,4 +1,4 @@
-"""Source policies for the three standard player contact-effect liquids."""
+"""Source policies for the standard and custom player contact-effect liquids."""
 import json
 from pathlib import Path
 import unittest
@@ -15,12 +15,13 @@ class EffectWorldFluidTests(unittest.TestCase):
             if effect is not None:
                 self.assertTrue(effect['no_curatives'])
                 protected.add(path.stem)
-        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul'})
+        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul', 'earth_slime'})
 
     def test_source_effect_flow_temperature_class_and_sprites(self):
         # TinkerFluids and FluidTextureProvider at f4e77d43, not generated values.
         cases = [
             ('venom', 'poison', 1, 4, 5, 0, True, 'slime/venom'),
+            ('earth_slime', 'tconstruct:bouncy', 1, 4, 50, 0, True, 'slime/earth'),
             ('honey', 'slowness', 1, 4, 50, 0, True, 'food/honey'),
             ('liquid_soul', 'blindness', 8, 8, 30, 2, False, 'slime/soul'),
         ]
@@ -35,7 +36,7 @@ class EffectWorldFluidTests(unittest.TestCase):
                 self.assertEqual(fluid['policy'], {'drop_off': drop, 'slope_distance': slope,
                                                   'tick_delay': delay, 'source_conversion': False})
                 interaction = fluid['interaction']
-                self.assertEqual(interaction['effect'], {'id': 'minecraft:' + effect,
+                self.assertEqual(interaction['effect'], {'id': effect if ':' in effect else 'minecraft:' + effect,
                                                         'duration_ticks': 100, 'amplifier': 0,
                                                         'no_curatives': True})
                 self.assertIsNone(interaction['burn'])

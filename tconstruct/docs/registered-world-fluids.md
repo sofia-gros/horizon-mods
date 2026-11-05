@@ -1,6 +1,6 @@
 # Registered world-fluid draft
 
-This slice declares sixty-six world-liquid families. The initial families are iron, gold, copper,
+This slice declares sixty-seven world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Glass, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
@@ -8,7 +8,7 @@ Blazing Blood and Fiery Liquid. Four cool food liquids are also included:
 Beetroot Soup, Mushroom Stew, Rabbit Stew and Meat Soup.
 Venom, Honey and Liquid Soul add the first standard player contact effects.
 Magma adds a burning slime-family liquid. Ichor and Molten Cinderslime add
-the first upward-flowing liquids.
+the first upward-flowing liquids. Earth Slime adds the Bouncy player effect.
 The remaining thirty conventional metals and compatibility alloys are listed
 below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
@@ -17,7 +17,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #29](https://github.com/sofia-gros/horizon/pull/29).** Keep this
+[Horizon fork PR #31](https://github.com/sofia-gros/horizon/pull/31).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -42,7 +42,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
   uses tick rate 30. The four soups also use the defaults: drop 1, slope 4,
-  tick rate 5. None of the sixty-six families generates new sources.
+  tick rate 5. None of the sixty-seven families generates new sources.
 - Molten Glass uses `registerGlass`: level drop 8, slope distance 8, tick rate 30.
   It needs the extended host slope bound; its policy is not approximated as
   stone or clamped to four. It burns for 5 seconds with damage 2 and light 1.
@@ -84,7 +84,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all sixty-six families. Queen's Slime's source camera fog color remains
+  covers all sixty-seven families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -142,6 +142,25 @@ hidden-instance policy on downgrade; mixed-source equivalence with Forge is
 unverified. Its existing save model does not persist hidden chains. Mobs,
 custom slime/Enderference effects, fog and gameplay/LAN validation remain separate.
 
+Earth Slime retains source slime flow (drop 1, slope 4, tick rate 50), light 0,
+no burn, and enabled swimming/drowning/extinguishing. Matching body contact
+applies `tconstruct:bouncy` for 100 ticks, amplifier 0, with no generic curatives.
+The effect is registered as beneficial with source color `0x71AC63` and the
+original status icon. Its current presence enables the host's explicit
+`bounce_on_fall` flag after each normal effect-status update; expiry/removal
+clears it and synchronized remote/guest effects use the same binding.
+
+The required host landing extension handles source threshold/step-height guards,
+0.5 crouching damage multiplier, gravity-based authoritative rebound, client
+reverse-velocity factors, post-collision application and velocity sync. It does
+not enable the archived armor-bounce injections. Source repeated air-momentum
+preservation, bounce sound and mob behavior remain incomplete. Native injection
+planning/build and actual landing/expiry/LAN behavior are unverified, so this is
+not full Bouncy parity. The source still/flow art and animation metadata use
+`slime/earth`; the separate `slime-effect-assets.json` records the original
+Bouncy icon provenance. Existing Earth Slime bucket/bottle/cake paths and solid
+slime blocks remain unchanged.
+
 Magma retains `registerSlime` flow: drop 1, slope 4 and tick rate 50, with light 3
 and 8 seconds/3 damage of burning contact. Despite burning, its source uses the
 `slime()`/`cool()` properties: player swimming, drowning and extinguishing stay
@@ -166,7 +185,7 @@ still, flowing and `flowing_inverted` sprites and all animation metadata. The
 normal flowing path stays in the declaration; the host chooses its `_inverted`
 variant in the world. This matches Mantle's `ClientInvertedFluidType`, including
 reversed source animation frame lists, rather than flipping a different sprite.
-The provenance manifest now records 236 original files. Source inspection of
+The provenance manifest now records 240 original fluid files. Source inspection of
 Mantle `InvertedFluid` and its type shows unchanged liquid surface/contact
 geometry: only simulation, current direction and the flowing sprite change.
 The host therefore does not invent ceiling-anchored geometry. The new upward
@@ -190,7 +209,7 @@ integrator without assigning native water tags. Their equivalence to Forge's
 generic fluid travel, fall scaling and mixed-fluid precedence remains unverified.
 They are provisional host integration parameters, not source-parity claims.
 
-Remaining: Earth Slime, Sky Slime, Ender Slime and Molten Ender world fluids,
+Remaining: Sky Slime, Ender Slime and Molten Ender world fluids,
 source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, burn audio, camera fog, mixing and
 solidification, dispenser handling, final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid

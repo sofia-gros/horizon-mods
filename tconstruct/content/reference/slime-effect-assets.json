@@ -1,0 +1,9 @@
+{
+  "revision": "f4e77d43f39ba1047bf93ae816b7e1beaab514c2",
+  "files": {
+    "assets/tconstruct/textures/mob_effect/bouncy.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/mob_effect/bouncy.png",
+      "sha256": "27a4ab1b73c21b3e39918f746e7521ebc57d9b8f197231823e113b1c90a2c8c5"
+    }
+  }
+}
