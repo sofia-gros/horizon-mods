@@ -38,3 +38,7 @@ The adapter mocks Game attributes and trait resolution; it does not prove live
 attribute transport, actual save/network round trips, reload GUI or LAN. These
 remain unverified until host/gameplay tests complete. Unsupported non-stock
 TConstruct armor and custom modifier definitions are not approximated.
+
+The adapter runner verifies the exact clean pinned Horizon checkout, resolves
+workspace membership offline, rejects fetched dependencies outside the pinned
+host lock (including checksum drift), and executes tests with `--locked --offline`.

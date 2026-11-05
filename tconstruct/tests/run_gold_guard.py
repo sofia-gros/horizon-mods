@@ -8,6 +8,27 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
+import tomllib
+
+
+
+def verify_source(horizon, expected_revision):
+    revision = subprocess.check_output(['git', '-C', str(horizon), 'rev-parse', 'HEAD'], text=True).strip()
+    if revision != expected_revision:
+        raise RuntimeError(f'Expected pinned Horizon {expected_revision}, got {revision}')
+    subprocess.run(['git', '-C', str(horizon), 'diff', '--quiet', 'HEAD', '--'], check=True)
+
+
+def verify_lock(original, generated):
+    # The fixture changes workspace membership, so its root/path packages differ.
+    # Every fetched dependency must still be exactly one in the pinned host lock.
+    def fetched(path):
+        packages = tomllib.loads(path.read_text())['package']
+        return {(p['name'], p['version'], p['source'], p.get('checksum'))
+                for p in packages if 'source' in p}
+    unexpected = fetched(generated) - fetched(original)
+    if unexpected:
+        raise RuntimeError(f'Fixture resolved dependencies outside pinned host lock: {sorted(unexpected)}')
 
 
 def main():
@@ -16,6 +37,8 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     horizon = args.horizon.resolve()
+    expected = json.loads((root / 'compatibility.json').read_text())['horizon_revision']
+    verify_source(horizon, expected)
     target = root / 'target/gold-guard-fixture'
     target.mkdir(parents=True, exist_ok=True)
     dependencies = '\n'.join(
@@ -29,7 +52,10 @@ def main():
         f'#[path={json.dumps(str(root / "mixins/tconstruct/source-gold-guard.rs"))}]\nmod tconstruct_gold_guard;\n'
         + ''.join(f'include!({json.dumps(str(root / "tests/rust" / filename))});\n'
                   for filename in ('gold_guard_runtime.rs',)))
-    subprocess.run(['cargo', 'test', '--offline', '--manifest-path', str(target / 'Cargo.toml')], check=True)
+    subprocess.run(['cargo', 'metadata', '--offline', '--format-version', '1',
+                    '--manifest-path', str(target / 'Cargo.toml')], stdout=subprocess.DEVNULL, check=True)
+    verify_lock(horizon / 'Cargo.lock', target / 'Cargo.lock')
+    subprocess.run(['cargo', 'test', '--locked', '--offline', '--manifest-path', str(target / 'Cargo.toml')], check=True)
 
 
 if __name__ == '__main__':
