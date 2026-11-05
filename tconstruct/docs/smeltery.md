@@ -70,3 +70,22 @@ reservation cannot start. This is not a general FluidHandler implementation.
 Focused fixtures are added but not executed in this phase. Only brief static
 review was performed; host build, actual gameplay, save/reload, LAN and atomic
 disk/network persistence remain unverified.
+
+
+### Melter to Casting Tank
+
+The staged Casting Tank supply route also accepts a Seared Melter. Its internal
+tank must be canonical; only that field is patched, retaining raw inventory,
+fuel, progress and other metadata. Live Melter inventory is unchanged. Initial
+and later reservations pour immediately, then destination-container processing
+runs on staged state before saving source, destination and Faucet together.
+
+The source entity, blocks, chunks, saved snapshots and destination live slots
+are rechecked after processing. Supported vanilla base potions work on the
+integrated/network path; supported custom color/effects remain nonnetwork-only.
+Other Melter routes and the global source adapter are unchanged. Melter
+comparator integration remains part of the separate comparator work.
+
+Three focused regression cases were added but not run. Brief static review
+only; host build, gameplay, save/reload, LAN and atomic disk/network persistence
+remain unverified. This builds on the Casting Tank-to-Casting Tank route.

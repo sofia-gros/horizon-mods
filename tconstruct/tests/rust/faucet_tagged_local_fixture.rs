@@ -9,9 +9,9 @@ use std::collections::HashMap;use horizon_world::nbt::Tag;use horizon_items::ite
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
 #[path="__MIXINS__/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="__PLUTO__"] mod pluto_stack_fluid;
-struct Info{name:String}struct Facts;impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_fuel_tank",2=>"tconstruct:seared_casting_tank",_=>"minecraft:air"}.into()}}}struct Res;impl Res{fn facts(&self)->Facts{Facts}}
+struct Info{name:String}struct Facts;impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_fuel_tank",2=>"tconstruct:seared_casting_tank",3=>"tconstruct:seared_melter",_=>"minecraft:air"}.into()}}}struct Res;impl Res{fn facts(&self)->Facts{Facts}}
 struct World{blocks:HashMap<Pos,usize>,block_entities:HashMap<Pos,containers::BlockEntity>,chunks:HashMap<(i32,i32),()>,tags:HashMap<(Pos,String),Tag>,fail:bool}impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{*self.blocks.get(&(x,y,z)).unwrap_or(&0)}}
-struct Game<'a>{res:Res,world:World,remote:Option<()>,lan:Option<()>,lan_acting_uuid:Option<()>,notified:bool,process_fault:u8,process_calls:usize,_life:std::marker::PhantomData<&'a()>}impl Game<'_>{fn ensure_datapacks(&mut self){}fn container_changed(&mut self,_:Pos){self.notified=true}}
+struct Game<'a>{res:Res,world:World,remote:Option<()>,lan:Option<()>,lan_acting_uuid:Option<()>,notified:bool,process_fault:u8,process_calls:usize,fault_after:usize,_life:std::marker::PhantomData<&'a()>}impl Game<'_>{fn ensure_datapacks(&mut self){}fn container_changed(&mut self,_:Pos){self.notified=true}}
 mod tconstruct_source_melter_store{use super::*;pub(super) fn read(w:&World,p:Pos,k:&str)->Option<Tag>{w.tags.get(&(p,k.into())).cloned()}pub(super) fn write_many(w:&mut World,v:&[(Pos,&str,Tag)])->bool{if w.fail||v.iter().any(|(p,k,_)|!w.tags.contains_key(&(*p,(*k).into()))){return false}for(p,k,t)in v{w.tags.insert((*p,(*k).into()),t.clone());}true}}
 mod tconstruct_source_machine_runtime{use super::*;use super::containers::BlockEntity;use super::tconstruct_source_melter_store as store;use super::tconstruct_source_melter_state::{Faucet,Tank};use super::tconstruct_source_casting_tank::CastingTank;
 pub(super) fn kind(n:&str)->Option<&'static str>{(n=="tconstruct:seared_fuel_tank").then_some("tconstruct:fuel_tank")}
@@ -19,12 +19,13 @@ fn casting_tank_at(g:&Game<'_>,p:Pos)->Option<CastingTank>{let mut c=CastingTank
 fn process_casting_tank(game: &mut Game<'_>, state: &mut CastingTank) -> bool {
     let changed = state.process(&|_| true, &|_| true, None, game.lan.is_none() && game.lan_acting_uuid.is_none());
     game.process_calls += 1;
-    if game.process_calls == 2 {
+    if game.process_calls == game.fault_after {
         match game.process_fault {
             1 => { let BlockEntity::Chest(slots) = game.world.block_entities.get_mut(&(-1,1,0)).unwrap(); slots[0] = Some(ItemStack::new("minecraft:stone",1)); },
             2 => { let BlockEntity::Chest(slots) = game.world.block_entities.get_mut(&(0,0,0)).unwrap(); slots[0] = Some(ItemStack::new("minecraft:stone",1)); },
             3 => { game.world.blocks.insert((0,1,0), 1); },
             4 => { game.world.chunks.clear(); },
+            5 => { game.world.block_entities.remove(&(-1,1,0)); },
             _ => {},
         }
     }
@@ -134,5 +135,106 @@ fn casting_chain_self_transfer_and_opaque_sources_wait_without_mutation() {
     assert_eq!(game.world.tags, before);
 }
 
+fn melter_casting_fixture() -> (Game<'static>, Pos, Pos, Pos) {
+    let (mut game, pos, source, target) = super::fixture();
+    let mut melter = super::tconstruct_source_melter_state::Melter::new();
+    assert!(melter.tank.insert("minecraft:water", 180));
+    melter.slots[0] = Some(ItemStack::new("minecraft:copper_ingot", 2));
+    melter.fuel = 30; melter.temperature = 1000; melter.progress[0] = 7;
+    let mut raw = melter.to_nbt();
+    if let Tag::Compound(fields) = &mut raw {
+        fields.insert("future".into(), Tag::Int(123));
+        if let Some(Tag::List(slots)) = fields.get_mut(&"slots".into()) {
+            if let Tag::Compound(item) = &mut slots[0] { item.insert("future_item".into(), Tag::Int(9)); }
+        }
+    }
+    game.world.blocks.insert(source, 3);
+    game.world.block_entities.insert(source, BlockEntity::Chest(melter.slots.to_vec()));
+    game.world.tags.insert((source, "tconstruct:melter".into()), raw);
+    let mut output = casting_tank_at(&game, target).unwrap();
+    assert!(output.tank.insert("minecraft:water", 990));
+    game.world.tags.insert((target, "tconstruct:casting_tank".into()), output.to_nbt());
+    game.fault_after = 1;
+    (game, pos, source, target)
 }
-fn fixture()->(Game<'static>,Pos,Pos,Pos){use tconstruct_source_melter_state::{Tank,Faucet};use tconstruct_source_casting_tank::CastingTank;let(p,s,t)=((0,1,0),(-1,1,0),(0,0,0));let mut source=Tank::new(4000);source.insert("minecraft:water",1080);let mut output=CastingTank::new();output.slots[0]=Some(ItemStack::new("minecraft:bucket",1));let tags=HashMap::from([((s,"tconstruct:fuel_tank".into()),source.to_nbt()),((p,"tconstruct:faucet".into()),Faucet::new().to_nbt()),((t,"tconstruct:casting_tank".into()),output.to_nbt())]);let blocks=HashMap::from([(s,1),(t,2)]);let block_entities=HashMap::from([(s,containers::BlockEntity::Chest(vec![])),(t,containers::BlockEntity::Chest(output.slots.to_vec()))]);(Game{res:Res,remote:None,lan:None,lan_acting_uuid:None,world:World{blocks,block_entities,chunks:HashMap::from([((-1,0),()),((0,0),())]),tags,fail:false},notified:false,process_fault:0,process_calls:0,_life:std::marker::PhantomData},p,s,t)}
+
+#[test]
+fn melter_casting_preserves_raw_machine_and_stages_completed_container() {
+    let (mut game, pos, source, target) = melter_casting_fixture();
+    let before = store::read(&game.world, source, "tconstruct:melter").unwrap();
+    let BlockEntity::Chest(slots) = game.world.block_entities.get(&source).unwrap();
+    let before_live = slots.clone();
+    assert_eq!(tank_to_casting_tank(&mut game, pos, source, target, Faucet::new(), true), Some(true));
+    let raw = store::read(&game.world, source, "tconstruct:melter").unwrap();
+    let input = super::tconstruct_source_melter_state::Melter::from_nbt(&raw).unwrap();
+    assert_eq!(raw, super::tconstruct_source_faucet_tank::patch_melter_tank(&before, &input.tank).unwrap());
+    let output = casting_tank_at(&game, target).unwrap();
+    let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+    assert_eq!((input.tank.amount, output.tank.amount, faucet.pending.amount), (90,0,80));
+    assert!(output.slots[0].is_none());
+    assert_eq!(output.slots[1].as_ref().unwrap().item.as_ref(), "minecraft:water_bucket");
+    assert_eq!(output.to_nbt(), store::read(&game.world, target, "tconstruct:casting_tank").unwrap());
+    for _ in 0..9 {
+        let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!(tank_to_casting_tank(&mut game, pos, source, target, faucet, false), Some(true));
+    }
+    let input = super::tconstruct_source_melter_state::Melter::from_nbt(&store::read(&game.world, source, "tconstruct:melter").unwrap()).unwrap();
+    let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+    assert_eq!((input.tank.amount, casting_tank_at(&game, target).unwrap().tank.amount, faucet.pending.amount), (0,90,80));
+    let BlockEntity::Chest(slots) = game.world.block_entities.get(&source).unwrap();
+    assert_eq!(*slots, before_live);
+}
+
+#[test]
+fn melter_casting_failed_save_opaque_tank_and_stale_processing_callbacks_wait() {
+    for fault in 0..6 {
+        let (mut game, pos, source, target) = melter_casting_fixture();
+        game.world.fail = fault == 0;
+        if fault == 1 {
+            if let Tag::Compound(fields) = game.world.tags.get_mut(&(source, "tconstruct:melter".into())).unwrap() {
+                if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("future".into(), Tag::Int(1)); }
+            }
+        } else { game.process_fault = fault; }
+        let before = game.world.tags.clone();
+        assert_eq!(tank_to_casting_tank(&mut game, pos, source, target, Faucet::new(), true), Some(false));
+        assert_eq!(game.world.tags, before);
+        let BlockEntity::Chest(slots) = game.world.block_entities.get(&target).unwrap();
+        assert_eq!(slots[0].as_ref().unwrap().item.as_ref(), if fault == 2 { "minecraft:stone" } else { "minecraft:bucket" });
+        assert!(slots[1].is_none());
+        assert!(!game.notified);
+    }
+}
+
+#[test]
+fn melter_casting_potion_bottle_keeps_base_identity_and_local_custom_color() {
+    for variant in 0..3 {
+        let (mut game, pos, source, target) = melter_casting_fixture();
+        let mut tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        if variant != 0 { if let Tag::Compound(fields) = &mut tag { fields.insert("CustomPotionColor".into(), Tag::Int(0x123456)); } }
+        game.lan = (variant != 1).then_some(());
+        let raw = store::read(&game.world, source, "tconstruct:melter").unwrap();
+        let mut tank = Tank::new(super::tconstruct_source_melter_state::MELTER_CAPACITY);
+        assert!(tank.insert_tagged("tconstruct:potion", Some(&tag), 250));
+        game.world.tags.insert((source, "tconstruct:melter".into()), super::tconstruct_source_faucet_tank::patch_melter_tank(&raw, &tank).unwrap());
+        let mut output = CastingTank::new(); assert!(output.tank.insert_tagged("tconstruct:potion", Some(&tag), 240));
+        output.slots[0] = Some(ItemStack::new("minecraft:glass_bottle", 1));
+        game.world.tags.insert((target, "tconstruct:casting_tank".into()), output.to_nbt());
+        game.world.block_entities.insert(target, BlockEntity::Chest(output.slots.to_vec()));
+        let before = game.world.tags.clone();
+        assert_eq!(tank_to_casting_tank(&mut game, pos, source, target, Faucet::new(), true), Some(variant != 2));
+        if variant == 2 { assert_eq!(game.world.tags, before); }
+        else {
+            let output = casting_tank_at(&game, target).unwrap();
+            let item = output.slots[1].as_ref().unwrap();
+            assert_eq!(item.item.as_ref(), "minecraft:potion");
+            assert_eq!(item.potion(), Some("minecraft:swiftness"));
+            if variant == 1 { assert!(item.data().unwrap().potion_extra.iter().any(|(key, value)| key == "custom_color" && *value == Tag::Int(0x123456))); }
+            let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+            assert_eq!((faucet.pending.amount, faucet.pending.tag), (80,Some(tag)));
+        }
+    }
+}
+
+
+}
+fn fixture()->(Game<'static>,Pos,Pos,Pos){use tconstruct_source_melter_state::{Tank,Faucet};use tconstruct_source_casting_tank::CastingTank;let(p,s,t)=((0,1,0),(-1,1,0),(0,0,0));let mut source=Tank::new(4000);source.insert("minecraft:water",1080);let mut output=CastingTank::new();output.slots[0]=Some(ItemStack::new("minecraft:bucket",1));let tags=HashMap::from([((s,"tconstruct:fuel_tank".into()),source.to_nbt()),((p,"tconstruct:faucet".into()),Faucet::new().to_nbt()),((t,"tconstruct:casting_tank".into()),output.to_nbt())]);let blocks=HashMap::from([(s,1),(t,2)]);let block_entities=HashMap::from([(s,containers::BlockEntity::Chest(vec![])),(t,containers::BlockEntity::Chest(output.slots.to_vec()))]);(Game{res:Res,remote:None,lan:None,lan_acting_uuid:None,world:World{blocks,block_entities,chunks:HashMap::from([((-1,0),()),((0,0),())]),tags,fail:false},notified:false,process_fault:0,process_calls:0,fault_after:2,_life:std::marker::PhantomData},p,s,t)}
