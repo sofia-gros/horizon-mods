@@ -117,3 +117,21 @@ mocked; the interaction, casting codec, item codec and metadata store are the
 production implementations. These cases have not been run in this batch.
 Full host/world, real portable conversion, save/reload and LAN validation are
 still deferred to the combined pass.
+
+### Portable Lantern native extensions (#379)
+
+The shared Seared/Scorched Lantern item-transfer path now patches its three
+native tank fields rather than discarding the tank compound. Filling, partial
+draining and full draining preserve tank extensions, surrounding custom data
+and other item components. An empty tank containing extensions remains saved
+and can be refilled; an ordinary empty tank still removes its payload. The
+50 mB per-item capacity and one-item-per-transfer stack handling are unchanged.
+
+Casting and Melter held-container gates accept these preserving Lanterns.
+Malformed native data, lossy fluid IDs, legacy tank aliases and both current
+and stale retained wire bytes are rejected before transfer. Other portable
+tank types retain their previous no-extension decoding restriction. Native
+state tests were added for both Lanterns, potion identity, fill/drain/refill,
+stack splitting, alias/wire refusal and the non-mutating Melter plan. They
+were not run in this batch. Host/world, save/reload and LAN validation remain
+for the combined pass; placed Lantern transfers are separate PRs.
