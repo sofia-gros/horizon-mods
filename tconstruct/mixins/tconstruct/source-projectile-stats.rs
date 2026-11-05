@@ -94,6 +94,10 @@ fn full_health(health: f32, maximum: f32) -> bool {
 /// Conditional projectile damage evaluated for the acting shooter at release.
 /// Missing/invalid maximum health skips Ambush rather than guessing a maximum.
 pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>, maximum: Option<f32>) -> f64 {
+    projectile_bonus_at_flame(stack, health, maximum, None)
+}
+
+pub(crate) fn projectile_bonus_at_flame(stack: &ItemStack, health: Option<f32>, maximum: Option<f32>, flamestance: Option<f32>) -> f64 {
     let base = projectile_bonus(stack);
     let Some(health) = health.filter(|value| value.is_finite()) else { return base; };
     let Some(custom) = stack.data().and_then(|data| data.other("minecraft:custom_data")) else { return base; };
@@ -117,7 +121,24 @@ pub(crate) fn projectile_bonus_at(stack: &ItemStack, health: Option<f32>, maximu
     // native-arrow damage delta. Subtracting two before narrowing loses bits.
     let mut value = stat(stack, "tic_projectile_damage").filter(|value| value.is_finite())
         .map(|value| value.max(0.0)).unwrap_or((base + 2.0) as f32);
-    if ambush_first { value += ambush_bonus; value += raging_bonus; }
+    if let Some(flame) = flamestance.filter(|value| value.is_finite()) {
+        // All three source modules have the same priority. Keep stored material
+        // insertion order, and append missing legacy entries deterministically.
+        let ids=["tconstruct:raging","tconstruct:ambush","tconstruct:flamestance"];
+        let bonuses=[raging_bonus,ambush_bonus,flame];
+        let mut order=Vec::new();
+        if let Some(Tag::List(saved))=custom.get("tic_trait_order") {
+            for id in saved {
+                if let Tag::String(id)=id {
+                    if let Some(index)=ids.iter().position(|candidate| *candidate==id.to_string_lossy()) {
+                        if !order.contains(&index) { order.push(index); }
+                    }
+                }
+            }
+        }
+        for index in 0..3 { if !order.contains(&index) { order.push(index); } }
+        for index in order { value += bonuses[index]; }
+    } else if ambush_first { value += ambush_bonus; value += raging_bonus; }
     else { value += raging_bonus; value += ambush_bonus; }
     f64::from(value.clamp(0.0, 1024.0)) - 2.0
 }
@@ -345,5 +366,27 @@ mod velocity_boundary_tests {
             ])));
             assert_eq!(projectile_stats(&stack),Some((expected,0.0)));
         }
+    }
+}
+
+#[cfg(test)]
+mod flamestance_tests {
+    use super::*;
+    #[test]
+    fn signed_temperature_bonus_is_added_before_the_single_final_clamp() {
+        let mut stack=ItemStack::new("tconstruct:longbow",1);
+        stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_projectile_damage",Tag::Float(0.5f32.to_bits())),
+            ("tic_raging_projectile_multiplier",Tag::Float(1.0f32.to_bits())),
+            ("tic_raging",Tag::Int(2)),
+            ("tic_trait_order",Tag::List(vec![Tag::String("tconstruct:flamestance".into()),Tag::String("tconstruct:raging".into())])),
+        ])));
+        let before=stack.clone();
+        let expected=(0.5f32 + -0.9 + 2.0).clamp(0.0,1024.0);
+        assert_eq!(projectile_bonus_at_flame(&stack,Some(1.0),None,Some(-0.9)),f64::from(expected)-2.0);
+        assert_eq!(projectile_bonus_at_flame(&stack,Some(20.0),None,Some(-0.75)),-2.0);
+        assert_eq!(projectile_bonus_at_flame(&stack,Some(20.0),None,Some(0.75)),-0.75);
+        assert_eq!(projectile_bonus_at_flame(&stack,Some(20.0),None,None),projectile_bonus_at(&stack,Some(20.0),None));
+        assert_eq!(stack,before);
     }
 }

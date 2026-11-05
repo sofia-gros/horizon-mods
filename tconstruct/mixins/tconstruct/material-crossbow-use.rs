@@ -32,7 +32,9 @@ fn tconstruct_crossbow_use(
             let maximum = if crate::game::tconstruct_projectile_stats::ambush_level(stack) > 0 {
                 game.player.as_mut().and_then(|player| player.attribute("minecraft:max_health").ok()).map(|value| value as f32)
             } else { None };
-            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, crate::game::tconstruct_projectile_stats::projectile_bonus_at(stack, health, maximum), crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
+            let flame=crate::game::tconstruct_flamestance_world::projectile_bonus(game,stack);
+            let damage=crate::game::tconstruct_projectile_stats::projectile_bonus_at_flame(stack,health,maximum,flame);
+            game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().insert(actor, (velocity, spread, shots, false, damage, crate::game::tconstruct_projectile_stats::crystalbound_level(stack), glowing));
         }
         game.shoot_crossbow();
         game.world.chunks.__horizon_mixins_tconstruct_material_projectile_context_mut().remove(&actor);

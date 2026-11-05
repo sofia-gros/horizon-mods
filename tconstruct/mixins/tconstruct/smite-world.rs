@@ -54,8 +54,9 @@ pub(super) fn bonus(game: &super::Game<'_>, index: usize) -> Option<f32> {
     let multiplier = match custom.get("tic_smite_melee_multiplier") { Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return None };
     if !multiplier.is_finite() || multiplier < 0.0 { return None; }
     let flat = 2.0 * level * multiplier
-        + super::tconstruct_antitoxin_world::melee_bonus(game, stack, &traits, multiplier).unwrap_or(0.0);
-    if flat <= 0.0 || !flat.is_finite() { return None; }
+        + super::tconstruct_antitoxin_world::melee_bonus(game, stack, &traits, multiplier).unwrap_or(0.0)
+        + super::tconstruct_flamestance_world::melee_bonus(game, stack, &traits, multiplier).unwrap_or(0.0);
+    if flat == 0.0 || !flat.is_finite() { return None; }
     let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|raw| raw.as_ref().ok());
     let wear_level = |id| {
         if super::tconstruct_modifier_snapshot::known_melee_wear(raw, id) { traits.levels.get(id).copied().unwrap_or(0) } else { 0 }
