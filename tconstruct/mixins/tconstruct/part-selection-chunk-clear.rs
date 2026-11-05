@@ -42,6 +42,8 @@ fn clear_part_selections(chunks: &mut crate::chunk_map::ChunkMap) {
     *chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = None;
     *chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot_mut() = None;
     *chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = None;
+    *chunks.__horizon_mixins_tconstruct_dreambound_jump_client_mut() = None;
+    chunks.__horizon_mixins_tconstruct_dreambound_jump_sent_mut().clear();
     *chunks.__horizon_mixins_tconstruct_haste_wire_client_mut() = None;
     chunks.__horizon_mixins_tconstruct_haste_wire_sent_mut().clear();
     *chunks.__horizon_mixins_tconstruct_broad_wire_client_mut() = None;
