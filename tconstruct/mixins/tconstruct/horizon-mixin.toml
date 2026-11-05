@@ -72,7 +72,7 @@ visibility = "pub"
 
 [[module]]
 id = "source-scute-compat"
-file = "crates/horizon-client/src/entry.rs"
+file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_scute_compat"
 source = "source-scute-compat.rs"
 visibility = "pub"

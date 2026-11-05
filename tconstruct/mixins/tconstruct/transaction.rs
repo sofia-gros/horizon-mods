@@ -1822,7 +1822,7 @@ mod tests {
     #[test]
     fn native_turtle_scute_enters_source_material_lookup_and_recycling_output() {
         use std::collections::{BTreeMap, HashMap, HashSet};
-        use crate::entry::tconstruct_source_scute_compat as compat;
+        use crate::tconstruct_source_scute_compat as compat;
         let mut material = serde_json::json!({"type":"tconstruct:material", "ingredient":{"item":"minecraft:scute"}, "material":"tconstruct:turtle", "needed":1,"value":1});
         let lookup = |value: &serde_json::Value, item: &str| {
             super::source_material_lookup(

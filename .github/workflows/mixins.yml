@@ -101,6 +101,7 @@ jobs:
           git -C ../horizon-mixins fetch --depth 1 origin "$MIXINS_REVISION"
           git -C ../horizon-mixins checkout --detach FETCH_HEAD
       - name: Apply Mixins and check client
+        shell: bash
         if: steps.scope.outputs.docs_only != 'true'
         run: |
           mkdir -p "$RUNNER_TEMP/pluto-source"
@@ -139,6 +140,10 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_smeltery_fuel::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-items --lib --no-default-features --profile fast tconstruct_recycling_rng::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_tx::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast game::tconstruct_tx::tests::native_turtle_scute_enters_source_material_lookup_and_recycling_output -- --exact | tee "$RUNNER_TEMP/scute-game-tests.log"
+          grep -Fq "test game::tconstruct_tx::tests::native_turtle_scute_enters_source_material_lookup_and_recycling_output ... ok" "$RUNNER_TEMP/scute-game-tests.log"
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client-lib --lib --no-default-features --profile fast tconstruct_tx::tests -- --nocapture | tee "$RUNNER_TEMP/scute-client-lib-tests.log"
+          grep -Fq "test tconstruct_tx::tests::native_turtle_scute_enters_source_material_lookup_and_recycling_output ... ok" "$RUNNER_TEMP/scute-client-lib-tests.log"
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_fluid_container::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_tags::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melting_lookup::part_swap_predicate_tests

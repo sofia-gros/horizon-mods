@@ -1,5 +1,6 @@
 """The compatibility boundary changes native names, not source recipe semantics."""
 import json
+import tomllib
 from pathlib import Path
 import unittest
 import zipfile
@@ -29,3 +30,19 @@ class TurtleScuteCompat(unittest.TestCase):
         self.assertIn('tconstruct-native-creative-v8-scute-v1', bundled)
         self.assertLess(bundled.index('tconstruct_source_scute_compat::prepare'), bundled.rindex('std::fs::write(&marker'))
         self.assertIn('source = "source-scute-compat.rs"', (MIXINS / 'horizon-mixin.toml').read_text())
+
+    def test_shared_host_owner_and_ci_guards(self):
+        manifest = tomllib.loads((MIXINS / 'horizon-mixin.toml').read_text())
+        modules = [module for module in manifest['module'] if module['source'] == 'source-scute-compat.rs']
+        self.assertEqual(len(modules), 1)
+        self.assertEqual(modules[0]['file'], 'crates/horizon-client/src/client_lib.rs')
+        self.assertEqual(modules[0]['visibility'], 'pub')
+        transaction = (MIXINS / 'transaction.rs').read_text()
+        self.assertIn('use crate::tconstruct_source_scute_compat as compat;', transaction)
+        self.assertNotIn('crate::entry::', transaction)
+        workflow = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
+        self.assertIn('name: Apply Mixins and check client\n        shell: bash', workflow)
+        test = 'tconstruct_tx::tests::native_turtle_scute_enters_source_material_lookup_and_recycling_output'
+        for owner in ('game::', ''):
+            self.assertIn(f'test {owner}{test} ... ok', workflow)
+        self.assertIn('-p horizon-client-lib --lib --no-default-features --profile fast tconstruct_tx::tests', workflow)
