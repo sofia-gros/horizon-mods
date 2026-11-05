@@ -31,7 +31,7 @@ impl Game<'_> {
     fn turn_page(&mut self, forward: bool) { assert!(tconstruct_materials_book_turn(self, forward).is_break()); }
     fn page(&self) -> usize { match self.book.as_ref().unwrap() { BookScreen::View { page, .. } => *page, _ => panic!("not a view") } }
 }
-#[path = "../../mixins/tconstruct/source-materials-book-spread.rs"] mod tconstruct_materials_book_spread;
+#[path = "../../mixins/tconstruct/source-pure-rules.rs"] mod tconstruct_materials_book_spread;
 include!("../../mixins/tconstruct/source-materials-book-key.rs");
 include!("../../mixins/tconstruct/source-materials-book-turn.rs");
 
