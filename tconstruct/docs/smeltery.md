@@ -67,8 +67,23 @@ Only the controller's tank is patched, retaining its other metadata. Unknown
 source/tank representations, invalid Drain ownership, unloaded chunks and stale
 structure capacity wait. A reserved packet can finish after a loaded source is
 removed; an unreadable recognized source waits instead. Duct destinations,
-Melter/Casting Tank sources and generic handlers are not added here.
+Casting Tank sources and generic handlers are not added here. Melter support is described below.
 
 Brief static review only. Focused route fixtures are added but not run in this
 phase; full host build, gameplay, save/reload, LAN and atomic disk/network
 persistence remain unverified.
+
+
+### Melter to Drain
+
+The Drain-input Faucet route also accepts a Seared Melter's internal tank.
+It uses the Melter's 2,160 mB capacity and requires readable state with a
+canonical tank. Only its tank field is patched: fuel, temperature, progress,
+raw inventory items and unrelated machine metadata stay unchanged. Live slots
+are not reserialized. Source Melter, destination controller and Faucet save
+as one staged batch, retaining the same structure-capacity and fluid-tag limits.
+
+This transfers already-stored fluid; it does not change fuel consumption or
+melting recipes. The draft builds on the built-in tank-to-Drain route. Brief
+static review only; regression cases are added but not run. Host integration,
+gameplay, save/reload, LAN and disk/network atomicity remain unverified.

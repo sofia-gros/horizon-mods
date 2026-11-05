@@ -1416,7 +1416,7 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     }
 }
 
-/// Fill a formed Smeltery/Foundry through its Drain from a built-in tank.
+/// Fill a formed Smeltery/Foundry through its Drain from a built-in tank or Melter.
 /// The destination proxy represents only the offered layer and available
 /// total capacity, so unrelated fluids never prevent a compatible fill.
 fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
@@ -1427,11 +1427,19 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     let source_state = game.world.block(source.0, source.1, source.2);
     let faucet_state = game.world.block(pos.0, pos.1, pos.2);
     let source_name = game.res.facts().get(source_state).name.clone();
-    let mut input = if let Some((key, capacity)) = super::tconstruct_source_faucet_tank::tank_kind(&source_name) {
+    let source_kind = if &*source_name == "tconstruct:seared_melter" {
+        Some(("tconstruct:melter", super::tconstruct_source_melter_state::MELTER_CAPACITY))
+    } else { super::tconstruct_source_faucet_tank::tank_kind(&source_name) };
+    let mut input = if let Some((key, capacity)) = source_kind {
         if !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
         let Some(raw) = store::read(&game.world, source, key) else { return Some(false); };
-        let Some(tank) = Tank::from_nbt(&raw, capacity) else { return Some(false); };
-        if tank.to_nbt() != raw { return Some(false); }
+        let source_tank = if key == "tconstruct:melter" {
+            if super::tconstruct_source_melter_state::Melter::from_nbt(&raw).is_none() { return Some(false); }
+            let Some(tank) = raw.get("tank") else { return Some(false); };
+            tank
+        } else { &raw };
+        let Some(tank) = Tank::from_nbt(source_tank, capacity) else { return Some(false); };
+        if tank.to_nbt() != *source_tank { return Some(false); }
         Some((key, tank, raw))
     } else {
         // A loaded, absent/unsupported source cannot reserve more fluid, but
@@ -1476,7 +1484,11 @@ fn tank_to_smeltery(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: P
     if let Some((key, tank, raw)) = &input {
         if store::read(&game.world, source, key).as_ref() != Some(raw)
             || !matches!(game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))) { return Some(false); }
-        changes.push((source, *key, tank.to_nbt()));
+        let saved = if *key == "tconstruct:melter" {
+            let Some(saved) = super::tconstruct_source_faucet_tank::patch_melter_tank(raw, tank) else { return Some(false); };
+            saved
+        } else { tank.to_nbt() };
+        changes.push((source, *key, saved));
     }
     if !store::write_many(&mut game.world, &changes) { return Some(false); }
     if input.is_some() { game.container_changed(source); }
