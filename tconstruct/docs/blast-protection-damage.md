@@ -28,7 +28,8 @@ The shared transient protection stage now handles Fire and Blast together.
 
 No additional knockback behavior is introduced here; that secondary effect has
 its own bridge. [Magic damage protection](magic-protection-damage.md) now shares this stage.
-Melee and Projectile damage protection, Overshield,
+[Projectile damage protection](projectile-protection-damage.md) also shares it.
+Melee damage protection, Overshield,
 Boundless/extended caps, negative protection and full mixed-modifier ordering
 remain outside this change. The inherited native bypass, wear/stat rounding,
 source-only damage-ID projection, supported equipment and multiplayer limits

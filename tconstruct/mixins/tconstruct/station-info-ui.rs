@@ -95,7 +95,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                         } else if id.as_str() == "tconstruct:magic_protection" {
                             Some("Magic Protection: supported armor/shield damage reduction uses the default cap. Harmful-effect duration is not connected in this build.".to_owned())
                         } else if id.as_str() == "tconstruct:projectile_protection" {
-                            Some("Projectile Protection: maximum-equipped-level knockback resistance is connected; damage reduction is not connected yet.".to_owned())
+                            Some("Projectile Protection: supported armor/shield damage reduction uses the default cap; knockback resistance uses the highest equipped level.".to_owned())
                         } else if super::tconstruct_source_upgrade_rules::is_protection(id.as_str()) {
                             Some("Acquisition only: this Protection modifier's damage and secondary effects are not connected yet.".to_owned())
                         } else if id.as_str() == "tconstruct:hydraulic" {
