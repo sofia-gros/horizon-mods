@@ -243,39 +243,42 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
 pub(super) fn interact_fuel_tank(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
     let Some(capacity) = super::tconstruct_source_smeltery_fuel::capacity(block) else { return false; };
     let Some(kind) = kind(block) else { return false; };
+    let block_state = game.world.block(pos.0,pos.1,pos.2);
+    if game.res.facts().get(block_state).name.as_ref() != block { return false; }
     if !ensure(game, pos, block) { return false; }
     let Some(raw_tank) = store::read(&game.world, pos, kind) else { return false; };
-    let Some(mut tank) = Tank::from_nbt(&raw_tank, capacity) else { return false; };
+    let Some(tank) = Tank::from_nbt(&raw_tank, capacity) else { return false; };
     let Some(held) = game.held().cloned() else { return true; };
     if held.count == 0 { return false; }
+    let held_before = held.clone(); let creative = game.creative;
+    let local = (game.lan.is_none(),game.lan_acting_uuid.is_none());
     game.ensure_datapacks();
     let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
         .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
         .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
             .map(|(id, items)| (id.clone(), items.clone())).collect());
-    let before = tank.amount;
-    let mut slots = [Some(held), None];
-    if !super::tconstruct_source_fluid_container::transfer_single_with_color(&mut tank, &mut slots,
-        super::tconstruct_source_fluid_container::Direction::Auto,
+    let Some((updated_tank, mut slots)) = super::tconstruct_source_fluid_container::plan_single_tank_container(
+        &raw_tank, capacity, &Some(held), super::tconstruct_source_fluid_container::Direction::Auto,
         &|item| game.res.items().get(item).is_some(),
-        &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
-    let Some(updated_tank) = tank.to_nbt_preserving_fuel(&raw_tank) else { return true; };
+        &|fluid| fluid == "minecraft:lava" || fluids.contains(fluid), tags.as_ref(), local.0 && local.1) else { return true; };
+    // Datapack preparation can call into the host. Never overwrite a changed
+    // tank, block, acting hand or authority mode with the staged exchange.
+    if !game.world.chunks.contains_key(&(pos.0 >> 4,pos.2 >> 4))
+        || game.world.block(pos.0,pos.1,pos.2) != block_state
+        || store::read(&game.world,pos,kind).as_ref() != Some(&raw_tank)
+        || game.creative != creative || (game.lan.is_none(),game.lan_acting_uuid.is_none()) != local
+        || !game.held().is_some_and(|current| current.count == held_before.count && current.damage == held_before.damage
+            && current.same_item_same_components(&held_before) && current.wire_patch().is_none()
+            && !current.data().is_some_and(|data| data.wire.patch().is_some())) { return true; }
+    let drained = Tank::from_nbt(&updated_tank,capacity).is_some_and(|next| next.amount < tank.amount);
     if !store::write(&mut game.world, pos, kind, updated_tank) { return false; }
-    if game.creative {
-        // Preserve the held container in creative, but retain fluid removed
-        // from the tank by giving the filled result to the player.
-        if tank.amount < before {
-            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
-        }
-    } else if !game.creative {
-        if let Some(rest) = slots[0].take() {
-            *game.held_mut() = Some(rest);
-            if let Some(result) = slots[1].take() { game.give_or_drop(result); }
-        } else {
-            *game.held_mut() = slots[1].take();
-        }
-    }
+    if creative {
+        if drained { if let Some(result) = slots[1].take() { game.give_or_drop(result); } }
+    } else if let Some(rest) = slots[0].take() {
+        *game.held_mut() = Some(rest);
+        if let Some(result) = slots[1].take() { game.give_or_drop(result); }
+    } else { *game.held_mut() = slots[1].take(); }
     true
 }
 

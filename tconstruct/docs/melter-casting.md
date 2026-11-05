@@ -224,3 +224,20 @@ original block/save and captured changed page remain in place, avoiding a stale
 restore over a replacement. Three codec cases and local/guest wiring checks were
 added; no tests were run. Full menu callbacks, gameplay/reload/LAN and generic guest
 write rollback coordination remain unverified/separate. Machine ticking is unchanged.
+
+### Held-container use on fuel/ingot tanks
+
+Direct world-use on the eight Seared/Scorched fuel and ingot tanks/gauges now
+uses the preserving single-tank planner. Native tank extensions survive; legacy
+aliases, malformed owned values, lossy fluid IDs and retained-wire held items
+wait rather than being rewritten. This is separate from the GUI exchange path.
+After datapack preparation, the commit rechecks the loaded chunk, exact block,
+raw tank, held count/damage/components/wire state, Creative state and local/LAN
+mode. Only a successful save publishes held results or Creative drain gifts.
+
+The Drain route fixture also extracts this production interaction. Added cases
+cover all eight blocks, fill/drain, single/stacked containers, Creative behavior,
+unsafe data, failed saves and ten preparation-time state changes. World storage,
+initialization and callbacks are mocked. Tests have not been run in this batch;
+full host, offhand mapping, save/reload and LAN remain unverified. The separate
+comparator notification stack (#688) still needs combined integration.

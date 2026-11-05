@@ -10,8 +10,8 @@ use horizon_world::nbt::Tag;
 use horizon_items::items::ItemStack;
 type Pos=(i32,i32,i32);
 type Tags=HashMap<String,HashSet<String>>;
-struct Info{name:String} struct Facts;
-impl Facts {fn get(&self,id:usize)->Info {Info{name: match id {1=>"tconstruct:smeltery_controller",2=>"tconstruct:foundry_controller",3=>"tconstruct:seared_melter",4=>"tconstruct:seared_fuel_tank",5=>"tconstruct:scorched_ingot_gauge",_=>"minecraft:air"}.into()}}}
+struct Info{name:std::sync::Arc<str>} struct Facts;
+impl Facts {fn get(&self,id:usize)->Info {Info{name: match id {1=>"tconstruct:smeltery_controller",2=>"tconstruct:foundry_controller",3=>"tconstruct:seared_melter",4=>"tconstruct:seared_fuel_tank",5=>"tconstruct:scorched_ingot_gauge",6=>"tconstruct:seared_fuel_gauge",7=>"tconstruct:scorched_fuel_tank",8=>"tconstruct:scorched_fuel_gauge",9=>"tconstruct:seared_ingot_tank",10=>"tconstruct:seared_ingot_gauge",11=>"tconstruct:scorched_ingot_tank",_=>"minecraft:air"}.into()}}}
 struct Items; impl Items {fn get(&self,_:&str)->Option<()> {Some(())}}
 struct Res; impl Res {fn facts(&self)->Facts{Facts} fn items(&self)->Items{Items}}
 struct Chunks {loaded:bool,owners:HashMap<Pos,Pos>,fluids:Option<Result<(HashSet<String>,Tags),()>>,tags:Option<Result<Tags,()>>}
@@ -23,8 +23,21 @@ impl Chunks {
 }
 struct World {chunks:Chunks,raw:Tag,formed:bool,fail:bool,controller:usize,writes:usize,data:HashMap<Pos,Tag>,blocks:HashMap<Pos,usize>}
 impl World {fn block(&self,x:i32,y:i32,z:i32)->usize{self.blocks.get(&(x,y,z)).copied().unwrap_or(self.controller)}}
-struct Game<'a> {world:World,res:Res,held:Option<ItemStack>,carried:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,_life:std::marker::PhantomData<&'a()>}
-impl Game<'_> {fn ensure_datapacks(&mut self){} fn held(&self)->Option<&ItemStack>{self.held.as_ref()} fn held_mut(&mut self)->&mut Option<ItemStack>{&mut self.held} fn give_or_drop(&mut self,s:ItemStack){self.gifts.push(s)}}
+struct Game<'a> {world:World,res:Res,held:Option<ItemStack>,carried:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,_life:std::marker::PhantomData<&'a()>}
+impl Game<'_> {fn ensure_datapacks(&mut self){
+ let pos=(10,-1,0);
+ match self.fault{
+  1=>self.held.as_mut().unwrap().count+=1,
+  2=>{self.world.blocks.insert(pos,99);},
+  3=>if let Some(Tag::Compound(fields))=self.world.data.get_mut(&pos){fields.insert("future_tank".into(),Tag::Int(999));},
+  4=>self.world.chunks.loaded=false,
+  5=>self.creative=!self.creative,
+  6=>self.lan=Some(()),7=>self.lan_acting_uuid=Some(()),
+  8|9=>{let item=self.held.as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if self.fault==9{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}},
+  10=>self.held=None,
+  _=>{},
+ }
+} fn held(&self)->Option<&ItemStack>{self.held.as_ref()} fn held_mut(&mut self)->&mut Option<ItemStack>{&mut self.held} fn give_or_drop(&mut self,s:ItemStack){self.gifts.push(s)}}
 mod tconstruct_source_smeltery_world {use super::*;pub(super) fn detect(g:&Game<'_>,_:Pos)->Option<([i32;3],[i32;3],u32)>{g.world.formed.then_some(([-2,-1,-1],[0,1,1],4000))}}
 mod store {use super::*;pub(super) fn read(w:&World,pos:Pos,_:&str)->Option<Tag>{Some(w.data.get(&pos).unwrap_or(&w.raw).clone())} pub(super) fn write(w:&mut World,pos:Pos,_:&str,t:Tag)->bool{if w.fail{return false}if w.data.contains_key(&pos){w.data.insert(pos,t);}else{w.raw=t;}w.writes+=1;true}}
 mod runtime {
@@ -35,7 +48,7 @@ use super::*;use super::tconstruct_source_smeltery_state::Smeltery;
 fn fixture(item:&str,amount:u32)->Game<'static>{
  let mut state=tconstruct_source_smeltery_state::Smeltery::new();state.tank.capacity=4000;
  if amount>0 {assert!(state.tank.insert("minecraft:water",amount));}
- Game{world:World{chunks:Chunks{loaded:true,owners:HashMap::from([((-2,0,0),(-1,0,0))]),fluids:Some(Ok((HashSet::from(["minecraft:water".into(),"minecraft:lava".into()]),Tags::new()))),tags:Some(Ok(Tags::new()))},raw:state.to_nbt(),formed:true,fail:false,controller:1,writes:0,data:HashMap::new(),blocks:HashMap::new()},res:Res,held:Some(ItemStack::new(item,1)),carried:None,gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,_life:std::marker::PhantomData}
+ Game{world:World{chunks:Chunks{loaded:true,owners:HashMap::from([((-2,0,0),(-1,0,0))]),fluids:Some(Ok((HashSet::from(["minecraft:water".into(),"minecraft:lava".into()]),Tags::new()))),tags:Some(Ok(Tags::new()))},raw:state.to_nbt(),formed:true,fail:false,controller:1,writes:0,data:HashMap::new(),blocks:HashMap::new()},res:Res,held:Some(ItemStack::new(item,1)),carried:None,gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,_life:std::marker::PhantomData}
 }
 #[test]fn full_tank_and_empty_tank_consume_container_action_without_mutation(){
  for (item,amount) in [("minecraft:water_bucket",4000),("minecraft:water_bucket",3500),("minecraft:lava_bucket",4000),("minecraft:bucket",0)] {
@@ -253,4 +266,50 @@ fn direct_fixture(draining:bool,fuel_block:usize)->Game<'static>{
  let saved=state.tank_to_nbt_preserving(&raw).unwrap();let tank=saved.get("tank").unwrap();assert_eq!(tank.get("future_tank"),Some(&Tag::Int(7)));
  let Tag::List(rows)=tank.get("fluids").unwrap() else{panic!()};assert_eq!(rows[0].get("future_row"),Some(&Tag::Int(8)));
  assert_eq!(saved.get("slots"),raw.get("slots"));assert_eq!(&*carried.as_ref().unwrap().item,"minecraft:bucket");assert_eq!(&*containers[1].as_ref().unwrap().item,"minecraft:bucket");
+}
+
+mod held_fuel{
+ use super::*;use super::tconstruct_source_melter_state::Tank;
+ use super::tconstruct_source_machine_runtime::{kind,ensure};
+ // __PRODUCTION_HELD_FUEL__
+}
+fn held_fuel_fixture(id:usize,draining:bool,count:u32)->Game<'static>{
+ let mut game=fixture(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},0);
+ game.held.as_mut().unwrap().count=count;
+ let name=game.res.facts().get(id).name;let capacity=tconstruct_source_smeltery_fuel::capacity(&name).unwrap();
+ let mut tank=tconstruct_source_melter_state::Tank::new(capacity);if draining{assert!(tank.insert("minecraft:water",1000));}
+ let Tag::Compound(mut fields)=tank.to_nbt() else{panic!()};fields.insert("future_tank".into(),Tag::Int(8));
+ game.world.data.insert((10,-1,0),Tag::Compound(fields));game.world.blocks.insert((10,-1,0),id);game
+}
+#[test]fn held_fuel_all_eight_tanks_preserve_data_and_inventory(){
+ for id in 4..=11{for draining in [false,true]{for count in [1,2]{for creative in [false,true]{
+  let mut game=held_fuel_fixture(id,draining,count);game.creative=creative;let held=game.held.clone();let name=game.res.facts().get(id).name;
+  assert!(held_fuel::interact_fuel_tank(&mut game,(10,-1,0),&name));
+  let saved=&game.world.data[&(10,-1,0)];assert_eq!(saved.get("amount"),Some(&Tag::Int(if draining{0}else{1000})));assert_eq!(saved.get("future_tank"),Some(&Tag::Int(8)));assert_eq!(game.world.writes,1);
+  if creative{assert_eq!(game.held,held);assert_eq!(game.gifts.len(),usize::from(draining));}
+  else if count==2{assert_eq!(game.held.as_ref().unwrap().count,1);assert_eq!(game.gifts.len(),1);}
+  else{assert_eq!(&*game.held.as_ref().unwrap().item,if draining{"minecraft:water_bucket"}else{"minecraft:bucket"});assert!(game.gifts.is_empty());}
+ }}}}
+}
+#[test]fn held_fuel_aliases_wire_and_failed_save_never_publish(){
+ for mode in 0..10{let mut game=held_fuel_fixture(4,true,1);
+  match mode{
+   0..=4=>{let key=["FluidName","Amount","Tag","Tank","Fluid"][mode];if let Some(Tag::Compound(fields))=game.world.data.get_mut(&(10,-1,0)){fields.insert(key.into(),Tag::Int(1));}},
+   5|6=>{let item=game.held.as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));if mode==6{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}},
+   7=>{if let Some(Tag::Compound(fields))=game.world.data.get_mut(&(10,-1,0)){fields.insert("fluid".into(),Tag::String(horizon_world::nbt::JavaString(vec![0xd800])));}},
+   8=>game.world.fail=true,
+   9=>{if let Some(Tag::Compound(fields))=game.world.data.get_mut(&(10,-1,0)){fields.insert("amount".into(),Tag::String("bad".into()));}},
+   _=>unreachable!(),
+  }
+  let before=(game.world.data.clone(),game.held.clone());held_fuel::interact_fuel_tank(&mut game,(10,-1,0),"tconstruct:seared_fuel_tank");
+  assert_eq!((game.world.data,game.held),before);assert_eq!(game.world.writes,0);assert!(game.gifts.is_empty());
+ }
+}
+#[test]fn held_fuel_callback_changes_preserve_newer_state(){
+ for fault in 1..=10{let mut game=held_fuel_fixture(4,false,1);game.fault=fault;let before=game.world.data.clone();
+  assert!(held_fuel::interact_fuel_tank(&mut game,(10,-1,0),"tconstruct:seared_fuel_tank"));
+  assert_eq!(game.world.writes,0);assert!(game.gifts.is_empty());let saved=&game.world.data[&(10,-1,0)];assert_eq!(saved.get("amount"),Some(&Tag::Int(0)));
+  if fault==3{assert_eq!(saved.get("future_tank"),Some(&Tag::Int(999)));}else{assert_eq!(game.world.data,before);}
+  if fault==10{assert!(game.held.is_none());}else{assert_eq!(&*game.held.as_ref().unwrap().item,"minecraft:water_bucket");assert_eq!(game.held.as_ref().unwrap().count,if fault==1{2}else{1});}
+ }
 }
