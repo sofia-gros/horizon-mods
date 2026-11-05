@@ -71,6 +71,20 @@ source = "source-budding-piston.rs"
 visibility = "pub"
 
 [[module]]
+id = "source-scute-compat"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_scute_compat"
+source = "source-scute-compat.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-chain-compat"
+file = "crates/horizon-client/src/entry.rs"
+name = "tconstruct_source_chain_compat"
+source = "source-chain-compat.rs"
+visibility = "pub"
+
+[[module]]
 id = "source-resource-tables"
 file = "crates/horizon-client/src/entry.rs"
 name = "tconstruct_resource_tables"
@@ -2418,6 +2432,12 @@ target = "horizon_client::game::block_entity_ticks::Game<'_>::tick_block_entitie
 kind = "HEAD"
 helper = "source-machine-tick.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-machine-interaction"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_machine_interaction"
+source = "source-machine-interaction.rs"
 
 [[injection]]
 id = "source-machine-use"
