@@ -15,6 +15,7 @@ fn book_id(pages: &[Text]) -> Option<&'static str> {
     else if title.starts_with("Puny Smelting\n") { Some("puny") }
     else if title.starts_with("Mighty Smelting\n") { Some("mighty") }
     else if title.starts_with("Encyclopedia\n") { Some("encyclopedia") }
+    else if title.starts_with("Tinkers' Gadgetry\n") { Some("gadgetry") }
     else if title.starts_with("Fantastic Foundry\n") { Some("foundry") }
     else { None }
 }
@@ -89,6 +90,13 @@ mod tests {
         assert!(decode_reply(42, &puny, &reply).is_some());
         assert!(decode_reply(43, &puny, &reply).is_none());
         assert!(decode_reply(42, &mighty, &reply).is_none());
+        let gadgetry = vec![root("Tinkers' Gadgetry")];
+        let gadgetry_reply = encode_reply(46, &gadgetry).unwrap();
+        assert!(decode_reply(46, &gadgetry, &gadgetry_reply).is_some());
+        assert!(decode_reply(47, &gadgetry, &gadgetry_reply).is_none());
+        assert!(decode_reply(46, &puny, &gadgetry_reply).is_none());
+        assert!(decode_reply(46, &foundry, &gadgetry_reply).is_none());
+        assert!(decode_reply(42, &gadgetry, &reply).is_none());
         let encyclopedia = vec![Text::styled("Encyclopedia\n", Style { insertion: Some(ROOT.into()), ..Default::default() })];
         let encyclopedia_reply = encode_reply(44, &encyclopedia).unwrap();
         assert!(decode_reply(44, &encyclopedia, &encyclopedia_reply).is_some());

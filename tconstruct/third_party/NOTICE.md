@@ -122,3 +122,13 @@ from Tinkers' Construct at
 Copyright (c) 2022 SlimeKnights; MIT license, see
 `tconstruct/third_party/tconstruct/LICENSE`. The native port adapts the display
 icon key, recipe ID and recipe-unlocked predicate key.
+
+The Tinkers' Gadgetry item texture, cover/page images, book index, introduction,
+language labels, recipe and acquisition advancement are copied or adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2).
+Source paths are `src/main/resources/assets/tconstruct/book/tinkers_gadgetry`,
+`book/images/covers/gadgetry_*.png`, `textures/item/tinkers_gadgetry.png`, and
+`src/generated/resources/data/tconstruct/{recipes/common,advancements/world}/tinkers_gadgetry.json`.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`. Native icon/recipe formats and the
+partial-edition notice are port adaptations.

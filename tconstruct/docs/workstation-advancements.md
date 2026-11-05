@@ -31,8 +31,8 @@ The source Tool Forge challenge has eight separate inventory criteria, one for e
 The source Ancient Tools challenge records four separate inventory criteria:
 Melting Pan, War Pick, Battlesign and Swasher. They may be obtained at different
 times; this does not implement their ordinary loot sources or tool behaviors.
-Its Tinkers' Gadgetry parent is not registered yet, so it is not laid out in
-the advancement tree; the host may still show a toast or chat announcement.
+Its Tinkers' Gadgetry parent is now registered with a book acquisition path,
+so the branch has a complete parent chain. Actual tree display is unverified.
 The source icon's material-preview NBT is omitted because the host icon accepts
 only an item ID. Actual inventory events, progress persistence, icon and LAN
 behavior remain unverified in a running world.

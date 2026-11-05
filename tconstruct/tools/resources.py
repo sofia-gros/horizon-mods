@@ -121,6 +121,7 @@ food_sprite = mod_assets / 'textures/item/food/meat_soup.png'
 food_sprite.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/food/meat_soup.png', food_sprite)
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/encyclopedia.png', mod_assets / 'textures/item/encyclopedia.png')
+shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/tinkers_gadgetry.png', mod_assets / 'textures/item/tinkers_gadgetry.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/blazing_bone.png', mod_assets / 'textures/item/materials/blazing_bone.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/silky_cloth.png', mod_assets / 'textures/item/materials/silky_cloth.png')
 shutil.copyfile(repository / 'content/assets/tconstruct/textures/item/materials/necrotic_bone.png', mod_assets / 'textures/item/materials/necrotic_bone.png')
@@ -331,6 +332,7 @@ entries.append(('tconstruct:silky_cloth', 'minecraft:flint', 'Silky Cloth'))
 entries.append(('tconstruct:necrotic_bone', 'minecraft:bone', 'Necrotic Bone'))
 # Append new material items so existing prepared item IDs stay unchanged.
 entries.append(('tconstruct:venombone', 'minecraft:bone', source_names['item.tconstruct.venombone']))
+entries.append(('tconstruct:tinkers_gadgetry', 'minecraft:book', "Tinkers' Gadgetry"))
 for name, template, title in entries:
     item = copy.deepcopy(items[template])
     if name in ('tconstruct:cobalt_ingot', 'tconstruct:cobalt_nugget'):
@@ -428,7 +430,7 @@ for name, template, title in entries:
         item['minecraft:max_stack_size'] = 16
         item['minecraft:use_remainder'] = {'id': 'minecraft:glass_bottle'}
         item['minecraft:crafting_remainder'] = {'id': 'minecraft:glass_bottle'}
-    if short == 'encyclopedia':
+    if short in ('encyclopedia', 'tinkers_gadgetry'):
         item['minecraft:max_stack_size'] = 1
     if short == 'meat_soup':
         # Source nutrition 8 and saturation modifier 0.6: 8 * 0.6 * 2.
