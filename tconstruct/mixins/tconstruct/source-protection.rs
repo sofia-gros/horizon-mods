@@ -48,3 +48,42 @@ mod tests {
         assert!(!supported_value("unknown",&value));
     }
 }
+
+/// IncrementalModifier uses the started integer level plus its negative
+/// incomplete-level correction. Keep that f32 evaluation order.
+pub(super) fn effective_level(trait_level: i32, raw: i32) -> Option<f32> {
+    if trait_level < 0 || !(0..=5 * 32767).contains(&raw) { return None; }
+    let whole=trait_level.checked_add(raw / 5)?;
+    let remainder=raw % 5;
+    Some(if remainder == 0 { whole as f32 }
+        else { whole.checked_add(1)? as f32 + (remainder - 5) as f32 / 5.0 })
+}
+
+pub(super) fn projectile_attribute(levels: &[f32]) -> Option<f64> {
+    if levels.iter().any(|level| !level.is_finite() || *level < 0.0) { return None; }
+    let maximum=levels.iter().copied().fold(0.0f32, f32::max);
+    let value=0.05f32 * maximum;
+    (value.is_finite() && value > 0.0).then_some(f64::from(value))
+}
+
+#[cfg(test)]
+mod projectile_attribute_tests {
+    use super::*;
+    #[test]
+    fn partial_progress_uses_source_float_order_and_material_levels_once() {
+        assert_eq!(effective_level(0,1),Some(1.0 + -4.0 / 5.0));
+        assert_eq!(effective_level(2,7),Some(4.0 + -3.0 / 5.0));
+        assert_eq!(effective_level(2,5),Some(3.0));
+        assert_eq!(effective_level(0,-1),None);
+        assert_eq!(effective_level(0,5 * 32767 + 1),None);
+    }
+    #[test]
+    fn resistance_uses_the_maximum_piece_not_the_sum() {
+        assert_eq!(projectile_attribute(&[1.0,2.0,3.0,2.0]),Some(f64::from(0.05f32 * 3.0)));
+        assert_eq!(projectile_attribute(&[3.0,3.0]),Some(f64::from(0.05f32 * 3.0)));
+        assert_eq!(projectile_attribute(&[effective_level(0,1).unwrap()]),Some(f64::from(0.05f32 * (1.0 + -4.0 / 5.0))));
+        assert_eq!(projectile_attribute(&[]),None);
+        assert_eq!(projectile_attribute(&[0.0]),None);
+        assert_eq!(projectile_attribute(&[f32::NAN]),None);
+    }
+}
