@@ -160,6 +160,70 @@
     "assets/tconstruct/textures/fluid/molten/alloy/pig_iron/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/pig_iron/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/manyullyn/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/manyullyn/still.png",
+      "sha256": "252f34a7eb7469c842f0d80c00e4c39b98a1a8f158f2818d51b529cc22d85066"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/manyullyn/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/manyullyn/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/manyullyn/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/manyullyn/flowing.png",
+      "sha256": "563d202677c5196cefca747b087d3a5e1830e35cf0ab687e977c6bc80be61712"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/manyullyn/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/manyullyn/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/hepatizon/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/hepatizon/still.png",
+      "sha256": "aa78ecfae4a425fed4c97697344108ee985d6f2a35861790a2adc935aa48afe4"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/hepatizon/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/hepatizon/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/hepatizon/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/hepatizon/flowing.png",
+      "sha256": "8c16f8eb6a40d2652f08fd15b40efbaf2629ee842364f20305a8026f8f6dc429"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/hepatizon/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/hepatizon/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/queens_slime/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/queens_slime/still.png",
+      "sha256": "5fbe16ff784fe9ea2eec18be48635881836570dbb4e258b8127d7b1398b4eeab"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/queens_slime/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/queens_slime/still.png.mcmeta",
+      "sha256": "85be302541e665d05e268ad555b02f91eb678919cda581b16eb5fc72965ae82a"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/queens_slime/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/queens_slime/flowing.png",
+      "sha256": "baaeb39319de60892eaa413d54371709b3eef843b1f93079542816b2830ee158"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/queens_slime/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/queens_slime/flowing.png.mcmeta",
+      "sha256": "85be302541e665d05e268ad555b02f91eb678919cda581b16eb5fc72965ae82a"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/soulsteel/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/soulsteel/still.png",
+      "sha256": "f53ca5b159059a612151466c8e5f7551f25db62e57803e3cb35099e7fbcac582"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/soulsteel/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/soulsteel/still.png.mcmeta",
+      "sha256": "a13695c99e26d22baef4caa3fa7283578b579f861f346c153499ca66a99aa0f1"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/soulsteel/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/soulsteel/flowing.png",
+      "sha256": "43289bb50b6c1dbb57258111e855cc7e6458d98c22cfd4cbc0d92c46a369d9e2"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/soulsteel/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/soulsteel/flowing.png.mcmeta",
+      "sha256": "85be302541e665d05e268ad555b02f91eb678919cda581b16eb5fc72965ae82a"
     }
   }
 }
