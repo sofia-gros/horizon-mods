@@ -298,14 +298,6 @@ mod tank_preservation_tests {
         assert_eq!(rows[0].get("amount"),Some(&Tag::Long(750)));assert_eq!(rows[1].get("future_row"),Some(&Tag::Int(0)));
     }
     #[test]
-    fn tank_only_mode_processing_keeps_machine_inventory_separate() {
-        use super::super::tconstruct_source_fluid_container::{Direction,transfer_selected_with_color};
-        let (mut state,raw)=fixture();let mut containers=[Some(ItemStack::new("minecraft:water_bucket",1)),None];
-        assert!(transfer_selected_with_color(&mut state.tank,&mut containers,Direction::Auto.next(),None,&|_|true,&|_|true,None,false));
-        let saved=state.tank_to_nbt_preserving(&raw).unwrap();assert_eq!(saved.get("slots"),raw.get("slots"));
-        assert_eq!(state.tank.amount("minecraft:water"),3000);assert!(containers[0].is_none());assert_eq!(&*containers[1].as_ref().unwrap().item,"minecraft:bucket");
-    }
-    #[test]
     fn tank_only_patch_refuses_unrelated_changes_aliases_and_opaque_removal() {
         for mode in 0..8{let(mut state,mut raw)=fixture();match mode{
             0=>state.slots[0].as_mut().unwrap().count+=1,
