@@ -5400,3 +5400,16 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_double_jump"
 source = "source-double-jump.rs"
 visibility = "pub"
+
+[[module]]
+id = "source-wings"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_wings"
+source = "source-wings.rs"
+
+[[module]]
+id = "server-source-wings"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_wings"
+source = "source-wings.rs"
+visibility = "pub"
