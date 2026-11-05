@@ -34,6 +34,13 @@ class CannonItemPreservation(unittest.TestCase):
         self.assertIn('slots.get(index).and_then(Option::as_ref).is_none_or(|item| wire_safe(item))', body)
         self.assertIn('save_cannon(game,target,&cannon)', body)
         self.assertIn('*slots = before;', body)
+        callback = body.index('game.native_inventory_move_item(')
+        stage = body.index('let mut after = before.clone()')
+        for check in ('!= hopper_block', '!= target_block', '!= Some(&saved)', 'contains_key(&(hopper_pos.0 >> 4', 'contains_key(&(target.0 >> 4'):
+            self.assertLess(callback, body.index(check, callback))
+            self.assertLess(body.index(check, callback), stage)
+        self.assertLess(body.index('hopper_pos == target'), callback)
+        self.assertLess(body.index('cannon.tank_to_nbt_preserving(&saved)'), callback)
 
 
 if __name__ == '__main__':

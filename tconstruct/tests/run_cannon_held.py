@@ -18,8 +18,14 @@ save = source[source.index("pub(super) fn save_cannon("):source.index("pub(super
 start = source.index("pub(super) fn interact_cannon(")
 end = source.index("\n    let held = game.held().cloned();", start)
 route = source[start:end] + "\n    false\n}\n"
+hopper_source = (root / "mixins/tconstruct/source-chute-hopper.rs").read_text()
+hopper = hopper_source[hopper_source.index("fn cannon_transfer("):hopper_source.index("// The source sided inventory")]
+hopper = hopper.replace("fn cannon_transfer(", "pub(super) fn cannon_transfer(", 1)
+hopper = hopper.replace("crate::game::Game", "crate::Game").replace("crate::game::tconstruct_source_machine_runtime", "crate::runtime").replace("crate::game::tconstruct_source_melter_store", "crate::store")
+hopper = hopper.replace("use horizon_client::{containers::BlockEntity, pluto_inventory::{plan_between, StackSnapshot}};", "use crate::{BlockEntity, pluto_inventory::{plan_between, StackSnapshot}};")
 template = (root / "tests/rust/cannon_held_fixture.rs").read_text()
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("__PLUTO__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"))
+template = template.replace("__INVENTORY__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs")).replace("// __CANNON_HOPPER__", hopper)
 template = template.replace("// __CANNON_AT__", loader).replace("// __CANNON_HELD__", route).replace("// __CANNON_SAVE__", save)
 with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
     path = pathlib.Path(tmp)
@@ -39,6 +45,6 @@ with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
         raise SystemExit(f"Fixture dependencies differ from pinned host lock: {unknown}")
     result = subprocess.run(["cargo", "test", "--locked", "--offline", "--manifest-path", str(path / "Cargo.toml"), "--", "--nocapture"], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     print(result.stdout)
-    for case in ("cannon_held_fill_drain_preserve_raw_and_live_items", "cannon_held_snapshot_changes_never_commit_or_notify", "cannon_held_unsafe_metadata_and_failed_save_preserve_inventory", "cannon_item_saves_preserve_extensions_before_publishing_slots", "cannon_item_saves_refuse_opaque_changes_and_stale_live_state", "cannon_item_saves_refuse_retained_wire_and_failed_persistence"):
+    for case in ("cannon_held_fill_drain_preserve_raw_and_live_items", "cannon_held_snapshot_changes_never_commit_or_notify", "cannon_held_unsafe_metadata_and_failed_save_preserve_inventory", "cannon_item_saves_preserve_extensions_before_publishing_slots", "cannon_item_saves_refuse_opaque_changes_and_stale_live_state", "cannon_item_saves_refuse_retained_wire_and_failed_persistence", "cannon_hopper_push_pull_preserve_data_and_counts", "cannon_hopper_callback_changes_preserve_both_inventories", "cannon_hopper_failed_save_rolls_back_and_invalid_endpoints_wait"):
         if f"test {case} ... ok" not in result.stdout.splitlines():
             raise SystemExit(f"Required route test did not execute: {case}")
