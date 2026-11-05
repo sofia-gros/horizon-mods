@@ -182,7 +182,7 @@ fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, se
         };
         if let Some(recipes) = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref() {
             let mut ordered: Vec<_> = recipes.iter().collect(); ordered.sort_by(|a,b| a.0.cmp(b.0));
-            let mut buckets = Vec::new(); let mut first_fluid = None;
+            let mut fluid_options = Vec::new();
             for (_, bytes) in &ordered {
                 let Ok(raw) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
                 if raw.get("hide_in_book").and_then(|v| v.as_bool()) == Some(true) { continue; }
@@ -191,15 +191,13 @@ fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, se
                 for fluid in fluid_ids(&recipe.fluid) {
                     let Some(bucket) = crate::game::tconstruct_source_fluid_container::filled_bucket(&fluid) else { continue; };
                     if !game.res.rest.get().is_some_and(|rest| rest.items.items.contains_key(bucket.as_str())) { continue; }
-                    if first_fluid.is_none() { first_fluid = Some(fluid_name(&fluid)); }
-                    buckets.push(bucket);
+                    fluid_options.push((bucket, fluid_name(&fluid)));
                 }
             }
-            buckets.sort(); buckets.dedup();
-            if let Some(fluid) = first_fluid.filter(|_| !buckets.is_empty()) {
-                let title = game.translate("book.tconstruct.material.castable", "Castable");
-                let description = game.translate("book.tconstruct.material.cast_from", "Can be casted from %s in casts").replacen("%s", &fluid, 1);
-                sidebar.push(serde_json::json!({"choices":buckets,"tooltip":[title,description]}));
+            let title = game.translate("book.tconstruct.material.castable", "Castable");
+            let description = game.translate("book.tconstruct.material.cast_from", "Can be casted from %s in casts");
+            if let Some(entry) = super::tconstruct_materials_book_recipe::material_fluid_options(&fluid_options, &title, &description) {
+                sidebar.push(entry);
             }
             let supported_types: std::collections::HashSet<_> = match section {
                 "melee_harvest_materials" => ["tconstruct:head", "tconstruct:handle", "tconstruct:binding"].as_slice(),

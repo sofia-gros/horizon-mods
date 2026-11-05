@@ -88,9 +88,11 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         let page_x = left + 36.0;
         let sidebar_x = page_x + if offset == 0 { 0.0 } else { 164.0 };
         let stat_x = page_x + if offset == 0 { 24.0 } else { 2.0 };
-        let cycle = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs() as usize);
+        let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs());
+        let cycle = seconds as usize;
         if let Some(sidebar) = panel.get("sidebar").and_then(|v| v.as_array()) {
             for (i, entry) in sidebar.iter().take(9).enumerate() {
+                let Some(entry) = tconstruct_materials_book_recipe::material_sidebar_entry(entry, seconds) else { continue; };
                 let id = entry.get("item").and_then(|v| v.as_str()).or_else(|| entry.get("choices").and_then(|v| v.as_array()).filter(|v| !v.is_empty()).and_then(|v| v[cycle % v.len()].as_str()));
                 let Some(id) = id else { continue; };
                 let y = top + 23.0 + i as f32 * 16.0;
