@@ -66,6 +66,24 @@ pub(super) fn supported_bane_definition(world: &World) -> bool {
         ]}))
 }
 
+
+pub(super) fn supported_scorching_definition(world: &World) -> bool {
+    let Some(raw) = world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()
+        .and_then(|raw| raw.as_ref().ok()) else { return false; };
+    let Some(bytes) = raw.0.get("tconstruct:tinkering/modifiers/scorching").and_then(|layers| layers.last()) else { return false; };
+    serde_json::from_slice::<serde_json::Value>(bytes).ok().is_some_and(|value| supported_scorching_value(&value))
+}
+
+fn supported_scorching_value(value: &serde_json::Value) -> bool {
+    value == &serde_json::json!({"level_display":"tconstruct:default","modules":[{
+        "type":"tconstruct:conditional_melee_damage","each_level":2.0,"percent":false,"target":"mantle:on_fire"
+    }]})
+}
+
+pub(super) fn scorching_level(trait_level: i32, on_fire: bool) -> Option<f32> {
+    (on_fire && trait_level > 0).then_some(trait_level as f32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -106,4 +124,29 @@ mod tests {
         assert!(!arthropod("custom:spider"));
     }
 
+}
+
+
+#[cfg(test)]
+mod scorching_tests {
+    use super::*;
+    #[test]
+    fn only_positive_traits_and_actual_fire_supply_damage() {
+        assert_eq!(scorching_level(2,true),Some(2.0));
+        assert_eq!(scorching_level(2,false),None);
+        assert_eq!(scorching_level(0,true),None);
+        assert_eq!(scorching_level(-1,true),None);
+    }
+    #[test]
+    fn source_gate_rejects_changed_damage_and_predicate() {
+        let mut value=serde_json::json!({"level_display":"tconstruct:default","modules":[{
+            "type":"tconstruct:conditional_melee_damage","each_level":2.0,"percent":false,"target":"mantle:on_fire"
+        }]});
+        assert!(supported_scorching_value(&value));
+        value["modules"][0]["each_level"]=serde_json::json!(3.0);
+        assert!(!supported_scorching_value(&value));
+        value["modules"][0]["each_level"]=serde_json::json!(2.0);
+        value["modules"][0]["target"]=serde_json::json!("mantle:in_water");
+        assert!(!supported_scorching_value(&value));
+    }
 }

@@ -49,8 +49,16 @@ pub(super) fn bonus(game: &super::Game<'_>, index: usize) -> Option<f32> {
     ] {
         if target && supported { level += modifier_level(stack, &traits, id).unwrap_or(0.0); }
     }
-    if !level.is_finite() { return None; }
+    // Source Scorching is a material trait, not an incremental upgrade.
+    // Entity.isOnFire excludes fire-immune mobs even with positive fire ticks.
     let custom = stack.data()?.other("minecraft:custom_data")?;
+    let purchased_scorching = custom.get("tic_upgrades").is_some_and(|upgrades|
+        !matches!(upgrades,Tag::Compound(_)) || upgrades.get("tconstruct:scorching").is_some());
+    if !purchased_scorching && super::tconstruct_source_smite::supported_scorching_definition(&game.world) {
+        level += super::tconstruct_source_smite::scorching_level(
+            traits.levels.get("tconstruct:scorching").copied().unwrap_or(0), mob.is_on_fire()).unwrap_or(0.0);
+    }
+    if !level.is_finite() { return None; }
     let multiplier = match custom.get("tic_smite_melee_multiplier") { Some(Tag::Float(bits)) => f32::from_bits(*bits), _ => return None };
     if !multiplier.is_finite() || multiplier < 0.0 { return None; }
     let flat = 2.0 * level * multiplier
