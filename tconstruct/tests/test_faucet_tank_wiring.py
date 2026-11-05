@@ -13,7 +13,7 @@ class LegacyMelterWiring(unittest.TestCase):
         legacy=source[source.index('pub(super) fn activate_faucet('):source.index('pub(super) fn tick_casting(')]
         self.assertEqual(legacy.count('patch_melter_tank('), 6)
         self.assertNotIn('melter.to_nbt()',legacy)
-        self.assertGreaterEqual(legacy.count('store::write_many('),6)
+        self.assertGreaterEqual(legacy.count('write_machine_updates('),6)
         self.assertIn('let Some(state) = Melter::from_nbt(&raw) else { return; };', legacy)
         self.assertIn('game.world.block_entities.get(&source), Some(BlockEntity::Chest(_))', legacy)
         self.assertIn('} else { None };', legacy)

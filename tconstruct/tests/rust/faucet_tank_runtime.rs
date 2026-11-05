@@ -14,7 +14,13 @@ struct World { blocks:HashMap<Pos,usize>, block_entities:HashMap<Pos,containers:
 impl World { fn block(&self,x:i32,y:i32,z:i32)->usize {*self.blocks.get(&(x,y,z)).unwrap_or(&0)} }
 struct Game<'a> { res:Res, world:World, _life:std::marker::PhantomData<&'a ()> }
 mod tconstruct_source_smeltery_fuel { pub(super) fn capacity(name:&str)->Option<u32> { match name {"tconstruct:seared_fuel_tank"=>Some(4000),"tconstruct:seared_ingot_tank"=>Some(4320),_=>None} } }
-mod tconstruct_source_machine_runtime { pub(super) fn kind(name:&str)->Option<&'static str> { match name {"tconstruct:seared_fuel_tank"=>Some("tconstruct:fuel_tank"),"tconstruct:seared_ingot_tank"=>Some("tconstruct:ingot_tank"),_=>None} } }
+mod tconstruct_source_machine_runtime {
+ // This fixture isolates transfers; comparator commit behavior is exercised
+ // by run_faucet_tank_casting.py with the production helper.
+ pub(super) fn write_machine_updates(game: &mut super::Game<'_>, updates: &[(super::Pos, &str, super::Tag)]) -> bool {
+  super::tconstruct_source_melter_store::write_many(&mut game.world, updates)
+ }
+ pub(super) fn kind(name:&str)->Option<&'static str> { match name {"tconstruct:seared_fuel_tank"=>Some("tconstruct:fuel_tank"),"tconstruct:seared_ingot_tank"=>Some("tconstruct:ingot_tank"),_=>None} } }
 mod tconstruct_source_melter_store {
  use super::*;
  pub(super) fn read(w:&World,p:Pos,k:&str)->Option<Tag>{w.tags.get(&(p,k.into())).cloned()}

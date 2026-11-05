@@ -199,3 +199,21 @@ that the default early-machine chain remains reachable. These are data checks:
 actual crafting, custom tag members, reload, saves and LAN remain unverified.
 The existing Forge namespace ownership and unsupported tag removal limitations
 still apply; this does not promise compatibility with arbitrary Forge packs.
+
+### Seared Melter comparator output
+
+The native analog-output hook now exposes the Melter's internal 2,160 mB tank:
+empty emits 0, otherwise `1 + floor(14 * amount / 2160)`. This follows pinned
+TConstruct `f4e77d43` `TinyMultiblockControllerBlock.getAnalogOutputSignal` and
+[`ITankBlockEntity.comparatorStrength`](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/smeltery/block/entity/ITankBlockEntity.java). Fuel and item occupancy do not contribute.
+Malformed or unavailable saved Melter state reads as zero without rewriting it.
+
+Melting and supported Faucet routes notify comparator neighbors only after the
+atomic metadata save succeeds, and only when the signal level changes. Direct
+held-container transfers already call the pinned host's `container_changed`,
+which refreshes output signals after saving. Existing tank metadata preservation
+and failed-save item/flow behavior are retained. The fixture runs the production
+commit helper with real Melter/NBT types and a mock world, testing every valid
+fluid amount, save/load, same-level changes, fill/drain and failed writes. CI
+runs this fixture. Actual redstone circuits, world reload and LAN remain
+unverified; Alloyer registration and other machines are outside this change.
