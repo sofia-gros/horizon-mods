@@ -5765,3 +5765,71 @@ id = "source-scorch-protection-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_scorch_protection_world"
 source = "scorch-protection-world.rs"
+
+
+[[module]]
+id = "source-turtle-shell"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_turtle_shell"
+source = "source-turtle-shell.rs"
+
+[[module]]
+id = "server-source-turtle-shell"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_turtle_shell"
+source = "source-turtle-shell.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-turtle-shell-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_turtle_shell_world"
+source = "turtle-shell-world.rs"
+
+[[state]]
+id = "turtle-shell-levels"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "Vec<(f32,bool,bool)>"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[state]]
+id = "turtle-shell-points"
+target = "horizon_client_render::effects::StatusFlags"
+ty = "f32"
+initial = "::core::default::Default::default()"
+[[state.constructor]]
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
+require = 1
+
+[[injection]]
+id = "source-turtle-shell-hit-water"
+target = "horizon_client_lib::health::PlayerMotion::hurt_caused_by"
+kind = "HEAD"
+helper = "turtle-shell-water.rs"
+bindings = [{ name = "player", ty = "&mut crate::motion::PlayerMotion", value = "&mut *self" }]
+
+[[injection]]
+id = "source-turtle-shell-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "RETURN"
+helper = "turtle-shell-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-turtle-shell-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "turtle-shell-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-turtle-shell-player-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "turtle-shell-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

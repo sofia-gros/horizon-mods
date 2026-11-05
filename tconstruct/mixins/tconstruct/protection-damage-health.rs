@@ -8,6 +8,7 @@ fn tconstruct_protection_damage_health(status: &crate::effects::StatusFlags, dam
             .find(|(kind,_)| kind == damage_type).map_or(0.0,|(_,points)| *points);
     }
     extra += *status.__horizon_mixins_tconstruct_depth_protection_points();
+    extra += *status.__horizon_mixins_tconstruct_turtle_shell_points();
     if !extra.is_finite() || extra == 0.0 { return std::ops::ControlFlow::Continue(()); }
     // Native table lookup, unchanged. The native damage kernel applies this
     // combined EPF only after armor/resistance, and clamps once. Depth Protection
