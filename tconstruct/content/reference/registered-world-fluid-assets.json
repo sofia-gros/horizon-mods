@@ -880,6 +880,22 @@
     "assets/tconstruct/textures/fluid/slime/soul/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/soul/flowing.png.mcmeta",
       "sha256": "85be302541e665d05e268ad555b02f91eb678919cda581b16eb5fc72965ae82a"
+    },
+    "assets/tconstruct/textures/fluid/slime/magma/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/magma/still.png",
+      "sha256": "9dadb595d92f938c11a83aedf61a79c95acbf6e34dba401a848952344ce2b331"
+    },
+    "assets/tconstruct/textures/fluid/slime/magma/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/magma/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/slime/magma/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/magma/flowing.png",
+      "sha256": "217fab58d34d48667c0828dba0870b01d61e08af9969ca5c25688c0c8502b480"
+    },
+    "assets/tconstruct/textures/fluid/slime/magma/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/magma/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }

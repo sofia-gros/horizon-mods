@@ -1,12 +1,13 @@
 # Registered world-fluid draft
 
-This slice declares sixty-three world-liquid families. The initial families are iron, gold, copper,
+This slice declares sixty-four world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Glass, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
 Blazing Blood and Fiery Liquid. Four cool food liquids are also included:
 Beetroot Soup, Mushroom Stew, Rabbit Stew and Meat Soup.
 Venom, Honey and Liquid Soul add the first standard player contact effects.
+Magma adds a burning slime-family liquid.
 The remaining thirty conventional metals and compatibility alloys are listed
 below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
@@ -40,7 +41,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
   uses tick rate 30. The four soups also use the defaults: drop 1, slope 4,
-  tick rate 5. None of the sixty-three families generates new sources.
+  tick rate 5. None of the sixty-four families generates new sources.
 - Molten Glass uses `registerGlass`: level drop 8, slope distance 8, tick rate 30.
   It needs the extended host slope bound; its policy is not approximated as
   stone or clamped to four. It burns for 5 seconds with damage 2 and light 1.
@@ -82,7 +83,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all sixty-three families. Queen's Slime's source camera fog color remains
+  covers all sixty-four families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -130,6 +131,18 @@ refresh, expiry and network synchronization. The source's empty curative-item
 list is NOT implemented: milk and other existing curatives retain their current
 behavior, including after leaving the liquid. These declarations are not full
 effect parity. Mobs, custom slime/Enderference effects and fog remain separate.
+
+Magma retains `registerSlime` flow: drop 1, slope 4 and tick rate 50, with light 3
+and 8 seconds/3 damage of burning contact. Despite burning, its source uses the
+`slime()`/`cool()` properties: player swimming, drowning and extinguishing stay
+enabled. Do not replace these with the molten-metal flags. The host declares
+both extinguishing and burn behavior; exact same-tick ordering needs the final
+source-parity check. It uses exact `slime/magma` still/flow sprites and metadata.
+`SlimeFluid` adds no active custom flow beyond source/flowing levels; its dirt
+conversion idea is commented out in the source and is not implemented here.
+`SlimeFluidType` exempts slime-tagged mobs from drowning. The current host path
+is player-only, so that mob exception remains unimplemented. Existing Magma
+bucket/bottle/acquisition paths and solid Magma Slime blocks are unchanged.
 
 Cinderslime is intentionally undeclared: the source uses an inverted fluid,
 which cannot be represented by the host's current downward-only flow policy.
