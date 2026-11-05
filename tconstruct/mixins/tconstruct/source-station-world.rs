@@ -305,7 +305,7 @@ pub(super) fn rebuild_material_swap(world: &super::tconstruct_world::World, defi
     let fortified_changed = old_traits.as_ref().and_then(|traits| traits.get("tconstruct:fortified")).copied().unwrap_or(0)
         != traits.get("tconstruct:fortified").copied().unwrap_or(0);
     if fortified_changed && !super::tconstruct_source_defense_slots::supported_fortified(world) { return None; }
-    if (fortified_changed || matches!(output.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")).and_then(|d| d.get("tconstruct:knockback_resistance")), Some(Tag::Int(level)) if *level > 0))
+    if (fortified_changed || super::tconstruct_source_upgrade_rules::has_defense_upgrade(&output))
         && !super::tconstruct_source_upgrade_rules::valid_defense_slots(&output,
             super::tconstruct_source_defense_slots::capacity(world, definition, &output, &traits)?) {
         *reason = Some("Cannot remove material: the remaining defense slots do not cover installed upgrades.".into());
@@ -569,6 +569,10 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     let defense_slots = super::tconstruct_source_material_traits::levels(world, tool)
         .and_then(|resolved| super::tconstruct_source_defense_slots::capacity(world, definition, tool, &resolved.levels));
     let plan = super::tconstruct_source_upgrade_rules::plan_with_defense(recipes, tags, tool, slots.get(1..=input_capacity)?, i32::try_from(slots_available).ok()?, i32::try_from(abilities_available).ok()?, defense_slots.unwrap_or(0), &traits)?;
+    if plan.id == "tconstruct:fire_protection" && !super::tconstruct_source_fire_protection::supported_definition(world) {
+        *reason = Some("Fire Protection is unavailable: the current modifier definition is unsupported.".into());
+        return None;
+    }
     if plan.id == "tconstruct:knockback_resistance" && !super::tconstruct_source_knockback_defense::supported_definition(world) {
         *reason = Some("Knockback Resistance is unavailable: the current modifier definition is unsupported.".into());
         return None;
