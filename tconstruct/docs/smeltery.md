@@ -51,3 +51,24 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 ### Casting Tank to casting blocks
 
 A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Built-in tank to Drain
+
+A Faucet can fill a formed Smeltery or Foundry through a Seared or Scorched
+Drain, drawing from the eight built-in fuel/ingot tanks and gauges. Untagged
+fluids and supported vanilla base-potion identity are accepted. Matching layers
+are combined by exact fluid/NBT identity; other controller layers remain in
+place, even if they are selected first. Capacity comes from the whole tank and
+must match the current detected structure before filling.
+
+Source tank, controller tank and Faucet packet changes are staged together.
+Only the controller's tank is patched, retaining its other metadata. Unknown
+source/tank representations, invalid Drain ownership, unloaded chunks and stale
+structure capacity wait. A reserved packet can finish after a loaded source is
+removed; an unreadable recognized source waits instead. Duct destinations,
+Melter/Casting Tank sources and generic handlers are not added here.
+
+Brief static review only. Focused route fixtures are added but not run in this
+phase; full host build, gameplay, save/reload, LAN and atomic disk/network
+persistence remain unverified.
