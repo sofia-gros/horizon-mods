@@ -151,3 +151,24 @@ and draining, and valid named/extended stacks with distinct potion layers.
 They were not run. Real inventory/menu interaction, save/reload and LAN remain
 for the final combined pass. No new fluid types or external capabilities are
 introduced by this change.
+
+### Fluid Cannon held-container preservation (#379)
+
+Using a fluid container on the Cannon tank now saves only a preserving tank
+patch. Machine/tank extensions and the raw saved item remain unchanged, and
+the live item slot is never rewritten by this path. Owned tank fields, fluid
+identity and item agreement are validated; legacy tank aliases, lossy IDs,
+malformed states and retained wire backing refuse the exchange.
+
+Before committing, the path rechecks saved data, live Cannon item, held item,
+creative mode, exact block and loaded chunk after datapack preparation.
+Comparator/container notifications and held-container changes follow the
+successful save. Item-slot interactions, hopper behavior and firing are not
+changed by this work.
+
+The new `run_cannon_held.py` fixture extracts the production loader and held
+branch and uses production tank/item/transfer code. World, persistence and
+callbacks are bounded mocks. Cases cover fill/drain, stacked/single containers,
+creative behavior, extension retention, eight changed-state cases, unsafe
+metadata and failed writes. They were not run. Host/world, save/reload and LAN
+validation remain deferred to the combined pass.
