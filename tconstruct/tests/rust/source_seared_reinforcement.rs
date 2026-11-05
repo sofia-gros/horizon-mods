@@ -80,7 +80,11 @@ mod tconstruct_source_smeltery_fuel {
    ("minecraft:custom_name", Tag::Int(1)),
    ("minecraft:lore", Tag::List(vec![Tag::Int(1)])),
   ] {
-   let mut head = plain.clone(); head.data_mut().set_other(component, Some(value));
+   let mut head = plain.clone();
+   if component == "minecraft:custom_name" {
+    // Bypass the setter, which normalizes malformed names away.
+    head.data_mut().custom_name = Some(value);
+   } else { head.data_mut().set_other(component, Some(value)); }
    assert!(!consumed_head_with_presentation(&head), "{component}");
   }
   let mut wired = plain.clone();
