@@ -6,11 +6,13 @@ host = pathlib.Path(os.environ['HORIZON_HOST']).resolve()
 source = (root / 'mixins/tconstruct/source-machine-runtime.rs').read_text()
 kind = source[source.index('pub(super) fn kind('):source.index('fn initial(')]
 safety = source[source.index('fn faucet_network_tag_safe('):source.index('fn faucet_supported_potion_tag(')]
-route = source[source.index('fn tank_to_melter('):]
+helpers = source[source.index('fn selected_smeltery_fluid('):source.index('fn matched_casting(')]
+helpers += source[source.index('fn patch_smeltery_controller_tank('):source.index('fn smeltery_to_tank(')]
+route = source[source.index('fn source_to_melter('):]
 template = (root / 'tests/rust/faucet_melter_input_fixture.rs').read_text()
 template = template.replace('__MIXINS__', str(root / 'mixins/tconstruct'))
 template = template.replace('__PLUTO__', str(root.parent / 'pluto-lib/mixins/pluto_native_creative/stack-fluid.rs'))
-template = template.replace('// __PRODUCTION_ROUTE__', kind + safety + route)
+template = template.replace('// __PRODUCTION_ROUTE__', kind + safety + helpers + route)
 with tempfile.TemporaryDirectory(prefix='faucet-melter-input-') as tmp:
     p = pathlib.Path(tmp)
     (p / 'src').mkdir()
