@@ -573,6 +573,10 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
         *reason = Some(format!("{} is unavailable: the current modifier definition is unsupported.", plan.id));
         return None;
     }
+    if plan.id == "tconstruct:boundless" && !super::tconstruct_boundless::supported_definition(world) {
+        *reason = Some("Boundless is unavailable: the current modifier definition is unsupported.".into());
+        return None;
+    }
     if plan.id == "tconstruct:knockback_resistance" && !super::tconstruct_source_knockback_defense::supported_definition(world) {
         *reason = Some("Knockback Resistance is unavailable: the current modifier definition is unsupported.".into());
         return None;
@@ -655,6 +659,7 @@ fn overslime_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemSt
 
 /// Construct the worktable extraction output without changing inventory.
 pub(super) fn extraction_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStack>], id: &str) -> Option<StationOperation> {
+    if id == "tconstruct:boundless" && !super::tconstruct_boundless::salvage(world) { return None; }
     let tool = slots.first()?.as_ref()?;
     let Tag::List(materials) = tool.data()?.other("minecraft:custom_data")?.get("tic_materials")? else { return None; };
     let identities = materials.iter().map(|value| match value {
