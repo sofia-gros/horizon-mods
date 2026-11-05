@@ -5381,3 +5381,17 @@ target = "horizon_client::game::creatures::Game<'_>::knock_back_player"
 kind = "HEAD"
 helper = "ricochet-knockback.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "power", ty = "&mut f64", value = "&mut power" }]
+
+[[injection]]
+id = "source-enderference-player-pearl"
+target = "horizon_client::game::native_hooks::Game<'_>::native_ender_pearl_teleport"
+kind = "RETURN"
+helper = "enderference-player-teleport.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "cancel", ty = "&mut bool", value = "&mut *cancel" }]
+
+[[injection]]
+id = "source-enderference-player-chorus"
+target = "horizon_client::game::native_hooks::Game<'_>::native_chorus_fruit_teleport"
+kind = "RETURN"
+helper = "enderference-player-teleport.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "cancel", ty = "&mut bool", value = "&mut *cancel" }]

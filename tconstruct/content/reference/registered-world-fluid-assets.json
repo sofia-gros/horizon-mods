@@ -976,6 +976,22 @@
     "assets/tconstruct/textures/fluid/slime/sky/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/sky/flowing.png.mcmeta",
       "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
+    },
+    "assets/tconstruct/textures/fluid/slime/ender/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ender/still.png",
+      "sha256": "96fcb621c077081aeeb958581b02972d99186579771cddf81e545444fe2b4b71"
+    },
+    "assets/tconstruct/textures/fluid/slime/ender/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ender/still.png.mcmeta",
+      "sha256": "af915735740bd046c85e66fc03c47bb31517ef64f1721726151ea5de8cf121e3"
+    },
+    "assets/tconstruct/textures/fluid/slime/ender/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ender/flowing.png",
+      "sha256": "343070752fcd48e275594256683f4c7a5426c6b09ea6de510be9b1456d5b1965"
+    },
+    "assets/tconstruct/textures/fluid/slime/ender/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/ender/flowing.png.mcmeta",
+      "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
     }
   }
 }
