@@ -56,9 +56,12 @@ class SupportedBonusGuideWiring(unittest.TestCase):
                      'tconstruct:book-title', 'partial guide'):
             self.assertIn(call, body)
         self.assertIn('puny && key == "slotless"', source)
-        self.assertIn('Some("group_bonus_upgrades")', source)
+        self.assertIn('puny_slotless_group', source)
+        index = (ROOT / 'mixins/tconstruct/source-materials-book-index.rs').read_text()
+        self.assertIn('"group_bonus_upgrades" => ("tconstruct:slotless/bonus", "slotless/bonus_upgrades.json")', index)
         self.assertIn('/extraData/tconstruct:load_modifiers/tag', source)
-        self.assertIn('chapter_pages.extend(bonus_pages)', source)
+        self.assertIn('if tag == "tconstruct:slotless/bonus" { bonus_modifier_pages(game, tag) }', source)
+        self.assertIn('chapter_pages.extend(group_recipes)', source)
         self.assertIn('source_pages(game, &path, book)', (ROOT / 'mixins/tconstruct/source-materials-book-request.rs').read_text())
 
     def test_gameplay_bonus_registry_is_not_duplicated_for_the_book(self):
@@ -222,8 +225,8 @@ class ModifierCrystalGuideWiring(unittest.TestCase):
 class SlotlessIncrementalGuideWiring(unittest.TestCase):
     def test_slotless_groups_use_shared_default_and_cost_policy(self):
         source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
-        for text in ('let mut slotless_tags = Vec::new()', 'slotless_tags.push(tag.to_owned())',
-                     'incremental_modifier_pages(game, &slotless_tags)', 'slotless_incremental_limit',
+        for text in ('let slotless_group = if puny_slotless', 'puny_slotless_group',
+                     'recipes.extend(incremental_modifier_pages(game, &[tag.to_owned()]))', 'slotless_incremental_limit',
                      'entry.default_maximum', 'source recipe has no explicit maximum',
                      'Slotless: no upgrade or ability slots are consumed',
                      "Blindshot cannot be recovered through this port's modifier-extraction operation"):

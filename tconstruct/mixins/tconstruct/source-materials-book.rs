@@ -613,6 +613,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let mighty_smeltery = mighty && key == "smeltery";
         let mighty_abilities = mighty && key == "abilities";
         let puny_upgrades = puny && key == "upgrades";
+        let puny_slotless = puny && key == "slotless";
         if mighty && !matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "abilities") { continue; }
         if mighty_advice && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("tools.partial").copied(), labels.get("tools.partial.notice_title").copied(), labels.get("tools.partial.notice").copied()
@@ -626,10 +627,14 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         if puny_upgrades && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("upgrades.partial").copied(), labels.get("upgrades.partial.notice_title").copied(), labels.get("upgrades.partial.notice").copied()
         ]) { continue; }
+        if puny_slotless && (!super::tconstruct_materials_book_index::mighty_advice_ready([
+            labels.get("slotless.partial").copied(), labels.get("slotless.partial.notice_title").copied(), labels.get("slotless.partial.notice").copied()
+        ]) || ["slotless.partial.reference", "slotless.partial.empty"].iter()
+            .any(|key| !labels.get(key).is_some_and(|value| !value.trim().is_empty()))) { continue; }
         // Puny and Mighty group bounded recipe projections under source overviews.
         // Other modifier forms and a complete registry still need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
+        let heading = if puny_slotless { labels.get("slotless.partial").copied().unwrap_or("Supported slotless (partial)") } else if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -778,17 +783,23 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             continue;
         }
         let mut chapter_pages = Vec::new();
-        let mut bonus_pages = Vec::new();
-        let mut slotless_tags = Vec::new();
         for page in section.as_array()? {
-            if puny && key == "slotless" {
-                if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) { slotless_tags.push(tag.to_owned()); }
-            }
-            if puny && key == "slotless" && page.get("name").and_then(|v| v.as_str()) == Some("group_bonus_upgrades") {
-                if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) {
-                    bonus_pages.extend(bonus_modifier_pages(game, tag));
+            let slotless_group = if puny_slotless {
+                if let Some((tag, relative)) = page.get("name").and_then(|value| value.as_str())
+                    .and_then(super::tconstruct_materials_book_index::puny_slotless_group) {
+                    if page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|value| value.as_str()) != Some(tag)
+                        || page.get("data").and_then(|value| value.as_str()) != Some(relative) { continue; }
+                    Some(tag)
+                } else { None }
+            } else { None };
+            let group_recipes = match slotless_group {
+                Some(tag) => {
+                    let mut recipes = if tag == "tconstruct:slotless/bonus" { bonus_modifier_pages(game, tag) } else { Vec::new() };
+                    recipes.extend(incremental_modifier_pages(game, &[tag.to_owned()]));
+                    recipes
                 }
-            }
+                None => Vec::new(),
+            };
             if gadgetry_exploration && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::gadgetry_exploration_page) { continue; }
             if foundry && key == "foundry" && !page.get("name").and_then(|v| v.as_str()).is_some_and(|name| matches!(name, "features" | "byproducts" | "structurereq" | "fgui1" | "fgui2" | "scorched_tanks")) { continue; }
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
@@ -907,6 +918,14 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     super::tconstruct_materials_book_layout::append_parts(&mut text, parts, key == "properties");
                 }
             }
+            if puny_slotless {
+                // Preserve the illustrated Damage Tools page and all its overflow,
+                // while distinguishing every source page from supported recipes.
+                text = format!("{}\n\n{text}", labels["slotless.partial.reference"]);
+                if slotless_group.is_some() && group_recipes.is_empty() {
+                    text.push_str("\n\n"); text.push_str(labels["slotless.partial.empty"]);
+                }
+            }
             // Carry rich text across wrapping and page breaks. Source inline
             // legacy formatting is resolved before measuring each line.
             let mut remaining = None;
@@ -942,12 +961,11 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     chapter_pages.push(page);
                 }
             }
+            chapter_pages.extend(group_recipes);
         }
-        chapter_pages.extend(bonus_pages);
-        if !slotless_tags.is_empty() { chapter_pages.extend(incremental_modifier_pages(game, &slotless_tags)); }
         if !chapter_pages.is_empty() {
-            if mighty_advice || mighty_smeltery || encyclopedia || gadgetry {
-                let (title_key, note_key) = if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
+            if mighty_advice || mighty_smeltery || encyclopedia || gadgetry || puny_slotless {
+                let (title_key, note_key) = if puny_slotless { ("slotless.partial.notice_title", "slotless.partial.notice") } else if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
                 if let (Some(title), Some(note)) = (labels.get(title_key), labels.get(note_key)) {
                     let notices = split_styled(game, &Text::literal(*note), 182.0, 15).into_iter().map(|part| {
                         let mut notice = Text::styled(*title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });

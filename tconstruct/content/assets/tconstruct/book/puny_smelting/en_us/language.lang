@@ -38,6 +38,11 @@ upgrades.boots.tconstruct.feather_fall=Feather Fall
 # see the section json to find the prefix, any modifier type that defines that can use it
 
 slotless=Slotless Modifier
+slotless.partial=Supported slotless (partial)
+slotless.partial.notice_title=Slotless Guide Coverage
+slotless.partial.notice=These source overviews and the Damage Tools illustration are reference advice, not complete Horizon support. Supported current-world incremental and bonus-slot recipes follow their own category. Recipe pages list the actual inputs, eligible tools, limits and crystal alternatives. Other slotless and cosmetic recipes remain omitted.
+slotless.partial.reference=Source reference: described effects may not be implemented. Only the following supported recipe pages define this guide's available recipe subset.
+slotless.partial.empty=No supported recipe is shown in this category for the current world. This is a guide limitation, not proof that every described effect is unavailable.
 slotless.subtext=These modifiers do not require any slots to apply, you can have them all if you wish.
 slotless.group_slotless=General
 slotless.group_bonus_upgrades=Slots++
