@@ -690,6 +690,13 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
     // existing item-slot interaction when the casting tank is empty.
     if let Some(stack) = game.held().cloned().filter(|stack| stack.count > 0
         && super::tconstruct_source_fluid_container::casting_portable_rewrite_safe(stack)) {
+        // Snapshot before datapack preparation: conversion is staged locally,
+        // and neither the held item nor a changed live/saved machine may be
+        // overwritten by the eventual commit.
+        let raw_casting = store::read(&game.world, pos, kind);
+        let block_state = game.world.block(pos.0, pos.1, pos.2);
+        let held_before = stack.clone();
+        let creative = game.creative;
         game.ensure_datapacks();
         let fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
             .and_then(|value| value.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
@@ -719,9 +726,19 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
                 next.tank = Tank::new(0); next.timer = 0; next.recipe = None; next.result = None;
                 next.cooling_time = 0; next.consumes_cast = false; next.switch_slots = false;
             }
-            // This newly supported path must not discard extensions or lossy
-            // strings when replacing the existing casting compound.
-            if !store::read(&game.world, pos, kind).is_some_and(|raw| casting.roundtrips(&raw)) { return true; }
+            // Preserve native extensions, but reject aliases, malformed owned
+            // fields, lossy strings, and stale live inventory or held stacks.
+            let Some(raw_casting) = raw_casting else { return true; };
+            if casting.to_nbt_preserving(&raw_casting).as_ref() != Some(&raw_casting)
+                || !game.world.chunks.contains_key(&(pos.0 >> 4, pos.2 >> 4))
+                || game.world.block(pos.0, pos.1, pos.2) != block_state
+                || store::read(&game.world, pos, kind).as_ref() != Some(&raw_casting)
+                || !casting_at(game, pos).is_some_and(|(fresh_kind, fresh)| fresh_kind == kind
+                    && fresh.to_nbt_preserving(&raw_casting).as_ref() == Some(&raw_casting))
+                || game.creative != creative
+                || !game.held().is_some_and(|held| held.count == held_before.count
+                    && held.damage == held_before.damage && held.same_item_same_components(&held_before)
+                    && super::tconstruct_source_melter_state::casting_item_save_safe(held)) { return true; }
             if !store::write_casting(&mut game.world, pos, kind, &next) { return false; }
             if game.creative {
                 if next.tank.amount < before { if let Some(result) = slots[1].take() { game.give_or_drop(result); } }

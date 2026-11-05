@@ -29,7 +29,7 @@ def quoted(path):
 # Compile the actual full interaction functions with bounded host fixtures.
 base=(root / 'tconstruct/tests/rust/smeltery_nbt_store.rs').read_text()
 base=base.replace('../../mixins/tconstruct/', str(root / 'tconstruct/mixins/tconstruct') + '/')
-base=base.replace('pub chunks: HashMap<(i32,i32), Arc<Chunk>>, pub modified:', 'pub block_entities: HashMap<(i32,i32,i32), super::BlockEntity>, pub chunks: super::Chunks, pub modified:')
+base=base.replace('pub chunks: HashMap<(i32,i32), Arc<Chunk>>, pub modified:', 'pub blocks: HashMap<(i32,i32,i32), u8>, pub block_entities: HashMap<(i32,i32,i32), super::BlockEntity>, pub chunks: super::Chunks, pub modified:')
 route=(root / 'tconstruct/mixins/tconstruct/source-machine-runtime.rs').read_text()
 fixture=(root / 'tconstruct/tests/rust/casting_interaction_fixture.rs').read_text()
 fixture=fixture.replace('// __CASTING_AT__',route[route.index('pub(super) fn casting_at('):route.index('// Empty-cast items')])
@@ -81,6 +81,9 @@ PYLOCK
 cargo test --locked --offline --manifest-path "$WORK/Cargo.toml" -- --nocapture 2>&1 | tee "$WORK/results.log"
 # A successful zero-test filter is not evidence that the target behavior ran.
 for case in \
+    'test actual_casting_held_transfers_preserve_extensions_in_all_four_blocks ... ok' \
+    'test actual_casting_held_transfer_rechecks_live_saved_block_and_player_snapshots ... ok' \
+    'test actual_casting_held_transfer_rejects_aliases_stale_slots_and_failed_save ... ok' \
     'test actual_casting_interaction_rejects_wire_insertion_molding_and_live_slots ... ok' \
     'test actual_casting_interaction_accepts_normal_insertion_and_reusable_molding ... ok' \
     'test typed_casting_write_rejects_live_wire_before_encoding_and_slot_patch_is_safe ... ok' \
