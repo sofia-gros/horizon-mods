@@ -25,6 +25,19 @@ class CastingContainerWiring(unittest.TestCase):
                       'held.same_item_same_components(&held_before)', 'game.creative != creative'):
             self.assertLess(body.index(guard), body.index('store::write_casting(&mut game.world, pos, kind, &next)'))
 
+    def test_failed_probe_guard_precedes_every_item_fallback(self):
+        source = (ROOT / 'source-machine-runtime.rs').read_text()
+        body = source.split('pub(super) fn interact_casting(', 1)[1].split('\nfn faucet_neighbors(', 1)[0]
+        prepare = body.index('game.ensure_datapacks()')
+        guard = body.index('if !unchanged(game) { return true; }', prepare)
+        self.assertLess(guard, body.index('transfer_single_with_color', prepare))
+        self.assertLess(guard, body.index('let held = game.held().cloned();'))
+        self.assertEqual(body.count('if !unchanged(game) { return true; }'), 3)
+        self.assertIn('(game.lan.is_none(), game.lan_acting_uuid.is_none()) != local', body)
+        fallback = body.index('let held = game.held().cloned();')
+        self.assertLess(body.rindex('if !unchanged(game) { return true; }'), fallback)
+        self.assertLess(fallback, body.index('tconstruct_source_melter_world::molding('))
+
     def test_both_faucet_sources_reinitialize_the_casting_before_pouring(self):
         source = (ROOT / 'source-machine-runtime.rs').read_text()
         smeltery = source.split('fn tick_smeltery_faucet(', 1)[1].split('pub(super) fn activate_faucet(', 1)[0]

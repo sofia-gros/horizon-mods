@@ -16,7 +16,7 @@ const CASTING_BLOCKS:[&str;4]=["tconstruct:seared_table","tconstruct:scorched_ta
 struct Facts;struct Fact {name:String}impl Facts{fn get(&self,id:u8)->Fact{Fact{name:CASTING_BLOCKS.get(id as usize).unwrap_or(&"minecraft:air").to_string()}}}
 struct Resources;impl Resources{fn items(&self)->HashMap<String,()>{HashMap::new()}fn facts(&self)->Facts{Facts}}
 struct Stats;impl Stats{fn add(&mut self,_:&str,_:&str,_:u32){}}
-struct Game<'a>{world:tconstruct_world::World,held:Option<ItemStack>,given:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,res:Resources,stats:Stats,fault:u8,marker:std::marker::PhantomData<&'a ()>}
+struct Game<'a>{world:tconstruct_world::World,held:Option<ItemStack>,given:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,res:Resources,stats:Stats,fault:u8,crafted:usize,marker:std::marker::PhantomData<&'a ()>}
 impl Game<'_>{
  fn held(&self)->Option<&ItemStack>{self.held.as_ref()}fn held_mut(&mut self)->&mut Option<ItemStack>{&mut self.held}
  fn ensure_datapacks(&mut self){
@@ -31,10 +31,11 @@ impl Game<'_>{
    7=>self.held.as_mut().unwrap().count+=1,
    8=>{let item=self.held.as_mut().unwrap();item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));item.damage=1;},
    9=>if let Some(BlockEntity::Chest(slots))=self.world.block_entities.get_mut(&pos){slots[1]=Some(ItemStack::new("minecraft:glass",1));},
+   10=>self.lan=Some(()),11=>self.lan_acting_uuid=Some(()),12=>self.held=None,13=>self.held.as_mut().unwrap().count=0,
    _=>{},
   }
  }fn give_or_drop(&mut self,s:ItemStack){self.given.push(s)}fn native_acting_id(&self)->u8{0}
- fn native_item_crafted(&mut self,_:u8,_:&str,_:&ItemStack){}
+ fn native_item_crafted(&mut self,_:u8,_:&str,_:&ItemStack){self.crafted+=1;}
 }
 impl tconstruct_world::World{fn block(&self,x:i32,y:i32,z:i32)->u8{self.blocks.get(&(x,y,z)).copied().unwrap_or(0)}}
 mod tconstruct_source_fluid_container {
@@ -67,7 +68,7 @@ mod interaction {
 }
 fn interaction_game(input:Option<ItemStack>,held:Option<ItemStack>)->(Game<'static>,Pos){
  let mut state=tconstruct_source_melter_state::Casting::new();state.input=input.clone();
- let(world,pos)=casting_world(state.to_nbt());let mut game=Game{world,held,given:vec![],creative:false,lan:None,lan_acting_uuid:None,res:Resources,stats:Stats,fault:0,marker:std::marker::PhantomData};
+ let(world,pos)=casting_world(state.to_nbt());let mut game=Game{world,held,given:vec![],creative:false,lan:None,lan_acting_uuid:None,res:Resources,stats:Stats,fault:0,crafted:0,marker:std::marker::PhantomData};
  game.world.block_entities.insert(pos,BlockEntity::Chest(vec![input,None]));(game,pos)
 }
 #[test]
@@ -163,4 +164,42 @@ fn actual_casting_held_transfer_rejects_aliases_stale_slots_and_failed_save(){
   assert_eq!(game.held,held);assert!(game.given.is_empty());assert!(game.world.modified.is_empty());
   assert_eq!(game.world.chunks[&(0,0)].saved.as_ref().unwrap().block_entity_sources,before);
  }
+}
+
+fn fallback_game(block:u8,mode:u8)->(Game<'static>,Pos,&'static str){
+ use horizon_world::nbt::Tag;
+ let input=match mode{0=>None,3|4=>Some(ItemStack::new("minecraft:sand",1)),_=>Some(ItemStack::new("tconstruct:ingot_cast",1))};
+ let held=ItemStack::new(match mode{3=>"tconstruct:pattern",4=>"tconstruct:consumed_pattern",_=>"minecraft:stick"},2);
+ let(mut game,pos)=interaction_game(input,Some(held));let mut state=tconstruct_source_melter_state::Casting::from_nbt(&tconstruct_source_melter_store::read(&game.world,pos,"tconstruct:table").unwrap()).unwrap();
+ if mode==2{state.output=Some(ItemStack::new("minecraft:copper_ingot",1));if let Some(BlockEntity::Chest(slots))=game.world.block_entities.get_mut(&pos){slots[1]=state.output.clone();}}
+ let mut raw=state.to_nbt();if let Tag::Compound(fields)=&mut raw{fields.insert("future".into(),Tag::Int(7));}
+ let kind=if block<2{"tconstruct:table"}else{"tconstruct:basin"};game.world.blocks.insert(pos,block);replace_casting_raw(&mut game,pos,kind,raw);(game,pos,kind)
+}
+#[test]fn actual_casting_failed_fluid_probe_rechecks_before_all_item_fallbacks(){
+ for block in 0..4{for mode in 0..5{for fault in 1..=13{
+  let(mut game,pos,kind)=fallback_game(block,mode);game.fault=fault;
+  let(mut expected,_,_)=fallback_game(block,mode);expected.fault=fault;expected.ensure_datapacks();
+  assert!(interaction::interact_casting(&mut game,pos,CASTING_BLOCKS[block as usize]));
+  assert!(game.world.modified.is_empty());assert!(game.given.is_empty());assert_eq!(game.crafted,0);
+  assert_eq!(game.held,expected.held);assert_eq!(game.creative,expected.creative);assert_eq!(game.lan,expected.lan);assert_eq!(game.lan_acting_uuid,expected.lan_acting_uuid);
+  assert_eq!(game.world.blocks,expected.world.blocks);
+  let Some(BlockEntity::Chest(slots))=game.world.block_entities.get(&pos)else{panic!()};let Some(BlockEntity::Chest(expected_slots))=expected.world.block_entities.get(&pos)else{panic!()};assert_eq!(slots,expected_slots);
+  assert_eq!(tconstruct_source_melter_store::read(&game.world,pos,kind),tconstruct_source_melter_store::read(&expected.world,pos,kind));
+ }}}
+}
+#[test]fn actual_casting_unchanged_probe_preserves_all_item_fallbacks(){
+ use horizon_world::nbt::Tag;
+ for block in 0..4{for mode in 0..5{let(mut game,pos,kind)=fallback_game(block,mode);
+  assert!(interaction::interact_casting(&mut game,pos,CASTING_BLOCKS[block as usize]));
+  let raw=tconstruct_source_melter_store::read(&game.world,pos,kind).unwrap();assert_eq!(raw.get("future"),Some(&Tag::Int(7)));
+  let state=tconstruct_source_melter_state::Casting::from_nbt(&raw).unwrap();
+  assert!(!game.world.modified.is_empty());assert_eq!(game.crafted,usize::from(mode>=3));
+  match mode{
+   0=>{assert_eq!(&*state.input.unwrap().item,"minecraft:stick");assert_eq!(game.held.unwrap().count,1);assert!(game.given.is_empty());},
+   1=>{assert!(state.input.is_none());assert_eq!(&*game.given[0].item,"tconstruct:ingot_cast");assert_eq!(game.held.unwrap().count,2);},
+   2=>{assert!(state.output.is_none());assert!(state.input.is_some());assert_eq!(&*game.given[0].item,"minecraft:copper_ingot");assert_eq!(game.held.unwrap().count,2);},
+   3|4=>{assert_eq!(&*state.input.unwrap().item,"minecraft:glass");assert_eq!(state.output.is_some(),mode==3);assert_eq!(game.held.unwrap().count,1);assert!(game.given.is_empty());},
+   _=>unreachable!(),
+  }
+ }}
 }
