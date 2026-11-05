@@ -5387,3 +5387,15 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "respiration-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-turtles-grace"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_turtles_grace"
+source = "source-turtles-grace.rs"
+
+[[module]]
+id = "source-turtles-grace-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_turtles_grace_world"
+source = "turtles-grace-world.rs"
