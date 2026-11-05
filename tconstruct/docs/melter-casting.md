@@ -169,3 +169,23 @@ Added three exact-index codec cases and three extracted production-local-route
 cases, plus guest wiring checks. World/storage are mocked; the guest packet handler
 is not executed by this fixture. No tests were run. Actual host/UI, save/reload and
 LAN, direct fuel/Melter clicks and other inventory paths remain separate/unverified.
+
+
+### Direct Melter and fuel-tank menu preservation (#379)
+
+Melter output clicks, its fuel-tank clicks and Smeltery/Foundry owned-fuel clicks
+now share a native single-tank container planner. It retains tank extensions,
+refuses legacy aliases/lossy IDs/malformed fields and current or retained wire-backed
+carried items, and keeps the existing portable-container and potion restrictions.
+Melter output commits replace only the nested tank in the original raw controller,
+leaving item/inventory, fuel, progress and extension fields untouched. Fuel commits
+retain native tank extensions instead of replacing the whole compound canonically.
+
+Both exchange helpers recheck the target chunk, block and exact raw save before
+writing; owned-fuel exchange also rechecks controller ownership. Returned slots are
+published by the existing local/guest wrappers only after a successful commit.
+Two planner cases, three extracted production-exchange fixture cases and wiring
+checks were added. The fixture uses mocked world/storage/ensure behavior, covers
+fuel and ingot capacities and failed persistence, and does not execute guest packets.
+No tests were run. Actual host/UI, reload, LAN and generic inventory/tick writes
+remain separate or unverified.
