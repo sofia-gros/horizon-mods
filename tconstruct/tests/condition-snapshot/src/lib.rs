@@ -214,3 +214,24 @@ mod balm_duration_cases {
         assert_eq!(super::tconstruct_crystalstrike::duration(100, 0.0), Some(1));
     }
 }
+
+#[path = "../../../mixins/tconstruct/source-magic-protection.rs"]
+mod source_magic_protection;
+
+#[cfg(test)]
+mod magic_protection_duration_cases {
+    #[test]
+    fn base_reductions_combine_before_all_worn_and_held_totals() {
+        let magic = super::source_magic_protection::amount(&[1.0, 1.0]).unwrap();
+        let crystal = f64::from(0.05f32);
+        let balm = super::source_balm::amount(1).unwrap();
+        let multiplier = super::source_balm::multiplier_with_base(
+            &[1], &[magic], &[crystal, crystal],
+        ).unwrap();
+        assert_eq!(multiplier, (1.0 + balm + magic) * (1.0 + crystal) * (1.0 + crystal));
+        assert_eq!(super::tconstruct_crystalstrike::duration(100, multiplier), Some(82));
+        assert_eq!(super::tconstruct_crystalstrike::duration(-1, multiplier), Some(-1));
+        assert_eq!(super::source_balm::multiplier_with_base(&[], &[-2.0], &[crystal]), Some(0.0));
+        assert_eq!(super::source_balm::multiplier_with_base(&[], &[f64::NAN], &[]), None);
+    }
+}

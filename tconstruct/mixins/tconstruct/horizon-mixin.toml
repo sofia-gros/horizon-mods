@@ -5414,3 +5414,15 @@ target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
 kind = "TAIL"
 helper = "crystalstrike-status.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-magic-protection-duration"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_magic_protection"
+source = "source-magic-protection.rs"
+
+[[module]]
+id = "source-magic-protection-duration-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_magic_protection_world"
+source = "magic-protection-world.rs"

@@ -95,14 +95,15 @@ pub(super) fn attack_speed(game: &Game<'_>, value: f64) -> f64 {
         .clamp(0.0, 1024.0)
 }
 
-/// Attribute operation ordering: Balm base additions, then Crystalstrike's
-/// separate total multipliers, then one attribute clamp and duration cast.
+/// Attribute operation ordering: Balm and maximum Magic Protection base
+/// additions, then every Crystalstrike total, then one clamp and duration cast.
 pub(super) fn multiplier(game: &Game<'_>) -> f64 {
     let balm = levels(game, false, balm::ID).unwrap_or([0; 6]);
     let totals = levels(game, false, rule::ID)
         .unwrap_or([0; 6])
         .map(|level| rule::amount(level).unwrap_or(0.0));
-    balm::multiplier(&balm, &totals).unwrap_or(1.0)
+    let magic = super::tconstruct_magic_protection_world::amount(game).unwrap_or(0.0);
+    balm::multiplier_with_base(&balm, &[magic], &totals).unwrap_or(1.0)
 }
 
 /// Keep /attribute consistent with the combat consumer's live calculation.
