@@ -269,6 +269,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_material_snapshot_mut() = Some(materials);
     *game.world.chunks.__horizon_mixins_tconstruct_material_tag_snapshot_mut() = Some(material_tags);
     *game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot_mut() = Some(modifiers);
+    crate::game::tconstruct_source_entity_world::capture(game);
     let generation = game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation().wrapping_add(1);
     *game.world.chunks.__horizon_mixins_tconstruct_source_recipe_generation_mut() = generation;
 }
@@ -279,6 +280,7 @@ pub(super) fn invalidate_parked_item_tags(game: &mut crate::game::Game<'_>) {
     for dim in [crate::game::Dim::Overworld, crate::game::Dim::Nether, crate::game::Dim::End] {
         if let Some(world) = game.levels.parked_world_mut(dim) {
             *world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = None;
+            *world.chunks.__horizon_mixins_tconstruct_entity_melting_snapshot_mut() = None;
             *world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot_mut() = None;
         }
     }

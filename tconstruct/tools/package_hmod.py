@@ -214,6 +214,7 @@ def package(output):
         'tconstruct-fluid-tags.zip': 'tconstruct-original-pack',
         'tconstruct-fluid-effects.zip': 'tconstruct-original-pack',
         'tconstruct-block-tags.zip': 'tconstruct-original-pack',
+        'tconstruct-entity-melting.zip': 'tconstruct-original-pack',
         'forge-47.4.0-data.zip': 'forge-original-pack',
     }
     for filename, layer in archives.items():
