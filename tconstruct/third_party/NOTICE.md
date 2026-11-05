@@ -137,3 +137,10 @@ Source paths are `src/main/resources/assets/tconstruct/book/tinkers_gadgetry`,
 Copyright (c) 2022 SlimeKnights; MIT license, see
 `tconstruct/third_party/tconstruct/LICENSE`. Native icon/recipe formats and the
 partial-edition notice are port adaptations.
+
+The seven Grout/Nether Grout, brick-smelting and Puny Smelting recipe-unlock
+advancements are adapted from
+[Tinkers' Construct f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes).
+`docs/grout-recipe-unlocks.md` lists source paths and native adaptations.
+Copyright (c) 2022 SlimeKnights; MIT license, see
+`tconstruct/third_party/tconstruct/LICENSE`.
