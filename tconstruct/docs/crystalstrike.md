@@ -13,8 +13,9 @@ in #379. It does not implement held-shield Crystalstrike or claim full parity.
   applies it to both vanilla weapons and the existing TiC/Overwield replacement.
   The attack-speed attribute also receives four owned transient slot modifiers.
   Unequipping or changing the source definition removes those modifiers.
-- `give_player_effect`, the shared mob/arrow effect entry, scales the duration
-  of supported source nonbeneficial effects by the same per-piece multiplier.
+- `give_player_effect` and `add_player_effect` scale the duration
+  of supported source nonbeneficial effects. Balm base reductions combine before
+  the per-piece Crystalstrike total multipliers and the final duration cast.
   Neutral Glowing and Bad Omen are included; infinite duration is preserved.
   The result truncates to an integer and is at least one tick when modified.
 - `knock_back_player` restricts incoming horizontal knockback to 32, 16, 8 or
@@ -32,11 +33,13 @@ in #379. It does not implement held-shield Crystalstrike or claim full parity.
 ## Remaining coverage
 
 Held equipment, custom item classes/definitions and custom curative metadata
-are outside this change. Effects delivered directly through potion drinking,
-commands, clouds or other paths bypassing `give_player_effect` remain unchanged.
+are outside this change. The Balm follow-on adds drinking, food, tipped-arrow
+and potion paths routed through `add_player_effect`; direct effect-list writes
+remain unchanged.
 Only known source 1.20.1 milk-curable nonbeneficial effects are scaled; newer or
 custom effects are not guessed. The custom bad-effect attribute itself is not
-registered, so external attribute changes and other modifiers are not combined.
+registered, so external attribute changes and modifiers other than Balm are not
+combined.
 Knockback paths bypassing `knock_back_player` and cross-mod hook ordering remain
 unverified. The host-provided sine table is used; full JVM numerical parity is
 not claimed.

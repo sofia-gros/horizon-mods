@@ -5394,3 +5394,16 @@ target = "horizon_client::game::creatures::Game<'_>::knock_back_player"
 kind = "HEAD"
 helper = "crystalstrike-knockback.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "x", ty = "&mut f64", value = "&mut xd" }, { name = "z", ty = "&mut f64", value = "&mut zd" }]
+
+[[module]]
+id = "source-balm"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_balm"
+source = "source-balm.rs"
+
+[[injection]]
+id = "source-bad-effect-add"
+target = "horizon_client::game::potions::Game<'_>::add_player_effect"
+kind = "HEAD"
+helper = "balm-effect-add.rs"
+bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "effect", ty = "&mut horizon_client::effects::EffectInstance", value = "&mut effect" }]

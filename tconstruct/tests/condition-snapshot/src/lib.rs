@@ -196,3 +196,21 @@ mod chain_compat_tests {
 #[allow(dead_code)]
 #[path = "../../../mixins/tconstruct/source-crystalstrike.rs"]
 mod tconstruct_crystalstrike;
+
+#[path = "../../../mixins/tconstruct/source-balm.rs"]
+mod source_balm;
+
+#[cfg(test)]
+mod balm_duration_cases {
+    #[test]
+    fn combined_source_attribute_is_rounded_once_and_preserves_infinity() {
+        let crystal = f64::from(0.05_f32);
+        let balm = super::source_balm::multiplier(&[1], &[]).unwrap();
+        let combined = super::source_balm::multiplier(&[1], &[crystal]).unwrap();
+        assert_eq!(super::tconstruct_crystalstrike::duration(100, balm), Some(79));
+        assert_eq!(super::tconstruct_crystalstrike::duration(100, combined), Some(83));
+        assert_eq!(super::tconstruct_crystalstrike::duration(79, 1.0 + crystal), Some(82));
+        assert_eq!(super::tconstruct_crystalstrike::duration(-1, combined), Some(-1));
+        assert_eq!(super::tconstruct_crystalstrike::duration(100, 0.0), Some(1));
+    }
+}
