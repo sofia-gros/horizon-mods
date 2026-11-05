@@ -1,0 +1,72 @@
+{
+  "bloodshroom_planks": {
+    "group": "building_blocks",
+    "sha256": "5fc26b1c22d087a5e05b8c4b91a3ff6722b4bf2051730a1b675766ce1e113562",
+    "source": "building_blocks/world/wood/bloodshroom/planks.json"
+  },
+  "copper_can": {
+    "group": "misc",
+    "sha256": "368a03dd76e5cc7948c3d86a80bcf29fb8a8f15c1d1207a1aaddc17ae92ff22d",
+    "source": "misc/smeltery/copper_can.json"
+  },
+  "earth_congealed_slime": {
+    "group": "building_blocks",
+    "sha256": "342ff9ec79c034d67f6abdd24784ba01ff33abe946a84bcb08ed0f4167b9ec68",
+    "source": "building_blocks/common/slime/earth/congealed.json"
+  },
+  "ender_congealed_slime": {
+    "group": "building_blocks",
+    "sha256": "9b28d48fd697d61eee38bad7ad7dbce854bef740be238949b9cad97e84d1c560",
+    "source": "building_blocks/common/slime/ender/congealed.json"
+  },
+  "enderbark_planks": {
+    "group": "building_blocks",
+    "sha256": "542772ff6c827f527f28f40ab7b8841d4cca134bed571d4735252670016dd25e",
+    "source": "building_blocks/world/wood/enderbark/planks.json"
+  },
+  "gold_bars": {
+    "group": "decorations",
+    "sha256": "cb5bf9d0711502bdf939e831cfdc73b326d0c6fb167180c700ae308ae7b9d4cc",
+    "source": "decorations/common/gold_bars.json"
+  },
+  "greenheart_planks": {
+    "group": "building_blocks",
+    "sha256": "502244eafaac6a0810ec315e08a55c0fc195e531bace78f71d9b725f2b0fdc0a",
+    "source": "building_blocks/world/wood/greenheart/planks.json"
+  },
+  "ichor_congealed_slime": {
+    "group": "building_blocks",
+    "sha256": "16af4b2bb4adec43ba9eb252efbd057e5d2676d0f52a7c4462f7794e20cc37de",
+    "source": "building_blocks/common/slime/ichor/congealed.json"
+  },
+  "pattern": {
+    "group": "misc",
+    "sha256": "9ab4f9cf1e0f8fa3a8b185a6d65f04c8f73198c9bca7da5dcdd1c7e15455ae41",
+    "source": "misc/tables/pattern.json"
+  },
+  "seared_fluid_cannon": {
+    "group": "redstone",
+    "sha256": "16002ad396d17d3d2b08815bcd0bafdde760d8b1e8b16aad5b75c2b3eabfbd01",
+    "source": "redstone/smeltery/seared/fluid_cannon.json"
+  },
+  "sky_congealed_slime": {
+    "group": "building_blocks",
+    "sha256": "0de7b15347723d8244af6e7713bef71b89d6b43c422501d32c9b75179ddaec8a",
+    "source": "building_blocks/common/slime/sky/congealed.json"
+  },
+  "skyroot_planks": {
+    "group": "building_blocks",
+    "sha256": "7cb389fe6dbefd4c36b0df0ff9874b6f8d8563d0109c2ac58799217ec31d0b4b",
+    "source": "building_blocks/world/wood/skyroot/planks.json"
+  },
+  "survival_scorched_duct": {
+    "group": "redstone",
+    "sha256": "422042adebc7294e7133f50a50d68bf6501ce89f047271a26f793aff0ad5680a",
+    "source": "redstone/smeltery/scorched/duct.json"
+  },
+  "survival_seared_duct": {
+    "group": "redstone",
+    "sha256": "e98e8711d439e88be0f32d4406b847b36a65d71a746d1ad2faa2a80e99f73f85",
+    "source": "redstone/smeltery/seared/duct.json"
+  }
+}

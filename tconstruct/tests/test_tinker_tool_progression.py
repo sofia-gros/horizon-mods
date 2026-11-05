@@ -42,7 +42,8 @@ class TinkerToolProgression(unittest.TestCase):
         for helper in ('source-advancement-tag-predicate.rs', 'source-advancement-tag-index.rs'):
             self.assertIn(helper, manifest)
         predicate = (MIXINS / 'source-advancement-tag-predicate.rs').read_text()
-        self.assertIn('registry == "item" && tag == "tconstruct:modifiable/multipart"', predicate)
+        self.assertIn('registry == "item" && self::tconstruct_source_advancement_tag::managed(tag)', predicate)
+        self.assertIn('"tconstruct:modifiable/multipart"', (MIXINS / 'source-advancement-tag.rs').read_text())
 
     def test_packaged_goal_and_required_tag_members_are_registered(self):
         with tempfile.TemporaryDirectory(prefix='tinker-tool-package-') as directory:
