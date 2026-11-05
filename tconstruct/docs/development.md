@@ -200,22 +200,16 @@ actual crafting, custom tag members, reload, saves and LAN remain unverified.
 The existing Forge namespace ownership and unsupported tag removal limitations
 still apply; this does not promise compatibility with arbitrary Forge packs.
 
-### Fluid-effect selection isolation
+### Scorched machinery recipe-book unlocks
 
-Source `FluidEffectManager.apply` evaluates conditions before parsing ingredient
-and effect types and catches malformed definitions independently. The native
-selector now skips disabled definitions before looking at their fluid shape,
-and isolates invalid JSON, non-object roots, malformed condition-array fields,
-missing fluid fields and non-string direct fluid/tag IDs. Only the highest
-resource layer is considered; an invalid override does not revive a lower pack.
+Scorched Brick unlocks the existing native Faucet, Casting Table/Basin,
+Lantern, four tank/gauge, Drain, Chute and Scorched Glass recipes. Scorched
+Glass unlocks its pane recipe. The twelve advancements preserve the fixed
+source inventory criteria and OR requirements, while mapping recipe rewards
+to the port's existing recipe IDs and native `recipes` criterion key.
 
-This restores supported Slurping/Spilling selections that an unrelated invalid
-or disabled file previously prevented. Unknown conditions on a matching fluid,
-complex/unsupported ingredient shapes and unsupported first matching effects
-remain fail-closed; this is not a complete implementation of every source
-serializer. Existing sorted-key precedence is unchanged and not claimed to
-match every source duplicate-match order. The fixture compiles the production
-module against pinned host NBT and actual potion-registry exports. Live fluid
-consumption, pack reload, game interactions and LAN are not verified here.
-
-Source: [FluidEffectManager at f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/library/modifiers/fluid/FluidEffectManager.java).
+These are recipe-book unlocks, not replacement recipes or new machinery.
+Existing narrowed material inputs and machine limitations remain unchanged.
+Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
+Source fixtures, recipe shapes/counts and packaged registrations are checked;
+actual book UI, crafting, save/reload and LAN remain unverified.

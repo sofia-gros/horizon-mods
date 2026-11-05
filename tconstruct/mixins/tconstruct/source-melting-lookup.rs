@@ -341,7 +341,7 @@ impl Catalog<'_> {
     }
     fn output(&self, result: &Output) -> Option<String> {
         match result {
-            Output::Item(id) => self.known_items.contains(id).then(|| id.clone()),
+            Output::Item(id) | Output::WaterPotion(id) => self.known_items.contains(id).then(|| id.clone()),
             Output::Tag(tag) => {
                 let mut values = self.item_tags.get(tag)?.iter().filter(|id| self.known_items.contains(*id));
                 let value = values.next()?.clone();
@@ -370,38 +370,87 @@ impl Catalog<'_> {
         None
     }
     /// Match source ingredients in order, using each stored fluid at most once.
-    /// Conditions and tags are evaluated against this world's snapshots.
     pub(super) fn alloy(&self, fluids: &[(String, u32)], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, Vec<(String, u32)>, String, u32)> {
         self.alloy_except(fluids, &[], capacity, temperature, conditions)
     }
-    /// Stop before a recipe whose ingredients could select a tagged entry;
-    /// selecting a later recipe could change source recipe ordering. The
-    /// caller still includes tagged entries in capacity accounting.
     pub(super) fn alloy_except(&self, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32, conditions: &impl Fn(&[Value]) -> bool)
         -> Option<(String, Vec<(String, u32)>, String, u32)> {
-        let total = fluids.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
         for (id, bytes) in self.recipes {
             let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
             if recipe.temperature > temperature { continue; }
             if recipe.inputs.iter().any(|ingredient| tagged.iter().any(|fluid| self.matches_fluid(ingredient, fluid))) { return None; }
-            let Some(output) = self.resolved_fluid(&recipe.output) else { continue; };
-            let mut used = HashSet::new();
-            let mut inputs = Vec::with_capacity(recipe.inputs.len());
-            for (ingredient, catalyst) in recipe.inputs.iter().zip(&recipe.catalysts) {
-                let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
-                    !used.contains(index) && *amount >= ingredient.amount && self.matches_fluid(ingredient, fluid));
-                let Some((index, (fluid, _))) = matched else { break; };
-                used.insert(index);
-                if !*catalyst { inputs.push((fluid.clone(), ingredient.amount)); }
-            }
-            if used.len() == recipe.inputs.len() {
-                let removed = inputs.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
-                if recipe.output.amount.saturating_sub(removed) > capacity.saturating_sub(total) { continue; }
-                return Some((id.clone(), inputs, output, recipe.output.amount));
+            if let Some((inputs, output, amount)) = self.alloy_plan(&recipe, fluids, capacity, temperature) {
+                return Some((id.clone(), inputs, output, amount));
             }
         }
         None
+    }
+
+    // Source matches ignores amounts but greedily reserves distinct tank rows.
+    // It must run separately from amount-aware canPerform/performRecipe.
+    fn alloy_matches(&self, recipe: &AlloyRecipe, fluids: &[(String, u32)]) -> bool {
+        let mut used = HashSet::new();
+        recipe.inputs.iter().all(|ingredient| {
+            let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
+                !used.contains(index) && *amount > 0 && self.matches_fluid(ingredient, fluid));
+            if let Some((index, _)) = matched { used.insert(index); true } else { false }
+        })
+    }
+
+    fn alloy_plan(&self, recipe: &AlloyRecipe, fluids: &[(String, u32)], capacity: u32, temperature: u32)
+        -> Option<(Vec<(String, u32)>, String, u32)> {
+        if recipe.temperature > temperature { return None; }
+        let total = fluids.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
+        let output = self.resolved_fluid(&recipe.output)?;
+        let mut used = HashSet::new();
+        let mut inputs = Vec::with_capacity(recipe.inputs.len());
+        for (ingredient, catalyst) in recipe.inputs.iter().zip(&recipe.catalysts) {
+            let (index, (fluid, _)) = fluids.iter().enumerate().find(|(index, (fluid, amount))|
+                !used.contains(index) && *amount >= ingredient.amount && self.matches_fluid(ingredient, fluid))?;
+            used.insert(index);
+            if !*catalyst { inputs.push((fluid.clone(), ingredient.amount)); }
+        }
+        let removed = inputs.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
+        if recipe.output.amount.saturating_sub(removed) > capacity.saturating_sub(total) { return None; }
+        Some((inputs, output, recipe.output.amount))
+    }
+
+    /// Source MultiAlloyingModule: snapshot matching identities, shuffle once,
+    /// then recheck every recipe against the evolving staged tank. New fluid
+    /// identities cannot add a recipe until the next cycle. Never loop a recipe.
+    pub(super) fn alloy_cycle(&self, fluids: &[(String, u32)], tagged: &[String], capacity: u32, temperature: u32,
+        conditions: &impl Fn(&[Value]) -> bool, draw: &mut impl FnMut(usize) -> Option<usize>)
+        -> Option<Vec<(String, Vec<(String, u32)>, String, u32)>> {
+        let mut recipes = Vec::new();
+        for (id, bytes) in self.recipes {
+            let Some(recipe) = AlloyRecipe::parse(bytes, conditions) else { continue; };
+            // The native selector cannot represent matching tagged fluids.
+            // Stop the whole staged cycle rather than bias shuffled conflicts.
+            if recipe.inputs.iter().any(|ingredient| tagged.iter().any(|fluid| self.matches_fluid(ingredient, fluid))) { return None; }
+            if self.alloy_matches(&recipe, fluids) { recipes.push((id, recipe)); }
+        }
+        for end in (1..recipes.len()).rev() {
+            let index = draw(end + 1)?;
+            if index > end { return None; }
+            recipes.swap(end, index);
+        }
+        let mut staged = fluids.to_vec();
+        let mut plans = Vec::new();
+        for (id, recipe) in recipes {
+            if !self.alloy_matches(&recipe, &staged) { continue; }
+            let Some((inputs, output, amount)) = self.alloy_plan(&recipe, &staged, capacity, temperature) else { continue; };
+            for (fluid, amount) in &inputs {
+                let entry = staged.iter_mut().find(|(id, _)| id == fluid)?;
+                entry.1 = entry.1.checked_sub(*amount)?;
+            }
+            staged.retain(|(_, amount)| *amount > 0);
+            if let Some(entry) = staged.iter_mut().find(|(id, _)| id == &output) { entry.1 = entry.1.checked_add(amount)?; }
+            else { staged.push((output.clone(), amount)); }
+            staged.iter().try_fold(0u32, |sum, (_, amount)| sum.checked_add(*amount))?;
+            plans.push((id.clone(), inputs, output, amount));
+        }
+        Some(plans)
     }
     pub(super) fn melting(&self, item: &str, conditions: &impl Fn(&[Value]) -> bool) -> Option<(String, MeltingRecipe, String)> {
         self.melting_with_container(item, None, conditions)
@@ -570,7 +619,7 @@ impl Catalog<'_> {
             if let Some((_, previous, previous_output)) = &found {
                 if previous.fluid.amount != recipe.fluid.amount || previous.cooling_time != recipe.cooling_time
                     || previous.consumes_cast != recipe.consumes_cast || previous.switch_slots != recipe.switch_slots || previous.retextured != recipe.retextured
-                    || previous_output != &output { return None; }
+                    || previous_output != &output || previous.output.potion() != recipe.output.potion() { return None; }
             } else { found = Some((id.clone(), recipe, output)); }
         }
         found
@@ -653,6 +702,95 @@ impl Catalog<'_> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    fn cycle_recipe(a: &str, b: &str, output: &str, amount: u32, catalyst: bool) -> Vec<u8> {
+        serde_json::to_vec(&serde_json::json!({"type":"tconstruct:alloy",
+            "inputs":[{"fluid":a,"amount":90,"catalyst":catalyst},{"fluid":b,"amount":90}],
+            "result":{"fluid":output,"amount":amount},"temperature":700})).unwrap()
+    }
+    fn cycle(recipes: &BTreeMap<String, Vec<u8>>, available: &[(String,u32)], tagged: &[String], capacity: u32,
+        temperature: u32, draw: &mut impl FnMut(usize)->Option<usize>) -> Option<Vec<(String,Vec<(String,u32)>,String,u32)>> {
+        let tags = HashMap::new(); let items = HashSet::new();
+        let fluids = ["test:a","test:b","test:c","test:d","test:e","test:f","test:g"].into_iter().map(str::to_owned).collect();
+        Catalog { recipes, item_tags: &tags, fluid_tags: &tags, known_items: &items, known_fluids: &fluids }
+            .alloy_cycle(available, tagged, capacity, temperature, &|_| true, draw)
+    }
+    #[test]
+    fn alloy_cycle_runs_independent_recipes_once_each() {
+        let recipes = BTreeMap::from([("one".into(),cycle_recipe("test:a","test:b","test:e",180,false)),
+            ("two".into(),cycle_recipe("test:c","test:d","test:f",180,false))]);
+        let available = ["test:a","test:b","test:c","test:d"].map(|id|(id.into(),180));
+        let plans = cycle(&recipes,&available,&[],720,700,&mut |n|Some(n-1)).unwrap();
+        assert_eq!(plans.len(),2);
+        assert_eq!(plans.iter().map(|p|p.3).sum::<u32>(),360); // not repeated despite spare input
+        assert!(cycle(&recipes,&available,&[],720,699,&mut |n|Some(n-1)).unwrap().is_empty());
+    }
+    #[test]
+    fn alloy_cycle_conflicts_follow_unbiased_shuffle_permutations() {
+        let recipes = BTreeMap::from([("one".into(),cycle_recipe("test:a","test:b","test:c",180,false)),
+            ("two".into(),cycle_recipe("test:a","test:b","test:d",180,false)),
+            ("three".into(),cycle_recipe("test:a","test:b","test:e",180,false))]);
+        let available = [("test:a".into(),90),("test:b".into(),90)];
+        let mut winners = BTreeMap::new();
+        for i in 0..3 { for j in 0..2 {
+            let mut draws = [i,j].into_iter();
+            let plans = cycle(&recipes,&available,&[],180,700,&mut |_|draws.next()).unwrap();
+            assert_eq!(plans.len(),1);
+            *winners.entry(plans[0].0.clone()).or_insert(0) += 1;
+        }}
+        assert_eq!(winners.values().copied().collect::<Vec<_>>(),vec![2,2,2]);
+    }
+    #[test]
+    fn alloy_cycle_defers_new_identities_but_rechecks_existing_amounts() {
+        let recipes = BTreeMap::from([("one".into(),cycle_recipe("test:a","test:b","test:c",180,false)),
+            ("two".into(),cycle_recipe("test:c","test:d","test:e",180,false))]);
+        let mut available = vec![("test:a".into(),90),("test:b".into(),90),("test:d".into(),90)];
+        assert_eq!(cycle(&recipes,&available,&[],1000,700,&mut |n|Some(n-1)).unwrap().len(),1);
+        available.push(("test:c".into(),1));
+        assert_eq!(cycle(&recipes,&available,&[],1000,700,&mut |n|Some(n-1)).unwrap().len(),2);
+        assert_eq!(cycle(&recipes,&available,&[],1000,700,&mut |_|Some(0)).unwrap().len(),1);
+    }
+    #[test]
+    fn alloy_cycle_preserves_catalysts_and_rechecks_capacity() {
+        let recipes = BTreeMap::from([("one".into(),cycle_recipe("test:a","test:b","test:e",180,true)),
+            ("two".into(),cycle_recipe("test:a","test:c","test:f",180,true))]);
+        let available = [("test:a".into(),90),("test:b".into(),90),("test:c".into(),90)];
+        let plans = cycle(&recipes,&available,&[],450,700,&mut |n|Some(n-1)).unwrap();
+        assert_eq!(plans.len(),2);
+        assert!(plans.iter().all(|p|p.1.iter().all(|(id,_)| id != "test:a")));
+        assert_eq!(cycle(&recipes,&available,&[],360,700,&mut |n|Some(n-1)).unwrap().len(),1);
+        assert!(cycle(&recipes,&available,&[],359,700,&mut |n|Some(n-1)).unwrap().is_empty());
+    }
+    #[test]
+    fn alloy_cycle_rechecks_greedy_identity_match_after_tank_order_changes() {
+        let recipes = BTreeMap::from([
+            ("one".into(), cycle_recipe("test:a","test:c","test:a",180,false)),
+            ("two".into(), serde_json::to_vec(&serde_json::json!({"type":"tconstruct:alloy",
+                "inputs":[{"tag":"test:both","amount":90},{"fluid":"test:b","amount":1}],
+                "result":{"fluid":"test:d","amount":91},"temperature":700})).unwrap()),
+        ]);
+        let item_tags = HashMap::new(); let items = HashSet::new();
+        let fluid_tags = HashMap::from([("test:both".into(),HashSet::from(["test:a".into(),"test:b".into()]))]);
+        let fluids = ["test:a","test:b","test:c","test:d"].into_iter().map(str::to_owned).collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        let available = [("test:a".into(),90),("test:b".into(),1),("test:c".into(),90)];
+        let second = AlloyRecipe::parse(&recipes["two"], &|_|true).unwrap();
+        assert!(catalog.alloy_matches(&second,&available));
+        let changed = [("test:b".into(),1),("test:a".into(),180)];
+        assert!(catalog.alloy_plan(&second,&changed,181,700).is_some());
+        assert!(!catalog.alloy_matches(&second,&changed));
+        let plans = catalog.alloy_cycle(&available,&[],181,700,&|_|true,&mut |n|Some(n-1)).unwrap();
+        assert_eq!(plans.iter().map(|p|p.0.as_str()).collect::<Vec<_>>(),vec!["one"]);
+    }
+    #[test]
+    fn alloy_cycle_fails_closed_for_tagged_inputs_and_invalid_random() {
+        let recipe = cycle_recipe("test:a","test:b","test:c",180,false);
+        let recipes = BTreeMap::from([("one".into(),recipe.clone()),("two".into(),recipe)]);
+        let available = [("test:a".into(),90),("test:b".into(),90)];
+        assert!(cycle(&recipes,&available,&["test:a".into()],180,700,&mut |_|Some(0)).is_none());
+        assert_eq!(cycle(&recipes,&available,&["test:g".into()],180,700,&mut |_|Some(0)).unwrap().len(),1);
+        assert!(cycle(&recipes,&available,&[],180,700,&mut |n|Some(n)).is_none());
+        assert!(cycle(&recipes,&available,&[],180,700,&mut |_|None).is_none());
+    }
     #[test]
     fn jeweled_apple_cast_requires_registered_result_and_matching_fluid() {
         let source = br#"{"type":"tconstruct:casting_table","cast":{"item":"minecraft:apple"},"cast_consumed":true,"cooling_time":118,"fluid":{"amount":200,"tag":"tconstruct:molten_diamond"},"result":"tconstruct:jeweled_apple"}"#.to_vec();
