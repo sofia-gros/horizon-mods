@@ -70,6 +70,28 @@ impl Tank {
     }
 }
 
+/// Validate the native damage/broken pair before a casting material swap.
+/// Broken inputs are admitted only by ordinary recipes that actually repair.
+pub(super) fn casting_swap_broken(stack: &ItemStack) -> Option<bool> {
+    if stack.count != 1 || stack.data().is_some_and(|data| data.wire.patch().is_some()) { return None; }
+    let custom = stack.data()?.other("minecraft:custom_data")?;
+    let maximum = match custom.get("tic_max_damage")? { Tag::Int(value) if *value > 0 => *value as u32, _ => return None };
+    match custom.get("tic_broken") {
+        None | Some(Tag::Byte(0)) if stack.damage < maximum => Some(false),
+        Some(Tag::Byte(1)) if stack.damage == maximum => Some(true),
+        _ => None,
+    }
+}
+
+/// ToolStack.setStats may break a tool at the new maximum. getDamage returns
+/// that maximum for broken tools, including when a larger replacement would
+/// otherwise make the old raw damage look like an intact tool.
+pub(super) fn casting_swap_damage_after_rebuild(stack: &ItemStack, maximum: u32) -> Option<u32> {
+    if maximum == 0 { return None; }
+    let broken = casting_swap_broken(stack)?;
+    Some(if broken || stack.damage >= maximum { maximum } else { stack.damage })
+}
+
 /// Accept only an unmodified material part, so consumption cannot drop unrelated data.
 pub(super) fn plain_material_part(stack: &ItemStack) -> Option<String> {
     if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }

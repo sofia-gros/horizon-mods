@@ -440,9 +440,7 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 }) => {},
                 _ => return None,
             }
-            match custom.get("tic_broken") { None | Some(Tag::Byte(0)) => {}, _ => return None }
-            let old_max = match custom.get("tic_max_damage") { Some(Tag::Int(value)) if *value > 0 => *value as u32, _ => return None };
-            if stack.damage >= old_max { return None; }
+            let was_broken = super::tconstruct_source_melter_state::casting_swap_broken(stack)?;
             let materials = world.chunks.__horizon_mixins_tconstruct_material_snapshot().as_ref()?;
             let (namespace, name) = stack.item.split_once(':')?;
             let definition = materials.get(&format!("{namespace}:tinkering/tool_definitions/{name}"))?.last()?;
@@ -470,9 +468,19 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 catalog.part_swap_casting(basin, &stack.item, fluid, &supports_ordinary, &allowed, &conditions).map(|value| (value, false))
                     .or_else(|| catalog.composite_part_swap(basin, &stack.item, fluid, &identities, &supports, &supports_ordinary, &allowed, &conditions).map(|value| (value, true)))
             })??;
+            // Composite recipes do not pay a repair cost; keep broken inputs
+            // outside that existing bounded path.
+            if composite && was_broken { return None; }
             let mut next = identities; *next.get_mut(index)? = material;
             let mut output = super::tconstruct_source_station_world::rebuild_material_swap(world, definition, stack, &next, 0, true, &mut None)?;
-            if !composite && stack.damage != 0 {
+            let max_damage = match output.data()?.other("minecraft:custom_data")?.get("tic_max_damage")? {
+                Tag::Int(value) if *value > 0 => *value as u32, _ => return None,
+            };
+            let repair_damage = super::tconstruct_source_melter_state::casting_swap_damage_after_rebuild(stack, max_damage)?;
+            if !composite {
+                super::tconstruct_tx::fixed_set_damage(&mut output, repair_damage);
+            }
+            if !composite && repair_damage != 0 {
                 // Only use hooks whose complete repair semantics are known.
                 // Do not infer effects for unknown traits or definition traits.
                 let definition_json: serde_json::Value = serde_json::from_slice(definition).ok()?;
@@ -493,11 +501,10 @@ pub(super) fn casting_stack(world: &World, basin: bool, input: Option<&horizon_i
                 let repair = super::tconstruct_source_material_effects::casting_repair_amount(
                     &output, &traits.levels, &traits.order, initial,
                 )?.max(0.0) as u32;
-                super::tconstruct_tx::fixed_set_damage(&mut output, stack.damage.saturating_sub(repair));
+                super::tconstruct_tx::fixed_set_damage(&mut output, repair_damage.saturating_sub(repair));
             }
-            let max_damage = match output.data()?.other("minecraft:custom_data")?.get("tic_max_damage")? {
-                Tag::Int(value) if *value > 0 => *value as u32, _ => return None,
-            };
+            // Never consume a broken input unless the supported repair made
+            // its result usable; zero/unsupported factors remain fail-closed.
             if output.damage >= max_damage { return None; }
             Some((id, recipe, output))
         })();
