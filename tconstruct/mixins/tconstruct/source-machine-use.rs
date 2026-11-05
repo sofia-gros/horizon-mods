@@ -69,8 +69,8 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
         "tconstruct:smeltery_controller" | "tconstruct:foundry_controller" => { game.open_menu(hit.pos); true },
         "tconstruct:seared_faucet" | "tconstruct:scorched_faucet" => crate::game::tconstruct_source_machine_runtime::activate_faucet(game, pos, &name),
         "tconstruct:seared_drain" | "tconstruct:scorched_drain" => {
-            // A drain only consumes supported fluid transfers. If no transfer
-            // happened, let the held item act (for example, place a faucet).
+            // Supported containers consume the action even when no fluid can
+            // move. Noncontainers still act normally (for example, a faucet).
             if !crate::game::tconstruct_source_machine_runtime::interact_drain(game, pos) { return Continue(()); }
             true
         },

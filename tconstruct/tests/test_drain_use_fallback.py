@@ -15,5 +15,15 @@ class DrainUseFallbackTest(unittest.TestCase):
         self.assertIn('kind = "HEAD"', hook)
         self.assertIn('cancellable = true', hook)
 
+    def test_supported_failed_transfer_is_handled_without_changing_save_failure(self):
+        source = (ROOT / 'mixins/tconstruct/source-machine-runtime.rs').read_text()
+        route = source.split('pub(super) fn interact_drain(',1)[1].split('pub(super) fn ensure(',1)[0]
+        self.assertIn('accepts_with_color(&held',route)
+        self.assertIn('return container;',route)
+        self.assertIn('state.to_nbt()) { return false; }',route)
+        self.assertLess(route.index('store::write'),route.index('game.give_or_drop'))
+        ci = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
+        self.assertIn('python3 tconstruct/tests/run_drain_container.py',ci)
+
 if __name__ == '__main__':
     unittest.main()

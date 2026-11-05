@@ -432,11 +432,14 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|value| value.as_ref().ok())
         .map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
             .map(|(id, items)| (id.clone(), items.clone())).collect());
+    // Mantle returns CONTAINER (handled) even when no fluid can move.
+    // Limit recognition to containers supported by our existing transfer path.
+    let container = super::tconstruct_source_fluid_container::accepts_with_color(&held, &|fluid| fluids.contains(fluid), true);
     let before = state.tank.total();
     let mut slots = [Some(held), None];
     if !super::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut slots,
         super::tconstruct_source_fluid_container::Direction::Auto, None,
-        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return false; }
+        &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return container; }
     if !store::write(&mut game.world, controller, "tconstruct:smeltery", state.to_nbt()) { return false; }
     if game.creative {
         if state.tank.total() < before {
