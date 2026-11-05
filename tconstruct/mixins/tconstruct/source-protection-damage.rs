@@ -1,5 +1,5 @@
 /// Source protection coefficients differ from virtual vanilla enchantments.
-/// Intact tools add the full fractional source value. Only Fire/Blast retain
+/// Intact tools add the full fractional source value. Fire/Blast/Scorch retain
 /// their integer vanilla enchantment on broken worn pieces; other modules do not.
 pub(super) fn points(pieces: &[(f32, bool, bool)], source_each: f32, broken_vanilla_each: f32) -> Option<(f32, f32)> {
     if !source_each.is_finite() || source_each < 0.0 || !broken_vanilla_each.is_finite() || broken_vanilla_each < 0.0 { return None; }
@@ -135,5 +135,17 @@ mod melee_tests {
         for kind in ["minecraft:arrow","minecraft:fireworks","minecraft:cramming","custom:melee"] {
             assert!(!verified_melee_source(kind,false));
         }
+    }
+}
+
+
+#[cfg(test)]
+mod scorch_enchantment_tests {
+    use super::*;
+    #[test]
+    fn scorch_virtual_fire_epf_survives_only_on_broken_worn_armor() {
+        assert_eq!(points(&[(2.0,false,true)],0.0,2.0),Some((0.0,0.0)));
+        assert_eq!(points(&[(2.0,true,true)],0.0,2.0),Some((0.0,4.0)));
+        assert_eq!(points(&[(2.0,true,false)],0.0,2.0),Some((0.0,0.0)));
     }
 }

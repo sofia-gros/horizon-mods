@@ -5752,3 +5752,16 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "depth-protection-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+
+[[module]]
+id = "source-scorch-protection"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_scorch_protection"
+source = "source-scorch-protection.rs"
+
+[[module]]
+id = "source-scorch-protection-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_scorch_protection_world"
+source = "scorch-protection-world.rs"
