@@ -2,6 +2,8 @@ use horizon_items::items::ItemStack;
 use horizon_world::nbt::{self, Limits, Tag};
 pub(super) type Frame = ([Option<ItemStack>; 4], u8);
 const MAX: usize = 65_536;
+// Shared source jump_count attribute is capped at 100 including the ground jump.
+const MAX_EXTRA_JUMPS: u8 = 99;
 fn limits() -> Limits {
     Limits {
         max_bytes: MAX,
@@ -19,7 +21,7 @@ fn matches(left: &Option<ItemStack>, right: &Option<ItemStack>) -> bool {
     }
 }
 pub(super) fn encode(armor: &[Option<ItemStack>], capacity: Option<u8>) -> Vec<u8> {
-    let Some(capacity) = capacity.filter(|n| *n <= 4) else {
+    let Some(capacity) = capacity.filter(|n| *n <= MAX_EXTRA_JUMPS) else {
         return vec![0];
     };
     if armor.len() != 4 {
@@ -64,7 +66,7 @@ pub(super) fn decode(bytes: &[u8]) -> Option<Frame> {
         return None;
     }
     let capacity = match tag.get("capacity")? {
-        Tag::Int(n) if (0..=4).contains(n) => *n as u8,
+        Tag::Int(n) if (0..=i32::from(MAX_EXTRA_JUMPS)).contains(n) => *n as u8,
         _ => return None,
     };
     let Tag::List(slots) = tag.get("armor")? else {
@@ -127,7 +129,9 @@ mod tests {
         trailing.push(0);
         assert!(decode(&trailing).is_none());
         assert!(decode(&vec![1; MAX + 1]).is_none());
-        assert!(decode(&encode(&armor, Some(5))).is_none());
+        assert_eq!(decode(&encode(&armor, Some(6))).unwrap().1, 6);
+        assert_eq!(decode(&encode(&armor, Some(99))).unwrap().1, 99);
+        assert!(decode(&encode(&armor, Some(100))).is_none());
     }
     #[test]
     fn invalidation_and_periodic_refresh_are_sent() {

@@ -1,7 +1,8 @@
 # Worn Dreambound gravity
 
 This is the gravity portion of the high-priority #379 Dreambound item.
-**Extra jumps are not implemented by this patch.**
+Extra jumps use the shared movement bridge described below. Double Jump
+combination is documented in [Double Jump runtime](double-jump-runtime.md).
 
 Source: TConstruct `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`, generated
 `dreambound.json`, `ModifierProvider`, `ModifierCondition`, `AttributeModule`,
@@ -28,22 +29,21 @@ removes the bonus. Native movement reads the actual gravity attribute, so the
 change composes with existing Heavy/Vintage/Solid and native movement effects.
 No saved derived value or jump counter is added.
 
-## Extra-jump work still required
+## Shared extra-jump runtime
 
-Source Dreambound also supplies a flat +1 jump-count attribute per intact piece,
-independent of its level. `ToolClientEvents.handleKeyBindings` detects fresh jump
-presses, runs `DoubleJumpHandler.extraJump` locally, then sends a DOUBLE_JUMP
-control packet for the authoritative entity. The shared routine checks ground,
-climbing and water/bubble state, consumes the airborne counter, invokes the real
-jump routine, and emits sound/particles. Ground jumps and landings reset usage.
+Intact worn Dreambound adds one airborne jump per positive-level piece. It is
+independent of the exact-level gravity condition and does not scale with level.
+Double Jump adds its logical level to the same allowance. The combined source
+attribute has base one and maximum 100, so there are at most 99 extra jumps.
 
-The current native `Game::native_movement_input` hook exposes only `&self`;
-the actual `MotionWorld::jump_from_ground` has no live equipment context. Adding
-a velocity shortcut at either boundary would omit authoritative counter and
-client-request handling. A dedicated bridge must carry the resolved allowance,
-validate fresh-press requests on the acting server player, maintain/reset usage,
-and synchronize prediction, sound and particles. No such bridge or substitute
-jump-count grant is claimed here.
+The existing bridge calls the real native jump routine on a fresh input edge,
+tracks one actor-owned spent budget, and resets it on ground jumps/landings.
+Equipment/effect refresh does not refill an airborne budget. Permission frames
+are bound to all four current equipment stacks; the authoritative guest request
+recomputes eligibility. Prediction-recording servers reject this path rather
+than changing or bypassing their replay validation. Source sound/particles,
+negative-gravity jumping, held items and full runtime validation remain outside
+this bridge. No duplicate jump loop or independent Double Jump budget is added.
 
 ## Remaining limits and review
 
@@ -52,9 +52,8 @@ negative-gravity semantics and exact cross-engine attribute ordering remain
 outside this change. Actual equipment transitions, save/reload, remote attribute
 synchronization, guest swaps and LAN have not been exercised.
 
-Brief static review and formatting only. Two pure regression tests were added
-for exact-level gating, float widening and definition rejection, but were not
-run. No tests, builds, planner, CI, version checks or merges were run.
+Brief static review and formatting only. The pure rule and wire tests remain
+unrun. No tests, builds, planner, CI, version checks or merges were run.
 
 Static integration correction: jump capacity, spent count and pending request live
 in owned `StatusFlags` fields. Its explicit `PlayerEffects::status` construction

@@ -13,7 +13,7 @@ pub fn attempt(motion: &mut MotionWorld<'_, '_, '_>, capacity: u8) -> crate::Res
         .status
         .__horizon_mixins_tconstruct_dreambound_jumps_used();
     if capacity == 0
-        || capacity > 4
+        || capacity > crate::tconstruct_dreambound::MAX_EXTRA_JUMPS
         || used >= capacity
         || motion.player.flying
         || motion.player.may_fly
@@ -29,7 +29,7 @@ pub fn attempt(motion: &mut MotionWorld<'_, '_, '_>, capacity: u8) -> crate::Res
         return Ok(false);
     }
     // Negative-gravity input has its own source priority/reset rules; do not
-    // consume a Dreambound jump for that unsupported path.
+    // consume an extra jump for that unsupported path.
     let gravity = motion.player.attribute("minecraft:gravity")?;
     if !gravity.is_finite() || gravity <= 0.0 || motion.climbable()? {
         return Ok(false);
