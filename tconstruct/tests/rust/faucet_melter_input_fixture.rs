@@ -24,7 +24,8 @@ impl Facts {
   7=>"tconstruct:scorched_ingot_tank", 8=>"tconstruct:scorched_ingot_gauge",
   9=>"tconstruct:seared_melter", 10=>"tconstruct:seared_faucet",
   11=>"tconstruct:seared_drain", 12=>"tconstruct:smeltery_controller",
-  13=>"tconstruct:foundry_controller", 14=>"tconstruct:scorched_drain", 15=>"tconstruct:seared_duct", 16=>"tconstruct:seared_casting_tank", _=>"minecraft:air",
+  13=>"tconstruct:foundry_controller", 14=>"tconstruct:scorched_drain", 15=>"tconstruct:seared_duct", 16=>"tconstruct:seared_casting_tank", 17=>"tconstruct:seared_lantern",
+  18=>"tconstruct:scorched_lantern", _=>"minecraft:air",
  }.into() } }
 }
 struct Res;
@@ -84,7 +85,7 @@ mod tconstruct_source_machine_runtime {
    let live=g.world.block_entities.get(&t).unwrap();
    let BlockEntity::Chest(slots)=live;
    let original_item=slots[0].as_ref().unwrap().item.clone();
-   assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
    let saved=store::read(&g.world,t,"tconstruct:melter").unwrap();
    for field in ["slots","progress","phase","fuel","fuel_quality","temperature","rate","heat_codes"] { assert_eq!(saved.get(field),raw.get(field)); }
    assert_eq!(melter(&g,t).tank.amount,10);
@@ -93,9 +94,9 @@ mod tconstruct_source_machine_runtime {
    assert_eq!(g.notifications,vec![s,t]);
    let BlockEntity::Chest(slots)=g.world.block_entities.get(&t).unwrap();
    assert_eq!(slots[0].as_ref().unwrap().item,original_item);
-   for _ in 0..8 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
+   for _ in 0..8 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
    let f=faucet(&g,p); assert_eq!(f.pending.amount,0);
-   assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true));
    assert_eq!((melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(100,80));
   }
  }
@@ -114,12 +115,12 @@ mod tconstruct_source_machine_runtime {
     _=>{ let mut raw=Faucet::new().to_nbt(); if let Tag::Compound(fields)=&mut raw { fields.insert("active".into(),Tag::Int(1)); } g.world.tags.insert((p,"tconstruct:faucet".into()),raw); },
    }
    let before=g.world.tags.clone();
-   assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false));
    assert_eq!(g.world.tags,before); assert!(g.notifications.is_empty());
   }
   let (mut g,p,s,t,_,_)=fixture(1);
-  assert_eq!(source_to_melter(&mut g,p,t,t,Faucet::new(),true),Some(false));
-  assert_eq!(source_to_melter(&mut g,t,s,t,Faucet::new(),true),Some(false));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,t,t,Faucet::new(),true),Some(false));
+  assert_eq!(source_to_melter_or_lantern(&mut g,t,s,t,Faucet::new(),true),Some(false));
  }
  #[test]
  fn remaining_capacity_and_incompatible_fluid_do_not_overfill_or_mix() {
@@ -128,7 +129,7 @@ mod tconstruct_source_machine_runtime {
    let mut state=melter(&g,t); assert!(state.tank.insert(fluid,amount));
    let raw=store::read(&g.world,t,"tconstruct:melter").unwrap();
    g.world.tags.insert((t,"tconstruct:melter".into()),tconstruct_source_faucet_tank::patch_melter_tank(&raw,&state.tank).unwrap());
-   assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
    assert_eq!(melter(&g,t).tank.amount,expected);
    assert_eq!(Tank::from_nbt(&store::read(&g.world,s,key).unwrap(),capacity).unwrap().amount,180-(expected-amount));
    assert_eq!(faucet(&g,p).pending.amount,0);
@@ -141,31 +142,31 @@ mod tconstruct_source_machine_runtime {
   let (mut g,p,s,t,key,capacity)=fixture(1);
   let mut input=Tank::new(capacity); assert!(input.insert_tagged("tconstruct:potion",Some(&first),180));
   g.world.tags.insert((s,key.into()),input.to_nbt());
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   assert_eq!(melter(&g,t).tank.tag,Some(first.clone())); assert_eq!(faucet(&g,p).pending.tag,Some(first));
   let mut state=melter(&g,t); state.tank.tag=Some(second);
   let raw=store::read(&g.world,t,"tconstruct:melter").unwrap();
   g.world.tags.insert((t,"tconstruct:melter".into()),tconstruct_source_faucet_tank::patch_melter_tank(&raw,&state.tank).unwrap());
-  let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true));
+  let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true));
   assert_eq!(melter(&g,t).tank.amount,10); assert_eq!(faucet(&g,p).pending.amount,80);
   for tag in [Tag::compound([("Potion",Tag::String("minecraft:swiftness".into())),("CustomPotionColor",Tag::Int(7))]),Tag::compound([("Potion",Tag::String("unknown:custom".into()))])] {
    let (mut g,p,s,t,key,capacity)=fixture(1); let mut input=Tank::new(capacity);
    assert!(input.insert_tagged("tconstruct:potion",Some(&tag),180)); g.world.tags.insert((s,key.into()),input.to_nbt());
-   let before=g.world.tags.clone(); assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
+   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
   }
  }
  #[test]
  fn reserved_packet_finishes_after_removed_source_and_stop_prevents_refill() {
   for removed in [false,true] {
    let (mut g,p,s,t,key,capacity)=fixture(1);
-   assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
    if removed { g.world.blocks.remove(&s); g.world.block_entities.remove(&s); }
    else {
     let mut input=Tank::new(capacity); let tag=Tag::compound([("unknown",Tag::Int(7))]);
     assert!(input.insert_tagged("x:copper",Some(&tag),90)); g.world.tags.insert((s,key.into()),input.to_nbt());
     let f=faucet(&g,p); assert!(tconstruct_source_faucet_tank::stop(&mut g,p,f));
    }
-   for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
+   for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
    assert_eq!(melter(&g,t).tank.amount,90); assert_eq!(faucet(&g,p).pending.amount,0); assert!(!faucet(&g,p).active);
   }
  }
@@ -175,7 +176,7 @@ mod tconstruct_source_machine_runtime {
    let (mut g,p,s,t,c)=drain_fixture(controller_id,drain_id);
    let source_before=store::read(&g.world,c,"tconstruct:smeltery").unwrap();
    let target_before=store::read(&g.world,t,"tconstruct:melter").unwrap();
-   assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
    let raw=store::read(&g.world,c,"tconstruct:smeltery").unwrap();
    let state=Smeltery::from_nbt(&raw).unwrap();
    assert_eq!(state.tank.amount("x:copper"),90); assert_eq!(state.tank.amount("minecraft:water"),50);
@@ -183,8 +184,8 @@ mod tconstruct_source_machine_runtime {
    assert_eq!(store::read(&g.world,t,"tconstruct:melter").unwrap().get("slots"),target_before.get("slots"));
    assert_eq!((melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(10,80));
    assert_eq!(g.notifications,vec![c,t]);
-   for _ in 0..8 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
-   let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true));
+   for _ in 0..8 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
+   let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true));
    assert_eq!((melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(100,80));
    let state=Smeltery::from_nbt(&store::read(&g.world,c,"tconstruct:smeltery").unwrap()).unwrap();
    assert_eq!(state.tank.amount("minecraft:water"),50); assert_eq!(state.tank.amount("x:copper"),0);
@@ -204,7 +205,7 @@ mod tconstruct_source_machine_runtime {
     6=>{ if let Tag::Compound(raw)=g.world.tags.get_mut(&(c,"tconstruct:smeltery".into())).unwrap() { if let Some(Tag::Compound(tank))=raw.get_mut(&"tank".into()) { tank.insert("opaque".into(),Tag::Int(7)); } } },
     _=>{ g.world.blocks.insert(s,15); },
    }
-   let before=g.world.tags.clone(); assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false));
    assert_eq!(g.world.tags,before); assert!(g.notifications.is_empty());
   }
  }
@@ -218,9 +219,9 @@ mod tconstruct_source_machine_runtime {
   assert!(state.tank.insert_tagged("tconstruct:potion",Some(&first),90));
   assert!(state.tank.insert_tagged("tconstruct:potion",Some(&second),180));
   g.world.tags.insert((c,"tconstruct:smeltery".into()),patch_smeltery_controller_tank(&raw,&state).unwrap());
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   assert_eq!(faucet(&g,p).pending.tag,Some(first.clone()));
-  for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
+  for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
   assert_eq!(melter(&g,t).tank.tag,Some(first)); assert_eq!(melter(&g,t).tank.amount,90);
   assert!(!faucet(&g,p).active);
   let state=Smeltery::from_nbt(&store::read(&g.world,c,"tconstruct:smeltery").unwrap()).unwrap();
@@ -230,16 +231,16 @@ mod tconstruct_source_machine_runtime {
  fn casting_tank_reservation_processes_container_once_and_commits_live_slots() {
   let (mut g,p,s,t)=portable_fixture();
   let target_before=store::read(&g.world,t,"tconstruct:melter").unwrap();
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   let input=casting_tank_at(&g,s).unwrap();
   assert_eq!((input.tank.amount,melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(1000,10,80));
   assert!(input.slots[0].is_none()); assert_eq!(input.slots[1].as_ref().unwrap().item.as_ref(),"minecraft:bucket");
   assert_eq!(store::read(&g.world,t,"tconstruct:melter").unwrap().get("slots"),target_before.get("slots"));
   assert_eq!((g.process_calls,g.signals),(1,1));
-  let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true));
+  let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true));
   assert_eq!(g.process_calls,1); assert_eq!(melter(&g,t).tank.amount,20);
-  for _ in 0..7 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
-  let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true));
+  for _ in 0..7 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
+  let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true));
   assert_eq!((casting_tank_at(&g,s).unwrap().tank.amount,melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(910,100,80));
   assert_eq!(g.process_calls,2);
  }
@@ -248,7 +249,7 @@ mod tconstruct_source_machine_runtime {
   for fault in 0..5 {
    let (mut g,p,s,t)=portable_fixture(); g.process_fault=fault; g.world.fail=fault==0;
    let before=g.world.tags.clone();
-   assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false));
    assert_eq!(g.world.tags,before); assert_eq!(g.process_calls,1); assert!(g.notifications.is_empty()); assert_eq!(g.signals,0);
    if fault != 1 { let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap(); assert_eq!(slots[0].as_ref().unwrap().item.as_ref(),"minecraft:water_bucket"); assert!(slots[1].is_none()); }
   }
@@ -263,7 +264,7 @@ mod tconstruct_source_machine_runtime {
     2=>{ g.world.block_entities.remove(&s); },
     _=>{ let mut state=melter(&g,t); assert!(state.tank.insert("minecraft:water",2160)); let raw=store::read(&g.world,t,"tconstruct:melter").unwrap(); g.world.tags.insert((t,"tconstruct:melter".into()),tconstruct_source_faucet_tank::patch_melter_tank(&raw,&state.tank).unwrap()); },
    }
-   let before=g.world.tags.clone(); assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(failure==3));
+   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(failure==3));
    assert_eq!(g.world.tags,before); assert_eq!(g.process_calls,0); assert!(g.notifications.is_empty());
   }
  }
@@ -274,10 +275,10 @@ mod tconstruct_source_machine_runtime {
   let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);
   assert!(input.tank.insert_tagged("tconstruct:potion",Some(&tag),90));
   g.world.tags.insert((s,"tconstruct:casting_tank".into()),input.to_nbt());
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   assert_eq!(faucet(&g,p).pending.tag,Some(tag.clone()));
   assert_eq!(casting_tank_at(&g,s).unwrap().tank.fluid.as_deref(),Some("minecraft:water"));
-  for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
+  for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
   assert_eq!((melter(&g,t).tank.amount,casting_tank_at(&g,s).unwrap().tank.amount),(90,1000));
   assert_eq!(melter(&g,t).tank.tag,Some(tag)); assert!(!faucet(&g,p).active); assert_eq!(g.process_calls,1);
  }
@@ -286,7 +287,7 @@ mod tconstruct_source_machine_runtime {
   let (mut g,p,s,t)=melter_source_fixture();
   let source_before=store::read(&g.world,s,"tconstruct:melter").unwrap();
   let target_before=store::read(&g.world,t,"tconstruct:melter").unwrap();
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   for (at,before) in [(s,source_before),(t,target_before)] {
    let after=store::read(&g.world,at,"tconstruct:melter").unwrap();
    for field in ["slots","progress","phase","fuel","fuel_quality","temperature","rate","heat_codes"] { assert_eq!(after.get(field),before.get(field)); }
@@ -295,8 +296,8 @@ mod tconstruct_source_machine_runtime {
   }
   assert_eq!((melter(&g,s).tank.amount,melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(90,10,80));
   assert_eq!(g.notifications,vec![s,t]); assert_eq!(g.process_calls,0);
-  for _ in 0..8 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
-  let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true));
+  for _ in 0..8 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
+  let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true));
   assert_eq!((melter(&g,s).tank.amount,melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(0,100,80));
  }
  #[test]
@@ -310,12 +311,12 @@ mod tconstruct_source_machine_runtime {
     3=>{ if let Tag::Compound(raw)=g.world.tags.get_mut(&(s,"tconstruct:melter".into())).unwrap() { if let Some(Tag::Compound(tank))=raw.get_mut(&"tank".into()) { tank.insert("opaque".into(),Tag::Int(7)); } } },
     _=>{ if let Tag::Compound(raw)=g.world.tags.get_mut(&(s,"tconstruct:melter".into())).unwrap() { raw.insert("slots".into(),Tag::List(vec![])); } },
    }
-   let before=g.world.tags.clone(); assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false));
    assert_eq!(g.world.tags,before); assert!(g.notifications.is_empty());
   }
   let (mut g,p,s,t)=melter_source_fixture(); let before=g.world.tags.clone();
-  assert_eq!(source_to_melter(&mut g,p,s,s,Faucet::new(),true),Some(false));
-  assert_eq!(source_to_melter(&mut g,s,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,s,Faucet::new(),true),Some(false));
+  assert_eq!(source_to_melter_or_lantern(&mut g,s,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
  }
  #[test]
  fn melter_chain_potion_packet_outlives_refill_and_capacity_is_bounded() {
@@ -325,18 +326,66 @@ mod tconstruct_source_machine_runtime {
   let mut input=Tank::new(2160); assert!(input.insert_tagged("tconstruct:potion",Some(&first),90));
   let raw=store::read(&g.world,s,"tconstruct:melter").unwrap();
   g.world.tags.insert((s,"tconstruct:melter".into()),tconstruct_source_faucet_tank::patch_melter_tank(&raw,&input).unwrap());
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   let mut input=Tank::new(2160); assert!(input.insert_tagged("tconstruct:potion",Some(&second),180));
   let raw=store::read(&g.world,s,"tconstruct:melter").unwrap();
   g.world.tags.insert((s,"tconstruct:melter".into()),tconstruct_source_faucet_tank::patch_melter_tank(&raw,&input).unwrap());
-  for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter(&mut g,p,s,t,f,false),Some(true)); }
+  for _ in 0..9 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
   assert_eq!((melter(&g,s).tank.amount,melter(&g,t).tank.amount),(180,90));
   assert_eq!(melter(&g,s).tank.tag,Some(second)); assert_eq!(melter(&g,t).tank.tag,Some(first)); assert!(!faucet(&g,p).active);
   let (mut g,p,s,t)=melter_source_fixture(); let mut output=Tank::new(2160); assert!(output.insert("minecraft:water",2155));
   let raw=store::read(&g.world,t,"tconstruct:melter").unwrap();
   g.world.tags.insert((t,"tconstruct:melter".into()),tconstruct_source_faucet_tank::patch_melter_tank(&raw,&output).unwrap());
-  assert_eq!(source_to_melter(&mut g,p,s,t,Faucet::new(),true),Some(true));
+  assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
   assert_eq!((melter(&g,s).tank.amount,melter(&g,t).tank.amount,faucet(&g,p).pending.amount),(175,2160,0));
+ }
+ #[test]
+ fn both_lanterns_accept_each_bounded_source_without_exceeding_fifty_mb() {
+  for lantern_id in [17,18] { for source_id in 1..=12 {
+   let (mut g,p,s,t)=lantern_fixture(lantern_id,source_id);
+   let original_slots={ let BlockEntity::Chest(slots)=g.world.block_entities.get(&t).unwrap(); slots[0].as_ref().unwrap().item.clone() };
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!((lantern(&g,t).amount,faucet(&g,p).pending.amount),(10,40));
+   for _ in 0..4 { let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); }
+   assert_eq!((lantern(&g,t).amount,faucet(&g,p).pending.amount),(50,0));
+   let f=faucet(&g,p); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,f,false),Some(true)); assert!(!faucet(&g,p).active);
+   let BlockEntity::Chest(slots)=g.world.block_entities.get(&t).unwrap(); assert_eq!(slots[0].as_ref().unwrap().item,original_slots);
+  } }
+ }
+ #[test]
+ fn lantern_saved_state_failures_and_reprocessing_races_do_not_drain() {
+  for failure in 0..6 {
+   let (mut g,p,s,t)=lantern_fixture(17,12);
+   match failure {
+    0=>g.world.fail=true,
+    1=>{ g.world.block_entities.remove(&t); },
+    2=>{ g.world.tags.remove(&(t,"tconstruct:lantern".into())); },
+    3=>{ if let Tag::Compound(raw)=g.world.tags.get_mut(&(t,"tconstruct:lantern".into())).unwrap() { raw.insert("opaque".into(),Tag::Int(7)); } },
+    4=>g.process_fault=2,
+    _=>g.process_fault=4,
+   }
+   let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false));
+   assert_eq!(g.world.tags,before); assert!(g.notifications.is_empty());
+   let BlockEntity::Chest(slots)=g.world.block_entities.get(&s).unwrap(); assert_eq!(slots[0].as_ref().unwrap().item.as_ref(),"minecraft:water_bucket");
+  }
+ }
+ #[test]
+ fn lantern_exact_potion_identity_remaining_capacity_and_unsupported_tags() {
+  let first=Tag::compound([("Potion",Tag::String("minecraft:healing".into()))]);
+  let second=Tag::compound([("Potion",Tag::String("minecraft:swiftness".into()))]);
+  for matching in [false,true] {
+   let (mut g,p,s,t)=lantern_fixture(18,1); let mut input=Tank::new(4000);
+   assert!(input.insert_tagged("tconstruct:potion",Some(&first),90)); g.world.tags.insert((s,"tconstruct:fuel_tank".into()),input.to_nbt());
+   let mut output=Tank::new(50); assert!(output.insert_tagged("tconstruct:potion",Some(if matching {&first} else {&second}),45));
+   g.world.tags.insert((t,"tconstruct:lantern".into()),output.to_nbt());
+   assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(true));
+   assert_eq!(lantern(&g,t).amount,if matching {50} else {45});
+   assert_eq!(Tank::from_nbt(&store::read(&g.world,s,"tconstruct:fuel_tank").unwrap(),4000).unwrap().amount,if matching {85} else {90});
+  }
+  let (mut g,p,s,t)=lantern_fixture(17,1); let mut input=Tank::new(4000);
+  let unsupported=Tag::compound([("Potion",Tag::String("minecraft:healing".into())),("CustomPotionColor",Tag::Int(7))]);
+  assert!(input.insert_tagged("tconstruct:potion",Some(&unsupported),90)); g.world.tags.insert((s,"tconstruct:fuel_tank".into()),input.to_nbt());
+  let before=g.world.tags.clone(); assert_eq!(source_to_melter_or_lantern(&mut g,p,s,t,Faucet::new(),true),Some(false)); assert_eq!(g.world.tags,before);
  }
 }
 fn faucet(g:&Game<'_>,p:Pos)->Faucet { Faucet::from_nbt(g.world.tags.get(&(p,"tconstruct:faucet".into())).unwrap()).unwrap() }
@@ -389,5 +438,19 @@ fn melter_source_fixture()->(Game<'static>,Pos,Pos,Pos) {
  let raw=tconstruct_source_faucet_tank::patch_melter_tank(&raw,&tank).unwrap();
  g.world.tags.insert((s,"tconstruct:melter".into()),raw);
  g.world.block_entities.insert(s,containers::BlockEntity::Chest(vec![Some(horizon_items::items::ItemStack::new("minecraft:iron_ore",1)),None,None]));
+ (g,p,s,t)
+}
+
+fn lantern(g:&Game<'_>,at:Pos)->Tank { Tank::from_nbt(g.world.tags.get(&(at,"tconstruct:lantern".into())).unwrap(),50).unwrap() }
+fn lantern_fixture(lantern_id:usize,source_id:usize)->(Game<'static>,Pos,Pos,Pos) {
+ let (mut g,p,s,t)=match source_id {
+  1..=8=>{ let (g,p,s,t,_,_)=fixture(source_id); (g,p,s,t) },
+  9=>{ let (g,p,s,t,_)=drain_fixture(12,11); (g,p,s,t) },
+  10=>{ let (g,p,s,t,_)=drain_fixture(13,14); (g,p,s,t) },
+  11=>melter_source_fixture(),
+  _=>portable_fixture(),
+ };
+ g.world.blocks.insert(t,lantern_id); g.world.tags.remove(&(t,"tconstruct:melter".into()));
+ g.world.tags.insert((t,"tconstruct:lantern".into()),Tank::new(50).to_nbt());
  (g,p,s,t)
 }
