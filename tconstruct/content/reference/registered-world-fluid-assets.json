@@ -352,6 +352,454 @@
     "assets/tconstruct/textures/fluid/slime/fiery/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/slime/fiery/flowing.png.mcmeta",
       "sha256": "70933b04b9fd1f05846494f3317f72e3bee0424da9fd4d859bbb41fae1f70346"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/steel/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/steel/still.png",
+      "sha256": "0431659c6a0704df09fb528d7f484c504850758e488e54bf941bfa9142fceac9"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/steel/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/steel/flowing.png",
+      "sha256": "37f62afc3e829abb47a2d9d637d4d16aeb1c94e1962bbe708c1f6b6f625c7f9c"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/steel/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/steel/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightmetal/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightmetal/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightmetal/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightmetal/still.png",
+      "sha256": "b0ce7a8313b0fe237fd096d0d03158810d4fef4ee87be14e75030ea4f52c2bd3"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightmetal/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightmetal/flowing.png",
+      "sha256": "af3aa53fb6ed8ffab6c013897d069a6686b2628657bed57acb3be85d85e2857c"
+    },
+    "assets/tconstruct/textures/fluid/molten/ore/steel/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/ore/steel/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightslime/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightslime/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightslime/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightslime/flowing.png",
+      "sha256": "1d8690f2bfcdef2bac42e459bdcfea221186bfc1ab0abd995997d647c5bf1973"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tin/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tin/still.png",
+      "sha256": "ad87c84af21b0360f42bda5b4b730be7abdfe9ac89b1c40cdc4a56ba8c555575"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightslime/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightslime/still.png",
+      "sha256": "520633b737727a78979889401326da01be3a9554648e78ad7e9cd96cbedb70e1"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightmetal/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightmetal/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/knightslime/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/knightslime/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tin/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tin/flowing.png",
+      "sha256": "9c4352f544b31652b93a8337d188d4e52df27c7ee08a6d77ac6b4bb83433ba8a"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tin/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tin/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tin/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tin/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/flowing.png",
+      "sha256": "b753664b7a8dc1a5f1edc5872000e6612cc0fe3aef0813c15d8b078b860d6ccf"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/lead/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/lead/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/lead/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/lead/still.png",
+      "sha256": "e693cb9c7ccdf4b2f4f26da6e8b62228dbb0d6f061a0ff8afe7b26512657e2ab"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/aluminum/still.png",
+      "sha256": "b13fb132fb738d06f09864c2a5c9f70ab982f241ac1c66b259e8e048a8786609"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/lead/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/lead/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/silver/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/silver/still.png",
+      "sha256": "0112e96fbf9ea7d06d85a8fbb5622117546325f6ca85342f0c6d94aa0f1530f1"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/silver/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/silver/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/silver/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/silver/flowing.png",
+      "sha256": "e1534071eba91138b44b985b7e12d1e09ac76a34c27941d09a980ee426cadc19"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/nickel/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/nickel/still.png",
+      "sha256": "3280be73c4fd41c6684e75b91356f0f83e265cc21ef49ab548cab36be6289329"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/lead/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/lead/flowing.png",
+      "sha256": "43955e1b246b65c16090b049133c50f72e6f14c5494d67a5ed9d204369ed9443"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/nickel/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/nickel/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/silver/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/silver/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/nickel/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/nickel/flowing.png",
+      "sha256": "04a779b4b86d545afffb18c3ca9ff70e502b08bcb9f5c376841afec61fd7d10c"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/zinc/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/zinc/still.png",
+      "sha256": "6e36f474523aeebdbc9f924c8021ac4ba9ee58caa5ddbb24b5c902f3ac1eac51"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/nickel/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/nickel/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/platinum/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/platinum/still.png",
+      "sha256": "9f79902a424c2ada6bd35100ec70ce4b22c63d69b2b050424d68193562b72d87"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/zinc/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/zinc/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/zinc/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/zinc/flowing.png",
+      "sha256": "043e987c8d1460ee30f6438d184aea73b579f27b5b91cc76c964ecd548414182"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/platinum/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/platinum/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/zinc/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/zinc/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/platinum/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/platinum/flowing.png",
+      "sha256": "cd50fcda9177897bae21ff2a9e059ff14166d2fffd11e9da453c7599b32fa6ed"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/platinum/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/platinum/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/flowing.png",
+      "sha256": "bac2bc67644be8f4fe3b9fe1cd5c1cb3a392a1e760b1dc4083e949958e2e2228"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/osmium/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/osmium/still.png",
+      "sha256": "f81f6cf1831f39d2ee72167afeb7a45494516ca525a32ad2951506ccb767b7bc"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/osmium/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/osmium/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/osmium/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/osmium/flowing.png",
+      "sha256": "803d8d61ad513a33ed54d6d9ab6644e2f6de629394fed58243c8d7c67d36c330"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/osmium/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/osmium/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/uranium/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/uranium/still.png",
+      "sha256": "4795f7a4e81655a69eddda28aa8762bc9327acff23c6f32d4c93ecc6efa3a704"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/uranium/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/uranium/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/uranium/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/uranium/flowing.png",
+      "sha256": "a671f58d52e58c168b73f819205637aa48af3744277b78339ecf14eb81000d63"
+    },
+    "assets/tconstruct/textures/fluid/molten/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/still.png",
+      "sha256": "39be84b5e3f1b262ddfb0aba2ab8070e44b9a588d37fd532dee93710364413d5"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/uranium/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/uranium/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/tungsten/still.png",
+      "sha256": "c69fe92e1b10d4c190704938997c348838cce430b26f5a383384ff0106dece4d"
+    },
+    "assets/tconstruct/textures/fluid/molten/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/flowing.png",
+      "sha256": "3296f85ebc044262ad124a76a97132c8c5a203ef28634c5715d0e494a73bfb0d"
+    },
+    "assets/tconstruct/textures/fluid/molten/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/still.png",
+      "sha256": "fb12813d77f03fff188ee083012507646e0a081eb6e28300392753454beb9eb6"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/flowing.png",
+      "sha256": "755f4e9f7ae6a6433a1e460adb73e56bd975ee09cc18790cf6b93571e2f531e0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/bronze/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/brass/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/brass/still.png",
+      "sha256": "52d1150fa6c54734cc7cebf0f775f9aef81746e9f2ae9614bb2a134e32f419ac"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/brass/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/brass/flowing.png",
+      "sha256": "fef9df421d9c643b293b21f4b65597bb0e6a567017e86fa299ab132a33a3441c"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/brass/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/brass/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/still.png",
+      "sha256": "66e9104d321dc94e1df2a1e925c95a98e6717605f54330a09647648c82df4927"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/flowing.png",
+      "sha256": "cae7f9f4367956fa707a9d3684779aa2c76571f13435a70ca23387e21eee1f62"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/electrum/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/brass/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/brass/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/invar/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/invar/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/invar/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/invar/flowing.png",
+      "sha256": "d0feba29bbd235ba40963cfe26d4ea7bda19e89ce851a043d61843bcd270988e"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/invar/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/invar/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/invar/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/invar/still.png",
+      "sha256": "1405bcfeea42a1c5ad0544d9708e85902b3bbe8557acf3a6f6c52b7cc7f9e486"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/still.png",
+      "sha256": "bce8e0b2ca940fd1f3f90fcb10a2fae93d041710cab9e8e53513f117a9ed7a48"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/flowing.png",
+      "sha256": "749d04745dc97a1d0e84c5c821f59ff40fe1abb9df84283148e87e54e72feba2"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/constantan/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/still.png",
+      "sha256": "cf53327fc4561e398b9a5288abba9a70ac0f3b9cce35c8ebc0eed44b2d0356cb"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/flowing.png",
+      "sha256": "e53e528601bd7f57c0c3d486b40cb41c8deb67554a1b740f69e2559bb29b78ab"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/pewter/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/flowing.png",
+      "sha256": "8553391c1dc7a73976fb318d7081383a70cc86678b876b76e0e2c629cdd06aef"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/still.png",
+      "sha256": "2c0d1fefe1d1c370df5bb9d8aadecaff70bd78ccf2f7338bdf150744ed105a4e"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/enderium/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/still.png",
+      "sha256": "81e223f0affdc039bec910e775392379465f1dfe97f9b6c606362034313fb90f"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/flowing.png",
+      "sha256": "1fa34954b4c54a2d46ae2c9985853d20f7c4efc3aaa266f2a9a2de1588dc701b"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/lumium/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/still.png",
+      "sha256": "120d3634ae3afe05f7b99f32d62a8c872ad5d2c001e6cd2d0c81fc7d26fad8b9"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/still.png",
+      "sha256": "b9b67608437b25a51f736b457f9d959a8cffb9ba54df3c8a13876b6123f289ce"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/flowing.png",
+      "sha256": "3568a245aa04345363ec374c25ed19204e8198f92beb18ee6a56cf8868694cb8"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/signalum/flowing.png",
+      "sha256": "5a2e355e87f7d9ccf394ec9eb7d6c0b5984395dda37487a53f8f5422188a1aab"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/still.png",
+      "sha256": "5e7c64fcb0d25e80173077c3f68a28ac513d4ebee1418b9b7f74e9710300bc5e"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_glowstone/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/still.png",
+      "sha256": "c7dd7272111dcb9b5862eec1891918c692b554d78208788772029bdb7b647063"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/refined_obsidian/flowing.png",
+      "sha256": "2f09cf912ef3bdad70166d414b09c710badd98d459ee07f0b2fbdaf436a60f18"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/still.png",
+      "sha256": "bb6410162f94c8ac7d69a8a909d3138f32fd0232d4a3c02cfda6158ace68f823"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/nicrosil/flowing.png",
+      "sha256": "4a6dd52183ff05fe071a332d75f9dc5040aef8118e9adcba8695e38d06791e85"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/flowing.png",
+      "sha256": "4db722461979caafbc6ff8ae2f5057cf6dfade7a8a69a9191926a00930afa130"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_alloy/duralumin/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/still.png",
+      "sha256": "b10c6922f2af4fdcd18aa06ce5e1fe26d81d69f0f8fecdeccf1ec68387d63f7b"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/flowing.png",
+      "sha256": "7b88c692b518455c113511c8df9e3b9cb3f30397331f5bff571590f18e02004b"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/compat_ore/steeleaf/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }

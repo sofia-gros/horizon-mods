@@ -1,4 +1,4 @@
-"""Observable content contracts for the initial twenty-five world-liquid families."""
+"""Observable content and packaging contracts for registered world liquids."""
 import hashlib
 import importlib.util
 import json
@@ -79,7 +79,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 88)
+        self.assertEqual(len(manifest['files']), 200)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -106,7 +106,12 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'iron', 'gold', 'copper', 'cobalt', 'debris', 'netherite',
                         'slimesteel', 'amethyst_bronze', 'rose_gold', 'pig_iron',
                         'manyullyn', 'hepatizon', 'queens_slime', 'soulsteel',
-                        'clay', 'porcelain', 'obsidian', 'emerald', 'quartz', 'amethyst', 'diamond')]
+                        'clay', 'porcelain', 'obsidian', 'emerald', 'quartz', 'amethyst', 'diamond',
+                        'steel', 'knightmetal', 'knightslime', 'tin', 'aluminum', 'lead', 'silver',
+                        'nickel', 'zinc', 'platinum', 'tungsten', 'osmium', 'uranium', 'chromium',
+                        'cadmium', 'bronze', 'brass', 'electrum', 'invar', 'constantan', 'pewter',
+                        'enderium', 'lumium', 'signalum', 'refined_glowstone', 'refined_obsidian',
+                        'nicrosil', 'duralumin', 'bendalloy', 'steeleaf')]
                     for short in families + ['seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid']:
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
                         blockname = definition['block'].split(':', 1)[1]

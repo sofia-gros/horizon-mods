@@ -1,0 +1,36 @@
+{
+  "source": "tconstruct:molten_knightslime",
+  "flowing": "tconstruct:flowing_molten_knightslime",
+  "block": "tconstruct:molten_knightslime_fluid",
+  "bucket": "tconstruct:molten_knightslime_bucket",
+  "policy": {
+    "drop_off": 3,
+    "slope_distance": 3,
+    "tick_delay": 30,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/alloy/knightslime/still",
+    "flowing": "tconstruct:fluid/molten/alloy/knightslime/flowing",
+    "tint": 16777215,
+    "emission": 12
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": {
+      "seconds": 10,
+      "damage": 8
+    }
+  }
+}
