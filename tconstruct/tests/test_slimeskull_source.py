@@ -22,7 +22,7 @@ class SlimeskullSourceTest(unittest.TestCase):
 
     def test_world_path_fails_closed_on_data_and_resolves_traits(self):
         source = (ROOT / 'mixins/tconstruct/source-melter-world.rs').read_text()
-        self.assertIn('stack.wire_patch().is_none() && stack.data().is_none_or(|data| data.is_empty())', source)
+        self.assertIn('if basin && super::tconstruct_source_melter_state::consumed_head_with_presentation(stack)', source)
         self.assertIn('catalog.slimeskull_casting(true, &stack.item, fluid', source)
         self.assertIn('let identities = vec![skull, slime];', source)
         self.assertIn('tconstruct_source_material_traits::levels(world, &output)?', source)
