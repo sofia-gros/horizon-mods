@@ -311,3 +311,20 @@ data, mismatched drops and malformed payload refusal. Placement/removal wiring
 is checked statically. Tests are added but unrun. This does not add pre-destruction
 cancellation or preserve unrelated machine/item-slot metadata, recover malformed
 or historical legacy state, or prove host placement/save/load/LAN behavior.
+
+### Portable tank casting recipe outputs
+
+Untagged and local tagged portable-tank filling recipes now use one preserving
+planner. Native tank extension fields, surrounding custom data and unrelated
+item components survive the recipe result, reservation and completion. It rejects
+legacy tank aliases, lossy fluid IDs, malformed owned fields, current or retained
+wire data, non-single/damaged items, and a supplied tank that differs from the
+current input. Fluid identity and exact tags must match before adding fluid.
+The existing recipe lookup, quantities, Table/Lantern restriction and local-only
+tagged route are unchanged. This is separate from held-container exchange.
+
+Added production-helper cases cover all twelve supported tank items, tagged and
+untagged empty/partial fills, unsafe refusals, stale tank proposals, full capacity
+and a real Casting state reservation/reload/completion roundtrip. World recipe
+wiring is checked statically. These cases are unrun; actual datapack selection,
+host gameplay, authoritative saves and LAN remain for combined validation.
