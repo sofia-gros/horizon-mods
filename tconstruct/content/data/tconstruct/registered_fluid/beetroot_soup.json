@@ -1,0 +1,33 @@
+{
+  "source": "tconstruct:beetroot_soup",
+  "flowing": "tconstruct:flowing_beetroot_soup",
+  "block": "tconstruct:beetroot_soup_fluid",
+  "bucket": "tconstruct:beetroot_soup_bucket",
+  "policy": {
+    "drop_off": 1,
+    "slope_distance": 4,
+    "tick_delay": 5,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/food/stew/still",
+    "flowing": "tconstruct:fluid/food/stew/flowing",
+    "tint": 8656397,
+    "emission": 0
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": true,
+    "can_drown": true,
+    "extinguishes": true,
+    "fall_distance_scale": 0.5,
+    "burn": null
+  }
+}

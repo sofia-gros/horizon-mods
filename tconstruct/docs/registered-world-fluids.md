@@ -1,16 +1,17 @@
 # Registered world-fluid draft
 
-This slice declares fifty-five world-liquid families. The initial families are iron, gold, copper,
+This slice declares fifty-nine world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
-Blazing Blood and Fiery Liquid.
+Blazing Blood and Fiery Liquid. Four cool food liquids are also included:
+Beetroot Soup, Mushroom Stew, Rabbit Stew and Meat Soup.
 The remaining thirty conventional metals and compatibility alloys are listed
 below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
 supply the items. The host's registered-fluid system handles placement, flow,
-source pickup, scheduling and saving, rendering, player current/travel and burn
-contact using each family's identity.
+source pickup, scheduling and saving, rendering, player current/travel and
+declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
 [Horizon fork PR #24](https://github.com/sofia-gros/horizon/pull/24).** Keep this
@@ -37,8 +38,16 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   level drop 2, slope distance 2, tick rate 40.
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
-  uses tick rate 30. None of the fifty-five families generates new sources.
-- `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning.
+  uses tick rate 30. The four soups also use the defaults: drop 1, slope 4,
+  tick rate 5. None of the fifty-nine families generates new sources.
+- `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning
+  for the fifty-five hot families.
+- The four soups use `TinkerFluids.cool`: the same current scale, extinguishing
+  enabled, and Forge's default swimming/drowning and 0.5 fall scaling. They
+  have no burn contact and emit no light. Their 400 K source temperature does
+  not make them burning liquids. Defaults are read from `FluidType.Properties`
+  at the existing bucket-reference Forge source revision
+  `243490d78001917c7e6ee6e94b45ef98776aa36f`.
 - `TinkerFluids` declarations and `BurningLiquidBlock`: 10 seconds burning;
   iron/gold/copper deal 5, cobalt 6, debris 8 and netherite 10;
   light 12/12/12/8/14/14.
@@ -69,7 +78,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all fifty-five families. Queen's Slime's source camera fog color remains
+  covers all fifty-nine families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
@@ -92,6 +101,14 @@ source's different fluid emission (14) and block light (12). Chromium, Cadmium
 and Bendalloy share the source molten sprite with tints `0xC4B180`, `0x8AB8C8`
 and `0xD6D2C1`; the others retain their own ore/alloy/compatibility sprite pairs.
 This does not install external mods or add their ores, ingredients or recipes.
+
+The four soup liquids share the exact `food/stew` source still/flow sprites and
+animation metadata, with RGB tints `0x84160D`, `0xCD8C6F`, `0x984A2C` and
+`0xE03E35` respectively. Their existing bucket IDs are reused, and their liquid
+blocks use the `_fluid` suffix without replacing bowl food items. This adds no
+food consumption, nutrition, bowl transfer, Suspicious Stew or potion effects.
+Ordinary bowl supply is separate work in [PR #680](https://github.com/sofia-gros/horizon-mods/pull/680).
+The source camera fog and sound settings remain outside this declaration schema.
 
 Cinderslime is intentionally undeclared: the source uses an inverted fluid,
 which cannot be represented by the host's current downward-only flow policy.
