@@ -1,5 +1,9 @@
 # Retained armor durability writeback
 
+This describes the baseline writeback slice. The subsequent
+[Tanned armor extension](tanned-armor-wear.md) admits canonical Tanned and applies
+its live reduction before native callbacks; the other exclusions below remain.
+
 Partial high-priority #379 repair, stacked on Maintained toughness #917. This
 restores the ordinary damage-to-retained-item commit for a bounded subset of
 stock armor. It does not claim the full source durability-modifier pipeline.

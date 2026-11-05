@@ -39,11 +39,30 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
         if level == 0 { continue; }
         let (namespace, path) = id.split_once(':')?;
         let value = serde_json::from_slice::<serde_json::Value>(raw.0.get(&format!("{namespace}:tinkering/modifiers/{path}"))?.last()?).ok()?;
-        // Only exact reviewed definitions with no tool-damage hook. Unknown,
-        // changed and reduction-bearing modifiers leave this piece untouched.
-        if !super::tconstruct_armor_wear_definitions::supported(&id, &value) { return None; }
+        if id == "tconstruct:tanned" {
+            // Probe a positive amount: zero loss deliberately skips validation
+            // in the shared evaluator. Ordinary armor wear has EMPTY cause.
+            super::tconstruct_tanned_wear::loss(raw, 1, level, None)?;
+        } else if !super::tconstruct_armor_wear_definitions::supported(&id, &value) {
+            // Every other active modifier must have no durability hook.
+            return None;
+        }
     }
     Some(slot)
+}
+
+/// Transform ordinary armor damage before native item-damage callbacks and
+/// advancement reporting. Outside the scoped armor call the native path wins.
+pub(super) fn pre_native_loss(game: &super::Game<'_>, stack: &ItemStack, amount: u32) -> Option<u32> {
+    if !game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context().contains_key(&game.lan_acting) {
+        return None;
+    }
+    supported(game, stack)?;
+    let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
+    let level = super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, "tconstruct:tanned")?;
+    if level == 0 { return Some(amount); }
+    let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
+    super::tconstruct_tanned_wear::loss(raw, amount, level, None)
 }
 
 pub(super) fn record(game: &mut super::Game<'_>, stack: &ItemStack, loss: u32) {
