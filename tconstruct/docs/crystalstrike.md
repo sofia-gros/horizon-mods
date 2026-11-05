@@ -1,7 +1,8 @@
 # Worn Crystalstrike candidate
 
 This is a bounded implementation of the high-priority worn Crystalstrike entry
-in #379. It does not implement held-shield Crystalstrike or claim full parity.
+in #379. The [held-shield follow-on](crystalstrike-held.md) adds the two hand
+slots for stock shields; full parity is not claimed.
 
 ## Connected behavior
 
@@ -11,7 +12,8 @@ in #379. It does not implement held-shield Crystalstrike or claim full parity.
 - Each worn piece contributes a separate `multiply_total` attack-speed amount
   of `0.05f * level`, widened to double. The actual attack cooldown consumer
   applies it to both vanilla weapons and the existing TiC/Overwield replacement.
-  The attack-speed attribute also receives four owned transient slot modifiers.
+  The attack-speed attribute also receives owned transient modifiers for four
+  armor slots and two supported shield hands.
   Unequipping or changing the source definition removes those modifiers.
 - `give_player_effect` and `add_player_effect` scale the duration
   of supported source nonbeneficial effects. Balm base reductions combine before
@@ -32,8 +34,8 @@ in #379. It does not implement held-shield Crystalstrike or claim full parity.
 
 ## Remaining coverage
 
-Held equipment, custom item classes/definitions and custom curative metadata
-are outside this change. The Balm follow-on adds drinking, food, tipped-arrow
+Held items outside the three supported shields, custom item classes/definitions
+and custom curative metadata remain outside this change. The Balm follow-on adds drinking, food, tipped-arrow
 and potion paths routed through `add_player_effect`; direct effect-list writes
 remain unchanged.
 Only known source 1.20.1 milk-curable nonbeneficial effects are scaled; newer or

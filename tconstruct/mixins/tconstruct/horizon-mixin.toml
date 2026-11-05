@@ -5407,3 +5407,10 @@ target = "horizon_client::game::potions::Game<'_>::add_player_effect"
 kind = "HEAD"
 helper = "balm-effect-add.rs"
 bindings = [{ name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }, { name = "effect", ty = "&mut horizon_client::effects::EffectInstance", value = "&mut effect" }]
+
+[[injection]]
+id = "source-crystalstrike-status"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "TAIL"
+helper = "crystalstrike-status.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
