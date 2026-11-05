@@ -1315,6 +1315,7 @@ pub(super) fn activate_faucet(game: &mut super::Game<'_>, pos: Pos, block: &str)
     let Some(mut faucet) = store::read(&game.world, pos, "tconstruct:faucet").and_then(|tag| Faucet::from_nbt(&tag)) else { return false; };
     if faucet.active { return super::tconstruct_source_faucet_tank::stop(game, pos, faucet); }
     let Some((source, target)) = faucet_neighbors(game, pos) else { return false; };
+    if let Some(handled) = cannon_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_cannon(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = tank_to_casting_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
     if let Some(handled) = smeltery_to_tank(game, pos, source, target, faucet.clone(), true) { return handled; }
@@ -1365,6 +1366,7 @@ pub(super) fn tick_faucet(game: &mut super::Game<'_>, pos: Pos) {
     let Some((source, target)) = faucet_neighbors(game, pos) else { return; };
     // Wait if either chunk is unloaded; absence is not proof of a broken block.
     if !game.world.chunks.contains_key(&(source.0 >> 4, source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4, target.2 >> 4)) { return; }
+    if cannon_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_cannon(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if tank_to_casting_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
     if smeltery_to_tank(game, pos, source, target, faucet.clone(), false).is_some() { return; }
@@ -1463,4 +1465,47 @@ pub(super) fn tick_casting(game: &mut super::Game<'_>, pos: Pos) {
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = casting.input; slots[1] = casting.output;
     }
+}
+
+/// Transfer fluid between Cannons without touching either whole-stack item.
+fn cannon_to_cannon(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
+    let positions = [source, target, pos];
+    let blocks = positions.map(|at| game.world.block(at.0, at.1, at.2));
+    if [blocks[0], blocks[1]].iter().any(|block| &*game.res.facts().get(*block).name != "tconstruct:seared_fluid_cannon") { return None; }
+    if source == target || source == pos || target == pos { return Some(false); }
+    if positions.iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))) { return Some(false); }
+    let Some(mut input) = cannon_at(game, source) else { return Some(false); };
+    let Some(mut output) = cannon_at(game, target) else { return Some(false); };
+    let Some(raw_input) = store::read(&game.world, source, "tconstruct:fluid_cannon") else { return Some(false); };
+    let Some(raw_output) = store::read(&game.world, target, "tconstruct:fluid_cannon") else { return Some(false); };
+    let item_safe = |state: &super::tconstruct_source_fluid_cannon::Cannon|
+        state.item.as_ref().is_none_or(|item| item.data().is_none_or(|data| data.wire.patch().is_none()));
+    if input.to_nbt() != raw_input || output.to_nbt() != raw_output || !item_safe(&input) || !item_safe(&output) { return Some(false); }
+    let Some(raw_faucet) = store::read(&game.world, pos, "tconstruct:faucet") else { return Some(false); };
+    if faucet.to_nbt() != raw_faucet { return Some(false); }
+    let reserves_source = starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet);
+    if !faucet_network_tag_safe(&output.tank) || !faucet_network_tag_safe(&faucet.pending)
+        || (reserves_source && !faucet_network_tag_safe(&input.tank)) { return Some(false); }
+    let before_input = (input.tank.amount, input.comparator());
+    let before_output = (output.tank.amount, output.comparator());
+    if starting && !faucet.activate(&mut input.tank, &output.tank) { return Some(true); }
+    let needs_packet = !starting && faucet.pending.amount == 0;
+    faucet.tick(&mut input.tank, Some(&mut output.tank));
+    if needs_packet && faucet.pending.amount > 0 { faucet.tick(&mut input.tank, Some(&mut output.tank)); }
+    let Some(next_input) = super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_input, &input.tank) else { return Some(false); };
+    let Some(next_output) = super::tconstruct_source_faucet_tank::patch_melter_tank(&raw_output, &output.tank) else { return Some(false); };
+    if positions.iter().zip(blocks).any(|(at, block)| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))
+        || game.world.block(at.0, at.1, at.2) != block)
+        || store::read(&game.world, pos, "tconstruct:faucet").as_ref() != Some(&raw_faucet) { return Some(false); }
+    for (at, raw) in [(source, &raw_input), (target, &raw_output)] {
+        if store::read(&game.world, at, "tconstruct:fluid_cannon").as_ref() != Some(raw)
+            || !cannon_at(game, at).is_some_and(|current| current.to_nbt() == *raw && item_safe(&current)) { return Some(false); }
+    }
+    if !store::write_many(&mut game.world, &[(source, "tconstruct:fluid_cannon", next_input),
+        (target, "tconstruct:fluid_cannon", next_output), (pos, "tconstruct:faucet", faucet.to_nbt())]) { return Some(false); }
+    notify_casting_comparator(game, source, before_input.1, input.comparator());
+    notify_casting_comparator(game, target, before_output.1, output.comparator());
+    if input.tank.amount != before_input.0 { game.container_changed(source); }
+    if output.tank.amount != before_output.0 { game.container_changed(target); }
+    Some(true)
 }
