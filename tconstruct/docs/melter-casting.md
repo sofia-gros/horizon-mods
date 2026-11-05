@@ -120,3 +120,12 @@ open local or guest container slots can therefore block removal. This does not g
 pistons, commands, other block-replacement paths or already-lost data. The
 fixture uses cached host libraries and mock state; actual host, world, player,
 save/reload and LAN behavior remain unverified.
+
+The destruction-guard Rust fixtures have a reproducible source-based runner:
+`HORIZON_HOST=/path/to/clean/pinned/horizon bash tconstruct/tests/run_machine_destroy_guard_rust.sh`.
+It requires the pinned host revision, Rust/Cargo and its cached dependencies,
+checks dependency identities against the host lockfile, and verifies that both
+close-lifecycle tests actually ran. It does not type-check the injected game
+hooks or exercise world/LAN behavior. The close-lifecycle candidate has only
+passed Python wiring checks in the current environment; its Rust fixtures
+have not been executed here.
