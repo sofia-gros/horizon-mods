@@ -56,5 +56,5 @@ class PunyUpgradeGroups(unittest.TestCase):
         self.assertIn('if mighty_abilities || puny_upgrades {', source)
         self.assertIn('if puny_upgrades && !super::tconstruct_materials_book_index::mighty_advice_ready([', source)
         self.assertNotIn('ordinary_tags', source)
-        self.assertIn('chapter_pages.extend(bonus_pages)', source)
-        self.assertIn('incremental_modifier_pages(game, &slotless_tags)', source)
+        self.assertIn('if tag == "tconstruct:slotless/bonus" { bonus_modifier_pages(game, tag) }', source)
+        self.assertIn('chapter_pages.extend(group_recipes)', source)

@@ -79,6 +79,16 @@ pub(super) fn puny_upgrade_group(name: &str) -> Option<(&'static str, Option<&'s
     })
 }
 
+// Damage Tools is an ordinary illustrated page between the first two groups.
+pub(super) fn puny_slotless_group(name: &str) -> Option<(&'static str, &'static str)> {
+    Some(match name {
+        "group_slotless" => ("tconstruct:slotless/general", "slotless/slotless.json"),
+        "group_bonus_upgrades" => ("tconstruct:slotless/bonus", "slotless/bonus_upgrades.json"),
+        "group_cosmetic" => ("tconstruct:slotless/cosmetic", "slotless/cosmetic.json"),
+        _ => return None,
+    })
+}
+
 // Source book tier and material-tag predicates. Stat support and hidden state
 // are checked separately against the current material registry.
 pub(super) fn material_book_tier(puny: bool, key: &str, tier: i32, distant: bool, basic_ammo: bool) -> bool {
@@ -163,6 +173,15 @@ mod tests {
         assert!(mighty_advice_ready([Some("Partial"), Some("Notice"), Some("Details")]));
         assert!(!mighty_advice_ready([Some("Partial"), None, Some("Details")]));
         assert!(!mighty_advice_ready([Some("Partial"), Some(" "), Some("Details")]));
+    }
+    #[test]
+    fn puny_slotless_keeps_three_exact_groups_and_separate_damage_page() {
+        assert_eq!(super::puny_slotless_group("group_slotless"), Some(("tconstruct:slotless/general", "slotless/slotless.json")));
+        assert_eq!(super::puny_slotless_group("group_bonus_upgrades"), Some(("tconstruct:slotless/bonus", "slotless/bonus_upgrades.json")));
+        assert_eq!(super::puny_slotless_group("group_cosmetic"), Some(("tconstruct:slotless/cosmetic", "slotless/cosmetic.json")));
+        for name in ["damage_tools", "group_unknown", "group_general", "group_bonus"] {
+            assert_eq!(super::puny_slotless_group(name), None);
+        }
     }
     #[test]
     fn puny_upgrades_keep_five_overviews_and_five_bounded_subgroups() {

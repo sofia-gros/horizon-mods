@@ -580,3 +580,27 @@ Group identities, source order/resources, coverage notices and reader routing
 regressions were authored or updated but not run. Brief static review only.
 Compilation, actual book size/layout, resource reload, save/reload and LAN
 remain unverified. This does not complete the modifier registry or either book.
+
+
+## Puny slotless categories
+
+Puny's supported slotless incremental recipes now follow their own General,
+Slots++ or Cosmetic source overview. Supported bonus-slot recipes appear only
+under Slots++, alongside any eligible incremental recipes in that current tag.
+This replaces the combined recipe tail without changing recipe eligibility,
+Blindshot limits, crystal alternatives, input previews or bonus slot counts.
+The existing Damage Tools image and complete overflow text remain between the
+General and Slots++ groups in source order.
+
+Known group names must match their expected tag and overview path. Current
+world tags still determine modifier membership. Each chapter requires partial
+coverage labels; every source page receives a reference notice, and a category
+with no supported recipe receives an explicit empty-group notice. This includes
+Cosmetic when no eligible recipe is available, without declaring its gameplay
+universally unavailable. Unknown category identities receive no recipe projection.
+
+Group identities, unchanged Damage Tools resource, required notices and recipe
+placement/overflow wiring regressions were authored or updated but not run.
+Brief static review only. Compilation, actual book size/layout, resource reload,
+save/reload and LAN remain unverified. Other books and gameplay are unchanged;
+the full modifier registry and remaining recipe forms are still incomplete.
