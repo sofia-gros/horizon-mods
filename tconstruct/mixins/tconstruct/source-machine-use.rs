@@ -2,11 +2,11 @@ fn tconstruct_machine_use(game: &mut crate::game::Game<'_>, hit: Option<&Hit>) -
     use std::ops::ControlFlow::{Break, Continue};
     if game.remote.is_some() { return Continue(()); }
     let Some(hit) = hit else { return Continue(()); };
-    // Match the existing use-item ordering: sneaking with a held item lets
-    // that item act instead of opening the machine.
-    if game.keys.contains(&KeyCode::ShiftLeft) && (game.stack_in(game.selected).is_some() || game.offhand.is_some()) { return Continue(()); }
     let state = game.world.block(hit.pos[0], hit.pos[1], hit.pos[2]);
     let name = game.res.facts().get(state).name.clone();
+    if crate::game::tconstruct_source_machine_interaction::sneak_passthrough(
+        &name, game.keys.contains(&KeyCode::ShiftLeft),
+        game.stack_in(game.selected).is_some(), game.offhand.is_some()) { return Continue(()); }
     let pos = (hit.pos[0], hit.pos[1], hit.pos[2]);
     if &*name == "tconstruct:part_chest" {
         if let Some(stack)=game.inventory.get(game.selected).cloned().flatten() {
