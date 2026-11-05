@@ -10,6 +10,9 @@ fn tconstruct_protection_damage_health(status: &crate::effects::StatusFlags, dam
     if status.__horizon_mixins_tconstruct_scorch_protection_source().as_deref() == Some(damage_type) {
         extra += *status.__horizon_mixins_tconstruct_scorch_protection_points();
     }
+    if status.__horizon_mixins_tconstruct_consecrated_source().as_deref() == Some(damage_type) {
+        extra += *status.__horizon_mixins_tconstruct_consecrated_points();
+    }
     extra += *status.__horizon_mixins_tconstruct_depth_protection_points();
     extra += *status.__horizon_mixins_tconstruct_turtle_shell_points();
     if !extra.is_finite() || extra == 0.0 { return std::ops::ControlFlow::Continue(()); }
