@@ -478,3 +478,42 @@ save failure. World storage, notifications and the acting-hand mapping remain
 fixture implementations, not a full host/LAN execution. These new cases have not
 been run in this implementation-only batch. This does not implement firing or
 claim arbitrary host callback/notification transaction safety.
+### Casting Tank native-state preservation (#379)
+
+The shared Casting Tank save now retains native machine/tank extensions and
+unchanged raw input/output items. Container processing, manual interactions
+and hopper commits refuse to remove, replace or decrement an opaque saved
+item. Legacy aliases, lossy tank IDs and invalid capacities also refuse the
+save. Current saved/live slots must agree before publishing updates, and
+notifications follow persistence.
+
+State validation and processing reject current or stale retained wire backing.
+Hopper candidates and the selected post-callback slot use the same wire
+restriction. Both inventories, blocks and loaded chunks are rechecked after
+container processing; failed saves retain the existing hopper rollback. This does not
+change the separate Faucet transaction routes or add redstone scheduling.
+
+The bounded machine fixture in `run_cannon_held.py` now also extracts the
+production Casting Tank loader/save. Three new cases cover container
+processing, slot/redstone updates, extensions, opaque/stale states, wire and
+failed writes. Tests were not run. Full manual/hopper execution, host/world,
+save/reload, LAN and destruction handling remain separate and unverified.
+
+
+### Casting Tank interaction snapshot safety (#379)
+
+Held-container fill/drain and upper-slot insert/take now snapshot the exact block,
+saved Casting Tank compound, both live slots, held stack, creative flag and local/
+network execution mode. They require a preserving identity roundtrip before staging
+and recheck the snapshots after datapack preparation and automatic container
+processing, before saving or publishing held items or gifts. Retained wire-backed
+held items wait without conversion, including stale backing hidden by a new item
+component. The preserving save from the prior change retains unknown native
+metadata and refuses unsafe slot rewrites.
+
+The shared Cannon/Casting Tank fixture now extracts the full production Casting
+Tank interaction and process helper. Added cases cover fill/drain, counts, creative
+behavior, automatic container processing, upper-slot insert/take, first/second
+callback changes, wire refusal and failed persistence. These fixtures use a mocked
+host/world/store and were added but not run in this implementation phase. Full host,
+gameplay, save/reload, LAN and notification callback behavior remain unverified.
