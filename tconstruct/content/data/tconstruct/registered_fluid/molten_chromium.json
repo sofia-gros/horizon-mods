@@ -1,0 +1,36 @@
+{
+  "source": "tconstruct:molten_chromium",
+  "flowing": "tconstruct:flowing_molten_chromium",
+  "block": "tconstruct:molten_chromium_fluid",
+  "bucket": "tconstruct:molten_chromium_bucket",
+  "policy": {
+    "drop_off": 3,
+    "slope_distance": 3,
+    "tick_delay": 30,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/still",
+    "flowing": "tconstruct:fluid/molten/flowing",
+    "tint": 12890496,
+    "emission": 13
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": {
+      "seconds": 10,
+      "damage": 5
+    }
+  }
+}

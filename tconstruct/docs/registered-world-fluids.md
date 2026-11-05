@@ -1,10 +1,12 @@
 # Registered world-fluid draft
 
-This slice declares twenty-five world-liquid families: iron, gold, copper,
+This slice declares fifty-five world-liquid families. The initial families are iron, gold, copper,
 cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Manyullyn, Hepatizon, Queen's Slime, Soulsteel, Seared Stone, Scorched Stone,
 molten Clay, Porcelain, Obsidian, Emerald, Quartz, Amethyst, Diamond,
 Blazing Blood and Fiery Liquid.
+The remaining thirty conventional metals and compatibility alloys are listed
+below. Their existing availability and acquisition conditions remain unchanged.
 They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
 supply the items. The host's registered-fluid system handles placement, flow,
 source pickup, scheduling and saving, rendering, player current/travel and burn
@@ -28,14 +30,14 @@ pre-release draft correction, not a migration of already saved draft worlds.
 Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 
 - `FluidDeferredRegisterExtension.registerMetal`: level drop 3, slope distance 3,
-  tick rate 30 for the thirteen metal/alloy families.
+  tick rate 30 for the forty-three metal/alloy families.
 - Molten Debris, Emerald, Quartz, Amethyst and Diamond use `registerGem`:
   level drop 4, slope distance 4, tick rate 45.
 - Seared Stone, Scorched Stone, Clay, Porcelain and Obsidian use `registerStone`:
   level drop 2, slope distance 2, tick rate 40.
 - Blazing Blood uses Mantle `FluidBuilder` defaults: level drop 1, slope
   distance 4, tick rate 5. Fiery Liquid keeps drop 1/slope 4 but explicitly
-  uses tick rate 30. None of the twenty-five families generates new sources.
+  uses tick rate 30. None of the fifty-five families generates new sources.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning.
 - `TinkerFluids` declarations and `BurningLiquidBlock`: 10 seconds burning;
   iron/gold/copper deal 5, cobalt 6, debris 8 and netherite 10;
@@ -67,12 +69,29 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
   retains its pink artwork instead of reusing another metal's sprite.
 - Manyullyn, Hepatizon, Queen's Slime and Soulsteel also retain their dedicated
   alloy sprite pairs and source animation metadata. The provenance manifest
-  covers all twenty-five families. Queen's Slime's source camera fog color remains
+  covers all fifty-five families. Queen's Slime's source camera fog color remains
   outside the current host schema and is not applied as a world-fluid tint.
 - Seared Stone, Scorched Stone and Clay share the source stone sprites with
   tints `0x4F4A47`, `0x3E3029` and `0x9B6045`; Porcelain and Obsidian use their
   own `molten/stone/<name>` sprites. Porcelain availability still depends on
   existing recipes and compatibility content; no new acquisition is added.
+
+Additional conventional metal families:
+
+- Steel, Knightmetal and Knightslime.
+- Tin, Aluminum, Lead, Silver, Nickel, Zinc, Platinum, Tungsten, Osmium,
+  Uranium, Chromium and Cadmium.
+- Bronze, Brass, Electrum, Invar, Constantan and Pewter.
+- Enderium, Lumium, Signalum, Refined Glowstone, Refined Obsidian, Nicrosil,
+  Duralumin, Bendalloy and Steeleaf.
+
+All thirty use metal flow and ten seconds burning. The source-specific damage,
+light, tint and texture expectations are recorded in
+`tests/test_remaining_world_metals.py`. Nicrosil intentionally retains the
+source's different fluid emission (14) and block light (12). Chromium, Cadmium
+and Bendalloy share the source molten sprite with tints `0xC4B180`, `0x8AB8C8`
+and `0xD6D2C1`; the others retain their own ore/alloy/compatibility sprite pairs.
+This does not install external mods or add their ores, ingredients or recipes.
 
 Cinderslime is intentionally undeclared: the source uses an inverted fluid,
 which cannot be represented by the host's current downward-only flow policy.
