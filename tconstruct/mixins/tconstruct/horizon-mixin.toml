@@ -5395,3 +5395,23 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_protection"
 source = "source-protection.rs"
 visibility = "pub"
+
+[[module]]
+id = "source-projectile-protection-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_projectile_protection_world"
+source = "projectile-protection-world.rs"
+
+[[injection]]
+id = "source-projectile-protection-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "projectile-protection-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-projectile-protection-player-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "projectile-protection-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

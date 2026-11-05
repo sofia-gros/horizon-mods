@@ -2,8 +2,10 @@
 
 This #379 slice adds normal acquisition for Blast, Magic, Melee and Projectile
 Protection, sharing the preceding Fire Protection defense-budget implementation.
-It does not implement their damage or secondary effects. The workstation UI
-explicitly labels all five as acquisition-only.
+This acquisition slice does not implement their damage or secondary effects.
+The later [Projectile Protection attribute slice](projectile-protection-attribute.md)
+adds its knockback-resistance effect and updates that UI notice; the damage
+protection path remains separate.
 
 Source reinforcement inputs are distinct:
 
