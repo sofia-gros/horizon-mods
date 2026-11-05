@@ -34,7 +34,7 @@ fn piece(game: &super::Game<'_>, stack: &ItemStack, worn: bool, id: &str) -> Opt
 
 type Table = Vec<(String,f32)>;
 
-fn wanted(game: &super::Game<'_>) -> Option<(Table,Table)> {
+fn wanted(game: &super::Game<'_>) -> Option<(Table,Table,f32)> {
     let damage_types = game.world.chunks.__horizon_mixins_tconstruct_protection_damage_types().as_ref()?.as_ref().ok()?;
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
     let belongs = |stack:&ItemStack, tag:&str| tags.get(tag).is_some_and(|set|set.contains(stack.item.as_ref()));
@@ -67,23 +67,26 @@ fn wanted(game: &super::Game<'_>) -> Option<(Table,Table)> {
     // protection hook cancels that vanilla EPF, but broken worn armor skips the
     // canceling hook while still generating the enchantment. Held tools never
     // contributed to vanilla armor enchantments in the first place.
+    let mut scorch = 0.0;
     if super::tconstruct_scorch_protection_world::supported(game) {
-        if let Some(fire_types) = damage_types.get("minecraft:is_fire") {
-            if let Some(pieces) = equipment.iter().map(|(stack,worn)|
-                super::tconstruct_scorch_protection_world::piece(game,stack,*worn)).collect::<Option<Vec<_>>>() {
-                if let Some(points) = super::tconstruct_protection_damage::points(&pieces,0.0,2.0) {
-                    super::tconstruct_protection_damage::add_points(&mut table,&empty,fire_types,points);
+        if let Some(pieces) = equipment.iter().map(|(stack,worn)|
+            super::tconstruct_scorch_protection_world::piece(game,stack,*worn)).collect::<Option<Vec<_>>>() {
+            if let Some(points) = super::tconstruct_protection_damage::points(&pieces,1.25,2.0) {
+                scorch = points.0;
+                if let Some(fire_types) = damage_types.get("minecraft:is_fire") {
+                    super::tconstruct_protection_damage::add_points(&mut table,&empty,fire_types,(0.0,points.1));
                 }
             }
         }
     }
-    Some((table.into_iter().collect(),direct_table.into_iter().collect()))
+    Some((table.into_iter().collect(),direct_table.into_iter().collect(),scorch))
 }
 
 pub(super) fn refresh(game: &mut super::Game<'_>) {
-    let (table,direct_table) = if game.remote.is_none() { wanted(game).unwrap_or_default() } else { Default::default() };
+    let (table,direct_table,scorch) = if game.remote.is_none() { wanted(game).unwrap_or_default() } else { Default::default() };
     if let Some(player) = game.player.as_mut() {
         *player.status.__horizon_mixins_tconstruct_protection_points_mut() = table;
+        *player.status.__horizon_mixins_tconstruct_scorch_protection_points_mut() = scorch;
         *player.status.__horizon_mixins_tconstruct_melee_protection_points_mut() = direct_table;
     }
 }

@@ -30,6 +30,10 @@ It extends the existing fire-duration/contact and shared damage implementations.
 
 ## Boundaries
 
+The later [identified-attacker slice](scorch-protection-attacker.md) adds bounded
+coverage for explicit causing IDs and verified projectile owners. The following
+paragraph describes the original enchantment-only patch.
+
 The main Scorch Protection module adds 1.25 EPF per level when the causing
 attacker is fire-immune. It remains unimplemented here because reliable causing
 entity identity is not available for every native hit. Fire damage alone is

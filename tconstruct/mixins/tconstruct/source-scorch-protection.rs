@@ -37,3 +37,21 @@ mod tests {
         assert!(!supported_value(&value));
     }
 }
+
+
+/// Explicit absence wins over stale projectile state. Only the projectile
+/// path may use its recorded owner; ordinary melee has no verified identity.
+pub(super) fn causing_id(known: Option<Option<u32>>, projectile: bool, owner: Option<u32>) -> Option<u32> {
+    match known { Some(cause) => cause, None if projectile => owner, None => None }
+}
+
+#[cfg(test)] mod causing_tests {
+    use super::*;
+    #[test] fn known_identity_and_projectile_owner_are_not_position_guesses() {
+        assert_eq!(causing_id(Some(Some(7)),false,Some(8)),Some(7));
+        assert_eq!(causing_id(Some(None),true,Some(8)),None);
+        assert_eq!(causing_id(None,true,Some(8)),Some(8));
+        assert_eq!(causing_id(None,false,Some(8)),None);
+        assert_eq!(causing_id(None,true,None),None);
+    }
+}
