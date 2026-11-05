@@ -22,7 +22,7 @@ fn tconstruct_melee_protection_hit(
         let previous = std::mem::replace(context,direct.then(||damage_type.to_owned()));
         (player.entity_id,previous)
     });
-    let result = original(game,amount,from,damage_type,known);
+    let result = crate::game::tconstruct_scorch_hit_world::wrap(game,amount,from,damage_type,known,original);
     // The context belongs to one synchronous hit, including canceled hits.
     // Restore nested context without leaking it into /damage or the next tick.
     if let Some((id,previous)) = saved {

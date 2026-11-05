@@ -149,3 +149,12 @@ mod scorch_enchantment_tests {
         assert_eq!(points(&[(2.0,true,false)],0.0,2.0),Some((0.0,0.0)));
     }
 }
+
+#[cfg(test)] mod scorch_attacker_tests {
+    use super::*;
+    #[test] fn scorch_attack_points_skip_broken_pieces_and_keep_virtual_fire_separate() {
+        let pieces = [(1.0,false,true),(2.0,false,false),(3.0,true,true),(4.0,true,false)];
+        assert_eq!(points(&pieces,1.25,2.0),Some((3.75,6.0)));
+        assert_eq!(points(&[(2.0,true,false)],1.25,2.0),Some((0.0,0.0)));
+    }
+}
