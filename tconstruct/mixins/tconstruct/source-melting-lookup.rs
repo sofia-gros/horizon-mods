@@ -341,7 +341,7 @@ impl Catalog<'_> {
     }
     fn output(&self, result: &Output) -> Option<String> {
         match result {
-            Output::Item(id) => self.known_items.contains(id).then(|| id.clone()),
+            Output::Item(id) | Output::WaterPotion(id) => self.known_items.contains(id).then(|| id.clone()),
             Output::Tag(tag) => {
                 let mut values = self.item_tags.get(tag)?.iter().filter(|id| self.known_items.contains(*id));
                 let value = values.next()?.clone();
@@ -570,7 +570,7 @@ impl Catalog<'_> {
             if let Some((_, previous, previous_output)) = &found {
                 if previous.fluid.amount != recipe.fluid.amount || previous.cooling_time != recipe.cooling_time
                     || previous.consumes_cast != recipe.consumes_cast || previous.switch_slots != recipe.switch_slots || previous.retextured != recipe.retextured
-                    || previous_output != &output { return None; }
+                    || previous_output != &output || previous.output.potion() != recipe.output.potion() { return None; }
             } else { found = Some((id.clone(), recipe, output)); }
         }
         found

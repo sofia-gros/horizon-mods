@@ -380,7 +380,14 @@ impl MoldingRecipe {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) enum Output { Item(String), Tag(String) }
+pub(super) enum Output { Item(String), Tag(String), WaterPotion(String) }
+impl Output {
+    /// Only the fixed water-potion result NBT is translated into host components.
+    /// Other result NBT must stay unsupported rather than silently disappearing.
+    pub(super) fn potion(&self) -> Option<&'static str> {
+        matches!(self, Self::WaterPotion(_)).then_some("minecraft:water")
+    }
+}
 /// Bucket subset of source table-filling recipes. Other containers require
 /// their own fluid-capability semantics.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -645,11 +652,21 @@ impl CastingRecipe {
         let cast = match v.get("cast") { Some(value) => Some(Ingredient::parse(value)?), None => None };
         let result = v.get("result")?;
         let output = if let Some(item) = result.as_str() { Output::Item(item.to_owned()) }
-            else { let obj = result.as_object()?; if obj.len() != 1 { return None; }
-                match (obj.get("item"), obj.get("tag")) {
-                    (Some(item), None) => Output::Item(item.as_str()?.to_owned()),
-                    (None, Some(tag)) => Output::Tag(tag.as_str()?.to_owned()),
-                    _ => return None,
+            else {
+                let obj = result.as_object()?;
+                if obj.len() == 2 && obj.contains_key("item") && obj.contains_key("nbt") {
+                    let item = obj.get("item")?.as_str()?;
+                    if basin || retextured
+                        || !matches!(item, "minecraft:potion" | "minecraft:splash_potion" | "minecraft:lingering_potion")
+                        || obj.get("nbt")? != &serde_json::json!({"Potion":"minecraft:water"}) { return None; }
+                    Output::WaterPotion(item.to_owned())
+                } else {
+                    if obj.len() != 1 { return None; }
+                    match (obj.get("item"), obj.get("tag")) {
+                        (Some(item), None) => Output::Item(item.as_str()?.to_owned()),
+                        (None, Some(tag)) => Output::Tag(tag.as_str()?.to_owned()),
+                        _ => return None,
+                    }
                 }
             };
         let cooling_time = u32::try_from(v.get("cooling_time")?.as_u64()?).ok()?;
