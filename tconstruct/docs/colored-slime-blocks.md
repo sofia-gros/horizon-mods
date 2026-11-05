@@ -12,6 +12,15 @@ registered-output checks still apply. Normal crafting compresses nine matching
 Forge-tagged slimeballs into one block; unpacking returns nine matching balls.
 Breaking the block drops itself, subject to explosion survival.
 
+The three block-to-slimeball recipes have source recipe-book discovery: owning
+the matching block OR an unlocked event for its recovery recipe unlocks that
+recipe. The original direct-item predicates, OR requirements and hidden
+advancement parent are preserved. Native recipe IDs and the host string-valued
+`recipes` event condition are adapted. This does not add the separate tagged
+compression unlocks or change the existing Congealed Slime recovery unlocks.
+Source advancement bytes and SHA-256 hashes are retained in
+`tests/fixtures/slime_block_recovery_unlocks/`.
+
 This is registration and acquisition support, not complete slime behavior.
 Horizon uses vanilla block identities for bouncing and sticky-piston behavior;
 copying the vanilla slime content template does not implement the source
