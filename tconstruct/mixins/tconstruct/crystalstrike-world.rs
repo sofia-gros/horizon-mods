@@ -1,7 +1,7 @@
-use super::{tconstruct_crystalstrike as rule, Game};
+use super::{tconstruct_balm as balm, tconstruct_crystalstrike as rule, Game};
 
-/// Worn stock armor only. Held Crystalstrike is a separately tracked feature.
-fn levels(game: &Game<'_>, knockback: bool) -> Option<[i32; 4]> {
+/// Shared worn attributes. Held Crystalstrike and Balm remain separate work.
+fn levels(game: &Game<'_>, knockback: bool, id: &str) -> Option<[i32; 4]> {
     let raw = game
         .world
         .chunks
@@ -9,9 +9,13 @@ fn levels(game: &Game<'_>, knockback: bool) -> Option<[i32; 4]> {
         .as_ref()?
         .as_ref()
         .ok()?;
-    if !rule::known(super::tconstruct_modifier_snapshot::highest_definition(
-        raw,
-        "tconstruct:tinkering/modifiers/crystalstrike",
+    let (path, known): (&str, fn(Option<&[u8]>) -> bool) = match id {
+        rule::ID => ("tconstruct:tinkering/modifiers/crystalstrike", rule::known),
+        balm::ID => ("tconstruct:tinkering/modifiers/balm_of_sssss", balm::known),
+        _ => return None,
+    };
+    if !known(super::tconstruct_modifier_snapshot::highest_definition(
+        raw, path,
     )) {
         return None;
     }
@@ -43,13 +47,13 @@ fn levels(game: &Game<'_>, knockback: bool) -> Option<[i32; 4]> {
         }
         let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
         levels[index] =
-            super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, rule::ID)?;
+            super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, id)?;
     }
     Some(levels)
 }
 
 pub(super) fn attack_speed(game: &Game<'_>, value: f64) -> f64 {
-    let Some(levels) = levels(game, false) else {
+    let Some(levels) = levels(game, false, rule::ID) else {
         return value;
     };
     levels
@@ -60,16 +64,20 @@ pub(super) fn attack_speed(game: &Game<'_>, value: f64) -> f64 {
         .clamp(0.0, 1024.0)
 }
 
+/// Attribute operation ordering: Balm base additions, then Crystalstrike's
+/// separate total multipliers, then one attribute clamp and duration cast.
 pub(super) fn multiplier(game: &Game<'_>) -> f64 {
-    levels(game, false)
-        .and_then(|levels| rule::multiplier(&levels))
-        .unwrap_or(1.0)
+    let balm = levels(game, false, balm::ID).unwrap_or([0; 4]);
+    let totals = levels(game, false, rule::ID)
+        .unwrap_or([0; 4])
+        .map(|level| rule::amount(level).unwrap_or(0.0));
+    balm::multiplier(&balm, &totals).unwrap_or(1.0)
 }
 
 /// Keep /attribute consistent with the combat consumer's live calculation.
 /// Own transient IDs, so removal and definition reload do not leave a bonus.
 pub(super) fn refresh(game: &mut Game<'_>) {
-    let levels = levels(game, false).unwrap_or([0; 4]);
+    let levels = levels(game, false, rule::ID).unwrap_or([0; 4]);
     let Some(player) = game.player.as_mut() else {
         return;
     };
@@ -97,8 +105,8 @@ pub(super) fn knockback(game: &Game<'_>, x: &mut f64, z: &mut f64) {
     if game.remote.is_some() || !x.is_finite() || !z.is_finite() {
         return;
     }
-    let Some(level) =
-        levels(game, true).and_then(|levels| levels.into_iter().try_fold(0_i32, i32::checked_add))
+    let Some(level) = levels(game, true, rule::ID)
+        .and_then(|levels| levels.into_iter().try_fold(0_i32, i32::checked_add))
     else {
         return;
     };
