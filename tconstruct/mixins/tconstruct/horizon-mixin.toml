@@ -5390,3 +5390,59 @@ bindings = [
   { name = "input", ty = "&Input<'_>", value = "input" },
   { name = "recipe", ty = "&Recipe", value = "recipe" },
 ]
+
+[[module]]
+id = "source-fake-material-book"
+file = "crates/horizon-client/src/recipe_book.rs"
+name = "tconstruct_source_fake_material_book"
+source = "source-fake-material-book.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-fake-material-book-ui"
+file = "crates/horizon-client/src/game/recipe_book.rs"
+name = "tconstruct_source_fake_material_book_ui"
+source = "source-fake-material-book-ui.rs"
+
+[[injection]]
+id = "fake-material-book-build"
+target = "horizon_client_lib::recipe_book::Book::build"
+kind = "RETURN"
+helper = "fake-material-book-build.rs"
+bindings = [
+  { name = "value", ty = "Book", value = "$value" },
+  { name = "recipes", ty = "&Recipes", value = "recipes" },
+]
+
+[[injection]]
+id = "fake-material-book-placement"
+target = "horizon_client_lib::crafting::Recipes::placement"
+kind = "RETURN"
+helper = "fake-material-book-placement.rs"
+bindings = [
+  { name = "value", ty = "Option<Placement>", value = "$value" },
+  { name = "recipes", ty = "&Recipes", value = "self" },
+  { name = "id", ty = "&str", value = "id" },
+]
+
+[[injection]]
+id = "fake-material-book-preview"
+target = "horizon_client::game::recipe_book::Game<'_>::place_recipe"
+kind = "HEAD"
+cancellable = true
+helper = "fake-material-book-preview.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "book_type", ty = "BookType", value = "book_type" },
+  { name = "entry_index", ty = "usize", value = "entry_index" },
+]
+
+[[injection]]
+id = "fake-material-book-overlay"
+target = "horizon_client_lib::recipe_book_screen::overlay_cells"
+kind = "RETURN"
+helper = "fake-material-book-overlay.rs"
+bindings = [
+  { name = "value", ty = "Vec<(i32, i32, Vec<ItemStack>)>", value = "$value" },
+  { name = "entry", ty = "&Entry", value = "entry" },
+]
