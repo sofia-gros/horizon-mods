@@ -13,4 +13,11 @@ class Wiring(unittest.TestCase):
         for body in (tick, old):
             for field in ('game.remote.is_some()', 'game.lan.is_some()', 'game.lan_acting_uuid.is_some()'):
                 self.assertIn(field, body)
+    def test_lantern_adapter_is_local_and_stages_before_live_slots(self):
+        code = P.read_text()
+        route = code[code.index('fn tank_to_casting_tank('):code.index('enum CastingInput')]
+        self.assertIn('tanks::Source::Tank("tconstruct:lantern", tank, raw)', route)
+        self.assertIn('Tank::from_nbt(&raw, 50)', route)
+        self.assertIn('data.wire.patch().is_some()', route)
+        self.assertLess(route.index('store::write_many('), route.index('slots[0] = output.slots[0].clone()'))
 if __name__ == '__main__': unittest.main()
