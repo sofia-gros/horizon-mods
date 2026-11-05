@@ -523,3 +523,31 @@ Pairing/sorting/cycling/bounds, legacy-entry preservation, production wire
 round-trip and reader/draw wiring regressions were authored but not run. Brief
 static review only. Compilation, actual material layout/hover, resource reload,
 save/reload and LAN remain unverified.
+
+
+## Composite material fluid alternatives
+
+Composite hints previously named only the first fluid resolved from the current
+recipe's fluid ingredient. They now cycle through every unique translated fluid
+name and compatible input-part combination, keeping the input material identity,
+part icon and matching description together. Each combination stays visible for
+three seconds. The icon represents an input part, not the resulting material or
+a filled container. This applies to material panels in Materials and You, Puny
+and Mighty, without changing casting gameplay.
+
+The current recipe snapshot, recipe conditions, `hide_in_book`, output/input
+material IDs, page stat types and both materials' supported parts still decide
+eligibility. Parts must have a render model and a registered item. Fluid tags
+are resolved again when opening the book; an empty current tag contributes no
+hint. There is no first-fluid fallback or independent icon/description cycle.
+
+Optional composite hints are omitted entirely if their complete set exceeds
+128 combinations or 4,096 bytes, contains invalid IDs/empty names, or uses an
+unsupported translation template. No combination is silently truncated. The
+existing nine-icon sidebar and overall book transport limits remain unchanged;
+this does not promise a complete recipe browser for arbitrary packs.
+
+Combination/cycle, input material identity, literal placeholder text, bounds,
+wire preservation and reader/draw wiring regressions were authored but not run.
+Brief static review only. Compilation, actual layout/hover, casting, resource
+reload, save/reload and LAN remain unverified.
