@@ -16,11 +16,14 @@ pub(super) fn panel_left(count: usize) -> f32 { 6.0 - panel_width(count) }
 /// Return the source tank layer under a relative screen y coordinate.
 pub(super) fn fluid_heights(amounts: &[u32], capacity: u32) -> Vec<u32> {
     if amounts.is_empty() { return Vec::new(); }
-    let total = amounts.iter().fold(0u32, |sum, amount| sum.saturating_add(*amount));
-    let capacity = if capacity == 0 { total } else { capacity };
+    // GuiSmelteryTank normalizes against max(contained, capacity), including
+    // tanks retained after a structure shrink. Keep the total wide so malformed
+    // or unusually large saved amounts cannot wrap the display denominator.
+    let total = amounts.iter().map(|amount| u64::from(*amount)).sum::<u64>();
+    let capacity = u64::from(capacity).max(total);
     if capacity == 0 { return vec![0; amounts.len()]; }
     let mut heights: Vec<u32> = amounts.iter().map(|amount|
-        ((106.0 * *amount as f64 / capacity as f64).ceil() as u32).max(3)).collect();
+        (((*amount as f32 / capacity as f32) * 106.0).ceil() as u32).max(3)).collect();
     let available = if total < capacity { 103 } else { 106 };
     if heights.iter().map(|height| u64::from(*height)).sum::<u64>() > u64::from(available) {
         // The source removes pixels from the tallest layer, choosing the first
@@ -85,8 +88,8 @@ pub(super) fn position(count: usize, offset: usize, menu_slot: usize) -> Option<
 mod tests {
     use super::*;
     #[test]
-    fn overflow_uses_source_capacity_before_trimming_tallest_layer() {
-        assert_eq!(fluid_heights(&[1800, 200], 1000), vec![84, 22]);
+    fn overflow_uses_source_maximum_of_contained_and_capacity() {
+        assert_eq!(fluid_heights(&[1800, 200], 1000), vec![95, 11]);
         assert_eq!(fluid_heights(&[1000, 1000], 1000), vec![53, 53]);
         assert_eq!(fluid_heights(&[u32::MAX, u32::MAX], 1), vec![53, 53]);
     }
