@@ -713,6 +713,34 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
     true
 }
 
+/// Stage a direct Melter interaction without touching authoritative inventory.
+/// Only the tank field is rewritten; machine and item extension data survives.
+/// The caller must persist `saved` before applying either inventory result.
+pub(super) struct MelterTransfer {
+    pub saved: horizon_world::nbt::Tag,
+    pub remaining: Option<ItemStack>,
+    pub result: Option<ItemStack>,
+    pub drained: bool,
+}
+pub(super) fn plan_melter_held(raw: &horizon_world::nbt::Tag, held: &ItemStack,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>,
+    allow_color: bool) -> Option<MelterTransfer> {
+    use horizon_world::nbt::Tag;
+    if held.data().is_some_and(|data| data.wire.patch().is_some())
+        || !casting_portable_rewrite_safe(held) { return None; }
+    let mut melter = super::tconstruct_source_melter_state::Melter::from_nbt(raw)?;
+    let before = melter.tank.amount;
+    let mut slots = [Some(held.clone()), None];
+    if !transfer_single_with_color(&mut melter.tank, &mut slots, Direction::Auto,
+        known_item, known_fluid, item_tags, allow_color) { return None; }
+    let Tag::Compound(mut saved) = raw.clone() else { return None; };
+    let tank = melter.tank.to_nbt_preserving(saved.get(&"tank".into())?)?;
+    saved.insert("tank".into(), tank);
+    Some(MelterTransfer { saved: Tag::Compound(saved), remaining: slots[0].take(),
+        result: slots[1].take(), drained: melter.tank.amount < before })
+}
+
 /// Apply the same bucket rules to the Melter's single-fluid tank.
 pub(super) fn transfer_single(tank: &mut super::tconstruct_source_melter_state::Tank, slots: &mut [Option<ItemStack>; 2], direction: Direction,
     known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool) -> bool {
@@ -1977,4 +2005,102 @@ mod tests {
         assert_eq!(tank.amount("minecraft:lava"), 1000);
         assert_eq!(slots[1].as_ref().unwrap().item.as_ref(), "minecraft:lava_bucket");
     }
+    #[test]
+    fn melter_held_bucket_roundtrip_preserves_non_tank_metadata() {
+        use horizon_world::nbt::Tag;
+        let mut melter = super::super::tconstruct_source_melter_state::Melter::new();
+        melter.slots[0] = Some(ItemStack::new("minecraft:iron_ore", 2));
+        melter.progress = [17, 0, 0]; melter.fuel = 20;
+        let Tag::Compound(mut fields) = melter.to_nbt() else { panic!() };
+        fields.insert("future".into(), Tag::Long(99));
+        if let Some(Tag::Compound(tank)) = fields.get_mut(&"tank".into()) { tank.insert("extension".into(), Tag::Byte(7)); }
+        let raw = Tag::Compound(fields);
+        let held = ItemStack::new("minecraft:water_bucket", 2);
+        let plan = plan_melter_held(&raw, &held, &known, &known, None, false).unwrap();
+        assert!(!plan.drained);
+        assert_eq!(plan.remaining.unwrap().count, 1);
+        assert_eq!(plan.result.unwrap().item.as_ref(), "minecraft:bucket");
+        assert_eq!(plan.saved.get("tank").unwrap().get("amount"), Some(&Tag::Int(1000)));
+        assert_eq!(plan.saved.get("tank").unwrap().get("extension"), Some(&Tag::Byte(7)));
+        for key in ["slots", "progress", "phase", "fuel", "fuel_quality", "temperature", "rate", "future"] {
+            assert_eq!(plan.saved.get(key), raw.get(key), "{key}");
+        }
+        assert_eq!(held.count, 2);
+        assert_eq!(raw.get("tank").unwrap().get("amount"), Some(&Tag::Int(0)));
+        let drained = plan_melter_held(&plan.saved, &ItemStack::new("minecraft:bucket", 1), &known, &known, None, false).unwrap();
+        assert!(drained.drained); assert!(drained.remaining.is_none());
+        assert_eq!(drained.result.unwrap().item.as_ref(), "minecraft:water_bucket");
+        assert_eq!(drained.saved, raw);
+    }
+    #[test]
+    fn melter_held_rejects_full_mismatch_unknown_and_opaque_inputs() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert("minecraft:water", 2000));
+        let raw = melter.to_nbt();
+        for item in ["minecraft:water_bucket", "minecraft:lava_bucket", "minecraft:stone"] {
+            assert!(plan_melter_held(&raw, &ItemStack::new(item, 1), &known, &known, None, false).is_none());
+        }
+        let empty = Melter::new().to_nbt();
+        let bucket = ItemStack::new("minecraft:water_bucket", 1);
+        assert!(plan_melter_held(&empty, &bucket, &|_| false, &known, None, false).is_none());
+        assert!(plan_melter_held(&empty, &bucket, &known, &|_| false, None, false).is_none());
+        let mut named = bucket.clone();
+        named.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("opaque", Tag::Int(1))])));
+        assert!(plan_melter_held(&empty, &named, &known, &known, None, false).is_none());
+        assert!(plan_melter_held(&Tag::Int(1), &bucket, &known, &known, None, false).is_none());
+        assert_eq!(melter.to_nbt(), raw);
+    }
+    #[test]
+    fn melter_held_rejects_lossy_saved_fluid_id_without_rewriting() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::{JavaString, Tag};
+        let Tag::Compound(mut fields) = Melter::new().to_nbt() else { panic!() };
+        fields.insert("tank".into(), Tag::compound([
+            ("amount", Tag::Int(90)), ("fluid", Tag::String(JavaString(vec![0xd800]))),
+        ]));
+        let raw = Tag::Compound(fields);
+        let held = ItemStack::new("tconstruct:copper_can", 1);
+        // Even a registry accepting the lossy ID cannot authorize rewriting it.
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        assert_eq!(raw.get("tank").unwrap().get("fluid"), Some(&Tag::String(JavaString(vec![0xd800]))));
+    }
+    #[test]
+    fn melter_held_rejects_retained_wire_and_noncanonical_lanterns() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_items::item_data::Wire;
+        use horizon_world::nbt::{JavaString, Tag};
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert("minecraft:water", 1000));
+        let raw = melter.to_nbt();
+        let mut held = ItemStack::new("tconstruct:seared_lantern", 1);
+        held.data_mut().wire = Wire::new(held.clone(), std::sync::Arc::from([7u8]));
+        assert!(held.wire_patch().is_some());
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        held.data_mut().set_other("minecraft:custom_name", Some(Tag::String("Named".into())));
+        assert!(held.wire_patch().is_none());
+        assert!(held.data().unwrap().wire.patch().is_some());
+        assert!(plan_melter_held(&raw, &held, &|_| true, &|_| true, None, false).is_none());
+        let mut held = ItemStack::new("tconstruct:seared_lantern", 1);
+        held.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tconstruct:tank", Tag::compound([
+                ("amount", Tag::Int(50)), ("fluid", Tag::String(JavaString(vec![0xd800]))),
+            ])),
+        ])));
+        let empty = Melter::new().to_nbt();
+        assert!(plan_melter_held(&empty, &held, &|_| true, &|_| true, None, false).is_none());
+    }
+    #[test]
+    fn melter_held_keeps_tagged_fluids_separate() {
+        use super::super::tconstruct_source_melter_state::Melter;
+        use horizon_world::nbt::Tag;
+        let mut melter = Melter::new();
+        assert!(melter.tank.insert_tagged("minecraft:water", Some(&Tag::compound([("variant", Tag::Int(1))])), 1000));
+        let raw = melter.to_nbt();
+        for item in ["minecraft:water_bucket", "minecraft:bucket"] {
+            assert!(plan_melter_held(&raw, &ItemStack::new(item, 1), &known, &known, None, false).is_none());
+        }
+    }
+
 }

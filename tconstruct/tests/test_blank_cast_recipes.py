@@ -1,4 +1,4 @@
-"""Verify source output/count and the chosen native 26.3 sand inputs."""
+"""Verify source output/count and the native source-tag sand inputs."""
 import json
 from pathlib import Path
 import unittest
@@ -13,5 +13,5 @@ class BlankCastRecipes(unittest.TestCase):
                 original = json.loads(archive.read(f'data/tconstruct/recipes/smeltery/{kind}_cast.json'))
                 native = json.loads((ROOT / f'content/data/tconstruct/recipe/blank_{kind}_cast.json').read_text())
                 self.assertEqual(native['type'], original['type'])
-                self.assertEqual(native['ingredients'], [f'minecraft:{kind}'])
+                self.assertEqual(native['ingredients'], ['#' + original['ingredients'][0]['tag']])
                 self.assertEqual(native['result'], {'id': original['result']['item'], 'count': original['result']['count']})
