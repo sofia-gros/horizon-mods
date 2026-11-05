@@ -96,6 +96,70 @@
     "assets/tconstruct/textures/fluid/molten/alloy/netherite/flowing.png.mcmeta": {
       "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/netherite/flowing.png.mcmeta",
       "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/slimesteel/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/slimesteel/still.png",
+      "sha256": "e0a7e7ed3bc459bb584a46b150e3923c7bfde18ed743b4347ba0e416d9448fc2"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/slimesteel/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/slimesteel/still.png.mcmeta",
+      "sha256": "7dc16041541801a5bbfd3e98fc2e939ca860cc063a19393da16841eca4212b37"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/slimesteel/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/slimesteel/flowing.png",
+      "sha256": "4c20699ddf887e2b4936a6f3a5c8461beffa1b2ee75599dab0c302d2f92df018"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/slimesteel/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/slimesteel/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/still.png",
+      "sha256": "71f5e9bd57f1d967bd973ea4627e27fedccce980b277fe43eeabf61722f7d948"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/flowing.png",
+      "sha256": "d04cefc23a41aab31ab3aba89c1c084bdc6d4d5f1cfd6f7164353cc9b678e1b7"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/amethyst_bronze/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/rose_gold/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/rose_gold/still.png",
+      "sha256": "a51821348a0fc53cf89afd931d1b4e7f5b58c24b9e2be76bb4169ae005ad556d"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/rose_gold/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/rose_gold/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/rose_gold/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/rose_gold/flowing.png",
+      "sha256": "029fe1107febd48390d42953f3eaf1bd5ffffc56c98cb9e297862fcf86cb190c"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/rose_gold/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/rose_gold/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/pig_iron/still.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/pig_iron/still.png",
+      "sha256": "b1cb4cd1cc2347c8f0b722d7f644dfe2910fe9e595709ecbab7178e72240961c"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/pig_iron/still.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/pig_iron/still.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/pig_iron/flowing.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/pig_iron/flowing.png",
+      "sha256": "2c10df95a8514909d4804ec7ea9a0f09f9550dd4f764356fa394991783600b97"
+    },
+    "assets/tconstruct/textures/fluid/molten/alloy/pig_iron/flowing.png.mcmeta": {
+      "source": "src/main/resources/assets/tconstruct/textures/fluid/molten/alloy/pig_iron/flowing.png.mcmeta",
+      "sha256": "e9b8025fde1b09b0a4d2a38427b04f98f28a593045be6d177eb2b29164c872b0"
     }
   }
 }
