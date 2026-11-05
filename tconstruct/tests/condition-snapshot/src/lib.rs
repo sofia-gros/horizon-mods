@@ -195,3 +195,6 @@ mod chain_compat_tests {
 
 #[path = "../../../mixins/tconstruct/source-cobalamin.rs"]
 mod source_cobalamin;
+
+#[path = "../../../mixins/tconstruct/source-godspeed.rs"]
+mod source_godspeed;

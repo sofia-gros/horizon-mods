@@ -1,7 +1,7 @@
-use super::{tconstruct_cobalamin as rule, Game};
+use super::{tconstruct_cobalamin as rule, tconstruct_godspeed as godspeed, Game};
 
-/// Worn stock armor with live source traits. No saved derived bonus.
-fn levels(game: &Game<'_>) -> Option<[i32; 4]> {
+/// Shared Cobalamin/Godspeed worn-attribute bridge. No saved derived bonus.
+fn levels(game: &Game<'_>, id: &str) -> Option<[i32; 4]> {
     // A remote client needs an actor-specific authoritative frame, not a local
     // resource snapshot borrowed from another actor or dimension.
     if game.remote.is_some() {
@@ -14,9 +14,13 @@ fn levels(game: &Game<'_>) -> Option<[i32; 4]> {
         .as_ref()?
         .as_ref()
         .ok()?;
-    if !rule::known(super::tconstruct_modifier_snapshot::highest_definition(
-        raw,
-        "tconstruct:tinkering/modifiers/cobalamin",
+    let (path, known): (&str, fn(Option<&[u8]>) -> bool) = match id {
+        rule::ID => ("tconstruct:tinkering/modifiers/cobalamin", rule::known),
+        godspeed::ID => ("tconstruct:tinkering/modifiers/godspeed", godspeed::known),
+        _ => return None,
+    };
+    if !known(super::tconstruct_modifier_snapshot::highest_definition(
+        raw, path,
     )) {
         return None;
     }
@@ -45,40 +49,51 @@ fn levels(game: &Game<'_>) -> Option<[i32; 4]> {
         // attribute hook. Its onEquip/onUnequip have no brokenness filter.
         let traits = super::tconstruct_source_material_traits::levels(&game.world, stack)?;
         levels[index] =
-            super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, rule::ID)?;
+            super::tconstruct_source_material_traits::level_with_upgrade(stack, &traits, id)?;
     }
     Some(levels)
 }
 
 pub(super) fn attack_speed(game: &Game<'_>, speed: f64) -> f64 {
-    levels(game)
+    let speed = levels(game, rule::ID)
         .and_then(|levels| rule::scale(speed, &levels, 0.05, 1024.0))
+        .unwrap_or(speed);
+    levels(game, godspeed::ID)
+        .and_then(|levels| godspeed::scale(speed, &levels, godspeed::Attribute::Attack, 1024.0))
         .unwrap_or(speed)
 }
 
-/// Keep the attribute as a double until ToolEvents' final float cast. The
-/// existing Haste bridge's f32 baseline is retained for compatibility.
+/// Both source attributes remain doubles until ToolEvents' final float cast.
+/// Retain the existing Haste bridge's float baseline for compatibility.
 pub(super) fn mining_speed(game: &Game<'_>, speed: f32, existing: f32) -> f32 {
-    levels(game)
-        .filter(|levels| levels.iter().any(|level| *level > 0))
-        .and_then(|levels| rule::scale(f64::from(existing), &levels, 0.15, 100.0))
-        .map(|multiplier| (f64::from(speed) * multiplier) as f32)
-        .unwrap_or_else(|| {
-            super::tconstruct_source_mining_rules::finish_mining_speed(speed, existing)
-        })
+    let cobalamin = levels(game, rule::ID).filter(|levels| levels.iter().any(|level| *level > 0));
+    let godspeed =
+        levels(game, godspeed::ID).filter(|levels| levels.iter().any(|level| *level > 0));
+    if cobalamin.is_none() && godspeed.is_none() {
+        return super::tconstruct_source_mining_rules::finish_mining_speed(speed, existing);
+    }
+    let multiplier = f64::from(existing);
+    let multiplier = cobalamin
+        .and_then(|levels| rule::scale(multiplier, &levels, 0.15, 100.0))
+        .unwrap_or(multiplier);
+    let multiplier = godspeed
+        .and_then(|levels| godspeed::scale(multiplier, &levels, godspeed::Attribute::Mining, 100.0))
+        .unwrap_or(multiplier);
+    (f64::from(speed) * multiplier) as f32
 }
 
-/// Keep the visible attack-speed attribute in step with the combat consumer.
+/// Refresh attack-speed display and the actual native movement attribute.
 /// The native consumer independently evaluates mainhand and potion modifiers.
 pub(super) fn refresh(game: &mut Game<'_>) {
     if game.remote.is_some() {
         return;
     }
-    let levels = levels(game).unwrap_or([0; 4]);
+    let cobalamin = levels(game, rule::ID).unwrap_or([0; 4]);
+    let godspeed = levels(game, godspeed::ID).unwrap_or([0; 4]);
     let Some(player) = game.player.as_mut() else {
         return;
     };
-    for (index, level) in levels.into_iter().enumerate() {
+    for (index, level) in cobalamin.into_iter().enumerate() {
         let id = format!("tconstruct:cobalamin_worn/{index}");
         let amount = rule::amount(level, 0.05).unwrap_or(0.0);
         let _ = player.set_modifier(
@@ -88,5 +103,15 @@ pub(super) fn refresh(game: &mut Game<'_>) {
             "add_multiplied_total",
             level > 0,
         );
+    }
+    for (index, level) in godspeed.into_iter().enumerate() {
+        for (attribute, field) in [
+            ("minecraft:attack_speed", godspeed::Attribute::Attack),
+            ("minecraft:movement_speed", godspeed::Attribute::Movement),
+        ] {
+            let id = format!("tconstruct:godspeed_worn/{index}");
+            let amount = godspeed::amount(level, field).unwrap_or(0.0);
+            let _ = player.set_modifier(attribute, &id, amount, "add_multiplied_total", level > 0);
+        }
     }
 }
