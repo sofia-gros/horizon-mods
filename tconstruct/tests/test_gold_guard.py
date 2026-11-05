@@ -45,6 +45,12 @@ class GoldGuard(unittest.TestCase):
                 fixture = re.search(rf'let {variable}=br#"(.*?)"#;', helper).group(1)
                 self.assertEqual(json.loads(fixture), source)
 
+    def test_revitalizing_source_and_normal_armor_trait(self):
+        fixture = (ROOT / 'tests/rust/gold_guard_runtime.rs').read_text()
+        definition = re.search(r'"tconstruct:tinkering/modifiers/revitalizing".into\(\),br#"(.*?)"#', fixture, re.S).group(1)
+        with ZipFile(ROOT / 'content/reference/tconstruct-modifiers.zip') as archive:
+            self.assertEqual(json.loads(definition), json.loads(archive.read('data/tconstruct/tinkering/modifiers/revitalizing.json')))
+
     def test_host_target_and_reload_publication_boundary(self):
         manifest = tomllib.loads((MIXINS / 'horizon-mixin.toml').read_text())
         hook = next(v for v in manifest['injection'] if v['id'] == 'source-gold-guard-attributes')
@@ -55,7 +61,7 @@ class GoldGuard(unittest.TestCase):
                         reload.index('tconstruct_gold_guard_world::refresh(game)'))
         helper = (MIXINS / 'gold-guard-world.rs').read_text()
         self.assertIn('game.remote.is_some()', helper)
-        self.assertIn('has_modifier(key.clone(),source::MODIFIER)', helper)
+        self.assertIn('has_modifier(key.clone(),id)', helper)
         self.assertIn('player.set_health(maximum,false)', helper)
         self.assertNotIn('applied_modifiers.push', helper)
 
