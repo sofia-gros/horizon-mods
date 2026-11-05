@@ -143,6 +143,9 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_material_id_host_tests::tests
+      - name: Test production Melter fuel driver
+        if: steps.scope.outputs.docs_only != 'true'
+        run: HORIZON_HOST=../horizon-official tconstruct/tests/run_melter_fuel_rust.sh
       - name: Package native mod sources and resource inputs
         run: python3 tconstruct/tools/package_hnmod.py --output dist/tconstruct.hnmod
       - name: Package content mod
