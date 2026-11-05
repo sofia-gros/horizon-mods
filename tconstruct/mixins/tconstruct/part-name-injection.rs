@@ -209,7 +209,7 @@ fn tconstruct_part_name(
                 }
             }
         }
-        for (id, needed) in [("blockade", 10), ("blasting", 20), ("hydraulic", 36), ("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
+        for (id, needed) in [("parrying", 1), ("blockade", 10), ("blasting", 20), ("hydraulic", 36), ("sharpness", 36), ("swiftstrike", 72), ("power", 72), ("blindshot", 10), ("speedy", 45), ("step_up", 1), ("haste", 45), ("quick_charge", 5), ("trueshot", 10), ("diamond", 1), ("emerald", 1), ("reinforced", 4), ("overforced", 4), ("netherite", 1), ("unbreakable", 1), ("necrotic", 1), ("tasty", 1), ("writable", 1), ("harmonious", 1), ("recapitated", 1), ("forecast", 1), ("draconic", 1)] {
             let key = format!("tconstruct:{id}");
             let Some(horizon_world::nbt::Tag::Int(amount)) = upgrades.and_then(|data| data.get(&key)).filter(|tag| matches!(tag, horizon_world::nbt::Tag::Int(n) if *n > 0)) else { continue; };
             let level = (amount - 1) / needed + 1;
