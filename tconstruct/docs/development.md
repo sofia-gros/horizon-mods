@@ -200,21 +200,16 @@ actual crafting, custom tag members, reload, saves and LAN remain unverified.
 The existing Forge namespace ownership and unsupported tag removal limitations
 still apply; this does not promise compatibility with arbitrary Forge packs.
 
-### Water bottle table casting
+### Scorched machinery recipe-book unlocks
 
-The three fixed-source water-bottle Casting Table recipes now support the
-result NBT `{Potion: "minecraft:water"}` for normal, splash and lingering
-potions. They consume one matching empty bottle and 500 mB from the resolved
-`mantle:water` fluid tag, then cool for one tick. The world recipe/tag snapshot
-and existing casting transaction remain authoritative.
+Scorched Brick unlocks the existing native Faucet, Casting Table/Basin,
+Lantern, four tank/gauge, Drain, Chute and Scorched Glass recipes. Scorched
+Glass unlocks its pane recipe. The twelve advancements preserve the fixed
+source inventory criteria and OR requirements, while mapping recipe rewards
+to the port's existing recipe IDs and native `recipes` criterion key.
 
-Only this exact result metadata is supported: other potion types, extra NBT,
-result counts and NBT on other items remain rejected. A plain potion result
-and a water-potion result are distinct during conflict detection. The native
-potion component is created before fluid reservation and persists through the
-existing casting state codec. This does not implement arbitrary result NBT,
-Ancient Repair Kit casting, or additional potion effects.
-
-The source fixtures, catalog checks and machine state roundtrips pass in the
-bounded Rust harness. Actual host crafting, rendering, world reload and LAN
-remain unverified.
+These are recipe-book unlocks, not replacement recipes or new machinery.
+Existing narrowed material inputs and machine limitations remain unchanged.
+Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
+Source fixtures, recipe shapes/counts and packaged registrations are checked;
+actual book UI, crafting, save/reload and LAN remain unverified.
