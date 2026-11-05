@@ -1,7 +1,7 @@
 use super::{Game, tconstruct_worldbound as rules};
 use horizon_items::items::ItemStack;
 
-fn protects(game: &Game<'_>, stack: &ItemStack) -> Option<bool> {
+pub(super) fn protects(game: &Game<'_>, stack: &ItemStack) -> Option<bool> {
     if game.remote.is_some()
         || !stack.item.starts_with("tconstruct:")
         || stack.count != 1

@@ -11,7 +11,7 @@ Related to high-priority #379. Source Worldbound sets the volatile `indestructib
 
 ## Deliberate limits
 
-Explosion and lightning destruction are separate native paths and remain unprotected here. Other damage paths, source custom-entity identity and exact lifespan/age/rendering behavior are not claimed. Native age periodically resets for the extension, unlike the source's maximum lifespan field. Source custom-entity behavior survives independently after spawning, while this adapter revalidates current Worldbound data, so changed datapacks can remove its protection.
+The explosion extension in `worldbound-explosion.md` protects that separate native path. Lightning destruction remains unprotected. Other damage paths, source custom-entity identity and exact lifespan/age/rendering behavior are not claimed. Native age periodically resets for the extension, unlike the source's maximum lifespan field. Source custom-entity behavior survives independently after spawning, while this adapter revalidates current Worldbound data, so changed datapacks can remove its protection.
 
 Worldbound acquisition, rare-name display, Soulbound death retention, custom volatile-flag producers, malformed/opaque stacks, non-stock item implementations, and generic invulnerability-bypass tags remain separate. Existing Netherite behavior is unchanged. A combined Netherite/Worldbound stack still passes through the existing Netherite return hook.
 
