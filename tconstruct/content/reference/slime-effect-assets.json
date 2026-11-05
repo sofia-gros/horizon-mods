@@ -4,6 +4,10 @@
     "assets/tconstruct/textures/mob_effect/bouncy.png": {
       "source": "src/main/resources/assets/tconstruct/textures/mob_effect/bouncy.png",
       "sha256": "27a4ab1b73c21b3e39918f746e7521ebc57d9b8f197231823e113b1c90a2c8c5"
+    },
+    "assets/tconstruct/textures/mob_effect/ricochet.png": {
+      "source": "src/main/resources/assets/tconstruct/textures/mob_effect/ricochet.png",
+      "sha256": "a7200eca7e5c701b001f9af98687fbe58396ff211f8ec7aa2d432cfc172b2299"
     }
   }
 }

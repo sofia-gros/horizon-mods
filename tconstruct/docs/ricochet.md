@@ -31,6 +31,18 @@ Related to #379. Source reference: Tinkers' Construct
   material edits and definition reloads need no persistent cache cleanup.
   Missing/modified definitions, opaque stacks and malformed levels fail closed.
 
+## Sky Slime status contribution
+
+The registered `tconstruct:ricochet` status is neutral (`0x01CBCD`). Sky Slime
+contact supplies 100 ticks at amplifier zero, protected from generic curatives.
+The existing received-knockback adapter reads the live effect at every hit.
+Its `0.5 * (amplifier + 1)` MULTIPLY_BASE contribution adds to the equipment
+factor before the final source float cast; it does not multiply that factor.
+The combined total is clamped to 0..100. Expiry and removal need no cache reset.
+If equipment data is unavailable, its contribution stays excluded while the
+independently known effect still applies. Pure regression cases for level,
+composition, clamping and removal were added but deliberately not run.
+
 ## Remaining boundaries
 
 Only knockback routed through `Game::knock_back_player` is connected. Other

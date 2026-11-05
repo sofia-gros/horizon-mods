@@ -17,6 +17,19 @@ pub(super) fn multiplier(levels: &[i32]) -> Option<f64> {
         .map(|value| value.clamp(0.0, 100.0))
 }
 
+// TinkerEffects.ricochet uses the same MULTIPLY_BASE attribute as equipment.
+// Its 0.5 amount scales by amplifier + 1 and adds, not multiplies, to gear.
+// An unavailable gear snapshot must not suppress an independently known effect.
+pub(super) fn with_effect(equipment: Option<f64>, amplifier: Option<i32>) -> Option<f64> {
+    let Some(amplifier) = amplifier else {
+        return equipment;
+    };
+    if !(0..=255).contains(&amplifier) {
+        return equipment;
+    }
+    Some((equipment.unwrap_or(1.0) + 0.5 * f64::from(amplifier + 1)).clamp(0.0, 100.0))
+}
+
 // ModifierEvents explicitly casts the scaled event strength to float, before
 // vanilla applies knockback resistance. No active multiplier leaves it alone.
 pub(super) fn strength(power: f64, factor: f64) -> f64 {
@@ -50,6 +63,24 @@ pub(super) fn held_shield(item: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn potion_and_equipment_share_one_additive_multiplier() {
+        let gear = multiplier(&[1, 1]);
+        assert_eq!(with_effect(Some(1.0), Some(0)), Some(1.5));
+        assert_eq!(with_effect(Some(1.0), Some(1)), Some(2.0));
+        assert_eq!(
+            with_effect(gear, Some(0)),
+            Some(1.5 + f64::from(0.2f32) * 2.0)
+        );
+        assert_ne!(with_effect(gear, Some(0)), gear.map(|value| value * 1.5));
+        // Expiry returns the unmodified gear-only factor, without cached state.
+        assert_eq!(with_effect(gear, None), gear);
+        assert_eq!(with_effect(None, Some(0)), Some(1.5));
+        assert_eq!(with_effect(None, None), None);
+        assert_eq!(with_effect(Some(99.8), Some(1)), Some(100.0));
+        assert_eq!(with_effect(None, Some(-1)), None);
+        assert_eq!(with_effect(None, Some(256)), None);
+    }
     #[test]
     fn base_multipliers_add_instead_of_multiplying_per_piece() {
         let one = f64::from(0.2f32);

@@ -15,13 +15,14 @@ class EffectWorldFluidTests(unittest.TestCase):
             if effect is not None:
                 self.assertTrue(effect['no_curatives'])
                 protected.add(path.stem)
-        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul', 'earth_slime'})
+        self.assertEqual(protected, {'venom', 'honey', 'liquid_soul', 'earth_slime', 'sky_slime'})
 
     def test_source_effect_flow_temperature_class_and_sprites(self):
         # TinkerFluids and FluidTextureProvider at f4e77d43, not generated values.
         cases = [
             ('venom', 'poison', 1, 4, 5, 0, True, 'slime/venom'),
             ('earth_slime', 'tconstruct:bouncy', 1, 4, 50, 0, True, 'slime/earth'),
+            ('sky_slime', 'tconstruct:ricochet', 1, 4, 50, 0, True, 'slime/sky'),
             ('honey', 'slowness', 1, 4, 50, 0, True, 'food/honey'),
             ('liquid_soul', 'blindness', 8, 8, 30, 2, False, 'slime/soul'),
         ]

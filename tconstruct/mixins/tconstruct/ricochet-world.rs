@@ -68,7 +68,8 @@ pub(super) fn knockback(game: &Game<'_>, power: &mut f64) {
     if game.remote.is_some() {
         return;
     }
-    if let Some(factor) = multiplier(game) {
+    let amplifier = game.potions.effects.amplifier("tconstruct:ricochet");
+    if let Some(factor) = rules::with_effect(multiplier(game), amplifier) {
         *power = rules::strength(*power, factor);
     }
 }

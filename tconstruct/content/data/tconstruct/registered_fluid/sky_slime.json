@@ -1,0 +1,39 @@
+{
+  "source": "tconstruct:sky_slime",
+  "flowing": "tconstruct:flowing_sky_slime",
+  "block": "tconstruct:sky_slime_fluid",
+  "bucket": "tconstruct:sky_slime_bucket",
+  "policy": {
+    "drop_off": 1,
+    "slope_distance": 4,
+    "tick_delay": 50,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/slime/sky/still",
+    "flowing": "tconstruct:fluid/slime/sky/flowing",
+    "tint": 16777215,
+    "emission": 0
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": true,
+    "can_drown": true,
+    "extinguishes": true,
+    "fall_distance_scale": 0.5,
+    "burn": null,
+    "effect": {
+      "id": "tconstruct:ricochet",
+      "duration_ticks": 100,
+      "amplifier": 0,
+      "no_curatives": true
+    }
+  }
+}
