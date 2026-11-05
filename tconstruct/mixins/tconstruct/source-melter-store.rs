@@ -22,6 +22,15 @@ fn set_metadata_inner(sources: &mut Vec<(Pos, Tag)>, pos: Pos, key: &str, value:
                 },
                 None => value,
             }
+        } else if preserve_smeltery && matches!(key, "tconstruct:table" | "tconstruct:basin") {
+            match map.get(&key.into()) {
+                Some(previous) => match super::tconstruct_source_melter_state::Casting::from_nbt(&value)
+                    .and_then(|state| state.to_nbt_preserving(previous)) {
+                    Some(merged) => merged,
+                    None => return false,
+                },
+                None => value,
+            }
         } else { value };
         map.insert(key.into(), value);
     } else {

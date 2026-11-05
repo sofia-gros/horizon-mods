@@ -213,3 +213,24 @@ Existing narrowed material inputs and machine limitations remain unchanged.
 Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
 Source fixtures, recipe shapes/counts and packaged registrations are checked;
 actual book UI, crafting, save/reload and LAN remain unverified.
+
+### Lossless Casting Table/Basin host writes (#379 high-priority preservation)
+
+Authoritative native Table/Basin writes now patch only owned casting fields,
+retaining unknown top-level and tank extensions instead of rewriting the whole
+compound. The shared host store applies this to direct writes and atomic
+multi-machine Faucet commits; client snapshots intentionally replace state.
+Cooling can retain an opaque item's original raw compound unchanged in its
+slot. Transforming, removing or moving an item that cannot round-trip through
+the host codec is rejected, rather than dropping its unrepresented data.
+Canonical item completion and emptying the tank remain supported, including
+capacity shrinking to zero. Legacy alias collisions and lossy recipe/fluid IDs
+remain fail-closed, not migrated or silently updated.
+
+The pinned fixture uses production Casting, item/NBT codecs and the production
+store with mock chunk storage. It covers cooling/completion extensions, opaque
+item retention, rejected consumption with whole-batch rollback, legacy aliases,
+snapshot replacement and both Table/Basin keys. This fixes a persistence
+boundary; it does not add unsupported item gameplay, remove existing canonical
+interaction restrictions, solve destruction/migration, or establish live
+world/reload/LAN behavior. It does not depend on the comparator PR series.

@@ -145,6 +145,9 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_mantle_layer::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_name::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_part_material_id_host_tests::tests
+      - name: Test lossless casting state transactions
+        if: steps.scope.outputs.docs_only != 'true'
+        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_casting_preservation_rust.sh
       - name: Test bounded survival helper chain
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_survival_chain_rust.sh
