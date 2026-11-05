@@ -59,3 +59,9 @@ defense.partial.notice_title=About Defense Guidance
 defense.partial.notice=These two source overviews describe original-mod defense categories, not completed Horizon behavior. Defense-slot application and full protection effects are not added by this chapter. Only recipes accepted by the existing shared Station support gates can appear. The default defense categories currently have no supported recipe pages. A missing recipe is a guide limitation, not proof that every effect is absent. Actual acquisition, combat, GUI and LAN remain unverified.
 defense.partial.reference=Source reference: the protection levels, damage categories, equipment effects and comparisons below are not guarantees of implemented Horizon behavior. This chapter does not enable new modifiers or defense slots.
 defense.partial.empty=No supported recipe pages are available in this defense category for the current resource snapshot. The original description is retained as reference, not an application recipe.
+
+
+entity_melting.partial=Entity Melting (Reference)
+entity_melting.partial.notice_title=About Entity Melting Reference
+entity_melting.partial.notice=Original-mod reference only. General entity melting is not established by this guide. The limited Blaze route is separate work; this chapter does not confirm it is available in this build. Silverfish, villagers/illagers, skeletons and the Ender Dragon examples below are not supported acquisition promises. The original illustration is omitted in this text-only adaptation. World behavior, reload and LAN remain unverified.
+entity_melting.partial.reference=Original-mod reference, not Horizon instructions. Mob support and fuel/damage checks are limited; the examples below may be unavailable.

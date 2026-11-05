@@ -118,6 +118,16 @@ mod tests {
         assert_eq!(bonus_color(0.5), 0x0000bf);
     }
     #[test]
+    fn entity_reference_bullets_keep_line_breaks() {
+        let mut out = String::new();
+        append_parts(&mut out, &[
+            serde_json::json!({"text":"Silverfish - Seared Stone", "linebreak":true}),
+            serde_json::json!({"text":"Villagers - Emerald", "linebreak":true}),
+            serde_json::json!({"text":"Skeletons - Milk"}),
+        ], false);
+        assert_eq!(out, "Silverfish - Seared Stone\nVillagers - Emerald\nSkeletons - Milk");
+    }
+    #[test]
     fn inline_runs_and_paragraphs_keep_source_boundaries() {
         let mut out = String::new();
         append_parts(&mut out, &[serde_json::json!({"text":"one "}), serde_json::json!({"text":"two"}), serde_json::json!({"text":"three", "paragraph":true})], false);

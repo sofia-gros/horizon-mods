@@ -690,3 +690,33 @@ required notices, category routing and unchanged eligibility regressions were
 authored or updated but not run. Brief static and whitespace review only.
 Compilation, total book size/layout, resource reload, save/reload and LAN remain
 unverified. This is partial #379 guide coverage, not complete defense gameplay.
+
+
+## Mighty entity-melting reference
+
+The missing Entity Melting chapter now presents its three pinned source pages
+in source order as an explicitly text-only reference. Their JSON prose and
+section are retained unchanged with MIT attribution. The original illustration
+is not bundled or displayed. Full name/path/type identities select the pages,
+including the source's repeated `entitymelting` page name and its spelling of
+`noteableentities`; unrelated replacement entries are omitted.
+
+A mandatory chapter notice separates original-mod descriptions from this port.
+Each source page begins with a reference warning. Every rendered page, including
+overflow pages, retains a `[Source]` title. Missing/empty chapter or reference labels omit the chapter.
+The standard paragraph and line-break renderer preserves the Notable Entities
+list, while graphic suppression prevents a replacement image or recipe from
+appearing as evidence of a working acquisition route.
+
+This does not implement entity melting, enable source entity recipes, establish
+the separately developed bounded Blaze route in any installed build, or promise
+Silverfish, Villager/Illager, Skeleton or Ender Dragon acquisition. Source claims
+about fuel sufficiency and almost every mob are reference prose, not port usage
+instructions. Entity damage, fluid output, fuel and capacity checks remain in
+the gameplay implementation, unchanged by this chapter.
+
+Source identity/order, page selection, required notices, text-only routing and
+line-break regressions were authored or updated but not run. Brief static and
+whitespace review only. Compilation, aggregate book size, actual text/layout,
+world/resource reload, save/reload and LAN remain unverified. This is partial
+#379 guide coverage, not completion of the corresponding gameplay tasks.

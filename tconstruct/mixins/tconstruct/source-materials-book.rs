@@ -625,17 +625,21 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         // Mighty exposes selected source material chapters and partial broad-tool guidance.
         let mighty_advice = mighty && key == "tools";
         let mighty_smeltery = mighty && key == "smeltery";
+        let mighty_entity = mighty && key == "entity_melting";
         let mighty_abilities = mighty && key == "abilities";
         let mighty_defense = mighty && key == "defense";
         let puny_upgrades = puny && key == "upgrades";
         let puny_slotless = puny && key == "slotless";
-        if mighty && !matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "abilities" | "defense") { continue; }
+        if mighty && !matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "abilities" | "defense" | "entity_melting") { continue; }
         if mighty_advice && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("tools.partial").copied(), labels.get("tools.partial.notice_title").copied(), labels.get("tools.partial.notice").copied()
         ]) { continue; }
         if mighty_smeltery && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("smeltery.partial").copied(), labels.get("smeltery.partial.notice_title").copied(), labels.get("smeltery.partial.notice").copied()
         ]) { continue; }
+        if mighty_entity && (!super::tconstruct_materials_book_index::mighty_advice_ready([
+            labels.get("entity_melting.partial").copied(), labels.get("entity_melting.partial.notice_title").copied(), labels.get("entity_melting.partial.notice").copied()
+        ]) || !labels.get("entity_melting.partial.reference").is_some_and(|value| !value.trim().is_empty())) { continue; }
         if mighty_abilities && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("abilities.partial").copied(), labels.get("abilities.partial.notice_title").copied(), labels.get("abilities.partial.notice").copied()
         ]) { continue; }
@@ -652,7 +656,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         // Puny and Mighty group bounded recipe projections under source overviews.
         // Other modifier forms and a complete registry still need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = if mighty_defense { labels.get("defense.partial").copied().unwrap_or("Defense (Partial Guide)") } else if puny_slotless { labels.get("slotless.partial").copied().unwrap_or("Supported slotless (partial)") } else if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
+        let heading = if mighty_entity { labels.get("entity_melting.partial").copied().unwrap_or("Entity Melting (Reference)") } else if mighty_defense { labels.get("defense.partial").copied().unwrap_or("Defense (Partial Guide)") } else if puny_slotless { labels.get("slotless.partial").copied().unwrap_or("Supported slotless (partial)") } else if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -823,6 +827,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             if mighty_advice && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_advice_page) { continue; }
             if mighty_smeltery && !page.get("name").and_then(|v| v.as_str()).is_some_and(super::tconstruct_materials_book_index::mighty_smeltery_page) { continue; }
             let Some(relative) = page.get("data").and_then(|x| x.as_str()) else { continue; };
+            if mighty_entity && !super::tconstruct_materials_book_index::mighty_entity_melting_page(
+                page.get("name").and_then(|value| value.as_str()).unwrap_or(""), relative,
+                page.get("type").and_then(|value| value.as_str()).unwrap_or("")) { continue; }
             if relative == "no-load" {
                 // Source tool sections supply navigation labels in language.lang;
                 // keep them in the chapter index instead of silently discarding them.
@@ -874,6 +881,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             let Some(raw) = read(path, &format!("{root}en_us/{relative}")) else { continue; };
             let Ok(value) = serde_json::from_str::<serde_json::Value>(&raw) else { continue; };
             let title = value.get("title").and_then(|x| x.as_str()).unwrap_or("");
+            let reference_title = mighty_entity.then(|| format!("[Source] {title}"));
+            let title = reference_title.as_deref().unwrap_or(title);
             let structure_diagram = if mighty_smeltery && page.get("name").and_then(|value| value.as_str()) == Some("structure") {
                 if value.get("structure_diagram").and_then(|value| value.as_str()) != Some("small_smeltery") { continue; }
                 let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags().as_ref().and_then(|value| value.as_ref().ok());
@@ -928,6 +937,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                         Some(serde_json::json!({"source_icon":source}))
                     } else { Some(serde_json::json!({"showcase_item":id})) }
                 });
+            // This chapter is a text-only source reference. Do not show an
+            // unbundled image or let replacement resources imply live behavior.
+            if mighty_entity { graphic = None; }
             let mut text = String::new();
             if let Some(s) = value.get("subText").and_then(|v| v.as_str()) { text.push_str(s); }
             for key in ["text", "description", "properties"] {
@@ -935,6 +947,9 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
                     if !text.is_empty() { text.push('\n'); }
                     super::tconstruct_materials_book_layout::append_parts(&mut text, parts, key == "properties");
                 }
+            }
+            if mighty_entity {
+                text = format!("{}\n\n{text}", labels["entity_melting.partial.reference"]);
             }
             if puny_slotless {
                 // Preserve the illustrated Damage Tools page and all its overflow,
@@ -982,8 +997,8 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
             chapter_pages.extend(group_recipes);
         }
         if !chapter_pages.is_empty() {
-            if mighty_advice || mighty_smeltery || encyclopedia || gadgetry || puny_slotless {
-                let (title_key, note_key) = if puny_slotless { ("slotless.partial.notice_title", "slotless.partial.notice") } else if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
+            if mighty_advice || mighty_smeltery || mighty_entity || encyclopedia || gadgetry || puny_slotless {
+                let (title_key, note_key) = if mighty_entity { ("entity_melting.partial.notice_title", "entity_melting.partial.notice") } else if puny_slotless { ("slotless.partial.notice_title", "slotless.partial.notice") } else if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };
                 if let (Some(title), Some(note)) = (labels.get(title_key), labels.get(note_key)) {
                     let notices = split_styled(game, &Text::literal(*note), 182.0, 15).into_iter().map(|part| {
                         let mut notice = Text::styled(*title, horizon_client::text::Style { insertion: Some("tconstruct:book-title".into()), underlined: Some(true), ..Default::default() });

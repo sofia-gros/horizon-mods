@@ -37,6 +37,15 @@ pub(super) fn mighty_smeltery_page(name: &str) -> bool {
     matches!(name, "features" | "controller" | "structure" | "structurereq" | "alloying" | "blazing_blood_barter" | "sgui1" | "sgui2" | "seared_tanks" | "seared_blocks" | "seared_chute" | "seared_ladder" | "seared_glass" | "tinted_glass" | "soul_glass" | "seared_drain" | "seared_duct")
 }
 
+// The source repeats the first page name. Match its full identity so an
+// unrelated replacement cannot inherit the qualified reference presentation.
+pub(super) fn mighty_entity_melting_page(name: &str, path: &str, kind: &str) -> bool {
+    matches!((name, path, kind),
+        ("entitymelting", "entitymelting/intro.json", "mantle:image_text")
+        | ("entitymelting", "entitymelting/entitymelting.json", "mantle:text")
+        | ("noteableentities", "entitymelting/notable.json", "mantle:text"))
+}
+
 // Never show source advice without the reader's partial-coverage notice.
 pub(super) fn mighty_advice_ready(labels: [Option<&str>; 3]) -> bool {
     labels.into_iter().all(|label| label.is_some_and(|text| !text.trim().is_empty()))
@@ -237,6 +246,21 @@ mod tests {
         assert_eq!(super::mighty_ability_group("group_interact").unwrap().0, "tconstruct:abilities/interaction");
         assert_eq!(super::mighty_ability_group("group_unknown"), None);
         assert_eq!(super::mighty_ability_group("group_armor.unknown"), None);
+    }
+    #[test]
+    fn mighty_entity_melting_requires_complete_source_page_identity() {
+        let cases = [
+            ("entitymelting", "entitymelting/intro.json", "mantle:image_text"),
+            ("entitymelting", "entitymelting/entitymelting.json", "mantle:text"),
+            ("noteableentities", "entitymelting/notable.json", "mantle:text"),
+        ];
+        for (name, path, kind) in cases {
+            assert!(super::mighty_entity_melting_page(name, path, kind));
+            assert!(!super::mighty_entity_melting_page("unknown", path, kind));
+            assert!(!super::mighty_entity_melting_page(name, "entitymelting/unknown.json", kind));
+            assert!(!super::mighty_entity_melting_page(name, path, "tconstruct:unknown"));
+        }
+        assert!(!super::mighty_entity_melting_page("entitymelting", "entitymelting/intro.json", "mantle:text"));
     }
     #[test]
     fn mighty_advice_includes_bounded_groups_and_adapted_tank_page() {
