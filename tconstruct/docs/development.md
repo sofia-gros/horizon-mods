@@ -213,3 +213,23 @@ Existing narrowed material inputs and machine limitations remain unchanged.
 Duct, Channel, Alloyer and other unsupported-device unlocks are excluded.
 Source fixtures, recipe shapes/counts and packaged registrations are checked;
 actual book UI, crafting, save/reload and LAN remain unverified.
+
+### Drain interactions with containers that cannot transfer
+
+A validated formed Seared/Scorched Drain now consumes the interaction when an
+already-supported canonical container cannot move fluid, such as a full tank
+or an empty bucket at an empty tank. This prevents the held container's normal
+world action from running after the blocked transfer. Noncontainers (including
+Faucets), missing owners and invalid/unformed structures still pass through.
+Recognition uses the existing `accepts_with_color` predicate; this does not add
+arbitrary Forge capabilities, fish spawning or unsupported container metadata.
+Successful transfers and save-failure handling are unchanged.
+
+Source: TConstruct `SearedDrainBlock.use` delegates to Mantle's
+[`FluidTransferHelper.interactWithTank`](https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/FluidTransferHelper.java),
+which uses `hasContainer()`, including `CONTAINER` when no transfer occurs.
+The runtime fixture extracts the production Drain function, uses real
+Smeltery/container/NBT code, and mocks world, structure detection and inventory
+access. It checks full/part-full tanks, empty extraction, noncontainers,
+unformed structures, successful transfer and rejected saves. Live held/offhand
+routing, redstone, multiplayer and actual world placement remain unverified.

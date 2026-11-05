@@ -151,6 +151,9 @@ jobs:
       - name: Test fluid effect selection isolation
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_fluid_effect_selection_rust.sh
+      - name: Test Drain container action outcomes
+        if: steps.scope.outputs.docs_only != 'true'
+        run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_drain_container.py
       - name: Test bounded survival helper chain
         if: steps.scope.outputs.docs_only != 'true'
         run: HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" tconstruct/tests/run_survival_chain_rust.sh
