@@ -405,12 +405,13 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
 
 // Source categories are reference information, not promises of implemented
 // effects. Supported recipe pages retain the same current-world Station gates.
-fn mighty_ability_pages(game: &Game<'_>, path: &std::path::Path, root: &str, section: &serde_json::Value,
-    labels: &std::collections::HashMap<&str, &str>) -> Vec<Text> {
-    let Some(notice_title) = labels.get("abilities.partial.notice_title") else { return Vec::new(); };
-    let Some(notice) = labels.get("abilities.partial.notice") else { return Vec::new(); };
-    let Some(reference) = labels.get("abilities.partial.reference").filter(|value| !value.trim().is_empty()) else { return Vec::new(); };
-    let Some(empty) = labels.get("abilities.partial.empty").filter(|value| !value.trim().is_empty()) else { return Vec::new(); };
+fn modifier_group_pages(game: &Game<'_>, path: &std::path::Path, root: &str, section: &serde_json::Value,
+    labels: &std::collections::HashMap<&str, &str>, upgrades: bool) -> Vec<Text> {
+    let category = if upgrades { "upgrades" } else { "abilities" };
+    let Some(notice_title) = labels.get(format!("{category}.partial.notice_title").as_str()).filter(|value| !value.trim().is_empty()) else { return Vec::new(); };
+    let Some(notice) = labels.get(format!("{category}.partial.notice").as_str()).filter(|value| !value.trim().is_empty()) else { return Vec::new(); };
+    let Some(reference) = labels.get(format!("{category}.partial.reference").as_str()).filter(|value| !value.trim().is_empty()) else { return Vec::new(); };
+    let Some(empty) = labels.get(format!("{category}.partial.empty").as_str()).filter(|value| !value.trim().is_empty()) else { return Vec::new(); };
     let Some(groups) = section.as_array() else { return Vec::new(); };
     let titled_pages = |title: &str, body: &str| -> Vec<Text> {
         split_styled(game, &Text::literal(body), 182.0, 15).into_iter().map(|part| {
@@ -421,10 +422,13 @@ fn mighty_ability_pages(game: &Game<'_>, path: &std::path::Path, root: &str, sec
     let mut pages = Vec::new();
     for group in groups {
         let Some(name) = group.get("name").and_then(|value| value.as_str()) else { continue; };
-        let Some((tag, overview_path)) = super::tconstruct_materials_book_index::mighty_ability_group(name) else { continue; };
+        let group_identity = if upgrades { super::tconstruct_materials_book_index::puny_upgrade_group(name) }
+            else { super::tconstruct_materials_book_index::mighty_ability_group(name) };
+        let Some((tag, overview_path)) = group_identity else { continue; };
         // Do not place live recipes below an unrelated or replaced source group.
         if group.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|value| value.as_str()) != Some(tag) { continue; }
-        let recipes = ordinary_modifier_pages(game, &[tag.to_owned()]);
+        let mut recipes = ordinary_modifier_pages(game, &[tag.to_owned()]);
+        if upgrades { recipes.extend(incremental_modifier_pages(game, &[tag.to_owned()])); }
         let mut text = format!("{reference}\n\n");
         let title = if let Some(relative) = overview_path {
             if group.get("data").and_then(|value| value.as_str()) != Some(relative) { continue; }
@@ -440,9 +444,9 @@ fn mighty_ability_pages(game: &Game<'_>, path: &std::path::Path, root: &str, sec
             }
             title.to_owned()
         } else {
-            // Empty armor subgroups have no source overview to preserve.
+            // Empty damage/armor subgroups have no source overview to preserve.
             if recipes.is_empty() { continue; }
-            let Some(title) = labels.get(format!("abilities.{name}").as_str()).filter(|title| !title.trim().is_empty()) else { continue; };
+            let Some(title) = labels.get(format!("{category}.{name}").as_str()).filter(|title| !title.trim().is_empty()) else { continue; };
             (*title).to_owned()
         };
         if recipes.is_empty() { text.push_str("\n\n"); text.push_str(empty); }
@@ -608,6 +612,7 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         let mighty_advice = mighty && key == "tools";
         let mighty_smeltery = mighty && key == "smeltery";
         let mighty_abilities = mighty && key == "abilities";
+        let puny_upgrades = puny && key == "upgrades";
         if mighty && !matches!(key, "intro" | "tools" | "smeltery" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "abilities") { continue; }
         if mighty_advice && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("tools.partial").copied(), labels.get("tools.partial.notice_title").copied(), labels.get("tools.partial.notice").copied()
@@ -618,11 +623,13 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         if mighty_abilities && !super::tconstruct_materials_book_index::mighty_advice_ready([
             labels.get("abilities.partial").copied(), labels.get("abilities.partial.notice_title").copied(), labels.get("abilities.partial.notice").copied()
         ]) { continue; }
-        // Most modifier groups currently expose static overview pages only;
-        // Puny also exposes the bounded supported bonus-slot projection below;
-        // other modifier-tag pages and recipe layouts need more work.
+        if puny_upgrades && !super::tconstruct_materials_book_index::mighty_advice_ready([
+            labels.get("upgrades.partial").copied(), labels.get("upgrades.partial.notice_title").copied(), labels.get("upgrades.partial.notice").copied()
+        ]) { continue; }
+        // Puny and Mighty group bounded recipe projections under source overviews.
+        // Other modifier forms and a complete registry still need more work.
         if puny && !matches!(key, "intro" | "melter" | "moving_fluids" | "casting" | "melee_harvest_materials" | "ranged_materials" | "armor_materials" | "armor" | "upgrades" | "slotless" | "worktable" | "further_reading") { continue; }
-        let heading = if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
+        let heading = if puny_upgrades { labels.get("upgrades.partial").copied().unwrap_or("Supported upgrades (partial)") } else if mighty && key == "abilities" { labels.get("abilities.partial").copied().unwrap_or("Supported abilities (partial)") } else if gadgetry_exploration { labels.get("exploration.partial").copied().unwrap_or(key) } else if mighty_advice { labels.get("tools.partial").copied().unwrap_or(key) } else if mighty_smeltery { labels.get("smeltery.partial").copied().unwrap_or(key) } else { labels.get(key).copied().unwrap_or(key) };
         let data = chapter.get("data").and_then(|x| x.as_str()).unwrap_or("no-load");
         if data == "no-load" {
             if key == "armor" {
@@ -765,21 +772,17 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         }
         let Some(section) = read(path, &format!("{root}{data}")) else { continue; };
         let Ok(section) = serde_json::from_str::<serde_json::Value>(&section) else { continue; };
-        if mighty_abilities {
-            let chapter_pages = mighty_ability_pages(game, path, root, &section, &labels);
+        if mighty_abilities || puny_upgrades {
+            let chapter_pages = modifier_group_pages(game, path, root, &section, &labels, puny_upgrades);
             if !chapter_pages.is_empty() { chapters.push((heading.to_owned(), chapter_pages)); }
             continue;
         }
         let mut chapter_pages = Vec::new();
         let mut bonus_pages = Vec::new();
-        let mut ordinary_tags = Vec::new();
         let mut slotless_tags = Vec::new();
         for page in section.as_array()? {
             if puny && key == "slotless" {
                 if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) { slotless_tags.push(tag.to_owned()); }
-            }
-            if puny && key == "upgrades" {
-                if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) { ordinary_tags.push(tag.to_owned()); }
             }
             if puny && key == "slotless" && page.get("name").and_then(|v| v.as_str()) == Some("group_bonus_upgrades") {
                 if let Some(tag) = page.pointer("/extraData/tconstruct:load_modifiers/tag").and_then(|v| v.as_str()) {
@@ -942,10 +945,6 @@ pub(crate) fn source_pages(game: &Game<'_>, path: &std::path::Path, book: &str) 
         }
         chapter_pages.extend(bonus_pages);
         if !slotless_tags.is_empty() { chapter_pages.extend(incremental_modifier_pages(game, &slotless_tags)); }
-        if !ordinary_tags.is_empty() {
-            chapter_pages.extend(ordinary_modifier_pages(game, &ordinary_tags));
-            if puny && key == "upgrades" { chapter_pages.extend(incremental_modifier_pages(game, &ordinary_tags)); }
-        }
         if !chapter_pages.is_empty() {
             if mighty_advice || mighty_smeltery || encyclopedia || gadgetry {
                 let (title_key, note_key) = if gadgetry_exploration { ("exploration.partial.notice_title", "exploration.partial.notice") } else if encyclopedia || gadgetry { ("intro.partial.notice_title", "intro.partial.notice") } else if mighty_advice { ("tools.partial.notice_title", "tools.partial.notice") } else { ("smeltery.partial.notice_title", "smeltery.partial.notice") };

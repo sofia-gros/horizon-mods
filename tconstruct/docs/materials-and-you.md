@@ -551,3 +551,32 @@ Combination/cycle, input material identity, literal placeholder text, bounds,
 wire preservation and reader/draw wiring regressions were authored but not run.
 Brief static review only. Compilation, actual layout/hover, casting, resource
 reload, save/reload and LAN remain unverified.
+
+
+## Puny upgrade categories
+
+Puny Smelting now places supported ordinary and incremental upgrade recipes
+immediately after their matching source category, instead of flattening them
+after all five overview pages. General, Melee, Harvest, Ranged and Armor retain
+their existing source text. Bonus Damage and the Helmet, Chestplate, Leggings
+and Boots subgroups receive their source labels when supported recipes exist.
+Empty subgroups without source prose are omitted.
+
+Category order follows the existing section resource. The expected group name,
+modifier tag and overview path must agree; unknown/replaced category identities
+are not silently presented under unrelated advice. Membership still comes from
+the current world's resolved modifier tags, and ordinary/incremental recipes
+retain their existing condition, item, tool, level and slot eligibility checks.
+A modifier in multiple source groups may appear in each; this is category
+membership, not a new application recipe or effect.
+
+Mandatory chapter, source-reference and empty-category notices distinguish
+source advice from this port's supported recipe subset. An empty guide group
+does not prove that its described gameplay is unavailable. Mighty abilities
+share the same grouping renderer while keeping their existing ordinary-only
+recipe projection. Puny Slotless, bonus slots and other chapters are unchanged.
+
+Group identities, source order/resources, coverage notices and reader routing
+regressions were authored or updated but not run. Brief static review only.
+Compilation, actual book size/layout, resource reload, save/reload and LAN
+remain unverified. This does not complete the modifier registry or either book.

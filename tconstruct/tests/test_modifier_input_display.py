@@ -9,7 +9,7 @@ class ModifierInputDisplay(unittest.TestCase):
     def test_only_supported_bonus_and_ordinary_entries_receive_optional_previews(self):
         source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         for name, following in [('bonus_modifier_pages', 'ordinary_modifier_pages'),
-                                ('ordinary_modifier_pages', 'mighty_ability_pages')]:
+                                ('ordinary_modifier_pages', 'modifier_group_pages')]:
             body = source[source.index('fn ' + name + '('):source.index('fn ' + following + '(')]
             self.assertIn('modifier_input_page(game, &title, &entry.inputs)', body)
             self.assertIn('if let Some(preview)', body)

@@ -16,6 +16,11 @@ armor=Puny Armor
 armor.subtext=Choose your path with your armor; travelers gives you highly modifiable armor with more room for abilities, while plate gives you more opportunities for defense. If you have no fashion sense you can mix both.
 
 upgrades=Upgrades
+upgrades.partial=Supported upgrades (partial)
+upgrades.partial.notice_title=Upgrade Guide Coverage
+upgrades.partial.notice=The following categories preserve source advice, not complete Horizon support. Only this port's supported current-world ordinary and incremental recipes are shown below each category. Individual recipe pages list eligible tool types, levels, slots and restrictions. Other source modifiers and recipe forms remain omitted.
+upgrades.partial.reference=Source category reference: described effects may not be implemented. Use the following recipe pages for this port's supported inputs and restrictions.
+upgrades.partial.empty=No supported recipe is shown for this category in the current world. This is a guide limitation, not proof that every described effect is unavailable.
 upgrades.subtext=Tools can be enhanced with upgrades, though only a limited number can be applied per tool.
 upgrades.group_general=General
 upgrades.group_harvest=Harvest
