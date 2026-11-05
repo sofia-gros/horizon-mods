@@ -2,10 +2,10 @@
 import json
 from pathlib import Path
 root=Path(__file__).resolve().parents[1] / 'content'; asset=root/'assets/tconstruct'; data=root/'data/tconstruct'
-metals=['slimesteel','amethyst_bronze','rose_gold','cinderslime','queens_slime','manyullyn','hepatizon','knightslime','netherite']
+metals=['slimesteel','amethyst_bronze','rose_gold','pig_iron','cinderslime','queens_slime','manyullyn','hepatizon','knightmetal','knightslime','netherite']
 for anvil in ('tinkers_anvil','scorched_anvil'):
  for metal in metals:
-  texture='minecraft:block/netherite_block' if metal=='netherite' else f'tconstruct:block/storage/{metal}' + ('_side' if metal=='queens_slime' else '')
+  texture='minecraft:block/netherite_block' if metal=='netherite' else f'tconstruct:block/storage/{metal}' + ('_side' if metal=='queens_slime' else '/top' if metal=='pig_iron' else '')
   name=f'{anvil}_{metal}'
   models={f'models/block/table/{name}.json':{'parent':f'tconstruct:block/table/{anvil}','textures':{'particle':texture,'top':texture}},f'models/item/{name}.json':{'parent':f'tconstruct:block/table/{name}'},f'items/{name}.json':{'model':{'type':'minecraft:model','model':f'tconstruct:item/{name}'}}}
   for path,value in models.items():
