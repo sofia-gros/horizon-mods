@@ -19,9 +19,7 @@ pub(super) fn damage(game: &mut super::Game<'_>, stack: &ItemStack, amount: u32)
 /// Applies a modifier-originated loss through the normal durability hook.
 pub(super) fn damage_with_cause(game: &mut super::Game<'_>, stack: &ItemStack, amount: u32, cause: Option<&'static str>) -> (u32,u32) {
     if super::tconstruct_source_ranged_wear::is_broken(stack) { return (0,0); }
-    let tanned = super::tconstruct_source_material_traits::levels(&game.world, stack)
-        .and_then(|traits| traits.levels.get("tconstruct:tanned").copied()).unwrap_or(0);
-    let amount = super::tconstruct_source_material_effects::tanned_wear(amount, tanned, cause);
+    let amount = super::tconstruct_tanned_wear::wear(game, stack, amount, cause);
     let shield = super::tconstruct_source_overslime::amount(stack, "tic_overslime") as u32;
     let (remaining, residual) = super::tconstruct_source_overslime::absorb(shield, amount, cause);
     let actor = game.lan_acting;

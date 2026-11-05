@@ -13,7 +13,7 @@ fn tconstruct_dense_wear(loss: u32, game: &mut crate::game::Game<'_>, stack: &It
     let cause = cause.as_deref();
     let armor = game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context().contains_key(&actor)
         && !crate::game::tconstruct_source_ranged_wear::is_broken(stack);
-    let loss = if armor { crate::game::tconstruct_source_material_effects::tanned_wear(loss, trait_level("tconstruct:tanned"), cause) } else { loss };
+    let loss = if armor { crate::game::tconstruct_tanned_wear::wear(game, stack, loss, cause) } else { loss };
     let (loss, used) = if armor {
         let shield = crate::game::tconstruct_source_overslime::amount(stack, "tic_overslime") as u32;
         let (remaining, residual) = crate::game::tconstruct_source_overslime::absorb(shield, loss, cause);
