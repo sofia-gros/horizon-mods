@@ -1,7 +1,8 @@
 # Registered world-fluid draft
 
-This slice declares molten iron, gold, copper, cobalt, debris and netherite as
-actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
+This slice declares ten molten world-liquid families: iron, gold, copper,
+cobalt, debris, netherite, Slimesteel, Amethyst Bronze, Rose Gold and Pig Iron.
+They use actual sixteen-level world liquids. Existing 1000 mB tank/bucket paths
 supply the items. The host's registered-fluid system handles placement, flow,
 source pickup, scheduling and saving, rendering, player current/travel and burn
 contact using each family's identity.
@@ -18,13 +19,15 @@ manual resource-preparation path does not install registered world liquids.
 Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 
 - `FluidDeferredRegisterExtension.registerMetal`: level drop 3, slope distance 3,
-  tick rate 30 for iron, gold, copper, cobalt and netherite.
+  tick rate 30 for all declared families except debris.
 - Molten debris uses `registerGem`: level drop 4, slope distance 4, tick rate 45.
-  None of these six families generates new sources.
+  None of these ten families generates new sources.
 - `TinkerFluids.hot`: current scale 0.0023333333333333335, no swimming or drowning.
 - `TinkerFluids` declarations and `BurningLiquidBlock`: 10 seconds burning;
   iron/gold/copper deal 5, cobalt 6, debris 8 and netherite 10;
   light 12/12/12/8/14/14.
+- Slimesteel, Amethyst Bronze, Rose Gold and Pig Iron each deal 6 damage with
+  the same 10-second burning duration; their light levels are 10/12/12/10.
 - Iron, gold, copper and cobalt retain their exact still/flow sprites and
   animation metadata from `textures/fluid/molten/ore/<metal>/`.
   `content/reference/registered-world-fluid-assets.json` records source paths,
@@ -33,7 +36,11 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - `FluidTextureProvider` gives debris the shared `molten/stone` still/flow
   sprites with RGB tint `0x411E15`; netherite uses its dedicated
   `molten/alloy/netherite` sprites with white tint. Both retain the source
-  animation metadata. The provenance manifest covers all six families.
+  animation metadata.
+- The four overworld alloys each use their dedicated `molten/alloy/<name>`
+  still/flow sprites with white tint and source animation metadata. Pig Iron
+  retains its pink artwork instead of reusing another metal's sprite.
+  The provenance manifest covers all ten families.
 
 The explicit travel coefficients use Horizon's water-style drag/falling
 integrator without assigning native water tags. Their equivalence to Forge's
