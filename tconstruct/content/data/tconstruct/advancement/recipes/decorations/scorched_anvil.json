@@ -1,0 +1,153 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_item": {
+      "conditions": {
+        "items": [
+          {
+            "items": "#tconstruct:anvil_metal"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_recipe_amethyst_bronze": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_amethyst_bronze"
+      }
+    },
+    "has_recipe_cinderslime": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_cinderslime"
+      }
+    },
+    "has_recipe_hepatizon": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_hepatizon"
+      }
+    },
+    "has_recipe_knightslime": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_knightslime"
+      }
+    },
+    "has_recipe_manyullyn": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_manyullyn"
+      }
+    },
+    "has_recipe_netherite": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_netherite"
+      }
+    },
+    "has_recipe_queens_slime": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_queens_slime"
+      }
+    },
+    "has_recipe_rose_gold": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_rose_gold"
+      }
+    },
+    "has_recipe_slimesteel": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_slimesteel"
+      }
+    },
+    "has_recipe_compat_bronze": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_bronze"
+      }
+    },
+    "has_recipe_compat_constantan": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_constantan"
+      }
+    },
+    "has_recipe_compat_electrum": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_electrum"
+      }
+    },
+    "has_recipe_compat_invar": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_invar"
+      }
+    },
+    "has_recipe_compat_nicrosil": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_nicrosil"
+      }
+    },
+    "has_recipe_compat_pewter": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_pewter"
+      }
+    },
+    "has_recipe_mixed_alloys": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:zz_scorched_anvil_mixed_alloys"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_item",
+      "has_recipe_amethyst_bronze",
+      "has_recipe_cinderslime",
+      "has_recipe_hepatizon",
+      "has_recipe_knightslime",
+      "has_recipe_manyullyn",
+      "has_recipe_netherite",
+      "has_recipe_queens_slime",
+      "has_recipe_rose_gold",
+      "has_recipe_slimesteel",
+      "has_recipe_compat_bronze",
+      "has_recipe_compat_constantan",
+      "has_recipe_compat_electrum",
+      "has_recipe_compat_invar",
+      "has_recipe_compat_nicrosil",
+      "has_recipe_compat_pewter",
+      "has_recipe_mixed_alloys"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "tconstruct:scorched_anvil_amethyst_bronze",
+      "tconstruct:scorched_anvil_cinderslime",
+      "tconstruct:scorched_anvil_hepatizon",
+      "tconstruct:scorched_anvil_knightslime",
+      "tconstruct:scorched_anvil_manyullyn",
+      "tconstruct:scorched_anvil_netherite",
+      "tconstruct:scorched_anvil_queens_slime",
+      "tconstruct:scorched_anvil_rose_gold",
+      "tconstruct:scorched_anvil_slimesteel",
+      "tconstruct:scorched_anvil_compat_bronze",
+      "tconstruct:scorched_anvil_compat_constantan",
+      "tconstruct:scorched_anvil_compat_electrum",
+      "tconstruct:scorched_anvil_compat_invar",
+      "tconstruct:scorched_anvil_compat_nicrosil",
+      "tconstruct:scorched_anvil_compat_pewter",
+      "tconstruct:zz_scorched_anvil_mixed_alloys"
+    ]
+  },
+  "sends_telemetry_event": false
+}

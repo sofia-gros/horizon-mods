@@ -68,7 +68,7 @@ pub mod game {
                 }
             }
             #[test] fn recipe_tags_use_world_membership_and_refresh_without_native_fallback() {
-                for tag in ["tconstruct:seared_blocks", "forge:rods/wooden", "forge:ingots/copper", "forge:ingots/gold",
+                for tag in ["tconstruct:anvil_metal", "tconstruct:seared_blocks", "forge:rods/wooden", "forge:ingots/copper", "forge:ingots/gold",
                     "tconstruct:greenheart_logs", "tconstruct:skyroot_logs",
                     "tconstruct:bloodshroom_logs", "tconstruct:enderbark_logs",
                     "forge:slimeball/earth", "forge:slimeball/sky",
