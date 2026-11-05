@@ -22,7 +22,7 @@ fn definition(raw: &Raw, id: &str) -> Option<serde_json::Value> {
 
 fn registered(raw: &Raw, id: &str) -> bool {
     // Source static registrations take precedence over dynamic files.
-    if matches!(id,"tconstruct:empty" | "tconstruct:enderporting") { return true; }
+    if matches!(id,"tconstruct:empty" | "tconstruct:enderporting" | "tconstruct:overslime") { return true; }
     let Some(value) = definition(raw,id) else { return false; };
     if id == "tconstruct:tanned" && value == tanned_definition() { return true; }
     static VALUES: std::sync::OnceLock<serde_json::Value> = std::sync::OnceLock::new();
@@ -165,5 +165,26 @@ mod tests {
         assert_eq!(member(&raw, tag, "tconstruct:empty"), Some(true));
         raw.1.get_mut(key).unwrap().push(br#"{"values":["unknown:cause"]}"#.to_vec());
         assert_eq!(member(&raw, tag, "tconstruct:empty"), None);
+    }
+}
+
+#[cfg(test)] mod overslime_tag_tests {
+    use super::*;
+    #[test] fn overslime_bypass_resolves_live_extra_bar_nesting() {
+        let mut raw = Raw::default();
+        let values: BTreeMap<String, serde_json::Value> = serde_json::from_str(KNOWN).unwrap();
+        for (id, value) in values {
+            raw.0.insert(id.replace(':', ":tinkering/modifiers/"), vec![serde_json::to_vec(&value).unwrap()]);
+        }
+        let root = "tconstruct:tinkering/tags/modifiers/durability/bypass_overslime";
+        let extra = "tconstruct:tinkering/tags/modifiers/durability/bypass_extra_bar";
+        let tag = "tconstruct:durability/bypass_overslime";
+        raw.1.insert(root.into(), vec![br##"{"values":["#tconstruct:durability/bypass_extra_bar","tconstruct:glowing"]}"##.to_vec()]);
+        raw.1.insert(extra.into(), vec![br#"{"values":[]}"#.to_vec()]);
+        assert_eq!(member(&raw, tag, "tconstruct:empty"), Some(false));
+        raw.1.get_mut(extra).unwrap().push(br#"{"values":["tconstruct:empty"]}"#.to_vec());
+        assert_eq!(member(&raw, tag, "tconstruct:empty"), Some(true));
+        raw.1.get_mut(extra).unwrap().push(br#"{"values":[],"remove":["tconstruct:empty"]}"#.to_vec());
+        assert_eq!(member(&raw, tag, "tconstruct:empty"), Some(false));
     }
 }

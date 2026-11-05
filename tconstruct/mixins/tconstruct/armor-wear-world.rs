@@ -37,6 +37,8 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
     for (id, level) in active {
         if level < 0 { return None; }
         if level == 0 { continue; }
+        // This source ID is statically registered, not a dynamic definition.
+        if id == "tconstruct:overslime" { continue; }
         let (namespace, path) = id.split_once(':')?;
         let value = serde_json::from_slice::<serde_json::Value>(raw.0.get(&format!("{namespace}:tinkering/modifiers/{path}"))?.last()?).ok()?;
         if id == "tconstruct:tanned" {
@@ -60,6 +62,7 @@ fn supported(game: &super::Game<'_>, stack: &ItemStack) -> Option<usize> {
     // Validate bypass tags and equal-priority order in record/commit as well
     // as pre-wear. An unresolved plan must never fall back to raw writeback.
     super::tconstruct_reinforced_armor_wear::plan(raw, stack, &traits)?;
+    super::tconstruct_overslime_armor_wear::plan(raw, stack, &traits)?;
     Some(slot)
 }
 
@@ -76,11 +79,17 @@ pub(super) fn pre_native_loss(game: &mut super::Game<'_>, stack: &ItemStack, amo
     let solar_chance = super::tconstruct_solar_armor_world::chance(game, solar)?;
     let raw = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
     let plan = super::tconstruct_reinforced_armor_wear::plan(raw, stack, &traits)?;
-    // Tanned200, Solar185, Unbreakable125, then Dense/Reinforced100.
+    let shield = super::tconstruct_overslime_armor_wear::plan(raw, stack, &traits)?;
+    // Tanned200, Solar185, Overslime150, Unbreakable125, Dense/Reinforced100.
     // Solar still consumes its draws when a later Unbreakable prevents all loss.
     let amount = super::tconstruct_tanned_wear::loss(raw, amount, tanned, None)?;
     use horizon_core::random::RandomSource;
     let amount = super::tconstruct_solar_armor_wear::reduce(amount, solar_chance, || game.world.random.next_float());
+    let (amount, spent) = super::tconstruct_overslime_armor_wear::absorb(amount, shield);
+    // Dedicated per-event state, never the generic modifier-wear pending list.
+    // Include zero spends so record/commit can require a complete unique pair.
+    game.world.chunks.__horizon_mixins_tconstruct_armor_shield_context_mut()
+        .get_mut(&game.lan_acting)?.push((stack.clone(), spent));
     Some(super::tconstruct_reinforced_armor_wear::reduce(amount, plan, || game.world.random.next_float()))
 }
 
@@ -93,14 +102,15 @@ pub(super) fn record(game: &mut super::Game<'_>, stack: &ItemStack, loss: u32) {
     }
 }
 
-fn commit(game: &mut super::Game<'_>, losses: Losses) {
-    let selected = super::tconstruct_source_armor_wear::unambiguous_losses(&game.armor, &losses);
+fn commit(game: &mut super::Game<'_>, losses: Losses, shields: Losses) {
+    let selected = super::tconstruct_source_armor_wear::paired_losses(&game.armor, &losses, &shields);
     let mut changed = false;
     let mut broke = false;
-    for (slot, loss) in selected {
+    for (slot, loss, spent) in selected {
         let Some(original) = game.armor[slot].clone() else { continue; };
         if supported(game, &original) != Some(slot) { continue; }
         let stack = game.armor[slot].as_mut().expect("matched armor slot");
+        super::tconstruct_source_overslime::spend(stack, spent);
         super::tconstruct_tx::fixed_damage(stack, loss);
         changed |= *stack != original;
         broke |= super::tconstruct_source_ranged_wear::is_broken(stack);
@@ -119,12 +129,17 @@ pub(super) fn wrap(
     }
     let actor = game.lan_acting;
     let previous = game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context_mut().insert(actor, Vec::new());
+    let previous_shields = game.world.chunks.__horizon_mixins_tconstruct_armor_shield_context_mut().insert(actor, Vec::new());
     original(game, source, damage);
     let losses = game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context_mut().remove(&actor).unwrap_or_default();
+    let shields = game.world.chunks.__horizon_mixins_tconstruct_armor_shield_context_mut().remove(&actor).unwrap_or_default();
     // Commit before the next ArmorHurt event. No collector is active during
     // equipment refresh, and an enclosing actor scope is restored afterward.
-    if game.lan_acting == actor { commit(game, losses); }
+    if game.lan_acting == actor { commit(game, losses, shields); }
     if let Some(previous) = previous {
         game.world.chunks.__horizon_mixins_tconstruct_armor_wear_context_mut().insert(actor, previous);
+    }
+    if let Some(previous) = previous_shields {
+        game.world.chunks.__horizon_mixins_tconstruct_armor_shield_context_mut().insert(actor, previous);
     }
 }
