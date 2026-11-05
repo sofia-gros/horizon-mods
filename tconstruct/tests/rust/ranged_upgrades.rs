@@ -1258,3 +1258,54 @@ fn multi_input_bonus_guides_match_skull_filters_and_station_bottle_returns() {
     let without_slime: Vec<_> = items.iter().filter(|id|id.as_str()!="minecraft:slime_ball").cloned().collect();
     assert_eq!(rows(&without_slime).len(),2);
 }
+
+#[test]
+fn level_range_guides_match_step_up_necrotic_and_gilded_station_boundaries() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let recipes: BTreeMap<String,Vec<u8>> = fixture["range_recipes"].as_object().unwrap().iter()
+        .map(|(id,value)|(id.clone(),serde_json::to_vec(value).unwrap())).collect();
+    let modifiers = tconstruct_source_upgrade_rules::ordinary_guide_registry();
+    let items = ["minecraft:leather", "minecraft:golden_carrot", "minecraft:scaffolding", "tconstruct:necrotic_bone",
+        "tconstruct:ichor_congealed_slime", "minecraft:ghast_tear", "minecraft:gilded_blackstone"].map(str::to_owned);
+    let tools = ["tconstruct:travelers_leggings", "tconstruct:sword"].map(str::to_owned);
+    let tags: HashMap<String,HashSet<String>> = [
+        ("forge:wither_bones",vec!["tconstruct:necrotic_bone"]),
+        ("tconstruct:modifiable/armor/leggings",vec!["tconstruct:travelers_leggings", "tconstruct:sword"]),
+        ("tconstruct:modifiable/melee",vec!["tconstruct:sword"]),
+        ("tconstruct:modifiable/bonus_slots",vec!["tconstruct:sword", "tconstruct:travelers_leggings"]),
+    ].into_iter().map(|(tag,ids)|(tag.into(),ids.into_iter().map(str::to_owned).collect())).collect();
+    let rows = |recipes: &BTreeMap<String,Vec<u8>>|tconstruct_modifier_snapshot::ordinary_guide_recipes_with_levels(
+        recipes,&modifiers,&items,&tools,
+        |value,id|tconstruct_source_upgrade_rules::stack_ingredient_matches(value,&ItemStack::new(id,1),&tags),
+        |value,id|tconstruct_source_upgrade_rules::ingredient_matches(value,id,&tags),
+        |id,item|tconstruct_source_upgrade_rules::tool_supported_with_tags(id,item,&tags),
+        tconstruct_source_upgrade_rules::fluid_guide_policy,tconstruct_source_upgrade_rules::ordinary_range_guide_policy);
+    let shown = rows(&recipes); assert_eq!(shown.len(),3);
+    for row in &shown {
+        let maximum = match row.modifier.as_str() { "tconstruct:step_up" => 2, "tconstruct:necrotic" => 5, "tconstruct:gilded" => 32767, _ => panic!() };
+        assert_eq!(row.level_range,Some((1,maximum))); assert_eq!(row.repeatable_maximum,None);
+        if row.modifier == "tconstruct:step_up" { assert_eq!(row.tools,["tconstruct:travelers_leggings"]); }
+        let only_recipe = BTreeMap::from([(row.recipe.clone(),recipes[&row.recipe].clone())]);
+        let inputs: Vec<_> = row.inputs.iter().map(|choices|Some(ItemStack::new(&choices[0],1))).collect();
+        let plan = |level,upgrade_slots,ability_slots| {
+            let mut tool = ItemStack::new(&row.tools[0],1);
+            tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([(&*row.modifier,Tag::Int(level))]))])));
+            tconstruct_source_upgrade_rules::plan_with_traits(&only_recipe,&tags,&tool,&inputs,upgrade_slots,ability_slots,&BTreeMap::new())
+        };
+        assert_eq!(plan(0,row.upgrade_cost,row.ability_cost).unwrap().amount,1);
+        assert!(plan(0,0,0).is_none());
+        assert_eq!(plan(maximum-1,maximum*row.upgrade_cost,maximum*row.ability_cost).unwrap().amount,maximum);
+        assert!(plan(maximum,(maximum+1)*row.upgrade_cost,(maximum+1)*row.ability_cost).is_none());
+        let mut changed: serde_json::Value = serde_json::from_slice(&recipes[&row.recipe]).unwrap();
+        changed["level"] = serde_json::json!({"min":2,"max":3});
+        let bounded = BTreeMap::from([(row.recipe.clone(),serde_json::to_vec(&changed).unwrap())]);
+        assert_eq!(rows(&bounded)[0].level_range,Some((2,3)));
+        changed["level"] = serde_json::json!({"min":4,"max":3});
+        assert!(rows(&BTreeMap::from([(row.recipe.clone(),serde_json::to_vec(&changed).unwrap())])).is_empty());
+        changed["level"] = serde_json::json!({"max":3}); changed["check_trait_level"] = serde_json::json!(true);
+        assert!(rows(&BTreeMap::from([(row.recipe.clone(),serde_json::to_vec(&changed).unwrap())])).is_empty());
+    }
+}

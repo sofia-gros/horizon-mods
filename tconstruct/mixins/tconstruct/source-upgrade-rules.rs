@@ -44,8 +44,19 @@ fn ordinary_modifier_supported(id: &str) -> bool {
 }
 
 pub(super) fn ordinary_guide_registry() -> Vec<String> {
-    UPGRADES.iter().filter(|(id, _)| ordinary_modifier_supported(id) && provisional_upgrade_enabled(id))
-        .map(|(id, _)| (*id).to_owned()).collect()
+    let mut registry: Vec<_> = UPGRADES.iter().filter(|(id, _)| ordinary_modifier_supported(id) && provisional_upgrade_enabled(id))
+        .map(|(id, _)| (*id).to_owned()).collect();
+    // Gilded appears in Mighty's abilities rather than Puny's slotless group.
+    registry.extend(BONUS_SLOTS.iter().filter(|(id, _, _)| *id == "tconstruct:gilded").map(|(id, _, _)| (*id).to_owned()));
+    registry
+}
+
+pub(super) fn ordinary_range_guide_policy(id: &str) -> Option<(i32, i32)> {
+    match id {
+        "tconstruct:step_up" | "tconstruct:necrotic" => Some((1, 0)),
+        "tconstruct:gilded" => Some((0, 1)),
+        _ => None,
+    }
 }
 
 pub(super) fn incremental_guide_registry() -> BTreeMap<String, i32> {
@@ -271,12 +282,13 @@ pub(super) fn plan_with_traits(
             let old = amount(tool, id);
             let fluid_limit = repeatable_fluid_limit(id);
             let fluid = fluid_limit.is_some();
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") && !fluid && old != 0 { continue; }
+            let ranged = ordinary_range_guide_policy(id).is_some();
+            if !ranged && !fluid && old != 0 { continue; }
             if fluid_limit.is_some_and(|maximum| old >= maximum) { continue; }
             if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") {
+            let valid_level = if ranged {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -316,7 +328,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic") { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || ranged { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 

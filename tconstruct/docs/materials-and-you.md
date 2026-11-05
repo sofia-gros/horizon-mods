@@ -176,8 +176,8 @@ remain required.
 Puny's Upgrades chapter and Mighty's explicitly partial Abilities chapter now
 read source group tag directives and project them onto the Station's actual
 ordinary-modifier support gate, excluding provisionally disabled modifiers.
-They select current condition-filtered recipes with an explicit level of one,
-one to five ordinary input slots, upgrade/ability slot costs and optional
+They select current condition-filtered recipes with a supported level policy,
+one to five input slots, upgrade/ability slot costs and optional
 trait-level checks. The pinned source examples are Diamond, Emerald and
 Netherite in Puny, and Glowing in Mighty. Entries depend on registered input
 items and eligible tools, rather than a fixed list of placeholder pages.
@@ -191,7 +191,7 @@ source group metadata does not enable missing static overview prose.
 
 Changing tag replacement/removal, recipes or item availability affects the
 next open/request through the existing reader and LAN response. The displayed
-tool types do not override checks against an existing tool's state. Other incremental recipe shapes, level ranges, unsupported stack-sensitive ingredients, additional
+tool types do not override checks against an existing tool's state. Other incremental recipe shapes, unsupported level policies and stack-sensitive ingredients, additional
 requirements and unknown slot types are still omitted. Source registry,
 redirect and external-registration completeness is not claimed. In-game
 pagination and LAN visual validation remain outstanding.
@@ -273,3 +273,22 @@ is omitted if the bottle output is not registered. Unknown ingredient forms,
 changed slot costs, multi-level bonuses and other source modifier families
 remain outside this view. Actual item acquisition, UI pagination, full host
 integration, save/reload and LAN are not verified by these guide changes.
+
+## Level-range upgrade and Gilded pages
+
+The ordinary dynamic pages also cover the runtime-supported Step Up and
+Necrotic level ranges in Puny, and Gilded in Mighty. Source Step Up adds one
+level through level 2, Necrotic through level 5, and Gilded uses the current
+runtime's default range of 1–32767. The guide reads explicit level numbers or
+valid min/max overrides instead of treating every ordinary recipe as level 1.
+A recipe beginning above level 1 states the prior installed level needed.
+
+Each page shows the upgrade/ability slot cost per added level. Gilded also
+states its existing two-upgrade-slot bonus per level; this is not a new gameplay
+bonus. Runtime tool restrictions remain authoritative, including Step Up's
+leggings-only filter. Recipes with different occupancy costs, malformed or
+out-of-range level bounds, or trait-counting conditions are omitted.
+
+Pinned recipes and focused production-planner regression cases were added.
+Execution of those new checks, detailed review, full host validation and
+in-game/LAN verification are deferred to the final batch.

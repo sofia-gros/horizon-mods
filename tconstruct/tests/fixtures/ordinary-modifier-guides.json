@@ -539,5 +539,87 @@
         ]
       }
     }
+  },
+  "range_recipes": {
+    "data/tconstruct/recipes/tools/modifiers/upgrade/step_up.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "inputs": [
+        {
+          "item": "minecraft:leather"
+        },
+        {
+          "item": "minecraft:golden_carrot"
+        },
+        {
+          "item": "minecraft:leather"
+        },
+        {
+          "item": "minecraft:scaffolding"
+        },
+        {
+          "item": "minecraft:scaffolding"
+        }
+      ],
+      "level": {
+        "max": 2
+      },
+      "result": "tconstruct:step_up",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/armor/leggings"
+      }
+    },
+    "data/tconstruct/recipes/tools/modifiers/upgrade/necrotic.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "inputs": [
+        {
+          "tag": "forge:wither_bones"
+        },
+        {
+          "item": "tconstruct:ichor_congealed_slime"
+        },
+        {
+          "item": "minecraft:ghast_tear"
+        }
+      ],
+      "level": {
+        "max": 5
+      },
+      "result": "tconstruct:necrotic",
+      "slots": {
+        "upgrades": 1
+      },
+      "tools": [
+        {
+          "tag": "tconstruct:modifiable/melee"
+        },
+        {
+          "tag": "tconstruct:modifiable/ranged/bows"
+        },
+        {
+          "tag": "tconstruct:modifiable/fishing_rods"
+        }
+      ]
+    },
+    "data/tconstruct/recipes/tools/modifiers/ability/gilded.json": {
+      "type": "tconstruct:modifier",
+      "allow_crystal": true,
+      "inputs": [
+        {
+          "item": "minecraft:gilded_blackstone"
+        }
+      ],
+      "result": "tconstruct:gilded",
+      "slots": {
+        "abilities": 1
+      },
+      "tools": {
+        "tag": "tconstruct:modifiable/bonus_slots"
+      }
+    }
   }
 }

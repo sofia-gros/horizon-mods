@@ -332,11 +332,12 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
     let items: Vec<String> = rest.items.items.keys().map(|id| id.to_string()).collect();
     let tools: Vec<String> = tags.get("tconstruct:modifiable").into_iter().flatten()
         .filter(|id| rest.items.items.contains_key(id.as_str())).cloned().collect();
-    let entries = crate::game::tconstruct_modifier_snapshot::ordinary_guide_recipes_with_fluids(recipes, &modifiers, &items, &tools,
+    let entries = crate::game::tconstruct_modifier_snapshot::ordinary_guide_recipes_with_levels(recipes, &modifiers, &items, &tools,
         |ingredient, item| crate::game::tconstruct_source_upgrade_rules::stack_ingredient_matches(ingredient, &ItemStack::new(item, 1), tags),
         |ingredient, item| crate::game::tconstruct_source_upgrade_rules::ingredient_matches(ingredient, item, tags),
         |modifier, item| crate::game::tconstruct_source_upgrade_rules::tool_supported_with_tags(modifier, item, tags),
-        crate::game::tconstruct_source_upgrade_rules::fluid_guide_policy);
+        crate::game::tconstruct_source_upgrade_rules::fluid_guide_policy,
+        crate::game::tconstruct_source_upgrade_rules::ordinary_range_guide_policy);
     let mut pages = Vec::new();
     for entry in entries {
         let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
@@ -348,7 +349,13 @@ fn ordinary_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text>
         let mut text = String::from("Supported modifier recipe (partial guide).\n\n");
         let description = game.translate(&format!("modifier.{namespace}.{name}.description"), "");
         if !description.is_empty() && !description.contains('%') { text.push_str(&description); text.push_str("\n\n"); }
-        if let Some(maximum) = entry.repeatable_maximum {
+        if let Some((minimum, maximum)) = entry.level_range {
+            text.push_str(&format!("Adds one level per application, for resulting modifier levels {minimum} to {maximum}. Each added level requires {} upgrade slot(s) and {} ability slot(s).\n\n", entry.upgrade_cost, entry.ability_cost));
+            if minimum > 1 { text.push_str(&format!("Requires at least level {} already installed; this recipe cannot start from level zero.\n\n", minimum - 1)); }
+            if let Some((_, upgrades, abilities)) = crate::game::tconstruct_source_upgrade_rules::bonus_guide_registry().iter().find(|(id, _, _)| *id == entry.modifier) {
+                text.push_str(&format!("Each added level grants {upgrades} upgrade slot(s) and {abilities} ability slot(s).\n\n"));
+            }
+        } else if let Some(maximum) = entry.repeatable_maximum {
             text.push_str(&format!("Adds one level per application, up to this port's limit of {maximum} levels while slots remain. Each added level requires {} upgrade slot(s) and {} ability slot(s).\n\n", entry.upgrade_cost, entry.ability_cost));
         } else {
             text.push_str(&format!("Level 1. Requires {} upgrade slot(s) and {} ability slot(s).\n\n", entry.upgrade_cost, entry.ability_cost));

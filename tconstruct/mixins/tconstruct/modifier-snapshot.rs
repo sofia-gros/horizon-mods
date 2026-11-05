@@ -161,6 +161,7 @@ pub(super) struct OrdinaryGuideRecipe {
     pub ability_cost: i32,
     pub check_trait_level: bool,
     pub repeatable_maximum: Option<i32>,
+    pub level_range: Option<(i32, i32)>,
     pub empty_inputs: Vec<bool>,
 }
 
@@ -188,18 +189,47 @@ pub(super) fn ordinary_guide_recipes_with_fluids(
     supported_tool: impl Fn(&str, &str) -> bool,
     fluid_policy: impl Fn(&str) -> Option<(i32, i32, i32)>,
 ) -> Vec<OrdinaryGuideRecipe> {
+    ordinary_guide_recipes_with_levels(recipes, modifiers, items, tools, matches, matches_tool,
+        supported_tool, fluid_policy, |_| None)
+}
+
+/// Range-bearing ordinary recipes need a runtime-authorized cost policy too.
+/// Trait-counting variants remain omitted, since resulting-level ranges alone
+/// would not describe their prerequisite state faithfully.
+pub(super) fn ordinary_guide_recipes_with_levels(
+    recipes: &BTreeMap<String, Vec<u8>>, modifiers: &[String],
+    items: &[String], tools: &[String],
+    matches: impl Fn(&serde_json::Value, &str) -> bool,
+    matches_tool: impl Fn(&serde_json::Value, &str) -> bool,
+    supported_tool: impl Fn(&str, &str) -> bool,
+    fluid_policy: impl Fn(&str) -> Option<(i32, i32, i32)>,
+    range_policy: impl Fn(&str) -> Option<(i32, i32)>,
+) -> Vec<OrdinaryGuideRecipe> {
     let mut result = Vec::new();
     let mut seen = HashSet::new();
     for modifier in modifiers {
         if !seen.insert(modifier) { continue; }
         let fluid = fluid_policy(modifier);
+        let range = range_policy(modifier);
         for (recipe, bytes) in recipes {
             let Ok(value) = serde_json::from_slice::<serde_json::Value>(bytes) else { continue; };
             let Some(object) = value.as_object() else { continue; };
+            let level_range = if range.is_some() {
+                let levels = match value.get("level") {
+                    None => Some((1, 32767)),
+                    Some(level) if level.is_number() => level.as_i64().map(|level| (level, level)),
+                    Some(level) if level.as_object().is_some_and(|object| object.keys().all(|key| matches!(key.as_str(), "min" | "max"))) => {
+                        level.get("min").map_or(Some(1), |v| v.as_i64()).zip(level.get("max").map_or(Some(32767), |v| v.as_i64()))
+                    }
+                    _ => None,
+                };
+                let Some((minimum, maximum)) = levels.filter(|(min, max)| *min >= 1 && *max <= 32767 && min <= max) else { continue; };
+                Some((minimum as i32, maximum as i32))
+            } else { None };
             if object.keys().any(|key| !matches!(key.as_str(), "type" | "result" | "inputs" | "tools" | "level" | "allow_crystal" | "check_trait_level" | "slots"))
                 || value.get("type").and_then(|v| v.as_str()) != Some("tconstruct:modifier")
                 || value.get("result").and_then(|v| v.as_str()) != Some(modifier.as_str())
-                || !(value.get("level").and_then(|v| v.as_i64()) == Some(1) || (fluid.is_some() && value.get("level").is_none()))
+                || !(level_range.is_some() || value.get("level").and_then(|v| v.as_i64()) == Some(1) || (fluid.is_some() && value.get("level").is_none()))
                 || value.get("allow_crystal").is_some_and(|v| !v.is_boolean())
                 || value.get("check_trait_level").is_some_and(|v| !v.is_boolean()) { continue; }
             let costs = match value.get("slots") {
@@ -212,7 +242,8 @@ pub(super) fn ordinary_guide_recipes_with_fluids(
             };
             let Some((upgrade_cost, ability_cost)) = costs else { continue; };
             if fluid.is_some_and(|(upgrades, abilities, maximum)| maximum <= 0 || (upgrades, abilities) != (upgrade_cost, ability_cost))
-                || (fluid.is_some() && value.get("check_trait_level").and_then(|v| v.as_bool()) == Some(true)) { continue; }
+                || range.is_some_and(|costs| costs != (upgrade_cost, ability_cost))
+                || ((fluid.is_some() || range.is_some()) && value.get("check_trait_level").and_then(|v| v.as_bool()) == Some(true)) { continue; }
             let Some(inputs) = value.get("inputs").and_then(|v| v.as_array()).filter(|v| (1..=5).contains(&v.len())) else { continue; };
             let Some(tool_filter) = value.get("tools") else { continue; };
             let empty_inputs = inputs.iter().map(|input| input.get("type").and_then(|v| v.as_str()) == Some("tconstruct:no_container")).collect();
@@ -226,7 +257,7 @@ pub(super) fn ordinary_guide_recipes_with_fluids(
             if !tools.is_empty() {
                 result.push(OrdinaryGuideRecipe { recipe:recipe.clone(), modifier:modifier.clone(), inputs, tools,
                     upgrade_cost, ability_cost, check_trait_level:value.get("check_trait_level").and_then(|v| v.as_bool()).unwrap_or(false),
-                    repeatable_maximum:fluid.map(|(_, _, maximum)| maximum), empty_inputs });
+                    repeatable_maximum:fluid.map(|(_, _, maximum)| maximum), level_range, empty_inputs });
             }
         }
     }
