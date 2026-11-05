@@ -254,6 +254,7 @@ pub(super) fn capture(game: &mut crate::game::Game<'_>) {
     *game.world.chunks.__horizon_mixins_tconstruct_source_config_snapshot_mut() = Some(config);
     *game.world.chunks.__horizon_mixins_tconstruct_source_ore_rates_mut() = Some(ore_rates);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags_mut() = resolved_tags;
+    game.tconstruct_invalidate_advancement_inventory_index();
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_ids_mut() = Some(block_ids);
     *game.world.chunks.__horizon_mixins_tconstruct_resolved_block_tags_mut() = Some(resolved_blocks);
     *game.world.chunks.__horizon_mixins_tconstruct_fluid_tag_snapshot_mut() = Some(fluid_tags);

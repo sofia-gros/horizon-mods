@@ -5280,3 +5280,25 @@ target = "horizon_world::loot::overlay_map"
 kind = "RETURN"
 helper = "source-slimy-loot-world.rs"
 bindings = [{ name = "_value", ty = "()", value = "$value" }, { name = "overlay", ty = "&PackOverlay<'_>", value = "overlay" }, { name = "kind", ty = "&str", value = "kind" }, { name = "out", ty = "&mut std::collections::HashMap<String, serde_json::Value>", value = "&mut *out" }]
+
+[[module]]
+id = "source-advancement-tag"
+file = "crates/horizon-client/src/game/advancements.rs"
+name = "tconstruct_source_advancement_tag"
+source = "source-advancement-tag.rs"
+
+[[injection]]
+id = "source-advancement-tag-predicate"
+target = "horizon_client::game::advancements::<View<'_,'_> as adv::World>::in_tag"
+kind = "HEAD"
+cancellable = true
+helper = "source-advancement-tag-predicate.rs"
+bindings = [{ name = "view", ty = "&View<'_, '_>", value = "&*self" }, { name = "registry", ty = "&str", value = "registry" }, { name = "tag", ty = "&str", value = "tag" }, { name = "id", ty = "&str", value = "id" }]
+
+[[injection]]
+id = "source-advancement-tag-index"
+target = "horizon_client::game::advancements::Game<'_>::inventory_index"
+kind = "HEAD"
+cancellable = true
+helper = "source-advancement-tag-index.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
