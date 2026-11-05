@@ -8,6 +8,8 @@ class FaucetSmelteryTankWiring(unittest.TestCase):
         code = RUNTIME.read_text()
         activate = code[code.index('pub(super) fn activate_faucet('):code.index('pub(super) fn tick_faucet(')]
         tick = code[code.index('pub(super) fn tick_faucet('):code.index('pub(super) fn tick_casting(')]
+        self.assertLess(activate.index('tank_to_smeltery('), activate.index('tconstruct_source_faucet_tank::activate('))
+        self.assertLess(tick.index('tank_to_smeltery('), tick.index('tconstruct_source_faucet_tank::tick('))
         self.assertLess(activate.index('smeltery_to_tank('), activate.index('tconstruct_source_faucet_tank::activate('))
         self.assertLess(tick.index('smeltery_to_tank('), tick.index('tconstruct_source_faucet_tank::tick('))
         old_tick = code[code.index('fn tick_smeltery_faucet('):code.index('/// Start or stop a source faucet.')]
