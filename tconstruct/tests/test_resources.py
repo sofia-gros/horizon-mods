@@ -40,7 +40,7 @@ class ResourceOverlay(unittest.TestCase):
             world = next(tab for tab in tabs if tab['id'] == 'tconstruct:world')
             general = next(tab for tab in tabs if tab['id'] == 'tconstruct:general')
             self.assertEqual((general['page'], general['row'], general['column']), (1, 'TOP', 1))
-            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'gold_platform', 'obsidian_pane', 'cheese_ingot', 'cheese_block', 'jeweled_apple')])
+            self.assertEqual(general['items'], [f'{{count:1,id:"tconstruct:{n}"}}' for n in ('blazing_bone', 'silky_cloth', 'seared_reinforcement', 'bacon', 'materials_and_you', 'puny_smelting', 'mighty_smelting', 'encyclopedia', 'tinkers_gadgetry', 'clear_glass', 'clear_tinted_glass', 'soul_glass', 'clear_glass_pane', 'soul_glass_pane', 'gold_bars', 'gold_platform', 'obsidian_pane', 'cheese_ingot', 'cheese_block', 'jeweled_apple')])
             self.assertEqual((world['page'], world['row'], world['column']), (1, 'TOP', 0))
             self.assertEqual(len(world['items']), 23)
             self.assertIn('{count:1,id:"tconstruct:earth_congealed_slime"}', world['items'])
@@ -67,6 +67,9 @@ class ResourceOverlay(unittest.TestCase):
                 model = json.loads((out / 'assets/tconstruct/models/item' / (name + '.json')).read_text())
                 self.assertEqual(model['textures']['layer0'], 'minecraft:item/' + kind + '_potion')
             self.assertEqual(items['tconstruct:encyclopedia']['minecraft:max_stack_size'], 1)
+            self.assertEqual(items['tconstruct:tinkers_gadgetry']['minecraft:max_stack_size'], 1)
+            self.assertEqual(registries['tconstruct:tinkers_gadgetry']['protocol_id'], registries['tconstruct:venombone']['protocol_id'] + 1)
+            self.assertEqual((out / 'assets/tconstruct/textures/item/tinkers_gadgetry.png').read_bytes(), (SCRIPT.parent.parent / 'content/assets/tconstruct/textures/item/tinkers_gadgetry.png').read_bytes())
             self.assertTrue((out / 'assets/tconstruct/textures/item/encyclopedia.png').is_file())
             # Bacon is supplied later by the existing content declaration,
             # not appended here where it could renumber prepared item IDs.
