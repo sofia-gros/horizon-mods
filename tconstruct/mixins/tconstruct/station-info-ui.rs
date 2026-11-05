@@ -79,16 +79,17 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                 for (id, value) in upgrades {
                     if let Tag::Int(amount) = value {
                         let id = id.to_string_lossy();
+                        if id.as_str() == "tconstruct:warping" && *amount <= 0 { continue; }
                         let key = id.split_once(':').map(|(namespace, path)| format!("modifier.{namespace}.{path}"));
                         let label = key.as_ref().map(|key| game.pack.names.display_get(key).unwrap_or_else(|| key.clone())).unwrap_or_else(|| id.to_string());
                         let tip = if id.as_str() == "tconstruct:hydraulic" {
                             Some("Hydraulic: underwater only; rain bonus unavailable".to_owned())
                         } else { key.and_then(|key| game.pack.names.display_get(&format!("{key}.description"))) };
-                        let needed = match id.as_ref() { "tconstruct:blasting" => 20, "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
+                        let needed = match id.as_ref() { "tconstruct:blasting" => 20, "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" | "tconstruct:warping" => 1, _ => continue };
                         let shown = if id.as_str() == "tconstruct:blasting" {
                             let Some(shown) = blasting_label(&label, *amount) else { continue; };
                             shown
-                        } else if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic") { label } else { format!("{label}: {amount}/{needed}") };
+                        } else if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" | "tconstruct:warping") { label } else { format!("{label}: {amount}/{needed}") };
                         bottom.push((shown, tip));
                     }
                 }

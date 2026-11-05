@@ -17,14 +17,51 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 23] = [
+const UPGRADES: [(&str, i32); 24] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
+    ("tconstruct:warping", 1),
 ];
+
+// The bounded held ability accepts only its original five-input recipe. The
+// source check_trait_level cap counts material Warping as well as upgrades.
+fn warping_recipe() -> Value {
+    serde_json::json!({
+        "type":"tconstruct:modifier", "allow_crystal":true, "check_trait_level":true,
+        "inputs":[{"item":"tconstruct:ender_slime_vine"},
+            {"item":"tconstruct:ender_slime_crystal"},
+            {"item":"tconstruct:ender_slime_vine"},
+            {"item":"tconstruct:ender_congealed_slime"},
+            {"item":"tconstruct:ender_congealed_slime"}],
+        "level":1, "result":"tconstruct:warping", "slots":{"abilities":1},
+        "tools":{"type":"forge:intersection","children":[
+            {"tag":"tconstruct:modifiable/durability"},
+            {"tag":"tconstruct:modifiable/interactable/charge"}]}
+    })
+}
+
+pub(super) fn known_warping_definition(bytes: Option<&[u8]>) -> bool {
+    bytes.and_then(|bytes| serde_json::from_slice::<Value>(bytes).ok()).is_some_and(|value|
+        value == serde_json::json!({"level_display":"tconstruct:single_level", "modules":[{
+            "type":"tconstruct:sling_teleport", "drawtime_multiplier":1.5,
+            "force_multiplier":{"each_level":4.0,"flat":2.0}}]}))
+}
+
+fn valid_warping_amount(tool: &ItemStack) -> bool {
+    match tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades")) {
+        None => true,
+        Some(upgrades @ Tag::Compound(_)) => match upgrades.get("tconstruct:warping") {
+            None => true,
+            Some(Tag::Int(level)) => (0..=1).contains(level),
+            _ => false,
+        },
+        _ => false,
+    }
+}
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
 const BONUS_SLOTS: [(&str, i32, i32); 8] = [
@@ -116,7 +153,7 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
 }
 
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:warping") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -132,6 +169,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     (available_upgrades, available_abilities, used_upgrades)
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
+    if !valid_warping_amount(tool) { return false; }
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
     used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
@@ -145,7 +183,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:warping" || valid_warping_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -166,7 +204,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_warping_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -184,7 +222,7 @@ pub(super) fn extract_upgrade_with_traits(
         if netherite < 1 || reinforced < 5 { return None; }
     }
     let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, input)| input.as_ref().map(|input| (i + 1, input))).collect();
-    if present.len() != 2 { return None; }
+    if present.len() != 2 || present.iter().any(|(_, stack)| stack.count == 0) { return None; }
     let slime = present.iter().find(|(_, item)| &*item.item == "tconstruct:sky_slime_crystal")?.0;
     let sponge = present.iter().find(|(_, item)| &*item.item == "minecraft:wet_sponge")?.0;
     let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
@@ -209,7 +247,7 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_hydraulic_amount(tool) { return None; }
+    if !valid_warping_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
@@ -223,12 +261,14 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:warping" && (value != warping_recipe() || tool.count != 1
+            || traits.get(id).is_some_and(|level| *level < 0)) { continue; }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
 ) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:warping")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
@@ -259,7 +299,7 @@ pub(super) fn plan_with_traits(
             let Some(ingredients) = value.get("inputs").and_then(Value::as_array) else { continue; };
             let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, stack)| stack.as_ref().map(|stack| (i + 1, stack))).collect();
             let crystal = value.get("allow_crystal").and_then(Value::as_bool).unwrap_or(true)
-                && present.len() == 1 && &*present[0].1.item == "tconstruct:modifier_crystal"
+                && present.len() == 1 && present[0].1.count > 0 && &*present[0].1.item == "tconstruct:modifier_crystal"
                 && matches!(present[0].1.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("modifier")), Some(Tag::String(value)) if value.to_string_lossy() == id);
             let mut consumed = vec![(0, 1)];
             if crystal { consumed.push((present[0].0, 1)); }
@@ -1462,4 +1502,85 @@ mod tests {
         }
     }
 
+}
+
+#[cfg(test)]
+mod warping_acquisition_tests {
+    use super::*;
+    fn recipes() -> BTreeMap<String,Vec<u8>> {
+        BTreeMap::from([("warping".into(),serde_json::to_vec(&warping_recipe()).unwrap())])
+    }
+    fn tags() -> HashMap<String,HashSet<String>> {
+        ["tconstruct:modifiable", "tconstruct:modifiable/durability", "tconstruct:modifiable/interactable/charge"]
+            .into_iter().map(|tag| (tag.into(),HashSet::from(["tconstruct:pickaxe".into()]))).collect()
+    }
+    fn inputs() -> [Option<ItemStack>;5] {
+        ["tconstruct:ender_slime_vine", "tconstruct:ender_slime_crystal", "tconstruct:ender_slime_vine",
+            "tconstruct:ender_congealed_slime", "tconstruct:ender_congealed_slime"]
+            .map(|id| Some(ItemStack::new(id,1)))
+    }
+    fn saved(value: Tag) -> ItemStack {
+        let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:warping",value)]))])));
+        tool
+    }
+    #[test]
+    fn five_input_recipe_uses_one_ability_and_respects_live_target_and_trait() {
+        let tool=ItemStack::new("tconstruct:pickaxe",1);
+        let recipe=recipes(); let tags=tags(); let inputs=inputs(); let traits=BTreeMap::new();
+        let plan=plan_with_traits(&recipe,&tags,&tool,&inputs,0,1,&traits).unwrap();
+        assert_eq!((plan.id.as_str(),plan.amount,plan.consumed.len()),("tconstruct:warping",1,6));
+        assert!(plan.consumed.iter().all(|(_,count)| *count==1));
+        assert!(plan_with_traits(&recipe,&tags,&tool,&inputs[..3],0,1,&traits).is_none());
+        assert!(plan_with_traits(&recipe,&tags,&tool,&inputs,9,0,&traits).is_none());
+        assert!(plan_with_traits(&recipe,&tags,&saved(Tag::Int(1)),&inputs,0,2,&traits).is_none());
+        assert!(plan_with_traits(&recipe,&tags,&tool,&inputs,0,1,&BTreeMap::from([("tconstruct:warping".into(),1)])).is_none());
+        let mut absent=tags.clone(); absent.remove("tconstruct:modifiable/interactable/charge");
+        assert!(plan_with_traits(&recipe,&absent,&tool,&inputs,0,1,&traits).is_none());
+        assert!(valid_slots(&saved(Tag::Int(1)),&traits,0,1));
+        assert!(!valid_slots(&saved(Tag::Int(1)),&traits,9,0));
+    }
+    #[test]
+    fn extraction_returns_one_crystal_and_reapplication_still_needs_an_ability() {
+        let tags=tags(); let tool=saved(Tag::Int(1)); let before=tool.clone();
+        let inputs=[Some(ItemStack::new("tconstruct:sky_slime_crystal",1)),Some(ItemStack::new("minecraft:wet_sponge",1))];
+        let extracted=extract_upgrade(&tags,&tool,&inputs,"tconstruct:warping").unwrap();
+        assert_eq!(tool,before);
+        assert_eq!(extracted.upgrade.amount,0);
+        assert_eq!(&*extracted.sponge.item,"minecraft:sponge");
+        let crystal=extracted.upgrade.leftover.unwrap();
+        let clean=ItemStack::new("tconstruct:pickaxe",1);
+        assert!(plan_with_traits(&recipes(),&tags,&clean,&[Some(crystal.clone())],0,1,&BTreeMap::new()).is_some());
+        assert!(plan_with_traits(&recipes(),&tags,&clean,&[Some(crystal.clone())],9,0,&BTreeMap::new()).is_none());
+        let mut empty=crystal; empty.count=0;
+        assert!(plan_with_traits(&recipes(),&tags,&clean,&[Some(empty)],0,1,&BTreeMap::new()).is_none());
+        let mut empty_inputs=inputs; empty_inputs[0].as_mut().unwrap().count=0;
+        assert!(extract_upgrade(&tags,&tool,&empty_inputs,"tconstruct:warping").is_none());
+    }
+    #[test]
+    fn malformed_or_overlevel_saved_warping_is_never_silently_rewritten() {
+        for bad in [Tag::Int(-1),Tag::Int(2),Tag::String("1".into())] {
+            let tool=saved(bad);
+            assert!(!valid_slots(&tool,&BTreeMap::new(),9,9));
+            assert!(!extractable(&tool).contains(&"tconstruct:warping"));
+            assert!(plan_with_traits(&recipes(),&tags(),&tool,&inputs(),9,9,&BTreeMap::new()).is_none());
+        }
+        let mut tool=ItemStack::new("tconstruct:pickaxe",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::Int(1))])));
+        assert!(!valid_warping_amount(&tool));
+    }
+    #[test]
+    fn definition_and_recipe_replacements_fail_closed() {
+        let known=serde_json::json!({"level_display":"tconstruct:single_level","modules":[{
+            "type":"tconstruct:sling_teleport","drawtime_multiplier":1.5,
+            "force_multiplier":{"each_level":4.0,"flat":2.0}}]});
+        assert!(known_warping_definition(Some(&serde_json::to_vec(&known).unwrap())));
+        assert!(!known_warping_definition(None));
+        let mut changed=known; changed["modules"][0]["drawtime_multiplier"]=serde_json::json!(0.0);
+        assert!(!known_warping_definition(Some(&serde_json::to_vec(&changed).unwrap())));
+        let mut changed=warping_recipe(); changed["slots"]["abilities"]=serde_json::json!(0);
+        let recipes=BTreeMap::from([("warping".into(),serde_json::to_vec(&changed).unwrap())]);
+        assert!(plan_with_traits(&recipes,&tags(),&ItemStack::new("tconstruct:pickaxe",1),&inputs(),0,1,&BTreeMap::new()).is_none());
+    }
 }
