@@ -1021,38 +1021,55 @@ fn tank_casting_recipe_current(game: &super::Game<'_>, target: Pos, kind: &str, 
 // faucet round trips before staging changes so opaque old saves are not rewritten.
 // Bounded portable-container route; raw state must match the live slots before
 // any source, faucet or output is staged.
-// Built-in source tanks can supply a cannon without serializing opaque state.
+// Built-in tanks and Casting Tanks can supply a cannon without rewriting
+// opaque state. Casting Tank container reprocessing shares the staged commit.
 fn tank_to_cannon(game: &mut super::Game<'_>, pos: Pos, source: Pos, target: Pos, mut faucet: Faucet, starting: bool) -> Option<bool> {
     use super::tconstruct_source_faucet_tank as tanks;
-    let source_name = game.res.facts().get(game.world.block(source.0,source.1,source.2)).name.clone();
-    if &*source_name == "tconstruct:seared_melter" || !tanks::is_source(&source_name) { return None; }
-    let target_name = game.res.facts().get(game.world.block(target.0,target.1,target.2)).name.clone();
+    let source_state = game.world.block(source.0, source.1, source.2);
+    let source_name = game.res.facts().get(source_state).name.clone();
+    if &*source_name == "tconstruct:seared_melter"
+        || (!tanks::is_source(&source_name) && &*source_name != "tconstruct:seared_casting_tank") { return None; }
+    let target_state = game.world.block(target.0, target.1, target.2);
+    let target_name = game.res.facts().get(target_state).name.clone();
     if &*target_name != "tconstruct:seared_fluid_cannon" { return None; }
+    let faucet_state = game.world.block(pos.0, pos.1, pos.2);
     if source == target || source == pos || target == pos { return Some(false); }
-    if !game.world.chunks.contains_key(&(source.0 >> 4,source.2 >> 4)) || !game.world.chunks.contains_key(&(target.0 >> 4,target.2 >> 4)) { return Some(false); }
-    let Some(mut input) = tanks::load_source(game,source,&source_name) else { return Some(false); };
-    if !input.canonical_tank() { return Some(false); }
+    if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4))) { return Some(false); }
+    let Some(mut input) = CastingInput::load(game, source, &source_name) else { return Some(false); };
     let Some((source_key, raw_source)) = input.data() else { return Some(false); };
+    let source_strength = input.comparator();
+    let source_amount = input.tank().amount;
     let Some(mut output) = cannon_at(game,target) else { return Some(false); };
     let Some(raw_output) = store::read(&game.world,target,"tconstruct:fluid_cannon") else { return Some(false); };
     if output.to_nbt() != raw_output { return Some(false); }
     let Some(raw_faucet) = store::read(&game.world,pos,"tconstruct:faucet") else { return Some(false); };
     if faucet.to_nbt() != raw_faucet { return Some(false); }
-    if input.tank().tag.is_some() || output.tank.tag.is_some() || faucet.pending.tag.is_some() { return Some(false); }
+    // Cannon supply stays untagged. A source refill after reservation must
+    // not stop the old untagged packet, but may not start a tagged one.
+    if output.tank.tag.is_some() || faucet.pending.tag.is_some()
+        || ((starting || (faucet.pending.amount == 0 && !faucet.stop_after_packet))
+            && input.tank().tag.is_some()) { return Some(false); }
     if starting && !faucet.activate(input.tank(),&output.tank) { return Some(true); }
     let previous_strength = output.comparator();
     let needs_packet = !starting && faucet.pending.amount == 0;
     faucet.tick(input.tank(),Some(&mut output.tank));
     if needs_packet && faucet.pending.amount > 0 { faucet.tick(input.tank(),Some(&mut output.tank)); }
+    let Some(processed) = input.process_after_drain(game, source_amount) else { return Some(false); };
     if !output.lossless() { return Some(false); }
-    if store::read(&game.world,source,source_key).as_ref() != Some(&raw_source)
+    // Recheck every staged endpoint after source container processing.
+    if [source, target, pos].iter().any(|at| !game.world.chunks.contains_key(&(at.0 >> 4, at.2 >> 4)))
+        || game.world.block(source.0, source.1, source.2) != source_state
+        || game.world.block(target.0, target.1, target.2) != target_state
+        || game.world.block(pos.0, pos.1, pos.2) != faucet_state
+        || store::read(&game.world,source,source_key).as_ref() != Some(&raw_source)
+        || (source_strength.is_some() && !casting_tank_at(game, source).is_some_and(|state| state.to_nbt() == raw_source))
         || store::read(&game.world,target,"tconstruct:fluid_cannon").as_ref() != Some(&raw_output)
         || store::read(&game.world,pos,"tconstruct:faucet").as_ref() != Some(&raw_faucet)
-        || !cannon_at(game,target).is_some_and(|current| current.to_nbt() == raw_output)
-        || game.res.facts().get(game.world.block(source.0,source.1,source.2)).name != source_name
-        || game.res.facts().get(game.world.block(target.0,target.1,target.2)).name != target_name { return Some(false); }
+        || !cannon_at(game,target).is_some_and(|current| current.to_nbt() == raw_output) { return Some(false); }
     let Some((key,data)) = input.data() else { return Some(false); };
     if !store::write_many(&mut game.world,&[(source,key,data),(target,"tconstruct:fluid_cannon",output.to_nbt()),(pos,"tconstruct:faucet",faucet.to_nbt())]) { return Some(false); }
+    if processed { input.sync_slots(game, source); }
+    if let (Some(before), Some(after)) = (source_strength, input.comparator()) { notify_casting_comparator(game, source, before, after); }
     notify_casting_comparator(game,target,previous_strength,output.comparator());
     Some(true)
 }
