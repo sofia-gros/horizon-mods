@@ -1,0 +1,17 @@
+{
+  "title": "Seared Drain",
+  "item": "tconstruct:seared_drain",
+  "text": [
+    {
+      "text": "Use a Seared Drain in a formed smeltery wall to move molten fluids. Place a Faucet on the drain and a Casting Table or Basin below the faucet, then activate the faucet to pour."
+    },
+    {
+      "text": "Open the controller and click a fluid to move it to the bottom. That selected fluid is used for pouring. Supported held containers, including buckets and Copper Cans, can also fill or empty the main tank through the drain.",
+      "paragraph": true
+    },
+    {
+      "text": "This port does not provide the original external-pipe integration or the drain-center fluid display. Container types and fluid metadata have limits. Live play, save/reload and LAN for these instructions remain unverified.",
+      "paragraph": true
+    }
+  ]
+}
