@@ -5321,3 +5321,17 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_data_pack_files"
 kind = "RETURN"
 helper = "gravel-crafting-injection.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "self" }, { name = "files", ty = "&mut Vec<(String, Vec<u8>)>", value = "&mut *files" }]
+
+[[module]]
+id = "source-use-speed"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_use_speed"
+source = "source-use-speed.rs"
+
+[[injection]]
+id = "source-use-speed-body"
+target = "horizon_client::game::Game<'_>::sync_player_body"
+kind = "HEAD"
+cancellable = true
+helper = "use-speed-body.rs"
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]

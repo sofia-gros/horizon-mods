@@ -127,6 +127,9 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_source::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_wire::tests
           cargo test --locked --manifest-path tconstruct/tests/haste-wire-fixture/Cargo.toml
+          python3 tconstruct/tests/run_use_speed.py --horizon ../horizon-official
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_use_speed::tests -- --nocapture | tee "$RUNNER_TEMP/use-speed-tests.log"
+          grep -Fq "test game::tconstruct_use_speed::tests::held_stat_uses_defaults_additions_multipliers_and_clamp ... ok" "$RUNNER_TEMP/use-speed-tests.log"
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_upgrade_rules::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_state::tests
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_melter_render::fluid_light_tests
