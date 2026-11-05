@@ -50,4 +50,23 @@ The built-in tank → Casting Tank route also accepts registered vanilla potion 
 
 ### Casting Tank to casting blocks
 
-A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. Other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+A Faucet can draw untagged fluid from a Casting Tank into a Table or Basin. The source's saved data must match both live container slots; source, Faucet and target are staged together, and a changed source comparator is notified after a successful write. When a packet is reserved from the source, a waiting source container is processed on staged data; the source slots are published only after the combined write succeeds. The source, target, current recipe and Faucet are rechecked after processing. Already-reserved untagged fluid can finish if the source container fills the source with tagged fluid, but a new tagged reservation waits. The built-in tank destination described below is also supported; other destinations remain unsupported. Unknown data waits. Actual host integration, game, save/reload, LAN and disk/network atomicity remain unverified.
+
+
+### Casting Tank to built-in tanks
+
+A Faucet can draw from a Seared Casting Tank into any registered Seared or
+Scorched fuel tank/gauge or ingot tank/gauge. This route accepts untagged fluids
+and supported vanilla base-potion identity, keeping the exact fluid tag. Custom
+potion color/effects and other tagged fluids wait. A source container is processed
+on staged data only when a new packet drains the source. Source fluid, container
+slots, destination and Faucet are saved together before live slots and comparator
+notifications are updated. A reserved packet can finish if the source is refilled
+with unsupported tagged fluid; no new unsupported packet is reserved.
+
+Unknown or noncanonical saves, mismatched source slots, unloaded chunks and
+changed block states wait without committing the transfer. This is a bounded
+route, not generic third-party FluidHandler support or a guarantee of atomic disk
+or network persistence. Implementation and brief static review only: focused
+regression fixtures are added but not run in this phase. Full host integration,
+actual gameplay, save/reload and LAN remain unverified.

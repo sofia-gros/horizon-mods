@@ -9,7 +9,9 @@ root = pathlib.Path(__file__).resolve().parents[1]
 host = pathlib.Path(os.environ["HORIZON_HOST"]).resolve()
 source = (root / "mixins/tconstruct/source-machine-runtime.rs").read_text()
 route = (source[source.index("fn tank_casting_recipe_current("):source.index("fn tank_to_cannon(")]
-         + source[source.index("enum CastingInput {"):source.index("pub(super) fn activate_faucet(")])
+         + source[source.index("enum CastingInput {"):source.index("pub(super) fn activate_faucet(")]
+         + source[source.index("fn faucet_network_tag_safe("):source.index("fn faucet_supported_potion_tag(")]
+         + source[source.index("fn casting_tank_to_tank("):])
 template = (root / "tests/rust/faucet_tank_casting_fixture.rs").read_text()
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("__PLUTO__",str(root.parent / "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs")).replace("// __PRODUCTION_ROUTE__", route)
 with tempfile.TemporaryDirectory(prefix="faucet-casting-") as tmp:
