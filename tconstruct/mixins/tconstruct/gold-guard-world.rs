@@ -47,7 +47,7 @@ pub(super) fn refresh(game: &mut crate::game::Game<'_>) {
     let wanted=crate::game::tconstruct_gold_guard_world::bonus(game);
     let Some(player)=game.player.as_mut() else {return;};
     let key=player.attributes.key(source::ATTRIBUTE);
-    let Ok(present)=player.attributes.has_modifier(key,source::MODIFIER) else {return;};
+    let Ok(present)=player.attributes.has_modifier(key.clone(),source::MODIFIER) else {return;};
     if !present && wanted.is_none() {return;}
     if present && wanted.is_some() && player.attributes.modifier_value(key,source::MODIFIER).ok()==wanted {return;}
     // Own one transient modifier, outside the native per-equipment reset list.

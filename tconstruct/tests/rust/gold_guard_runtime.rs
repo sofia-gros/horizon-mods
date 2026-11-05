@@ -13,11 +13,12 @@ mod game {
     pub struct Items {pub item_tags:HashMap<String,HashSet<String>>}
     pub struct Resources(pub Items);
     impl Resources {pub fn items(&self)->&Items {&self.0}}
+    #[derive(Clone)] pub struct Key;
     #[derive(Default)] pub struct Attributes(pub BTreeMap<String,f64>);
     impl Attributes {
-        pub fn key(&self,_:&str)->Option<u8>{Some(1)}
-        pub fn has_modifier(&mut self,_:Option<u8>,id:&str)->Result<bool,()>{Ok(self.0.contains_key(id))}
-        pub fn modifier_value(&mut self,_:Option<u8>,id:&str)->Result<f64,()>{self.0.get(id).copied().ok_or(())}
+        pub fn key(&self,_:&str)->Option<Key>{Some(Key)}
+        pub fn has_modifier(&mut self,_:Option<Key>,id:&str)->Result<bool,()>{Ok(self.0.contains_key(id))}
+        pub fn modifier_value(&mut self,_:Option<Key>,id:&str)->Result<f64,()>{self.0.get(id).copied().ok_or(())}
     }
     pub struct Health(pub f32);
     impl Health {pub fn health(&self)->f32{self.0}}

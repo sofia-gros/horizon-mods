@@ -29,7 +29,7 @@ class GoldGuard(unittest.TestCase):
                         reload.index('tconstruct_gold_guard_world::refresh(game)'))
         helper = (MIXINS / 'gold-guard-world.rs').read_text()
         self.assertIn('game.remote.is_some()', helper)
-        self.assertIn('has_modifier(key,source::MODIFIER)', helper)
+        self.assertIn('has_modifier(key.clone(),source::MODIFIER)', helper)
         self.assertIn('player.set_health(maximum,false)', helper)
         self.assertNotIn('applied_modifiers.push', helper)
 
