@@ -19,7 +19,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #39](https://github.com/sofia-gros/horizon/pull/39).** Keep this
+[Horizon fork PR #51](https://github.com/sofia-gros/horizon/pull/51).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -379,3 +379,30 @@ Only brief static review and whitespace inspection were performed. New image,
 resource and packaging regressions and updated exact-visual expectations are
 written but not run. No tests, builds, CI/version checks or merge. Live overlays,
 HDR appearance, pack reload and exact source event gating/order are unverified.
+
+## Hot-fluid pathfinding nodes
+
+All 59 families built with `TinkerFluids.hot(...)` now explicitly declare
+`"path_type": "lava"`. This includes Liquid Soul and Molten Ender despite their
+non-burning contact effects, and upward-flowing Molten Cinderslime. Magma and
+the other ten cool/slime families omit the field. These are source registrations,
+not an inference from a fluid's name, temperature, swimming or burn policy.
+
+The pinned MIT source's `hot` helper declares
+`pathType(BlockPathTypes.LAVA).adjacentPathType(null)`.
+`content/reference/world-fluid-pathfinding-source.json` records the full family
+list, revision and source file; the existing SlimeKnights MIT notice/license is
+retained in `third_party/tconstruct/LICENSE`.
+
+[Host PR #51](https://github.com/sofia-gros/horizon/pull/51) resolves source and
+flowing block levels to occupied lava path nodes in the walking, flying and
+amphibious evaluators. Ordinary mobs use the existing negative lava malus;
+species-specific lava costs remain effective. Adjacent cells retain native block
+facts instead of receiving an invented fire-neighbor penalty. Native fluid tags,
+collision shapes, contact physics and the swim evaluator do not change. Aquatic
+navigation in the eleven undeclared cool/slime fluids remains outside this slice.
+
+This requires the unmerged host stack; no released compatibility pin is changed.
+Two declaration/packaging regressions were added but not run. Only brief manual
+review and diff checks were performed; tests, builds, native injection planning,
+CI inspection, version checks and merge are deferred as requested.
