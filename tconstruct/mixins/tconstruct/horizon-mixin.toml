@@ -5382,3 +5382,16 @@ file = "crates/horizon-client/src/client_lib.rs"
 name = "tconstruct_source_defense_slots"
 source = "source-defense-slots.rs"
 visibility = "pub"
+
+[[module]]
+id = "source-fire-protection"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_fire_protection"
+source = "source-fire-protection.rs"
+
+[[module]]
+id = "server-source-fire-protection"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_fire_protection"
+source = "source-fire-protection.rs"
+visibility = "pub"
