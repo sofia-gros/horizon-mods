@@ -8,6 +8,22 @@ import unittest
 ROOT = Path(__file__).resolve().parents[1]
 
 class DuctFaucetGuard(unittest.TestCase):
+    def test_ci_executes_dispatch_fixture_after_host_dependencies_are_built(self):
+        workflow = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
+        step = workflow.index('      - name: Test Duct dispatch and Smeltery faucet transactions')
+        self.assertLess(workflow.index('      - name: Apply Mixins and check client'), step)
+        body = workflow[step:workflow.index('      - name:', step + 1)]
+        self.assertIn("if: steps.scope.outputs.docs_only != 'true'", body)
+        self.assertIn('HORIZON_HOST="$GITHUB_WORKSPACE/../horizon-official" python3 tconstruct/tests/run_faucet_smeltery_tank.py', body)
+
+    def test_ci_runner_checks_host_lock_and_named_dispatch_case(self):
+        runner = (ROOT / 'tests/run_faucet_smeltery_tank.py').read_text()
+        for requirement in ('rev-parse', '--porcelain', 'shutil.copyfile(host/\'Cargo.lock\'',
+                            "('name','version','source','checksum')", 'if unknown:',
+                            'runtime::duct_dispatch_preserves_all_fluid_and_unknown_metadata',
+                            'required production dispatch/control test did not pass'):
+            self.assertIn(requirement, runner)
+
     def test_production_policy(self):
         rustc = shutil.which('rustc')
         if rustc is None:
