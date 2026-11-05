@@ -5380,3 +5380,9 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "TAIL"
 helper = "cobalamin-equipment.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-godspeed"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_godspeed"
+source = "source-godspeed.rs"
