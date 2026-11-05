@@ -10,7 +10,7 @@ type Pos=(i32,i32,i32);
 #[path="__MIXINS__/source-fluid-container.rs"] mod tconstruct_source_fluid_container;
 #[path="__MIXINS__/source-fluid-display.rs"] mod tconstruct_source_fluid_display;
 #[path="__PLUTO__"] mod pluto_stack_fluid;
-struct Info{name:String} struct Facts; impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_drain",2=>"tconstruct:seared_fuel_tank",3=>"tconstruct:smeltery_controller",4=>"tconstruct:seared_duct",5=>"tconstruct:scorched_drain",6=>"tconstruct:foundry_controller",7=>"tconstruct:seared_table",8=>"tconstruct:seared_basin",9=>"tconstruct:scorched_table",10=>"tconstruct:scorched_basin",11=>"tconstruct:seared_melter",_=>"minecraft:air"}.into()}}} struct Res;impl Res{fn facts(&self)->Facts{Facts}}
+struct Info{name:String} struct Facts; impl Facts{fn get(&self,id:usize)->Info{Info{name:match id{1=>"tconstruct:seared_drain",2=>"tconstruct:seared_fuel_tank",3=>"tconstruct:smeltery_controller",4=>"tconstruct:seared_duct",5=>"tconstruct:scorched_drain",6=>"tconstruct:foundry_controller",7=>"tconstruct:seared_table",8=>"tconstruct:seared_basin",9=>"tconstruct:scorched_table",10=>"tconstruct:scorched_basin",11=>"tconstruct:seared_melter",12=>"tconstruct:seared_lantern",13=>"tconstruct:scorched_lantern",_=>"minecraft:air"}.into()}}} struct Res;impl Res{fn facts(&self)->Facts{Facts}}
 struct Chunks{loaded:HashMap<(i32,i32),()>,owners:HashMap<Pos,Pos>} impl Chunks{fn contains_key(&self,p:&(i32,i32))->bool{self.loaded.contains_key(p)}fn __horizon_mixins_tconstruct_smeltery_owners(&self)->&HashMap<Pos,Pos>{&self.owners}}
 struct World{blocks:HashMap<Pos,usize>,block_entities:HashMap<Pos,containers::BlockEntity>,chunks:Chunks,tags:HashMap<(Pos,String),Tag>,fail:bool,formed:bool} impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{*self.blocks.get(&(x,y,z)).unwrap_or(&0)}}
 struct Game<'a>{res:Res,remote:Option<()>,lan:Option<()>,lan_acting_uuid:Option<()>,world:World,recipe_valid:bool,notifications:usize,_life:std::marker::PhantomData<&'a()>}
@@ -254,6 +254,110 @@ fn melter_table_pending_packet_and_stop_survive_unsupported_source_refill() {
     game.world.tags.insert((pos, "tconstruct:faucet".into()), faucet.to_nbt());
     assert_eq!(machine_to_casting(&mut game, pos, source, target, faucet, false), Some(true));
     assert!(!Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap().active);
+}
+
+
+fn lantern_table_fixture(source_id: usize, target_id: usize) -> (Game<'static>, Pos, Pos, Pos, &'static str) {
+    let (mut game, pos, source, target, _, key) = drain_casting_fixture(target_id, false);
+    let mut input = Tank::new(50); assert!(input.insert("x:copper", 50));
+    game.world.blocks.insert(source, source_id);
+    game.world.block_entities.insert(source, BlockEntity::Chest(vec![]));
+    game.world.tags.insert((source, "tconstruct:lantern".into()), input.to_nbt());
+    game.world.formed = false;
+    (game, pos, source, target, key)
+}
+
+#[test]
+fn lantern_table_both_sources_all_four_targets_keep_extensions_and_refill() {
+    for source_id in [12,13] { for target_id in [7,8,9,10] {
+        let (mut game, pos, source, target, key) = lantern_table_fixture(source_id, target_id);
+        assert_eq!(machine_to_casting(&mut game, pos, source, target, Faucet::new(), true), Some(true));
+        let input = Tank::from_nbt(&store::read(&game.world, source, "tconstruct:lantern").unwrap(), 50).unwrap();
+        let raw = store::read(&game.world, target, key).unwrap();
+        let output = Casting::from_nbt(&raw).unwrap();
+        let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!((input.amount, output.tank.amount, faucet.pending.amount), (0,10,40));
+        assert_eq!(raw.get("future"), Some(&Tag::Int(123)));
+        assert_eq!(raw.get("tank").unwrap().get("future_tank"), Some(&Tag::Int(456)));
+        let mut refill = Tank::new(50); assert!(refill.insert("x:copper", 50));
+        game.world.tags.insert((source, "tconstruct:lantern".into()), refill.to_nbt());
+        for _ in 0..5 {
+            let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+            assert_eq!(machine_to_casting(&mut game, pos, source, target, faucet, false), Some(true));
+        }
+        let input = Tank::from_nbt(&store::read(&game.world, source, "tconstruct:lantern").unwrap(), 50).unwrap();
+        let output = Casting::from_nbt(&store::read(&game.world, target, key).unwrap()).unwrap();
+        let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!((input.amount, output.tank.amount, faucet.pending.amount), (0,60,40));
+        assert_eq!(game.notifications, 8); // Two reservations and six pours.
+    }}
+}
+
+#[test]
+fn lantern_table_save_opaque_missing_stale_and_unloaded_failures_do_not_mutate() {
+    for fault in 0..7 {
+        let (mut game, pos, source, target, key) = lantern_table_fixture(12, 7);
+        game.world.fail = fault == 0;
+        if fault == 1 {
+            if let Tag::Compound(fields) = game.world.tags.get_mut(&(source, "tconstruct:lantern".into())).unwrap() { fields.insert("future".into(), Tag::Int(1)); }
+        }
+        if fault == 2 { game.world.block_entities.remove(&source); }
+        if fault == 3 {
+            if let Tag::Compound(fields) = game.world.tags.get_mut(&(target, key.into())).unwrap() { fields.insert("Recipe".into(), Tag::String("opaque".into())); }
+        }
+        if fault == 4 {
+            let BlockEntity::Chest(slots) = game.world.block_entities.get_mut(&target).unwrap(); slots[0] = Some(horizon_items::items::ItemStack::new("minecraft:stone", 1));
+        }
+        if fault == 5 { game.world.chunks.loaded.remove(&(-1, 0)); }
+        if fault == 6 { game.world.tags.remove(&(source, "tconstruct:lantern".into())); }
+        let before = game.world.tags.clone();
+        assert_eq!(machine_to_casting(&mut game, pos, source, target, Faucet::new(), true), Some(false));
+        assert_eq!(game.world.tags, before); assert_eq!(game.notifications, 0);
+    }
+}
+
+#[test]
+fn lantern_table_pending_waits_for_recipe_then_finishes_after_unsupported_refill() {
+    let (mut game, pos, source, target, key) = lantern_table_fixture(13, 10);
+    assert_eq!(machine_to_casting(&mut game, pos, source, target, Faucet::new(), true), Some(true));
+    let mut refill = Tank::new(50);
+    assert!(refill.insert_tagged("x:copper", Some(&Tag::compound([("future", Tag::Int(1))])), 50));
+    game.world.tags.insert((source, "tconstruct:lantern".into()), refill.to_nbt());
+    game.recipe_valid = false;
+    let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+    let before = game.world.tags.clone();
+    assert_eq!(machine_to_casting(&mut game, pos, source, target, faucet, false), Some(false));
+    assert_eq!(game.world.tags, before);
+    game.recipe_valid = true;
+    for _ in 0..4 {
+        let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+        assert_eq!(machine_to_casting(&mut game, pos, source, target, faucet, false), Some(true));
+    }
+    assert_eq!(Casting::from_nbt(&store::read(&game.world, target, key).unwrap()).unwrap().tank.amount, 50);
+    assert_eq!(store::read(&game.world, source, "tconstruct:lantern"), Some(refill.to_nbt()));
+    let mut faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+    let before = game.world.tags.clone();
+    assert_eq!(machine_to_casting(&mut game, pos, source, target, faucet.clone(), false), Some(false));
+    assert_eq!(game.world.tags, before);
+    faucet.stop_after_packet = true;
+    game.world.tags.insert((pos, "tconstruct:faucet".into()), faucet.to_nbt());
+    assert_eq!(machine_to_casting(&mut game, pos, source, target, faucet, false), Some(true));
+    assert!(!Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap().active);
+}
+
+#[test]
+fn lantern_table_only_reserves_remaining_recipe_capacity() {
+    let (mut game, pos, source, target, key) = lantern_table_fixture(13, 8);
+    let raw = store::read(&game.world, target, key).unwrap();
+    let mut output = Casting::from_nbt(&raw).unwrap();
+    assert!(output.prepare("test:copper", 180, 20, horizon_items::items::ItemStack::new("minecraft:copper_ingot", 2), false, false));
+    assert!(output.tank.insert("x:copper", 175));
+    game.world.tags.insert((target, key.into()), output.to_nbt_preserving(&raw).unwrap());
+    assert_eq!(machine_to_casting(&mut game, pos, source, target, Faucet::new(), true), Some(true));
+    let input = Tank::from_nbt(&store::read(&game.world, source, "tconstruct:lantern").unwrap(), 50).unwrap();
+    let output = Casting::from_nbt(&store::read(&game.world, target, key).unwrap()).unwrap();
+    let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+    assert_eq!((input.amount, output.tank.amount, faucet.pending.amount), (45,180,0));
 }
 
 
