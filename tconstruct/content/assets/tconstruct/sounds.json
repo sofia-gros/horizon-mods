@@ -11,5 +11,11 @@
       "mob/zombie/infect"
     ],
     "subtitle": "subtitles.tconstruct.necrotic_heal"
+  },
+  "bonk": {
+    "sounds": [
+      "tconstruct:bonk"
+    ],
+    "subtitle": "subtitles.tconstruct.bonk"
   }
 }
