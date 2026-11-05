@@ -6,18 +6,26 @@ use super::tconstruct_source_fluid_container::{self as containers, Direction};
 type Pos = (i32, i32, i32);
 
 pub(super) fn local(game: &mut Game<'_>, pos: Pos, selected: Option<usize>) {
-    let Some(mut state) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
-        .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return; };
-    let fluid = selected.and_then(|index| state.tank.fluids.get(index).map(|f| f.id.clone()));
-    if selected.is_some() && fluid.is_none() { return; }
-    let mut slots = [game.carried.clone(), None];
+    let Some(raw) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery") else { return; };
+    let Some(mut state) = super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&raw) else { return; };
+    if state.tank_to_nbt_preserving(&raw).as_ref() != Some(&raw) { return; }
+    let Some(carried) = game.carried.as_ref() else { return; };
+    if carried.wire_patch().is_some() || carried.data().is_some_and(|data| data.wire.patch().is_some()) { return; }
+    let mut slots = [Some(carried.clone()), None];
     let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
         .and_then(|v| v.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
-    let direction = if selected.is_some() { Direction::FillItem } else { Direction::EmptyItem };
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering")).map(|(id, items)| (id.clone(), items.clone())).collect());
-    if !containers::transfer_selected_with_color(&mut state.tank, &mut slots, direction, fluid.as_deref(),
-        &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), tags.as_ref(), game.lan.is_none()) { return; }
-    if !super::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) { return; }
+    let transferred = if let Some(index) = selected {
+        containers::fill_from_index_with_color(&mut state.tank, &mut slots, index,
+            &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), tags.as_ref(), game.lan.is_none())
+    } else {
+        containers::transfer_selected_with_color(&mut state.tank, &mut slots, Direction::EmptyItem, None,
+            &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), tags.as_ref(), game.lan.is_none())
+    };
+    if !transferred { return; }
+    let Some(saved) = state.tank_to_nbt_preserving(&raw) else { return; };
+    if super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery").as_ref() != Some(&raw) { return; }
+    if !super::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", saved) { return; }
     if let Some(rest) = slots[0].take() {
         game.carried = Some(rest);
         if let Some(result) = slots[1].take() { game.give_or_drop(result); }
@@ -25,18 +33,26 @@ pub(super) fn local(game: &mut Game<'_>, pos: Pos, selected: Option<usize>) {
 }
 
 pub(super) fn guest(game: &mut Game<'_>, host: &mut LanHost, gi: usize, pos: Pos, selected: Option<usize>) {
-    let Some(mut state) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
-        .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return; };
-    let fluid = selected.and_then(|index| state.tank.fluids.get(index).map(|f| f.id.clone()));
-    if selected.is_some() && fluid.is_none() { return; }
-    let mut slots = [host.hub.guests[gi].carried.clone(), None];
+    let Some(raw) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery") else { return; };
+    let Some(mut state) = super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&raw) else { return; };
+    if state.tank_to_nbt_preserving(&raw).as_ref() != Some(&raw) { return; }
+    let Some(carried) = host.hub.guests.get(gi).and_then(|guest| guest.carried.as_ref()) else { return; };
+    if carried.wire_patch().is_some() || carried.data().is_some_and(|data| data.wire.patch().is_some()) { return; }
+    let mut slots = [Some(carried.clone()), None];
     let known_fluids = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref()
         .and_then(|v| v.as_ref().ok()).map(|(fluids, _)| fluids.clone()).unwrap_or_default();
-    let direction = if selected.is_some() { Direction::FillItem } else { Direction::EmptyItem };
     let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter().filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering")).map(|(id, items)| (id.clone(), items.clone())).collect());
-    if !containers::transfer_selected_with_tags(&mut state.tank, &mut slots, direction, fluid.as_deref(),
-        &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), tags.as_ref()) { return; }
-    if !super::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) { return; }
+    let transferred = if let Some(index) = selected {
+        containers::fill_from_index_with_color(&mut state.tank, &mut slots, index,
+            &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), tags.as_ref(), false)
+    } else {
+        containers::transfer_selected_with_color(&mut state.tank, &mut slots, Direction::EmptyItem, None,
+            &|id| game.res.items().get(id).is_some(), &|id| known_fluids.contains(id), tags.as_ref(), false)
+    };
+    if !transferred { return; }
+    let Some(saved) = state.tank_to_nbt_preserving(&raw) else { return; };
+    if super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery").as_ref() != Some(&raw) { return; }
+    if !super::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", saved) { return; }
     if let Some(rest) = slots[0].take() {
         host.hub.guests[gi].carried = Some(rest);
         if let Some(result) = slots[1].take() { game.lan_place_back(host, gi, vec![result]); host.hub.send_inventory(gi); }
