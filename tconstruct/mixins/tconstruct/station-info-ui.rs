@@ -85,7 +85,7 @@ pub(super) fn lines(game: &Game<'_>) -> Option<(Vec<(String, Option<String>)>, V
                             Some("Hydraulic: underwater only; rain bonus unavailable".to_owned())
                         } else { key.and_then(|key| game.pack.names.display_get(&format!("{key}.description"))) };
                         let needed = match id.as_ref() { "tconstruct:blasting" => 20, "tconstruct:hydraulic" | "tconstruct:sharpness" => 36, "tconstruct:swiftstrike" | "tconstruct:power" => 72, "tconstruct:haste" | "tconstruct:speedy" => 45, "tconstruct:quick_charge" => 5, "tconstruct:trueshot" | "tconstruct:blindshot" => 10, "tconstruct:reinforced" | "tconstruct:overforced" => 4, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic" => 1, _ => continue };
-                        let shown = if id.as_ref() == "tconstruct:blasting" {
+                        let shown = if id.as_str() == "tconstruct:blasting" {
                             let Some(shown) = blasting_label(&label, *amount) else { continue; };
                             shown
                         } else if matches!(id.as_ref(), "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:step_up" | "tconstruct:writable" | "tconstruct:harmonious" | "tconstruct:recapitated" | "tconstruct:forecast" | "tconstruct:draconic") { label } else { format!("{label}: {amount}/{needed}") };
