@@ -16,9 +16,9 @@ Supported metal blocks are Slimesteel, Amethyst Bronze, Rose Gold, Pig Iron,
 Cinderslime, Queen's Slime, Manyullyn, Hepatizon, Knightmetal, Knightslime and
 Netherite. Mixed supported ordinary blocks use the existing default Anvil
 appearance. The existing native variants and source `match_all` texture fallback
-are retained; other material-bearing compatibility blocks are not included.
-Their old native Anvil guard expects three metal inputs, while this route costs
-four. No recipe bypasses or weakens that guard.
+are retained. The separate [material Tool Forge routes](material-tool-forge-acquisition.md)
+cover six existing material-bearing compatibility blocks with an exact four-block
+guard. Other material mappings are not included.
 
 Two source discovery advancements retain Anvil Metal acquisition OR any matching
 native recipe-unlocked criterion and reward the twelve corresponding variants.

@@ -88,7 +88,8 @@ class AnvilDiscoveryUnlocks(unittest.TestCase):
                                 self.assertNotIn('RequiredMaterial', metadata)
         guard = (MOD / 'mixins/tconstruct/anvil-material-recipe.rs').read_text()
         self.assertIn('RequiredMaterial', guard)
-        self.assertIn('fake.len() != 3', guard)
+        self.assertIn('if is_forge { 4 } else { 3 }', guard)
+        self.assertIn('fake.len() != required_fake', guard)
 
     def test_package_contains_both_unlocks_and_all_thirty_six_recipes(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -38,7 +38,7 @@ class ToolForgeAcquisition(unittest.TestCase):
 
     def test_twenty_four_routes_preserve_source_costs_and_existing_outputs(self):
         expected_ids = {name for family in FAMILIES for name in variants(family)}
-        actual = {p.stem for p in (DATA / 'recipe').glob('*forge*.json')}
+        actual = {p.stem for p in (DATA / 'recipe').glob('*forge*.json') if '_compat_' not in p.stem}
         self.assertEqual(actual, expected_ids)
         self.assertEqual(len(actual), 24)
         for forge, anvil in FAMILIES.items():
