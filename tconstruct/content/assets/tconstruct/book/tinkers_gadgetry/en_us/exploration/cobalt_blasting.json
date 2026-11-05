@@ -1,0 +1,14 @@
+{
+  "title": "Cobalt in this port",
+  "item": "tconstruct:cobalt_ingot",
+  "text": [
+    {
+      "text": "The port registers Nether cobalt ore generation. Mine it with a suitable pickaxe to obtain raw cobalt; Silk Touch preserves the ore instead. Natural generation and harvesting have not been verified in a running world.",
+      "paragraph": true
+    },
+    {
+      "text": "Once obtained, raw cobalt or cobalt ore can be processed in a vanilla blast furnace: one input produces one cobalt ingot. This existing route does not require a Melter, Smeltery or Foundry.",
+      "paragraph": true
+    }
+  ]
+}

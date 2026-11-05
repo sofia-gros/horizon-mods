@@ -38,4 +38,8 @@ ammo_materials=Advanced Ammo Materials
 ammo_materials.subtext=These materials are used to craft better ammo using rarer materials.
 
 intro.partial.notice_title=Partial edition
-intro.partial.notice=This edition includes only Melvin's introduction. Gadgets, exploration, slimy armor, staffs, ancient tools and material chapters are not yet included. Acquiring this book does not establish that those features or their natural acquisition paths are complete.
+intro.partial.notice=This edition includes Melvin's introduction and limited cobalt exploration guidance. Gadgets, other exploration topics, slimy armor, staffs, ancient tools and material chapters are not yet included. Acquiring this book does not establish that those features or their natural acquisition paths are complete.
+
+exploration.partial=Exploration (partial)
+exploration.partial.notice_title=Limited exploration guide
+exploration.partial.notice=Only cobalt ore and the existing vanilla blast-furnace route are covered. The ore page describes the pinned source; real-world generation and harvesting remain unverified in this port. Slime islands, geodes, mob drops and chest supplies are not established by these pages.
