@@ -179,3 +179,36 @@ mod tconstruct_source_smeltery_fuel {
   assert!(CastingRecipe::parse_for_fluid(&serde_json::to_vec(&value).unwrap(),&|_|true,&|_|true).is_none());
  }
 }
+
+#[cfg(test)] mod damaged_elytra_tests {
+ use super::*;use horizon_items::items::ItemStack;use std::collections::{BTreeMap,HashMap,HashSet};
+ #[test] fn worn_elytra_recipe_keeps_input_until_full_valid_cooling_and_outputs_fresh_wings() {
+  let recipe=include_bytes!("../fixtures/slimelytra_damaged_casting.json");
+  let fluid=include_bytes!("../fixtures/earthslime_damaged_casting.json");
+  let fluid_json:serde_json::Value=serde_json::from_slice(fluid).unwrap();let tag=fluid_json["fluid"]["tag"].as_str().unwrap();
+  let recipes=BTreeMap::from([("tconstruct:tools/armor/slimelytra".into(),recipe.to_vec()),("tconstruct:tools/materials/casting/earthslime".into(),fluid.to_vec())]);
+  let item_tags=HashMap::new();let fluid_tags=HashMap::from([(tag.into(),HashSet::from(["tconstruct:earth_slime".into()]))]);
+  let known_items=HashSet::from(["minecraft:elytra".into(),"tconstruct:slime_wings".into()]);let known_fluids=HashSet::from(["tconstruct:earth_slime".into()]);
+  let catalog=tconstruct_source_melting_lookup::Catalog{recipes:&recipes,item_tags:&item_tags,fluid_tags:&fluid_tags,known_items:&known_items,known_fluids:&known_fluids};
+  for damage in [1,430,431,432] {
+   let mut input=ItemStack::new("minecraft:elytra",1);input.damage=damage;
+   assert!(tconstruct_source_melter_state::plain_consumed_elytra(&input));
+   let (id,recipe,material)=catalog.slimelytra_casting(true,&input.item,"tconstruct:earth_slime",&|m|m=="tconstruct:earthslime",&|_|true).unwrap();
+   assert_eq!((recipe.fluid.amount,recipe.consumes_cast,recipe.switch_slots,material.as_str()),(2000,true,false,"tconstruct:earthslime"));
+   assert!(catalog.slimelytra_casting(false,&input.item,"tconstruct:earth_slime",&|_|true,&|_|true).is_none());
+   assert!(catalog.slimelytra_casting(true,&input.item,"tconstruct:earth_slime",&|_|false,&|_|true).is_none());
+   // Assembly/material trait evaluation has separate host tests. Here a fresh
+   // result exercises the real recipe and saved Casting state boundary.
+   let output=ItemStack::new("tconstruct:slime_wings",1);
+   let mut state=tconstruct_source_melter_state::Casting::new();state.input=Some(input);
+   assert!(state.prepare(&id,recipe.fluid.amount,recipe.cooling_time,output,recipe.consumes_cast,recipe.switch_slots));
+   assert!(state.tank.insert("tconstruct:earth_slime",1999));assert!(!state.tick(true));
+   assert_eq!(state.input.as_ref().unwrap().damage,damage);assert!(state.tank.insert("tconstruct:earth_slime",1));
+   let mut state=tconstruct_source_melter_state::Casting::from_nbt(&state.to_nbt()).unwrap();
+   assert_eq!(state.input.as_ref().unwrap().damage,damage);assert!(!state.tick(false));assert_eq!(state.timer,0);
+   for _ in 1..recipe.cooling_time {assert!(!state.tick(true));}
+   assert!(state.tick(true));assert!(state.input.is_none());assert_eq!(state.tank.amount,0);
+   let result=state.output.unwrap();assert_eq!((&*result.item,result.damage),("tconstruct:slime_wings",0));
+  }
+ }
+}

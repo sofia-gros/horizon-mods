@@ -70,6 +70,16 @@ impl Tank {
     }
 }
 
+/// Source consumed Elytra casting builds a fresh tool, regardless of wear.
+/// Retain the bounded plain-input contract: do not discard item components
+/// or retained wire, including stale wire no longer exposed by wire_patch().
+pub(super) fn plain_consumed_elytra(stack: &ItemStack) -> bool {
+    if stack.item.as_ref() != "minecraft:elytra" || stack.count != 1
+        || stack.data().is_some_and(|data| !data.is_empty() || data.wire.patch().is_some()) { return false; }
+    let Some(decoded) = item_from_nbt(&item_to_nbt(stack)) else { return false; };
+    decoded.count == stack.count && decoded.damage == stack.damage && decoded.same_item_same_components(stack)
+}
+
 /// Accept only an unmodified material part, so consumption cannot drop unrelated data.
 pub(super) fn plain_material_part(stack: &ItemStack) -> Option<String> {
     if stack.count != 1 || stack.damage != 0 || stack.wire_patch().is_some() { return None; }
@@ -832,6 +842,27 @@ mod casting_tests {
 #[cfg(test)]
 mod slimelytra_tests {
     use super::*;
+    #[test]
+    fn damaged_plain_elytra_is_consumable_but_components_and_wire_are_not() {
+        for damage in [0,1,430,431,432] {
+            let mut stack=ItemStack::new("minecraft:elytra",1);stack.damage=damage;
+            assert!(plain_consumed_elytra(&stack));
+            let decoded=item_from_nbt(&item_to_nbt(&stack)).unwrap();
+            assert_eq!(decoded.damage,damage);assert!(plain_consumed_elytra(&decoded));
+        }
+        for count in [0,2] {assert!(!plain_consumed_elytra(&ItemStack::new("minecraft:elytra",count)));}
+        assert!(!plain_consumed_elytra(&ItemStack::new("tconstruct:slime_wings",1)));
+        let mut stack=ItemStack::new("minecraft:elytra",1);stack.damage=431;
+        for key in ["minecraft:custom_name","minecraft:custom_data","minecraft:enchantments"] {
+            let mut extra=stack.clone();extra.data_mut().set_other(key,Some(Tag::compound([("unknown",Tag::Int(1))])));
+            assert!(!plain_consumed_elytra(&extra));
+        }
+        let mut wire=stack.clone();
+        wire.data_mut().wire=horizon_items::item_data::Wire::new(stack,std::sync::Arc::<[u8]>::from([1,2,3]));
+        assert!(wire.wire_patch().is_some());assert!(!plain_consumed_elytra(&wire));
+        wire.damage=430;assert!(wire.wire_patch().is_none());assert!(!plain_consumed_elytra(&wire));
+    }
+
 
 #[test]
 fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
@@ -841,7 +872,9 @@ fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
         ("tic_max_damage", Tag::Int(222)),
     ])));
     let mut basin = Casting::new();
-    basin.input = Some(ItemStack::new("minecraft:elytra", 1));
+    let mut worn = ItemStack::new("minecraft:elytra", 1); worn.damage = 431;
+    assert!(plain_consumed_elytra(&worn));
+    basin.input = Some(worn);
     basin.output = Some(ItemStack::new("minecraft:stone", 1));
     assert!(!basin.prepare("test:slimelytra", 2000, 2, result.clone(), true, false));
     assert_eq!(basin.tank.amount, 0); assert!(basin.input.is_some());
@@ -851,6 +884,7 @@ fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
     assert!(!basin.tick(true)); assert!(basin.input.is_some());
     assert!(basin.tank.insert("tconstruct:molten_slime", 1));
     let mut basin = Casting::from_nbt(&basin.to_nbt()).unwrap();
+    assert_eq!(basin.input.as_ref().unwrap().damage, 431);
     assert!(!basin.tick(false)); assert!(basin.input.is_some()); assert_eq!(basin.tank.amount, 2000);
     basin.output = Some(ItemStack::new("minecraft:stone", 1));
     assert!(!basin.tick(true)); assert!(basin.input.is_some()); assert_eq!(basin.tank.amount, 2000);
@@ -860,6 +894,7 @@ fn slimelytra_stays_atomic_through_rejected_and_reloaded_pours() {
     assert!(basin.input.is_none()); assert_eq!(basin.tank.amount, 0);
     let output = basin.output.unwrap();
     assert_eq!(&*output.item, "tconstruct:slime_wings");
+    assert_eq!(output.damage, 0);
     assert_eq!(output.data().unwrap().other("minecraft:custom_data").unwrap().get("tic_max_damage"), Some(&Tag::Int(222)));
 }
 
