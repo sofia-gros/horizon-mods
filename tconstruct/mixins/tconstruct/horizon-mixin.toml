@@ -5523,3 +5523,21 @@ kind = "HEAD"
 cancellable = true
 helper = "enderference-teleport.rs"
 bindings = [{ name = "mob", ty = "&crate::mobs::Mob", value = "&*m" }]
+
+
+[[module]]
+id = "source-enderference-arrow-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_enderference_arrow_world"
+source = "enderference-arrow-world.rs"
+
+[[injection]]
+id = "source-enderference-arrow-impact"
+target = "horizon_client::game::creatures::Game<'_>::projectile_hit"
+kind = "HEAD"
+helper = "enderference-arrow-impact.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "projectile", ty = "&horizon_client::projectiles::Projectile", value = "p" },
+  { name = "hit", ty = "horizon_client::projectiles::Hit", value = "hit" },
+]

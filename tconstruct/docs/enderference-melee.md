@@ -31,8 +31,9 @@ a fox may dismount); source-exact random-consumption ordering is not claimed.
 
 ## Bounds and deferred validation
 
-Projectile application and the special arrow-damage override for affected
-Endermen are not implemented. Affected Endermen still retain the host's
+Ordinary Longbow/Crossbow projectile application is extended by
+[the arrow slice](enderference-arrows.md). The special arrow-damage override
+for affected Endermen remains unimplemented. Affected Endermen still retain the host's
 projectile-damage immunity, although their attempted teleport is suppressed.
 Armor counters, PvP/player teleportation, offhand, secondary hits, monster-held
 tools, Ender Slime behavior, commands, cross-dimension movement, custom
@@ -46,7 +47,7 @@ timer, and each teleport boundary's failure return. Regression code was added
 for expiry and definition rejection but was not run. No tests, build, Mixins
 transformation, CI inspection, version checks or merge were performed.
 Gameplay, save/reload, effect synchronization and LAN remain unverified.
-Publication is paused.
+The melee layer is published as draft #881; the arrow extension stacks on it.
 
 Sources: Tinkers' Construct f4e77d43,
 `tinkering/modifiers/enderference.json`, `tinkering/materials/traits/chorus.json`,

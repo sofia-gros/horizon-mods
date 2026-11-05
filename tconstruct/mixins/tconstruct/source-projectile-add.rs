@@ -9,7 +9,7 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     if let ProjectileKind::Arrow { ref mut base_damage, .. } = p.kind { *base_damage += damage; }
     if glowing {
         if let Some(stack) = game.held().cloned() {
-            if let Some(arrow) = p.arrow.as_mut() { arrow.fired_from_weapon = Some(stack.clone()); }
+            if let Some(arrow) = p.arrow.as_mut() { if arrow.fired_from_weapon.is_none() { arrow.fired_from_weapon = Some(stack.clone()); } }
             if primary && !game.creative {
                 let (loss, shield) = crate::game::tconstruct_source_overslime_host::damage_with_cause(game, &stack, 5, Some("tconstruct:glowing"));
                 if let Some(held) = game.held_mut().as_mut().filter(|held| held.item == stack.item) {
@@ -31,4 +31,6 @@ fn tconstruct_projectile_add(game: &mut crate::game::Game<'_>, p: &mut horizon_c
     }
     let (direction, yaw) = crate::game::tconstruct_projectile_stats::restrict_direction([p.velocity.x, p.velocity.y, p.velocity.z], crystal);
     if let Some(yaw) = yaw { p.velocity.x = direction[0]; p.velocity.y = direction[1]; p.velocity.z = direction[2]; p.yaw = yaw; }
+    // Stamp after any launch hook that compares the native weapon snapshot.
+    crate::game::tconstruct_enderference_arrow_world::launch(game, p);
 }
