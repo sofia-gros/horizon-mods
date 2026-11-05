@@ -19,7 +19,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #36](https://github.com/sofia-gros/horizon/pull/36).** Keep this
+[Horizon fork PR #37](https://github.com/sofia-gros/horizon/pull/37).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -68,8 +68,7 @@ Pinned TConstruct source at `f4e77d43f39ba1047bf93ae816b7e1beaab514c2`:
 - Emerald, Quartz, Amethyst and Diamond deal 6/5/5/7 damage with 10 seconds
   burning and light 9/6/11/13. Each uses its exact `molten/ore/<gem>` still/flow
   sprites and animation metadata with white surface tint. Source spherical
-  camera fog ranges are now declared below; their sprite-derived colors remain
-  deferred.
+  camera fog ranges are now declared below; their sprite-derived colors now use the source calculation.
 - Blazing Blood deals 5 damage and burns for 15 seconds; Fiery Liquid deals 6
   and burns for 20 seconds. Both emit light 15. They retain their source
   `molten/blaze` and `slime/fiery` sprite pairs and animation metadata.
@@ -258,8 +257,8 @@ geometry: only simulation, current direction and the flowing sprite change.
 The host therefore does not invent ceiling-anchored geometry. The new upward
 simulation and current/render paths require Horizon fork PRs #27 and #28 in
 addition to the previous stack. Ichor's slime-mob drowning exemption,
-source-specific sounds, sprite-derived fog color and camera overlay remain
-outside this player-focused slice.
+source-specific sounds and camera overlay remain outside this player-focused
+slice.
 
 Soulsteel's existing machine/bucket paths remain unchanged; declaring its world
 liquid does not introduce a new survival acquisition recipe.
@@ -281,7 +280,7 @@ The seventy source placeable-fluid declarations are now present in this stack.
 Potion and Powdered Snow are source unplaceable fluids and are not invented as
 world liquids here. Remaining: full source-specific contact effects, item-specific
 curatives and mixed-source merge parity, mob/item/projectile interaction,
-sprite-derived fog colors and camera overlays, mixing and solidification,
+camera overlays, mixing and solidification,
 final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for
@@ -306,8 +305,8 @@ Queen's Slime instead explicitly uses `0x478A33`, while its surface stays white.
 These thirteen colors multiply the host's existing fog RGB, as in Mantle's
 `ClientTextureFluidType`; they do not replace it. `FluidTexture.deserialize`
 uses a non-white fluid tint before automatic still-sprite averaging. The other
-fifty-seven families intentionally omit the color field pending that averaging
-path; no color is guessed from temperature, native lava, or the white tint.
+fifty-seven families now set `calculate_color: true`, resolved from the loaded
+still sprite by the host; no color is guessed from temperature or native lava.
 Source references and range groups are recorded in
 `content/reference/world-fluid-fog-source.json`.
 
@@ -326,3 +325,27 @@ The fog slice changes no fluid identities, physics, contact effects, assets,
 recipes, acquisition rules or compatibility pin. Its new resource/packaging
 regressions are written but not run; only a brief static review is performed.
 No tests, builds, CI/version checks or merges were performed.
+
+## Runtime still-sprite fog colors
+
+The fifty-seven untinted families now opt into the source automatic calculation.
+The thirteen explicit/tinted colors remain unchanged and do not opt in. The
+host averages physical frame zero at the texture's native resolution before
+atlas resizing, caches the result per resource pack, and rebuilds that cache on
+reload. The render frame performs a lookup only. Declared still and flowing
+textures, including inverted variants, are explicitly loaded for procedural
+world liquids. No texture or animation file is changed by these declarations.
+
+Mantle's source average is saturation-weighted, using pixels whose alpha is
+above 127 and whose maximum RGB channel is above 31. Its RGBtoHSB call passes
+alpha/red/green, an unusual argument order that the host preserves. Accumulation
+is x-major f32 and final channels truncate; no positive weight produces black.
+Missing or corrupt sprites preserve the original host fog color instead of
+coloring fog from the missing-texture checkerboard. Explicit colors still win.
+
+The source averaging method's Apache-2.0 license and copyright notice are
+included with the host implementation. This mod change adds only the declarative
+flag and source records. Source API equivalence, real pack reload and visual
+results remain unverified. Camera overlays remain outstanding. Brief static
+review only; regression tests, builds, CI/version checks and merges remain
+deferred.

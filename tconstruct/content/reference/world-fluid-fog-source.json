@@ -4,7 +4,8 @@
   "sources": [
     "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/fluids/data/FluidTextureProvider.java",
     "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/FluidTexture.java",
-    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/ClientTextureFluidType.java"
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/fluid/texture/ClientTextureFluidType.java",
+    "https://github.com/SlimeKnights/Mantle/blob/17c287ad52f7b10154e07fa7570dc7bccd74ca2b/src/main/java/slimeknights/mantle/client/model/TextureColorHelper.java"
   ],
   "shape": "sphere",
   "ranges": {
@@ -42,5 +43,12 @@
     }
   },
   "color_rule": "Explicit Queen's Slime 0x478A33 overrides the surface tint. Non-white source tints supply fog color. All colors multiply the existing host fog color.",
-  "deferred": "The other 57 untinted families need runtime still-sprite fog-color averaging. Camera overlays and live graphics parity are not implemented in this slice."
+  "deferred": "Camera overlays remain unimplemented; live graphics and resource reload parity remain unverified.",
+  "automatic_color": {
+    "families": 57,
+    "flag": "calculate_color",
+    "frame": "physical frame zero at native resolution",
+    "rule": "Source alpha/red/green saturation weight, alpha > 127, RGB maximum > 31, x-major f32 accumulation; preserve source argument order. Explicit color takes precedence.",
+    "license": "Host calculation adapts the method explicitly licensed Apache-2.0; host carries its full license and attribution."
+  }
 }
