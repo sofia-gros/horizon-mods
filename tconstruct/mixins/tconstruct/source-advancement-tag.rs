@@ -10,6 +10,8 @@ pub(super) fn members<'a>(game: &'a crate::game::Game<'_>) -> Vec<&'a str> {
 
 impl crate::game::Game<'_> {
     pub(crate) fn tconstruct_invalidate_advancement_inventory_index(&mut self) {
+        // Preserve the host inventory-event gate: a tag-only reload does not
+        // synthesize an inventory change or revoke earned progress.
         self.adv.inventory_index = None;
     }
 }
