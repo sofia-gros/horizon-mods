@@ -172,3 +172,25 @@ callbacks are bounded mocks. Cases cover fill/drain, stacked/single containers,
 creative behavior, extension retention, eight changed-state cases, unsafe
 metadata and failed writes. They were not run. Host/world, save/reload and LAN
 validation remain deferred to the combined pass.
+
+### Cannon item-state preservation (#379)
+
+The shared Cannon item save used by manual interactions and hopper commits
+now preserves native machine/tank extensions and validates the saved/live
+item before publishing a new slot. Unchanged opaque saved item fields remain
+intact; removing, replacing or decrementing such an item is refused rather
+than discarding unrepresented data. A mixed legacy `Items` payload also blocks
+item changes. Representable ordinary items retain their existing behavior.
+
+Cannon item validation rejects retained wire backing even after its current
+wire view is stale. Hopper source/destination candidates and the selected
+slot after the inventory callback use the same conservative wire restriction.
+A failed Cannon save retains the existing hopper rollback. Fluid-only held
+transfers keep their separate tank patch.
+
+Three added production-save fixture cases cover normal insert/remove/count
+changes, extension retention, opaque/stale live states, wire refusal and
+failed persistence. Wiring assertions cover hopper rollback and post-callback
+guards. Tests were not run. The fixture does not execute native hopper
+callbacks or full manual dispatch; host/gameplay/save/reload/LAN and destruction
+remain for the later combined work.

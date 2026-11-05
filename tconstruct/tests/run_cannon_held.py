@@ -14,12 +14,13 @@ if actual != expected or dirty:
     raise SystemExit(f"HORIZON_HOST must have a clean tracked tree at {expected}")
 source = (root / "mixins/tconstruct/source-machine-runtime.rs").read_text()
 loader = source[source.index("pub(super) fn cannon_at("):source.index("pub(super) fn save_cannon(")]
+save = source[source.index("pub(super) fn save_cannon("):source.index("pub(super) fn interact_cannon(")]
 start = source.index("pub(super) fn interact_cannon(")
 end = source.index("\n    let held = game.held().cloned();", start)
 route = source[start:end] + "\n    false\n}\n"
 template = (root / "tests/rust/cannon_held_fixture.rs").read_text()
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("__PLUTO__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"))
-template = template.replace("// __CANNON_AT__", loader).replace("// __CANNON_HELD__", route)
+template = template.replace("// __CANNON_AT__", loader).replace("// __CANNON_HELD__", route).replace("// __CANNON_SAVE__", save)
 with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
     path = pathlib.Path(tmp)
     (path / "src").mkdir()
@@ -38,6 +39,6 @@ with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
         raise SystemExit(f"Fixture dependencies differ from pinned host lock: {unknown}")
     result = subprocess.run(["cargo", "test", "--locked", "--offline", "--manifest-path", str(path / "Cargo.toml"), "--", "--nocapture"], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     print(result.stdout)
-    for case in ("cannon_held_fill_drain_preserve_raw_and_live_items", "cannon_held_snapshot_changes_never_commit_or_notify", "cannon_held_unsafe_metadata_and_failed_save_preserve_inventory"):
+    for case in ("cannon_held_fill_drain_preserve_raw_and_live_items", "cannon_held_snapshot_changes_never_commit_or_notify", "cannon_held_unsafe_metadata_and_failed_save_preserve_inventory", "cannon_item_saves_preserve_extensions_before_publishing_slots", "cannon_item_saves_refuse_opaque_changes_and_stale_live_state", "cannon_item_saves_refuse_retained_wire_and_failed_persistence"):
         if f"test {case} ... ok" not in result.stdout.splitlines():
             raise SystemExit(f"Required route test did not execute: {case}")
