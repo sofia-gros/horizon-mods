@@ -22,6 +22,7 @@ fn tconstruct_machine_open(game: &mut crate::game::Game<'_>, pos: [i32; 3], name
         if state.slots.is_empty() { return std::ops::ControlFlow::Break(false); }
         let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&key) else { return std::ops::ControlFlow::Break(false); };
         *slots = crate::game::tconstruct_source_smeltery_page::project(&state.slots, 0);
+        game.world.chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().remove(&key);
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(key, (state.slots.len(), 0));
         game.container = Some(key);
         return std::ops::ControlFlow::Break(true);

@@ -52,6 +52,12 @@ pub(super) fn protect(kind: &str, outer: &Tag) -> bool {
 /// Smeltery page offset. A live projection must equal the saved page in the
 /// same positions; opaque wire patches are not safe to rewrite on a drop.
 pub(super) fn live_matches(kind: &str, raw: &Tag, live: &[Option<horizon_items::items::ItemStack>], page_offset: Option<usize>) -> bool {
+    live_matches_with_closed_projection(kind, raw, live, page_offset, false)
+}
+
+/// A closed projection may be empty only after a verified local close. The
+/// proof is ephemeral and is revoked on open, removal, unload or world reset.
+pub(super) fn live_matches_with_closed_projection(kind: &str, raw: &Tag, live: &[Option<horizon_items::items::ItemStack>], page_offset: Option<usize>, closed_projection: bool) -> bool {
     let Some(raw) = raw.get(kind) else { return false; };
     let saved: Vec<_> = match kind {
         "tconstruct:melter" => match super::tconstruct_source_melter_state::Melter::from_nbt(raw) {
@@ -72,8 +78,30 @@ pub(super) fn live_matches(kind: &str, raw: &Tag, live: &[Option<horizon_items::
         return live.len() >= saved.len() && live.iter().take(saved.len()).zip(&saved).all(|(a,b)| equal(a,b))
             && live.iter().skip(saved.len()).all(Option::is_none);
     }
+    if closed_projection && page_offset.is_none()
+        && live.len() == super::tconstruct_source_smeltery_page::MENU_SIZE
+        && live.iter().all(Option::is_none) { return true; }
     if live.iter().all(Option::is_none) && saved.iter().all(Option::is_none) { return true; }
     let Some(offset) = page_offset else { return false; };
     let expected = super::tconstruct_source_smeltery_page::project(&saved, offset);
     live.len() == expected.len() && live.iter().zip(&expected).all(|(a,b)| equal(a,b))
+}
+
+/// Retire only a complete, lossless page that still agrees with saved inputs
+/// and the separately owned container slots. Unknown live data is never erased.
+/// Call before returning containers, then keep the successful result as proof.
+pub(super) fn close_projection(raw: &Tag, live: &mut [Option<horizon_items::items::ItemStack>], page_offset: Option<usize>, containers: &[Option<horizon_items::items::ItemStack>; 2]) -> bool {
+    if protect("tconstruct:smeltery", raw) { return false; }
+    let Some(offset) = page_offset else { return false; };
+    let Some(saved) = raw.get("tconstruct:smeltery")
+        .and_then(super::tconstruct_source_smeltery_state::Smeltery::from_nbt) else { return false; };
+    let expected = super::tconstruct_source_smeltery_page::project_with_containers(&saved.slots, offset, containers);
+    if live.len() != expected.len() || !live.iter().zip(&expected).all(|(a,b)| match (a,b) {
+        (None,None) => true,
+        (Some(a),Some(b)) => a.wire_patch().is_none() && b.wire_patch().is_none()
+            && a.count == b.count && a.damage == b.damage && a.same_item_same_components(b),
+        _ => false,
+    }) { return false; }
+    live.fill(None);
+    true
 }

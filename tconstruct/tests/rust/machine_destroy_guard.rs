@@ -110,3 +110,57 @@ fn outer(kind: &str, value: Tag) -> Tag {
     if let Tag::Compound(fields) = &mut saved { fields.insert("Items".into(), Tag::List(vec![Tag::Compound(item)])); }
     assert!(!guard::protect("tconstruct:smeltery", &saved));
 }
+
+#[test] fn verified_close_allows_filled_controller_after_page_offset_is_discarded() {
+    use horizon_items::items::ItemStack;
+    let mut state = tconstruct_source_smeltery_state::Smeltery::new();
+    state.slots = vec![None; 71]; state.progress = vec![0; 71];
+    state.slots[0] = Some(ItemStack::new("minecraft:iron_ore", 1));
+    state.slots[70] = Some(ItemStack::new("minecraft:gold_ore", 1));
+    let raw = outer("tconstruct:smeltery", state.to_nbt());
+    let containers = [Some(ItemStack::new("minecraft:bucket", 1)), None];
+    let mut live = tconstruct_source_smeltery_page::project_with_containers(&state.slots, 8, &containers);
+    let proof = guard::close_projection(&raw, &mut live, Some(8), &containers);
+    assert!(proof);
+    assert!(live.iter().all(Option::is_none));
+    // Both controller block variants route through this same smeltery state.
+    assert!(guard::live_matches_with_closed_projection("tconstruct:smeltery", &raw, &live, None, proof));
+    assert!(!guard::live_matches_with_closed_projection("tconstruct:smeltery", &raw, &live, None, false));
+    // Returning containers belongs to the caller; the original slots are not changed.
+    assert_eq!(containers[0].as_ref().unwrap().count, 1);
+    // Closed runtime, hopper and guest writes may change authoritative inputs
+    // without reintroducing the retired UI page or its old page offset.
+    state.slots[0] = None;
+    state.slots[4] = Some(ItemStack::new("minecraft:copper_ore", 1));
+    let current = outer("tconstruct:smeltery", state.to_nbt());
+    assert!(guard::live_matches_with_closed_projection("tconstruct:smeltery", &current, &live, None, proof));
+    // A later unexplained live insertion must still prevent destruction.
+    live[20] = Some(ItemStack::new("minecraft:diamond", 1));
+    assert!(!guard::live_matches_with_closed_projection("tconstruct:smeltery", &current, &live, None, proof));
+}
+
+#[test] fn close_never_erases_mismatched_or_unknown_page() {
+    use horizon_items::items::ItemStack;
+    let mut state = tconstruct_source_smeltery_state::Smeltery::new();
+    state.slots = vec![Some(ItemStack::new("minecraft:iron_ore", 1))]; state.progress = vec![0];
+    let raw = outer("tconstruct:smeltery", state.to_nbt());
+    let page = tconstruct_source_smeltery_page::project(&state.slots, 0);
+    for (mut live, offset) in [(page.clone(), None), (vec![None; 54], Some(0)), (vec![None; 27], Some(0))] {
+        let before = live.clone();
+        assert!(!guard::close_projection(&raw, &mut live, offset, &[None, None]));
+        assert_eq!(live, before);
+    }
+    let mut live = page.clone(); live[0] = Some(ItemStack::new("minecraft:bucket", 1));
+    let before = live.clone();
+    assert!(!guard::close_projection(&raw, &mut live, Some(0), &[None, None]));
+    assert_eq!(live, before);
+    let mut opaque = raw.clone();
+    if let Tag::Compound(fields) = &mut opaque { fields.insert("future".into(), Tag::Int(7)); }
+    let mut live = page.clone();
+    assert!(!guard::close_projection(&opaque, &mut live, Some(0), &[None, None]));
+    assert_eq!(live, page);
+    assert!(guard::protect("tconstruct:smeltery", &opaque));
+    // An ephemeral proof is not inferred after reload or from a 27-slot chest.
+    assert!(!guard::live_matches_with_closed_projection("tconstruct:smeltery", &raw, &[None; 0], None, true));
+    assert!(!guard::live_matches_with_closed_projection("tconstruct:smeltery", &raw, &vec![None; 27], None, true));
+}

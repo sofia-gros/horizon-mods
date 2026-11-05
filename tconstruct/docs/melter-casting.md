@@ -104,10 +104,18 @@ action-bar message reports the refusal to the acting player. It runs before
 Overwield's break accounting. Missing source records with a nonempty or unknown live inventory are also
 rejected; empty or absent live inventory without a saved source remains allowed.
 Serialized outer inventory items must round-trip. A saved source also requires
-a live chest projection: Melter slots must match exactly, and each live
-Smeltery slot must match the saved page at the known page offset. A nonempty
-projection with unknown offset is rejected; an empty unprojected view is only
-accepted when the saved inventory is also empty. Unsaved items or
+a live chest projection: Melter slots must match exactly. An open Smeltery
+page must match the saved page at its known offset. On local close, a complete
+page is cleared only after it matches the saved inputs and the separately
+owned container slots, with no retained wire patches or unsupported metadata.
+An ephemeral proof permits this empty retired page while the saved inventory
+continues changing. The proof is removed on opening, controller removal,
+chunk unload and world reset. Unknown live items still block destruction.
+Without that proof, an empty unprojected view is accepted only when the saved
+inventory is also empty. Reloaded filled controllers can therefore still be
+refused; no page provenance is inferred from serialized Items. Opening and
+closing a canonical machine establishes a fresh proof, but is not a recovery
+procedure for unknown live data. Unsaved items or
 open local or guest container slots can therefore block removal. This does not guard explosions,
 pistons, commands, other block-replacement paths or already-lost data. The
 fixture uses cached host libraries and mock state; actual host, world, player,

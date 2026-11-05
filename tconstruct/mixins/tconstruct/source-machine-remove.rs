@@ -39,6 +39,7 @@ fn tconstruct_machine_remove(level: &mut crate::game::GameLevel<'_>, pos: horizo
     }
     if matches!(&*name, "tconstruct:smeltery_controller" | "tconstruct:foundry_controller") {
         let controller = (pos.x, pos.y, pos.z);
+        level.world.chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().remove(&controller);
         if let Some(state) = crate::game::tconstruct_source_melter_store::read(level.world, controller, "tconstruct:smeltery")
             .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) {
             if side_effects {

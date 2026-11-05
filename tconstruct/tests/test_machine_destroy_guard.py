@@ -23,6 +23,29 @@ class DestroyGuardWiring(unittest.TestCase):
         self.assertIn('game.native_action_bar(uuid, message)', helper)
         self.assertIn('game.titles.set_overlay(message, false)', helper)
         self.assertLess(helper.index('if !*canceled'), helper.index('message.tconstruct.machine_break_guard'))
+    def test_closed_projection_proof_is_created_only_after_validation_and_revoked(self):
+        close = (ROOT / 'source-builder-close.rs').read_text()
+        self.assertIn('if game.remote.is_none()', close)
+        self.assertLess(close.index('::close_projection('), close.index('game.give_or_drop(stack)'))
+        self.assertIn('if cleared { game.world.chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().insert(pos); }', close)
+        guard = (ROOT / 'source-machine-destroy-guard.rs').read_text()
+        self.assertIn('closed_projection && page_offset.is_none()', guard)
+        self.assertIn('live.len() == super::tconstruct_source_smeltery_page::MENU_SIZE', guard)
+        self.assertIn('&& live.iter().all(Option::is_none)', guard)
+        self.assertIn('if protect("tconstruct:smeltery", raw) { return false; }', guard)
+        self.assertLess(guard.index('if live.len() != expected.len()'), guard.index('live.fill(None)'))
+        for filename in ['source-machine-open.rs', 'source-machine-remove.rs',
+                         'part-selection-chunk-clear.rs', 'part-selection-chunk-remove.rs']:
+            self.assertIn('__horizon_mixins_tconstruct_smeltery_closed_projection_mut()', (ROOT / filename).read_text())
+        helper = (ROOT / 'source-overwield-harvest-start.rs').read_text()
+        self.assertIn('::live_matches_with_closed_projection(kind, &raw, slots, offset, closed)', helper)
+        self.assertIn('::protect(kind, &raw)', helper)
+        import tomllib
+        manifest = tomllib.loads((ROOT / 'horizon-mixin.toml').read_text())
+        state = [row for row in manifest['state'] if row['id'] == 'smeltery-closed-projection']
+        self.assertEqual(len(state), 1)
+        self.assertEqual(state[0]['ty'], 'std::collections::HashSet<(i32,i32,i32)>')
+
     def test_all_source_languages_receive_feedback(self):
         self.assertEqual(set(MACHINE_GUARD_MESSAGES), set(WARNINGS))
         for locale in WARNINGS:

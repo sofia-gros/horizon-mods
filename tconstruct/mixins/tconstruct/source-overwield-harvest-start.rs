@@ -20,8 +20,12 @@ fn tconstruct_overwield_harvest_start(game: &mut crate::game::Game<'_>, pos: [i3
                 *canceled = true;
             } else if let Some(raw) = super::tconstruct_source_melter_store::read_outer(&game.world, at) {
                 let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&at).map(|page| page.1);
-                let safe_live = matches!(game.world.block_entities.get(&at), Some(horizon_client::containers::BlockEntity::Chest(slots))
-                    if super::tconstruct_source_machine_destroy_guard::live_matches(kind, &raw, slots, offset));
+                let closed = game.world.chunks.__horizon_mixins_tconstruct_smeltery_closed_projection().contains(&at);
+                let safe_live = match game.world.block_entities.get(&at) {
+                    Some(horizon_client::containers::BlockEntity::Chest(slots)) =>
+                        super::tconstruct_source_machine_destroy_guard::live_matches_with_closed_projection(kind, &raw, slots, offset, closed),
+                    _ => false,
+                };
                 if !safe_live || super::tconstruct_source_machine_destroy_guard::protect(kind, &raw) { *canceled = true; }
             } else if game.world.block_entities.get(&at).is_some_and(|entity| match entity {
                 horizon_client::containers::BlockEntity::Chest(slots) => slots.iter().any(Option::is_some),

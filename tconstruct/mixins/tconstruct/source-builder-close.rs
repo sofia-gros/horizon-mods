@@ -8,6 +8,20 @@ fn builder_close(game: &mut crate::game::Game<'_>) {
     }
     if crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) {
         if let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) {
+            game.world.chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().remove(&pos);
+            if game.remote.is_none() {
+                let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map(|page| page.1);
+                let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
+                    .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+                if let Some(raw) = crate::game::tconstruct_source_melter_store::read_outer(&game.world, pos) {
+                    let cleared = match game.world.block_entities.get_mut(&pos) {
+                        Some(horizon_client::containers::BlockEntity::Chest(live)) =>
+                            crate::game::tconstruct_source_machine_destroy_guard::close_projection(&raw, live, offset, &containers),
+                        _ => false,
+                    };
+                    if cleared { game.world.chunks.__horizon_mixins_tconstruct_smeltery_closed_projection_mut().insert(pos); }
+                }
+            }
             if let Some((containers, _)) = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().remove(&pos) {
                 if game.remote.is_none() {
                     for stack in containers.into_iter().flatten() { game.give_or_drop(stack); }
