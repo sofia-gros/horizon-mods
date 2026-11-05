@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run production Cannon held-tank branch with real Horizon state types and mocked world.
+"""Run production Cannon interaction and native inventory planner with real Horizon state types and mocked world.
 
 HORIZON_HOST must name the pinned host checkout. Cargo dependencies are real;
 World storage, block/loading state and inventory callbacks are fixtures.
@@ -16,8 +16,11 @@ source = (root / "mixins/tconstruct/source-machine-runtime.rs").read_text()
 loader = source[source.index("pub(super) fn cannon_at("):source.index("pub(super) fn save_cannon(")]
 save = source[source.index("pub(super) fn save_cannon("):source.index("pub(super) fn interact_cannon(")]
 start = source.index("pub(super) fn interact_cannon(")
-end = source.index("\n    let held = game.held().cloned();", start)
-route = source[start:end] + "\n    false\n}\n"
+end = source.index("\n/// A formed drain", start)
+route = source[start:end]
+host_game = (host / "crates/horizon-client/src/game.rs").read_text()
+inventory_add = host_game[host_game.index("fn inventory_add("):host_game.index("\nfn facing_offset(")]
+inventory_add = inventory_add.replace("shield::OFFHAND_SLOT", "40")
 hopper_source = (root / "mixins/tconstruct/source-chute-hopper.rs").read_text()
 hopper = hopper_source[hopper_source.index("fn cannon_transfer("):hopper_source.index("// The source sided inventory")]
 hopper = hopper.replace("fn cannon_transfer(", "pub(super) fn cannon_transfer(", 1)
@@ -26,6 +29,7 @@ hopper = hopper.replace("use horizon_client::{containers::BlockEntity, pluto_inv
 template = (root / "tests/rust/cannon_held_fixture.rs").read_text()
 template = template.replace("__MIXINS__", str(root / "mixins/tconstruct")).replace("__PLUTO__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/stack-fluid.rs"))
 template = template.replace("__INVENTORY__", str(root.parent / "pluto-lib/mixins/pluto_native_creative/inventory-api/src/lib.rs")).replace("// __CANNON_HOPPER__", hopper)
+template = template.replace("// __INVENTORY_ADD__", inventory_add)
 template = template.replace("// __CANNON_AT__", loader).replace("// __CANNON_HELD__", route).replace("// __CANNON_SAVE__", save)
 with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
     path = pathlib.Path(tmp)
@@ -45,6 +49,6 @@ with tempfile.TemporaryDirectory(prefix="cannon-held-") as tmp:
         raise SystemExit(f"Fixture dependencies differ from pinned host lock: {unknown}")
     result = subprocess.run(["cargo", "test", "--locked", "--offline", "--manifest-path", str(path / "Cargo.toml"), "--", "--nocapture"], check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
     print(result.stdout)
-    for case in ("cannon_held_fill_drain_preserve_raw_and_live_items", "cannon_held_snapshot_changes_never_commit_or_notify", "cannon_held_unsafe_metadata_and_failed_save_preserve_inventory", "cannon_item_saves_preserve_extensions_before_publishing_slots", "cannon_item_saves_refuse_opaque_changes_and_stale_live_state", "cannon_item_saves_refuse_retained_wire_and_failed_persistence", "cannon_hopper_push_pull_preserve_data_and_counts", "cannon_hopper_callback_changes_preserve_both_inventories", "cannon_hopper_failed_save_rolls_back_and_invalid_endpoints_wait"):
+    for case in ("cannon_held_fill_drain_preserve_raw_and_live_items", "cannon_held_snapshot_changes_never_commit_or_notify", "cannon_held_unsafe_metadata_and_failed_save_preserve_inventory", "cannon_item_saves_preserve_extensions_before_publishing_slots", "cannon_item_saves_refuse_opaque_changes_and_stale_live_state", "cannon_item_saves_refuse_retained_wire_and_failed_persistence", "cannon_hopper_push_pull_preserve_data_and_counts", "cannon_hopper_callback_changes_preserve_both_inventories", "cannon_hopper_failed_save_rolls_back_and_invalid_endpoints_wait", "cannon_item_click_insert_and_empty_hand_extract_preserve_data", "cannon_item_click_uses_native_add_order_and_partial_transfer", "cannon_item_click_no_space_and_unsafe_stacks_do_not_save", "cannon_item_click_failed_save_preserves_player_inventory"):
         if f"test {case} ... ok" not in result.stdout.splitlines():
             raise SystemExit(f"Required route test did not execute: {case}")

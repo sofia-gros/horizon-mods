@@ -1,4 +1,4 @@
-// Production Cannon loader and held-tank branch, with bounded host callbacks.
+// Production Cannon interaction, native inventory_add and bounded host callbacks.
 #[path="__MIXINS__/source-smeltery-fuel.rs"] mod tconstruct_source_smeltery_fuel;
 #[path="__MIXINS__/source-melter-state.rs"] mod tconstruct_source_melter_state;
 #[path="__MIXINS__/source-smeltery-tank.rs"] mod tconstruct_source_smeltery_tank;
@@ -11,7 +11,8 @@ use std::collections::{HashMap,HashSet};
 use horizon_world::nbt::Tag;use horizon_items::items::ItemStack;
 type Pos=(i32,i32,i32);type Tags=HashMap<String,HashSet<String>>;
 #[derive(Clone)]enum BlockEntity{Chest(Vec<Option<ItemStack>>)}
-struct Items;impl Items{fn get(&self,_:&str)->Option<()>{Some(())}}
+struct ItemInfo{max_stack:u32}
+struct Items;impl Items{fn get(&self,_:&str)->Option<ItemInfo>{Some(ItemInfo{max_stack:64})}}
 struct Res;impl Res{fn items(&self)->Items{Items}}
 struct Chunks{loaded:bool,unloaded:HashSet<(i32,i32)>,fluids:Option<Result<(HashSet<String>,()),()>>,tags:Option<Result<Tags,()>>}
 impl Chunks{
@@ -21,7 +22,7 @@ impl Chunks{
 }
 struct World{raw:Tag,chunks:Chunks,block_entities:HashMap<Pos,BlockEntity>,block:usize,blocks:HashMap<Pos,usize>,fail:bool,writes:usize}
 impl World{fn block(&self,x:i32,y:i32,z:i32)->usize{self.blocks.get(&(x,y,z)).copied().unwrap_or(self.block)}}
-struct Game<'a>{world:World,res:Res,held:Option<ItemStack>,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,move_fault:u8,moves:usize,signals:usize,updates:usize,_life:std::marker::PhantomData<&'a()>}
+struct Game<'a>{world:World,res:Res,held:Option<ItemStack>,inventory:Vec<Option<ItemStack>>,offhand:Option<ItemStack>,selected:usize,gifts:Vec<ItemStack>,creative:bool,lan:Option<()>,lan_acting_uuid:Option<()>,fault:u8,move_fault:u8,moves:usize,signals:usize,updates:usize,_life:std::marker::PhantomData<&'a()>}
 #[derive(PartialEq)]enum Kind{Hopper,Other}
 struct View{kind:Kind,parts:Vec<(Pos,usize)>}impl View{fn len(&self)->usize{self.parts.iter().map(|(_,len)|len).sum()}}
 struct Containers;impl Containers{fn max_stack(&self,_:&ItemStack)->u32{64}fn can_place(&self,_:&View,_:usize,_:&ItemStack)->bool{true}}
@@ -61,6 +62,7 @@ impl Game<'_>{
   }
  }
 }
+// __INVENTORY_ADD__
 mod store{use super::*;pub(super)fn read(world:&World,_:Pos,_:&str)->Option<Tag>{world.chunks.loaded.then(||world.raw.clone())}pub(super)fn write(world:&mut World,_:Pos,_:&str,raw:Tag)->bool{if world.fail{return false}world.raw=raw;world.writes+=1;true}}
 mod runtime{
  use super::*;
@@ -79,7 +81,7 @@ fn fixture(draining:bool,count:u32)->Game<'static>{
   if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){tank.insert("future_tank".into(),Tag::Int(8));}
   if let Some(Tag::Compound(item))=fields.get_mut(&"item".into()){item.insert("future_item".into(),Tag::Int(9));}
  }
- Game{world:World{raw,chunks:Chunks{loaded:true,unloaded:HashSet::new(),fluids:Some(Ok((HashSet::from(["minecraft:water".into()]),()))),tags:Some(Ok(Tags::new()))},block_entities:HashMap::from([((0,0,0),BlockEntity::Chest(vec![Some(item)]))]),block:1,blocks:HashMap::new(),fail:false,writes:0},res:Res,held:Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},count)),gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,move_fault:0,moves:0,signals:0,updates:0,_life:std::marker::PhantomData}
+ Game{world:World{raw,chunks:Chunks{loaded:true,unloaded:HashSet::new(),fluids:Some(Ok((HashSet::from(["minecraft:water".into()]),()))),tags:Some(Ok(Tags::new()))},block_entities:HashMap::from([((0,0,0),BlockEntity::Chest(vec![Some(item)]))]),block:1,blocks:HashMap::new(),fail:false,writes:0},res:Res,held:Some(ItemStack::new(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},count)),inventory:vec![None;36],offhand:None,selected:0,gifts:vec![],creative:false,lan:None,lan_acting_uuid:None,fault:0,move_fault:0,moves:0,signals:0,updates:0,_life:std::marker::PhantomData}
 }
 #[test]fn cannon_held_fill_drain_preserve_raw_and_live_items(){
  for draining in [false,true]{for count in [1,2]{for creative in [false,true]{
@@ -197,4 +199,66 @@ fn hopper_fixture()->(Game<'static>,View){
   let BlockEntity::Chest(after)=&game.world.block_entities[&(32,0,0)];assert_eq!(after,&hopper);let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&cannon);
   assert_eq!((game.world.writes,game.updates,game.signals),(0,0,0));assert_eq!(game.moves,usize::from(mode==0));
  }}
+}
+
+#[test]fn cannon_item_click_insert_and_empty_hand_extract_preserve_data(){
+ let mut game=fixture(true,1);canonical_saved_item(&mut game);
+ let mut empty=runtime::cannon_at(&game,(0,0,0)).unwrap();empty.item=None;
+ assert!(runtime::save_cannon(&mut game,(0,0,0),&empty));game.world.writes=0;game.updates=0;
+ let mut item=ItemStack::new("minecraft:diamond",23);item.damage=3;
+ item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Kept".into())));
+ game.held=Some(item.clone());let raw=game.world.raw.clone();
+ assert!(runtime::interact_cannon(&mut game,(0,0,0),false));assert!(game.held.is_none());
+ assert_eq!(runtime::cannon_at(&game,(0,0,0)).unwrap().item,Some(item.clone()));
+ assert_eq!(game.world.raw.get("tank"),raw.get("tank"));assert_eq!(game.world.raw.get("future"),raw.get("future"));
+ assert!(runtime::interact_cannon(&mut game,(0,0,0),false));assert_eq!(game.held,Some(item));
+ assert!(runtime::cannon_at(&game,(0,0,0)).unwrap().item.is_none());assert_eq!((game.world.writes,game.updates),(2,2));
+}
+#[test]fn cannon_item_click_uses_native_add_order_and_partial_transfer(){
+ for partial in [false,true]{let mut game=fixture(false,1);canonical_saved_item(&mut game);
+  if partial{game.inventory=vec![Some(ItemStack::new("minecraft:diamond",64));36];}
+  game.inventory[0]=Some(ItemStack::new("minecraft:stone",60));
+  if !partial{game.offhand=Some(ItemStack::new("minecraft:stone",63));}
+  let raw=game.world.raw.clone();let held=game.held.clone();
+  assert!(runtime::interact_cannon(&mut game,(0,0,0),false));
+  assert_eq!(game.inventory[0].as_ref().unwrap().count,64);assert_eq!(game.held,held);
+  let state=runtime::cannon_at(&game,(0,0,0)).unwrap();
+  if partial{assert_eq!(state.item.unwrap().count,12);}
+  else{assert!(state.item.is_none());assert_eq!(game.offhand.as_ref().unwrap().count,64);assert_eq!(game.inventory[1].as_ref().unwrap().count,11);}
+  assert_eq!(game.world.raw.get("tank"),raw.get("tank"));assert_eq!(game.world.raw.get("future"),raw.get("future"));assert_eq!((game.world.writes,game.updates),(1,1));
+ }
+}
+fn retained_item(changed:bool)->ItemStack{
+ let mut item=ItemStack::new("minecraft:stone",1);
+ item.data_mut().wire=horizon_items::item_data::Wire::new(item.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));
+ if changed{item.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}
+ item
+}
+#[test]fn cannon_item_click_no_space_and_unsafe_stacks_do_not_save(){
+ for mode in 0..10{let mut game=fixture(false,1);canonical_saved_item(&mut game);
+  match mode{
+   0=>game.inventory=vec![Some(ItemStack::new("minecraft:diamond",64));36],
+   1|2=>game.inventory[0]=Some(retained_item(mode==2)),
+   3|4=>game.offhand=Some(retained_item(mode==4)),
+   5=>game.inventory[0]=Some(ItemStack::new("minecraft:stone",0)),
+   6=>game.inventory.truncate(35),7=>game.selected=36,
+   8|9=>{let mut empty=runtime::cannon_at(&game,(0,0,0)).unwrap();empty.item=None;assert!(runtime::save_cannon(&mut game,(0,0,0),&empty));game.world.writes=0;game.updates=0;game.held=Some(retained_item(mode==9));},
+   _=>unreachable!(),
+  }
+  let before=(game.world.raw.clone(),game.inventory.clone(),game.offhand.clone(),game.held.clone());
+  assert!(runtime::interact_cannon(&mut game,(0,0,0),false));
+  assert_eq!((game.world.raw,game.inventory,game.offhand,game.held),before);assert_eq!((game.world.writes,game.updates,game.signals),(0,0,0));assert!(game.gifts.is_empty());
+ }
+ let mut game=fixture(false,1);canonical_saved_item(&mut game);
+ let mut state=runtime::cannon_at(&game,(0,0,0)).unwrap();state.item=Some(ItemStack::new("minecraft:stone",0));assert!(!state.lossless());
+ assert!(!runtime::save_cannon(&mut game,(0,0,0),&state));assert_eq!(game.world.writes,0);
+}
+#[test]fn cannon_item_click_failed_save_preserves_player_inventory(){
+ for empty_hand in [false,true]{let mut game=fixture(false,1);canonical_saved_item(&mut game);game.world.fail=true;
+  if empty_hand{game.held=None;}else{game.inventory[0]=Some(ItemStack::new("minecraft:stone",60));}
+  let before=(game.world.raw.clone(),game.inventory.clone(),game.offhand.clone(),game.held.clone());
+  let BlockEntity::Chest(live)=game.world.block_entities[&(0,0,0)].clone();
+  assert!(!runtime::interact_cannon(&mut game,(0,0,0),false));assert_eq!((game.world.raw,game.inventory,game.offhand,game.held),before);
+  let BlockEntity::Chest(after)=&game.world.block_entities[&(0,0,0)];assert_eq!(after,&live);assert_eq!((game.world.writes,game.updates,game.signals),(0,0,0));
+ }
 }

@@ -407,10 +407,14 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
         else { *game.held_mut() = slots[1].take(); }
         return true;
     }
+    // ItemStack equality does not prove that a retained network patch can
+    // survive count changes. Keep such stacks out of the native add planner.
+    let wire_safe = |item: &horizon_items::items::ItemStack| item.count > 0
+        && item.wire_patch().is_none() && !item.data().is_some_and(|data| data.wire.patch().is_some());
     let held = game.held().cloned();
     match (state.item.take(), held) {
         (None, None) => true,
-        (None, Some(item)) if item.count > 0 && item.wire_patch().is_none() => {
+        (None, Some(item)) if wire_safe(&item) => {
             state.item = Some(item); if !save_cannon(game,pos,&state) { return false; }
             *game.held_mut() = None; true
         }
@@ -419,9 +423,17 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
             *game.held_mut() = Some(item); true
         }
         (Some(mut item), Some(_)) => {
+            // inventory_add indexes all 36 player slots and may merge into
+            // the off hand. Refuse opaque destinations before staging moves.
+            if game.inventory.len() < 36 || game.selected >= 36
+                || !game.inventory.iter().flatten().all(&wire_safe)
+                || !game.offhand.as_ref().is_none_or(&wire_safe) { return true; }
+            let before = item.count;
             let mut inventory = game.inventory.clone(); let mut offhand = game.offhand.clone();
             let max = game.res.items().get(&item.item).map_or(64, |info| info.max_stack);
             let left = super::inventory_add(&mut inventory,&mut offhand,game.selected,max,&mut item);
+            // A full inventory is a handled no-op, not a save/notification.
+            if item.count == before { return true; }
             state.item = left.then_some(item);
             if !save_cannon(game,pos,&state) { return false; }
             game.inventory = inventory; game.offhand = offhand; true
