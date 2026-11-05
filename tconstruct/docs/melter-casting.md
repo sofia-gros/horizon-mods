@@ -517,3 +517,19 @@ behavior, automatic container processing, upper-slot insert/take, first/second
 callback changes, wire refusal and failed persistence. These fixtures use a mocked
 host/world/store and were added but not run in this implementation phase. Full host,
 gameplay, save/reload, LAN and notification callback behavior remain unverified.
+### Faucet mixed-format metadata guard (#379)
+
+The common Faucet decoder now refuses the source-owned `state`, `drained`,
+`render_fluid` and `lastRedstone` fields beside native state. It also refuses
+Forge `FluidName`/`Amount`/`Tag` aliases in the pending tank and non-roundtripping
+native fluid IDs. These fields cannot safely be treated as inert extensions:
+updating only native fields would leave a contradictory buffered-fluid/state
+representation. This is conservative refusal, not automatic Forge migration.
+
+Genuine native Faucet and pending-tank extensions still survive activation,
+stop requests, pouring and reload. Both activation and tick decode before
+fluid routing, including the legacy paths. Production-state regression cases
+and dispatch wiring assertions were added but not run. Destruction, redstone
+scheduling, full host/world, save/reload and LAN validation remain separate.
+
+Source field definitions: [FaucetBlockEntity at the fixed source revision](https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct/smeltery/block/entity/FaucetBlockEntity.java).
