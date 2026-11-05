@@ -3427,6 +3427,14 @@ name = "tconstruct_materials_book_stat"
 source = "source-materials-book-stat.rs"
 
 [[injection]]
+id = "materials-book-key"
+target = "horizon_client::game::books::Game<'_>::book_input"
+kind = "HEAD"
+cancellable = true
+helper = "source-materials-book-key.rs"
+bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "key", ty = "Option<KeyCode>", value = "key" }]
+
+[[injection]]
 id = "materials-book-click"
 target = "horizon_client::game::books::Game<'_>::book_click"
 kind = "HEAD"
