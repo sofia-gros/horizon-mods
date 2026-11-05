@@ -4,11 +4,13 @@ pub fn attempt(motion: &mut MotionWorld<'_, '_, '_>, capacity: u8) -> crate::Res
     if motion.player.ground.on_ground {
         *motion
             .player
+            .status
             .__horizon_mixins_tconstruct_dreambound_jumps_used_mut() = 0;
         return Ok(false);
     }
     let used = *motion
         .player
+        .status
         .__horizon_mixins_tconstruct_dreambound_jumps_used();
     if capacity == 0
         || capacity > 4
@@ -35,6 +37,7 @@ pub fn attempt(motion: &mut MotionWorld<'_, '_, '_>, capacity: u8) -> crate::Res
     motion.jump_from_ground()?;
     *motion
         .player
+        .status
         .__horizon_mixins_tconstruct_dreambound_jumps_used_mut() = used + 1;
     Ok(true)
 }
@@ -43,6 +46,7 @@ pub(super) fn input(motion: &mut MotionWorld<'_, '_, '_>, jumping: bool) -> crat
     if motion.player.ground.on_ground {
         *motion
             .player
+            .status
             .__horizon_mixins_tconstruct_dreambound_jumps_used_mut() = 0;
     }
     let fresh = crate::tconstruct_dreambound::fresh_jump(
@@ -52,10 +56,12 @@ pub(super) fn input(motion: &mut MotionWorld<'_, '_, '_>, jumping: bool) -> crat
     );
     let capacity = *motion
         .player
+        .status
         .__horizon_mixins_tconstruct_dreambound_jump_capacity();
     if fresh && attempt(motion, capacity)? {
         *motion
             .player
+            .status
             .__horizon_mixins_tconstruct_dreambound_jump_pending_mut() = true;
     }
     Ok(())

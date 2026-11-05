@@ -5,6 +5,7 @@ fn tconstruct_dreambound_jump_land(
     if grounded {
         *motion
             .player
+            .status
             .__horizon_mixins_tconstruct_dreambound_jumps_used_mut() = 0;
     }
 }

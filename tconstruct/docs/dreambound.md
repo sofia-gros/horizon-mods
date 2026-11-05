@@ -55,3 +55,10 @@ synchronization, guest swaps and LAN have not been exercised.
 Brief static review and formatting only. Two pure regression tests were added
 for exact-level gating, float widening and definition rejection, but were not
 run. No tests, builds, planner, CI, version checks or merges were run.
+
+Static integration correction: jump capacity, spent count and pending request live
+in owned `StatusFlags` fields. Its explicit `PlayerEffects::status` construction
+is supported by the mixin constructor validator, unlike the fallible
+`PlayerMotion::with_attribute_identities` body. The ordinary `apply_effect_status`
+local initialization preserves these three fields from the same actor before
+replacing effect flags, so refreshing effects cannot refill an airborne budget.

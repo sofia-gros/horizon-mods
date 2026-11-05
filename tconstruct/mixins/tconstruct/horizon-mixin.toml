@@ -5376,32 +5376,32 @@ bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *s
 
 [[state]]
 id = "dreambound-jump-capacity"
-target = "horizon_client_lib::motion::PlayerMotion"
+target = "horizon_client_render::effects::StatusFlags"
 ty = "u8"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client_lib::motion::PlayerMotion::with_attribute_identities"
-selector = "Self"
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
 require = 1
 
 [[state]]
 id = "dreambound-jumps-used"
-target = "horizon_client_lib::motion::PlayerMotion"
+target = "horizon_client_render::effects::StatusFlags"
 ty = "u8"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client_lib::motion::PlayerMotion::with_attribute_identities"
-selector = "Self"
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
 require = 1
 
 [[state]]
 id = "dreambound-jump-pending"
-target = "horizon_client_lib::motion::PlayerMotion"
+target = "horizon_client_render::effects::StatusFlags"
 ty = "bool"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
-target = "horizon_client_lib::motion::PlayerMotion::with_attribute_identities"
-selector = "Self"
+target = "horizon_client_render::effects::PlayerEffects::status"
+selector = "StatusFlags"
 require = 1
 
 [[state]]
@@ -5519,3 +5519,12 @@ kind = "HEAD"
 cancellable = true
 helper = "dreambound-jump-server.rs"
 bindings = [{ name = "game", ty = "&mut Game<'_>", value = "&mut *self" }, { name = "host", ty = "&mut LanHost", value = "&mut *host" }, { name = "conn", ty = "u32", value = "conn" }, { name = "packet", ty = "&S", value = "&packet" }]
+
+[[injection]]
+id = "source-dreambound-status-preserve"
+target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
+kind = "MODIFY_VARIABLE"
+variable = { name = "status", ordinal = 0, at = "STORE" }
+require = 1
+helper = "dreambound-jump-status.rs"
+bindings = [{ name = "status", ty = "horizon_client::effects::StatusFlags", value = "$value" }, { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" }]

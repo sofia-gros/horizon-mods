@@ -12,7 +12,9 @@ fn tconstruct_dreambound_jump_refresh(game: &mut crate::game::Game<'_>) {
     }
     .unwrap_or(0);
     if let Some(player) = game.player.as_mut() {
-        *player.__horizon_mixins_tconstruct_dreambound_jump_capacity_mut() = capacity;
+        *player
+            .status
+            .__horizon_mixins_tconstruct_dreambound_jump_capacity_mut() = capacity;
         // Removing/re-equipping armor in midair must not replenish spent jumps.
     }
 }
