@@ -213,13 +213,16 @@ fn material_sidebar(game: &Game<'_>, context: &MaterialBookContext, id: &str, se
                 let Some((_, input)) = context.supports.iter().find(|(material, _)| material == &recipe.input) else { continue; };
                 let mut parts: Vec<_> = current.intersection(input).filter(|part| page_parts.contains(*part)).cloned().collect();
                 if let Ok((_, models)) = game.world.chunks.__horizon_mixins_tconstruct_render_assets().get_or_init(|| crate::game::tconstruct_source_render_info::load_render_assets(&game.options.resources)) { parts.retain(|part| models.contains_key(part)); } else { parts.clear(); }
-                parts.sort();
-                let Some(fluid) = fluid_ids(&recipe.fluid).first().map(|id| fluid_name(id)) else { continue; };
+                if let Some(rest) = game.res.rest.get() { parts.retain(|part| rest.items.items.contains_key(part.as_str())); } else { parts.clear(); }
                 if parts.is_empty() { continue; }
+                let fluids = fluid_ids(&recipe.fluid).iter().map(|id| fluid_name(id)).collect::<Vec<_>>();
                 let (ns, name) = recipe.input.split_once(':').unwrap_or(("tconstruct", &recipe.input));
                 let material_name = game.translate(&format!("material.{ns}.{name}"), name);
-                let description = game.translate("book.tconstruct.material.composite_from", "Can be casted from %s on %s parts").replacen("%s", &fluid, 1).replacen("%s", &material_name, 1);
-                sidebar.push(serde_json::json!({"choices":parts,"material":recipe.input,"tooltip":[game.translate("book.tconstruct.material.composite", "Composite"), description]}));
+                let title = game.translate("book.tconstruct.material.composite", "Composite");
+                let description = game.translate("book.tconstruct.material.composite_from", "Can be casted from %s on %s parts");
+                if let Some(entry) = super::tconstruct_materials_book_recipe::material_composite_options(&parts, &fluids, &recipe.input, &material_name, &title, &description) {
+                    sidebar.push(entry);
+                }
             }
         }
     }

@@ -21,6 +21,26 @@ mod showcase_wire_tests {
     use super::{recipe, text::{Text, Style}, wire};
     use std::collections::{HashMap, HashSet};
     #[test]
+    fn composite_input_material_and_all_fluid_choices_survive_book_reply() {
+        let entry = recipe::material_composite_options(&["test:head".into(), "test:binding".into()],
+            &["Fluid B".into(), "Fluid A".into()], "test:input", "Input", "Composite", "Cast %s on %s parts").unwrap();
+        let spec = serde_json::json!({"material_panel":{"material":"test:output","sidebar":[entry.clone()],"groups":[]}});
+        let pages = vec![
+            Text::styled("Materials & You\n", Style { insertion:Some("tconstruct:materials-book-root".into()), ..Default::default() }),
+            Text::styled("Output", Style { insertion:Some(format!("tconstruct:book:{spec}")), ..Default::default() }),
+        ];
+        let reply = wire::encode_reply(16, &pages).unwrap();
+        let decoded = wire::decode_reply(16, &pages, &reply).unwrap();
+        let spec: serde_json::Value = serde_json::from_str(decoded[1].spans[0].style.insertion.as_ref().unwrap().strip_prefix("tconstruct:book:").unwrap()).unwrap();
+        assert_eq!(spec["material_panel"]["material"], "test:output");
+        let paired = &spec["material_panel"]["sidebar"][0];
+        for seconds in [0, 2, 3, 5, 6, 8, 9, 11, 12, u64::MAX] {
+            let selected = recipe::material_sidebar_entry(paired, seconds).unwrap();
+            assert_eq!(selected, recipe::material_sidebar_entry(&entry, seconds).unwrap());
+            assert_eq!(selected["material"], "test:input");
+        }
+    }
+    #[test]
     fn material_fluid_sidebar_pairs_survive_book_reply() {
         let entry = recipe::material_fluid_options(&[("test:b".into(), "Fluid B".into()), ("test:a".into(), "Fluid A".into())], "Castable", "Cast from %s").unwrap();
         let spec = serde_json::json!({"material_panel":{"material":"test:material","sidebar":[entry.clone()],"groups":[]}});

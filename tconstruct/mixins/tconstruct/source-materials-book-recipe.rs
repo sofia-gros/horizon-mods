@@ -19,6 +19,32 @@ pub(super) fn material_fluid_options(choices: &[(String, String)], title: &str, 
     (entry.to_string().len() <= 4096).then_some(entry)
 }
 
+// Keep every supported part/fluid combination together with the input material.
+// These are input-part previews, not output tools or filled fluid containers.
+pub(super) fn material_composite_options(parts: &[String], fluids: &[String], material: &str,
+    material_name: &str, title: &str, template: &str) -> Option<Value> {
+    if title.trim().is_empty() || title.len() > 256 || material_name.trim().is_empty() || material_name.len() > 256
+        || material.len() > 256 || showcase_item(&Value::String(material.into())).is_none() { return None; }
+    let format: Vec<_> = template.split("%s").collect();
+    if format.len() != 3 { return None; }
+    let mut parts = parts.to_vec(); parts.sort(); parts.dedup();
+    let mut fluids = fluids.to_vec(); fluids.sort(); fluids.dedup();
+    if parts.is_empty() || fluids.is_empty() || parts.len().checked_mul(fluids.len())? > 128 { return None; }
+    if parts.iter().any(|part| part.len() > 256 || part == "minecraft:air" || showcase_item(&Value::String(part.clone())).is_none())
+        || fluids.iter().any(|fluid| fluid.trim().is_empty() || fluid.len() > 256) { return None; }
+    let mut options = Vec::new();
+    for fluid in fluids {
+        // Substitute the original placeholders only; names can themselves contain %s.
+        let description = format!("{}{}{}{}{}", format[0], fluid, format[1], material_name, format[2]);
+        if description.len() > 256 { return None; }
+        for part in &parts {
+            options.push(serde_json::json!({"item":part,"material":material,"tooltip":[title,description]}));
+        }
+    }
+    let entry = serde_json::json!({"options":options});
+    (entry.to_string().len() <= 4096).then_some(entry)
+}
+
 // Legacy category/repair/tool entries retain their existing behavior. New
 // paired options select once, then drawing and hover share the same entry.
 pub(super) fn material_sidebar_entry(entry: &Value, seconds: u64) -> Option<&Value> {
@@ -28,6 +54,10 @@ pub(super) fn material_sidebar_entry(entry: &Value, seconds: u64) -> Option<&Val
     let item = selected.get("item")?;
     let id = item.as_str().filter(|id| id.len() <= 256 && *id != "minecraft:air")?;
     if showcase_item(item) != Some(id) { return None; }
+    if let Some(material) = selected.get("material") {
+        let id = material.as_str().filter(|id| id.len() <= 256)?;
+        if showcase_item(material) != Some(id) { return None; }
+    }
     let tooltip = selected.get("tooltip")?.as_array().filter(|lines| lines.len() == 2)?;
     if !tooltip.iter().all(|line| line.as_str().is_some_and(|line| !line.trim().is_empty() && line.len() <= 256)) { return None; }
     Some(selected)
@@ -209,6 +239,52 @@ pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn composite_options_cycle_every_part_and_fluid_with_input_material() {
+        let entry = material_composite_options(&["test:head".into(), "test:binding".into(), "test:head".into()],
+            &["Fluid Z".into(), "Fluid A".into(), "Fluid Z".into()], "test:input", "Input", "Composite", "Cast %s on %s parts").unwrap();
+        assert_eq!(entry["options"].as_array().unwrap().len(), 4);
+        for (phase, (part, fluid)) in [("test:binding", "Fluid A"), ("test:head", "Fluid A"),
+            ("test:binding", "Fluid Z"), ("test:head", "Fluid Z")].into_iter().enumerate() {
+            for second in 0..3 {
+                let selected = material_sidebar_entry(&entry, phase as u64 * 3 + second).unwrap();
+                assert_eq!(selected["item"], part);
+                assert_eq!(selected["material"], "test:input");
+                assert_eq!(selected["tooltip"], serde_json::json!(["Composite", format!("Cast {fluid} on Input parts")]));
+            }
+        }
+        assert_eq!(material_sidebar_entry(&entry, 12), material_sidebar_entry(&entry, 0));
+        assert_eq!(material_sidebar_entry(&entry, u64::MAX).unwrap()["item"], "test:head");
+        let replaced = material_composite_options(&["test:head".into()], &["Only current fluid".into()],
+            "test:input", "Input", "Composite", "Cast %s on %s parts").unwrap();
+        assert_eq!(replaced["options"].as_array().unwrap().len(), 1);
+        assert_eq!(replaced["options"][0]["tooltip"][1], "Cast Only current fluid on Input parts");
+    }
+    #[test]
+    fn composite_options_validate_bounds_and_preserve_literal_names() {
+        let build = |parts: &[String], fluids: &[String]| material_composite_options(parts, fluids,
+            "test:input", "Input", "Composite", "Cast %s on %s parts");
+        for parts in [vec![], vec!["bad id".into()], vec!["minecraft:air".into()],
+            (0..129).map(|i| format!("test:part_{i}")).collect(),
+            (0..100).map(|i| format!("test:part_{i}")).collect()] {
+            assert!(build(&parts, &["Fluid".into()]).is_none());
+        }
+        for fluids in [vec![], vec![" ".into()], vec!["x".repeat(257)], vec!["x".repeat(250)]] {
+            assert!(build(&["test:head".into()], &fluids).is_none());
+        }
+        for (material, name, title, format) in [("bad id", "Input", "Composite", "%s on %s"),
+            ("test:input", "", "Composite", "%s on %s"), ("test:input", "Input", "", "%s on %s"),
+            ("test:input", "Input", "Composite", "%s"), ("test:input", "Input", "Composite", "%s %s %s")] {
+            assert!(material_composite_options(&["test:head".into()], &["Fluid".into()], material, name, title, format).is_none());
+        }
+        let literal = material_composite_options(&["test:head".into()], &["Fluid %s".into()],
+            "test:input", "Input %s", "Composite", "%s on %s").unwrap();
+        assert_eq!(literal["options"][0]["tooltip"][1], "Fluid %s on Input %s");
+        for material in [serde_json::json!(42), serde_json::json!("bad id")] {
+            let mut malformed = literal.clone(); malformed["options"][0]["material"] = material;
+            assert!(material_sidebar_entry(&malformed, 0).is_none());
+        }
+    }
     #[test]
     fn material_fluid_options_keep_bucket_and_description_together() {
         let choices = vec![("test:z_bucket".into(), "Molten Z".into()), ("test:a_bucket".into(), "Molten A".into()),
