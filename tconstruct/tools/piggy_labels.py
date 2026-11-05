@@ -38,6 +38,29 @@ PLATFORM_WARNINGS = {
     'zh_cn': '暂不支持放置', 'zh_tw': '尚不支援放置',
 }
 
+MACHINE_GUARD_MESSAGES = {
+    'en_us': 'Cannot break: check machine contents or unsupported saved data.',
+    'ja_jp': '破壊できません。機械の中身または未対応の保存データを確認してください。',
+    'de_de': 'Abbau nicht möglich: Maschineninhalt oder nicht unterstützte Speicherdaten prüfen.',
+    'es_ar': 'No se puede romper: revisa el contenido o los datos guardados no compatibles.',
+    'es_cl': 'No se puede romper: revisa el contenido o los datos guardados no compatibles.',
+    'es_es': 'No se puede romper: revisa el contenido o los datos guardados no compatibles.',
+    'es_mx': 'No se puede romper: revisa el contenido o los datos guardados no compatibles.',
+    'fr_fr': 'Destruction impossible : vérifiez le contenu ou les données sauvegardées non prises en charge.',
+    'id_id': 'Tidak dapat dihancurkan: periksa isi mesin atau data tersimpan yang tidak didukung.',
+    'it_it': 'Impossibile rompere: controlla il contenuto o i dati salvati non supportati.',
+    'ko_kr': '파괴할 수 없습니다. 기계 내용물이나 지원되지 않는 저장 데이터를 확인하세요.',
+    'lzh': '不可毀：請察機中之物或未支援之存檔。',
+    'pl_pl': 'Nie można zniszczyć: sprawdź zawartość lub nieobsługiwane dane zapisu.',
+    'pt_br': 'Não é possível quebrar: verifique o conteúdo ou os dados salvos não suportados.',
+    'ru_ru': 'Нельзя сломать: проверьте содержимое или неподдерживаемые данные сохранения.',
+    'sv_se': 'Kan inte förstöras: kontrollera innehåll eller sparad data som inte stöds.',
+    'tr_tr': 'Kırılamıyor: makine içeriğini veya desteklenmeyen kayıt verilerini kontrol edin.',
+    'uk_ua': 'Неможливо зламати: перевірте вміст або непідтримувані дані збереження.',
+    'zh_cn': '无法破坏：请检查机器内容或不支持的存档数据。',
+    'zh_tw': '無法破壞：請檢查機器內容或不支援的存檔資料。',
+}
+
 def mark_unavailable(language, code):
     warning = WARNINGS[code]
     key = 'item.tconstruct.piggy_backpack'
@@ -45,4 +68,5 @@ def mark_unavailable(language, code):
     language['item.tconstruct.piggy_backpack.tooltip'] = warning
     platform = language.get('block.tconstruct.gold_platform', 'Gold Platform')
     language['item.tconstruct.gold_platform'] = platform + f" ({PLATFORM_WARNINGS[code]})"
+    language['message.tconstruct.machine_break_guard'] = MACHINE_GUARD_MESSAGES[code]
     return language

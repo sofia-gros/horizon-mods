@@ -5,6 +5,18 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
     if packet.container == 0 || menu.window != packet.container { return Continue(()); }
     let Some(pos) = menu.pos else { return Continue(()); };
     let Some(tag) = crate::tconstruct_source_melter_store::read(world, pos, "tconstruct:smeltery") else { return Continue(()); };
+    if hub.guests[gi].spectator() || !matches!(menu.slots, crate::lan::menu::Slots::Block(at) if at == pos)
+        || !menu.slots.still_valid(world, &hub.guests[gi], menu.pos)
+        || (packet.slot >= 90 && packet.slot != -999) { return Break(Vec::new()); }
+    let Some(outer) = crate::tconstruct_source_melter_store::read_outer(world, pos) else { return Break(Vec::new()); };
+    let host_offset = world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&pos).map(|page| page.1);
+    let host_containers = world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
+        .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
+    let host_known = match world.block_entities.get(&pos) {
+        Some(crate::containers::BlockEntity::Chest(live)) => crate::tconstruct_source_machine_destroy_guard::current_projection(&outer, live, host_offset, &host_containers),
+        _ => false,
+    };
+    if !host_known { return Break(Vec::new()); }
     let Some(mut state) = crate::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag) else { return Break(Vec::new()); };
     let bottle_tags = world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
@@ -13,6 +25,11 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
     let (offset, visible_count) = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_pages().get(&key).copied().unwrap_or((0, state.slots.len()));
     let (containers, direction) = world.chunks.__horizon_mixins_tconstruct_smeltery_guest_containers().get(&conn)
         .filter(|(at, _, _)| *at == pos).map(|(_, slots, mode)| (slots.clone(), *mode)).unwrap_or(([None, None], 0));
+    let incoming = if packet.input == 1 && (54..90).contains(&packet.slot) {
+        let index = packet.slot as usize - 54;
+        hub.guests[gi].inventory.get(if index < 27 { index + 9 } else { index - 27 }).and_then(Option::as_ref)
+    } else { hub.guests[gi].carried.as_ref() };
+    if incoming.is_some_and(|stack| stack.data().is_some_and(|data| data.wire.patch().is_some())) { return Break(Vec::new()); }
     let menu_state = menu.state;
     if visible_count != state.slots.len() {
         let offset = offset.min(crate::tconstruct_source_smeltery_layout::max_offset(state.slots.len()));
@@ -163,5 +180,5 @@ fn smeltery_guest_guard(hub: &mut crate::lan::hub::Hub, conn: u32, packet: &play
         hub.send_menu_content(gi, crate::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers));
         return Break(Vec::new());
     }
-    Continue(())
+    Break(tconstruct_smeltery_guest_pickup::pickup(hub, gi, packet, world, rules, pos, state, offset, containers))
 }

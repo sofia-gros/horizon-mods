@@ -6,6 +6,6 @@ fn tconstruct_machine_decode(tag: &horizon_world::nbt::Tag) -> std::ops::Control
     }
     let coord = |key| match tag.get(key) { Some(Tag::Int(n)) => Some(*n), _ => None };
     let (Some(x), Some(y), Some(z)) = (coord("x"), coord("y"), coord("z")) else { return std::ops::ControlFlow::Break(None); };
-    let size = match id.to_string_lossy().as_str() { "tconstruct:crafting_station" => 9, "tconstruct:part_chest" => 256, "tconstruct:modifier_chest" | "tconstruct:tinkers_chest" => 64, "tconstruct:casting_tank" => 2, "tconstruct:fluid_cannon" => 1, _ => 27 };
+    let size = match id.to_string_lossy().as_str() { "tconstruct:smeltery" => 54, "tconstruct:crafting_station" => 9, "tconstruct:part_chest" => 256, "tconstruct:modifier_chest" | "tconstruct:tinkers_chest" => 64, "tconstruct:casting_tank" => 2, "tconstruct:fluid_cannon" => 1, _ => 27 };
     std::ops::ControlFlow::Break(Some(((x, y, z), crate::containers::BlockEntity::Chest(decode_items(tag.get("Items"), size)))))
 }

@@ -95,3 +95,64 @@ without pouring until the source is corrected or removed. Older casting table,
 basin and cannon routes and broken/replaced blocks are outside this guard.
 Fixture tests use mock world and atomic store behavior; host integration and
 LAN remain unverified.
+
+A player break of a Melter, Smeltery or Foundry controller is canceled when an
+existing readable machine source contains unknown or non-round-tripping
+metadata. This limited pre-drop check avoids clearing such data on that path;
+it can also block breaking noncanonical but harmless old state. A localized
+action-bar message reports the refusal to the acting player. It runs before
+Overwield's break accounting. Missing source records with a nonempty or unknown live inventory are also
+rejected; empty or absent live inventory without a saved source remains allowed.
+Serialized outer inventory items must round-trip. Only the host's exact empty
+`components` compound and `keepPacked: 0b` envelope are exempt from unknown-field
+protection. Melter slots must match the live inventory exactly.
+
+Smeltery and Foundry source writes validate the old live projection before
+changing either authoritative inputs or their UI view. The shared store stages
+both changes together: a closed view is retired to 54 empty slots, while an
+open view is updated at its known page offset with its separately owned bucket
+slots. Guest and runtime writes use that same transaction. Failed validation
+or any failed member of a multi-source batch leaves source and live data
+unchanged. Local UI, runtime and chute paths also check before they can
+replace a live view. Menu operations restore the validated old page before
+committing their new authoritative inputs through the store. Guest Pickup owns
+its final commit and restores cursor, inventory and drag on failure, withholding
+speculative drops. Retained-wire incoming items are refused before serialization.
+
+The outer `tconstruct:retired_projection` field accepts only integer modes
+`0` (open/unproven) and `1` (retired). Mode 1 can authorize only an empty
+serialized Items list plus 54 empty live slots. A marker never authorizes
+discarding nonempty live contents absent from current saved inputs. Historical
+snapshot compounds, unknown versions and extra metadata are refused, even if
+a forged snapshot happens to match the current live items.
+
+On reload, a nonempty live view must exactly match both serialized Items and
+a complete legal page of current authoritative inputs, with empty container
+slots. No guessed default offset, bag/subset comparison or historical-cache
+trust is used. The next source write retires a closed loaded view atomically
+before changing its authoritative inputs. Mismatched legacy saves remain
+protected, including old saves whose cached page was already stale or whose
+high slots had already been truncated. The decoder now retains all 54
+Smeltery slots; already absent data cannot be reconstructed.
+
+Pending bucket slots remain protected after reload even if their in-memory
+owner registry is gone. Opening refuses unexplained or opaque live data
+rather than overwriting it. This is not a recovery procedure for old damaged
+or ambiguous saves. The guard covers only player destruction, not explosions,
+pistons, commands or other replacement. Actual in-world item drops and LAN
+behavior remain unverified.
+
+Run the source-based Rust fixtures with:
+`HORIZON_HOST=/path/to/clean/pinned/horizon bash tconstruct/tests/run_machine_destroy_guard_rust.sh`.
+The runner requires the pinned host, Rust/Cargo and cached dependencies, checks
+dependency identities against the host lockfile, and verifies selected test
+names so a zero-test run cannot pass. The suite exercises real item/NBT codecs,
+host overlay/canonicalization, the decode adapter and store/CAS code in a
+minimal world fixture. These tests pass; they are not a real world/LAN test or
+a substitute for type-checking the full injected host.
+
+The guest Pickup transaction helper is also executed with a simulated native
+menu engine and the real store, forcing final-write failures for deposit,
+withdrawal and outside drop. These tests establish rollback in the adapter,
+not end-to-end native LAN behavior. The separate store fixture can be run with
+`MACHINE_GUARD_FIXTURE=smeltery_nbt_store.rs` using the same runner.

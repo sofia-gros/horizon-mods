@@ -35,12 +35,14 @@ pub(super) fn set_offset(game: &mut Game<'_>, pos: (i32, i32, i32), count: usize
             game.send(horizon_protocol::packets::play::Serverbound::ContainerButtonClick(horizon_protocol::packets::play::ContainerButtonClick { container: *window, button: 33000 + next as i32 }));
         }
     } else {
+        if !super::tconstruct_source_machine_projection_world::known(&game.world, pos) { return; }
         let Some(state) = super::tconstruct_source_melter_store::read(&game.world, pos, "tconstruct:smeltery")
             .and_then(|tag| super::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return; };
         if let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
             let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers().get(&pos)
                 .map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
             *slots = super::tconstruct_source_smeltery_page::project_with_containers(&state.slots, next, &containers);
+            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, next);
             game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(pos, (count, next));
         }
     }

@@ -1,6 +1,10 @@
 fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button: i32, input: horizon_client::menu::Input) -> std::ops::ControlFlow<bool> {
     use std::ops::ControlFlow::{Break, Continue};
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    if game.remote.is_none() {
+        let Some(pos) = game.container else { return Break(true); };
+        if !crate::game::tconstruct_source_machine_projection_world::known(&game.world, pos) { return Break(true); }
+    }
     let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
         .map(|(id, items)| (id.clone(), items.clone())).collect());
@@ -9,6 +13,11 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     // generic menu can alter the carried stack or player inventory.
     let Some(slot) = slot else { return Break(true); };
     if (36..300).contains(&slot) { return Break(true); }
+    if game.remote.is_none() {
+        let incoming = if input == horizon_client::menu::Input::QuickMove && slot < 36 { game.inventory.get(slot).and_then(Option::as_ref) }
+            else { game.carried.as_ref() };
+        if incoming.is_some_and(|stack| stack.data().is_some_and(|data| data.wire.patch().is_some())) { return Break(true); }
+    }
     if (300..302).contains(&slot) {
         if game.remote.is_some() { return Continue(()); }
         let Some(pos) = game.container else { return Break(true); };
@@ -34,6 +43,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                         game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
                         if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                             *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                         }
                     }
                 }
@@ -53,6 +63,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                 game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), direction));
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
@@ -82,6 +93,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                     state.slots[index] = Some(one); state.progress[index] = 0; game.carried = Some(rest);
                     if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                         *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                        crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                     }
                     game.container_changed(pos);
                 }
@@ -105,6 +117,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                     game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers_mut().insert(pos, (containers.clone(), mode));
                     if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                         *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                        crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                     }
                 }
             }
@@ -143,6 +156,7 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
                     let containers = game.world.chunks.__horizon_mixins_tconstruct_smeltery_local_containers()
                         .get(&pos).map(|(slots, _)| slots.clone()).unwrap_or([None, None]);
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &containers);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
@@ -159,7 +173,8 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
     let handled = game.menu_ops(&[(Some(slot), button, input)]);
     let changed = game.world.block_entities.get(&pos).map(|entity| entity.slots().to_vec());
     let before_slots = state.slots.clone();
-    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::commit_with_containers(&mut state.slots, offset, &expected, view, &containers));
+    let committed = changed.as_ref().is_some_and(|view| crate::game::tconstruct_source_smeltery_page::no_retained_wire(view)
+        && crate::game::tconstruct_source_smeltery_page::commit_with_containers(&mut state.slots, offset, &expected, view, &containers));
     if committed {
         for (index, (before, after)) in before_slots.iter().zip(&state.slots).enumerate() {
             let same = match (before, after) {
@@ -169,7 +184,13 @@ fn smeltery_click(game: &mut crate::game::Game<'_>, slot: Option<usize>, button:
             };
             if !same { state.progress[index] = 0; }
         }
-        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) { return Break(handled); }
+        // The store validates the old page, then commits source and new view
+        // together. Do not present the speculative menu output as old evidence.
+        if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) { *live = expected.clone(); }
+        if crate::game::tconstruct_source_melter_store::write(&mut game.world, pos, "tconstruct:smeltery", state.to_nbt()) {
+            crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
+            return Break(handled);
+        }
     }
     game.inventory = previous_inventory;
     game.carried = previous_carried;

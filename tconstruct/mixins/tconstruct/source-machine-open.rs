@@ -15,13 +15,27 @@ fn tconstruct_machine_open(game: &mut crate::game::Game<'_>, pos: [i32; 3], name
         game.ensure_datapacks();
         let key = (pos[0], pos[1], pos[2]);
         if !crate::game::tconstruct_source_machine_runtime::ensure(game, key, name) { return std::ops::ControlFlow::Break(false); }
+        // Do not turn unexplained live contents (including reloaded pending
+        // bucket slots) into a trusted projection by overwriting them on open.
+        let Some(before) = crate::game::tconstruct_source_melter_store::read_outer(&game.world, key) else { return std::ops::ControlFlow::Break(false); };
+        let offset = game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages().get(&key).map(|page| page.1);
+        let safe = match game.world.block_entities.get(&key) {
+            Some(horizon_client::containers::BlockEntity::Chest(live)) =>
+                crate::game::tconstruct_source_machine_destroy_guard::live_matches("tconstruct:smeltery", &before, live, offset),
+            _ => false,
+        };
+        if !safe || crate::game::tconstruct_source_machine_destroy_guard::protect("tconstruct:smeltery", &before) { return std::ops::ControlFlow::Break(false); }
         crate::game::tconstruct_source_machine_runtime::refresh_smeltery(game, key);
         if crate::game::tconstruct_source_smeltery_world::detect(game, key).is_none() { return std::ops::ControlFlow::Break(false); }
         let Some(state) = crate::game::tconstruct_source_melter_store::read(&game.world, key, "tconstruct:smeltery")
             .and_then(|tag| crate::game::tconstruct_source_smeltery_state::Smeltery::from_nbt(&tag)) else { return std::ops::ControlFlow::Break(false); };
         if state.slots.is_empty() { return std::ops::ControlFlow::Break(false); }
+        let Some(raw) = crate::game::tconstruct_source_melter_store::read_outer(&game.world, key) else { return std::ops::ControlFlow::Break(false); };
+        let Some(updated) = crate::game::tconstruct_source_machine_destroy_guard::open_outer(&raw) else { return std::ops::ControlFlow::Break(false); };
+        if !crate::game::tconstruct_source_melter_store::replace_outer(&mut game.world, key, &raw, updated) { return std::ops::ControlFlow::Break(false); }
         let Some(horizon_client::containers::BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&key) else { return std::ops::ControlFlow::Break(false); };
         *slots = crate::game::tconstruct_source_smeltery_page::project(&state.slots, 0);
+        crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, key, 0);
         game.world.chunks.__horizon_mixins_tconstruct_smeltery_ui_pages_mut().insert(key, (state.slots.len(), 0));
         game.container = Some(key);
         return std::ops::ControlFlow::Break(true);

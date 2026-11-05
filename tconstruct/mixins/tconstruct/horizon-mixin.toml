@@ -177,6 +177,12 @@ bindings = [
   { name = "input", ty = "horizon_client::menu::Input", value = "input" },
 ]
 
+[[module]]
+id = "smeltery-guest-pickup"
+file = "crates/horizon-client/src/lan/containers.rs"
+name = "tconstruct_smeltery_guest_pickup"
+source = "source-smeltery-guest-pickup.rs"
+
 [[injection]]
 id = "smeltery-guest-guard"
 target = "horizon_client_lib::lan::containers::Hub::container_click"
@@ -2242,6 +2248,24 @@ name = "tconstruct_source_melter_world"
 source = "source-melter-world.rs"
 
 [[module]]
+id = "source-machine-projection-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_machine_projection_world"
+source = "source-machine-projection-world.rs"
+
+[[module]]
+id = "server-machine-destroy-guard"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_machine_destroy_guard"
+source = "source-machine-destroy-guard.rs"
+
+[[module]]
+id = "source-machine-destroy-guard"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_machine_destroy_guard"
+source = "source-machine-destroy-guard.rs"
+
+[[module]]
 id = "source-smeltery-nbt-preserve"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_source_smeltery_nbt_preserve"
@@ -2782,7 +2806,7 @@ require = 1
 ordinal = 0
 result = "()"
 helper = "source-overwield-harvest-start.rs"
-bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "canceled", ty = "bool", value = "*canceled" }]
+bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }, { name = "pos", ty = "[i32; 3]", value = "pos" }, { name = "state", ty = "horizon_world::registry::BlockStateId", value = "state" }, { name = "canceled", ty = "&mut bool", value = "&mut *canceled" }]
 
 [[injection]]
 id = "source-area-guest-hit"

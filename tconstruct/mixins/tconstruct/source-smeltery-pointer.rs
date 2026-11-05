@@ -17,10 +17,12 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
         return Continue(());
     }
     if !crate::game::tconstruct_source_smeltery_ui::is_smeltery(game) { return Continue(()); }
+    if game.remote.is_none() && game.carried.as_ref().is_some_and(|stack| stack.data().is_some_and(|data| data.wire.patch().is_some())) { return Break(true); }
     let bottle_tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok()).map(|all| all.iter()
         .filter(|(id, _)| matches!(id.as_str(), "forge:bottles/splash" | "forge:bottles/lingering"))
         .map(|(id, items)| (id.clone(), items.clone())).collect());
     let Some(pos) = crate::game::tconstruct_source_smeltery_ui::position(game) else { return Continue(()); };
+    if game.remote.is_none() && !crate::game::tconstruct_source_machine_projection_world::known(&game.world, pos) { return Break(true); }
     let Some(size) = game.renderer.as_ref().map(|r| [r.config.width, r.config.height]) else { return Continue(()); };
     let batch = horizon_client::hud::HudBatch::new(size);
     let (ox, oy) = game.inventory_origin(&batch);
@@ -46,6 +48,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
                 let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &slots);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
@@ -94,6 +97,7 @@ fn smeltery_pointer(game: &mut crate::game::Game<'_>, right: bool) -> std::ops::
                 let (_, offset) = crate::game::tconstruct_source_smeltery_ui::page(game);
                 if let Some(horizon_client::containers::BlockEntity::Chest(live)) = game.world.block_entities.get_mut(&pos) {
                     *live = crate::game::tconstruct_source_smeltery_page::project_with_containers(&state.slots, offset, &slots);
+                    crate::game::tconstruct_source_machine_projection_world::record(&mut game.world, pos, offset);
                 }
             }
         }
