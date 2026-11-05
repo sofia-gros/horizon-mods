@@ -338,3 +338,25 @@ the recipe permission and registered-item checks already used by other guides.
 Pinned source recipe/tag fixtures and focused regressions were added but not
 run in this pass. This adds guide coverage, not new Blindshot gameplay or
 acquisition behavior. Full host, GUI, save/reload and LAN checks remain deferred.
+
+
+## Mighty broad-tool pages
+
+Mighty Smelting's partial Broad Tools chapter now reads the source general
+and ranged broad-tool groups. It includes Sledge Hammer, Vein Hammer,
+Excavator, Broad Axe, Scythe, Cleaver and Longbow only when the current tool
+item and all displayed component choices are registered, the current
+recipe/definition yields inputs, and the loaded source page names that tool.
+Current tag membership controls inclusion; source text is not a tool registry.
+Javelin, external tool additions and the tank advice page remain omitted.
+
+Seven pinned source descriptions/properties use the existing tool/part preview,
+text overflow, group headings and chapter-index path. The required chapter
+notice and a per-tool notice identify source capabilities as reference material,
+not verified Horizon effect coverage. Missing per-tool notice suppresses those
+pages. Normal broad-tool construction uses a Tinker's Anvil; the preview does
+not prove every material's acquisition route or complete gameplay support.
+
+Source fixture hashes, eligibility boundaries and reader wiring regressions
+were added but not executed in this pass. This change adds guidance only;
+full host, in-game layout, actual assembly, save/reload and LAN remain unverified.

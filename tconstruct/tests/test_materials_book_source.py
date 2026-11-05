@@ -211,7 +211,7 @@ class MaterialsBookSourceTest(unittest.TestCase):
         section = json.loads((root / 'sections/tools.json').read_text())
         self.assertEqual([page['name'] for page in section], ['group_general', 'group_ranged', 'group_info', 'tanks', 'tips', 'designing'])
         language = (root / 'en_us/language.lang').read_text()
-        self.assertIn('tools.partial=Tool Advice (Partial)', language)
+        self.assertIn('tools.partial=Broad Tools (Partial)', language)
         self.assertIn('material tip icon mentioned here is not available', language)
         reader = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         self.assertIn('mighty_advice_page', reader)
