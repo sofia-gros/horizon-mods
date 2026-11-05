@@ -1,0 +1,10 @@
+{
+  "tinkers_anvil_material.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/misc/tables/tinkers_anvil_material.json",
+    "sha256": "c608350139c3c7bfe60e3cdc8144358acd36c0c7fc9654c629eb7991289d70a7"
+  },
+  "scorched_anvil_material.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/recipes/misc/tables/scorched_anvil_material.json",
+    "sha256": "5d5f60ee8c90c82cf3596027bd424fc5005a673f6983fb59be7b340058dab8db"
+  }
+}

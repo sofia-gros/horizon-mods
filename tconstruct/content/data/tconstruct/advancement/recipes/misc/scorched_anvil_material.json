@@ -1,0 +1,75 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_item": {
+      "conditions": {
+        "items": [
+          {
+            "items": [
+              "tconstruct:fake_storage_block"
+            ]
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_recipe_bronze": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_bronze"
+      }
+    },
+    "has_recipe_constantan": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_constantan"
+      }
+    },
+    "has_recipe_electrum": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_electrum"
+      }
+    },
+    "has_recipe_invar": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_invar"
+      }
+    },
+    "has_recipe_nicrosil": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_nicrosil"
+      }
+    },
+    "has_recipe_pewter": {
+      "trigger": "minecraft:recipe_unlocked",
+      "conditions": {
+        "recipes": "tconstruct:scorched_anvil_compat_pewter"
+      }
+    }
+  },
+  "requirements": [
+    [
+      "has_item",
+      "has_recipe_bronze",
+      "has_recipe_constantan",
+      "has_recipe_electrum",
+      "has_recipe_invar",
+      "has_recipe_nicrosil",
+      "has_recipe_pewter"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "tconstruct:scorched_anvil_compat_bronze",
+      "tconstruct:scorched_anvil_compat_constantan",
+      "tconstruct:scorched_anvil_compat_electrum",
+      "tconstruct:scorched_anvil_compat_invar",
+      "tconstruct:scorched_anvil_compat_nicrosil",
+      "tconstruct:scorched_anvil_compat_pewter"
+    ]
+  },
+  "sends_telemetry_event": false
+}

@@ -19,9 +19,9 @@ sys.path.insert(0, str(MOD / 'tools'))
 from package_hmod import package
 
 
-def recipes(anvil):
+def recipes(anvil, include_compat=True):
     return ([(metal, anvil + '_' + metal) for metal in METALS] +
-            [('compat_' + metal, anvil + '_compat_' + metal) for metal in COMPAT] +
+            ([('compat_' + metal, anvil + '_compat_' + metal) for metal in COMPAT] if include_compat else []) +
             [('mixed_alloys', 'zz_' + anvil + '_mixed_alloys')])
 
 
@@ -30,6 +30,38 @@ def metal_block(metal):
 
 
 class AnvilDiscoveryUnlocks(unittest.TestCase):
+    def test_material_sources_have_separate_fake_block_or_recipe_discovery(self):
+        fixtures = MOD / 'tests/fixtures/anvil_material_discovery'
+        manifest = json.loads((fixtures / 'manifest.json').read_text())
+        self.assertEqual(set(manifest), {anvil + '_material.json' for anvil in ANVILS})
+        for anvil in ANVILS:
+            name = anvil + '_material.json'
+            raw = (fixtures / name).read_bytes()
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), manifest[name]['sha256'])
+            self.assertIn('/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/', manifest[name]['source'])
+            source = json.loads(raw)
+            self.assertEqual(source['criteria']['has_item']['conditions'],
+                             {'items': [{'items': ['tconstruct:fake_storage_block']}]})
+            expected = copy.deepcopy(source)
+            del expected['criteria']['has_the_recipe']
+            for metal in COMPAT:
+                expected['criteria']['has_recipe_' + metal] = {
+                    'trigger': 'minecraft:recipe_unlocked',
+                    'conditions': {'recipes': f'tconstruct:{anvil}_compat_{metal}'}}
+            expected['requirements'] = [list(expected['criteria'])]
+            expected['rewards']['recipes'] = [f'tconstruct:{anvil}_compat_{metal}' for metal in COMPAT]
+            material = json.loads((DATA / 'advancement/recipes/misc' / name).read_text())
+            self.assertEqual(material, expected)
+            self.assertEqual(len(material['rewards']['recipes']), 6)
+            self.assertNotIn('display', material)
+            ordinary = json.loads((DATA / f'advancement/recipes/decorations/{anvil}.json').read_text())
+            ordinary_ids = set(ordinary['rewards']['recipes'])
+            material_ids = set(material['rewards']['recipes'])
+            self.assertFalse(ordinary_ids & material_ids)
+            self.assertEqual(ordinary_ids | material_ids,
+                             {'tconstruct:' + recipe for _, recipe in recipes(anvil)})
+            self.assertFalse(any(key.startswith('has_recipe_compat_') for key in ordinary['criteria']))
+
     def test_source_tag_and_all_variant_recipe_events_remain_or_alternatives(self):
         hashes = json.loads((FIXTURES / 'sha256.json').read_text())
         self.assertEqual(set(hashes), set(ANVILS))
@@ -44,25 +76,26 @@ class AnvilDiscoveryUnlocks(unittest.TestCase):
                 expected = copy.deepcopy(original)
                 expected['criteria']['has_item']['conditions'] = {'items': [{'items': '#tconstruct:anvil_metal'}]}
                 del expected['criteria']['has_the_recipe']
-                for variant, recipe in recipes(anvil):
+                for variant, recipe in recipes(anvil, include_compat=False):
                     expected['criteria']['has_recipe_' + variant] = {
                         'trigger': 'minecraft:recipe_unlocked', 'conditions': {'recipes': 'tconstruct:' + recipe}}
                 expected['requirements'] = [list(expected['criteria'])]
-                expected['rewards']['recipes'] = ['tconstruct:' + recipe for _, recipe in recipes(anvil)]
+                expected['rewards']['recipes'] = ['tconstruct:' + recipe for _, recipe in recipes(anvil, include_compat=False)]
                 native = json.loads((DATA / f'advancement/recipes/decorations/{anvil}.json').read_text())
                 self.assertEqual(native, expected)
-                self.assertEqual(len(native['rewards']['recipes']), 18)
+                self.assertEqual(len(native['rewards']['recipes']), 12)
                 self.assertNotIn('display', native)
                 existing = {path.stem for path in (DATA / 'recipe').glob(anvil + '_*.json')}
                 existing.update(path.stem for path in (DATA / 'recipe').glob('zz_' + anvil + '_*.json'))
-                self.assertEqual(existing, {recipe for _, recipe in recipes(anvil)})
+                self.assertEqual({name for name in existing if '_compat_' not in name},
+                                 {recipe for _, recipe in recipes(anvil, include_compat=False)})
         self.assertIn('"tconstruct:anvil_metal"', (MOD / 'mixins/tconstruct/source-advancement-tag.rs').read_text())
 
     def test_existing_native_shapes_counts_and_material_metadata(self):
         with ZipFile(MOD / 'content/reference/tconstruct-recipes.zip') as source:
             for anvil in ANVILS:
                 original = json.loads(source.read('data/tconstruct/recipes/tables/' + anvil + '.json'))
-                support = '#tconstruct:anvil_' + ('seared_blocks' if anvil == 'tinkers_anvil' else 'scorched_blocks')
+                support = '#tconstruct:' + ('seared_blocks' if anvil == 'tinkers_anvil' else 'scorched_blocks')
                 for variant, recipe in recipes(anvil):
                     with self.subTest(recipe=recipe):
                         native = json.loads((DATA / f'recipe/{recipe}.json').read_text())
@@ -91,13 +124,14 @@ class AnvilDiscoveryUnlocks(unittest.TestCase):
         self.assertIn('if is_forge { 4 } else { 3 }', guard)
         self.assertIn('fake.len() != required_fake', guard)
 
-    def test_package_contains_both_unlocks_and_all_thirty_six_recipes(self):
+    def test_package_contains_four_unlocks_and_all_thirty_six_recipes(self):
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / 'tconstruct.hmod'
             package(output)
             with ZipFile(output) as archive:
                 for anvil in ANVILS:
-                    paths = [f'advancement/recipes/decorations/{anvil}.json']
+                    paths = [f'advancement/recipes/decorations/{anvil}.json',
+                             f'advancement/recipes/misc/{anvil}_material.json']
                     paths.extend(f'recipe/{recipe}.json' for _, recipe in recipes(anvil))
                     for relative in paths:
                         self.assertEqual(archive.read('data/tconstruct/' + relative), (DATA / relative).read_bytes())
