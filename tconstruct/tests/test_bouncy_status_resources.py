@@ -22,6 +22,14 @@ class BouncyStatusResources(unittest.TestCase):
         data = (CONTENT / path).read_bytes()
         self.assertEqual(hashlib.sha256(data).hexdigest(), manifest['files'][path]['sha256'])
         self.assertEqual(manifest['files'][path]['source'], 'src/main/resources/' + path)
+        sound = {
+            'sounds': ['mob/slime/big1', 'mob/slime/big2', 'mob/slime/big3', 'mob/slime/big4'],
+            'subtitle': 'subtitles.tconstruct.slimy_bounce',
+        }
+        self.assertEqual(json.loads((CONTENT / 'assets/tconstruct/sounds.json').read_text())['slimy_bounce'], sound)
+        provenance = json.loads((CONTENT / 'reference/bouncy-sound-source.json').read_text())
+        self.assertEqual(provenance['revision'], manifest['revision'])
+        self.assertEqual(provenance['source'], 'src/main/resources/assets/tconstruct/sounds.json')
         sys.path.insert(0, str(ROOT / 'tools'))
         try:
             spec = importlib.util.spec_from_file_location('bouncy_package', ROOT / 'tools/package_hmod.py')
@@ -32,6 +40,7 @@ class BouncyStatusResources(unittest.TestCase):
                 module.package(target)
                 with zipfile.ZipFile(target) as archive:
                     self.assertEqual(archive.read(path), data)
+                    self.assertEqual(json.loads(archive.read('assets/tconstruct/sounds.json'))['slimy_bounce'], sound)
                     self.assertEqual(json.loads(archive.read('data/tconstruct/horizon/mob_effect/bouncy.json')), definition)
                     earth = json.loads(archive.read('data/tconstruct/registered_fluid/earth_slime.json'))
                     self.assertEqual(earth['interaction']['effect'], {

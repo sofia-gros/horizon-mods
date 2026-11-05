@@ -11,5 +11,14 @@
       "mob/zombie/infect"
     ],
     "subtitle": "subtitles.tconstruct.necrotic_heal"
+  },
+  "slimy_bounce": {
+    "sounds": [
+      "mob/slime/big1",
+      "mob/slime/big2",
+      "mob/slime/big3",
+      "mob/slime/big4"
+    ],
+    "subtitle": "subtitles.tconstruct.slimy_bounce"
   }
 }

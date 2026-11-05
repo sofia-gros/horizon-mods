@@ -19,7 +19,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #31](https://github.com/sofia-gros/horizon/pull/31).** Keep this
+[Horizon fork PR #34](https://github.com/sofia-gros/horizon/pull/34).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -155,10 +155,24 @@ clears it and synchronized remote/guest effects use the same binding.
 The required host landing extension handles source threshold/step-height guards,
 0.5 crouching damage multiplier, gravity-based authoritative rebound, client
 reverse-velocity factors, post-collision application and velocity sync. It does
-not enable the archived armor-bounce injections. Source repeated air-momentum
-preservation, bounce sound and mob behavior remain incomplete. Native injection
-planning/build and actual landing/expiry/LAN behavior are unverified, so this is
-not full Bouncy parity. The source still/flow art and animation metadata use
+not enable the archived armor-bounce injections. The subsequent host extension
+preserves airborne horizontal momentum using source 0.975f damping and strict
+stationary/contact timeouts, with gliding/spectator cancellation. A started
+handler remains active after Bouncy expires, as in the source.
+
+The status binding now also selects `tconstruct:slimy_bounce`. Its source
+sounds.json entry references Minecraft's four existing `mob/slime/big1` through
+`big4` samples and `subtitles.tconstruct.slimy_bounce`; no Mojang audio is copied.
+`reference/bouncy-sound-source.json` records the exact upstream revision and
+sound-definition blob. The host emits it at volume/pitch 1 on qualifying
+landings and actual momentum corrections whose raw Mth.atan2 angle difference
+exceeds one radian. Predicting players hear their local event; authoritative
+player-category packets reach the other nearby players. The captured sound ID
+persists with an already-started handler after the status binding resets.
+
+Non-player behavior, predicting passenger ticks, deferred-client/event-phase
+parity, native injection planning/build and actual landing/expiry/audio/LAN
+behavior remain incomplete or unverified. This is not full Bouncy parity. The source still/flow art and animation metadata use
 `slime/earth`; the separate `slime-effect-assets.json` records the original
 Bouncy icon provenance. Existing Earth Slime bucket/bottle/cake paths and solid
 slime blocks remain unchanged.
@@ -263,8 +277,15 @@ They are provisional host integration parameters, not source-parity claims.
 
 The seventy source placeable-fluid declarations are now present in this stack.
 Potion and Powdered Snow are source unplaceable fluids and are not invented as
-world liquids here. Remaining: full source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, burn audio, camera fog, mixing and
+world liquids here. Remaining: full source-specific contact effects, item-specific curatives and mixed-source merge parity, mob/item/projectile interaction, camera fog, mixing and
 solidification, dispenser handling, final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for
 the final test batch; full tests, CI checks and merges are intentionally deferred.
+
+The required host stack also adds source burn audio after accepted registered-fluid
+player damage (volume 0.4, randomized source pitch); rejected damage remains
+silent. The ordinary hurt sound stays separate. Actual audibility and recipients
+remain unverified. This audio slice received brief static review and formatting
+only. Its packaging regression is deferred; no tests, builds, CI inspection,
+version checks or merges were performed.
