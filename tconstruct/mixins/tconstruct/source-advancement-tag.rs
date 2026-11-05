@@ -8,6 +8,7 @@ const TAGS: &[&str] = &[
     "forge:ingots/copper",
     "forge:ingots/gold",
     "forge:glass/colorless",
+    "forge:slimeballs",
     "tconstruct:greenheart_logs",
     "tconstruct:skyroot_logs",
     "tconstruct:bloodshroom_logs",

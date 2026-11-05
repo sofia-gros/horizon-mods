@@ -57,3 +57,20 @@ and package inclusion. No tests were executed, as requested. Brief static
 review only: host compilation, injection application, inventory/recipe
 events, recipe-book UI, crafting, resource reload, save/reload and LAN remain
 unverified. No CI or version checks were performed.
+
+## Configured Lead and Sticky Piston discovery
+
+The bounded bridge additionally manages `forge:slimeballs` (the aggregate
+slimeball tag, distinct from the singular `forge:slimeball/<kind>` tags).
+This supplies current-world inventory indexing and final predicate checks
+for the configured Lead and Sticky Piston unlock criteria in
+`feat/configured-slime-discovery-379`, stacked separately on PR #665.
+Both branches are required for that combined behavior. This bridge addition
+alone creates no recipes, advancements, new tags or item registrations.
+
+As for the other managed tags, replacement, removal, missing/invalid/empty
+snapshots and reload cannot fall back to stale native members. Reload clears
+the index without synthesizing inventory events or revoking progress.
+The existing fixture matrix now includes the aggregate slimeball tag.
+Tests were updated but not run; brief static review only. Actual inventory
+events, recipe-book UI, reload and LAN remain unverified.
