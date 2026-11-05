@@ -120,6 +120,12 @@ The Mighty Smelting Seared Soul Glass identity and source fixture are from
 The displayed text is adapted to explain existing acquisition and port limits.
 Copyright (c) SlimeKnights; MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
 
+The multi-alloy cycle is adapted from Tinkers' Construct
+[f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/main/java/slimeknights/tconstruct),
+`smeltery/block/entity/module/alloying/MultiAlloyingModule.java` and
+`library/recipe/alloying/AlloyRecipe.java`. Copyright (c) 2022 SlimeKnights;
+MIT license, see `tconstruct/third_party/tconstruct/LICENSE`.
+
 The Fantastic Foundry acquisition and recipe-unlock advancements are adapted
 from Tinkers' Construct at
 [f4e77d43](https://github.com/SlimeKnights/TinkersConstruct/tree/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements):

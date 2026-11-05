@@ -135,6 +135,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         })).collect()
     } else { vec![None; state.slots.len()] };
     let mut fuel_update = None;
+    let mut alloy_random = None;
     if state.phase == 0 && state.fuel == 0 {
         let mut tanks: Vec<_> = game.world.chunks.__horizon_mixins_tconstruct_smeltery_owners().iter()
             .filter_map(|(at, owner)| (*owner == pos).then_some(*at)).collect();
@@ -181,10 +182,19 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
         }
     }
     if !foundry && state.phase == 2 && state.fuel > 0 {
+        use horizon_core::random::RandomSource;
         let (fluids, tagged, capacity) = alloy_snapshot(&state.tank);
-        if let Some((_, inputs, output, amount)) = super::tconstruct_source_melter_world::alloy(&game.world, &fluids, &tagged, capacity, state.temperature) {
-            let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
-            state.tank.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount });
+        // Keep randomness and all fluid changes staged until write_many commits.
+        let mut random = game.world.random.clone();
+        let plans = super::tconstruct_source_melter_world::alloy_cycle(&game.world, &fluids, &tagged, capacity, state.temperature,
+            &mut |bound| random.next_int_bound(i32::try_from(bound).ok()?).ok().map(|value| value as usize));
+        if let Some(plans) = plans {
+            let mut candidate = state.tank.clone();
+            let valid = plans.into_iter().all(|(_, inputs, output, amount)| {
+                let inputs = inputs.into_iter().map(|(id, amount)| super::tconstruct_source_smeltery_tank::FluidAmount { id, tag: None, amount }).collect::<Vec<_>>();
+                candidate.alloy(&inputs, &super::tconstruct_source_smeltery_tank::FluidAmount { id: output, tag: None, amount })
+            });
+            if valid { state.tank = candidate; alloy_random = Some(random); }
         }
     }
     if state.phase == 3 && state.fuel > 0 {
@@ -220,6 +230,7 @@ pub(super) fn refresh_smeltery(game: &mut super::Game<'_>, pos: Pos) {
     let mut updates = vec![(pos, "tconstruct:smeltery", state_tag)];
     if let Some(update) = fuel_update { updates.push(update); }
     if !store::write_many(&mut game.world, &updates) { return; }
+    if let Some(random) = alloy_random { game.world.random = random; }
     for (index, remaining) in item_updates.into_iter().rev() {
         let item = &game.dropped[index];
         let chunk = ((item.position.x.floor() as i32) >> 4, (item.position.z.floor() as i32) >> 4);
