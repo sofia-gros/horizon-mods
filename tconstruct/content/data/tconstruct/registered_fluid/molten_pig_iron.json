@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_pig_iron",
   "flowing": "tconstruct:flowing_molten_pig_iron",
-  "block": "tconstruct:molten_pig_iron",
+  "block": "tconstruct:molten_pig_iron_fluid",
   "bucket": "tconstruct:molten_pig_iron_bucket",
   "policy": {
     "drop_off": 3,

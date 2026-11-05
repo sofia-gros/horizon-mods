@@ -1,0 +1,36 @@
+{
+  "source": "tconstruct:molten_clay",
+  "flowing": "tconstruct:flowing_molten_clay",
+  "block": "tconstruct:molten_clay_fluid",
+  "bucket": "tconstruct:molten_clay_bucket",
+  "policy": {
+    "drop_off": 2,
+    "slope_distance": 2,
+    "tick_delay": 40,
+    "source_conversion": false
+  },
+  "visual": {
+    "still": "tconstruct:fluid/molten/stone/still",
+    "flowing": "tconstruct:fluid/molten/stone/flowing",
+    "tint": 10182725,
+    "emission": 3
+  },
+  "interaction": {
+    "travel": {
+      "acceleration": 0.02,
+      "horizontal_drag": 0.800000011920929,
+      "vertical_drag": 0.800000011920929,
+      "gravity_scale": 0.0625,
+      "jump": 0.03999999910593033
+    },
+    "motion_scale": 0.0023333333333333335,
+    "can_swim": false,
+    "can_drown": false,
+    "extinguishes": false,
+    "fall_distance_scale": 0.5,
+    "burn": {
+      "seconds": 5,
+      "damage": 2
+    }
+  }
+}

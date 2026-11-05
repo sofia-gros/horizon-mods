@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_hepatizon",
   "flowing": "tconstruct:flowing_molten_hepatizon",
-  "block": "tconstruct:molten_hepatizon",
+  "block": "tconstruct:molten_hepatizon_fluid",
   "bucket": "tconstruct:molten_hepatizon_bucket",
   "policy": {
     "drop_off": 3,

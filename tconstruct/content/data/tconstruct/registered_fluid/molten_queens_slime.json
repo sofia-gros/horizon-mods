@@ -1,7 +1,7 @@
 {
   "source": "tconstruct:molten_queens_slime",
   "flowing": "tconstruct:flowing_molten_queens_slime",
-  "block": "tconstruct:molten_queens_slime",
+  "block": "tconstruct:molten_queens_slime_fluid",
   "bucket": "tconstruct:molten_queens_slime_bucket",
   "policy": {
     "drop_off": 3,
