@@ -18,6 +18,10 @@
       "start": 0.25,
       "end": 2,
       "color": 4688435
+    },
+    "camera": {
+      "texture": "tconstruct:fluid/molten/alloy/queens_slime/camera",
+      "opacity": 0.1
     }
   },
   "interaction": {

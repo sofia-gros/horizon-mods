@@ -18,6 +18,10 @@
       "start": 0.25,
       "end": 2,
       "color": 12890496
+    },
+    "camera": {
+      "texture": "tconstruct:fluid/molten/camera",
+      "opacity": 0.1
     }
   },
   "interaction": {

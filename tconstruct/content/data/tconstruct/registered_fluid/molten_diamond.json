@@ -18,6 +18,10 @@
       "start": 0.25,
       "end": 4,
       "calculate_color": true
+    },
+    "camera": {
+      "texture": "tconstruct:fluid/molten/ore/diamond/camera",
+      "opacity": 0.1
     }
   },
   "interaction": {

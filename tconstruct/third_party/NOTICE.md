@@ -179,10 +179,25 @@ colors follow Tinkers' Construct `FluidTextureProvider` at
 Both are Copyright (c) 2022 SlimeKnights, MIT; their complete licenses are
 preserved in `tconstruct/LICENSE` and `mantle/LICENSE` beside this notice.
 Changes: host declaration schema, explicit source tint multipliers, and automatic
-still-sprite color flags. Camera overlays remain deferred. No texture assets were added or
-modified by this slice. References: `content/reference/world-fluid-fog-source.json`.
+still-sprite color flags. No texture assets were added or modified by that fog slice. References: `content/reference/world-fluid-fog-source.json`.
 
 The automatic-color declaration opts into the companion host adaptation of
 Mantle `TextureColorHelper.computeAverageColor` at the same revision. That
 method is explicitly Apache-2.0; the host retains its license and attribution.
 No averaging implementation or new source texture is copied into this mod PR.
+
+
+## Registered world-fluid camera overlays
+
+The 61 `content/assets/tconstruct/textures/fluid/**/camera.png` files are exact
+copies from Tinkers' Construct generated resources at
+`f4e77d43f39ba1047bf93ae816b7e1beaab514c2`. Each path, git blob SHA and SHA-256
+is listed in `content/reference/world-fluid-camera-assets.json`. These source
+static camera images are generated from still-frame zero by MIT Mantle
+`FluidTextureCameraProvider` / `DeanimateTextureGenerator` at
+`17c287ad52f7b10154e07fa7570dc7bccd74ca2b`; no pixels are modified here.
+The seventy camera declarations adapt `FluidTextureProvider`, `FluidTexture`
+and `ClientTextureFluidType`: source camera texture ID, default opacity 0.1
+and existing opaque surface tint. Both projects are Copyright (c) 2022
+SlimeKnights, MIT; complete licenses remain in `tconstruct/LICENSE` and
+`mantle/LICENSE` beside this notice. No Forge implementation is included.

@@ -43,7 +43,7 @@
     }
   },
   "color_rule": "Explicit Queen's Slime 0x478A33 overrides the surface tint. Non-white source tints supply fog color. All colors multiply the existing host fog color.",
-  "deferred": "Camera overlays remain unimplemented; live graphics and resource reload parity remain unverified.",
+  "deferred": "Live graphics and resource reload parity remain unverified. Camera overlay declarations and source assets are documented in world-fluid-camera-assets.json.",
   "automatic_color": {
     "families": 57,
     "flag": "calculate_color",

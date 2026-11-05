@@ -18,6 +18,10 @@
       "start": 0.25,
       "end": 2,
       "calculate_color": true
+    },
+    "camera": {
+      "texture": "tconstruct:fluid/molten/compat_alloy/pewter/camera",
+      "opacity": 0.1
     }
   },
   "interaction": {

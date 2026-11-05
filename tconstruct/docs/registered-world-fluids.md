@@ -19,7 +19,7 @@ source pickup, scheduling and saving, rendering, player current/travel and
 declared contact policies using each family's identity.
 
 **Requires the unmerged Horizon registered-fluid stack through
-[Horizon fork PR #37](https://github.com/sofia-gros/horizon/pull/37).** Keep this
+[Horizon fork PR #39](https://github.com/sofia-gros/horizon/pull/39).** Keep this
 mod PR draft until the host support is integrated and the final compatibility
 build is checked. This does not change the released compatibility pin or claim
 that the current release can run these definitions.
@@ -280,7 +280,7 @@ The seventy source placeable-fluid declarations are now present in this stack.
 Potion and Powdered Snow are source unplaceable fluids and are not invented as
 world liquids here. Remaining: full source-specific contact effects, item-specific
 curatives and mixed-source merge parity, mob/item/projectile interaction,
-camera overlays, mixing and solidification,
+mixing and solidification,
 final build and actual
 placement→flow→pickup→save/reload/LAN acceptance. The `#379` high-priority fluid
 item remains incomplete. The new focused resource regressions are included for
@@ -317,7 +317,7 @@ The policy only lowers existing fog limits, remains active when ordinary
 distance fog is disabled, and leaves native mod fog callbacks last. Native
 water/lava identity and water vision remain unchanged. Exact source event order,
 third-person transitions, graphics backends and shader-pack behavior still need
-the final integration pass. Camera overlay textures are not included here.
+the final integration pass. Camera overlay textures are covered by the later camera slice below.
 
 The prerequisite host stack also includes registered bucket dispenser placement
 and source pickup in [Horizon #35](https://github.com/sofia-gros/horizon/pull/35).
@@ -346,6 +346,36 @@ coloring fog from the missing-texture checkerboard. Explicit colors still win.
 The source averaging method's Apache-2.0 license and copyright notice are
 included with the host implementation. This mod change adds only the declarative
 flag and source records. Source API equivalence, real pack reload and visual
-results remain unverified. Camera overlays remain outstanding. Brief static
+results remain unverified. Camera overlays are covered below. Brief static
 review only; regression tests, builds, CI/version checks and merges remain
 deferred.
+
+
+## Source camera overlays
+
+All seventy placeable families now declare their source camera texture and
+opacity 0.1. The 61 distinct static images are copied byte-for-byte from pinned
+TConstruct generated resources. Mantle's camera generator extracts the first
+physical still frame, rather than animating the full strip. Shared roots cover
+the tinted soups, stones and alloy variants. Existing visual tints supply the
+source opaque RGB camera tint, including white for Queen's Slime rather than
+its separate fog-color override. Exact paths, git blob IDs, SHA-256 values and
+source links are in `content/reference/world-fluid-camera-assets.json`.
+
+[Horizon #39](https://github.com/sofia-gros/horizon/pull/39), stacked on #37,
+loads declared camera images into the HUD atlas, including pack sampling flags.
+It draws them only in first person outside spectator mode when the player's
+eye is below the registered fluid surface. Matching fluid above fills the
+column; upward liquids keep their existing unmirrored geometry. Eye brightness,
+source tint and four-repeat yaw/pitch UVs feed the existing alpha-blended HDR
+world-tint pipeline. Registered camera input takes precedence over native water
+input, and a missing camera image is skipped rather than shown as a checker.
+
+The earlier 248 world-sprite/animation source records and three effect icons are
+unchanged. No fluid identity, physics, recipes, acquisition or compatibility pin
+changes in this slice. This is not completion of #379: nonplayer interactions,
+remaining contact/curative parity, mixing and the final integration still remain.
+Only brief static review and whitespace inspection were performed. New image,
+resource and packaging regressions and updated exact-visual expectations are
+written but not run. No tests, builds, CI/version checks or merge. Live overlays,
+HDR appearance, pack reload and exact source event gating/order are unverified.
