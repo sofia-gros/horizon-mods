@@ -5351,3 +5351,11 @@ kind = "HEAD"
 cancellable = true
 helper = "source-advancement-tag-index.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-advancement-tank-predicate"
+target = "horizon_client::advancements::item"
+kind = "HEAD"
+cancellable = true
+helper = "source-advancement-tank-predicate.rs"
+bindings = [{ name = "v", ty = "&serde_json::Value", value = "v" }, { name = "it", ty = "&ItemView", value = "it" }]

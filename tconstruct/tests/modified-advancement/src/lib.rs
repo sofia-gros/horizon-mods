@@ -30,6 +30,7 @@ pub struct ItemView { pub id: String, pub count: u32, pub custom_data: Option<nb
 pub trait World { fn in_tag(&self, registry: &str, tag: &str, id: &str) -> bool; }
 
 include!("../../../mixins/tconstruct/source-advancement-tool-predicate.rs");
+include!("../../../mixins/tconstruct/source-advancement-tank-predicate.rs");
 
 #[cfg(test)]
 mod tests {
@@ -393,6 +394,125 @@ mod tests {
             assert!(!composed(&partial, predicate.clone(), &["tconstruct:pickaxe"]));
             let single = tool(data(vec![(missing, Tag::Int(1))]));
             assert!(!composed(&single, predicate.clone(), &["tconstruct:pickaxe"]));
+        }
+    }
+}
+
+#[cfg(test)]
+mod filled_tank_tests {
+    use super::*;
+    use nbt::Tag;
+    use serde_json::{json, Value};
+    use std::ops::ControlFlow::{Break, Continue};
+
+    fn compound(fields: Vec<(&str, Tag)>) -> Tag {
+        Tag::Compound(fields.into_iter().map(|(key, value)| (key.into(), value)).collect())
+    }
+    fn stack(item: &str, count: u32, fluid: &str, amount: i32) -> ItemView {
+        ItemView { id: item.into(), count, custom_data: Some(compound(vec![
+            ("tconstruct:tank", compound(vec![("fluid", Tag::String(fluid.into())), ("amount", Tag::Int(amount))]))])) }
+    }
+    fn goal(name: &str) -> Value {
+        serde_json::from_str(match name {
+            "blaze" => include_str!("../../../content/data/tconstruct/advancement/foundry/blaze.json"),
+            _ => include_str!("../../../content/data/tconstruct/advancement/foundry/manyullyn_lanterns.json"),
+        }).unwrap()
+    }
+    fn predicate(goal: &Value, name: &str) -> Value { goal["criteria"][name]["conditions"]["items"][0].clone() }
+
+    #[test]
+    fn all_eight_full_tank_alternatives_require_exact_fluid_and_amount() {
+        let goal = goal("blaze");
+        for (name, criterion) in goal["criteria"].as_object().unwrap() {
+            let predicate = &criterion["conditions"]["items"][0];
+            let item = format!("tconstruct:{name}");
+            let amount = if name.contains("ingot") { 4320 } else { 4000 };
+            let mut actual = stack(&item, 1, "tconstruct:blazing_blood", amount);
+            assert_eq!(tconstruct_advancement_tank_predicate(predicate, &actual), Break(true));
+            for bad in [0, -1, amount - 1, amount + 1] {
+                actual = stack(&item, 1, "tconstruct:blazing_blood", bad);
+                assert_eq!(tconstruct_advancement_tank_predicate(predicate, &actual), Break(false));
+            }
+            actual = stack(&item, 1, "minecraft:lava", amount);
+            assert_eq!(tconstruct_advancement_tank_predicate(predicate, &actual), Break(false));
+            actual = stack("tconstruct:seared_lantern", 1, "tconstruct:blazing_blood", amount);
+            assert_eq!(tconstruct_advancement_tank_predicate(predicate, &actual), Break(false));
+        }
+    }
+
+    #[test]
+    fn lantern_goal_requires_64_filled_lanterns_in_one_stack() {
+        let goal = goal("lanterns");
+        for name in ["seared_lantern", "scorched_lantern"] {
+            let predicate = predicate(&goal, name);
+            let item = format!("tconstruct:{name}");
+            for count in [0, 1, 32, 63, 64] {
+                let actual = stack(&item, count, "tconstruct:molten_manyullyn", 50);
+                assert_eq!(tconstruct_advancement_tank_predicate(&predicate, &actual), Break(count == 64));
+            }
+            for amount in [0, 49, 51] {
+                let actual = stack(&item, 64, "tconstruct:molten_manyullyn", amount);
+                assert_eq!(tconstruct_advancement_tank_predicate(&predicate, &actual), Break(false));
+            }
+            let actual = stack(&item, 64, "tconstruct:blazing_blood", 50);
+            assert_eq!(tconstruct_advancement_tank_predicate(&predicate, &actual), Break(false));
+        }
+    }
+
+    #[test]
+    fn native_extensions_are_read_only_but_malformed_and_legacy_tanks_fail_closed() {
+        let predicate = predicate(&goal("blaze"), "seared_fuel_tank");
+        let base = vec![("fluid", Tag::String("tconstruct:blazing_blood".into())), ("amount", Tag::Int(4000))];
+        let mut item = stack("tconstruct:seared_fuel_tank", 1, "tconstruct:blazing_blood", 4000);
+        let mut extended = base.clone();
+        extended.push(("fluid_tag", compound(vec![("example:variant", Tag::Int(3))])));
+        extended.push(("example:extension", Tag::Int(7)));
+        item.custom_data = Some(compound(vec![("tconstruct:tank", compound(extended)), ("example:other", Tag::Int(9))]));
+        let before = format!("{:?}", item.custom_data);
+        assert_eq!(tconstruct_advancement_tank_predicate(&predicate, &item), Break(true));
+        assert_eq!(format!("{:?}", item.custom_data), before);
+        for key in ["FluidName", "Amount", "Tag", "fluid_tag"] {
+            let mut fields = base.clone(); fields.push((key, Tag::Int(1)));
+            item.custom_data = Some(compound(vec![("tconstruct:tank", compound(fields))]));
+            assert_eq!(tconstruct_advancement_tank_predicate(&predicate, &item), Break(false));
+        }
+        for data in [None, Some(Tag::Int(1)), Some(compound(vec![])),
+            Some(compound(vec![("tconstruct:tank", Tag::Int(4000))])),
+            Some(compound(vec![("tank", compound(base.clone()))])),
+            Some(compound(vec![("tank", compound(vec![])), ("tconstruct:tank", compound(base.clone()))])),
+            Some(compound(vec![("tconstruct:tank", compound(vec![("amount", Tag::Int(4000)),
+                ("fluid", Tag::String(nbt::JavaString(vec![0xd800])))]))])),
+            Some(compound(vec![("tconstruct:tank", compound(vec![("amount", Tag::String("4000".into())),
+                ("fluid", Tag::String("tconstruct:blazing_blood".into()))]))]))] {
+            item.custom_data = data;
+            assert_eq!(tconstruct_advancement_tank_predicate(&predicate, &item), Break(false));
+        }
+    }
+
+    #[test]
+    fn unsupported_predicates_do_not_fall_through_or_ignore_additional_constraints() {
+        let predicate = predicate(&goal("blaze"), "seared_fuel_tank");
+        let item = stack("tconstruct:seared_fuel_tank", 1, "tconstruct:blazing_blood", 4000);
+        let mut malformed = Vec::new();
+        for (key, value) in [("items", json!([])), ("items", json!("tconstruct:seared_fuel_tank")),
+            ("items", json!(["tconstruct:seared_fuel_tank", "tconstruct:scorched_fuel_tank"])),
+            ("count", Value::Null), ("count", json!(1)), ("count", json!({"min": -1})),
+            ("count", json!({"min": 2, "max": 1})), ("count", json!({"min": 1.5})),
+            ("count", json!({"max": 4294967296u64})), ("count", json!({"unknown": 0})),
+            ("nbt", json!("{}")), ("components", json!({})), ("tank", json!({})),
+            ("tank", json!({"fluid": "tconstruct:blazing_blood", "amount": 4001})),
+            ("tank", json!({"fluid": "minecraft:lava", "amount": 4000})),
+            ("tank", json!({"fluid": "tconstruct:blazing_blood", "amount": 4000, "extra": 1}))] {
+            // Replace the field without otherwise changing the valid criterion.
+            let mut changed = predicate.clone(); changed[key] = value;
+            malformed.push(changed);
+        }
+        for value in malformed {
+            assert_eq!(tconstruct_advancement_tank_predicate(&value, &item), Break(false));
+        }
+        for value in [Value::Null, json!({}), json!({"items": ["tconstruct:seared_fuel_tank"]}),
+            json!({"type": "tconstruct:tool_stack", "predicate": "tconstruct:has_upgrades"})] {
+            assert_eq!(tconstruct_advancement_tank_predicate(&value, &item), Continue(()));
         }
     }
 }

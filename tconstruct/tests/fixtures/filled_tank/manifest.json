@@ -1,0 +1,10 @@
+{
+  "blaze.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/foundry/blaze.json",
+    "sha256": "98b5e0c21e178d27daff350bca8f2c842c14c34f6d95bf53696eea3f346eaae1"
+  },
+  "manyullyn_lanterns.json": {
+    "source": "https://github.com/SlimeKnights/TinkersConstruct/blob/f4e77d43f39ba1047bf93ae816b7e1beaab514c2/src/generated/resources/data/tconstruct/advancements/foundry/manyullyn_lanterns.json",
+    "sha256": "f8ba688e74fd2d3fa2890d56406464dab6bdcab3b2a58a9d79fe51cdde8cb10f"
+  }
+}
