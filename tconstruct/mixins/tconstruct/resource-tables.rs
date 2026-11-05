@@ -416,7 +416,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
     let marker = cache.join("tconstruct-startup-owner");
     let mut fingerprint = std::fs::read(base.join("horizon-mod-content.stamp"))?;
     // Invalidate only our owned cache when Creative preparation or source item compatibility semantics change.
-    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v8-scute-v1");
+    fingerprint.extend_from_slice(b"\0tconstruct-native-creative-v8-scute-v1-chain-v1");
     if marker.is_file() && std::fs::read(&marker)? == fingerprint {
         *root = cache;
         return Ok(());
@@ -554,6 +554,7 @@ pub fn startup(root: &mut std::path::PathBuf) -> Result<(), Box<dyn std::error::
         }
     }
     super::tconstruct_source_scute_compat::prepare(&original_out, &item_table)?;
+    super::tconstruct_source_chain_compat::prepare(&original_out, &item_table)?;
     crate::tconstruct_source_harvest_tags::prepare(&cache, &original_out, &runtime.join("forge-harvest-tags.zip"))?;
     std::fs::copy(runtime.join("tconstruct-melter-fluids.json"), cache.join("tconstruct-melter-fluids.json"))?;
     // Restore item components beyond the content loader's template and
