@@ -1,0 +1,10 @@
+{
+  "netherite_tier.json": {
+    "source": "src/generated/resources/data/tconstruct/advancements/tools/netherite_tier.json",
+    "sha256": "590b5776cc05babe4dba57b435a90e7060bbcad6d4e3326c8ddd133bbc587043"
+  },
+  "StatInSetPredicate.java": {
+    "source": "src/main/java/slimeknights/tconstruct/library/json/predicate/tool/StatInSetPredicate.java",
+    "sha256": "c67ce1572c26da873e01bbfa7affb3dc976fb0fbeeda59e80ff66c42520257e6"
+  }
+}

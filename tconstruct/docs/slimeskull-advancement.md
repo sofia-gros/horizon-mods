@@ -22,7 +22,9 @@ material/variant/index and named upgrade predicates are reused unchanged.
 
 The adapter bounds nested predicates to eight levels below the root, each
 conjunction to 32 children and each item set to 64 entries. Empty conjunctions
-and sets, OR/NOT, item-tag predicates and other unsupported forms fail closed.
+and sets, OR/NOT, and unsupported forms fail closed. The Netherite Tier
+follow-on adds only the declared harvest item-tag predicate and tier stat;
+other item-tag predicates remain unsupported.
 These are explicit bounded-adapter limits, not the full source predicate API.
 
 ## Dependencies and remaining work

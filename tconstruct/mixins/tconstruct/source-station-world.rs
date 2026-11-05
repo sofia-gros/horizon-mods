@@ -143,6 +143,14 @@ pub fn assemble_with_stats(definition: &[u8], item: &str, identities: &[String],
         .unwrap_or_else(|| Tag::compound(Vec::<(&str, Tag)>::new()));
     let Tag::Compound(ref mut fields) = custom else { return None; };
     fields.insert("tic_materials".into(), Tag::List(identities.iter().map(|m| Tag::String(m.as_str().into())).collect()));
+    // Mirror the same effective tier used by generated mining rules for native
+    // advancement predicates. Rebuilds overwrite/remove stale saved values.
+    if let Some(tier) = tier.filter(|_| harvest) {
+        let source_tier = if tier == "wooden" { "wood" } else { tier };
+        fields.insert("tic_harvest_tier".into(), Tag::String(format!("minecraft:{source_tier}").as_str().into()));
+    } else {
+        fields.remove(&"tic_harvest_tier".into());
+    }
     fields.insert("tic_max_damage".into(), Tag::Int(durability));
     fields.insert("tic_attack_damage".into(), Tag::Float(stats.attack_damage.to_bits()));
     fields.insert("tic_attack_speed".into(), Tag::Float(stats.attack_speed.to_bits()));
@@ -716,4 +724,47 @@ pub(super) fn operation_plan_diagnostic(world: &super::tconstruct_world::World, 
         (before > after).then_some((index, before - after))
     }).collect();
     Some(StationOperation { output: output?, consumed, leftovers: Vec::new() })
+}
+
+#[cfg(test)]
+mod advancement_tier_tests {
+    use super::*;
+    use std::collections::BTreeMap;
+
+    fn build(base: &str, original: Option<&ItemStack>, traits: &BTreeMap<String, i32>, harvest: bool) -> ItemStack {
+        let definition = br#"{"modules":[{"type":"tconstruct:material_stats","stat_types":["tconstruct:head"]},{"type":"tconstruct:tool_actions","tool_actions":["pickaxe_dig"]}]}"#;
+        let stats = serde_json::json!({"tconstruct:head": {"durability": 100, "mining_speed": 4.0, "mining_tier": base}});
+        assemble_with_stats(definition, "tconstruct:pickaxe", &["example:head".into()],
+            &[stats.as_object().unwrap().clone()], original, Some(traits), harvest).unwrap()
+    }
+    fn saved_tier(stack: &ItemStack) -> Option<String> {
+        match stack.data()?.other("minecraft:custom_data")?.get("tic_harvest_tier")? {
+            Tag::String(value) => value.to_string().ok(), _ => None,
+        }
+    }
+
+    #[test]
+    fn effective_tier_snapshot_tracks_material_upgrade_trait_and_rebuild() {
+        let empty = BTreeMap::new();
+        for tier in ["minecraft:wood", "minecraft:gold", "minecraft:stone", "minecraft:iron", "minecraft:diamond", "minecraft:netherite"] {
+            assert_eq!(saved_tier(&build(tier, None, &empty, true)).as_deref(), Some(tier));
+        }
+        let mut upgraded = ItemStack::new("tconstruct:pickaxe", 1);
+        upgraded.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:netherite", Tag::Int(1))])),
+            ("example:foreign", Tag::Int(7)),
+        ])));
+        let upgraded = build("minecraft:iron", Some(&upgraded), &empty, true);
+        assert_eq!(saved_tier(&upgraded).as_deref(), Some("minecraft:netherite"));
+        assert_eq!(upgraded.data().unwrap().other("minecraft:custom_data").unwrap().get("example:foreign"), Some(&Tag::Int(7)));
+        let traits = BTreeMap::from([("tconstruct:netherite".into(), 1)]);
+        let trait_tool = build("minecraft:iron", None, &traits, true);
+        assert_eq!(saved_tier(&trait_tool).as_deref(), Some("minecraft:netherite"));
+        let rebuilt = build("minecraft:iron", Some(&trait_tool), &empty, true);
+        assert_eq!(saved_tier(&rebuilt).as_deref(), Some("minecraft:iron"));
+        assert!(saved_tier(&build("minecraft:iron", Some(&rebuilt), &empty, false)).is_none());
+        let no_tier = assemble_with_stats(br#"{"modules":[{"type":"tconstruct:base_stats","stats":{"tconstruct:durability":100}}]}"#,
+            "tconstruct:pickaxe", &[], &[], Some(&rebuilt), Some(&empty), true).unwrap();
+        assert!(saved_tier(&no_tier).is_none());
+    }
 }
