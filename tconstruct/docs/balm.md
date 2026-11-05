@@ -15,7 +15,8 @@ Level 1 is nominally a 20% reduction. Flat terms apply once per contributing
 piece, not to empty or zero-level slots. Multiple pieces add their reductions
 against the attribute's base of one; they do not multiply independently.
 
-The combined base is followed by each Crystalstrike MULTIPLY_TOTAL contribution.
+The combined base also includes [Magic Protection](magic-protection-duration.md)'s
+strongest-equipped-level reduction before each Crystalstrike MULTIPLY_TOTAL contribution.
 The resulting attribute is clamped to 0–100. Only then is the incoming duration
 multiplied and truncated, with a minimum of one tick when changed. Infinite
 (-1) duration is preserved. Float coefficient arithmetic before double widening
@@ -47,7 +48,7 @@ retroactively shortened when equipment changes.
 ## Deferred
 
 Held equipment, custom armor classes, source custom effect/curative metadata,
-other duration modifiers, custom attribute commands, direct native effect-list
+duration modifiers other than Magic Protection, custom attribute commands, direct native effect-list
 writes, and Darkthread skull acquisition proof are outside this patch. Remote
 clients retain their native path. Actual save/reload, guest swaps, synchronization,
 LAN and cross-mod hook ordering remain untested.

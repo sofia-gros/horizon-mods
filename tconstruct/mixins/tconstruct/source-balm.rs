@@ -19,9 +19,22 @@ pub(super) fn amount(level: i32) -> Option<f64> {
 /// A base of one, additive base-multiplier contributions, then each separate
 /// total multiplier. Clamp the completed attribute, not individual modules.
 pub(super) fn multiplier(levels: &[i32], total_amounts: &[f64]) -> Option<f64> {
+    multiplier_with_base(levels, &[], total_amounts)
+}
+
+/// Other MULTIPLY_BASE modules share the same base of one. Do not round a
+/// duration or clamp a partial attribute before all operations are combined.
+pub(super) fn multiplier_with_base(
+    levels: &[i32],
+    base_amounts: &[f64],
+    total_amounts: &[f64],
+) -> Option<f64> {
     let base = levels
         .iter()
         .try_fold(1.0, |value, level| Some(value + amount(*level)?))?;
+    let base = base_amounts.iter().try_fold(base, |value, amount| {
+        amount.is_finite().then_some(value + amount)
+    })?;
     total_amounts
         .iter()
         .try_fold(base, |value, amount| {
