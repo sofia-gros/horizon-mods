@@ -54,14 +54,56 @@ pub(super) fn modifier_input_spec(inputs: &[Vec<String>]) -> Option<Value> {
 // Drawing and hover consume exactly the same selected item for each slot.
 pub(super) fn modifier_input_items(spec: &Value, seconds: u64) -> Option<Vec<&str>> {
     let slots = spec.get("modifier_inputs")?.as_array().filter(|slots| (1..=5).contains(&slots.len()))?;
-    slots.iter().map(|slot| {
-        let choices = slot.as_array().filter(|choices| !choices.is_empty() && choices.len() <= 128)?;
-        for choice in choices {
-            let id = choice.as_str().filter(|id| id.len() <= 256 && *id != "minecraft:air")?;
-            if showcase_item(choice) != Some(id) { return None; }
+    slots.iter().map(|slot| modifier_input_choice(slot, seconds)).collect()
+}
+
+fn modifier_input_choice(slot: &Value, seconds: u64) -> Option<&str> {
+    let choices = slot.as_array().filter(|choices| !choices.is_empty() && choices.len() <= 128)?;
+    for choice in choices {
+        let id = choice.as_str().filter(|id| id.len() <= 256 && *id != "minecraft:air")?;
+        if showcase_item(choice) != Some(id) { return None; }
+    }
+    choices[((seconds / 3) % choices.len() as u64) as usize].as_str()
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(super) struct ModifierProgressView<'a> {
+    pub input: &'a str,
+    pub leftover: Option<&'a str>,
+    pub per_item: u32,
+    pub needed: u32,
+    pub from_zero: u32,
+    pub returned_from_zero: u32,
+}
+
+pub(super) fn modifier_progress_spec(inputs: &[String], per_item: i32, needed: i32, leftover: Option<&str>) -> Option<Value> {
+    let inputs = modifier_input_spec(&[inputs.to_vec()])?;
+    let spec = serde_json::json!({"modifier_progress":{
+        "inputs":inputs["modifier_inputs"][0], "per_item":per_item, "needed":needed, "leftover":leftover
+    }});
+    modifier_progress_view(&spec, 0)?;
+    (spec.to_string().len() <= 4096).then_some(spec)
+}
+
+// This is an example starting at zero progress, never a prediction for a tool.
+// Calculate in u64 so ceil(needed/per_item)*per_item cannot overflow i32.
+pub(super) fn modifier_progress_view(spec: &Value, seconds: u64) -> Option<ModifierProgressView<'_>> {
+    let progress = spec.get("modifier_progress")?;
+    let input = modifier_input_choice(progress.get("inputs")?, seconds)?;
+    let per_item = progress.get("per_item")?.as_u64().filter(|value| matches!(value, 1 | 4 | 9))?;
+    let needed = progress.get("needed")?.as_u64().filter(|value| *value > 0 && *value <= i32::MAX as u64)?;
+    let leftover = match (per_item, progress.get("leftover")?) {
+        (1, Value::Null) => None,
+        (4 | 9, value) => {
+            let id = value.as_str().filter(|id| id.len() <= 256 && *id != "minecraft:air")?;
+            if showcase_item(value) != Some(id) { return None; }
+            Some(id)
         }
-        choices[((seconds / 3) % choices.len() as u64) as usize].as_str()
-    }).collect()
+        _ => return None,
+    };
+    let from_zero = needed / per_item + u64::from(needed % per_item != 0);
+    Some(ModifierProgressView { input, leftover, per_item:per_item as u32, needed:needed as u32,
+        from_zero:from_zero as u32, returned_from_zero:(from_zero * per_item - needed) as u32 })
 }
 
 // Slot frames are 22px wide, spaced by 28px and centered on a 182px page.
@@ -105,6 +147,39 @@ pub(super) fn resolve(recipe: &Value, tags: Option<&HashMap<String, HashSet<Stri
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn incremental_preview_counts_points_items_and_conditional_returns() {
+        for (per_item, needed, leftover, count, returned) in [
+            (1, 72, None, 72, 0), (4, 72, Some("test:point"), 18, 0),
+            (9, 20, Some("test:point"), 3, 7), (9, 2, Some("test:point"), 1, 7),
+            (4, 1, Some("test:point"), 1, 3), (9, i32::MAX, Some("test:point"), 238609295, 8),
+        ] {
+            let spec = modifier_progress_spec(&["test:b".into(), "test:a".into()], per_item, needed, leftover).unwrap();
+            let view = modifier_progress_view(&spec, 0).unwrap();
+            assert_eq!((view.per_item, view.needed, view.from_zero, view.returned_from_zero), (per_item as u32, needed as u32, count, returned));
+            assert_eq!(view.input, "test:a");
+            assert_eq!(view.leftover, leftover);
+            assert_eq!(modifier_progress_view(&spec, 3).unwrap().input, "test:b");
+            assert_eq!(modifier_progress_view(&spec, u64::MAX).unwrap().input, "test:b");
+        }
+    }
+    #[test]
+    fn incremental_preview_rejects_unknown_values_and_bad_return_items() {
+        for (per_item, needed, leftover) in [
+            (0, 10, None), (2, 10, Some("test:point")), (1, 0, None), (1, -1, None),
+            (1, 10, Some("test:point")), (4, 10, None), (9, 10, Some("bad id")),
+            (9, 10, Some("minecraft:air")),
+        ] {
+            assert!(modifier_progress_spec(&["test:input".into()], per_item, needed, leftover).is_none());
+        }
+        assert!(modifier_progress_spec(&[], 1, 10, None).is_none());
+        let mut spec = modifier_progress_spec(&["test:input".into()], 1, 10, None).unwrap();
+        spec["modifier_progress"]["needed"] = serde_json::json!(u64::MAX);
+        assert!(modifier_progress_view(&spec, 0).is_none());
+        spec["modifier_progress"]["needed"] = serde_json::json!(10);
+        spec["modifier_progress"]["inputs"] = serde_json::json!(["test:input", 42]);
+        assert!(modifier_progress_view(&spec, 0).is_none());
+    }
     #[test]
     fn modifier_inputs_preserve_five_separate_slots_and_cycle_alternatives() {
         let input = vec![vec!["test:b".into(), "test:a".into(), "test:b".into()],

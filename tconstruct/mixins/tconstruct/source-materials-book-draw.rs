@@ -158,6 +158,35 @@ fn tconstruct_draw_materials_book(game: &Game<'_>, batch: &mut HudBatch) -> std:
         }
         return;
     }
+    if spec.get("modifier_progress").is_some() {
+        let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs());
+        if let Some(view) = tconstruct_materials_book_recipe::modifier_progress_view(&spec, seconds) {
+            let mut icons = vec![("Input", view.input, if view.leftover.is_some() { 40.0 } else { 83.0 })];
+            if let Some(id) = view.leftover { icons.push(("Return type", id, 124.0)); }
+            for (label, id, dx) in icons {
+                let (x, y) = (left + 36.0 + dx, top + 46.0);
+                batch.text(atlas, label, x + (16.0 - HudBatch::text_width(atlas, label)) / 2.0, top + 31.0, BLACK, false);
+                if let Some(mut rect) = atlas.sprites.get("gui/tconstruct_book_modify").copied() {
+                    let (du, dv) = ((rect.u1 - rect.u0) / rect.w as f32, (rect.v1 - rect.v0) / rect.h as f32);
+                    rect.u1 = rect.u0 + 22.0 * du;
+                    rect.v0 += 75.0 * dv; rect.v1 = rect.v0 + 22.0 * dv;
+                    batch.rect_uv(x - 3.0, y - 3.0, 22.0, 22.0, rect, rgba(229, 198, 130, 255));
+                } else {
+                    batch.fill(atlas, x - 3.0, y - 3.0, 22.0, 22.0, rgba(90, 70, 40, 255));
+                    batch.fill(atlas, x - 2.0, y - 2.0, 20.0, 20.0, rgba(229, 198, 130, 255));
+                }
+                let stack = ItemStack::new(id, 1);
+                game.draw_item(batch, &stack, x, y);
+                if hovered(x, y, 16.0) { item_tooltip = Some(stack); }
+            }
+        }
+        if let Some(content) = spec.get("body_runs").and_then(tconstruct_materials_book_layout::decode_runs) {
+            for (i, line) in atlas.font.split(&content, 182.0).iter().take(11).enumerate() {
+                batch.text_styled(atlas, line, left + 36.0, top + 76.0 + i as f32 * 9.0, BLACK, false);
+            }
+        }
+        return;
+    }
     if spec.get("modifier_inputs").is_some() {
         let seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |time| time.as_secs());
         if let Some(items) = tconstruct_materials_book_recipe::modifier_input_items(&spec, seconds) {

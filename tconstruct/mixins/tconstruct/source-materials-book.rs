@@ -452,6 +452,23 @@ fn mighty_ability_pages(game: &Game<'_>, path: &std::path::Path, root: &str, sec
     pages
 }
 
+fn modifier_progress_page(game: &Game<'_>, title: &str, inputs: &[String], per_item: i32, needed: i32, leftover: Option<&str>) -> Option<Text> {
+    let mut spec = super::tconstruct_materials_book_recipe::modifier_progress_spec(inputs, per_item, needed, leftover)?;
+    let preview_title = format!("{title}: Progress");
+    if game.gui.atlas.font.split(&Text::literal(&preview_title), 182.0).len() != 1 { return None; }
+    let view = super::tconstruct_materials_book_recipe::modifier_progress_view(&spec, 0)?;
+    let returns = if view.leftover.is_some() {
+        format!("Return from zero: {} item(s).\nReturn icon identifies the item type.", view.returned_from_zero)
+    } else { "No leftover item.".to_owned() };
+    let text = format!("Each input: {} point(s).\nOne level: {} points.\nFrom zero: {} input item(s).\n{returns}\n\nPartial progress changes input and return counts. Operations stop at the next level. Full rules follow.", view.per_item, view.needed, view.from_zero);
+    let body = split_styled(game, &Text::literal(text), 182.0, 11);
+    if body.len() != 1 { return None; }
+    spec["body_runs"] = serde_json::json!(super::tconstruct_materials_book_layout::encode_runs(&body[0]));
+    let insertion = format!("tconstruct:book:{spec}");
+    if insertion.len() > 8192 { return None; }
+    Some(Text::styled(preview_title, horizon_client::text::Style { insertion:Some(insertion), underlined:Some(true), ..Default::default() }))
+}
+
 fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Text> {
     let Some(raw) = game.world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref().and_then(|v| v.as_ref().ok()) else { return Vec::new(); };
     let Some(recipes) = game.world.chunks.__horizon_mixins_tconstruct_recipe_snapshot().as_ref() else { return Vec::new(); };
@@ -475,6 +492,7 @@ fn incremental_modifier_pages(game: &Game<'_>, source_tags: &[String]) -> Vec<Te
     for entry in entries {
         let (namespace, name) = entry.modifier.split_once(':').unwrap_or(("tconstruct", &entry.modifier));
         let title = game.translate(&format!("modifier.{namespace}.{name}"), name);
+        if let Some(preview) = modifier_progress_page(game, &title, &entry.inputs, entry.per_item, entry.needed, entry.leftover.as_deref()) { pages.push(preview); }
         let item_name = |id: &str| {
             let (namespace, name) = id.split_once(':').unwrap_or(("minecraft", id));
             game.translate(&format!("item.{namespace}.{name}"), &game.translate(&format!("block.{namespace}.{name}"), id))
