@@ -135,3 +135,20 @@ identity/reordering, overfull capacity preservation, partial fill/drain, empty/r
 unsafe aliases/IDs, opaque-row removal and failed-save inventory retention. Fixtures
 use mocked host/world/storage. They were not run; actual gameplay, reload, LAN and
 combined integration remain for the deferred validation phase.
+
+
+### Smeltery/Foundry mode and fluid-selection menu saves (#379)
+
+Local menu clicks and guest menu buttons now preserve the controller's original
+compound when changing container-transfer direction or selecting a fluid layer.
+Only the tank is replaced using the preserving row codec; raw inventory/item, fuel,
+progress and extension fields remain intact. The helper refuses unrelated decoded
+state changes, conflicting controller tank aliases and unsafe row removal. Each
+caller also rechecks its saved snapshot before persistence. Temporary container
+slots, the local inventory projection and guest mode packets update only after a
+successful save.
+
+Three production codec/transfer cases plus local/guest wiring checks were added.
+These are not full pointer, UI or guest packet execution fixtures, and no tests were
+run. Direct carried-container interactions, generic slot writes and machine ticks
+remain separate. Actual host/UI, reload and LAN behavior remain unverified.
