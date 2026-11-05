@@ -127,7 +127,7 @@ class OrdinaryModifierGuideWiring(unittest.TestCase):
                      'entry.upgrade_cost, entry.ability_cost', 'split_styled(game,', 'partial guide'):
             self.assertIn(text, body)
         self.assertIn('let puny_upgrades = puny && key == "upgrades";', source)
-        self.assertIn('modifier_group_pages(game, path, root, &section, &labels, puny_upgrades)', source)
+        self.assertIn('modifier_group_pages(game, path, root, &section, &labels, key)', source)
         self.assertIn('ordinary_modifier_pages(game, &[tag.to_owned()])', source)
         rules = (ROOT / 'mixins/tconstruct/source-upgrade-rules.rs').read_text()
         self.assertIn('if !ordinary_modifier_supported(id) { continue; }', rules)

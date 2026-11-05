@@ -61,6 +61,16 @@ pub(super) fn mighty_ability_group(name: &str) -> Option<(&'static str, Option<&
     })
 }
 
+// Defense shares the bounded live recipe projection, but never manufactures
+// defense-slot support or gameplay effects from a source category label.
+pub(super) fn mighty_defense_group(name: &str) -> Option<(&'static str, Option<&'static str>)> {
+    Some(match name {
+        "group_protection" => ("tconstruct:defense/protection", Some("defense/protection.json")),
+        "group_special" => ("tconstruct:defense/special", Some("defense/special.json")),
+        _ => return None,
+    })
+}
+
 // Puny has five overview pages plus Bonus Damage and four armor subgroups.
 // Like Mighty, group identity is fixed while recipe membership stays live.
 pub(super) fn puny_upgrade_group(name: &str) -> Option<(&'static str, Option<&'static str>)> {
@@ -199,6 +209,17 @@ mod tests {
         }
         for name in ["group_unknown", "group_armor.shield", "group_armor.unknown", "group_interact"] {
             assert_eq!(super::puny_upgrade_group(name), None);
+        }
+    }
+    #[test]
+    fn mighty_defense_keeps_two_exact_source_overviews() {
+        for name in ["protection", "special"] {
+            let (tag, page) = super::mighty_defense_group(&format!("group_{name}")).unwrap();
+            assert_eq!(tag, format!("tconstruct:defense/{name}"));
+            assert_eq!(page, Some(format!("defense/{name}.json").as_str()));
+        }
+        for name in ["group_general", "group_armor", "group_unknown", "protection", "special"] {
+            assert_eq!(super::mighty_defense_group(name), None);
         }
     }
     #[test]

@@ -44,7 +44,7 @@ class PunyUpgradeGroups(unittest.TestCase):
         source = (ROOT / 'mixins/tconstruct/source-materials-book.rs').read_text()
         start = source.index('fn modifier_group_pages(')
         body = source[start:source.index('fn modifier_progress_page(', start)]
-        for text in ('if upgrades { "upgrades" } else { "abilities" }',
+        for text in ('let upgrades = category == "upgrades";',
                      'puny_upgrade_group(name)', 'mighty_ability_group(name)',
                      '!= Some(tag)', '!= Some(relative)',
                      'ordinary_modifier_pages(game, &[tag.to_owned()])',
@@ -53,7 +53,7 @@ class PunyUpgradeGroups(unittest.TestCase):
                      'pages.extend(titled_pages(&title, &text));', 'pages.extend(recipes);'):
             self.assertIn(text, body)
         self.assertLess(body.index('pages.extend(titled_pages(&title, &text));'), body.index('pages.extend(recipes);'))
-        self.assertIn('if mighty_abilities || puny_upgrades {', source)
+        self.assertIn('if mighty_abilities || mighty_defense || puny_upgrades {', source)
         self.assertIn('if puny_upgrades && !super::tconstruct_materials_book_index::mighty_advice_ready([', source)
         self.assertNotIn('ordinary_tags', source)
         self.assertIn('if tag == "tconstruct:slotless/bonus" { bonus_modifier_pages(game, tag) }', source)

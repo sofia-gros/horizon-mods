@@ -52,3 +52,10 @@ abilities.partial.notice_title=About This Section
 abilities.partial.notice=Source category descriptions explain the original mod, not complete Horizon support. Only currently supported recipe forms are listed beneath each category. Missing recipes do not establish that an effect is absent, and a shown recipe does not prove full gameplay parity. Repeated recipes may appear under multiple source categories. Individual recipe pages list eligible tool types; category names do not override those restrictions. Actual GUI interactions, acquisition and LAN remain unverified.
 abilities.partial.reference=Source reference: examples and controls described below may not be implemented in Horizon. Use the supported recipe pages for this port's current application rules.
 abilities.partial.empty=No supported recipe pages are available in this category for the current resource snapshot. This is a guide limitation, not proof that every described effect is absent.
+
+
+defense.partial=Defense (Partial Guide)
+defense.partial.notice_title=About Defense Guidance
+defense.partial.notice=These two source overviews describe original-mod defense categories, not completed Horizon behavior. Defense-slot application and full protection effects are not added by this chapter. Only recipes accepted by the existing shared Station support gates can appear. The default defense categories currently have no supported recipe pages. A missing recipe is a guide limitation, not proof that every effect is absent. Actual acquisition, combat, GUI and LAN remain unverified.
+defense.partial.reference=Source reference: the protection levels, damage categories, equipment effects and comparisons below are not guarantees of implemented Horizon behavior. This chapter does not enable new modifiers or defense slots.
+defense.partial.empty=No supported recipe pages are available in this defense category for the current resource snapshot. The original description is retained as reference, not an application recipe.
