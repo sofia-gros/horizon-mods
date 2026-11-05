@@ -5354,3 +5354,30 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+
+# Looting modifies only the native killer snapshot for direct player melee.
+[[module]]
+id = "source-looting"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_looting"
+source = "source-looting.rs"
+
+[[module]]
+id = "looting-death-world"
+file = "crates/horizon-client/src/game/creatures.rs"
+name = "tconstruct_looting_death_world"
+source = "looting-death-world.rs"
+
+[[injection]]
+id = "looting-death-head"
+target = "horizon_client::game::creatures::Game<'_>::drop_death_loot"
+kind = "HEAD"
+helper = "looting-death-head.rs"
+bindings = [
+  { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" },
+  { name = "victim", ty = "&horizon_client::mobs::Mob", value = "&*m" },
+  { name = "player_uuid", ty = "Option<u128>", value = "player_uuid" },
+  { name = "by_player", ty = "bool", value = "by_player" },
+  { name = "killer", ty = "&mut horizon_world::loot::LootEntity", value = "&mut killer" },
+]
