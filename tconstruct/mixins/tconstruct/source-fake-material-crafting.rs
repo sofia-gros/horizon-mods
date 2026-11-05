@@ -73,4 +73,16 @@ mod tests {
         assert!(plan(&items.iter().collect::<Vec<_>>(), 3, 3, true, |_,_| true).is_none());
         assert!(items.iter().all(|s| s.count == 1));
     }
+    #[test]
+    fn conversion_geometry_empty_stacks_and_missing_material_fail_closed() {
+        let mut ingots: Vec<_> = (0..9).map(|_| stack("tconstruct:fake_ingot", "test:bronze", 1)).collect();
+        assert!(plan(&ingots.iter().collect::<Vec<_>>(), 1, 9, true, |_,_| true).is_none());
+        ingots[4].count = 0;
+        assert!(plan(&ingots.iter().collect::<Vec<_>>(), 3, 3, true, |_,_| true).is_none());
+        ingots[4] = ItemStack::new("tconstruct:fake_ingot", 1);
+        assert!(plan(&ingots.iter().collect::<Vec<_>>(), 3, 3, true, |_,_| true).is_none());
+        let block = stack("tconstruct:fake_storage_block", "test:bronze", 1);
+        assert!(plan(&[&block], 2, 1, false, |_,_| true).is_none());
+        assert!(plan(&[&block, &block], 1, 1, false, |_,_| true).is_none());
+    }
 }
