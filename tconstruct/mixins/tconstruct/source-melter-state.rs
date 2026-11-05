@@ -523,19 +523,27 @@ pub(super) fn select_casting_candidate<T>(candidates: Vec<(usize, T)>, mut check
     None
 }
 
+/// Check before serialization: the NBT codec cannot represent retained wire,
+/// including stale backing whose public wire_patch() is already None.
+pub(super) fn casting_item_save_safe(item: &ItemStack) -> bool {
+    if item.count == 0 || item.data().is_some_and(|data| data.wire.patch().is_some()) { return false; }
+    let Some(decoded) = item_from_nbt(&item_to_nbt(item)) else { return false; };
+    decoded.count == item.count && decoded.damage == item.damage && decoded.same_item_same_components(item)
+}
+
 /// Patch just one slot while keeping unknown machine fields byte-for-byte.
 pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemStack>, after: &Option<ItemStack>) -> Option<Tag> {
     if !matches!(key, "input" | "output") { return None; }
     match before {
         None if saved.get(key).is_none() => {},
-        Some(item) if item.wire_patch().is_none() && saved.get(key) == Some(&item_to_nbt(item)) => {},
+        Some(item) if casting_item_save_safe(item) && saved.get(key) == Some(&item_to_nbt(item)) => {},
         _ => return None,
     }
     let Tag::Compound(mut fields) = saved.clone() else { return None; };
     match after {
         None => { fields.remove(&key.into()); },
         Some(item) => {
-            if item.count == 0 || item.wire_patch().is_some() { return None; }
+            if !casting_item_save_safe(item) { return None; }
             let raw = item_to_nbt(item);
             let decoded = item_from_nbt(&raw)?;
             if decoded.count != item.count || !decoded.same_item_same_components(item) { return None; }
@@ -545,10 +553,14 @@ pub(super) fn patch_casting_slot(saved: &Tag, key: &str, before: &Option<ItemSta
     Some(Tag::Compound(fields))
 }
 impl Casting {
+    pub(super) fn items_save_safe(&self) -> bool {
+        [&self.input, &self.output, &self.result].into_iter().flatten().all(casting_item_save_safe)
+    }
     /// Patch native casting fields without discarding extensions. An opaque
     /// item may remain byte-for-byte in its slot, but must not be transformed
     /// or consumed through a decoder that cannot represent it losslessly.
     pub(super) fn to_nbt_preserving(&self, raw: &Tag) -> Option<Tag> {
+        if !self.items_save_safe() { return None; }
         let before = Self::from_nbt(raw)?;
         if let Some(Tag::String(id)) = raw.get("recipe") { id.to_string().ok()?; }
         let Tag::Compound(mut fields) = raw.clone() else { return None; };

@@ -13,11 +13,11 @@ class CastingContainerWiring(unittest.TestCase):
         self.assertIn('casting_recipe_at(game, pos, kind, &next, &offered)', body)
         self.assertIn('Direction::Auto', body)
         self.assertIn('next.recipe = None; next.result = None', body)
-        self.assertLess(body.index('store::write(&mut game.world, pos, kind, next.to_nbt())'), body.index('*game.held_mut() = Some(rest)'))
+        self.assertLess(body.index('store::write_casting(&mut game.world, pos, kind, &next)'), body.index('*game.held_mut() = Some(rest)'))
         self.assertIn('if game.creative', body)
         self.assertLess(body.index('casting_portable_rewrite_safe(stack)'), body.index('transfer_single_with_color'))
         self.assertIn('let held = game.held().cloned();', body)
-        self.assertLess(body.index('casting.roundtrips(&raw)'), body.index('store::write(&mut game.world, pos, kind, next.to_nbt())'))
+        self.assertLess(body.index('casting.roundtrips(&raw)'), body.index('store::write_casting(&mut game.world, pos, kind, &next)'))
 
     def test_both_faucet_sources_reinitialize_the_casting_before_pouring(self):
         source = (ROOT / 'source-machine-runtime.rs').read_text()

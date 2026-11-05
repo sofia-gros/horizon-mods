@@ -640,6 +640,7 @@ pub(super) fn casting_at(game: &super::Game<'_>, pos: Pos) -> Option<(&'static s
     let BlockEntity::Chest(slots) = game.world.block_entities.get(&pos)? else { return None; };
     if slots.len() < 2 { return None; }
     casting.input = slots[0].clone(); casting.output = slots[1].clone();
+    if !casting.items_save_safe() { return None; }
     Some((kind, casting))
 }
 
@@ -669,11 +670,14 @@ fn casting_recipe_at(game: &super::Game<'_>, pos: Pos, kind: &str, casting: &Cas
 /// Interact with the two casting slots in the source's order: insert one item
 /// when empty, otherwise take the result first and then the cast.
 pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str) -> bool {
+    // Guard the original held stack before insertion, reusable/consumed mold
+    // handling, fluid conversion, or any inventory/persistence side effect.
+    if game.held().is_some_and(|item| !super::tconstruct_source_melter_state::casting_item_save_safe(item)) { return true; }
     if !ensure(game, pos, block) { return false; }
     let Some((kind, mut casting)) = casting_at(game, pos) else { return false; };
     if casting.tank.amount != 0 || casting.recipe.is_some() {
         if let Some(excess) = casting.recover_excess_input() {
-            if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+            if !store::write_casting(&mut game.world, pos, kind, &casting) { return false; }
             if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
                 slots[0] = casting.input.clone();
             }
@@ -718,7 +722,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             // This newly supported path must not discard extensions or lossy
             // strings when replacing the existing casting compound.
             if !store::read(&game.world, pos, kind).is_some_and(|raw| casting.roundtrips(&raw)) { return true; }
-            if !store::write(&mut game.world, pos, kind, next.to_nbt()) { return false; }
+            if !store::write_casting(&mut game.world, pos, kind, &next) { return false; }
             if game.creative {
                 if next.tank.amount < before { if let Some(result) = slots[1].take() { game.give_or_drop(result); } }
             } else if let Some(rest) = slots[0].take() {
@@ -745,7 +749,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
                     remaining = Some((stack.count > 0).then_some(stack));
                     casting.input = Some(result);
                 } else { casting.input = None; taken = Some(result); }
-                if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+                if !store::write_casting(&mut game.world, pos, kind, &casting) { return false; }
                 if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
                     slots[0] = casting.input.clone(); slots[1] = casting.output.clone();
                 }
@@ -762,7 +766,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
             if held.is_some() {
                 if let Some((_, recipe)) = super::tconstruct_source_melter_world::molding(&game.world, kind == "tconstruct:basin", &material.item, None) {
                     casting.input = None;
-                    if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+                    if !store::write_casting(&mut game.world, pos, kind, &casting) { return false; }
                     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) { slots[0] = None; }
                     let result = horizon_items::items::ItemStack::new(&recipe.result, 1);
                     // The source fallback gives the assembled item without onCraftedBy.
@@ -780,7 +784,7 @@ pub(super) fn interact_casting(game: &mut super::Game<'_>, pos: Pos, block: &str
         casting.input = Some(item);
     } else if casting.output.is_some() { taken = casting.output.take(); }
     else { taken = casting.input.take(); }
-    if !store::write(&mut game.world, pos, kind, casting.to_nbt()) { return false; }
+    if !store::write_casting(&mut game.world, pos, kind, &casting) { return false; }
     if let Some(BlockEntity::Chest(slots)) = game.world.block_entities.get_mut(&pos) {
         slots[0] = casting.input.clone(); slots[1] = casting.output.clone();
     }

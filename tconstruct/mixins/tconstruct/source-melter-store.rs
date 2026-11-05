@@ -68,6 +68,15 @@ pub(super) fn clear_different(world: &mut World, pos: Pos, key: &str) {
     if matches!(old, Some(Tag::String(id)) if id.to_string_lossy() != key) { clear(world, pos); }
 }
 
+/// Typed boundary for live casting interactions. Never encode opaque items
+/// before checking them: decoding an encoded candidate cannot recover wire.
+pub(super) fn write_casting(world: &mut World, pos: Pos, key: &str, state: &super::tconstruct_source_melter_state::Casting) -> bool {
+    if !matches!(key, "tconstruct:table" | "tconstruct:basin") || !state.items_save_safe() { return false; }
+    let Some(raw) = read(world, pos, key) else { return false; };
+    let Some(next) = state.to_nbt_preserving(&raw) else { return false; };
+    write(world, pos, key, next)
+}
+
 pub(super) fn read(world: &World, pos: Pos, key: &str) -> Option<Tag> {
     let chunk = world.chunks.get(&(pos.0 >> 4, pos.2 >> 4))?;
     let saved = chunk.saved.as_deref()?;

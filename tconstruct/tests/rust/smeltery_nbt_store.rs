@@ -103,3 +103,34 @@ fn basin_writes_preserve_extensions_too() {
     assert!(tconstruct_source_melter_store::write(&mut world,pos,"tconstruct:basin",state.to_nbt()));
     assert_eq!(tconstruct_source_melter_store::read(&world,pos,"tconstruct:basin").unwrap().get("basin_extension"),Some(&Tag::Int(41)));
 }
+
+#[test]
+fn typed_casting_write_rejects_live_wire_before_encoding_and_slot_patch_is_safe() {
+    use horizon_items::{items::ItemStack,item_data::Wire};use std::sync::Arc;
+    use tconstruct_source_melter_state::{Casting,casting_item_save_safe,patch_casting_slot};
+    for stale in [false,true] {
+        let mut stack=ItemStack::new("minecraft:stone",1);
+        stack.data_mut().wire=Wire::new(stack.clone(),Arc::<[u8]>::from([1,2,3]));
+        if stale {stack.damage=1;}
+        assert_eq!(stack.wire_patch().is_none(),stale);
+        assert!(!casting_item_save_safe(&stack));
+        for slot in ["input","output","result"] {
+            let empty=Casting::new();let raw=empty.to_nbt();let(mut world,pos)=casting_world(raw.clone());
+            let mut next=empty;match slot {"input"=>next.input=Some(stack.clone()),"output"=>next.output=Some(stack.clone()),_=>next.result=Some(stack.clone())};
+            assert!(!tconstruct_source_melter_store::write_casting(&mut world,pos,"tconstruct:table",&next));
+            assert_eq!(tconstruct_source_melter_store::read(&world,pos,"tconstruct:table"),Some(raw.clone()));assert!(world.modified.is_empty());
+            assert!(next.to_nbt_preserving(&raw).is_none());
+        }
+        let raw=Casting::new().to_nbt();
+        assert!(patch_casting_slot(&raw,"input",&None,&Some(stack)).is_none());
+    }
+    // #631 slot patches retain machine extensions, including while moving
+    // supported decoded components. Typed writes retain the same semantics.
+    let mut state=Casting::new();let mut raw=state.to_nbt();
+    if let horizon_world::nbt::Tag::Compound(fields)=&mut raw {fields.insert("extension".into(),horizon_world::nbt::Tag::Int(17));}
+    let item=ItemStack::new("minecraft:stone",1);state.input=Some(item.clone());
+    let patched=patch_casting_slot(&raw,"input",&None,&Some(item)).unwrap();
+    let (mut world,pos)=casting_world(raw);
+    assert!(tconstruct_source_melter_store::write_casting(&mut world,pos,"tconstruct:table",&state));
+    assert_eq!(tconstruct_source_melter_store::read(&world,pos,"tconstruct:table"),Some(patched));
+}

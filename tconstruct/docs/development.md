@@ -225,12 +225,21 @@ slot. Transforming, removing or moving an item that cannot round-trip through
 the host codec is rejected, rather than dropping its unrepresented data.
 Canonical item completion and emptying the tank remain supported, including
 capacity shrinking to zero. Legacy alias collisions and lossy recipe/fluid IDs
-remain fail-closed, not migrated or silently updated.
+remain fail-closed, not migrated or silently updated. Live held items and
+chest slots are checked before encoding or consumption, including retained
+wire whose public `wire_patch()` is already invalidated. Interactive writes
+use a typed boundary; slot patches used by the #631 path share the same item
+safety check.
 
 The pinned fixture uses production Casting, item/NBT codecs and the production
 store with mock chunk storage. It covers cooling/completion extensions, opaque
 item retention, rejected consumption with whole-batch rollback, legacy aliases,
-snapshot replacement and both Table/Basin keys. This fixes a persistence
+snapshot replacement and both Table/Basin keys. It also runs the verbatim
+`interact_casting` and `casting_at` functions with mocked recipe/resource
+lookup and portable transfer, testing ordinary insertion, reusable molding,
+opaque/invalidated-wire insertion and reusable/consumed-pattern rejection,
+and live-slot rejection. Portable-fluid conversion itself is not exercised
+by this fixture. This fixes a persistence
 boundary; it does not add unsupported item gameplay, remove existing canonical
 interaction restrictions, solve destruction/migration, or establish live
 world/reload/LAN behavior. It does not depend on the comparator PR series.
