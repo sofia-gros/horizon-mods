@@ -80,7 +80,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
     def test_source_assets_keep_pixels_and_animation_metadata(self):
         manifest = json.loads((CONTENT / 'reference/registered-world-fluid-assets.json').read_text())
         self.assertEqual(manifest['revision'], 'f4e77d43f39ba1047bf93ae816b7e1beaab514c2')
-        self.assertEqual(len(manifest['files']), 220)
+        self.assertEqual(len(manifest['files']), 224)
         for path, source in manifest['files'].items():
             with self.subTest(asset=path):
                 data = (CONTENT / path).read_bytes()
@@ -115,7 +115,7 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                         'nicrosil', 'duralumin', 'bendalloy', 'steeleaf')]
                     for short in families + ['seared_stone', 'scorched_stone', 'blazing_blood', 'fiery_liquid',
                                              'beetroot_soup', 'mushroom_stew', 'rabbit_stew', 'meat_soup',
-                                             'venom', 'honey', 'liquid_soul']:
+                                             'venom', 'honey', 'liquid_soul', 'magma']:
                         definition = json.loads(archive.read('data/tconstruct/registered_fluid/' + short + '.json'))
                         blockname = definition['block'].split(':', 1)[1]
                         archive.read('data/tconstruct/horizon/block/' + blockname + '.json')
@@ -204,6 +204,40 @@ class RegisteredWorldFluidTests(unittest.TestCase):
                                           'tick_delay': 30, 'source_conversion': False})
         for field in ('still', 'flowing'):
             self.assertEqual(fluid['visual'][field], 'tconstruct:fluid/molten/glass/' + field)
+
+    def test_magma_keeps_slime_properties_alongside_burning_contact(self):
+        # TinkerFluids registers this with slime/cool properties, not hot().
+        # SlimeFluidType only exempts slime mobs from drowning, not players.
+        fluid = json.loads((CONTENT / 'data/tconstruct/registered_fluid/magma.json').read_text())
+        self.assertEqual(fluid['source'], 'tconstruct:magma')
+        self.assertEqual(fluid['flowing'], 'tconstruct:flowing_magma')
+        self.assertEqual(fluid['block'], 'tconstruct:magma_fluid')
+        self.assertEqual(fluid['bucket'], 'tconstruct:magma_bucket')
+        self.assertEqual(fluid['policy'], {'drop_off': 1, 'slope_distance': 4,
+                                          'tick_delay': 50, 'source_conversion': False})
+        interaction = fluid['interaction']
+        self.assertEqual(interaction['burn'], {'seconds': 8, 'damage': 3})
+        for key in ('can_swim', 'can_drown', 'extinguishes'):
+            self.assertTrue(interaction[key])
+        self.assertEqual(interaction['motion_scale'], 0.0023333333333333335)
+        self.assertEqual(interaction['fall_distance_scale'], 0.5)
+        self.assertNotIn('effect', interaction)
+        self.assertEqual(fluid['visual']['emission'], 3)
+        self.assertEqual(fluid['visual']['tint'], 0xFFFFFF)
+        for field in ('still', 'flowing'):
+            self.assertEqual(fluid['visual'][field], 'tconstruct:fluid/slime/magma/' + field)
+        block = json.loads((CONTENT / 'data/tconstruct/horizon/block/magma_fluid.json').read_text())
+        self.assertEqual(block['template'], 'minecraft:water')
+        self.assertFalse(block['item'])
+        self.assertEqual(block['properties']['light'], 3)
+        self.assertFalse(block['properties']['random_ticks'])
+        state = json.loads((CONTENT / 'assets/tconstruct/blockstates/magma_fluid.json').read_text())
+        self.assertEqual(state['variants']['']['model'], 'tconstruct:block/magma_fluid')
+        model = json.loads((CONTENT / 'assets/tconstruct/models/block/magma_fluid.json').read_text())
+        self.assertEqual(model['elements'], [])
+        self.assertEqual(model['textures']['particle'], fluid['visual']['still'])
+        self.assertFalse((CONTENT / 'assets/tconstruct/items/magma_fluid.json').exists())
+        self.assertFalse((CONTENT / 'data/tconstruct/loot_table/blocks/magma_fluid.json').exists())
 
 
 if __name__ == '__main__':
