@@ -5329,3 +5329,9 @@ kind = "HEAD"
 cancellable = true
 helper = "multishot-crossbow-load.rs"
 bindings = [{ name = "game", ty = "&mut crate::game::Game<'_>", value = "self" }, { name = "slot", ty = "usize", value = "slot" }, { name = "ticks", ty = "u32", value = "ticks" }, { name = "stack", ty = "&ItemStack", value = "stack" }]
+
+[[module]]
+id = "server-multishot-module"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_multishot"
+source = "source-multishot.rs"

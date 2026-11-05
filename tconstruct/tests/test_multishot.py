@@ -11,6 +11,17 @@ MIXINS = ROOT / 'mixins/tconstruct'
 
 
 class Multishot(unittest.TestCase):
+    def test_shared_station_dependencies_exist_in_every_owning_crate(self):
+        manifest = tomllib.loads((MIXINS / 'horizon-mixin.toml').read_text())
+        station_owners = {m['file'] for m in manifest['module'] if m.get('source') == 'source-station-world.rs'}
+        helper_owners = {m['file'] for m in manifest['module'] if m.get('source') == 'source-multishot.rs'}
+        self.assertEqual(station_owners, helper_owners)
+        self.assertEqual(station_owners, {'crates/horizon-client/src/game.rs', 'crates/horizon-client/src/client_lib.rs'})
+        station = (MIXINS / 'source-station-world.rs').read_text()
+        gate = station.split('if plan.id == "tconstruct:multishot" {', 1)[1].split('if plan.id == "tconstruct:necrotic"', 1)[0]
+        self.assertNotIn('super::tconstruct_modifier_snapshot', gate)
+        self.assertIn('raw.0.get("tconstruct:tinkering/modifiers/multishot").and_then(|layers| layers.last())', gate)
+
     def test_station_recipe_is_the_pinned_source_recipe(self):
         with ZipFile(ROOT / 'content/reference/tconstruct-recipes.zip') as archive:
             source = json.loads(archive.read('data/tconstruct/recipes/tools/modifiers/ability/multishot.json'))

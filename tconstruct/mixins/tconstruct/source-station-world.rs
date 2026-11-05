@@ -554,7 +554,7 @@ fn upgrade_plan(world: &super::tconstruct_world::World, slots: &[Option<ItemStac
     if plan.id == "tconstruct:multishot" {
         resolved_traits.as_ref()?;
         let raw = world.chunks.__horizon_mixins_tconstruct_modifier_resource_snapshot().as_ref()?.as_ref().ok()?;
-        let definition = super::tconstruct_modifier_snapshot::highest_definition(raw, "tconstruct:tinkering/modifiers/multishot");
+        let definition = raw.0.get("tconstruct:tinkering/modifiers/multishot").and_then(|layers| layers.last()).map(Vec::as_slice);
         let total = plan.amount.checked_add(traits.get(&plan.id).copied().unwrap_or(0))?;
         if !super::tconstruct_multishot::known_definition(definition) || super::tconstruct_multishot::desired(total).is_none() { return None; }
     }

@@ -127,6 +127,8 @@ jobs:
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_haste_wire::tests
           cargo test --locked --manifest-path tconstruct/tests/haste-wire-fixture/Cargo.toml
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_source_upgrade_rules::tests
+          cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client-lib --lib --no-default-features --profile fast tconstruct_multishot::tests -- --nocapture | tee "$RUNNER_TEMP/multishot-server-tests.log"
+          grep -Fq "test tconstruct_multishot::tests::matching_stacks_partial_loads_and_real_consumption ... ok" "$RUNNER_TEMP/multishot-server-tests.log"
           python3 tconstruct/tests/run_multishot.py --horizon ../horizon-official
           cargo test --locked --manifest-path tconstruct/target/modded/Cargo.toml -p horizon-client --lib --no-default-features --profile fast tconstruct_multishot::tests -- --nocapture | tee "$RUNNER_TEMP/multishot-tests.log"
           grep -Fq "test game::tconstruct_multishot::tests::matching_stacks_partial_loads_and_real_consumption ... ok" "$RUNNER_TEMP/multishot-tests.log"
