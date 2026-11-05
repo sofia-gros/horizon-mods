@@ -1,5 +1,5 @@
-//! Adapt only the two pinned acquisition recipes in the generated source layer.
-//! The native 1.20.5+ rename does not create a second item or rewrite saves.
+// Adapt only the two pinned acquisition recipes in the generated source layer.
+// The native 1.20.5+ rename does not create a second item or rewrite saves.
 use serde_json::Value;
 use std::path::Path;
 
