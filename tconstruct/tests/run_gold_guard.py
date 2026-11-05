@@ -55,7 +55,13 @@ def main():
     subprocess.run(['cargo', 'metadata', '--offline', '--format-version', '1',
                     '--manifest-path', str(target / 'Cargo.toml')], stdout=subprocess.DEVNULL, check=True)
     verify_lock(horizon / 'Cargo.lock', target / 'Cargo.lock')
-    subprocess.run(['cargo', 'test', '--locked', '--offline', '--manifest-path', str(target / 'Cargo.toml')], check=True)
+    result = subprocess.run(['cargo', 'test', '--locked', '--offline', '--manifest-path', str(target / 'Cargo.toml')],
+                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    print(result.stdout, end='')
+    result.check_returncode()
+    required = 'test game::live_projection_counts_native_and_tool_flags_and_does_not_stack ... ok'
+    if required not in result.stdout:
+        raise RuntimeError('Required production Gold Guard adapter test did not pass')
 
 
 if __name__ == '__main__':
