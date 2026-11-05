@@ -278,4 +278,60 @@ mod tests {
         assert!(!composed(&item, json!({"type": "mantle:and", "predicates": vec![material("tconstruct:cobalt"); 33]}), &["tconstruct:pickaxe"]));
         assert!(!composed(&item, json!({"type": "mantle:set", "items": vec!["tconstruct:pickaxe"; 65]}), &["tconstruct:pickaxe"]));
     }
+
+    struct TierWorld { modifiable: bool, harvest: bool }
+    impl World for TierWorld {
+        fn in_tag(&self, registry: &str, tag: &str, _id: &str) -> bool {
+            registry == "item" && match tag {
+                "tconstruct:modifiable" => self.modifiable,
+                "tconstruct:modifiable/harvest" => self.harvest,
+                _ => false,
+            }
+        }
+    }
+    fn tier_item(value: Tag) -> ItemView {
+        ItemView { id: "tconstruct:pickaxe".into(), count: 1,
+            custom_data: Some(data(vec![("tic_harvest_tier", value)])) }
+    }
+    fn tier_predicate(values: serde_json::Value) -> serde_json::Value {
+        json!({"type": "tconstruct:tool_stack", "predicate": {"type": "mantle:and", "predicates": [
+            {"type": "mantle:tag", "tag": "tconstruct:modifiable/harvest"},
+            {"type": "tconstruct:stat_in_set", "stat": "tconstruct:harvest_tier", "values": values}
+        ]}})
+    }
+
+    #[test]
+    fn netherite_tier_requires_effective_metadata_and_both_world_tags() {
+        let predicate = tier_predicate(json!(["minecraft:netherite"]));
+        let item = tier_item(Tag::String("minecraft:netherite".into()));
+        for (modifiable, harvest, expected) in [(true, true, true), (false, true, false),
+            (true, false, false), (false, false, false)] {
+            assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &item,
+                &TierWorld { modifiable, harvest }), Break(expected));
+        }
+        let world = TierWorld { modifiable: true, harvest: true };
+        for value in [Tag::String("minecraft:diamond".into()), Tag::String("example:unknown".into()),
+            Tag::String(nbt::JavaString(vec![0xd800])), Tag::Int(4)] {
+            assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &tier_item(value), &world), Break(false));
+        }
+        assert_eq!(tconstruct_advancement_tool_predicate(&predicate,
+            &tool(data(vec![("tconstruct:netherite", Tag::Int(1))])), &world), Break(false));
+    }
+
+    #[test]
+    fn tier_sets_and_tag_names_fail_closed_outside_the_supported_schema() {
+        let item = tier_item(Tag::String("minecraft:netherite".into()));
+        let world = TierWorld { modifiable: true, harvest: true };
+        for values in [json!([]), json!(["minecraft:netherite", null]), json!(["minecraft:netherite", "example:custom"]),
+            json!("minecraft:netherite"), json!([4]), json!(vec!["minecraft:netherite"; 65])] {
+            assert_eq!(tconstruct_advancement_tool_predicate(&tier_predicate(values), &item, &world), Break(false));
+        }
+        let mut predicate = tier_predicate(json!(["minecraft:iron", "minecraft:netherite"]));
+        assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &item, &world), Break(true));
+        predicate["predicate"]["predicates"][0]["tag"] = json!("tconstruct:modifiable/melee");
+        assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &item, &world), Break(false));
+        predicate["predicate"]["predicates"][0]["tag"] = json!("tconstruct:modifiable/harvest");
+        predicate["predicate"]["predicates"][1]["stat"] = json!("tconstruct:attack_damage");
+        assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &item, &world), Break(false));
+    }
 }

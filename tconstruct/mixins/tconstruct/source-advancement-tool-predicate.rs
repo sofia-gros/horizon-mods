@@ -16,19 +16,41 @@ fn tconstruct_advancement_tool_predicate(v: &serde_json::Value, it: &ItemView, w
         }
         Some((base, variant))
     }
-    fn matches(predicate: &serde_json::Value, it: &ItemView, depth: u8) -> bool {
+    fn matches(predicate: &serde_json::Value, it: &ItemView, w: &dyn World, depth: u8) -> bool {
         if depth > 8 { return false; }
         match predicate.get("type").and_then(serde_json::Value::as_str) {
             Some("mantle:and") => {
                 let Some(children) = predicate.get("predicates").and_then(serde_json::Value::as_array) else { return false; };
                 return !children.is_empty() && children.len() <= 32
-                    && children.iter().all(|child| matches(child, it, depth + 1));
+                    && children.iter().all(|child| matches(child, it, w, depth + 1));
             }
             Some("mantle:set") => {
                 let Some(items) = predicate.get("items").and_then(serde_json::Value::as_array) else { return false; };
                 return !items.is_empty() && items.len() <= 64
                     && items.iter().all(|item| item.as_str().is_some_and(valid_id))
                     && items.iter().any(|item| item.as_str() == Some(it.id.as_str()));
+            }
+            Some("mantle:tag") => {
+                // Only this declared acquisition tag uses the resolved-world
+                // bridge; do not fall back to stale host tags for other IDs.
+                return predicate.get("tag").and_then(serde_json::Value::as_str)
+                    == Some("tconstruct:modifiable/harvest")
+                    && w.in_tag("item", "tconstruct:modifiable/harvest", &it.id);
+            }
+            Some("tconstruct:stat_in_set") => {
+                if predicate.get("stat").and_then(serde_json::Value::as_str) != Some("tconstruct:harvest_tier") {
+                    return false;
+                }
+                const TIERS: &[&str] = &["minecraft:wood", "minecraft:gold", "minecraft:stone",
+                    "minecraft:iron", "minecraft:diamond", "minecraft:netherite"];
+                let Some(values) = predicate.get("values").and_then(serde_json::Value::as_array) else { return false; };
+                if values.is_empty() || values.len() > 64
+                    || !values.iter().all(|value| value.as_str().is_some_and(|id| TIERS.contains(&id))) {
+                    return false;
+                }
+                let Some(Tag::String(tier)) = it.custom_data.as_ref().and_then(|data| data.get("tic_harvest_tier")) else { return false; };
+                let Ok(tier) = tier.to_string() else { return false; };
+                return TIERS.contains(&tier.as_str()) && values.iter().any(|value| value.as_str() == Some(tier.as_str()));
             }
             _ => {},
         }
@@ -84,5 +106,5 @@ fn tconstruct_advancement_tool_predicate(v: &serde_json::Value, it: &ItemView, w
     if it.count == 0 || !w.in_tag("item", "tconstruct:modifiable", &it.id) {
         return Break(false);
     }
-    Break(matches(&v["predicate"], it, 0))
+    Break(matches(&v["predicate"], it, w, 0))
 }

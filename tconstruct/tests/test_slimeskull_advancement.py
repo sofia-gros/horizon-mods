@@ -42,7 +42,7 @@ class SlimeskullAdvancement(unittest.TestCase):
 
     def test_predicate_composition_uses_the_existing_production_helper(self):
         helper = (ROOT / 'mixins/tconstruct/source-advancement-tool-predicate.rs').read_text()
-        self.assertIn('children.iter().all(|child| matches(child, it, depth + 1))', helper)
+        self.assertIn('children.iter().all(|child| matches(child, it, w, depth + 1))', helper)
         self.assertIn('items.iter().all(|item| item.as_str().is_some_and(valid_id))', helper)
         self.assertIn('w.in_tag("item", "tconstruct:modifiable", &it.id)', helper)
         self.assertIn('if depth > 8', helper)

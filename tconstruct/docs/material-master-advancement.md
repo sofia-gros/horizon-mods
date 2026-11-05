@@ -37,10 +37,10 @@ Stacked on the Modified Tools predicate bridge in mod PR #839. Requires
 [host #41](https://github.com/sofia-gros/horizon/pull/41) additionally makes
 metadata-only part changes reach the inventory event without an ID/count change.
 
-The source parent is still `tconstruct:tools/netherite_tier`, which is not yet
-provided by this acquisition branch. It is not replaced with an easier parent;
-the visible advancement-tree ancestry remains incomplete. The 38 source
-requirements include late-game/compatibility materials. This slice does not
+The source parent `tconstruct:tools/netherite_tier` is restored by the
+[Netherite Tier follow-on](netherite-tier-advancement.md), retaining its original
+harvest-tool and tier criteria. The 38 source requirements include
+late-game/compatibility materials. This slice does not
 implement missing materials or certify that all 38 are naturally obtainable.
 General stat/modifier/slot predicates remain outside this slice. The
 [Slimeskull follow-on](slimeskull-advancement.md) adds bounded tool conjunctions
