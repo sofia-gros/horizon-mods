@@ -5584,3 +5584,39 @@ id = "source-flamestance-world"
 file = "crates/horizon-client/src/game.rs"
 name = "tconstruct_flamestance_world"
 source = "flamestance-world.rs"
+
+[[module]]
+id = "source-lacerating"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_lacerating"
+source = "source-lacerating.rs"
+
+[[module]]
+id = "server-source-lacerating"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_lacerating"
+source = "source-lacerating.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-lacerating-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_lacerating_world"
+source = "lacerating-world.rs"
+
+[[state]]
+id = "lacerating-attacker"
+target = "horizon_client_lib::mobs::Mob"
+ty = "Option<crate::mobs::Who>"
+initial = "None"
+[[state.constructor]]
+target = "horizon_client_lib::mobs::Mob::new"
+selector = "Self"
+require = 1
+
+[[injection]]
+id = "source-lacerating-effect-tick"
+target = "horizon_client_lib::mobs::ai::tick_effects"
+kind = "HEAD"
+helper = "lacerating-tick.rs"
+bindings = [{ name = "mob", ty = "&mut crate::mobs::Mob", value = "&mut *m" }]
