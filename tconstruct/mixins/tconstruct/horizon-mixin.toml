@@ -5433,3 +5433,32 @@ bindings = [
   { name = "interaction", ty = "crate::game::explosion::BlockInteraction", value = "interaction" },
   { name = "blocks", ty = "&[[i32; 3]]", value = "blocks" },
 ]
+
+[[module]]
+id = "worldbound-lightning"
+file = "crates/horizon-client/src/game/lightning.rs"
+name = "tconstruct_worldbound_lightning"
+source = "worldbound-lightning.rs"
+
+[[injection]]
+id = "worldbound-lightning-skip"
+target = "horizon_client::game::lightning::Game<'_>::thunder_struck"
+kind = "HEAD"
+cancellable = true
+helper = "worldbound-lightning-skip.rs"
+bindings = [
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "handle", ty = "crate::game::entity::EntityHandle", value = "h" },
+  { name = "stage", ty = "crate::game::entity::ThunderHit", value = "stage" },
+]
+
+[[injection]]
+id = "worldbound-lightning-record"
+target = "horizon_client::game::lightning::Game<'_>::thunder_hit"
+kind = "RETURN"
+helper = "worldbound-lightning-record.rs"
+bindings = [
+  { name = "value", ty = "Vec<EntityView>", value = "$value" },
+  { name = "game", ty = "&crate::game::Game<'_>", value = "&*self" },
+  { name = "bolt", ty = "&mut crate::game::lightning::Bolt", value = "&mut *b" },
+]
