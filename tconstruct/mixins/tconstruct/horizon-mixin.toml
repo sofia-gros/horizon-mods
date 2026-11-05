@@ -5354,3 +5354,36 @@ target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_att
 kind = "RETURN"
 helper = "gold-guard-attributes.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-depth-strider"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_depth_strider"
+source = "source-depth-strider.rs"
+
+[[module]]
+id = "server-source-depth-strider"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_depth_strider"
+source = "source-depth-strider.rs"
+visibility = "pub"
+
+[[module]]
+id = "source-depth-strider-world"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_depth_strider_world"
+source = "depth-strider-world.rs"
+
+[[injection]]
+id = "source-depth-strider-equipment"
+target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
+kind = "RETURN"
+helper = "depth-strider-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[injection]]
+id = "source-depth-strider-player-tick"
+target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
+kind = "RETURN"
+helper = "depth-strider-refresh.rs"
+bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
