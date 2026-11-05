@@ -387,6 +387,17 @@ impl Catalog<'_> {
         None
     }
 
+    // Source matches ignores amounts but greedily reserves distinct tank rows.
+    // It must run separately from amount-aware canPerform/performRecipe.
+    fn alloy_matches(&self, recipe: &AlloyRecipe, fluids: &[(String, u32)]) -> bool {
+        let mut used = HashSet::new();
+        recipe.inputs.iter().all(|ingredient| {
+            let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
+                !used.contains(index) && *amount > 0 && self.matches_fluid(ingredient, fluid));
+            if let Some((index, _)) = matched { used.insert(index); true } else { false }
+        })
+    }
+
     fn alloy_plan(&self, recipe: &AlloyRecipe, fluids: &[(String, u32)], capacity: u32, temperature: u32)
         -> Option<(Vec<(String, u32)>, String, u32)> {
         if recipe.temperature > temperature { return None; }
@@ -417,13 +428,7 @@ impl Catalog<'_> {
             // The native selector cannot represent matching tagged fluids.
             // Stop the whole staged cycle rather than bias shuffled conflicts.
             if recipe.inputs.iter().any(|ingredient| tagged.iter().any(|fluid| self.matches_fluid(ingredient, fluid))) { return None; }
-            let mut used = HashSet::new();
-            let matches = recipe.inputs.iter().all(|ingredient| {
-                let matched = fluids.iter().enumerate().find(|(index, (fluid, amount))|
-                    !used.contains(index) && *amount > 0 && self.matches_fluid(ingredient, fluid));
-                if let Some((index, _)) = matched { used.insert(index); true } else { false }
-            });
-            if matches { recipes.push((id, recipe)); }
+            if self.alloy_matches(&recipe, fluids) { recipes.push((id, recipe)); }
         }
         for end in (1..recipes.len()).rev() {
             let index = draw(end + 1)?;
@@ -433,6 +438,7 @@ impl Catalog<'_> {
         let mut staged = fluids.to_vec();
         let mut plans = Vec::new();
         for (id, recipe) in recipes {
+            if !self.alloy_matches(&recipe, &staged) { continue; }
             let Some((inputs, output, amount)) = self.alloy_plan(&recipe, &staged, capacity, temperature) else { continue; };
             for (fluid, amount) in &inputs {
                 let entry = staged.iter_mut().find(|(id, _)| id == fluid)?;
@@ -753,6 +759,27 @@ mod tests {
         assert!(plans.iter().all(|p|p.1.iter().all(|(id,_)| id != "test:a")));
         assert_eq!(cycle(&recipes,&available,&[],360,700,&mut |n|Some(n-1)).unwrap().len(),1);
         assert!(cycle(&recipes,&available,&[],359,700,&mut |n|Some(n-1)).unwrap().is_empty());
+    }
+    #[test]
+    fn alloy_cycle_rechecks_greedy_identity_match_after_tank_order_changes() {
+        let recipes = BTreeMap::from([
+            ("one".into(), cycle_recipe("test:a","test:c","test:a",180,false)),
+            ("two".into(), serde_json::to_vec(&serde_json::json!({"type":"tconstruct:alloy",
+                "inputs":[{"tag":"test:both","amount":90},{"fluid":"test:b","amount":1}],
+                "result":{"fluid":"test:d","amount":91},"temperature":700})).unwrap()),
+        ]);
+        let item_tags = HashMap::new(); let items = HashSet::new();
+        let fluid_tags = HashMap::from([("test:both".into(),HashSet::from(["test:a".into(),"test:b".into()]))]);
+        let fluids = ["test:a","test:b","test:c","test:d"].into_iter().map(str::to_owned).collect();
+        let catalog = Catalog { recipes: &recipes, item_tags: &item_tags, fluid_tags: &fluid_tags, known_items: &items, known_fluids: &fluids };
+        let available = [("test:a".into(),90),("test:b".into(),1),("test:c".into(),90)];
+        let second = AlloyRecipe::parse(&recipes["two"], &|_|true).unwrap();
+        assert!(catalog.alloy_matches(&second,&available));
+        let changed = [("test:b".into(),1),("test:a".into(),180)];
+        assert!(catalog.alloy_plan(&second,&changed,181,700).is_some());
+        assert!(!catalog.alloy_matches(&second,&changed));
+        let plans = catalog.alloy_cycle(&available,&[],181,700,&|_|true,&mut |n|Some(n-1)).unwrap();
+        assert_eq!(plans.iter().map(|p|p.0.as_str()).collect::<Vec<_>>(),vec!["one"]);
     }
     #[test]
     fn alloy_cycle_fails_closed_for_tagged_inputs_and_invalid_random() {
