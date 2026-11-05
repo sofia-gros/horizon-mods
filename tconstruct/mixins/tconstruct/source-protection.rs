@@ -10,6 +10,7 @@ pub(super) fn supported_definition(world: &super::tconstruct_world::World, id: &
 }
 
 fn supported_value(name: &str, value: &serde_json::Value) -> bool {
+    if name == "turtle_shell" { return super::tconstruct_turtle_shell::supported_value(value); }
     let (kind, points, secondary) = match name {
         "fire_protection" => ("fire",3.0,serde_json::json!({"type":"tconstruct:enchantment_ignoring_protection","level":1,"name":"minecraft:fire_protection"})),
         "blast_protection" => ("blast",3.0,serde_json::json!({"type":"tconstruct:enchantment_ignoring_protection","level":1,"name":"minecraft:blast_protection"})),

@@ -17,7 +17,7 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 29] = [
+const UPGRADES: [(&str, i32); 30] = [
     ("tconstruct:knockback_resistance", 1),
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
@@ -27,14 +27,16 @@ const UPGRADES: [(&str, i32); 29] = [
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36), ("tconstruct:fire_protection", 5),
     ("tconstruct:blast_protection", 5), ("tconstruct:magic_protection", 5),
     ("tconstruct:melee_protection", 5), ("tconstruct:projectile_protection", 5),
+    ("tconstruct:turtle_shell", 5),
 ];
 
-const PROTECTIONS: [(&str, &str); 5] = [
+const PROTECTIONS: [(&str, &str); 6] = [
     ("tconstruct:fire_protection", "tconstruct:seared_reinforcement"),
     ("tconstruct:blast_protection", "tconstruct:obsidian_reinforcement"),
     ("tconstruct:magic_protection", "tconstruct:gold_reinforcement"),
     ("tconstruct:melee_protection", "tconstruct:cobalt_reinforcement"),
     ("tconstruct:projectile_protection", "tconstruct:iron_reinforcement"),
+    ("tconstruct:turtle_shell", "minecraft:scute"),
 ];
 
 pub(super) fn is_protection(id: &str) -> bool { PROTECTIONS.iter().any(|(name, _)| *name == id) }
@@ -181,10 +183,21 @@ pub(super) fn has_defense_upgrade(tool: &ItemStack) -> bool {
 fn protection_recipe(value: &Value) -> bool {
     let Some(id)=value.get("result").and_then(Value::as_str) else { return false; };
     let Some((_,input))=PROTECTIONS.iter().find(|(name,_)| *name == id) else { return false; };
+    let input = if id == "tconstruct:turtle_shell" {
+        match value.pointer("/input/item").and_then(Value::as_str) {
+            Some("minecraft:scute") => "minecraft:scute",
+            Some("minecraft:turtle_scute") => "minecraft:turtle_scute",
+            _ => return false,
+        }
+    } else { *input };
+    let tools = if id == "tconstruct:turtle_shell" {
+        serde_json::json!({"tag":"tconstruct:modifiable/armor"})
+    } else { serde_json::json!([
+        {"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}
+    ]) };
     value == &serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
         "amount_per_item":1,"input":{"item":input},"needed_per_level":5,
-        "result":id,"slots":{"defense":1},"tools":[
-            {"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}]})
+        "result":id,"slots":{"defense":1},"tools":tools})
 }
 
 pub(super) fn valid_defense_slots(tool: &ItemStack, defense: i32) -> bool {
@@ -255,6 +268,7 @@ pub(super) fn extract_upgrade_with_traits(
     if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if is_protection(&id) && !(belongs("tconstruct:modifiable/armor") || belongs("tconstruct:modifiable/held")) { return None; }
+    if id == "tconstruct:turtle_shell" && !belongs("tconstruct:modifiable/armor") { return None; }
     if id == "tconstruct:knockback_resistance" && !belongs("tconstruct:modifiable/armor") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
@@ -699,10 +713,11 @@ mod tests {
             ]))); tool
         };
         for (id,input) in PROTECTIONS {
+            let tools = if id == "tconstruct:turtle_shell" { serde_json::json!({"tag":"tconstruct:modifiable/armor"}) }
+                else { serde_json::json!([{"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}]) };
             let recipe=serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
                 "amount_per_item":1,"input":{"item":input},"needed_per_level":5,
-                "result":id,"slots":{"defense":1},"tools":[
-                    {"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}]});
+                "result":id,"slots":{"defense":1},"tools":tools});
             assert!(protection_recipe(&recipe));
             let recipes=BTreeMap::from([(id.into(),serde_json::to_vec(&recipe).unwrap())]);
             let inputs=[Some(ItemStack::new(input,5))];
@@ -722,9 +737,42 @@ mod tests {
             ("tic_upgrades",Tag::compound(PROTECTIONS.iter().map(|(id,_)| (*id,Tag::Int(1)))
                 .chain(std::iter::once(("tconstruct:knockback_resistance",Tag::Int(1)))))),
         ])));
-        assert_eq!(free_defense_slots(&mixed,6),Some(0));
-        assert_eq!(free_defense_slots(&mixed,5),None);
+        assert_eq!(free_defense_slots(&mixed,7),Some(0));
+        assert_eq!(free_defense_slots(&mixed,6),None);
         assert!(valid_slots(&mixed,&BTreeMap::new(),0,0));
+    }
+
+    #[test]
+    fn turtle_shell_native_scutes_top_off_without_another_slot_and_require_armor_tag() {
+        use super::*;
+        let recipe = serde_json::json!({"type":"tconstruct:incremental_modifier","allow_crystal":true,
+            "amount_per_item":1,"input":{"item":"minecraft:turtle_scute"},"needed_per_level":5,
+            "result":"tconstruct:turtle_shell","slots":{"defense":1},"tools":{"tag":"tconstruct:modifiable/armor"}});
+        assert!(protection_recipe(&recipe));
+        let recipes = BTreeMap::from([("turtle_shell".into(),serde_json::to_vec(&recipe).unwrap())]);
+        let mut tool = ItemStack::new("tconstruct:plate_helmet",1);
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:turtle_shell",Tag::Int(2))]))
+        ])));
+        let mut tags = HashMap::from([
+            ("tconstruct:modifiable/armor".into(),HashSet::from(["tconstruct:plate_helmet".into()])),
+            ("tconstruct:modifiable".into(),HashSet::from(["tconstruct:plate_helmet".into()])),
+            ("tconstruct:modifiable/held".into(),HashSet::from(["tconstruct:plate_helmet".into()])),
+        ]);
+        let inputs = [Some(ItemStack::new("minecraft:turtle_scute",8))];
+        let plan = plan_with_defense(&recipes,&tags,&tool,&inputs,0,0,1,&BTreeMap::new()).unwrap();
+        assert_eq!(plan.amount,5);
+        assert_eq!(plan.consumed,vec![(0,1),(1,3)]);
+        tags.remove("tconstruct:modifiable/armor");
+        assert!(plan_with_defense(&recipes,&tags,&tool,&inputs,0,0,1,&BTreeMap::new()).is_none());
+        tool.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("tic_upgrades",Tag::compound([("tconstruct:turtle_shell",Tag::Int(7))]))
+        ])));
+        let extraction = [Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
+        assert!(extract_upgrade(&tags,&tool,&extraction,"tconstruct:turtle_shell").is_none());
+        let mut altered = recipe;
+        altered["tools"] = serde_json::json!([{"tag":"tconstruct:modifiable/armor"},{"tag":"tconstruct:modifiable/held"}]);
+        assert!(!protection_recipe(&altered));
     }
 
     #[test]
