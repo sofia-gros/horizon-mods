@@ -1,3 +1,4 @@
+use horizon_core::random::RandomSource;
 use super::{tconstruct_source_overgrowth as rule, Game};
 use horizon_world::nbt::Tag;
 
