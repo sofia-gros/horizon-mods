@@ -382,3 +382,31 @@ not presented as implemented effects.
 The pinned source page is retained as a fixture with attribution. Resource,
 reader and implementation-alignment regressions were added, but no tests were
 run. Full host, actual GUI interactions, save/reload and LAN remain unverified.
+
+
+## Mighty ability categories and source overviews
+
+Mighty's partial Abilities chapter now includes the six pinned source overview
+pages: General, Interaction, Melee, Harvest, Ranged and Armor. They are source
+reference text, not implementation claims. Required chapter and per-overview
+notices distinguish original examples and controls from current Horizon support.
+An overview with no supported current recipes explicitly says that guide
+coverage is unavailable; it does not assert that the effect is unimplemented.
+
+Supported ordinary recipe pages now follow their category in source section
+order instead of being flattened into one list. Five additional armor subgroup
+headings (Helmet, Chestplate, Leggings, Boots and Shield) appear only when their
+current tag yields at least one supported recipe. Source group tag/path identity
+must match the bounded reader mapping. The live modifier tags, current recipes,
+registered items and existing Station tool/level/slot/ingredient gates still
+control which recipe pages are shown. This does not expand the gameplay or
+recipe registry. A modifier in multiple source categories can appear more than
+once; the individual recipe's eligible-tool list remains authoritative, not the
+category heading.
+
+The existing overflow and chapter/page indexes include the new overview and
+group pages. Missing required notices suppress the chapter; missing/mismatched
+overview resources suppress that group rather than showing unqualified prose.
+Pinned source hashes, group mappings and reader wiring regressions were added
+but not run. Compilation, full host integration, actual layout/navigation,
+acquisition, resource reload, save/reload and LAN remain unverified.
