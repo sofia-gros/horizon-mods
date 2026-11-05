@@ -1199,3 +1199,62 @@ fn fluid_guide_matches_empty_container_inputs_repetition_and_runtime_slots() {
     tags.remove("tconstruct:tanks");
     assert!(rows(&recipes,&tags,&items).is_empty());
 }
+
+#[test]
+fn multi_input_bonus_guides_match_skull_filters_and_station_bottle_returns() {
+    use std::collections::{BTreeMap, HashMap, HashSet};
+    use horizon_items::items::ItemStack;
+    use horizon_world::nbt::Tag;
+    let fixture: serde_json::Value = serde_json::from_str(include_str!("../fixtures/ordinary-modifier-guides.json")).unwrap();
+    let recipes: BTreeMap<String,Vec<u8>> = fixture["bonus_recipes"].as_object().unwrap().iter()
+        .map(|(id,value)|(id.clone(),serde_json::to_vec(value).unwrap())).collect();
+    let modifiers = ["tconstruct:draconic".into(),"tconstruct:recapitated".into(),"tconstruct:draconic".into()];
+    let items = ["minecraft:dragon_head", "minecraft:skeleton_skull", "minecraft:slime_ball",
+        "minecraft:dragon_breath", "tconstruct:dragon_scale", "minecraft:glass_bottle"].map(str::to_owned);
+    let tools = ["tconstruct:pickaxe", "tconstruct:slime_helmet"].map(str::to_owned);
+    let tags: HashMap<String, HashSet<String>> = [
+        ("tconstruct:modifiable/bonus_slots",vec!["tconstruct:pickaxe","tconstruct:slime_helmet"]),
+        ("tconstruct:modifiable/skulls",vec!["tconstruct:slime_helmet"]),
+        ("forge:heads",vec!["minecraft:dragon_head","minecraft:skeleton_skull"]),
+        ("forge:slimeballs",vec!["minecraft:slime_ball"]),
+    ].into_iter().map(|(tag,ids)|(tag.into(),ids.into_iter().map(str::to_owned).collect())).collect();
+    let rows = |items: &[String]|tconstruct_modifier_snapshot::bonus_guide_recipes(&recipes,&modifiers,items,&tools,
+        |value,id|tconstruct_source_upgrade_rules::ingredient_matches(value,id,&tags));
+    let shown = rows(&items); assert_eq!(shown.len(),4); // Duplicate modifier groups do not duplicate pages.
+    for row in &shown {
+        let only_recipe = BTreeMap::from([(row.recipe.clone(),recipes[&row.recipe].clone())]);
+        let inputs: Vec<_> = row.inputs.iter().map(|choices|Some(ItemStack::new(&choices[0],1))).collect();
+        let plan = |tool: &ItemStack,inputs: &[Option<ItemStack>]|tconstruct_source_upgrade_rules::plan_with_traits(
+            &only_recipe,&tags,tool,inputs,0,0,&BTreeMap::new());
+        for tool in &row.tools {
+            let mut stack = ItemStack::new(tool,1);
+            let first = plan(&stack,&inputs).unwrap();
+            assert_eq!(first.id,row.modifier); assert_eq!(first.amount,1);
+            assert_eq!(first.consumed.len(),inputs.len()+1);
+            if row.returns_bottles {
+                assert_eq!(inputs.len(),5);
+                let bottles = first.leftover.unwrap(); assert_eq!(&*bottles.item,"minecraft:glass_bottle"); assert_eq!(bottles.count,2);
+                assert_eq!(row.inputs[0],row.inputs[2]);
+                assert_eq!(row.inputs[1],row.inputs[3]); assert_eq!(row.inputs[1],row.inputs[4]);
+                // Grouping repeated ingredients into one stack cannot replace separate input slots.
+                let mut combined = inputs.clone(); combined[0].as_mut().unwrap().count = 2; combined[2] = None;
+                assert!(plan(&stack,&combined).is_none());
+            } else { assert!(first.leftover.is_none()); }
+            let mut missing = inputs.clone(); missing.pop(); assert!(plan(&stack,&missing).is_none());
+            stack.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([("tic_upgrades",Tag::compound([(&*row.modifier,Tag::Int(1))]))])));
+            assert!(plan(&stack,&inputs).is_none());
+        }
+        if row.recipe.ends_with("_for_skull.json") {
+            assert_eq!(row.tools,["tconstruct:slime_helmet"]); assert_eq!(row.inputs.len(),2);
+            assert!(plan(&ItemStack::new("tconstruct:pickaxe",1),&inputs).is_none());
+        } else if row.recipe.ends_with("_from_head.json") {
+            assert_eq!(row.tools,["tconstruct:pickaxe"]); assert_eq!(row.inputs.len(),1);
+            assert!(plan(&ItemStack::new("tconstruct:slime_helmet",1),&inputs).is_none());
+        }
+        if row.modifier == "tconstruct:recapitated" { assert_eq!(row.inputs[0],["minecraft:skeleton_skull"]); }
+    }
+    let without_bottles: Vec<_> = items.iter().filter(|id|id.as_str()!="minecraft:glass_bottle").cloned().collect();
+    assert_eq!(rows(&without_bottles).len(),3);
+    let without_slime: Vec<_> = items.iter().filter(|id|id.as_str()!="minecraft:slime_ball").cloned().collect();
+    assert_eq!(rows(&without_slime).len(),2);
+}

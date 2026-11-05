@@ -154,8 +154,8 @@ Puny Smelting's Slotless chapter now appends a partial, dynamic bonus-slot
 view after the source overview pages. It projects the source bonus tag onto
 this port's existing Station bonus registry, then uses the current
 condition-filtered recipe snapshot, registered items, resolved item tags and
-Station ingredient matcher. Each ordinary one-input, level-one, no-slot-cost
-recipe shows its actual input alternatives, eligible tool types and gameplay
+Station ingredient matcher. Each ordinary one-to-five-input, level-one,
+no-slot-cost recipe shows its actual input alternatives, eligible tool types and gameplay
 slot bonus. Text uses the existing paginated reader, chapter index and LAN
 book response path. A missing snapshot or invalid required nested tag produces
 no fabricated entries. Opening/requesting the book again reads fresh snapshots
@@ -164,8 +164,8 @@ after reload; a book already open is not refreshed in place.
 This is an explicitly partial projection, not complete source modifier
 registry resolution. Unimplemented modifier IDs are omitted even when a
 source tag marks them required. It does not model external registrations or
-redirect aliases. Unsupported recipe shapes, multi-input recipes, requirements
-and slot costs are omitted. The remaining Puny modifier groups, remaining Mighty modifier
+redirect aliases. Unsupported recipe shapes, requirements and slot costs are
+omitted. The remaining Puny modifier groups, remaining Mighty modifier
 pages, source modifier artwork and source recipe layouts remain incomplete.
 The displayed eligible types are not a promise that every existing tool state
 can accept the modifier. Full client, in-game pagination and LAN visual checks
@@ -257,3 +257,19 @@ container acquisition or complete the source modifier registry. Pinned source
 fixtures and focused Station/guide regressions cover these bounded cases;
 full host, page layout, actual gameplay, save/reload and LAN validation remain
 outstanding.
+
+## Multi-input bonus recipes
+
+Puny's partial bonus chapter now preserves up to five separate ingredient
+slots. This includes the source Draconic and Recapitated skull recipes with
+slimeball inputs, and Draconic's two Dragon's Breath plus three Dragon Scale
+recipe. The skull/non-skull intersection and difference selectors still use
+the current Station matcher and registered eligible tools. Repeated ingredients
+are not collapsed into one inventory stack or one input slot.
+
+Five-input recipes identify the Anvil requirement. If Dragon's Breath can be
+consumed, the page explains that each one returns a Glass Bottle; the recipe
+is omitted if the bottle output is not registered. Unknown ingredient forms,
+changed slot costs, multi-level bonuses and other source modifier families
+remain outside this view. Actual item acquisition, UI pagination, full host
+integration, save/reload and LAN are not verified by these guide changes.
