@@ -17,13 +17,13 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 24] = [
+const UPGRADES: [(&str, i32); 25] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:depth_strider", 1), ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
-    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
+    ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36), ("tconstruct:double_jump", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -83,7 +83,7 @@ pub(super) fn provisional_upgrade_enabled(id: &str) -> bool {
 
 fn supported(id: &str, item: &str) -> bool {
     match id {
-        "tconstruct:depth_strider" => matches!(item, "tconstruct:travelers_boots" | "tconstruct:plate_boots" | "tconstruct:slime_boots"),
+        "tconstruct:depth_strider" | "tconstruct:double_jump" => matches!(item, "tconstruct:travelers_boots" | "tconstruct:plate_boots" | "tconstruct:slime_boots"),
         "tconstruct:step_up" => matches!(item, "tconstruct:travelers_leggings" | "tconstruct:plate_leggings" | "tconstruct:slime_leggings"),
         "tconstruct:quick_charge" => item == "tconstruct:crossbow",
         "tconstruct:trueshot" | "tconstruct:blindshot" => matches!(item, "tconstruct:longbow" | "tconstruct:crossbow"),
@@ -127,8 +127,29 @@ fn valid_depth_strider_amount(tool: &ItemStack) -> bool {
     }
 }
 
+// Preserve invalid saved levels instead of silently replacing them.
+fn valid_double_jump_amount(tool: &ItemStack) -> bool {
+    let Some(upgrades) = tool.data().and_then(|d| d.other("minecraft:custom_data"))
+        .and_then(|d| d.get("tic_upgrades")) else { return true; };
+    if !matches!(upgrades, Tag::Compound(_)) { return false; }
+    match upgrades.get("tconstruct:double_jump") {
+        None => true,
+        Some(Tag::Int(level)) => (0..=2).contains(level),
+        _ => false,
+    }
+}
+
+fn double_jump_recipe(value: &Value) -> bool {
+    value == &serde_json::json!({"type":"tconstruct:modifier", "allow_crystal":true,
+        "inputs":[{"item":"minecraft:piston"},{"item":"tconstruct:sky_slime"},
+            {"item":"minecraft:piston"},{"item":"minecraft:phantom_membrane"},
+            {"item":"minecraft:phantom_membrane"}],
+        "level":{"max":2}, "result":"tconstruct:double_jump", "slots":{"abilities":1},
+        "tools":{"tag":"tconstruct:modifiable/armor/boots"}})
+}
+
 /// Recompute free upgrade and ability slots after material traits change.
-fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
+fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:double_jump" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
 
 fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> (i32, i32, i32) {
@@ -145,7 +166,7 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
-    used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
+    valid_double_jump_amount(tool) && used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
 
 /// Validate source Unbreakable dependencies against complete levels and material traits.
@@ -157,7 +178,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:depth_strider" || valid_depth_strider_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:double_jump" || valid_double_jump_amount(tool)) && (id != "tconstruct:depth_strider" || valid_depth_strider_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -178,14 +199,14 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_depth_strider_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_double_jump_amount(tool) || !valid_depth_strider_amount(tool) || !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
     if id == "tconstruct:blasting" && !belongs("tconstruct:modifiable/harvest/stone") { return None; }
     if id == "tconstruct:gilded" && !belongs("tconstruct:modifiable/bonus_slots") { return None; }
     if id == "tconstruct:step_up" && !belongs("tconstruct:modifiable/armor/leggings") { return None; }
-    if id == "tconstruct:depth_strider" && !belongs("tconstruct:modifiable/armor/boots") { return None; }
+    if matches!(id, "tconstruct:depth_strider" | "tconstruct:double_jump") && !belongs("tconstruct:modifiable/armor/boots") { return None; }
     if id == "tconstruct:hydraulic" && !belongs("tconstruct:modifiable/harvest") { return None; }
     let old = amount(tool, id);
     if old < needed { return None; }
@@ -222,13 +243,15 @@ pub(super) fn plan_with_traits(
     tool: &ItemStack, inputs: &[Option<ItemStack>], upgrade_slots: i32, ability_slots: i32,
     traits: &BTreeMap<String, i32>,
 ) -> Option<UpgradePlan> {
-    if !valid_depth_strider_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
+    if !valid_double_jump_amount(tool) || !valid_depth_strider_amount(tool) || !valid_hydraulic_amount(tool) { return None; }
     let (upgrade_slots, ability_slots, occupied) = slot_state(tool, traits, upgrade_slots, ability_slots);
     for bytes in recipes.values() {
         let Ok(value) = serde_json::from_slice::<Value>(bytes) else {
             continue;
         };
         let recipe_type = value.get("type").and_then(Value::as_str);
+        if value.get("result").and_then(Value::as_str) == Some("tconstruct:double_jump")
+            && !double_jump_recipe(&value) { continue; }
         if value.get("result").and_then(Value::as_str) == Some("tconstruct:depth_strider")
             && (recipe_type != Some("tconstruct:modifier")
                 || value.get("level") != Some(&serde_json::json!({"max":3}))
@@ -240,22 +263,22 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
-        if id == "tconstruct:depth_strider" && !tags.get("tconstruct:modifiable/armor/boots").is_some_and(|items| items.contains(tool.item.as_ref())) { continue; }
+        if matches!(id, "tconstruct:depth_strider" | "tconstruct:double_jump") && !tags.get("tconstruct:modifiable/armor/boots").is_some_and(|items| items.contains(tool.item.as_ref())) { continue; }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
 ) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider" | "tconstruct:double_jump")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider") && !fluid && old != 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider" | "tconstruct:double_jump") && !fluid && old != 0 { continue; }
             if fluid && old >= i16::MAX as i32 { continue; }
-            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:depth_strider") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
+            if !matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:depth_strider" | "tconstruct:double_jump") && value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) && traits.get(id).copied().unwrap_or(0) > 0 { continue; }
             let trait_level = if value.get("check_trait_level").and_then(Value::as_bool).unwrap_or(false) { traits.get(id).copied().unwrap_or(0) } else { 0 };
             let new_level = i64::from(old) + 1 + i64::from(trait_level);
-            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider") {
+            let valid_level = if matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider" | "tconstruct:double_jump") {
                 match value.get("level") {
                     None => (1..=32767).contains(&new_level),
                     Some(level) if level.is_number() => level.as_i64() == Some(new_level),
@@ -295,7 +318,7 @@ pub(super) fn plan_with_traits(
             }
             let bottles = if crystal { 0 } else { consumed.iter().filter(|(slot, _)| present.iter().any(|(index, stack)| index == slot && &*stack.item == "minecraft:dragon_breath")).count() as u32 };
             let leftover = (bottles > 0).then(|| ItemStack::new("minecraft:glass_bottle", bottles));
-            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider") { old.checked_add(1)? } else { 1 };
+            let next_level = if fluid || matches!(id, "tconstruct:gilded" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:depth_strider" | "tconstruct:double_jump") { old.checked_add(1)? } else { 1 };
             return Some(UpgradePlan { id: id.to_owned(), amount: next_level, consumed, leftover });
         }
 
@@ -600,6 +623,59 @@ pub fn apply_stats(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn double_jump_source_recipe_uses_abilities_not_upgrades() {
+        use super::*;
+        let recipe = serde_json::json!({"type":"tconstruct:modifier", "allow_crystal":true,
+            "inputs":[{"item":"minecraft:piston"},{"item":"tconstruct:sky_slime"},
+                {"item":"minecraft:piston"},{"item":"minecraft:phantom_membrane"},
+                {"item":"minecraft:phantom_membrane"}],
+            "level":{"max":2}, "result":"tconstruct:double_jump", "slots":{"abilities":1},
+            "tools":{"tag":"tconstruct:modifiable/armor/boots"}});
+        let recipes = BTreeMap::from([("double_jump".into(), serde_json::to_vec(&recipe).unwrap())]);
+        let mut tags = HashMap::from([
+            ("tconstruct:modifiable/armor/boots".into(), HashSet::from(["tconstruct:plate_boots".into()])),
+            ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:plate_boots".into()])),
+        ]);
+        let mk = |level| {
+            let mut tool = ItemStack::new("tconstruct:plate_boots", 1);
+            tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+                ("tic_upgrades", Tag::compound([("tconstruct:double_jump", Tag::Int(level))])),
+            ])));
+            tool
+        };
+        let inputs = ["minecraft:piston", "tconstruct:sky_slime", "minecraft:piston",
+            "minecraft:phantom_membrane", "minecraft:phantom_membrane"].map(|id| Some(ItemStack::new(id,2)));
+        for old in 0..2 {
+            let result = plan_with_traits(&recipes,&tags,&mk(old),&inputs,0,2,&BTreeMap::new()).unwrap();
+            assert_eq!(result.amount, old + 1);
+            assert_eq!(result.consumed, vec![(0,1),(1,1),(2,1),(3,1),(4,1),(5,1)]);
+        }
+        assert!(plan_with_traits(&recipes,&tags,&mk(2),&inputs,5,5,&BTreeMap::new()).is_none());
+        assert!(plan_with_traits(&recipes,&tags,&mk(1),&inputs,5,1,&BTreeMap::new()).is_none());
+        assert!(plan_with_traits(&recipes,&tags,&mk(0),&inputs[..3],5,2,&BTreeMap::new()).is_none());
+        assert!(!valid_slots(&mk(2),&BTreeMap::new(),5,1));
+        assert!(valid_slots(&mk(2),&BTreeMap::new(),0,2));
+        for amount in [-1,3] {
+            assert!(plan_with_traits(&recipes,&tags,&mk(amount),&inputs,5,5,&BTreeMap::new()).is_none());
+            assert!(extractable(&mk(amount)).is_empty());
+        }
+        let mut crystal = ItemStack::new("tconstruct:modifier_crystal",1);
+        crystal.data_mut().set_other("minecraft:custom_data",Some(Tag::compound([
+            ("modifier",Tag::String("tconstruct:double_jump".into()))])));
+        assert_eq!(plan_with_traits(&recipes,&tags,&mk(1),&[Some(crystal)],0,2,&BTreeMap::new()).unwrap().amount,2);
+        let extraction=[Some(ItemStack::new("minecraft:wet_sponge",1)),Some(ItemStack::new("tconstruct:sky_slime_crystal",1))];
+        assert_eq!(extract_upgrade(&tags,&mk(2),&extraction,"tconstruct:double_jump").unwrap().upgrade.amount,1);
+        let mut altered=recipe.clone();
+        altered["slots"]=serde_json::json!({"upgrades":1});
+        assert!(!double_jump_recipe(&altered));
+        altered=recipe.clone(); altered["level"]=serde_json::json!({"max":3});
+        assert!(!double_jump_recipe(&altered));
+        tags.remove("tconstruct:modifiable/armor/boots");
+        assert!(plan_with_traits(&recipes,&tags,&mk(0),&inputs,0,2,&BTreeMap::new()).is_none());
+        assert!(extract_upgrade(&tags,&mk(2),&extraction,"tconstruct:double_jump").is_none());
+    }
+
     #[test]
     fn depth_strider_source_inputs_levels_crystals_and_extraction() {
         use super::*;

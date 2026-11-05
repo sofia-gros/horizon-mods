@@ -5387,3 +5387,16 @@ target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
 helper = "depth-strider-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
+
+[[module]]
+id = "source-double-jump"
+file = "crates/horizon-client/src/game.rs"
+name = "tconstruct_source_double_jump"
+source = "source-double-jump.rs"
+
+[[module]]
+id = "server-source-double-jump"
+file = "crates/horizon-client/src/client_lib.rs"
+name = "tconstruct_source_double_jump"
+source = "source-double-jump.rs"
+visibility = "pub"
