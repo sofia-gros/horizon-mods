@@ -33,8 +33,9 @@ variants. No display or achievement toast is added.
 Existing recipe ingredients, output metadata, counts and workstation behavior
 are unchanged. These unlocks do not implement arbitrary retextured recipes,
 custom rock choices, full current-world ingredient parity or first-material
-acquisition. The alternate log/table Crafting Station recipes and Anvil
-recipe unlocks remain outside this change.
+acquisition. The alternate log/table Crafting Station recipes remain outside
+this change. Anvil recipe discovery is covered separately in
+[Anvil discovery](anvil-discovery-unlocks.md).
 
 Regression coverage was added for source criteria, complete supported-variant
 reward mapping, native recipe outputs and package inclusion. The existing
