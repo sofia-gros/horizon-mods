@@ -427,9 +427,10 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
     if !wall && !floor && !foundry_shell { return false; }
     let Some(raw_controller) = store::read(&game.world, controller, "tconstruct:smeltery") else { return false; };
     let Some(mut state) = Smeltery::from_nbt(&raw_controller) else { return false; };
-    // Only the tank changes. Refuse unknown rows/aliases or lossy fluid IDs,
-    // and never serialize unrelated inventory, heat, fuel or extension data.
-    if raw_controller.get("tank") != Some(&state.tank.to_nbt()) { return false; }
+    // Keep tank/row extensions by exact fluid identity, without serializing
+    // unrelated inventory, heat, fuel or controller extension data.
+    let Some(raw_tank) = raw_controller.get("tank") else { return false; };
+    if state.tank.to_nbt_preserving(raw_tank).as_ref() != Some(raw_tank) { return false; }
     let Some(held) = game.held().cloned() else { return false; };
     if held.wire_patch().is_some() || held.data().is_some_and(|data| data.wire.patch().is_some()) { return false; };
 
@@ -446,7 +447,10 @@ pub(super) fn interact_drain(game: &mut super::Game<'_>, pos: Pos) -> bool {
     if !super::tconstruct_source_fluid_container::transfer_selected_with_color(&mut state.tank, &mut slots,
         super::tconstruct_source_fluid_container::Direction::Auto, None,
         &|item| game.res.items().get(item).is_some(), &|fluid| fluids.contains(fluid), tags.as_ref(), game.lan.is_none() && game.lan_acting_uuid.is_none()) { return container; }
-    let Some(saved) = patch_smeltery_controller_tank(&raw_controller, &state) else { return false; };
+    let Some(tank) = state.tank.to_nbt_preserving(raw_tank) else { return false; };
+    let horizon_world::nbt::Tag::Compound(mut fields) = raw_controller.clone() else { return false; };
+    fields.insert("tank".into(), tank);
+    let saved = horizon_world::nbt::Tag::Compound(fields);
     if store::read(&game.world, controller, "tconstruct:smeltery").as_ref() != Some(&raw_controller) { return false; }
     if !store::write(&mut game.world, controller, "tconstruct:smeltery", saved) { return false; }
     if game.creative {

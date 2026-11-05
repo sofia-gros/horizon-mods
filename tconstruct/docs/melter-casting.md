@@ -113,3 +113,25 @@ raw item/controller preservation, unsafe states, creative behavior and failed
 writes. Production interaction, patch, state and transfer code are used with
 mock world/storage/structure. Tests were not run; actual host, world,
 save/reload and LAN validation remain for the final combined pass.
+
+
+### Native controller tank-row extensions during Drain use (#379)
+
+The held Drain route now extends the prior canonical-tank-only guard: native
+Smeltery/Foundry tank extensions and fluid-row extensions can survive fill/drain.
+The preserving codec keys rows by exact fluid ID and full tag, retains their raw
+fields when amounts or order change, and keeps top-level tank extensions even when
+the tank becomes empty. New rows use the native encoding. Unrelated controller
+inventory, heat, fuel and extension fields remain untouched.
+
+Legacy aliases, malformed owned fields, lossy fluid IDs and duplicate fluid/tag
+identities still refuse conversion. Removing an entire row carrying unknown fields
+also refuses: silently dropping its metadata or attaching it to a different fluid
+would be unsafe. A partial drain of such a row is supported. This codec is used by
+held Drain interactions only; other machine/menu/Faucet serialization is unchanged.
+
+Three codec cases and two production-route fixture cases were added for tagged
+identity/reordering, overfull capacity preservation, partial fill/drain, empty/refill,
+unsafe aliases/IDs, opaque-row removal and failed-save inventory retention. Fixtures
+use mocked host/world/storage. They were not run; actual gameplay, reload, LAN and
+combined integration remain for the deferred validation phase.
