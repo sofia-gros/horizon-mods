@@ -28,6 +28,7 @@ mod tconstruct_source_smeltery_world {use super::*;pub(super) fn detect(g:&Game<
 mod store {use super::*;pub(super) fn read(w:&World,_:Pos,_:&str)->Option<Tag>{Some(w.raw.clone())} pub(super) fn write(w:&mut World,_:Pos,_:&str,t:Tag)->bool{if w.fail{return false}w.raw=t;w.writes+=1;true}}
 mod runtime {
 use super::*;use super::tconstruct_source_smeltery_state::Smeltery;
+// __PRODUCTION_PATCH__
 // __PRODUCTION_ROUTE__
 }
 fn fixture(item:&str,amount:u32)->Game<'static>{
@@ -51,4 +52,54 @@ fn fixture(item:&str,amount:u32)->Game<'static>{
  let mut g=fixture("minecraft:water_bucket",0);assert!(runtime::interact_drain(&mut g,(-2,0,0)));assert_eq!(g.world.writes,1);assert_eq!(g.held.as_ref().unwrap().item.as_ref(),"minecraft:bucket");
  assert_eq!(tconstruct_source_smeltery_state::Smeltery::from_nbt(&g.world.raw).unwrap().tank.total(),1000);
  let mut g=fixture("minecraft:water_bucket",0);g.world.fail=true;let raw=g.world.raw.clone();assert!(!runtime::interact_drain(&mut g,(-2,0,0)));assert_eq!(raw,g.world.raw);assert_eq!(g.held.as_ref().unwrap().item.as_ref(),"minecraft:water_bucket");assert!(g.gifts.is_empty());
+}
+
+fn extended_controller(game:&mut Game<'_>) {
+ let mut state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&game.world.raw).unwrap();
+ state.slots=vec![Some(ItemStack::new("minecraft:stone",3))];state.progress=vec![17];state.fuel=33;state.temperature=800;
+ let mut raw=state.to_nbt();
+ if let Tag::Compound(fields)=&mut raw {
+  fields.insert("future".into(),Tag::Long(7));fields.insert("heat_codes".into(),Tag::IntArray(vec![5]));
+  fields.insert("fuel_view".into(),Tag::compound([("future_fuel",Tag::Int(8))]));
+  if let Some(Tag::List(slots))=fields.get_mut(&"slots".into()) {if let Tag::Compound(item)=&mut slots[0]{item.insert("future_item".into(),Tag::Int(9));}}
+ }
+ game.world.raw=raw;
+}
+#[test]fn drain_held_preserves_raw_controller_and_item_fields(){
+ for controller in [1,2] {for draining in [false,true] {
+  let mut game=fixture(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},if draining{1000}else{0});game.world.controller=controller;extended_controller(&mut game);
+  let before=game.world.raw.clone();assert!(runtime::interact_drain(&mut game,(-2,0,0)));
+  let state=tconstruct_source_smeltery_state::Smeltery::from_nbt(&game.world.raw).unwrap();assert_eq!(state.tank.total(),if draining{0}else{1000});
+  let Tag::Compound(fields)=&before else{panic!()};
+  for (key,value) in fields {if key.to_string_lossy()!="tank"{assert_eq!(game.world.raw.get(&key.to_string_lossy()),Some(value));}}
+  assert_eq!(game.world.writes,1);assert!(game.gifts.is_empty());
+  assert_eq!(&*game.held.as_ref().unwrap().item,if draining{"minecraft:water_bucket"}else{"minecraft:bucket"});
+ }}
+}
+#[test]fn drain_held_refuses_noncanonical_tanks_and_retained_wire(){
+ use horizon_items::item_data::Wire;use horizon_world::nbt::JavaString;
+ for mode in 0..6 {
+  let mut game=fixture("minecraft:water_bucket",1000);
+  if mode<4 {if let Tag::Compound(fields)=&mut game.world.raw {if let Some(Tag::Compound(tank))=fields.get_mut(&"tank".into()){
+   match mode {
+    0=>{tank.insert("future_tank".into(),Tag::Int(7));},
+    1=>{tank.insert("Amount".into(),Tag::Int(1000));},
+    2|3=>{if let Some(Tag::List(rows))=tank.get_mut(&"fluids".into()){if let Tag::Compound(row)=&mut rows[0]{if mode==2{row.insert("future_row".into(),Tag::Int(8));}else{row.insert("id".into(),Tag::String(JavaString(vec![0xd800])));}}}},
+    _=>unreachable!(),
+   }
+  }}} else {
+   let held=game.held.as_mut().unwrap();held.data_mut().wire=Wire::new(held.clone(),std::sync::Arc::<[u8]>::from([1,2,3]));
+   if mode==5{held.data_mut().set_other("minecraft:custom_name",Some(Tag::String("Changed".into())));}
+  }
+  let before=(game.world.raw.clone(),game.held.clone());assert!(!runtime::interact_drain(&mut game,(-2,0,0)));
+  assert_eq!((game.world.raw,game.held),before);assert_eq!(game.world.writes,0);assert!(game.gifts.is_empty());
+ }
+}
+#[test]fn drain_held_preservation_save_failure_and_creative_paths(){
+ for draining in [false,true] {for fail in [false,true] {
+  let mut game=fixture(if draining{"minecraft:bucket"}else{"minecraft:water_bucket"},if draining{1000}else{0});extended_controller(&mut game);game.creative=true;game.world.fail=fail;
+  let raw=game.world.raw.clone();let held=game.held.clone();assert_eq!(runtime::interact_drain(&mut game,(-2,0,0)),!fail);
+  assert_eq!(game.held,held);assert_eq!(game.gifts.len(),usize::from(draining && !fail));
+  if fail{assert_eq!(game.world.raw,raw);assert_eq!(game.world.writes,0);}else{assert_eq!(game.world.writes,1);assert_eq!(game.world.raw.get("slots"),raw.get("slots"));}
+ }}
 }

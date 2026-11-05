@@ -95,3 +95,21 @@ without pouring until the source is corrected or removed. Older casting table,
 basin and cannon routes and broken/replaced blocks are outside this guard.
 Fixture tests use mock world and atomic store behavior; host integration and
 LAN remain unverified.
+
+### Direct held-container Drain preservation (#379)
+
+A held-container exchange through a formed Seared/Scorched Drain now patches
+only the controller's validated native tank. Raw Smeltery/Foundry inventory,
+item extensions, progress, fuel/heat state and other controller fields remain
+unchanged instead of passing through a lossy full-state serialization. Saved
+state is rechecked before persistence, and held inventory changes still happen
+only after a successful save. The handled-container fallback from #684 remains.
+
+Noncanonical tank/row extensions, tank aliases and lossy fluid identifiers
+wait rather than being discarded. Current or stale retained wire-backed held
+items are refused. This does not migrate opaque tank formats or broaden fluid
+capabilities. The existing fixture adds both controller types, fill/drain,
+raw item/controller preservation, unsafe states, creative behavior and failed
+writes. Production interaction, patch, state and transfer code are used with
+mock world/storage/structure. Tests were not run; actual host, world,
+save/reload and LAN validation remain for the final combined pass.

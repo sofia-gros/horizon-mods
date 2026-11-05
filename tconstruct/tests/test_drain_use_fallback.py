@@ -20,7 +20,12 @@ class DrainUseFallbackTest(unittest.TestCase):
         route = source.split('pub(super) fn interact_drain(',1)[1].split('pub(super) fn ensure(',1)[0]
         self.assertIn('accepts_with_color(&held',route)
         self.assertIn('return container;',route)
-        self.assertIn('state.to_nbt()) { return false; }',route)
+        self.assertIn('"tconstruct:smeltery", saved) { return false; }',route)
+        self.assertNotIn('"tconstruct:smeltery", state.to_nbt()',route)
+        self.assertIn('raw_controller.get("tank") != Some(&state.tank.to_nbt())',route)
+        self.assertIn('patch_smeltery_controller_tank(&raw_controller, &state)',route)
+        self.assertIn('data.wire.patch().is_some()',route)
+        self.assertLess(route.index('store::read(&game.world, controller, "tconstruct:smeltery").as_ref()'), route.index('store::write'))
         self.assertLess(route.index('store::write'),route.index('game.give_or_drop'))
         ci = (ROOT.parent / '.github/workflows/mixins.yml').read_text()
         self.assertIn('python3 tconstruct/tests/run_drain_container.py',ci)
