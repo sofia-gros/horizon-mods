@@ -39,8 +39,9 @@ stage, after armor and Resistance, rather than scaling incoming damage early.
 
 ## Boundaries
 
-This covers Fire Protection, not the other protection modifiers, Overshield,
-Boundless or custom protection-cap changes. Exact mixed-modifier float ordering,
+The shared stage now also covers [Blast Protection](blast-protection-damage.md).
+Other protection modifiers, Overshield,
+Boundless and custom protection-cap changes remain unsupported. Exact mixed-modifier float ordering,
 negative protection and extended caps remain unsupported. Damage predicates that
 bypass protection follow the native kernel/catalog; this does not replace those
 native rules with separately reloaded source bypass tags. Other held tools,

@@ -61,4 +61,5 @@ Sources: Tinkers' Construct f4e77d43, the four corresponding
 
 The later [Blast Protection knockback bridge](blast-protection-knockback.md)
 connects its secondary effect for native player explosions and wind bursts.
-Blast damage protection remains separate.
+The later [Blast damage bridge](blast-protection-damage.md) separately connects
+the default-cap protection stage.

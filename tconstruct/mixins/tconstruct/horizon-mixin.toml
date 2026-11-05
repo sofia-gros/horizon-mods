@@ -5518,21 +5518,21 @@ name = "tconstruct_source_damage_tags"
 source = "source-damage-tags.rs"
 
 [[module]]
-id = "source-fire-protection-damage"
+id = "source-protection-damage"
 file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_fire_protection_damage"
-source = "source-fire-protection-damage.rs"
+name = "tconstruct_protection_damage"
+source = "source-protection-damage.rs"
 
 [[module]]
-id = "source-fire-protection-damage-world"
+id = "source-protection-damage-world"
 file = "crates/horizon-client/src/game.rs"
-name = "tconstruct_fire_protection_damage_world"
-source = "fire-protection-damage-world.rs"
+name = "tconstruct_protection_damage_world"
+source = "protection-damage-world.rs"
 
 [[state]]
-id = "fire-protection-damage-types"
+id = "protection-damage-types"
 target = "horizon_client_render::chunk_map::ChunkMap"
-ty = "Option<Result<(std::collections::HashSet<String>,std::collections::HashSet<String>),String>>"
+ty = "Option<Result<std::collections::HashMap<String,std::collections::HashSet<String>>,String>>"
 initial = "::core::default::Default::default()"
 [[state.constructor]]
 target = "horizon_client_render::chunk_map::<ChunkMap as Default>::default"
@@ -5540,7 +5540,7 @@ selector = "Self"
 require = 1
 
 [[state]]
-id = "fire-protection-points"
+id = "protection-points"
 target = "horizon_client_render::effects::StatusFlags"
 ty = "Vec<(String,f32)>"
 initial = "::core::default::Default::default()"
@@ -5550,30 +5550,30 @@ selector = "StatusFlags"
 require = 1
 
 [[injection]]
-id = "source-fire-protection-damage-status"
+id = "source-protection-damage-status"
 target = "horizon_client::game::potions::Game<'_>::apply_effect_status"
 kind = "RETURN"
-helper = "fire-protection-damage-refresh.rs"
+helper = "protection-damage-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]
-id = "source-fire-protection-damage-health"
+id = "source-protection-damage-health"
 target = "horizon_client_render::effects::StatusFlags::protection"
 kind = "HEAD"
 cancellable = true
-helper = "fire-protection-damage-health.rs"
+helper = "protection-damage-health.rs"
 bindings = [{ name = "status", ty = "&crate::effects::StatusFlags", value = "self" }, { name = "damage_type", ty = "&str", value = "damage_type" }]
 
 [[injection]]
-id = "source-fire-protection-damage-equipment"
+id = "source-protection-damage-equipment"
 target = "horizon_client::game::enchant_effects::Game<'_>::apply_enchantment_attributes"
 kind = "RETURN"
-helper = "fire-protection-damage-refresh.rs"
+helper = "protection-damage-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
 
 [[injection]]
-id = "source-fire-protection-damage-player-tick"
+id = "source-protection-damage-player-tick"
 target = "horizon_client::game::native_hooks::Game<'_>::native_player_tick"
 kind = "RETURN"
-helper = "fire-protection-damage-refresh.rs"
+helper = "protection-damage-refresh.rs"
 bindings = [{ name = "value", ty = "()", value = "$value" }, { name = "game", ty = "&mut crate::game::Game<'_>", value = "&mut *self" }]
