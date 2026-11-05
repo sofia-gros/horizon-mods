@@ -17,13 +17,14 @@ pub(super) struct ExtractionPlan {
     pub sponge: ItemStack,
 }
 
-const UPGRADES: [(&str, i32); 23] = [
+const UPGRADES: [(&str, i32); 24] = [
     ("tconstruct:haste", 45), ("tconstruct:sharpness", 36), ("tconstruct:swiftstrike", 72),
     ("tconstruct:quick_charge", 5), ("tconstruct:trueshot", 10),
     ("tconstruct:diamond", 1), ("tconstruct:emerald", 1), ("tconstruct:reinforced", 4),
     ("tconstruct:netherite", 1), ("tconstruct:unbreakable", 1), ("tconstruct:overforced", 4),
     ("tconstruct:glowing", 1), ("tconstruct:tank", 1), ("tconstruct:slurping", 1), ("tconstruct:spilling", 1),
     ("tconstruct:power", 72), ("tconstruct:blindshot", 10), ("tconstruct:speedy", 45), ("tconstruct:step_up", 1), ("tconstruct:splashing", 1), ("tconstruct:necrotic", 1), ("tconstruct:blasting", 20), ("tconstruct:hydraulic", 36),
+    ("tconstruct:worldbound", 1),
 ];
 
 // Original slotless modifiers needed to make higher-level upgrades reachable.
@@ -115,6 +116,26 @@ fn valid_hydraulic_amount(tool: &ItemStack) -> bool {
     }
 }
 
+// Worldbound is a single, slotless upgrade. Do not silently repair saved
+// malformed data or consume inputs for unsupported replacement recipes.
+fn valid_worldbound_amount(tool: &ItemStack) -> bool {
+    let saved = tool.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("tic_upgrades"));
+    match saved {
+        None => true,
+        Some(upgrades @ Tag::Compound(_)) => match upgrades.get("tconstruct:worldbound") {
+            None => true,
+            Some(Tag::Int(amount)) => (0..=1).contains(amount),
+            _ => false,
+        },
+        _ => false,
+    }
+}
+
+const WORLDBOUND_RECIPE: &str = r#"{"type":"tconstruct:modifier","allow_crystal":true,"inputs":[{"tag":"forge:ingots/netherite_scrap"}],"level":1,"result":"tconstruct:worldbound","tools":{"type":"forge:difference","base":{"tag":"tconstruct:modifiable"},"subtracted":{"tag":"tconstruct:modifiable/single_use"}}}"#;
+fn known_worldbound_recipe(value: &Value) -> bool {
+    serde_json::from_str::<Value>(WORLDBOUND_RECIPE).is_ok_and(|expected| *value == expected)
+}
+
 /// Recompute free upgrade and ability slots after material traits change.
 fn is_ability(id: &str) -> bool { matches!(id, "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing") }
 fn used_abilities(tool: &ItemStack) -> i32 { UPGRADES.iter().filter(|(id, _)| is_ability(id)).map(|(id, needed)| (amount(tool,id) + needed - 1) / needed).sum::<i32>() + amount(tool, "tconstruct:gilded") }
@@ -127,13 +148,13 @@ fn slot_state(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, a
     let wings = &*tool.item == "tconstruct:slime_wings";
     let available_upgrades = upgrades + BONUS_SLOTS.iter().map(|(id, n, _)| bonus(id) * n).sum::<i32>() + reverted * if wings { 1 } else { 2 };
     let available_abilities = abilities + BONUS_SLOTS.iter().map(|(id, _, n)| bonus(id) * n).sum::<i32>() - if wings { 0 } else { reverted };
-    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && *id != "tconstruct:blindshot")
+    let used_upgrades = UPGRADES.iter().filter(|(id, _)| !is_ability(id) && !matches!(*id, "tconstruct:blindshot" | "tconstruct:worldbound"))
         .map(|(id, needed)| (amount(tool, id) + needed - 1) / needed).sum::<i32>();
     (available_upgrades, available_abilities, used_upgrades)
 }
 pub(super) fn valid_slots(tool: &ItemStack, traits: &BTreeMap<String, i32>, upgrades: i32, abilities: i32) -> bool {
     let (available_upgrades, available_abilities, used_upgrades) = slot_state(tool, traits, upgrades, abilities);
-    used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
+    valid_worldbound_amount(tool) && used_upgrades <= available_upgrades && used_abilities(tool) <= available_abilities
 }
 
 /// Validate source Unbreakable dependencies against complete levels and material traits.
@@ -145,7 +166,7 @@ pub(super) fn valid_unbreakable(tool: &ItemStack, traits: &BTreeMap<String, i32>
 
 pub(super) fn extractable(tool: &ItemStack) -> Vec<&'static str> {
     UPGRADES.into_iter().filter_map(|(id, needed)|
-        (id != "tconstruct:blindshot" && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
+        (id != "tconstruct:blindshot" && (id != "tconstruct:worldbound" || valid_worldbound_amount(tool)) && (id != "tconstruct:hydraulic" || valid_hydraulic_amount(tool)) && supported(id, &tool.item) && amount(tool, id) >= needed).then_some(id))
         .chain((amount(tool, "tconstruct:gilded") >= 1).then_some("tconstruct:gilded"))
         .collect()
 }
@@ -166,7 +187,7 @@ pub(super) fn extract_upgrade_with_traits(
     tags: &HashMap<String, HashSet<String>>, tool: &ItemStack,
     inputs: &[Option<ItemStack>], id: &str, traits: &BTreeMap<String, i32>,
 ) -> Option<ExtractionPlan> {
-    if !valid_hydraulic_amount(tool) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
+    if !valid_hydraulic_amount(tool) || (id == "tconstruct:worldbound" && !valid_worldbound_amount(tool)) || id == "tconstruct:blindshot" || !supported(id, &tool.item) { return None; }
     let needed = if id == "tconstruct:gilded" { 1 } else { UPGRADES.iter().find_map(|(name, needed)| (*name == id).then_some(*needed))? };
     let belongs = |tag: &str| tags.get(tag).is_some_and(|items| items.contains(tool.item.as_ref()));
     if tool.count != 1 || !belongs("tconstruct:modifiable") || belongs("tconstruct:modifiable/unsalvageable") { return None; }
@@ -184,7 +205,7 @@ pub(super) fn extract_upgrade_with_traits(
         if netherite < 1 || reinforced < 5 { return None; }
     }
     let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, input)| input.as_ref().map(|input| (i + 1, input))).collect();
-    if present.len() != 2 { return None; }
+    if present.len() != 2 || (id == "tconstruct:worldbound" && present.iter().any(|(_, stack)| stack.count == 0)) { return None; }
     let slime = present.iter().find(|(_, item)| &*item.item == "tconstruct:sky_slime_crystal")?.0;
     let sponge = present.iter().find(|(_, item)| &*item.item == "minecraft:wet_sponge")?.0;
     let mut crystal = ItemStack::new("tconstruct:modifier_crystal", 1);
@@ -223,12 +244,13 @@ pub(super) fn plan_with_traits(
         if !supported(id, &tool.item) {
             continue;
         }
+        if id == "tconstruct:worldbound" && (tool.count != 1 || !valid_worldbound_amount(tool) || !known_worldbound_recipe(&value)) { continue; }
         if id == "tconstruct:slurping" && (!tags.get("tconstruct:modifiable/interactable/charge").is_some_and(|items| items.contains(tool.item.as_ref()))
 ) { continue; }
         let Some(tools) = value.get("tools") else { continue; };
         if !ingredient_matches(tools, &tool.item, tags) { continue; }
         if recipe_type == Some("tconstruct:modifier") {
-            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic")
+            if !matches!(id, "tconstruct:diamond" | "tconstruct:emerald" | "tconstruct:netherite" | "tconstruct:unbreakable" | "tconstruct:glowing" | "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing" | "tconstruct:step_up" | "tconstruct:necrotic" | "tconstruct:worldbound")
                 && !BONUS_SLOTS.iter().any(|(name, _, _)| *name == id) { continue; }
             let old = amount(tool, id);
             let fluid = matches!(id, "tconstruct:tank" | "tconstruct:slurping" | "tconstruct:spilling" | "tconstruct:splashing");
@@ -259,7 +281,7 @@ pub(super) fn plan_with_traits(
             let Some(ingredients) = value.get("inputs").and_then(Value::as_array) else { continue; };
             let present: Vec<_> = inputs.iter().enumerate().filter_map(|(i, stack)| stack.as_ref().map(|stack| (i + 1, stack))).collect();
             let crystal = value.get("allow_crystal").and_then(Value::as_bool).unwrap_or(true)
-                && present.len() == 1 && &*present[0].1.item == "tconstruct:modifier_crystal"
+                && present.len() == 1 && present[0].1.count > 0 && &*present[0].1.item == "tconstruct:modifier_crystal"
                 && matches!(present[0].1.data().and_then(|d| d.other("minecraft:custom_data")).and_then(|d| d.get("modifier")), Some(Tag::String(value)) if value.to_string_lossy() == id);
             let mut consumed = vec![(0, 1)];
             if crystal { consumed.push((present[0].0, 1)); }
@@ -1459,6 +1481,88 @@ mod tests {
             let n=|key| match data.get(key){Some(Tag::Float(v))=>f32::from_bits(*v),_=>panic!("{key}")};
             if melee { assert!((n("tic_attack_damage")-3.5).abs()<1e-5); assert!((n("tic_attack_speed")-1.1).abs()<1e-5); }
             else { assert!((n("tic_draw_speed")-1.5).abs()<1e-5); assert!((n("tic_accuracy")-0.7).abs()<1e-5); }
+        }
+    }
+
+    fn worldbound_inputs() -> (BTreeMap<String, Vec<u8>>, HashMap<String, HashSet<String>>) {
+        (BTreeMap::from([("worldbound".into(), WORLDBOUND_RECIPE.as_bytes().to_vec())]),
+         HashMap::from([
+             ("tconstruct:modifiable".into(), HashSet::from(["tconstruct:pickaxe".into(), "tconstruct:travelers_helmet".into()])),
+             ("forge:ingots/netherite_scrap".into(), HashSet::from(["minecraft:netherite_scrap".into()])),
+         ]))
+    }
+
+    fn worldbound_tool(item: &str, saved: Tag) -> ItemStack {
+        let mut tool = ItemStack::new(item, 1);
+        tool.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([
+            ("tic_upgrades", Tag::compound([("tconstruct:worldbound", saved)])),
+        ])));
+        tool
+    }
+
+    #[test]
+    fn worldbound_is_slotless_capped_and_does_not_count_material_traits_toward_recipe_cap() {
+        let (recipes, tags) = worldbound_inputs();
+        let inputs = [Some(ItemStack::new("minecraft:netherite_scrap", 5))];
+        let traits = BTreeMap::from([("tconstruct:worldbound".into(), 1)]);
+        for item in ["tconstruct:pickaxe", "tconstruct:travelers_helmet"] {
+            let empty = worldbound_tool(item, Tag::Int(0));
+            let plan = plan_with_traits(&recipes, &tags, &empty, &inputs, 0, 0, &traits).unwrap();
+            assert_eq!(plan.id, "tconstruct:worldbound");
+            assert_eq!(plan.amount, 1);
+            assert_eq!(plan.consumed, [(0, 1), (1, 1)]);
+            assert!(plan.leftover.is_none());
+            let full = worldbound_tool(item, Tag::Int(1));
+            assert!(valid_slots(&full, &traits, 0, 0));
+            assert!(plan_with_traits(&recipes, &tags, &full, &inputs, 0, 0, &traits).is_none());
+        }
+        assert!(plan(&recipes, &HashMap::new(), &ItemStack::new("tconstruct:pickaxe", 1), &inputs, 0).is_none());
+    }
+
+    #[test]
+    fn worldbound_crystal_extraction_and_live_tag_exclusion() {
+        let (recipes, mut tags) = worldbound_inputs();
+        let empty = worldbound_tool("tconstruct:pickaxe", Tag::Int(0));
+        let full = worldbound_tool("tconstruct:pickaxe", Tag::Int(1));
+        let inputs = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+        let extracted = extract_upgrade(&tags, &full, &inputs, "tconstruct:worldbound").unwrap();
+        assert_eq!(extracted.upgrade.amount, 0);
+        assert_eq!(extracted.upgrade.consumed, [(0, 1), (2, 1), (1, 1)]);
+        assert_eq!(&*extracted.sponge.item, "minecraft:sponge");
+        let crystal = extracted.upgrade.leftover.unwrap();
+        assert_eq!(plan(&recipes, &tags, &empty, &[Some(crystal.clone())], 0).unwrap().amount, 1);
+        assert_eq!(extractable(&full), ["tconstruct:worldbound"]);
+        let index = selection_index("tconstruct:worldbound").unwrap();
+        assert_eq!(selection_id(index), Some("tconstruct:worldbound"));
+        let mut zero = crystal.clone(); zero.count = 0;
+        assert!(plan(&recipes, &tags, &empty, &[Some(zero)], 0).is_none());
+        tags.insert("tconstruct:modifiable/single_use".into(), HashSet::from(["tconstruct:pickaxe".into()]));
+        assert!(plan(&recipes, &tags, &empty, &[Some(crystal)], 0).is_none());
+        tags.insert("tconstruct:modifiable/unsalvageable".into(), HashSet::from(["tconstruct:pickaxe".into()]));
+        assert!(extract_upgrade(&tags, &full, &inputs, "tconstruct:worldbound").is_none());
+    }
+
+    #[test]
+    fn worldbound_rejects_malformed_saved_amounts_and_replacement_recipes() {
+        let (recipes, tags) = worldbound_inputs();
+        let inputs = [Some(ItemStack::new("minecraft:netherite_scrap", 1))];
+        let extraction = [Some(ItemStack::new("minecraft:wet_sponge", 1)), Some(ItemStack::new("tconstruct:sky_slime_crystal", 1))];
+        for saved in [Tag::Int(-1), Tag::Int(2), Tag::Int(i32::MAX), Tag::String("1".into())] {
+            let tool = worldbound_tool("tconstruct:pickaxe", saved);
+            assert!(plan(&recipes, &tags, &tool, &inputs, 10).is_none());
+            assert!(extract_upgrade(&tags, &tool, &extraction, "tconstruct:worldbound").is_none());
+            assert!(extractable(&tool).is_empty());
+            assert!(!valid_slots(&tool, &BTreeMap::new(), 10, 10));
+        }
+        let mut malformed = ItemStack::new("tconstruct:pickaxe", 1);
+        malformed.data_mut().set_other("minecraft:custom_data", Some(Tag::compound([("tic_upgrades", Tag::Int(0))])));
+        assert!(plan(&recipes, &tags, &malformed, &inputs, 10).is_none());
+        let empty = worldbound_tool("tconstruct:pickaxe", Tag::Int(0));
+        for change in [serde_json::json!({"slots":{"upgrades":1}}), serde_json::json!({"level":2}), serde_json::json!({"check_trait_level":true})] {
+            let mut recipe: Value = serde_json::from_str(WORLDBOUND_RECIPE).unwrap();
+            recipe.as_object_mut().unwrap().extend(change.as_object().unwrap().clone());
+            let replaced = BTreeMap::from([("worldbound".into(), serde_json::to_vec(&recipe).unwrap())]);
+            assert!(plan(&replaced, &tags, &empty, &inputs, 10).is_none());
         }
     }
 
