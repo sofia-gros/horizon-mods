@@ -372,7 +372,12 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
     let Some(mut state) = cannon_at(game,pos) else { return false; };
     if clicked_tank {
         let Some(held) = game.held().cloned() else { return true; };
-        if held.wire_patch().is_some() { return true; }
+        if held.wire_patch().is_some() || held.data().is_some_and(|data| data.wire.patch().is_some()) { return true; }
+        let Some(raw_cannon) = store::read(&game.world,pos,"tconstruct:fluid_cannon") else { return false; };
+        if state.tank_to_nbt_preserving(&raw_cannon).as_ref() != Some(&raw_cannon) { return true; }
+        let block_state = game.world.block(pos.0,pos.1,pos.2);
+        let held_before = held.clone(); let creative = game.creative;
+        let comparator_before = state.comparator();
         game.ensure_datapacks();
         let Some((fluids,_)) = game.world.chunks.__horizon_mixins_tconstruct_tank_fluid_context().as_ref().and_then(|v| v.as_ref().ok()) else { return true; };
         let tags = game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref().and_then(|v| v.as_ref().ok());
@@ -381,7 +386,19 @@ pub(super) fn interact_cannon(game: &mut super::Game<'_>, pos: Pos, clicked_tank
             super::tconstruct_source_fluid_container::Direction::Auto,&|id| game.res.items().get(id).is_some(),
             &|id| fluids.contains(id),tags,game.lan.is_none() && game.lan_acting_uuid.is_none()) { return true; }
         let drained = state.tank.amount < before;
-        if !save_cannon(game,pos,&state) { return false; }
+        // Recheck after datapack preparation before changing either fluid or
+        // held inventory. The Cannon's live item is never rewritten here.
+        if !game.world.chunks.contains_key(&(pos.0 >> 4,pos.2 >> 4))
+            || game.world.block(pos.0,pos.1,pos.2) != block_state
+            || store::read(&game.world,pos,"tconstruct:fluid_cannon").as_ref() != Some(&raw_cannon)
+            || !cannon_at(game,pos).is_some_and(|fresh| fresh.tank_to_nbt_preserving(&raw_cannon).as_ref() == Some(&raw_cannon))
+            || game.creative != creative
+            || !game.held().is_some_and(|held| held.count == held_before.count && held.damage == held_before.damage
+                && held.same_item_same_components(&held_before) && !held.data().is_some_and(|data| data.wire.patch().is_some())) { return true; }
+        let Some(saved) = state.tank_to_nbt_preserving(&raw_cannon) else { return false; };
+        if !store::write(&mut game.world,pos,"tconstruct:fluid_cannon",saved) { return false; }
+        notify_casting_comparator(game,pos,comparator_before,state.comparator());
+        game.container_changed(pos);
         if game.creative { if drained { if let Some(item) = slots[1].take() { game.give_or_drop(item); } } }
         else if let Some(rest) = slots[0].take() { *game.held_mut() = Some(rest); if let Some(item) = slots[1].take() { game.give_or_drop(item); } }
         else { *game.held_mut() = slots[1].take(); }
