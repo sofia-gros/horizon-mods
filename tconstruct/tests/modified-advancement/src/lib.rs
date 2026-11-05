@@ -334,4 +334,65 @@ mod tests {
         predicate["predicate"]["predicates"][1]["stat"] = json!("tconstruct:attack_damage");
         assert_eq!(tconstruct_advancement_tool_predicate(&predicate, &item, &world), Break(false));
     }
+
+    fn upgrade(id: &str) -> serde_json::Value {
+        json!({"type": "tconstruct:has_modifier", "check": "upgrades",
+            "modifier": {"type": "tconstruct:single", "modifier": id}})
+    }
+
+    #[test]
+    fn installed_modifier_presence_is_specific_and_excludes_traits() {
+        let item = tool(data(vec![("tconstruct:luck", Tag::Int(1))]));
+        assert!(composed(&item, upgrade("tconstruct:luck"), &["tconstruct:pickaxe"]));
+        assert!(!composed(&item, upgrade("tconstruct:silky"), &["tconstruct:pickaxe"]));
+        for amount in [0, -1] {
+            assert!(!composed(&tool(data(vec![("tconstruct:luck", Tag::Int(amount))])),
+                upgrade("tconstruct:luck"), &["tconstruct:pickaxe"]));
+        }
+        let trait_only = ItemView { id: "tconstruct:pickaxe".into(), count: 1,
+            custom_data: Some(data(vec![("tic_modifiers", data(vec![("tconstruct:luck", Tag::Int(1))]))])) };
+        assert!(!composed(&trait_only, upgrade("tconstruct:luck"), &["tconstruct:pickaxe"]));
+        assert!(!composed(&item, upgrade("tconstruct:luck"), &[]));
+        let mut empty = item;
+        empty.count = 0;
+        assert!(!composed(&empty, upgrade("tconstruct:luck"), &["tconstruct:pickaxe"]));
+    }
+
+    #[test]
+    fn installed_modifier_schema_rejects_unsupported_ranges_and_checks() {
+        let item = tool(data(vec![("tconstruct:luck", Tag::Int(1))]));
+        for value in [json!(0), json!(1), json!({"min": 1}), serde_json::Value::Null] {
+            let mut predicate = upgrade("tconstruct:luck");
+            predicate["level"] = value;
+            assert!(!composed(&item, predicate, &["tconstruct:pickaxe"]));
+        }
+        for check in [json!("all"), json!("traits"), serde_json::Value::Null] {
+            let mut predicate = upgrade("tconstruct:luck");
+            predicate["check"] = check;
+            assert!(!composed(&item, predicate, &["tconstruct:pickaxe"]));
+        }
+        for modifier in [json!("tconstruct:luck"), json!({"type": "tconstruct:tag", "tag": "example:abilities"}),
+            json!({"type": "tconstruct:single", "modifier": "luck"}), serde_json::Value::Null] {
+            let mut predicate = upgrade("tconstruct:luck");
+            predicate["modifier"] = modifier;
+            assert!(!composed(&item, predicate, &["tconstruct:pickaxe"]));
+        }
+        let malformed = tool(data(vec![("tconstruct:luck", Tag::Int(1)), ("invalid", Tag::Int(1))]));
+        assert!(!composed(&malformed, upgrade("tconstruct:luck"), &["tconstruct:pickaxe"]));
+    }
+
+    #[test]
+    fn upgrade_slots_requires_all_five_on_the_same_stack() {
+        const IDS: [&str; 5] = ["tconstruct:writable", "tconstruct:recapitated", "tconstruct:harmonious",
+            "tconstruct:forecast", "tconstruct:gilded"];
+        let predicate = json!({"type": "mantle:and", "predicates": IDS.map(upgrade)});
+        let complete = tool(data(IDS.iter().map(|id| (*id, Tag::Int(1))).collect()));
+        assert!(composed(&complete, predicate.clone(), &["tconstruct:pickaxe"]));
+        for missing in IDS {
+            let partial = tool(data(IDS.iter().filter(|id| **id != missing).map(|id| (*id, Tag::Int(1))).collect()));
+            assert!(!composed(&partial, predicate.clone(), &["tconstruct:pickaxe"]));
+            let single = tool(data(vec![(missing, Tag::Int(1))]));
+            assert!(!composed(&single, predicate.clone(), &["tconstruct:pickaxe"]));
+        }
+    }
 }

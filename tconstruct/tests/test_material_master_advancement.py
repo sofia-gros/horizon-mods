@@ -46,7 +46,7 @@ class MaterialMasterAdvancement(unittest.TestCase):
         self.assertIn('slot != index as usize', helper)
         self.assertIn('Some("default") => actual.1.is_none()', helper)
         self.assertIn('let Ok(id) = id.to_string()', helper)
-        self.assertIn('predicate.as_str() != Some("tconstruct:has_upgrades")', helper)
+        self.assertIn('predicate.as_str() == Some("tconstruct:has_upgrades")', helper)
         self.assertNotIn('trigger(', helper)
         self.assertIn('index >= 0', (FIXTURES / 'HasMaterialPredicate.java').read_text())
         self.assertIn('new MaterialIdPredicate(material.getId())',
