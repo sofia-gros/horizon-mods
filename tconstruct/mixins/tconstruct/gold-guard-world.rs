@@ -41,21 +41,50 @@ pub(super) fn bonus(game:&Game<'_>) -> Option<f64> {
     source::bonus(&slots)
 }
 
+/// Worn attribute hooks apply only to unbroken armor in its class slot.
+/// Only resolved material traits are supported: saved upgrades lack a normal
+/// acquisition path here, and must not silently acquire hand health semantics.
+fn revitalizing(game:&Game<'_>) -> Option<f64> {
+    if !source::known_revitalizing(definition(game,"tconstruct:tinkering/modifiers/revitalizing")) {return None;}
+    let tags=game.world.chunks.__horizon_mixins_tconstruct_resolved_item_tags().as_ref()?.as_ref().ok()?;
+    let worn=tags.get("tconstruct:modifiable/armor/worn")?;
+    let mut total=0.0f64;
+    for (index, stack) in game.armor.iter().enumerate().filter_map(|(i,s)|s.as_ref().map(|s|(i,s))) {
+        let slot=match stack.item.as_ref() {
+            "tconstruct:travelers_helmet"|"tconstruct:plate_helmet"|"tconstruct:slime_helmet"=>Some(0),
+            "tconstruct:travelers_chestplate"|"tconstruct:plate_chestplate"|"tconstruct:slimy_chestplate"|"tconstruct:slime_wings"=>Some(1),
+            "tconstruct:travelers_leggings"|"tconstruct:plate_leggings"|"tconstruct:slime_leggings"=>Some(2),
+            "tconstruct:travelers_boots"|"tconstruct:plate_boots"|"tconstruct:slime_boots"=>Some(3),
+            _=>None,
+        };
+        if slot!=Some(index) || !worn.contains(stack.item.as_ref()) || super::tconstruct_source_ranged_wear::is_broken(stack) {continue;}
+        let traits=super::tconstruct_source_material_traits::levels(&game.world,stack)?;
+        let level=traits.levels.get(source::REVITALIZING).copied().unwrap_or(0);
+        if level<0 || super::tconstruct_source_material_traits::level_with_upgrade(stack,&traits,source::REVITALIZING)?!=level {return None;}
+        total+=f64::from(0.0f32+2.0f32*level as f32);
+    }
+    (total>0.0 && total.is_finite()).then_some(total)
+}
+
 pub(super) fn refresh(game: &mut crate::game::Game<'_>) {
-    use crate::game::tconstruct_gold_guard as source;
     if game.remote.is_some() {return;}
-    let wanted=crate::game::tconstruct_gold_guard_world::bonus(game);
+    let wanted=[(source::MODIFIER,bonus(game)),(source::REVITALIZING,revitalizing(game))];
     let Some(player)=game.player.as_mut() else {return;};
-    let key=player.attributes.key(source::ATTRIBUTE);
-    let Ok(present)=player.attributes.has_modifier(key.clone(),source::MODIFIER) else {return;};
-    if !present && wanted.is_none() {return;}
-    if present && wanted.is_some() && player.attributes.modifier_value(key,source::MODIFIER).ok()==wanted {return;}
-    // Own one transient modifier, outside the native per-equipment reset list.
-    // This allows exact removal detection without persisting a second tracker.
-    if player.set_modifier(source::ATTRIBUTE,source::MODIFIER,wanted.unwrap_or(0.0),"add_value",wanted.is_some()).is_err() {return;}
-    // Source checks current health only on an actual attribute change/removal.
-    if let Ok(maximum)=player.attribute(source::ATTRIBUTE) {
-        let maximum=maximum as f32;
-        if player.health.health()>maximum {let _=player.set_health(maximum,false);}
+    let mut changed=false;
+    // Compute both projections first and update before clamping. A same-refresh
+    // swap between health traits must not clamp against an intermediate maximum.
+    for (id,wanted) in wanted {
+        let key=player.attributes.key(source::ATTRIBUTE);
+        let Ok(present)=player.attributes.has_modifier(key.clone(),id) else {continue;};
+        if !present && wanted.is_none() {continue;}
+        if present && wanted.is_some() && player.attributes.modifier_value(key,id).ok()==wanted {continue;}
+        if player.set_modifier(source::ATTRIBUTE,id,wanted.unwrap_or(0.0),"add_value",wanted.is_some()).is_ok() {changed=true;}
+    }
+    // Worn UpdateHealth has bonus zero: never heal, only clamp on change.
+    if changed {
+        if let Ok(maximum)=player.attribute(source::ATTRIBUTE) {
+            let maximum=maximum as f32;
+            if player.health.health()>maximum {let _=player.set_health(maximum,false);}
+        }
     }
 }
