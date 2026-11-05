@@ -735,6 +735,24 @@ pub(super) fn transfer_selected_with_color(tank: &mut SmelteryTank, slots: &mut 
     true
 }
 
+/// Stage a single native tank exchange without canonicalizing its extensions.
+/// Legacy aliases and opaque carried representations must wait, not be migrated.
+pub(super) fn plan_single_tank_container(raw: &horizon_world::nbt::Tag, capacity: u32,
+    carried: &Option<ItemStack>, direction: Direction,
+    known_item: &impl Fn(&str) -> bool, known_fluid: &impl Fn(&str) -> bool,
+    item_tags: Option<&std::collections::HashMap<String, std::collections::HashSet<String>>>, allow_color: bool)
+    -> Option<(horizon_world::nbt::Tag, [Option<ItemStack>; 2])> {
+    let item = carried.as_ref()?;
+    if item.wire_patch().is_some() || item.data().is_some_and(|data| data.wire.patch().is_some())
+        || !casting_portable_rewrite_safe(item) { return None; }
+    for alias in ["FluidName", "Amount", "Tag", "Tank", "Fluid"] { if raw.get(alias).is_some() { return None; } }
+    let mut tank = super::tconstruct_source_melter_state::Tank::from_nbt(raw, capacity)?;
+    if tank.to_nbt_preserving(raw).as_ref() != Some(raw) { return None; }
+    let mut slots = [carried.clone(), None];
+    if !transfer_single_with_color(&mut tank, &mut slots, direction, known_item, known_fluid, item_tags, allow_color) { return None; }
+    Some((tank.to_nbt_preserving(raw)?, slots))
+}
+
 /// Stage a direct Melter interaction without touching authoritative inventory.
 /// Only the tank field is rewritten; machine and item extension data survives.
 /// The caller must persist `saved` before applying either inventory result.
@@ -2241,6 +2259,30 @@ mod indexed_fill_tests {
             let mut slots=[Some(ItemStack::new(if mode==2{"minecraft:water_bucket"}else{"minecraft:bucket"},1)),None];if mode==3{slots[1]=Some(ItemStack::new("minecraft:stone",1));}
             let before=tank.clone();let previous=slots.clone();let index=if mode==0{9}else if mode==1{1}else{0};
             assert!(!fill_from_index_with_color(&mut tank,&mut slots,index,&|_|true,&|_|true,None,false));assert_eq!(tank,before);assert_eq!(slots,previous);
+        }
+    }
+}
+
+
+#[cfg(test)]
+mod single_tank_plan_tests {
+    use super::*;
+    use horizon_world::nbt::Tag;
+    #[test]
+    fn native_single_tank_plan_keeps_extensions_and_potion_boundary(){
+        let tag=Tag::compound([("Potion",Tag::String("minecraft:healing".into())),("CustomPotionColor",Tag::Int(0x123456))]);
+        let raw=Tag::compound([("fluid",Tag::String("tconstruct:potion".into())),("fluid_tag",tag), ("amount",Tag::Int(500)),("future_tank",Tag::Int(7))]);
+        for allow in [false,true]{let carried=Some(ItemStack::new("minecraft:glass_bottle",1));let result=plan_single_tank_container(&raw,2000,&carried,Direction::FillItem,&|_|true,&|_|true,None,allow);
+            if allow{let(saved,slots)=result.unwrap();assert_eq!(saved.get("amount"),Some(&Tag::Int(250)));assert_eq!(saved.get("future_tank"),Some(&Tag::Int(7)));assert_eq!(saved.get("fluid_tag"),raw.get("fluid_tag"));assert_eq!(potion_data(slots[1].as_ref().unwrap(),true).unwrap().1,Some(0x123456));}else{assert!(result.is_none());}
+        }
+    }
+    #[test]
+    fn native_single_tank_plan_refuses_aliases_lossy_ids_and_bad_owned_fields(){
+        let normal=Tag::compound([("fluid",Tag::String("minecraft:water".into())),("amount",Tag::Int(1000))]);
+        let carried=Some(ItemStack::new("minecraft:bucket",1));
+        for key in ["FluidName","Amount","Tag","Tank","Fluid"]{let Tag::Compound(mut fields)=normal.clone() else{panic!()};fields.insert(key.into(),Tag::Int(1));assert!(plan_single_tank_container(&Tag::Compound(fields),4000,&carried,Direction::FillItem,&|_|true,&|_|true,None,false).is_none());}
+        for mode in 0..2{let Tag::Compound(mut fields)=normal.clone() else{panic!()};if mode==0{fields.insert("fluid".into(),Tag::String(horizon_world::nbt::JavaString(vec![0xd800])));}else{fields.insert("amount".into(),Tag::Long(1000));}
+            assert!(plan_single_tank_container(&Tag::Compound(fields),4000,&carried,Direction::FillItem,&|_|true,&|_|true,None,false).is_none());
         }
     }
 }
