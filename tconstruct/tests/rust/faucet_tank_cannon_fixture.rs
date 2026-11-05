@@ -107,7 +107,7 @@ fn casting_source_cannon_opaque_stale_and_tagged_source_wait() {
         } else {
             let mut input = casting_tank_at(&game, source).unwrap();
             input.tank = Tank::new(4000);
-            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(123))]);
             assert!(input.tank.insert_tagged("tconstruct:potion", Some(&tag), 250));
             game.world.tags.insert((source, "tconstruct:casting_tank".into()), input.to_nbt());
         }
@@ -126,7 +126,10 @@ fn casting_source_cannon_finishes_untagged_packet_before_refilled_tag() {
     game.world.block_entities.insert(source, BlockEntity::Chest(input.slots.to_vec()));
     game.world.tags.insert((source, "tconstruct:casting_tank".into()), input.to_nbt());
     assert_eq!(tank_to_cannon(&mut game, pos, source, target, Faucet::new(), true), Some(true));
-    assert!(casting_tank_at(&game, source).unwrap().tank.tag.is_some());
+    let mut refilled = casting_tank_at(&game, source).unwrap();
+    assert!(refilled.tank.tag.is_some());
+    if let Some(Tag::Compound(fields)) = &mut refilled.tank.tag { fields.insert("CustomPotionColor".into(), Tag::Int(123)); }
+    game.world.tags.insert((source, "tconstruct:casting_tank".into()), refilled.to_nbt());
     for _ in 0..8 {
         let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
         assert_eq!(tank_to_cannon(&mut game, pos, source, target, faucet, false), Some(true));
@@ -140,6 +143,83 @@ fn casting_source_cannon_finishes_untagged_packet_before_refilled_tag() {
     game.world.tags.insert((pos, "tconstruct:faucet".into()), faucet.to_nbt());
     assert_eq!(tank_to_cannon(&mut game, pos, source, target, faucet, false), Some(true));
     assert!(!Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap().active);
+}
+
+
+fn potion_cannon_fixture(portable: bool, tag: Tag) -> (Game<'static>, Pos, Pos, Pos) {
+    let (mut game, pos, source, target) = if portable { casting_source_fixture() } else { super::fixture() };
+    let mut tank = Tank::new(4000);
+    assert!(tank.insert_tagged("tconstruct:potion", Some(&tag), 250));
+    if portable {
+        let mut input = super::tconstruct_source_casting_tank::CastingTank::new();
+        input.tank = tank;
+        game.world.tags.insert((source, "tconstruct:casting_tank".into()), input.to_nbt());
+        game.world.block_entities.insert(source, BlockEntity::Chest(input.slots.to_vec()));
+    } else { game.world.tags.insert((source, "tconstruct:fuel_tank".into()), tank.to_nbt()); }
+    (game, pos, source, target)
+}
+
+#[test]
+fn cannon_base_potion_packets_keep_identity_from_both_source_kinds() {
+    for portable in [false, true] {
+        let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+        let (mut game, pos, source, target) = potion_cannon_fixture(portable, tag.clone());
+        assert_eq!(tank_to_cannon(&mut game, pos, source, target, Faucet::new(), true), Some(true));
+        for _ in 0..30 {
+            let faucet = Faucet::from_nbt(&store::read(&game.world, pos, "tconstruct:faucet").unwrap()).unwrap();
+            let input = if portable { casting_tank_at(&game, source).unwrap().tank }
+                else { Tank::from_nbt(&store::read(&game.world, source, "tconstruct:fuel_tank").unwrap(), 4000).unwrap() };
+            let output = cannon_at(&game, target).unwrap();
+            assert_eq!(input.amount + faucet.pending.amount + output.tank.amount, 250);
+            for tank in [&input, &faucet.pending, &output.tank] {
+                if tank.amount > 0 { assert_eq!(tank.tag.as_ref(), Some(&tag)); }
+            }
+            assert_eq!(output.item.as_ref().unwrap().count, 16);
+            if output.tank.amount == 250 { break; }
+            assert_eq!(tank_to_cannon(&mut game, pos, source, target, faucet, false), Some(true));
+        }
+        assert_eq!(cannon_at(&game, target).unwrap().tank.amount, 250);
+    }
+}
+
+#[test]
+fn cannon_potion_mismatch_and_failed_commit_leave_every_saved_state_unchanged() {
+    for portable in [false, true] {
+        for mismatch in [false, true] {
+            let tag = Tag::compound([("Potion", Tag::String("minecraft:swiftness".into()))]);
+            let (mut game, pos, source, target) = potion_cannon_fixture(portable, tag);
+            if mismatch {
+                let mut output = cannon_at(&game, target).unwrap();
+                let other = Tag::compound([("Potion", Tag::String("minecraft:healing".into()))]);
+                assert!(output.tank.insert_tagged("tconstruct:potion", Some(&other), 10));
+                game.world.tags.insert((target, "tconstruct:fluid_cannon".into()), output.to_nbt());
+            } else { game.world.fail = true; }
+            let before = game.world.tags.clone();
+            assert_eq!(tank_to_cannon(&mut game, pos, source, target, Faucet::new(), true), Some(mismatch));
+            assert_eq!(game.world.tags, before);
+            assert!(!game.notified);
+        }
+    }
+}
+
+#[test]
+fn cannon_rejects_custom_unknown_and_invalid_potion_metadata() {
+    let tags = [
+        Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionColor", Tag::Int(123))]),
+        Tag::compound([("Potion", Tag::String("minecraft:swiftness".into())), ("CustomPotionEffects", Tag::List(vec![]))]),
+        Tag::compound([("Potion", Tag::String("unknown:custom".into()))]),
+        Tag::compound([("Potion", Tag::String("minecraft:strong_awkward".into()))]),
+        Tag::compound([("Potion", Tag::String("swiftness".into()))]),
+        Tag::compound([("Potion", Tag::String(horizon_world::nbt::JavaString(vec![0xd800])))]),
+    ];
+    for portable in [false, true] {
+        for tag in &tags {
+            let (mut game, pos, source, target) = potion_cannon_fixture(portable, tag.clone());
+            let before = game.world.tags.clone();
+            assert_eq!(tank_to_cannon(&mut game, pos, source, target, Faucet::new(), true), Some(false));
+            assert_eq!(game.world.tags, before);
+        }
+    }
 }
 
 }
